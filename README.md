@@ -16,6 +16,7 @@ Needs:
   - [Docker-compose](#docker-compose)
   - [Environment variables](#environment-variables)
   - [Car Priorities](#car-priorities)
+  - [UI](#UI)
 
 ## How to use
 
@@ -93,3 +94,6 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 
 ### Car Priorities
 If you set `CarPriorities` environment variable like the example above, car with ID 2 will only start charing, if car 1 is charging at full speed and there is still power left, or if car 1 is not charging due to reached battery limit or not within specified geofence. Note: You always have to add the car Ids to this list separated by `|`. Even if you only have one car you need to ad the car's Id.
+
+### UI
+The currently can display the car's names including SOC and SOC Limit + one Button to switch between Maximum Power Charge Mode and PV Charge. If you set the port like in the example above, you can access the UI via http://ip-to-host:7190/
