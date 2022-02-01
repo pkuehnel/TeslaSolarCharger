@@ -2,9 +2,9 @@ name: CICD
 
 on:
   push:
-    branches: [ feature/CICD ]
+    branches: [ develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ develop ]
 
 jobs:
   build:
