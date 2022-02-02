@@ -30,6 +30,11 @@ namespace SmartTeslaAmpSetter.Services
 
             _logger.LogDebug($"Current overage is {overage} Watt.");
 
+            var buffer = _configuration.GetValue<int>("PowerBuffer");
+            _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
+
+            overage -= buffer;
+
             var carIds = Settings.Cars.Select(c => c.Id).ToList();
 
             var teslaMateStates = await GetTeslaMateStates(carIds).ConfigureAwait(false);
