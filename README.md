@@ -24,7 +24,7 @@ You can either use it in a Docker container or go download the code and deploy i
 
 ### Docker-compose
 
-If you run the simple Docker deployment of TeslaMate, then adding this will do the trick. You'll have TeslaMateApi exposed at port 8080 locally then.
+If you run the simple Docker deployment of TeslaMate, then adding this will do the trick. You'll have the frontend available on port 7190 then.
 
 ```yaml
 services:
@@ -39,7 +39,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
-      - CurrentPowerToGridUrl=http://192.168.1.50:5007/api/ChargingLog/GetAverageGridPowerOfLastXseconds
+      - CurrentPowerToGridUrl=http://192.168.1.50/api/CurrentPower
       - TeslaMateApiBaseUrl=http://teslamateapi:8080
       - UpdateIntervalSeconds=30
       - CarPriorities=1|2
@@ -93,7 +93,7 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 | **MinutesUntilSwitchOff** | int | Minutes with power from grid until charging stops | 5 |
 
 ### Car Priorities
-If you set `CarPriorities` environment variable like the example above, car with ID 2 will only start charing, if car 1 is charging at full speed and there is still power left, or if car 1 is not charging due to reached battery limit or not within specified geofence. Note: You always have to add the car Ids to this list separated by `|`. Even if you only have one car you need to ad the car's Id.
+If you set `CarPriorities` environment variable like the example above, the car with ID 2 will only start charing, if car 1 is charging at full speed and there is still power left, or if car 1 is not charging due to reached battery limit or not within specified geofence. Note: You always have to add the car Ids to this list separated by `|`. Even if you only have one car you need to ad the car's Id but then without `|`.
 
 ### UI
-The currently can display the car's names including SOC and SOC Limit + one Button to switch between Maximum Power Charge Mode and PV Charge. If you set the port like in the example above, you can access the UI via http://ip-to-host:7190/
+The current UI can display the car's names including SOC and SOC Limit + one Button to switch between Maximum Power Charge Mode and PV Charge. If you set the port like in the example above, you can access the UI via http://ip-to-host:7190/
