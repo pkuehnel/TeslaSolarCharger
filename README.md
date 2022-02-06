@@ -16,6 +16,7 @@ Needs:
   - [Docker-compose](#docker-compose)
   - [Environment variables](#environment-variables)
   - [Car Priorities](#car-priorities)
+  - [Power Buffer](#power-buffer)
   - [UI](#UI)
 
 ## How to use
@@ -48,6 +49,7 @@ services:
       - MinAmpPerCar=1
       - MinutesUntilSwitchOn=5
       - MinutesUntilSwitchOff=5
+      - PowerBuffer=0
     ports:
       - 7190:80
 ```
@@ -91,9 +93,13 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 | **MinAmpPerCar** | int | Minimum current that can be set to a single car | 1 |
 | **MinutesUntilSwitchOn** | int | Minutes with more power to grid than minimum settable until charging starts | 5 |
 | **MinutesUntilSwitchOff** | int | Minutes with power from grid until charging stops | 5 |
+| **PowerBuffer** | int | Power Buffer in Watt | 0 |
 
 ### Car Priorities
 If you set `CarPriorities` environment variable like the example above, the car with ID 2 will only start charing, if car 1 is charging at full speed and there is still power left, or if car 1 is not charging due to reached battery limit or not within specified geofence. Note: You always have to add the car Ids to this list separated by `|`. Even if you only have one car you need to ad the car's Id but then without `|`.
+
+### Power Buffer
+If you set `PowerBuffer` to a value different from `0` the system uses the value as an offset. Eg. If you set `1000` the current of the car is reduced as long as there is less than 1000 Watt power going to the grid.
 
 ### UI
 The current UI can display the car's names including SOC and SOC Limit + one Button to switch between Maximum Power Charge Mode and PV Charge. If you set the port like in the example above, you can access the UI via http://ip-to-host:7190/
