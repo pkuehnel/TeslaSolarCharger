@@ -24,6 +24,7 @@ public class EnergyMeterService
         var energymeterPort = _configuration.GetValue<int>("EnergyMeterPort");
         _logger.LogDebug("Use energymeterport {engergymeterPort}", energymeterPort);
         using var udpClient = new UdpClient(energymeterPort);
+        udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         var ipAddressString = _configuration.GetValue<string>("EnergyMeterMulticastAddress");
         _logger.LogDebug("Use IP Address {ipAddressString}", ipAddressString);
         IPAddress.TryParse(ipAddressString, out var ipAddress);
