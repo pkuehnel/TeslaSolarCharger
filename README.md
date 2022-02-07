@@ -18,6 +18,8 @@ Needs:
   - [Car Priorities](#car-priorities)
   - [Power Buffer](#power-buffer)
   - [UI](#UI)
+  - [Plugins](#plugins)
+    - [SMA-EnergyMeter Plugin](#sma-energymeter-plugin)
 
 ## How to use
 
@@ -30,7 +32,7 @@ If you run the simple Docker deployment of TeslaMate, then adding this will do t
 ```yaml
 services:
     smartteslaampsetter:
-    image: localhost:4567/smartteslaampsetter
+    image: pkuehnel/smartteslaampsetter:latest
     logging:
         driver: "json-file"
         options:
@@ -103,3 +105,25 @@ If you set `PowerBuffer` to a value different from `0` the system uses the value
 
 ### UI
 The current UI can display the car's names including SOC and SOC Limit + one Button to switch between Maximum Power Charge Mode and PV Charge. If you set the port like in the example above, you can access the UI via http://ip-to-host:7190/
+
+### Plugins
+If your SmartMeter does not have a REST Endpoint as needed you can use plugins:
+
+#### SMA-EnergyMeter Plugin
+With the SMA Energymeter Plugin a new service is created, which receives the EnergyMeter values and averages them for the last x seconds. The URL of the endpoint is: http://ip-of-your-host:8453/api/CurrentPower?lastXSeconds=30
+To use the plugin add the following to your `docker-compose.yml`:
+```yaml
+services:
+    smaplugin:
+    image: pkuehnel/smartteslaampsettersmaplugin:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    network_mode: host
+    environment:
+      - ASPNETCORE_URLS=https://+:8454;http://+:8453
+      - MaxValuesInLastValuesList=120
+```
