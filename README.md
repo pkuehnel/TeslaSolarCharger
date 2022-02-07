@@ -128,6 +128,6 @@ services:
     restart: always
     network_mode: host
     environment:
-      - ASPNETCORE_URLS=https://+:8454;http://+:8453
+      - ASPNETCORE_URLS=http://+:8453
       - MaxValuesInLastValuesList=120
 ```
