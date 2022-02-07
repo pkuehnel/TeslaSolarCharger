@@ -115,7 +115,7 @@ To use the plugin add the following to your `docker-compose.yml`:
 ```yaml
 services:
     smaplugin:
-    image: pkuehnel/smartteslaampsetter:latest
+    image: pkuehnel/smartteslaampsettersmaplugin:latest
     logging:
         driver: "json-file"
         options:
