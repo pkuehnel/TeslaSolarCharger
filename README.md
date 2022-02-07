@@ -110,7 +110,7 @@ The current UI can display the car's names including SOC and SOC Limit + one But
 If your SmartMeter does not have a REST Endpoint as needed you can use plugins:
 
 #### SMA-EnergyMeter Plugin
-With the SMA Energymeter Plugin a new service is created, which receives the EnergyMeter values and averages them for the last x seconds. The URL of the endpoint is: http://ip-of-your-host:8453/api/CurrentPower?lastXSeconds=30
+With the SMA Energymeter Plugin (note: Every SMA Home Manager 2.0 has an integrated EnergyMeter Interface, so this plugin is working with SMA Home Manager 2.0 as well) a new service is created, which receives the EnergyMeter values and averages them for the last x seconds. The URL of the endpoint is: http://ip-of-your-host:8453/api/CurrentPower?lastXSeconds=30
 To use the plugin add the following to your `docker-compose.yml`:
 ```yaml
 services:
