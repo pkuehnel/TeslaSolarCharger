@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using Plugins.SmaEnergymeter.Dtos;
+using Plugins.SmaEnergymeter.Enums;
 
 namespace Plugins.SmaEnergymeter.Services;
 
@@ -41,13 +42,22 @@ public class EnergyMeterService
         while (true)
         {
             _logger.LogTrace("Waiting for new values");
-            var currentValues = udpClient.Receive(ref groupEndPoint);
+            var byteArray = udpClient.Receive(ref groupEndPoint);
             _logger.LogDebug("New values received");
 
+            if (byteArray.Length < 600)
+            {
+                _logger.LogWarning("Current datagram is no correct energymeter datagram. Waiting for next values");
+                continue;
+            }
+
+            var relevantValues = byteArray.Skip(28).Take(byteArray.Length - 27).ToArray();
+            var obisValues = ConvertArrayToObisDictionary(relevantValues);
+
             var currentSupply =
-                Convert.ToDecimal(ConvertByteArray(currentValues, 32, 4) / 10.0);
+                Convert.ToDecimal(obisValues.First(v => v.Id == 1 && v.ValueType == ValueMode.Average).Value / 10.0);
             var currentOverage =
-                Convert.ToDecimal(ConvertByteArray(currentValues, 52, 4) / 10.0);
+                Convert.ToDecimal(obisValues.First(v => v.Id == 2 && v.ValueType == ValueMode.Average).Value / 10.0);
 
             _logger.LogTrace("current supply: {currentSupply}", currentSupply);
             _logger.LogTrace("current overage: {currentOverage}", currentOverage);
@@ -76,12 +86,54 @@ public class EnergyMeterService
         }
     }
 
-    private ulong ConvertByteArray(byte[] source, int start, int length)
+    List<ObisValue> ConvertArrayToObisDictionary(byte[] byteArray)
     {
-        var tmp = new byte[length];
-        Buffer.BlockCopy(source, start, tmp, 0, length);
-        var s = BitConverter.ToString(tmp).Replace("-", "");
-        var n = Convert.ToUInt64(s, 16);
-        return n;
+        var obisValues = new List<ObisValue>();
+        var currentIndex = 0;
+
+        while (currentIndex < byteArray.Length)
+        {
+            try
+            {
+                var currentIdBytes = byteArray.Skip(currentIndex).Take(2).ToArray();
+                var currentId = BitConverter.ToUInt16(currentIdBytes.Reverse().ToArray());
+                var obisValue = new ObisValue()
+                {
+                    Id = currentId,
+                };
+                if(currentId > 100)
+                {
+                    break;
+                }
+                currentIndex += 2;
+                var currentLenthsBytes = byteArray.Skip(currentIndex).Take(1).First();
+                currentIndex+=2;
+                ushort currentLength = currentLenthsBytes;
+                var currentValueBytes = byteArray.Skip(currentIndex).Take(currentLength).ToArray();
+                currentIndex += currentLength;
+                ulong currentValue;
+                if (currentLength == 4)
+                {
+                    currentValue = BitConverter.ToUInt32(currentValueBytes.Reverse().ToArray());
+                    obisValue.ValueType = ValueMode.Average;
+                }
+                else
+                {
+                    currentValue = BitConverter.ToUInt64(currentValueBytes.Reverse().ToArray());
+                    obisValue.ValueType = ValueMode.Counter;
+                }
+
+                obisValue.Value = currentValue;
+                obisValues.Add(obisValue);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                break;
+            }
+        }
+
+
+        return obisValues;
     }
 }
