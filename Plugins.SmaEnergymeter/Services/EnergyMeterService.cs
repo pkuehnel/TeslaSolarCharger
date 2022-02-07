@@ -21,14 +21,28 @@ public class EnergyMeterService
     {
         _logger.LogTrace("{method}()", nameof(StartLogging));
         var energymeterPort = _configuration.GetValue<int>("EnergyMeterPort");
+        _logger.LogDebug("Use energymeterport {engergymeterPort}", energymeterPort);
         using var udpClient = new UdpClient(energymeterPort);
         var ipAddressString = _configuration.GetValue<string>("EnergyMeterMulticastAddress");
+        _logger.LogDebug("Use IP Address {ipAddressString}", ipAddressString);
         IPAddress.TryParse(ipAddressString, out var ipAddress);
+        _logger.LogDebug("Parsed Ip Adress: {ipAddress}", ipAddress?.ToString());
         var groupEndPoint = new IPEndPoint(ipAddress ?? throw new InvalidOperationException(), energymeterPort);
-        udpClient.JoinMulticastGroup(ipAddress);
+        _logger.LogDebug("Joining Multicast group");
+        try
+        {
+            udpClient.JoinMulticastGroup(ipAddress);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Could not join multicast group");
+            throw;
+        }
         while (true)
         {
+            _logger.LogTrace("Waiting for new values");
             var currentValues = udpClient.Receive(ref groupEndPoint);
+            _logger.LogDebug("New values received");
 
             var currentSupply =
                 Convert.ToDecimal(ConvertByteArray(currentValues, 32, 4) / 10.0);
