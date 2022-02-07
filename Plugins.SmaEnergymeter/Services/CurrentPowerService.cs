@@ -22,6 +22,7 @@ public class CurrentPowerService
         long weightedSum = 0;
         for (var i = 0; i < orderedValues.Count; i++)
         {
+            _logger.LogTrace("Power Value: {value}", orderedValues[i].Power);
             weightedSum += orderedValues[i].Power * (i + 1);
             _logger.LogTrace("weightedSum: {value}", weightedSum);
         }

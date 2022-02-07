@@ -49,6 +49,8 @@ public class EnergyMeterService
             var currentOverage =
                 Convert.ToDecimal(ConvertByteArray(currentValues, 52, 4) / 10.0);
 
+            _logger.LogTrace("current supply: {currentSupply}", currentSupply);
+            _logger.LogTrace("current overage: {currentOverage}", currentOverage);
             if (currentSupply > 0)
             {
                 _sharedValues.LastValues.Add(new PowerValue()
