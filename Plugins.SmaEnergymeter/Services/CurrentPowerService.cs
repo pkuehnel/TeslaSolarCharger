@@ -26,6 +26,10 @@ public class CurrentPowerService
             _logger.LogTrace("weightedSum: {value}", weightedSum);
         }
         var weightedCount = orderedValues.Count * (orderedValues.Count + 1) / 2;
+        if (weightedCount == 0)
+        {
+            throw new InvalidOperationException("There are no power values available");
+        }
         return (int) (weightedSum / weightedCount);
     }
 }
