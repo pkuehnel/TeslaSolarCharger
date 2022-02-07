@@ -24,11 +24,19 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
-
-    - name: Build and push
+        
+    - name: Build and push SmartTeslaAmpSetter
       uses: docker/build-push-action@v2
       with:
         file: ./SmartTeslaAmpSetter/Dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
         tags: pkuehnel/smartteslaampsetter:latest
+
+    - name: Build and push SmaPlugin
+      uses: docker/build-push-action@v2
+      with:
+        file: ./Plugins.SmaEnergymeter/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: pkuehnel/smartteslaampsettersmaplugin:latest
