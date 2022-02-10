@@ -23,6 +23,7 @@ builder.Services
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
     .AddTransient<ChargingService>()
     .AddTransient<GridService>()
+    .AddSingleton<Settings>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -38,7 +39,9 @@ var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSecond
 var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
 var carIds = app.Configuration.GetValue<string>("CarPriorities").Split("|");
 
-AddCarIdsToSettings();
+var settings = app.Services.GetRequiredService<Settings>();
+
+AddCarIdsToSettings(settings);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 jobManager.StartJobs(jobIntervall);
@@ -64,14 +67,14 @@ app.MapFallbackToPage("/_Host");
 app.Run();
 
 
-void AddCarIdsToSettings()
+void AddCarIdsToSettings(Settings settings1)
 {
     foreach (var carId in carIds)
     {
         var id = int.Parse(carId);
-        if (Settings.Cars.All(c => c.Id != id))
+        if (settings1.Cars.All(c => c.Id != id))
         {
-            Settings.Cars.Add(new Car()
+            settings1.Cars.Add(new Car()
             {
                 Id = id,
                 ShouldStartChargingSince = DateTime.MaxValue,

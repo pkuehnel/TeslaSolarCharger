@@ -1,9 +1,10 @@
 ﻿@page "/"
 @using SmartTeslaAmpSetter.Dtos
+@inject Settings _settings
 
 <PageTitle>Index</PageTitle>
 
-@foreach (var car in Settings.Cars)
+@foreach (var car in _settings.Cars)
 {
     <p><b>@(car.Name)</b>: @(car.SoC)% (@(car.SocLimit)%)</p>
     <p>@car.ChargeMode <button class="btn btn-primary" @onclick="car.ChangeChargeMode">Lademodus ändern</button></p>
@@ -12,7 +13,7 @@
 
 <h2>Details: </h2>
 
-@foreach (var car in Settings.Cars)
+@foreach (var car in _settings.Cars)
 {
     <p>
         <table>

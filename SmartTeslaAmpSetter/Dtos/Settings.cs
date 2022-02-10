@@ -2,13 +2,13 @@
 
 namespace SmartTeslaAmpSetter.Dtos
 {
-    public static class Settings
+    public class Settings
     {
-        static Settings()
+        public Settings()
         {
             Cars = new List<Car>();
         }
-        public static List<Car> Cars { get; set; }
+        public List<Car> Cars { get; set; }
     }
 
     public class Car

@@ -12,13 +12,15 @@ namespace SmartTeslaAmpSetter.Services
         private readonly ILogger<ChargingService> _logger;
         private readonly GridService _gridService;
         private readonly IConfiguration _configuration;
+        private readonly Settings _settings;
         private readonly string _teslaMateBaseUrl;
 
-        public ChargingService(ILogger<ChargingService> logger, GridService gridService, IConfiguration configuration)
+        public ChargingService(ILogger<ChargingService> logger, GridService gridService, IConfiguration configuration, Settings settings)
         {
             _logger = logger;
             _gridService = gridService;
             _configuration = configuration;
+            _settings = settings;
             _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
         }
 
@@ -35,7 +37,7 @@ namespace SmartTeslaAmpSetter.Services
 
             overage -= buffer;
 
-            var carIds = Settings.Cars.Select(c => c.Id).ToList();
+            var carIds = _settings.Cars.Select(c => c.Id).ToList();
 
             var teslaMateStates = await GetTeslaMateStates(carIds).ConfigureAwait(false);
 
@@ -98,7 +100,7 @@ namespace SmartTeslaAmpSetter.Services
         {
             foreach (var teslaMateState in teslaMateStates)
             {
-                var car = Settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
+                var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
                 car.Name = teslaMateState.data.car.car_name;
                 car.Geofence = teslaMateState.data.status.car_geodata.geofence;
                 car.SoC = teslaMateState.data.status.battery_details.battery_level;
@@ -118,7 +120,7 @@ namespace SmartTeslaAmpSetter.Services
             var minAmpPerCar = _configuration.GetValue<int>("MinAmpPerCar");
             _logger.LogDebug("Max amp per car: {amp}", maxAmpPerCar);
             //Falls MaxPower als Charge Mode: Leistung auf maximal
-            if (Settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id).ChargeMode == ChargeMode.MaxPower)
+            if (_settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id).ChargeMode == ChargeMode.MaxPower)
             {
                 _logger.LogDebug("Max Power Charging");
                 if (teslaMateState.data.status.charging_details.charger_actual_current < maxAmpPerCar)
@@ -216,7 +218,7 @@ namespace SmartTeslaAmpSetter.Services
         private void UpdateEarliestTimesAfterSwitch(int carId)
         {
             _logger.LogTrace("{method}({param1})", nameof(UpdateEarliestTimesAfterSwitch), carId);
-            var car = Settings.Cars.First(c => c.Id == carId);
+            var car = _settings.Cars.First(c => c.Id == carId);
             car.ShouldStopChargingSince = DateTime.MaxValue;
             car.ShouldStartChargingSince = DateTime.MaxValue;
         }
@@ -225,7 +227,7 @@ namespace SmartTeslaAmpSetter.Services
         {
             _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOff), carId);
             var minutesUntilSwitchOff = _configuration.GetValue<int>("MinutesUntilSwitchOff");
-            var car = Settings.Cars.First(c => c.Id == carId);
+            var car = _settings.Cars.First(c => c.Id == carId);
             if (car.ShouldStopChargingSince == DateTime.MaxValue)
             {
                 car.ShouldStopChargingSince = DateTime.UtcNow.AddMinutes(minutesUntilSwitchOff);
@@ -239,7 +241,7 @@ namespace SmartTeslaAmpSetter.Services
         {
             _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOn), carId);
             var minutesUntilSwitchOn = _configuration.GetValue<int>("MinutesUntilSwitchOn");
-            var car = Settings.Cars.First(c => c.Id == carId);
+            var car = _settings.Cars.First(c => c.Id == carId);
             if (car.ShouldStartChargingSince == DateTime.MaxValue)
             {
                 car.ShouldStartChargingSince = DateTime.UtcNow.AddMinutes(minutesUntilSwitchOn);
@@ -298,7 +300,7 @@ namespace SmartTeslaAmpSetter.Services
 
             var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
 
-            var car = Settings.Cars.First(c => c.Id == carId);
+            var car = _settings.Cars.First(c => c.Id == carId);
             car.LastSetAmp = 0;
 
             _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
@@ -307,7 +309,7 @@ namespace SmartTeslaAmpSetter.Services
         private async Task SetAmp(int carId, int amps)
         {
             _logger.LogTrace("{method}({param1}, {param2})", nameof(SetAmp), carId, amps);
-            var car = Settings.Cars.First(c => c.Id == carId);
+            var car = _settings.Cars.First(c => c.Id == carId);
             var parameters = new Dictionary<string, string>()
             {
                 {"charging_amps", amps.ToString()},
