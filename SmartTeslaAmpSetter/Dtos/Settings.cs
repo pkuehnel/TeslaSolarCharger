@@ -1,4 +1,5 @@
 ﻿using System.Net.WebSockets;
+using Newtonsoft.Json;
 
 namespace SmartTeslaAmpSetter.Dtos
 {
@@ -6,28 +7,60 @@ namespace SmartTeslaAmpSetter.Dtos
     {
         public Settings()
         {
-            Cars = new List<Car>();
+            Cars = new();
         }
         public List<Car> Cars { get; set; }
     }
 
     public class Car
     {
+        
+        private ChargeMode _chargeMode;
+
+        public Car()
+        {
+            State = new State();
+            UpdatedSincLastWrite = false;
+        }
         public int Id { get; set; }
-        public string Name { get; set; }
+        [JsonIgnore]
+        public State State { get; set; }
+
+        public ChargeMode ChargeMode
+        {
+            get => _chargeMode;
+            set
+            {
+                _chargeMode = value;
+                UpdatedSincLastWrite = true;
+            }
+        }
+        [JsonIgnore]
+        public bool UpdatedSincLastWrite { get; set; }
+
+        public void ChangeChargeMode()
+        {
+            ChargeMode = ChargeMode.Next();
+        }
+
+    }
+
+    public class State
+    {
+        public string? Name { get; set; }
         public DateTime ShouldStartChargingSince { get; set; }
         public DateTime ShouldStopChargingSince { get; set; }
-        public ChargeMode ChargeMode { get; set; }
+
         public int SoC { get; set; }
         public int SocLimit { get; set; }
-        public string Geofence { get; set; }
+        public string? Geofence { get; set; }
         public TimeSpan TimeUntilFullCharge { get; set; }
 
         public DateTime FullChargeAtMaxAcSpeed
         {
             get
             {
-                var socToCharge = (double) SocLimit - SoC;
+                var socToCharge = (double)SocLimit - SoC;
                 if (socToCharge < 0)
                 {
                     return DateTime.UtcNow + TimeSpan.Zero;
@@ -41,9 +74,6 @@ namespace SmartTeslaAmpSetter.Dtos
         public int MinimumSoC { get; set; }
         public int LastSetAmp { get; set; }
 
-        public void ChangeChargeMode()
-        {
-            ChargeMode = ChargeMode.Next();
-        }
+
     }
 }

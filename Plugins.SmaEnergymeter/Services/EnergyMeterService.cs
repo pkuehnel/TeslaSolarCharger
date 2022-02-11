@@ -64,7 +64,7 @@ public class EnergyMeterService
             _logger.LogTrace("current overage: {currentOverage}", currentOverage);
             if (currentSupply > 0)
             {
-                _sharedValues.LastValues.Add(new PowerValue()
+                _sharedValues.LastValues.Add(new()
                 {
                     Timestamp = DateTime.UtcNow,
                     Power = (int)-currentSupply,
@@ -72,7 +72,7 @@ public class EnergyMeterService
             }
             else
             {
-                _sharedValues.LastValues.Add(new PowerValue()
+                _sharedValues.LastValues.Add(new()
                 {
                     Timestamp = DateTime.UtcNow,
                     Power = (int)currentOverage,
