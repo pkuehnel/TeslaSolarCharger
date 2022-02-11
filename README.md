@@ -28,7 +28,7 @@ You can either use it in a Docker container or go download the code and deploy i
 
 ### Docker-compose
 
-If you run the simple Docker deployment of TeslaMate, then adding this will do the trick. You'll have the frontend available on port 7190 then.
+If you run the simple Docker deployment of TeslaMate, then adding this will do the trick. You'll have the frontend available on port 7190 then. Note: In this configuration you have to create a directory ./date/SmartTeslaAmpSetter/configs where the config Files are stored, so that e.g. ChargeMode persists a restart/recreation of the Docker container.
 
 ```yaml
 services:
@@ -55,6 +55,8 @@ services:
       - PowerBuffer=0
     ports:
       - 7190:80
+    volumes:
+      - ./data/SmartTeslaAmpSetter/configs:/app/configs
 ```
 
 Note: TeslaMateApi has to be configured to allow any command without authentication:
