@@ -1,4 +1,6 @@
 ﻿using System.Text.Json.Serialization;
+// ReSharper disable InconsistentNaming
+#pragma warning disable CS8618
 
 namespace SmartTeslaAmpSetter.Dtos.TeslaMate
 {

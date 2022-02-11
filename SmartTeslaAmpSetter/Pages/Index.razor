@@ -1,18 +1,19 @@
 ﻿@page "/"
 @using SmartTeslaAmpSetter.Dtos
+@inject Settings _settings
 
 <PageTitle>Index</PageTitle>
 
-@foreach (var car in Settings.Cars)
+@foreach (var car in _settings.Cars)
 {
-    <p><b>@(car.Name)</b>: @(car.SoC)% (@(car.SocLimit)%)</p>
+    <p><b>@(car.State.Name)</b>: @(car.State.SoC)% (@(car.State.SocLimit)%)</p>
     <p>@car.ChargeMode <button class="btn btn-primary" @onclick="car.ChangeChargeMode">Lademodus ändern</button></p>
     
 }
 
 <h2>Details: </h2>
 
-@foreach (var car in Settings.Cars)
+@foreach (var car in _settings.Cars)
 {
     <p>
         <table>
@@ -37,7 +38,7 @@
                     Name
                 </td>
                 <td>
-                    @car.Name
+                    @car.State.Name
                 </td>
             </tr>
             <tr>
@@ -45,7 +46,7 @@
                     Zuletzt gesetzte Ampere
                 </td>
                 <td>
-                    @car.LastSetAmp
+                    @car.State.LastSetAmp
                 </td>
             </tr>
             <tr>
@@ -53,7 +54,7 @@
                     Voll geladen bei maximaler Geschwindigkeit
                 </td>
                 <td>
-                    @(car.FullChargeAtMaxAcSpeed.ToLocalTime().ToString("HH:mm dd.MM"))
+                    @(car.State.FullChargeAtMaxAcSpeed.ToLocalTime().ToString("HH:mm dd.MM"))
                 </td>
             </tr>
             <tr>
@@ -61,7 +62,7 @@
                     Voll geladen in
                 </td>
                 <td>
-                    @((car.TimeUntilFullCharge.Days > 0 ? $"{car.TimeUntilFullCharge.Days}. " : "") + $"{car.TimeUntilFullCharge.Hours}:{car.TimeUntilFullCharge.Minutes}")
+                    @((car.State.TimeUntilFullCharge.Days > 0 ? $"{car.State.TimeUntilFullCharge.Days}. " : "") + $"{car.State.TimeUntilFullCharge.Hours}:{car.State.TimeUntilFullCharge.Minutes}")
                 </td>
             </tr>
             <tr>
@@ -69,7 +70,7 @@
                     Voll geladen um
                 </td>
                 <td>
-                    @((DateTime.Now + car.TimeUntilFullCharge).ToString("HH:mm dd.MM"))
+                    @((DateTime.Now + car.State.TimeUntilFullCharge).ToString("HH:mm dd.MM"))
                 </td>
             </tr>
             <tr>
@@ -77,7 +78,7 @@
                     Ladestand
                 </td>
                 <td>
-                    @car.SoC
+                    @car.State.SoC
                 </td>
             </tr>
             <tr>
@@ -85,7 +86,7 @@
                     Ladelimit
                 </td>
                 <td>
-                    @car.SocLimit
+                    @car.State.SocLimit
                 </td>
             </tr>
             <tr>
@@ -101,7 +102,7 @@
                     Geofence
                 </td>
                 <td>
-                    @car.Geofence
+                    @car.State.Geofence
                 </td>
             </tr>
             <tr>
@@ -109,7 +110,7 @@
                     Ladebeginn um
                 </td>
                 <td>
-                    @car.ShouldStartChargingSince.ToLocalTime()
+                    @car.State.ShouldStartChargingSince.ToLocalTime()
                 </td>
             </tr>
             <tr>
@@ -117,7 +118,7 @@
                     Ladeende um
                 </td>
                 <td>
-                    @car.ShouldStopChargingSince.ToLocalTime()
+                    @car.State.ShouldStopChargingSince.ToLocalTime()
                 </td>
             </tr>
         </table>
