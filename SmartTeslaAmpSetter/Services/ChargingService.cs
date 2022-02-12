@@ -179,6 +179,7 @@ namespace SmartTeslaAmpSetter.Services
             else if (finalAmpsToSet < minAmpPerCar)
             {
                 _logger.LogDebug("Charging should stay stopped");
+                UpdateEarliestTimesAfterSwitch(teslaMateState.data.car.car_id);
             }
             //Falls nicht ladend, aber laden soll beginnen
             else if (finalAmpsToSet > minAmpPerCar && teslaMateState.data.status.charging_details.charger_actual_current == 0)
@@ -186,7 +187,7 @@ namespace SmartTeslaAmpSetter.Services
                 _logger.LogDebug("Charging should start");
                 var earliestSwitchOn = EarliestSwitchOn(teslaMateState.data.car.car_id);
 
-                if (earliestSwitchOn < DateTime.UtcNow)
+                if (earliestSwitchOn <= DateTime.UtcNow)
                 {
                     _logger.LogDebug("Charging should start");
                     var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
@@ -199,6 +200,7 @@ namespace SmartTeslaAmpSetter.Services
             else
             {
                 _logger.LogDebug("Normal amp set");
+                UpdateEarliestTimesAfterSwitch(teslaMateState.data.car.car_id);
                 var ampToSet = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
                 if (ampToSet != teslaMateState.data.status.charging_details.charger_actual_current)
                 {
