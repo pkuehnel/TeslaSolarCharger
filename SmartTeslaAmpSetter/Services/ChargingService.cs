@@ -49,6 +49,13 @@ namespace SmartTeslaAmpSetter.Services
             var relevantTeslaMateStates = GetRelevantTeslaMateStates(teslaMateStates, geofence);
             _logger.LogDebug("Number of relevant Cars: {count}", relevantTeslaMateStates.Count);
 
+            foreach (var irrelevantTeslaMateState in teslaMateStates
+                         .Where(t => !t.data.status.charging_details.plugged_in).ToList())
+            {
+                _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", irrelevantTeslaMateState.data.car.car_id);
+                UpdateEarliestTimesAfterSwitch(irrelevantTeslaMateState.data.car.car_id);
+            }
+
             if (relevantTeslaMateStates.Count < 1)
             {
                 return;
