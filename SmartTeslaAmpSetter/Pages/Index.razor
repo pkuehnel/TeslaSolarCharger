@@ -75,7 +75,7 @@
                     Spätestes Ladeende
                 </td>
                 <td>
-                    @(car.LatestTimeToReachSoC.ToLocalTime().ToString("HH:mm dd.MM"))
+                    @(car.LatestTimeToReachSoC.ToString("HH:mm dd.MM"))
                 </td>
             </tr>
             <tr>
@@ -83,7 +83,7 @@
                     Voll geladen bei maximaler Geschwindigkeit
                 </td>
                 <td>
-                    @(car.State.FullChargeAtMaxAcSpeed.ToLocalTime().ToString("HH:mm dd.MM"))
+                    @(car.State.FullChargeAtMaxAcSpeed.ToString("HH:mm dd.MM"))
                 </td>
             </tr>
             <tr>
@@ -139,7 +139,7 @@
                     Ladebeginn um
                 </td>
                 <td>
-                    @car.State.ShouldStartChargingSince.ToLocalTime()
+                    @car.State.ShouldStartChargingSince
                 </td>
             </tr>
             <tr>
@@ -147,11 +147,9 @@
                     Ladeende um
                 </td>
                 <td>
-                    @car.State.ShouldStopChargingSince.ToLocalTime()
+                    @car.State.ShouldStopChargingSince
                 </td>
             </tr>
         </table>
-        @*        <div>Mindestladestand: @car.MinimumSoC</div>
-            <div>Mindestladestand soll erreicht sein um: @car.LatestDateToReachMinimumSoC.ToLocalTime()</div>*@
     </p>
 }
