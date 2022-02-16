@@ -49,6 +49,13 @@ namespace SmartTeslaAmpSetter.Services
             var relevantTeslaMateStates = GetRelevantTeslaMateStates(teslaMateStates, geofence);
             _logger.LogDebug("Number of relevant Cars: {count}", relevantTeslaMateStates.Count);
 
+            foreach (var irrelevantTeslaMateState in teslaMateStates
+                         .Where(t => !t.data.status.charging_details.plugged_in).ToList())
+            {
+                _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", irrelevantTeslaMateState.data.car.car_id);
+                UpdateEarliestTimesAfterSwitch(irrelevantTeslaMateState.data.car.car_id);
+            }
+
             if (relevantTeslaMateStates.Count < 1)
             {
                 return;
@@ -119,8 +126,29 @@ namespace SmartTeslaAmpSetter.Services
             var maxAmpPerCar = _configuration.GetValue<int>("MaxAmpPerCar");
             var minAmpPerCar = _configuration.GetValue<int>("MinAmpPerCar");
             _logger.LogDebug("Max amp per car: {amp}", maxAmpPerCar);
+
+            var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
+            //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
+            if (car.MinimumChargeAtMaxAcSpeed > car.LatestTimeToReachSoC && car.LatestTimeToReachSoC > DateTime.Now)
+            {
+                car.State.AutoFullSpeedCharge = true;
+            }
+            //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde
+            if (car.State.AutoFullSpeedCharge && car.State.SoC >= car.MinimumSoC)
+            {
+                car.State.AutoFullSpeedCharge = false;
+            }
+
+            //if (!teslaMateState.data.status.charging_details.plugged_in && DateTime.Now > car.LatestTimeToReachSoC)
+            //{
+            //    car.LatestTimeToReachSoC = DateTime.Now.Date
+            //        .AddDays(1)
+            //        .AddHours(car.LatestTimeToReachSoC.Hour)
+            //        .AddMinutes(car.LatestTimeToReachSoC.Minute);
+            //}
+
             //Falls MaxPower als Charge Mode: Leistung auf maximal
-            if (_settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id).ChargeMode == ChargeMode.MaxPower)
+            if (car.ChargeMode == ChargeMode.MaxPower || car.State.AutoFullSpeedCharge)
             {
                 _logger.LogDebug("Max Power Charging");
                 if (teslaMateState.data.status.charging_details.charger_actual_current < maxAmpPerCar)
@@ -155,7 +183,7 @@ namespace SmartTeslaAmpSetter.Services
                 _logger.LogDebug("Charging should stop");
                 var earliestSwitchOff = EarliestSwitchOff(teslaMateState.data.car.car_id);
                 //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
-                if (teslaMateState.data.status.climate_details.is_climate_on || earliestSwitchOff > DateTime.UtcNow)
+                if (teslaMateState.data.status.climate_details.is_climate_on || earliestSwitchOff > DateTime.Now)
                 {
                     _logger.LogDebug("Can not stop charing: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
                         teslaMateState.data.status.climate_details.is_climate_on,
@@ -187,7 +215,7 @@ namespace SmartTeslaAmpSetter.Services
                 _logger.LogDebug("Charging should start");
                 var earliestSwitchOn = EarliestSwitchOn(teslaMateState.data.car.car_id);
 
-                if (earliestSwitchOn <= DateTime.UtcNow)
+                if (earliestSwitchOn <= DateTime.Now)
                 {
                     _logger.LogDebug("Charging should start");
                     var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
@@ -232,7 +260,7 @@ namespace SmartTeslaAmpSetter.Services
             var car = _settings.Cars.First(c => c.Id == carId);
             if (car.State.ShouldStopChargingSince == DateTime.MaxValue)
             {
-                car.State.ShouldStopChargingSince = DateTime.UtcNow.AddMinutes(minutesUntilSwitchOff);
+                car.State.ShouldStopChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOff);
             }
 
             var earliestSwitchOff = car.State.ShouldStopChargingSince;
@@ -246,7 +274,7 @@ namespace SmartTeslaAmpSetter.Services
             var car = _settings.Cars.First(c => c.Id == carId);
             if (car.State.ShouldStartChargingSince == DateTime.MaxValue)
             {
-                car.State.ShouldStartChargingSince = DateTime.UtcNow.AddMinutes(minutesUntilSwitchOn);
+                car.State.ShouldStartChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOn);
             }
 
             var earliestSwitchOn = car.State.ShouldStartChargingSince;
