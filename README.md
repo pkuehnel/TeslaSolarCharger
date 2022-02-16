@@ -53,6 +53,7 @@ services:
       - MinutesUntilSwitchOn=5
       - MinutesUntilSwitchOff=5
       - PowerBuffer=0
+      - TZ=Europe/Berlin
     ports:
       - 7190:80
     volumes:
