@@ -1,4 +1,4 @@
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using Newtonsoft.Json;
 
 namespace SmartTeslaAmpSetter.Dtos
@@ -17,6 +17,7 @@ namespace SmartTeslaAmpSetter.Dtos
 
         private ChargeMode _chargeMode;
         private int _minimumSoC;
+        private DateTime _latestTimeToReachSoC;
 
         public Car()
         {
@@ -70,10 +71,33 @@ namespace SmartTeslaAmpSetter.Dtos
             }
         }
 
-        public DateTime LatestTimeToReachSoC { get; set; }
+        public DateTime LatestTimeToReachSoC
+        {
+            get => _latestTimeToReachSoC;
+            set
+            {
+                _latestTimeToReachSoC = value;
+                UpdatedSincLastWrite = true;
+            }
+        }
 
         [JsonIgnore]
         public bool UpdatedSincLastWrite { get; set; }
+
+        [JsonIgnore]
+        public DateTime MinimumChargeAtMaxAcSpeed
+        {
+            get
+            {
+                var socToCharge = (double)MinimumSoC - State.SoC;
+                if (socToCharge < 0)
+                {
+                    return DateTime.Now + TimeSpan.Zero;
+                }
+
+                return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
+            }
+        }
 
         public void ChangeChargeMode()
         {
@@ -99,6 +123,7 @@ namespace SmartTeslaAmpSetter.Dtos
         public int SocLimit { get; set; }
         public string? Geofence { get; set; }
         public TimeSpan TimeUntilFullCharge { get; set; }
+        public bool AutoFullSpeedCharge { get; set; }
 
         public DateTime FullChargeAtMaxAcSpeed
         {
@@ -113,9 +138,7 @@ namespace SmartTeslaAmpSetter.Dtos
                 return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
             }
         }
-
-        public DateTime LatestDateToReachMinimumSoC { get; set; }
-        public int MinimumSoC { get; set; }
+        
         public int LastSetAmp { get; set; }
 
 

@@ -74,9 +74,11 @@ app.Run();
 void AddCarIdsToSettings(Settings settings1)
 {
     var configFileLocation = app.Configuration.GetValue<string>("ConfigFileLocation");
-    if (File.Exists(configFileLocation))
+    var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory.FullName;
+    path = Path.Combine(path, configFileLocation);
+    if (File.Exists(path))
     {
-        var fileContent = File.ReadAllText(configFileLocation);
+        var fileContent = File.ReadAllText(path);
         settings1.Cars = JsonConvert.DeserializeObject<List<Car>>(fileContent) ?? throw new InvalidOperationException();
     }
 
@@ -108,8 +110,6 @@ void AddCarIdsToSettings(Settings settings1)
     if (settings1.Cars.Any(c => c.UpdatedSincLastWrite))
     {
         var json = JsonConvert.SerializeObject(settings1.Cars);
-        var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory.FullName;
-        path = Path.Combine(path, configFileLocation);
         var fileInfo = new FileInfo(path);
         if (!Directory.Exists(fileInfo.Directory.FullName))
         {

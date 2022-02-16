@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Dtos;
@@ -126,8 +126,29 @@ namespace SmartTeslaAmpSetter.Services
             var maxAmpPerCar = _configuration.GetValue<int>("MaxAmpPerCar");
             var minAmpPerCar = _configuration.GetValue<int>("MinAmpPerCar");
             _logger.LogDebug("Max amp per car: {amp}", maxAmpPerCar);
+
+            var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
+            //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
+            if (car.MinimumChargeAtMaxAcSpeed > car.LatestTimeToReachSoC && car.LatestTimeToReachSoC > DateTime.Now)
+            {
+                car.State.AutoFullSpeedCharge = true;
+            }
+            //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde
+            if (car.State.AutoFullSpeedCharge && car.State.SoC >= car.MinimumSoC)
+            {
+                car.State.AutoFullSpeedCharge = false;
+            }
+
+            //if (!teslaMateState.data.status.charging_details.plugged_in && DateTime.Now > car.LatestTimeToReachSoC)
+            //{
+            //    car.LatestTimeToReachSoC = DateTime.Now.Date
+            //        .AddDays(1)
+            //        .AddHours(car.LatestTimeToReachSoC.Hour)
+            //        .AddMinutes(car.LatestTimeToReachSoC.Minute);
+            //}
+
             //Falls MaxPower als Charge Mode: Leistung auf maximal
-            if (_settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id).ChargeMode == ChargeMode.MaxPower)
+            if (car.ChargeMode == ChargeMode.MaxPower || car.State.AutoFullSpeedCharge)
             {
                 _logger.LogDebug("Max Power Charging");
                 if (teslaMateState.data.status.charging_details.charger_actual_current < maxAmpPerCar)
