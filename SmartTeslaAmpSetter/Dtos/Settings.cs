@@ -14,8 +14,10 @@ namespace SmartTeslaAmpSetter.Dtos
 
     public class Car
     {
-        
+
         private ChargeMode _chargeMode;
+        private int _minimumSoC;
+        private DateTime _latestTimeToReachSoC;
 
         public Car()
         {
@@ -35,12 +37,78 @@ namespace SmartTeslaAmpSetter.Dtos
                 UpdatedSincLastWrite = true;
             }
         }
+
+        public int MinimumSoC
+        {
+            get => _minimumSoC;
+            set
+            {
+                _minimumSoC = value;
+                UpdatedSincLastWrite = true;
+            }
+        }
+
+        [JsonIgnore]
+        public int LatestHourToReachSoC 
+        {
+            get => LatestTimeToReachSoC.Hour;
+            set
+            {
+                var date = LatestTimeToReachSoC.Date;
+                var minute = LatestTimeToReachSoC.Minute;
+                LatestTimeToReachSoC = date.AddHours(value).AddMinutes(minute);
+            }
+        }
+        [JsonIgnore]
+        public int LatestMinuteToReachSoC
+        {
+            get => LatestTimeToReachSoC.Minute;
+            set
+            {
+                var date = LatestTimeToReachSoC.Date;
+                var hour = LatestTimeToReachSoC.Hour;
+                LatestTimeToReachSoC = date.AddHours(hour).AddMinutes(value);
+            }
+        }
+
+        public DateTime LatestTimeToReachSoC
+        {
+            get => _latestTimeToReachSoC;
+            set
+            {
+                _latestTimeToReachSoC = value;
+                UpdatedSincLastWrite = true;
+            }
+        }
+
         [JsonIgnore]
         public bool UpdatedSincLastWrite { get; set; }
+
+        [JsonIgnore]
+        public DateTime MinimumChargeAtMaxAcSpeed
+        {
+            get
+            {
+                var socToCharge = (double)MinimumSoC - State.SoC;
+                if (socToCharge < 0)
+                {
+                    return DateTime.Now + TimeSpan.Zero;
+                }
+
+                return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
+            }
+        }
 
         public void ChangeChargeMode()
         {
             ChargeMode = ChargeMode.Next();
+        }
+
+        public void UpdateMinimumSoc(int minimumSoc, int hour, int minute)
+        {
+            MinimumSoC = minimumSoc;
+            LatestHourToReachSoC = hour;
+            LatestMinuteToReachSoC = minute;
         }
 
     }
@@ -55,6 +123,7 @@ namespace SmartTeslaAmpSetter.Dtos
         public int SocLimit { get; set; }
         public string? Geofence { get; set; }
         public TimeSpan TimeUntilFullCharge { get; set; }
+        public bool AutoFullSpeedCharge { get; set; }
 
         public DateTime FullChargeAtMaxAcSpeed
         {
@@ -63,15 +132,13 @@ namespace SmartTeslaAmpSetter.Dtos
                 var socToCharge = (double)SocLimit - SoC;
                 if (socToCharge < 0)
                 {
-                    return DateTime.UtcNow + TimeSpan.Zero;
+                    return DateTime.Now + TimeSpan.Zero;
                 }
 
-                return DateTime.UtcNow + TimeSpan.FromHours(socToCharge / 15);
+                return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
             }
         }
-
-        public DateTime LatestDateToReachMinimumSoC { get; set; }
-        public int MinimumSoC { get; set; }
+        
         public int LastSetAmp { get; set; }
 
 
