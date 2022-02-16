@@ -8,7 +8,17 @@
 {
     <p><b>@(car.State.Name)</b>: @(car.State.SoC)% (@(car.State.SocLimit)%)</p>
     <p>@car.ChargeMode <button class="btn btn-primary" @onclick="car.ChangeChargeMode">Lademodus ändern</button></p>
-    
+    <p>Minimum Soc: @car.MinimumSoC% @car.LatestHourToReachSoC.ToString("D2"):@car.LatestMinuteToReachSoC.ToString("D2")</p>
+    <p><label for="minSoc">Minimum SOC:</label>
+        <input value="@car.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
+               @onchange="@((ChangeEventArgs __e) => car.MinimumSoC = Int32.Parse(__e?.Value?.ToString() ?? "0"))">%</p>
+    <p><label for="hour">Hour:</label>
+        <input value="@car.LatestHourToReachSoC" type="number" id="hour" name="hour" min="0" max="24"
+               @onchange="@((ChangeEventArgs __e) => car.LatestHourToReachSoC = Int32.Parse(__e?.Value?.ToString() ?? "0"))">h</p>
+    <p><label for="minute">Minute</label>
+        <input value="@car.LatestMinuteToReachSoC" type="number" id="minute" name="minute" min="0" max="60"
+               @onchange="@((ChangeEventArgs __e) => car.LatestMinuteToReachSoC = Int32.Parse(__e?.Value?.ToString() ?? "0"))">min</p>
+@*    <p><button class="btn btn-primary" @onclick="@(() => car.UpdateMinimumSoc(car.))">Lademodus ändern</button></p>*@
 }
 
 <h2>Details: </h2>
@@ -62,7 +72,7 @@
                     Voll geladen in
                 </td>
                 <td>
-                    @((car.State.TimeUntilFullCharge.Days > 0 ? $"{car.State.TimeUntilFullCharge.Days}. " : "") + $"{car.State.TimeUntilFullCharge.Hours}:{car.State.TimeUntilFullCharge.Minutes}")
+                    @((car.State.TimeUntilFullCharge.Days > 0 ? $"{car.State.TimeUntilFullCharge.Days}. " : "") + $"{car.State.TimeUntilFullCharge.Hours:D2}:{car.State.TimeUntilFullCharge.Minutes:D2}")
                 </td>
             </tr>
             <tr>

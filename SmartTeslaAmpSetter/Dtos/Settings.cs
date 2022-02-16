@@ -14,8 +14,9 @@ namespace SmartTeslaAmpSetter.Dtos
 
     public class Car
     {
-        
+
         private ChargeMode _chargeMode;
+        private int _minimumSoC;
 
         public Car()
         {
@@ -35,12 +36,55 @@ namespace SmartTeslaAmpSetter.Dtos
                 UpdatedSincLastWrite = true;
             }
         }
+
+        public int MinimumSoC
+        {
+            get => _minimumSoC;
+            set
+            {
+                _minimumSoC = value;
+                UpdatedSincLastWrite = true;
+            }
+        }
+
+        [JsonIgnore]
+        public int LatestHourToReachSoC 
+        {
+            get => LatestTimeToReachSoC.Hour;
+            set
+            {
+                var date = LatestTimeToReachSoC.Date;
+                var minute = LatestTimeToReachSoC.Minute;
+                LatestTimeToReachSoC = date.AddHours(value).AddMinutes(minute);
+            }
+        }
+        [JsonIgnore]
+        public int LatestMinuteToReachSoC
+        {
+            get => LatestTimeToReachSoC.Minute;
+            set
+            {
+                var date = LatestTimeToReachSoC.Date;
+                var hour = LatestTimeToReachSoC.Hour;
+                LatestTimeToReachSoC = date.AddHours(hour).AddMinutes(value);
+            }
+        }
+
+        public DateTime LatestTimeToReachSoC { get; set; }
+
         [JsonIgnore]
         public bool UpdatedSincLastWrite { get; set; }
 
         public void ChangeChargeMode()
         {
             ChargeMode = ChargeMode.Next();
+        }
+
+        public void UpdateMinimumSoc(int minimumSoc, int hour, int minute)
+        {
+            MinimumSoC = minimumSoc;
+            LatestHourToReachSoC = hour;
+            LatestMinuteToReachSoC = minute;
         }
 
     }
