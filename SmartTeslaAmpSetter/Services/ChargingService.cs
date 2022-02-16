@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Dtos;
@@ -162,7 +162,7 @@ namespace SmartTeslaAmpSetter.Services
                 _logger.LogDebug("Charging should stop");
                 var earliestSwitchOff = EarliestSwitchOff(teslaMateState.data.car.car_id);
                 //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
-                if (teslaMateState.data.status.climate_details.is_climate_on || earliestSwitchOff > DateTime.UtcNow)
+                if (teslaMateState.data.status.climate_details.is_climate_on || earliestSwitchOff > DateTime.Now)
                 {
                     _logger.LogDebug("Can not stop charing: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
                         teslaMateState.data.status.climate_details.is_climate_on,
@@ -194,7 +194,7 @@ namespace SmartTeslaAmpSetter.Services
                 _logger.LogDebug("Charging should start");
                 var earliestSwitchOn = EarliestSwitchOn(teslaMateState.data.car.car_id);
 
-                if (earliestSwitchOn <= DateTime.UtcNow)
+                if (earliestSwitchOn <= DateTime.Now)
                 {
                     _logger.LogDebug("Charging should start");
                     var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
@@ -239,7 +239,7 @@ namespace SmartTeslaAmpSetter.Services
             var car = _settings.Cars.First(c => c.Id == carId);
             if (car.State.ShouldStopChargingSince == DateTime.MaxValue)
             {
-                car.State.ShouldStopChargingSince = DateTime.UtcNow.AddMinutes(minutesUntilSwitchOff);
+                car.State.ShouldStopChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOff);
             }
 
             var earliestSwitchOff = car.State.ShouldStopChargingSince;
@@ -253,7 +253,7 @@ namespace SmartTeslaAmpSetter.Services
             var car = _settings.Cars.First(c => c.Id == carId);
             if (car.State.ShouldStartChargingSince == DateTime.MaxValue)
             {
-                car.State.ShouldStartChargingSince = DateTime.UtcNow.AddMinutes(minutesUntilSwitchOn);
+                car.State.ShouldStartChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOn);
             }
 
             var earliestSwitchOn = car.State.ShouldStartChargingSince;

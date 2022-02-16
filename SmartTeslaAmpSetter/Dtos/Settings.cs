@@ -1,4 +1,4 @@
-﻿using System.Net.WebSockets;
+using System.Net.WebSockets;
 using Newtonsoft.Json;
 
 namespace SmartTeslaAmpSetter.Dtos
@@ -107,10 +107,10 @@ namespace SmartTeslaAmpSetter.Dtos
                 var socToCharge = (double)SocLimit - SoC;
                 if (socToCharge < 0)
                 {
-                    return DateTime.UtcNow + TimeSpan.Zero;
+                    return DateTime.Now + TimeSpan.Zero;
                 }
 
-                return DateTime.UtcNow + TimeSpan.FromHours(socToCharge / 15);
+                return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
             }
         }
 
