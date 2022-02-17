@@ -21,6 +21,8 @@ public static class Extensions
                 return "Nur PV";
             case ChargeMode.MaxPower:
                 return "Maximale Leistung";
+            case ChargeMode.PvAndMinSoc:
+                return "Min SoC + PV";
             default:
                 return chargeMode.ToString();
         }

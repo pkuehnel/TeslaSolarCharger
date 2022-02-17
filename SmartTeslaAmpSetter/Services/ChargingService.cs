@@ -129,7 +129,8 @@ namespace SmartTeslaAmpSetter.Services
 
             var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
             //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
-            if (car.MinimumChargeAtMaxAcSpeed > car.LatestTimeToReachSoC && car.LatestTimeToReachSoC > DateTime.Now)
+            if (car.MinimumChargeAtMaxAcSpeed > car.LatestTimeToReachSoC && car.LatestTimeToReachSoC > DateTime.Now 
+                || car.State.SoC < car.MinimumSoC && car.ChargeMode == ChargeMode.PvAndMinSoc)
             {
                 car.State.AutoFullSpeedCharge = true;
             }

@@ -4,5 +4,6 @@
     {
         MaxPower,
         PvOnly,
+        PvAndMinSoc,
     }
 }
