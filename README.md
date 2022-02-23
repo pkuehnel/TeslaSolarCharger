@@ -19,6 +19,7 @@ Needs:
   - [Car Priorities](#car-priorities)
   - [Power Buffer](#power-buffer)
   - [UI](#UI)
+  - [Charge Modes](#charge-modes)
   - [Plugins](#plugins)
     - [SMA-EnergyMeter Plugin](#sma-energymeter-plugin)
 
@@ -108,7 +109,13 @@ If you set `CarPriorities` environment variable like the example above, the car 
 If you set `PowerBuffer` to a value different from `0` the system uses the value as an offset. Eg. If you set `1000` the current of the car is reduced as long as there is less than 1000 Watt power going to the grid.
 
 ### UI
-The current UI can display the car's names including SOC and SOC Limit + one Button to switch between Maximum Power Charge Mode and PV Charge. If you set the port like in the example above, you can access the UI via http://ip-to-host:7190/
+The current UI can display the car's names including SOC and SOC Limit + one Button to switch between different charge modes. If you set the port like in the example above, you can access the UI via http://ip-to-host:7190/
+
+### Charge Modes
+Currently there are three different charge modes available:
+1. **PV only**: Only PV energy is used to charge unless there is a min SOC Level set. If so the software tries to start charging with maximum power to reach the desired SOC Level in time
+1. **Maximum Power**: Car charges with maximum available power
+1. **Min SoC + PV**: If plugged in the car starts charging with maximum power until set Min SoC is reached. After that only PV Power is used to charge the car.
 
 ### Plugins
 If your SmartMeter does not have a REST Endpoint as needed you can use plugins:
