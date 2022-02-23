@@ -8,7 +8,7 @@
 @foreach (var car in _settings.Cars)
 {
     <p><b>@(car.State.Name)</b>: @(car.State.SoC)% (@(car.State.SocLimit)%)</p>
-    <p>@car.ChargeMode <button class="btn btn-primary" @onclick="car.ChangeChargeMode">Lademodus ändern</button></p>
+    <p>@car.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="car.ChangeChargeMode">Lademodus ändern</button></p>
     <p>Minimum Soc: @car.MinimumSoC% @car.LatestTimeToReachSoC</p>
     <p>
         <label for="minSoc">Minimum SOC:</label>
