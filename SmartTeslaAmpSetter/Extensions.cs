@@ -18,9 +18,9 @@ public static class Extensions
         switch (chargeMode)
         {
             case ChargeMode.PvOnly:
-                return "Nur PV";
+                return "PV Only";
             case ChargeMode.MaxPower:
-                return "Maximale Leistung";
+                return "Maximum Power";
             case ChargeMode.PvAndMinSoc:
                 return "Min SoC + PV";
             default:
