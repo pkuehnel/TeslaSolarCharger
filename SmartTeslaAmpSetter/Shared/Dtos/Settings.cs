@@ -12,21 +12,19 @@ public class Settings
     public List<Car> Cars { get; set; }
 }
 
-public class Car
+public class CarConfiguration
 {
-
     private ChargeMode _chargeMode;
     private int _minimumSoC;
     private DateTime _latestTimeToReachSoC;
 
-    public Car()
+    public CarConfiguration()
     {
-        State = new State();
         UpdatedSincLastWrite = false;
     }
-    public int Id { get; set; }
+
     [JsonIgnore]
-    public State State { get; set; }
+    public bool UpdatedSincLastWrite { get; set; }
 
     public ChargeMode ChargeMode
     {
@@ -48,29 +46,6 @@ public class Car
         }
     }
 
-    [JsonIgnore]
-    public int LatestHourToReachSoC
-    {
-        get => LatestTimeToReachSoC.Hour;
-        set
-        {
-            var date = LatestTimeToReachSoC.Date;
-            var minute = LatestTimeToReachSoC.Minute;
-            LatestTimeToReachSoC = date.AddHours(value).AddMinutes(minute);
-        }
-    }
-    [JsonIgnore]
-    public int LatestMinuteToReachSoC
-    {
-        get => LatestTimeToReachSoC.Minute;
-        set
-        {
-            var date = LatestTimeToReachSoC.Date;
-            var hour = LatestTimeToReachSoC.Hour;
-            LatestTimeToReachSoC = date.AddHours(hour).AddMinutes(value);
-        }
-    }
-
     public DateTime LatestTimeToReachSoC
     {
         get => _latestTimeToReachSoC;
@@ -80,51 +55,18 @@ public class Car
             UpdatedSincLastWrite = true;
         }
     }
-
-    [JsonIgnore]
-    public bool UpdatedSincLastWrite { get; set; }
-
-    [JsonIgnore]
-    public DateTime MinimumChargeAtMaxAcSpeed
-    {
-        get
-        {
-            var socToCharge = (double)MinimumSoC - State.SoC;
-            if (socToCharge < 0)
-            {
-                return DateTime.Now + TimeSpan.Zero;
-            }
-
-            return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
-        }
-    }
-
-    public void ChangeChargeMode()
-    {
-        ChargeMode = ChargeMode.Next();
-    }
-
-    public void UpdateMinimumSoc(int minimumSoc, int hour, int minute)
-    {
-        MinimumSoC = minimumSoc;
-        LatestHourToReachSoC = hour;
-        LatestMinuteToReachSoC = minute;
-    }
-
 }
 
-public class State
+public class CarState
 {
     public string? Name { get; set; }
     public DateTime ShouldStartChargingSince { get; set; }
     public DateTime ShouldStopChargingSince { get; set; }
-
     public int SoC { get; set; }
     public int SocLimit { get; set; }
     public string? Geofence { get; set; }
     public TimeSpan TimeUntilFullCharge { get; set; }
     public bool AutoFullSpeedCharge { get; set; }
-
     public DateTime FullChargeAtMaxAcSpeed
     {
         get
@@ -138,8 +80,19 @@ public class State
             return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
         }
     }
-
     public int LastSetAmp { get; set; }
 
+}
 
+public class Car
+{
+    public Car()
+    {
+        CarState = new CarState();
+        CarConfiguration = new CarConfiguration();
+    }
+    public int Id { get; set; }
+
+    public CarConfiguration CarConfiguration { get; set; }
+    public CarState CarState { get; set;}
 }

@@ -21,12 +21,12 @@ public class ConfigJsonUpdateService
     {
         _logger.LogTrace("{method}()", nameof(UpdateConfigJson));
         var configFileLocation = _configuration.GetValue<string>("ConfigFileLocation");
-        if (_settings.Cars.Any(c => c.UpdatedSincLastWrite))
+        if (_settings.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite))
         {
             _logger.LogDebug("Update configuration.json");
             foreach (var settingsCar in _settings.Cars)
             {
-                settingsCar.UpdatedSincLastWrite = false;
+                settingsCar.CarConfiguration.UpdatedSincLastWrite = false;
             }
 
             var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory.FullName;

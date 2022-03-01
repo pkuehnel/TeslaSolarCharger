@@ -107,11 +107,11 @@ public class ChargingService
         foreach (var teslaMateState in teslaMateStates)
         {
             var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
-            car.State.Name = teslaMateState.data.car.car_name;
-            car.State.Geofence = teslaMateState.data.status.car_geodata.geofence;
-            car.State.SoC = teslaMateState.data.status.battery_details.battery_level;
-            car.State.SocLimit = teslaMateState.data.status.charging_details.charge_limit_soc;
-            car.State.TimeUntilFullCharge =
+            car.CarState.Name = teslaMateState.data.car.car_name;
+            car.CarState.Geofence = teslaMateState.data.status.car_geodata.geofence;
+            car.CarState.SoC = teslaMateState.data.status.battery_details.battery_level;
+            car.CarState.SocLimit = teslaMateState.data.status.charging_details.charge_limit_soc;
+            car.CarState.TimeUntilFullCharge =
                 TimeSpan.FromHours(teslaMateState.data.status.charging_details.time_to_full_charge);
         }
     }
@@ -128,15 +128,16 @@ public class ChargingService
 
         var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
         //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
-        if (car.MinimumChargeAtMaxAcSpeed > car.LatestTimeToReachSoC && car.LatestTimeToReachSoC > DateTime.Now
-            || car.State.SoC < car.MinimumSoC && car.ChargeMode == ChargeMode.PvAndMinSoc)
+        if (car.CarState.MinimumChargeAtMaxAcSpeed > car.CarConfiguration.LatestTimeToReachSoC 
+            && car.CarConfiguration.LatestTimeToReachSoC > DateTime.Now
+            || car.CarState.SoC < car.CarConfiguration.MinimumSoC && car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
         {
-            car.State.AutoFullSpeedCharge = true;
+            car.CarState.AutoFullSpeedCharge = true;
         }
         //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde
-        if (car.State.AutoFullSpeedCharge && car.State.SoC >= car.MinimumSoC)
+        if (car.CarState.AutoFullSpeedCharge && car.CarState.SoC >= car.CarConfiguration.MinimumSoC)
         {
-            car.State.AutoFullSpeedCharge = false;
+            car.CarState.AutoFullSpeedCharge = false;
         }
 
         //if (!teslaMateState.data.status.charging_details.plugged_in && DateTime.Now > car.LatestTimeToReachSoC)
@@ -148,7 +149,7 @@ public class ChargingService
         //}
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
-        if (car.ChargeMode == ChargeMode.MaxPower || car.State.AutoFullSpeedCharge)
+        if (car.CarConfiguration.ChargeMode == ChargeMode.MaxPower || car.CarState.AutoFullSpeedCharge)
         {
             _logger.LogDebug("Max Power Charging");
             if (teslaMateState.data.status.charging_details.charger_actual_current < maxAmpPerCar)
@@ -249,8 +250,8 @@ public class ChargingService
     {
         _logger.LogTrace("{method}({param1})", nameof(UpdateEarliestTimesAfterSwitch), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
-        car.State.ShouldStopChargingSince = DateTime.MaxValue;
-        car.State.ShouldStartChargingSince = DateTime.MaxValue;
+        car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
+        car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
     }
 
     private DateTime EarliestSwitchOff(int carId)
@@ -258,12 +259,12 @@ public class ChargingService
         _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOff), carId);
         var minutesUntilSwitchOff = _configuration.GetValue<int>("MinutesUntilSwitchOff");
         var car = _settings.Cars.First(c => c.Id == carId);
-        if (car.State.ShouldStopChargingSince == DateTime.MaxValue)
+        if (car.CarState.ShouldStopChargingSince == DateTime.MaxValue)
         {
-            car.State.ShouldStopChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOff);
+            car.CarState.ShouldStopChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOff);
         }
 
-        var earliestSwitchOff = car.State.ShouldStopChargingSince;
+        var earliestSwitchOff = car.CarState.ShouldStopChargingSince;
         return earliestSwitchOff;
     }
 
@@ -272,12 +273,12 @@ public class ChargingService
         _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOn), carId);
         var minutesUntilSwitchOn = _configuration.GetValue<int>("MinutesUntilSwitchOn");
         var car = _settings.Cars.First(c => c.Id == carId);
-        if (car.State.ShouldStartChargingSince == DateTime.MaxValue)
+        if (car.CarState.ShouldStartChargingSince == DateTime.MaxValue)
         {
-            car.State.ShouldStartChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOn);
+            car.CarState.ShouldStartChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOn);
         }
 
-        var earliestSwitchOn = car.State.ShouldStartChargingSince;
+        var earliestSwitchOn = car.CarState.ShouldStartChargingSince;
         return earliestSwitchOn;
     }
 
@@ -331,7 +332,7 @@ public class ChargingService
         var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
 
         var car = _settings.Cars.First(c => c.Id == carId);
-        car.State.LastSetAmp = 0;
+        car.CarState.LastSetAmp = 0;
 
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
     }
@@ -355,7 +356,7 @@ public class ChargingService
             result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
         }
 
-        car.State.LastSetAmp = amps;
+        car.CarState.LastSetAmp = amps;
 
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
     }

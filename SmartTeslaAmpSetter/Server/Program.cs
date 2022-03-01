@@ -95,8 +95,8 @@ void AddCarIdsToSettings(Settings settings1)
 
     foreach (var car in settings1.Cars)
     {
-        car.State.ShouldStopChargingSince = DateTime.MaxValue;
-        car.State.ShouldStartChargingSince = DateTime.MaxValue;
+        car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
+        car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
     }
     var newCarIds = carIds.Where(i => !settings1.Cars.Any(c => c.Id.ToString().Equals(i))).ToList();
     foreach (var carId in newCarIds)
@@ -107,18 +107,21 @@ void AddCarIdsToSettings(Settings settings1)
             var car = new Car
             {
                 Id = id,
-                ChargeMode = ChargeMode.MaxPower,
-                State =
+                CarConfiguration =
+                {
+                    ChargeMode = ChargeMode.MaxPower,
+                },
+                CarState =
                 {
                     ShouldStartChargingSince = DateTime.MaxValue,
-                    ShouldStopChargingSince = DateTime.MaxValue
-                }
+                    ShouldStopChargingSince = DateTime.MaxValue,
+                },
             };
             settings1.Cars.Add(car);
         }
     }
 
-    if (settings1.Cars.Any(c => c.UpdatedSincLastWrite))
+    if (settings1.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite))
     {
         var json = JsonConvert.SerializeObject(settings1.Cars);
         var fileInfo = new FileInfo(path);
