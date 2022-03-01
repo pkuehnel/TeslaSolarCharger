@@ -31,6 +31,7 @@ builder.Services
     .AddTransient<ChargingService>()
     .AddTransient<ConfigJsonUpdateService>()
     .AddTransient<GridService>()
+    .AddTransient<ConfigService>()
     .AddSingleton<Settings>()
     ;
 
@@ -40,6 +41,8 @@ builder.Host.UseSerilog((context, configuration) => configuration
 builder.Configuration
     .AddJsonFile("appsettings.json")
     .AddEnvironmentVariables();
+
+
 
 var app = builder.Build();
 
