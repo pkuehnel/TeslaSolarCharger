@@ -1,0 +1,166 @@
+﻿@page "/"
+@using System.Globalization
+@using SmartTeslaAmpSetter.Shared
+@using SmartTeslaAmpSetter.Shared.Dtos
+@inject HttpClient Http
+
+<PageTitle>Index</PageTitle>
+
+@foreach (var car in _settings.Cars)
+{
+    <p><b>@(car.State.Name)</b>: @(car.State.SoC)% (@(car.State.SocLimit)%)</p>
+    <p>@car.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="car.ChangeChargeMode">Lademodus ändern</button></p>
+    <p>Minimum Soc: @car.MinimumSoC% @car.LatestTimeToReachSoC</p>
+    <p>
+        <label for="minSoc">Minimum SOC:</label>
+        <input value="@car.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
+               @onchange="@((ChangeEventArgs __e) => car.MinimumSoC = Int32.Parse(__e?.Value?.ToString() ?? "0"))">%
+    </p>
+    <p>
+        <label for="date">Datum:</label>
+        <input value="@car.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+               @onchange="@((ChangeEventArgs __e) => car.LatestTimeToReachSoC = DateTime.Parse(__e?.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.LatestTimeToReachSoC.Hour).AddMinutes(car.LatestTimeToReachSoC.Minute))">
+    </p>
+    <p>
+        <label for="hour">Hour:</label>
+        <input value="@car.LatestHourToReachSoC" type="number" id="hour" name="hour" min="0" max="24"
+           @onchange="@((ChangeEventArgs __e) => car.LatestHourToReachSoC = Int32.Parse(__e?.Value?.ToString() ?? "0"))">h
+    </p>
+    <p>
+        <label for="minute">Minute</label>
+        <input value="@car.LatestMinuteToReachSoC" type="number" id="minute" name="minute" min="0" max="60"
+           @onchange="@((ChangeEventArgs __e) => car.LatestMinuteToReachSoC = Int32.Parse(__e?.Value?.ToString() ?? "0"))">min
+    </p>
+}
+
+<h2>Details: </h2>
+
+@foreach (var car in _settings.Cars)
+{
+    <p>
+        <table>
+            <tr>
+                <th>
+                    Bezeichnung
+                </th>
+                <th>
+                    Wert
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    Id
+                </td>
+                <td>
+                    @car.Id
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Name
+                </td>
+                <td>
+                    @car.State.Name
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Zuletzt gesetzte Ampere
+                </td>
+                <td>
+                    @car.State.LastSetAmp
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Spätestes Ladeende
+                </td>
+                <td>
+                    @(car.LatestTimeToReachSoC.ToString("HH:mm dd.MM"))
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Voll geladen bei maximaler Geschwindigkeit
+                </td>
+                <td>
+                    @(car.State.FullChargeAtMaxAcSpeed.ToString("HH:mm dd.MM"))
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Voll geladen in
+                </td>
+                <td>
+                    @((car.State.TimeUntilFullCharge.Days > 0 ? $"{car.State.TimeUntilFullCharge.Days}. " : "") + $"{car.State.TimeUntilFullCharge.Hours:D2}:{car.State.TimeUntilFullCharge.Minutes:D2}")
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Voll geladen um
+                </td>
+                <td>
+                    @((DateTime.Now + car.State.TimeUntilFullCharge).ToString("HH:mm dd.MM"))
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Ladestand
+                </td>
+                <td>
+                    @car.State.SoC
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Ladelimit
+                </td>
+                <td>
+                    @car.State.SocLimit
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Lademodus
+                </td>
+                <td>
+                    @car.ChargeMode.ToString()
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Geofence
+                </td>
+                <td>
+                    @car.State.Geofence
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Ladebeginn um
+                </td>
+                <td>
+                    @car.State.ShouldStartChargingSince
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Ladeende um
+                </td>
+                <td>
+                    @car.State.ShouldStopChargingSince
+                </td>
+            </tr>
+        </table>
+    </p>
+}
+
+
+@code {
+    private Settings _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await Http.GetFromJsonAsync<Settings>("WeatherForecast");
+    }
+}
