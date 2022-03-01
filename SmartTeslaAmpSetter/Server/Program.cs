@@ -17,6 +17,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services
     .AddTransient<JobManager>()
     .AddTransient<Job>()
@@ -65,6 +69,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.MapRazorPages();
 app.MapControllers();
