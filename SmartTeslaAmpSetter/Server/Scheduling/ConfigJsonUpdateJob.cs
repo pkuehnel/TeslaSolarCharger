@@ -7,9 +7,9 @@ namespace SmartTeslaAmpSetter.Server.Scheduling;
 public class ConfigJsonUpdateJob : IJob
 {
     private readonly ILogger<ConfigJsonUpdateJob> _logger;
-    private readonly ConfigJsonUpdateService _service;
+    private readonly ConfigJsonService _service;
 
-    public ConfigJsonUpdateJob(ILogger<ConfigJsonUpdateJob> logger, ConfigJsonUpdateService service)
+    public ConfigJsonUpdateJob(ILogger<ConfigJsonUpdateJob> logger, ConfigJsonService service)
     {
         _logger = logger;
         _service = service;

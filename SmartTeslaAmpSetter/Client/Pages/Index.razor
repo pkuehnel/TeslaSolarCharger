@@ -10,7 +10,7 @@
 {
     <p><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</p>
     <p>@car.CarConfiguration.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="ChangeChargeMode">Lademodus ändern</button></p>
-    <p>Minimum Soc: @car.CarConfiguration% @car.CarConfiguration.LatestTimeToReachSoC</p>
+    <p>Minimum Soc: @car.CarConfiguration.MinimumSoC% @car.CarConfiguration.LatestTimeToReachSoC</p>
     <p>
         <label for="minSoc">Minimum SOC:</label>
         <input value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
@@ -147,11 +147,11 @@
 
 
 @code {
-    private Settings _settings;
+    private Settings? _settings;
 
     protected override async Task OnInitializedAsync()
     {
-        _settings = await Http.GetFromJsonAsync<Settings>("Config/GetSettings");
+        _settings = await Http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
     }
 
     private void ChangeChargeMode()

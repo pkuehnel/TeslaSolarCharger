@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Server.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos;
 using SmartTeslaAmpSetter.Shared.Enums;
+using Car = SmartTeslaAmpSetter.Shared.Dtos.Car;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
@@ -127,9 +128,11 @@ public class ChargingService
         _logger.LogDebug("Max amp per car: {amp}", maxAmpPerCar);
 
         var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
+        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(car);
+
         //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
-        if (car.CarState.MinimumChargeAtMaxAcSpeed > car.CarConfiguration.LatestTimeToReachSoC 
-            && car.CarConfiguration.LatestTimeToReachSoC > DateTime.Now
+        if (reachedMinimumSocAtFullSpeedChargeDateTime > car.CarConfiguration.LatestTimeToReachSoC 
+            && car.CarConfiguration.LatestTimeToReachSoC > DateTime.Now 
             || car.CarState.SoC < car.CarConfiguration.MinimumSoC && car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
         {
             car.CarState.AutoFullSpeedCharge = true;
@@ -139,14 +142,6 @@ public class ChargingService
         {
             car.CarState.AutoFullSpeedCharge = false;
         }
-
-        //if (!teslaMateState.data.status.charging_details.plugged_in && DateTime.Now > car.LatestTimeToReachSoC)
-        //{
-        //    car.LatestTimeToReachSoC = DateTime.Now.Date
-        //        .AddDays(1)
-        //        .AddHours(car.LatestTimeToReachSoC.Hour)
-        //        .AddMinutes(car.LatestTimeToReachSoC.Minute);
-        //}
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (car.CarConfiguration.ChargeMode == ChargeMode.MaxPower || car.CarState.AutoFullSpeedCharge)
@@ -244,6 +239,16 @@ public class ChargingService
         }
 
         return ampChange;
+    }
+
+    private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car)
+    {
+        var socToCharge = (double) car.CarConfiguration.MinimumSoC - car.CarState.SoC;
+        if (socToCharge < 1)
+        {
+            return DateTime.Now + TimeSpan.Zero;
+        }
+        return DateTime.Now + TimeSpan.FromHours(socToCharge / 15); ;
     }
 
     private void UpdateEarliestTimesAfterSwitch(int carId)

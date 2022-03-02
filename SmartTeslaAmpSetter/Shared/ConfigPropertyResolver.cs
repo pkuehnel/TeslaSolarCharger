@@ -9,9 +9,12 @@ public class ConfigPropertyResolver : DefaultContractResolver
 {
     private bool IgnoreStatusProperties = true;
 
-    private List<string> ConfigPropertyNames = new()
+    private readonly List<string> _configPropertyNames = new()
     {
         nameof(Car.CarConfiguration),
+        nameof(Car.CarConfiguration.LatestTimeToReachSoC),
+        nameof(Car.CarConfiguration.MinimumSoC),
+        nameof(Car.CarConfiguration.ChargeMode),
         nameof(Car.Id),
     };
 
@@ -23,6 +26,6 @@ public class ConfigPropertyResolver : DefaultContractResolver
             return allProps;
         }
 
-        return allProps.Where(p => ConfigPropertyNames.Any(c => c.Equals(p.PropertyName))).ToList();
+        return allProps.Where(p => _configPropertyNames.Any(c => c.Equals(p.PropertyName))).ToList();
     }
 }
