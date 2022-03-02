@@ -3,9 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartTeslaAmpSetter", "SmartTeslaAmpSetter\SmartTeslaAmpSetter.csproj", "{B6B75083-E404-4D9F-9ECC-B63FE8D712B4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartTeslaAmpSetter.Server", "SmartTeslaAmpSetter\Server\SmartTeslaAmpSetter.Server.csproj", "{5696C074-BBB5-4AC5-B2F2-725B6EC37B9B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plugins.SmaEnergymeter", "Plugins.SmaEnergymeter\Plugins.SmaEnergymeter.csproj", "{C9D469D1-794A-47CB-B5E0-92CF872C6287}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartTeslaAmpSetter.Client", "SmartTeslaAmpSetter\Client\SmartTeslaAmpSetter.Client.csproj", "{281EA66F-B89B-4818-986E-1984AE7D31D1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartTeslaAmpSetter.Shared", "SmartTeslaAmpSetter\Shared\SmartTeslaAmpSetter.Shared.csproj", "{99962DFA-31BE-4566-8416-408EF03BBBB4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plugins.SmaEnergymeter", "Plugins.SmaEnergymeter\Plugins.SmaEnergymeter.csproj", "{6F085517-A87C-4590-87B9-1ED0F926BD8D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,19 +17,27 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B6B75083-E404-4D9F-9ECC-B63FE8D712B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B6B75083-E404-4D9F-9ECC-B63FE8D712B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B6B75083-E404-4D9F-9ECC-B63FE8D712B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B6B75083-E404-4D9F-9ECC-B63FE8D712B4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C9D469D1-794A-47CB-B5E0-92CF872C6287}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C9D469D1-794A-47CB-B5E0-92CF872C6287}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C9D469D1-794A-47CB-B5E0-92CF872C6287}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C9D469D1-794A-47CB-B5E0-92CF872C6287}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5696C074-BBB5-4AC5-B2F2-725B6EC37B9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5696C074-BBB5-4AC5-B2F2-725B6EC37B9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5696C074-BBB5-4AC5-B2F2-725B6EC37B9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5696C074-BBB5-4AC5-B2F2-725B6EC37B9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{281EA66F-B89B-4818-986E-1984AE7D31D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{281EA66F-B89B-4818-986E-1984AE7D31D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{281EA66F-B89B-4818-986E-1984AE7D31D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{281EA66F-B89B-4818-986E-1984AE7D31D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99962DFA-31BE-4566-8416-408EF03BBBB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99962DFA-31BE-4566-8416-408EF03BBBB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99962DFA-31BE-4566-8416-408EF03BBBB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99962DFA-31BE-4566-8416-408EF03BBBB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F085517-A87C-4590-87B9-1ED0F926BD8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F085517-A87C-4590-87B9-1ED0F926BD8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F085517-A87C-4590-87B9-1ED0F926BD8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F085517-A87C-4590-87B9-1ED0F926BD8D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {CA8D4775-B084-43AA-8BC1-A13D3A52EBEA}
+		SolutionGuid = {3B8E82ED-8F81-48A4-9058-D41D55387423}
 	EndGlobalSection
 EndGlobal
