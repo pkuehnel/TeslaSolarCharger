@@ -5,11 +5,25 @@ namespace SmartTeslaAmpSetter.Shared.Dtos;
 
 public class Settings
 {
+    private List<Car> _cars = null!;
+
     public Settings()
     {
-        Cars = new();
+        Cars = new List<Car>();
     }
-    public List<Car> Cars { get; set; }
+
+    public List<Car> Cars
+    {
+        get => _cars;
+        set
+        {
+            _cars = value;
+            foreach (var car in _cars)
+            {
+                car.CarConfiguration.UpdatedSincLastWrite = true;
+            }
+        }
+    }
 }
 
 public class CarConfiguration
@@ -20,7 +34,7 @@ public class CarConfiguration
 
     public CarConfiguration()
     {
-        UpdatedSincLastWrite = false;
+        UpdatedSincLastWrite = true;
     }
 
     [JsonIgnore]

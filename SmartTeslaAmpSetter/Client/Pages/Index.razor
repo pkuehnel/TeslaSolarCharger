@@ -15,7 +15,7 @@ else
     @foreach (var car in _settings.Cars)
     {
         <p><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</p>
-        <p>@car.CarConfiguration.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="ChangeChargeMode">Lademodus ändern</button></p>
+        <p>@car.CarConfiguration.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="() => ChangeChargeMode(car.Id)">Change</button></p>
         <p>Minimum Soc: @car.CarConfiguration.MinimumSoC% @car.CarConfiguration.LatestTimeToReachSoC</p>
         <p>
             <label for="minSoc">Minimum SOC:</label>
@@ -25,8 +25,9 @@ else
         <p>
             <label for="date">Datum:</label>
             <input value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+                   @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
         </p>
+        <p><button class="btn btn-primary" @onclick="() => UpdateCar(car)">Save</button></p>
     }
 
     <h2>Details: </h2>
@@ -162,8 +163,16 @@ else
         _settings = await _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
     }
 
-    private void ChangeChargeMode()
+    private async Task ChangeChargeMode(int carId)
     {
+        var updateBackend = _http.PostAsJsonAsync("api/Config/ChangeChargeMode", carId);
+        var car = _settings?.Cars.First(c => c.Id == carId);
+        await updateBackend;
+        car!.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
+    }
 
+    private async Task UpdateCar(Car car)
+    {
+        await _http.PutAsJsonAsync("api/Config/UpdateCar", car);
     }
 }

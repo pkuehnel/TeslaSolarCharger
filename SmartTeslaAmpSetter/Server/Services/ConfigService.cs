@@ -1,4 +1,6 @@
-﻿using SmartTeslaAmpSetter.Shared.Dtos;
+﻿using SmartTeslaAmpSetter.Shared;
+using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Enums;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
@@ -17,5 +19,19 @@ public class ConfigService
     {
         _logger.LogTrace("{method}()", nameof(GetSettings));
         return _settings;
+    }
+
+    public ChargeMode ChangeChargeMode(int carId)
+    {
+        var car = _settings.Cars.First(c => c.Id == carId);
+        car.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
+        return car.CarConfiguration.ChargeMode;
+    }
+
+    public void UpdateCar(Car car)
+    {
+        var existingCarIndex = _settings.Cars.FindIndex(c => c.Id == car.Id);
+        car.CarConfiguration.UpdatedSincLastWrite = true;
+        _settings.Cars[existingCarIndex] = car;
     }
 }
