@@ -13,6 +13,7 @@ public class GridService
 
     public async Task<int> GetCurrentOverage()
     {
+        _logger.LogTrace("{method}()", nameof(GetCurrentOverage));
         using var httpClient = new HttpClient();
         var requestUri = _configuration.GetValue<string>("CurrentPowerToGridUrl");
         var response = await httpClient.GetAsync(

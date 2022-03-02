@@ -8,9 +8,9 @@ public static class Extensions
     {
         if (!typeof(T).IsEnum) throw new ArgumentException(String.Format("Argument {0} is not an Enum", typeof(T).FullName));
 
-        T[] Arr = (T[])Enum.GetValues(src.GetType());
-        int j = Array.IndexOf<T>(Arr, src) + 1;
-        return (Arr.Length==j) ? Arr[0] : Arr[j];
+        T[] arr = (T[])Enum.GetValues(src.GetType());
+        int j = Array.IndexOf(arr, src) + 1;
+        return (arr.Length==j) ? arr[0] : arr[j];
     }
 
     public static string ToFriendlyString(this ChargeMode chargeMode)

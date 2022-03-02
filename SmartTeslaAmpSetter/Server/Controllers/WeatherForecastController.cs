@@ -22,6 +22,7 @@ namespace SmartTeslaAmpSetter.Server.Controllers
         [HttpGet]
         public IEnumerable<WeatherForecast> Get()
         {
+            _logger.LogTrace("{method}()", nameof(Get));
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
                 Date = DateTime.Now.AddDays(index),

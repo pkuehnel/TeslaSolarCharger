@@ -21,6 +21,7 @@ namespace SmartTeslaAmpSetter.Server.Pages
 
         public void OnGet()
         {
+            _logger.LogTrace("{method}()", nameof(OnGet));
             RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
         }
     }

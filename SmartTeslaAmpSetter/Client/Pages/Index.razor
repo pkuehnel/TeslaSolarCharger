@@ -2,148 +2,156 @@
 @using System.Globalization
 @using SmartTeslaAmpSetter.Shared
 @using SmartTeslaAmpSetter.Shared.Dtos
-@inject HttpClient Http
+@inject HttpClient _http
 
 <PageTitle>Index</PageTitle>
 
-@foreach (var car in _settings.Cars)
+@if (_settings?.Cars == null)
 {
-    <p><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</p>
-    <p>@car.CarConfiguration.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="ChangeChargeMode">Lademodus ändern</button></p>
-    <p>Minimum Soc: @car.CarConfiguration.MinimumSoC% @car.CarConfiguration.LatestTimeToReachSoC</p>
-    <p>
-        <label for="minSoc">Minimum SOC:</label>
-        <input value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-               @onchange="@((ChangeEventArgs __e) => car.CarConfiguration.MinimumSoC = Int32.Parse(__e?.Value?.ToString() ?? "0"))">%
-    </p>
-    <p>
-        <label for="date">Datum:</label>
-        <input value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-               @onchange="@((ChangeEventArgs __e) => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(__e?.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
-    </p>
+    <p><em>Loading...</em></p>
+}
+else
+{
+    @foreach (var car in _settings.Cars)
+    {
+        <p><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</p>
+        <p>@car.CarConfiguration.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="ChangeChargeMode">Lademodus ändern</button></p>
+        <p>Minimum Soc: @car.CarConfiguration.MinimumSoC% @car.CarConfiguration.LatestTimeToReachSoC</p>
+        <p>
+            <label for="minSoc">Minimum SOC:</label>
+            <input value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
+           @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
+        </p>
+        <p>
+            <label for="date">Datum:</label>
+            <input value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+        </p>
+    }
+
+    <h2>Details: </h2>
+
+    @foreach (var car in _settings.Cars)
+    {
+        <p>
+            <table>
+                <tr>
+                    <th>
+                        Bezeichnung
+                    </th>
+                    <th>
+                        Wert
+                    </th>
+                </tr>
+                <tr>
+                    <td>
+                        Id
+                    </td>
+                    <td>
+                        @car.Id
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Name
+                    </td>
+                    <td>
+                        @car.CarState.Name
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Zuletzt gesetzte Ampere
+                    </td>
+                    <td>
+                        @car.CarState.LastSetAmp
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Spätestes Ladeende
+                    </td>
+                    <td>
+                        @(car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm dd.MM"))
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Voll geladen bei maximaler Geschwindigkeit
+                    </td>
+                    <td>
+                        @(car.CarState.FullChargeAtMaxAcSpeed.ToString("HH:mm dd.MM"))
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Voll geladen in
+                    </td>
+                    <td>
+                        @((car.CarState.TimeUntilFullCharge.Days > 0 ? $"{car.CarState.TimeUntilFullCharge.Days}. " : "") + $"{car.CarState.TimeUntilFullCharge.Hours:D2}:{car.CarState.TimeUntilFullCharge.Minutes:D2}")
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Voll geladen um
+                    </td>
+                    <td>
+                        @((DateTime.Now + car.CarState.TimeUntilFullCharge).ToString("HH:mm dd.MM"))
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Ladestand
+                    </td>
+                    <td>
+                        @car.CarState.SoC
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Ladelimit
+                    </td>
+                    <td>
+                        @car.CarState.SocLimit
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Lademodus
+                    </td>
+                    <td>
+                        @car.CarState.ToString()
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Geofence
+                    </td>
+                    <td>
+                        @car.CarState.Geofence
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Ladebeginn um
+                    </td>
+                    <td>
+                        @car.CarState.ShouldStartChargingSince
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Ladeende um
+                    </td>
+                    <td>
+                        @car.CarState.ShouldStopChargingSince
+                    </td>
+                </tr>
+            </table>
+        </p>
+    }
 }
 
-<h2>Details: </h2>
-
-@foreach (var car in _settings.Cars)
-{
-    <p>
-        <table>
-            <tr>
-                <th>
-                    Bezeichnung
-                </th>
-                <th>
-                    Wert
-                </th>
-            </tr>
-            <tr>
-                <td>
-                    Id
-                </td>
-                <td>
-                    @car.Id
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Name
-                </td>
-                <td>
-                    @car.CarState.Name
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Zuletzt gesetzte Ampere
-                </td>
-                <td>
-                    @car.CarState.LastSetAmp
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Spätestes Ladeende
-                </td>
-                <td>
-                    @(car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm dd.MM"))
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Voll geladen bei maximaler Geschwindigkeit
-                </td>
-                <td>
-                    @(car.CarState.FullChargeAtMaxAcSpeed.ToString("HH:mm dd.MM"))
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Voll geladen in
-                </td>
-                <td>
-                    @((car.CarState.TimeUntilFullCharge.Days > 0 ? $"{car.CarState.TimeUntilFullCharge.Days}. " : "") + $"{car.CarState.TimeUntilFullCharge.Hours:D2}:{car.CarState.TimeUntilFullCharge.Minutes:D2}")
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Voll geladen um
-                </td>
-                <td>
-                    @((DateTime.Now + car.CarState.TimeUntilFullCharge).ToString("HH:mm dd.MM"))
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Ladestand
-                </td>
-                <td>
-                    @car.CarState.SoC
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Ladelimit
-                </td>
-                <td>
-                    @car.CarState.SocLimit
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Lademodus
-                </td>
-                <td>
-                    @car.CarState.ToString()
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Geofence
-                </td>
-                <td>
-                    @car.CarState.Geofence
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Ladebeginn um
-                </td>
-                <td>
-                    @car.CarState.ShouldStartChargingSince
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    Ladeende um
-                </td>
-                <td>
-                    @car.CarState.ShouldStopChargingSince
-                </td>
-            </tr>
-        </table>
-    </p>
-}
 
 
 @code {
@@ -151,7 +159,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _settings = await Http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        _settings = await _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
     }
 
     private void ChangeChargeMode()

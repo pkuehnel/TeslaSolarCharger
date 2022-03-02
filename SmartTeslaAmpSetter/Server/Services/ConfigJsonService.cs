@@ -1,5 +1,4 @@
-﻿using System.Configuration;
-using System.Reflection;
+﻿using System.Reflection;
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Shared;
 using SmartTeslaAmpSetter.Shared.Dtos;

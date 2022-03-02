@@ -1,6 +1,3 @@
-using System.Reflection;
-using Microsoft.AspNetCore.ResponseCompression;
-using Newtonsoft.Json;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
@@ -8,7 +5,6 @@ using Serilog;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Shared.Dtos;
-using SmartTeslaAmpSetter.Shared.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +44,6 @@ var app = builder.Build();
 
 var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSeconds");
 var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
-var carIds = app.Configuration.GetValue<string>("CarPriorities").Split("|");
 
 var settings = app.Services.GetRequiredService<Settings>();
 

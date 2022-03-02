@@ -68,7 +68,7 @@ public class ChargingService
         var powerToRegulate = overage;
         _logger.LogDebug("Power to regulate: {power}", powerToRegulate);
 
-        var ampToRegulate = Convert.ToInt32(Math.Floor((double)powerToRegulate / ((double)230 * 3)));
+        var ampToRegulate = Convert.ToInt32(Math.Floor(powerToRegulate / ((double)230 * 3)));
         _logger.LogDebug("Amp to regulate: {amp}", ampToRegulate);
 
         var orderedRelevantTeslaMateStates = relevantTeslaMateStates;
@@ -248,7 +248,7 @@ public class ChargingService
         {
             return DateTime.Now + TimeSpan.Zero;
         }
-        return DateTime.Now + TimeSpan.FromHours(socToCharge / 15); ;
+        return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
     }
 
     private void UpdateEarliestTimesAfterSwitch(int carId)
