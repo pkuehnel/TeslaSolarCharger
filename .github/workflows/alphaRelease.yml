@@ -33,12 +33,6 @@ jobs:
         push: true
         tags: pkuehnel/smartteslaampsetter:alpha
 
-    - name: DockerHub login
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASS}}
-
     - name: Build and push SmaPlugin
       uses: docker/build-push-action@v2
       with:
