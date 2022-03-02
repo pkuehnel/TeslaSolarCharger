@@ -28,7 +28,7 @@ namespace SmartTeslaAmpSetter.Server.Controllers
         /// <param name="carId">Car id whose chargemode should be changed</param>
         /// <returns>Resulting chargemode after change</returns>
         [HttpPost]
-        public ChargeMode ChangeChargeMode([FromBody] int carId) => _service.ChangeChargeMode(carId);
+        public ChargeMode ChangeChargeMode(int carId) => _service.ChangeChargeMode(carId);
 
         /// <summary>
         /// Update Car's configuration
