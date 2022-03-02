@@ -27,6 +27,11 @@ else
             <input value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
                    @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
         </p>
+        <p>
+            <label for="time">Uhrzeit:</label>
+            <input value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
+                   @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+        </p>
         <p><button class="btn btn-primary" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">Save</button></p>
     }
 
