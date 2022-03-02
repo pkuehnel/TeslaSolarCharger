@@ -100,6 +100,8 @@ public class CarState
 
 public class Car
 {
+    private CarConfiguration _carConfiguration;
+
     public Car()
     {
         CarState = new CarState();
@@ -107,6 +109,15 @@ public class Car
     }
     public int Id { get; set; }
 
-    public CarConfiguration CarConfiguration { get; set; }
+    public CarConfiguration CarConfiguration
+    {
+        get => _carConfiguration;
+        set
+        {
+            _carConfiguration = value;
+            _carConfiguration.UpdatedSincLastWrite = true;
+        }
+    }
+
     public CarState CarState { get; set;}
 }

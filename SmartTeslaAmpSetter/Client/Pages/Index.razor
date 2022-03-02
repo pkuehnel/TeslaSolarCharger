@@ -27,7 +27,7 @@ else
             <input value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
                    @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
         </p>
-        <p><button class="btn btn-primary" @onclick="() => UpdateCar(car)">Save</button></p>
+        <p><button class="btn btn-primary" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">Save</button></p>
     }
 
     <h2>Details: </h2>
@@ -171,8 +171,8 @@ else
         car!.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
     }
 
-    private async Task UpdateCar(Car car)
+    private async Task UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
     {
-        await _http.PutAsJsonAsync("api/Config/UpdateCar", car);
+        await _http.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
     }
 }

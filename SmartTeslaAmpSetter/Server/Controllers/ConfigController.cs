@@ -31,10 +31,11 @@ namespace SmartTeslaAmpSetter.Server.Controllers
         public ChargeMode ChangeChargeMode([FromBody] int carId) => _service.ChangeChargeMode(carId);
 
         /// <summary>
-        /// Update Car's configuration or status. Note: Car Status is periodically overwritten by TeslaMate
+        /// Update Car's configuration
         /// </summary>
-        /// <param name="car">Car with new property values</param>
+        /// <param name="carId">Car Id of car to update</param>
+        /// <param name="carConfiguration">Car Configuration which should be set to car</param>
         [HttpPut]
-        public void UpdateCar([FromBody] Car car) => _service.UpdateCar(car);
+        public void UpdateCarConfiguration(int carId, [FromBody] CarConfiguration carConfiguration) => _service.UpdateCarConfiguration(carId, carConfiguration);
     }
 }

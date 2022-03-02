@@ -28,10 +28,9 @@ public class ConfigService
         return car.CarConfiguration.ChargeMode;
     }
 
-    public void UpdateCar(Car car)
+    public void UpdateCarConfiguration(int id, CarConfiguration carConfiguration)
     {
-        var existingCarIndex = _settings.Cars.FindIndex(c => c.Id == car.Id);
-        car.CarConfiguration.UpdatedSincLastWrite = true;
-        _settings.Cars[existingCarIndex] = car;
+        var existingCarIndex = _settings.Cars.FindIndex(c => c.Id == id);
+        _settings.Cars[existingCarIndex].CarConfiguration = carConfiguration;
     }
 }
