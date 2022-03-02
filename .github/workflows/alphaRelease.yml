@@ -8,7 +8,7 @@ on:
 
 jobs:
   SmartTeslaAmpSetter:
-    name: Building image
+    name: Building SmartTeslaAmpSetter image
     runs-on: ubuntu-latest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
         tags: pkuehnel/smartteslaampsetter:alpha
 
   SmaEnergymeterplugin:
-    name: Building image
+    name: Building SMAPlugin Image
     runs-on: ubuntu-latest
 
     steps:
