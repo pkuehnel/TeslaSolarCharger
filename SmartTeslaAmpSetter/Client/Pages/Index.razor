@@ -2,6 +2,7 @@
 @using System.Globalization
 @using SmartTeslaAmpSetter.Shared
 @using SmartTeslaAmpSetter.Shared.Dtos
+@using SmartTeslaAmpSetter.Shared.Enums
 @inject HttpClient _http
 
 <PageTitle>Index</PageTitle>
@@ -16,22 +17,27 @@ else
     {
         <p><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</p>
         <p>@car.CarConfiguration.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="() => ChangeChargeMode(car.Id)">Change</button></p>
-        <p>Minimum Soc: @car.CarConfiguration.MinimumSoC% @car.CarConfiguration.LatestTimeToReachSoC</p>
-        <p>
-            <label for="minSoc">Minimum SOC:</label>
-            <input value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-           @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
-        </p>
-        <p>
-            <label for="date">Datum:</label>
-            <input value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-                   @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
-        </p>
-        <p>
-            <label for="time">Uhrzeit:</label>
-            <input value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-                   @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
-        </p>
+        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+        {
+            <p>
+                <label for="minSoc">Minimum SOC:</label>
+                <input value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
+                       @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
+            </p>
+        }
+        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+        {
+            <p>
+                <label for="date">Datum:</label>
+                <input value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+                       @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+            </p>
+            <p>
+                <label for="time">Uhrzeit:</label>
+                <input value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
+                       @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+            </p>
+        }
         <p><button class="btn btn-primary" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">Save</button></p>
     }
 
