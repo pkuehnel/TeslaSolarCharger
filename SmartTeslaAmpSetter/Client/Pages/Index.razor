@@ -4,6 +4,7 @@
 @using SmartTeslaAmpSetter.Shared.Dtos
 @using SmartTeslaAmpSetter.Shared.Enums
 @inject HttpClient _http
+@inject IToastService _toastService
 
 <PageTitle>Index</PageTitle>
 
@@ -38,7 +39,10 @@ else
                        @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
             </p>
         }
-        <p><button class="btn btn-primary" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">Save</button></p>
+        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+        {
+            <p><button class="btn btn-primary" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">Save</button></p>
+        }
     }
 
     <h2>Details: </h2>
@@ -178,12 +182,29 @@ else
     {
         var updateBackend = _http.PostAsync($"api/Config/ChangeChargeMode?carId={carId}", new StringContent(string.Empty));
         var car = _settings?.Cars.First(c => c.Id == carId);
-        await updateBackend;
+        var result = await updateBackend;
+        if (result.IsSuccessStatusCode)
+        {
+            _toastService.ShowSuccess("ChargeMode Changed");
+        }
+        else
+        {
+            _toastService.ShowError("Error changing ChargeMode");
+            return;
+        }
         car!.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
     }
 
     private async Task UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
     {
-        await _http.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
+        var result = await _http.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
+        if (result.IsSuccessStatusCode)
+        {
+            _toastService.ShowSuccess("Car Configuration updated");
+        }
+        else
+        {
+            _toastService.ShowError("Error updating car configuration");
+        }
     }
 }
