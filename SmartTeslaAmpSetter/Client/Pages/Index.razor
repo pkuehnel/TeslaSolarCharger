@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using System.Globalization
+@using System.Runtime.CompilerServices
 @using SmartTeslaAmpSetter.Shared
 @using SmartTeslaAmpSetter.Shared.Dtos
 @using SmartTeslaAmpSetter.Shared.Enums
@@ -16,33 +17,35 @@ else
 {
     @foreach (var car in _settings.Cars)
     {
-        <p><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</p>
-        <p>@car.CarConfiguration.ChargeMode.ToFriendlyString() <button class="btn btn-primary" @onclick="() => ChangeChargeMode(car.Id)">Change</button></p>
-        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
-        {
-            <p>
-                <label for="minSoc">Minimum SOC:</label>
-                <input value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-                       @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
-            </p>
-        }
-        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
-        {
-            <p>
-                <label for="date">Datum:</label>
-                <input value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-                       @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
-            </p>
-            <p>
-                <label for="time">Uhrzeit:</label>
-                <input value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-                       @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
-            </p>
-        }
-        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
-        {
-            <p><button class="btn btn-primary" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">Save</button></p>
-        }
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</div>
+            <div class="col-sm-4 col-md-3">@car.CarConfiguration.ChargeMode.ToFriendlyString()</div> <button class="btn btn-primary col-sm-5 col-md-3" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
+            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            {
+                <p>
+                    <label class="col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC:</label>
+                    <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
+               @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
+                </p>
+            }
+            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            {
+                <p>
+                    <label class="col-sm-4 col-md-3 col-lg-2" for="date">Datum:</label>
+                    <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+                </p>
+                <p>
+                    <label class="col-sm-4 col-md-3 col-lg-2" for="time">Uhrzeit:</label>
+                    <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
+               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                </p>
+            }
+            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            {
+                <p><button class="btn btn-success col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">@_saveButtonTexts[car.Id]</button></p>
+            }
+        </div>
     }
 
     <h2>Details: </h2>
@@ -172,31 +175,45 @@ else
 
 @code {
     private Settings? _settings;
+    private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
+    private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
+
+    private readonly string _chargeModeChangeButtonDefaultText = "Change";
+    private readonly string _saveButtonDefaultText = "Save";
+    private readonly string _buttonLoadingText = "...";
 
     protected override async Task OnInitializedAsync()
     {
-        _settings = await _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        var handler = _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        _settings = await handler;
+        foreach (var car in _settings!.Cars)
+        {
+            _chargemodeChangeButtonTexts.Add(car.Id, _chargeModeChangeButtonDefaultText);
+            _saveButtonTexts.Add(car.Id, _saveButtonDefaultText);
+        }
     }
 
     private async Task ChangeChargeMode(int carId)
     {
+        _chargemodeChangeButtonTexts[carId] = _buttonLoadingText;
         var updateBackend = _http.PostAsync($"api/Config/ChangeChargeMode?carId={carId}", new StringContent(string.Empty));
         var car = _settings?.Cars.First(c => c.Id == carId);
         var result = await updateBackend;
         if (result.IsSuccessStatusCode)
         {
             _toastService.ShowSuccess("ChargeMode Changed");
+            car!.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
         }
         else
         {
             _toastService.ShowError("Error changing ChargeMode");
-            return;
         }
-        car!.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
+        _chargemodeChangeButtonTexts[carId] = _chargeModeChangeButtonDefaultText;
     }
 
     private async Task UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
     {
+        _saveButtonTexts[carId] = _buttonLoadingText;
         var result = await _http.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
         if (result.IsSuccessStatusCode)
         {
@@ -206,5 +223,6 @@ else
         {
             _toastService.ShowError("Error updating car configuration");
         }
+        _saveButtonTexts[carId] = _saveButtonDefaultText;
     }
 }
