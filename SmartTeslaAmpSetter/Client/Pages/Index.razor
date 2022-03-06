@@ -18,7 +18,7 @@ else
     @foreach (var car in _settings.Cars)
     {
         <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</div>
-        <div class="col-sm-4 col-md-3">@car.CarConfiguration.ChargeMode.ToFriendlyString()</div> <button class="btn btn-primary col-sm-5 col-md-3" id="@car.Id+ChangeChargeModebutton" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
+        <div class="col-sm-4 col-md-3">@car.CarConfiguration.ChargeMode.ToFriendlyString()</div> <button class="btn btn-primary col-sm-5 col-md-3" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
         @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
         {
             <p>
