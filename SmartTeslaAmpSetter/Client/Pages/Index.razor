@@ -17,33 +17,35 @@ else
 {
     @foreach (var car in _settings.Cars)
     {
-        <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</div>
-        <div class="col-sm-4 col-md-3">@car.CarConfiguration.ChargeMode.ToFriendlyString()</div> <button class="btn btn-primary col-sm-5 col-md-3" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
-        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
-        {
-            <p>
-                <label class="col-sm-4 col-md-3" for="minSoc">Minimum SOC:</label>
-                <input class="col-sm-6 col-md-3" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-           @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
-            </p>
-        }
-        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
-        {
-            <p>
-                <label class="col-sm-4 col-md-3" for="date">Datum:</label>
-                <input class="col-sm-6 col-md-3" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
-            </p>
-            <p>
-                <label  class="col-sm-4 col-md-3" for="time">Uhrzeit:</label>
-                <input class="col-sm-6 col-md-3" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
-            </p>
-        }
-        @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
-        {
-            <p><button class="btn btn-success col-sm-10 col-md-6" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">@_saveButtonTexts[car.Id]</button></p>
-        }
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</div>
+            <div class="col-sm-4 col-md-3">@car.CarConfiguration.ChargeMode.ToFriendlyString()</div> <button class="btn btn-primary col-sm-5 col-md-3" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
+            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            {
+                <p>
+                    <label class="col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC:</label>
+                    <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
+               @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
+                </p>
+            }
+            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            {
+                <p>
+                    <label class="col-sm-4 col-md-3 col-lg-2" for="date">Datum:</label>
+                    <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+                </p>
+                <p>
+                    <label class="col-sm-4 col-md-3 col-lg-2" for="time">Uhrzeit:</label>
+                    <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
+               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                </p>
+            }
+            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            {
+                <p><button class="btn btn-success col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">@_saveButtonTexts[car.Id]</button></p>
+            }
+        </div>
     }
 
     <h2>Details: </h2>
