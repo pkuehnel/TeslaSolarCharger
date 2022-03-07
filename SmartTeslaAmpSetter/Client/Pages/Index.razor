@@ -1,11 +1,13 @@
 @page "/"
 @using System.Globalization
 @using System.Runtime.CompilerServices
+@using  System.Timers
 @using SmartTeslaAmpSetter.Shared
 @using SmartTeslaAmpSetter.Shared.Dtos
 @using SmartTeslaAmpSetter.Shared.Enums
 @inject HttpClient _http
 @inject IToastService _toastService
+@inject IConfiguration _configuration
 
 <PageTitle>Index</PageTitle>
 
@@ -188,6 +190,8 @@ else
     private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
     private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
 
+    private Timer? _timer;
+
     private readonly string _chargeModeChangeButtonDefaultText = "Change";
     private readonly string _saveButtonDefaultText = "Save";
     private string _refreshButtonText = "Refresh";
@@ -203,6 +207,11 @@ else
             _chargemodeChangeButtonTexts.Add(car.Id, _chargeModeChangeButtonDefaultText);
             _saveButtonTexts.Add(car.Id, _saveButtonDefaultText);
         }
+
+        _timer = new Timer();
+        _timer.Interval = _configuration.GetValue<int>("UpdateIntervalSeconds");
+        _timer.Elapsed += new ElapsedEventHandler(RefreshStates);
+        _timer.Start();
     }
 
     private async Task ChangeChargeMode(int carId)
@@ -238,7 +247,20 @@ else
         _saveButtonTexts[carId] = _saveButtonDefaultText;
     }
 
-    private async void RefreshSettings()
+    private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
+    {
+        var tmpSettings = await _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        _settings!.InverterPower = tmpSettings!.InverterPower;
+        _settings.Overage = tmpSettings.Overage;
+        foreach (var tmpCar in tmpSettings.Cars)
+        {
+            var car = _settings.Cars.First(c => c.Id == tmpCar.Id);
+            car.CarState = tmpCar.CarState;
+        }
+        this.StateHasChanged();
+    }
+
+    private async void RefreshSettings(bool autorefresh = false)
     {
         _refreshButtonText = _buttonLoadingText;
         _settings = await _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
