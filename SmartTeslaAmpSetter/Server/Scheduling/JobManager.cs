@@ -27,6 +27,14 @@ public class JobManager
         _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
         _scheduler.JobFactory = _jobFactory;
 
+        var minimumJobIntervall = TimeSpan.FromSeconds(30);
+
+        if (jobIntervall < minimumJobIntervall)
+        {
+            _logger.LogWarning("Jobintervall below {minimumJobIntervall}. Due to delays in TeslaMate and TeslaMate API use {minimum} as job interval", minimumJobIntervall, minimumJobIntervall);
+            jobIntervall = minimumJobIntervall;
+        }
+
         var chargeLogJob = JobBuilder.Create<Job>().Build();
         var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
 
