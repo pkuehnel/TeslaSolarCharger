@@ -12,6 +12,9 @@ public class Settings
         Cars = new List<Car>();
     }
 
+    public int? InverterPower { get; set; }
+    public int Overage { get; set; }
+
     public List<Car> Cars
     {
         get => _cars;
@@ -95,6 +98,8 @@ public class CarState
         }
     }
     public int LastSetAmp { get; set; }
+
+    public int ChargingPowerAtHome { get; set; }
 
 }
 

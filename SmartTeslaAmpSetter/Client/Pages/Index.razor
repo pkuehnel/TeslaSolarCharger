@@ -9,16 +9,25 @@
 
 <PageTitle>Index</PageTitle>
 
-@if (_settings?.Cars == null)
+@if (_settings == null)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
+    <div class="shadow p-3 mb-5 bg-white rounded">
+        @if (_settings.InverterPower != null)
+        {
+        <div>Inverter: @_settings.InverterPower W</div>
+        <div>House: @(_settings.InverterPower-_settings.Overage-_settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome)) W</div>
+        }
+        <div>Grid: @_settings.Overage W</div>
+        <div>Cars: _settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
+    </div>
     @foreach (var car in _settings.Cars)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%)</div>
+            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
             <div class="col-sm-4 col-md-3">@car.CarConfiguration.ChargeMode.ToFriendlyString()</div> <button class="btn btn-primary col-sm-5 col-md-3" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
             {
