@@ -209,7 +209,7 @@ else
         }
 
         _timer = new Timer();
-        _timer.Interval = _configuration.GetValue<int>("UpdateIntervalSeconds");
+        _timer.Interval = (_configuration.GetValue<int>("UpdateIntervalSeconds") < 10 ? 10 : _configuration.GetValue<int>("UpdateIntervalSeconds")) * 1000;
         _timer.Elapsed += new ElapsedEventHandler(RefreshStates);
         _timer.Start();
     }
