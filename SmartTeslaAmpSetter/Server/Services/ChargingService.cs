@@ -24,7 +24,7 @@ public class ChargingService
         _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
     }
 
-    public async Task SetNewChargingValues()
+    public async Task SetNewChargingValues(bool onlyUpdateValues = false)
     {
         _logger.LogTrace($"{nameof(SetNewChargingValues)}()");
 
@@ -53,6 +53,11 @@ public class ChargingService
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
         UpdateCarStates(teslaMateStates, geofence);
+
+        if (onlyUpdateValues)
+        {
+            return;
+        }
 
         var relevantTeslaMateStates = GetRelevantTeslaMateStates(teslaMateStates, geofence);
         _logger.LogDebug("Number of relevant Cars: {count}", relevantTeslaMateStates.Count);
@@ -123,10 +128,15 @@ public class ChargingService
             car.CarState.TimeUntilFullCharge =
                 TimeSpan.FromHours(teslaMateState.data.status.charging_details.time_to_full_charge);
 
+            // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
             if (teslaMateState.data.status.car_geodata.geofence.Equals(geofence,
                     StringComparison.InvariantCultureIgnoreCase))
             {
                 car.CarState.ChargingPowerAtHome = teslaMateState.data.status.charging_details.ChargingPower;
+            }
+            else
+            {
+                car.CarState.ChargingPowerAtHome = 0;
             }
         }
     }
