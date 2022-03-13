@@ -1,0 +1,68 @@
+name: versionRelease
+
+name: Publish
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    name: Release
+    strategy:
+      matrix:
+        kind: ['linux-x64', 'linux-arm64']
+        include:
+          - kind: linux-x64
+            os: ubuntu-latest
+            target: linux-x64
+          - kind: linux-arm64
+            os: ubuntu-latest
+            target: linux-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.3
+
+      - name: Build SmartTeslaAmpSetter
+        shell: bash
+        run: |
+          # Define some variables for things we need
+          tag=$(git describe --tags --abbrev=0)
+          release_name="SmartTeslaAmpSetter-$tag-${{ matrix.target }}"
+
+          # Build everything
+          dotnet publish SmartTeslaAmpSetter/Server/SmartTeslaAmpSetter.Server.csproj --runtime "${{ matrix.target }}" -c Release -o "$release_name"
+
+          # Pack files
+          tar czvf "${release_name}.tar.gz" "$release_name"
+
+          # Delete output directory
+          rm -r "$release_name"
+      
+      - name: Build Plugins.SmaEnergymeter
+        shell: bash
+        run: |
+          # Define some variables for things we need
+          tag=$(git describe --tags --abbrev=0)
+          release_name="Plugins.SmaEnergymeter-$tag-${{ matrix.target }}"
+
+          # Build everything
+          dotnet publish Plugins.SmaEnergymeter/Plugins.SmaEnergymeter.csproj --runtime "${{ matrix.target }}" -c Release -o "$release_name"
+
+          # Pack files
+          tar czvf "${release_name}.tar.gz" "$release_name"
+
+          # Delete output directory
+          rm -r "$release_name"
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "App*"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
