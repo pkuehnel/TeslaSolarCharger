@@ -20,7 +20,7 @@ namespace SmartTeslaAmpSetter.Server.Controllers
         /// Get all settings and status of all cars
         /// </summary>
         [HttpGet]
-        public Settings GetSettings() => _service.GetSettings();
+        public Task<Settings> GetSettings() => _service.GetSettings();
 
         /// <summary>
         /// Change Chargemode of car
