@@ -24,11 +24,19 @@ public class ChargingService
         _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
     }
 
-    public async Task SetNewChargingValues()
+    public async Task SetNewChargingValues(bool onlyUpdateValues = false)
     {
         _logger.LogTrace($"{nameof(SetNewChargingValues)}()");
 
         var overage = await _gridService.GetCurrentOverage().ConfigureAwait(false);
+
+        _settings.Overage = overage;
+
+        _logger.LogDebug($"Current overage is {overage} Watt.");
+
+        var inverterPower = await _gridService.GetCurrentInverterPower().ConfigureAwait(false);
+
+        _settings.InverterPower = inverterPower;
 
         _logger.LogDebug($"Current overage is {overage} Watt.");
 
@@ -40,11 +48,16 @@ public class ChargingService
         var carIds = _settings.Cars.Select(c => c.Id).ToList();
 
         var teslaMateStates = await GetTeslaMateStates(carIds).ConfigureAwait(false);
-
-        UpdateCarStates(teslaMateStates);
-
+        
         var geofence = _configuration.GetValue<string>("GeoFence");
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
+
+        UpdateCarStates(teslaMateStates, geofence);
+
+        if (onlyUpdateValues)
+        {
+            return;
+        }
 
         var relevantTeslaMateStates = GetRelevantTeslaMateStates(teslaMateStates, geofence);
         _logger.LogDebug("Number of relevant Cars: {count}", relevantTeslaMateStates.Count);
@@ -103,7 +116,7 @@ public class ChargingService
 
 
 
-    private void UpdateCarStates(List<TeslaMateState> teslaMateStates)
+    private void UpdateCarStates(List<TeslaMateState> teslaMateStates, string geofence)
     {
         foreach (var teslaMateState in teslaMateStates)
         {
@@ -114,6 +127,17 @@ public class ChargingService
             car.CarState.SocLimit = teslaMateState.data.status.charging_details.charge_limit_soc;
             car.CarState.TimeUntilFullCharge =
                 TimeSpan.FromHours(teslaMateState.data.status.charging_details.time_to_full_charge);
+
+            // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
+            if (teslaMateState.data.status.car_geodata.geofence.Equals(geofence,
+                    StringComparison.InvariantCultureIgnoreCase))
+            {
+                car.CarState.ChargingPowerAtHome = teslaMateState.data.status.charging_details.ChargingPower;
+            }
+            else
+            {
+                car.CarState.ChargingPowerAtHome = 0;
+            }
         }
     }
 

@@ -8,16 +8,19 @@ public class ConfigService
 {
     private readonly ILogger<ConfigService> _logger;
     private readonly Settings _settings;
+    private readonly ChargingService _chargingService;
 
-    public ConfigService(ILogger<ConfigService> logger, Settings settings)
+    public ConfigService(ILogger<ConfigService> logger, Settings settings, ChargingService chargingService)
     {
         _logger = logger;
         _settings = settings;
+        _chargingService = chargingService;
     }
 
-    public Settings GetSettings()
+    public async Task<Settings> GetSettings()
     {
         _logger.LogTrace("{method}()", nameof(GetSettings));
+        await _chargingService.SetNewChargingValues(true);
         return _settings;
     }
 

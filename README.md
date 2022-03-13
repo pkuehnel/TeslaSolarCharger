@@ -100,6 +100,7 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 | Variable | Type | Explanation | Example |
 |---|---|---|---|
 | **CurrentPowerToGridUrl** | string | URL to REST Endpoint of smart meter | http://192.168.1.50/api/CurrentPower |
+| **CurrentInverterPowerUrl** | string | URL to REST Endpoint of inverter (optional) | http://192.168.1.50/api/CurrentInverterPower |
 | **TeslaMateApiBaseUrl** | string | Base URL to TeslaMateApi instance | http://teslamateapi:8080 |
 | **UpdateIntervalSeconds** | int | Intervall how often the charging amps should be set (Note: TeslaMateApi takes some time to get new current values, so do not set a value lower than 30) | 30 |
 | **CarPriorities** | string | TeslaMate Car Ids separated by \| in the priority order. | 1\|2 |
