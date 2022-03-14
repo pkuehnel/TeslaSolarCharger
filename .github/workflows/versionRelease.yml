@@ -99,4 +99,4 @@ jobs:
         file: ./SmartTeslaAmpSetter/Server/Dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
-        tags: ${{ steps.meta.outputs.tags }},pkuehnel/smartteslaampsetter:latest
+        tags: ${{ steps.meta.outputs.tags }}
