@@ -5,7 +5,7 @@ WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0-bullseye-slim-amd64 AS build
+FROM mcr.microsoft.com/dotnet/sdk:6.0-bullseye-slim-arm32v7 AS build
 WORKDIR /src
 COPY ["Plugins.SmaEnergymeter/Plugins.SmaEnergymeter.csproj", "Plugins.SmaEnergymeter/"]
 RUN dotnet restore "Plugins.SmaEnergymeter/Plugins.SmaEnergymeter.csproj"
