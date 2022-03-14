@@ -1,4 +1,7 @@
-﻿namespace SmartTeslaAmpSetter.Server.Services;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace SmartTeslaAmpSetter.Server.Services;
 
 public class GridService
 {
@@ -22,8 +25,21 @@ public class GridService
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+        var jsonPattern = _configuration.GetValue<string>("CurrentPowerToGridJsonPattern");
+
+        if (jsonPattern != null)
+        {
+            _logger.LogDebug("Extract overage value from {result} with {jsonPattern}", result, jsonPattern);
+            result = (JObject.Parse(result).SelectToken(jsonPattern) ??
+                      throw new InvalidOperationException("Extracted Json Value is null")).Value<string>();
+        }
+
         if (int.TryParse(result, out var overage))
         {
+            if (_configuration.GetValue<bool>("CurrentPowerToGridInvertValue"))
+            {
+                overage = -overage;
+            }
             return overage;
         }
 
