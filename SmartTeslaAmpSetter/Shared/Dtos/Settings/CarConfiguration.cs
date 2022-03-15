@@ -8,6 +8,9 @@ public class CarConfiguration
     private ChargeMode _chargeMode;
     private int _minimumSoC;
     private DateTime _latestTimeToReachSoC;
+    private int _maximumAmpere;
+    private int _minimumAmpere;
+    private decimal _usableEnergy;
 
     public CarConfiguration()
     {
@@ -43,6 +46,36 @@ public class CarConfiguration
         set
         {
             _latestTimeToReachSoC = value;
+            UpdatedSincLastWrite = true;
+        }
+    }
+
+    public int MaximumAmpere
+    {
+        get => _maximumAmpere;
+        set
+        {
+            _maximumAmpere = value;
+            UpdatedSincLastWrite = true;
+        }
+    }
+
+    public int MinimumAmpere
+    {
+        get => _minimumAmpere;
+        set
+        {
+            _minimumAmpere = value;
+            UpdatedSincLastWrite = true;
+        }
+    }
+
+    public decimal UsableEnergy
+    {
+        get => _usableEnergy;
+        set
+        {
+            _usableEnergy = value;
             UpdatedSincLastWrite = true;
         }
     }
