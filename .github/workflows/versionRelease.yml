@@ -40,7 +40,7 @@ jobs:
           release_name="SmartTeslaAmpSetter-$tag-${{ matrix.target }}"
 
           # Build everything
-          dotnet publish SmartTeslaAmpSetter/Server/SmartTeslaAmpSetter.Server.csproj --runtime "${{ matrix.target }}" -c Release -o "$release_name"
+          dotnet publish SmartTeslaAmpSetter/Server/SmartTeslaAmpSetter.Server.csproj --runtime "${{ matrix.kind }}" -c Release -o "$release_name"
 
           # Pack files
           tar czvf "${release_name}.tar.gz" "$release_name"
