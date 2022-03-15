@@ -1,8 +1,6 @@
 name: alphaRelease
 
 on:
-  push:
-    branches: [ develop ]
   pull_request:
     branches: [ develop ]
 
