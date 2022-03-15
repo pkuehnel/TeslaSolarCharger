@@ -8,7 +8,7 @@ jobs:
     name: Release
     strategy:
       matrix:
-        kind: ['linux-x64', 'linux-arm64','linux/arm/v7']
+        kind: ['linux-x64', 'linux-arm64', 'linux-arm']
         include:
           - kind: linux-x64
             os: ubuntu-latest
@@ -16,7 +16,7 @@ jobs:
           - kind: linux-arm64
             os: ubuntu-latest
             target: linux-arm64
-          - kind: linux/arm/v7
+          - kind: linux-arm
             os: ubuntu-latest
             target: linux/arm/v7
     runs-on: ${{ matrix.os }}
@@ -37,10 +37,10 @@ jobs:
         run: |
           # Define some variables for things we need
           tag=$(git describe --tags --abbrev=0)
-          release_name="SmartTeslaAmpSetter-$tag-${{ matrix.target }}"
+          release_name="SmartTeslaAmpSetter-$tag-${{ matrix.kind }}"
 
           # Build everything
-          dotnet publish SmartTeslaAmpSetter/Server/SmartTeslaAmpSetter.Server.csproj --runtime "${{ matrix.target }}" -c Release -o "$release_name"
+          dotnet publish SmartTeslaAmpSetter/Server/SmartTeslaAmpSetter.Server.csproj --runtime "${{ matrix.kind }}" -c Release -o "$release_name"
 
           # Pack files
           tar czvf "${release_name}.tar.gz" "$release_name"
@@ -53,10 +53,10 @@ jobs:
         run: |
           # Define some variables for things we need
           tag=$(git describe --tags --abbrev=0)
-          release_name="Plugins.SmaEnergymeter-$tag-${{ matrix.target }}"
+          release_name="Plugins.SmaEnergymeter-$tag-${{ matrix.kind }}"
 
           # Build everything
-          dotnet publish Plugins.SmaEnergymeter/Plugins.SmaEnergymeter.csproj --runtime "${{ matrix.target }}" -c Release -o "$release_name"
+          dotnet publish Plugins.SmaEnergymeter/Plugins.SmaEnergymeter.csproj --runtime "${{ matrix.kind }}" -c Release -o "$release_name"
 
           # Pack files
           tar czvf "${release_name}.tar.gz" "$release_name"
@@ -79,9 +79,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v3
@@ -92,6 +89,9 @@ jobs:
           # generate Docker tags based on the following events/attributes
           tags: |
             type=semver,pattern={{version}}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
       
       - name: Buildx
         id: buildx
@@ -129,6 +129,9 @@ jobs:
           # generate Docker tags based on the following events/attributes
           tags: |
             type=semver,pattern={{version}}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
       
       - name: Buildx
         id: buildx
