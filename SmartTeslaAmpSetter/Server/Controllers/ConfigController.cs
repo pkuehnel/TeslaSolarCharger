@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SmartTeslaAmpSetter.Server.Services;
+using SmartTeslaAmpSetter.Shared.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
@@ -36,6 +37,22 @@ namespace SmartTeslaAmpSetter.Server.Controllers
         /// <param name="carId">Car Id of car to update</param>
         /// <param name="carConfiguration">Car Configuration which should be set to car</param>
         [HttpPut]
-        public void UpdateCarConfiguration(int carId, [FromBody] CarConfiguration carConfiguration) => _service.UpdateCarConfiguration(carId, carConfiguration);
+        public void UpdateCarConfiguration(int carId, [FromBody] CarConfiguration carConfiguration) =>
+            _service.UpdateCarConfiguration(carId, carConfiguration);
+
+        /// <summary>
+        /// Get basic Configuration of cars, which are not often changed
+        /// </summary>
+        [HttpGet]
+        public List<CarBasicConfiguration> GetCarBasicConfigurations() => _service.GetCarBasicConfigurations();
+
+        /// <summary>
+        /// Update Car's configuration
+        /// </summary>
+        /// <param name="carId">Car Id of car to update</param>
+        /// <param name="carConfiguration">Car Configuration which should be set to car</param>
+        [HttpPut]
+        public void UpdateCarBasicConfiguration(int carId, [FromBody] CarBasicConfiguration carBasicConfiguration) =>
+            _service.UpdateCarBasicConfiguration(carId, carBasicConfiguration);
     }
 }

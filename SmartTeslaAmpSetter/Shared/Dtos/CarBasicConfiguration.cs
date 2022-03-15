@@ -1,0 +1,15 @@
+﻿namespace SmartTeslaAmpSetter.Shared.Dtos;
+
+public class CarBasicConfiguration
+{
+    public CarBasicConfiguration(int carId, string? carName)
+    {
+        CarId = carId;
+        CarName = carName;
+    }
+    public int CarId { get; }
+    public string? CarName { get; }
+    public int MaximumAmpere { get; set; }
+    public int MinimumAmpere { get; set; }
+    public decimal UsableEnergy { get; set; }
+}

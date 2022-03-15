@@ -1,6 +1,69 @@
 ﻿@page "/CarSettings"
+@using SmartTeslaAmpSetter.Shared.Dtos
+@inject HttpClient _httpClient
+@inject IToastService _toastService
+
+
 <h3>CarSettings</h3>
 
+@if (_carBasicConfigurations == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    @foreach (var carBasicConfiguration in _carBasicConfigurations)
+    {
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            <b>@carBasicConfiguration.CarName</b>
+            <p>
+                <label class="col-sm-4 col-md-3 col-lg-2" for="minAmpere">Min Ampere:</label>
+                <input class="col-sm-6 col-md-3 col-lg-2" value="@carBasicConfiguration.MinimumAmpere" type="number" id="minAmpere" name="minAmpere" min="1" max="32"
+                       @onchange="@(e => carBasicConfiguration.MinimumAmpere = Int32.Parse(e.Value?.ToString() ?? "1"))">
+            </p>
+            <p>
+                <label class="col-sm-4 col-md-3 col-lg-2" for="maxAmpere">Max Ampere:</label>
+                <input class="col-sm-6 col-md-3 col-lg-2" value="@carBasicConfiguration.MaximumAmpere" type="number" id="maxAmpere" name="maxAmpere" min="1" max="32"
+                       @onchange="@(e => carBasicConfiguration.MaximumAmpere = Int32.Parse(e.Value?.ToString() ?? "1"))">
+            </p>
+            <p>
+                <label class="col-sm-4 col-md-3 col-lg-2" for="usableEnergy">Usable kWh:</label>
+                <input class="col-sm-6 col-md-3 col-lg-2" value="@carBasicConfiguration.UsableEnergy" type="number" step=".1" id="usableEnergy" name="usableEnergy" min="1" max="120"
+                       @onchange="@(e => carBasicConfiguration.UsableEnergy = Decimal.Parse(e.Value?.ToString() ?? "1"))">
+            </p>
+            <p><button class="btn btn-success col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarConfiguration(carBasicConfiguration.CarId, carBasicConfiguration)">@_saveButtonTexts[carBasicConfiguration.CarId]</button></p>
+        </div>
+    }
+}
+
 @code {
-    
+    private List<CarBasicConfiguration>? _carBasicConfigurations;
+    private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
+    private readonly string _saveButtonDefaultText = "Save";
+    private readonly string _buttonLoadingText = "...";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _carBasicConfigurations = await _httpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations");
+
+        foreach (var carBasicConfiguration in _carBasicConfigurations!)
+        {
+            _saveButtonTexts.Add(carBasicConfiguration.CarId, _saveButtonDefaultText);
+        }
+    }
+
+    private async Task UpdateCarConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
+    {
+        _saveButtonTexts[carId] = _buttonLoadingText;
+        var result = await _httpClient.PutAsJsonAsync($"api/Config/UpdateCarBasicConfiguration?carId={carId}", carBasicConfiguration);
+        if (result.IsSuccessStatusCode)
+        {
+            _toastService.ShowSuccess("Car Configuration updated");
+        }
+        else
+        {
+            _toastService.ShowError("Error updating car configuration");
+        }
+        _saveButtonTexts[carId] = _saveButtonDefaultText;
+    }
 }
