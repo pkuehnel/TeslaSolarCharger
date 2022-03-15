@@ -19,7 +19,7 @@ public class CarState
             {
                 return DateTime.Now + TimeSpan.Zero;
             }
-
+            //ToDo: use correct soc/h with kWh
             return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
         }
     }

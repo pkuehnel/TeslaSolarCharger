@@ -146,12 +146,14 @@ public class ChargingService
         _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), teslaMateState.data.car.car_name, ampToRegulate);
         var finalAmpsToSet = teslaMateState.data.status.charging_details.charger_actual_current + ampToRegulate;
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
-        var ampChange = 0;
-        var maxAmpPerCar = _configuration.GetValue<int>("MaxAmpPerCar");
-        var minAmpPerCar = _configuration.GetValue<int>("MinAmpPerCar");
-        _logger.LogDebug("Max amp per car: {amp}", maxAmpPerCar);
-
         var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
+        var ampChange = 0;
+        var minAmpPerCar = car.CarConfiguration.MinimumAmpere;
+        var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
+        _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
+        _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
+
+        
         var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(car);
 
         //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
@@ -272,6 +274,7 @@ public class ChargingService
         {
             return DateTime.Now + TimeSpan.Zero;
         }
+        //ToDo: use correct soc/h with kWh
         return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
     }
 
