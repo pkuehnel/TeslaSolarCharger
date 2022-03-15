@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Server.Dtos;
-using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
-using Car = SmartTeslaAmpSetter.Shared.Dtos.Car;
+using Car = SmartTeslaAmpSetter.Shared.Dtos.Settings.Car;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 

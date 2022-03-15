@@ -1,9 +1,8 @@
 @page "/"
 @using System.Globalization
-@using System.Runtime.CompilerServices
 @using  System.Timers
 @using SmartTeslaAmpSetter.Shared
-@using SmartTeslaAmpSetter.Shared.Dtos
+@using SmartTeslaAmpSetter.Shared.Dtos.Settings
 @using SmartTeslaAmpSetter.Shared.Enums
 @inject HttpClient _http
 @inject IToastService _toastService
@@ -210,7 +209,7 @@ else
 
         _timer = new Timer();
         _timer.Interval = (_configuration.GetValue<int>("FrontendUpdateintervallSeconds") < 5 ? 5 : _configuration.GetValue<int>("FrontendUpdateintervallSeconds")) * 1000;
-        _timer.Elapsed += new ElapsedEventHandler(RefreshStates);
+        _timer.Elapsed += RefreshStates;
         _timer.Start();
     }
 
@@ -260,7 +259,7 @@ else
         this.StateHasChanged();
     }
 
-    private async void RefreshSettings(bool autorefresh = false)
+    private async void RefreshSettings()
     {
         _refreshButtonText = _buttonLoadingText;
         _settings = await _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");

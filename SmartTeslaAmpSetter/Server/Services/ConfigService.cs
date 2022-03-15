@@ -1,5 +1,5 @@
 ﻿using SmartTeslaAmpSetter.Shared;
-using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
 namespace SmartTeslaAmpSetter.Server.Services;
