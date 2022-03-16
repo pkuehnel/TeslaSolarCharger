@@ -4,7 +4,7 @@ using Quartz.Spi;
 using Serilog;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
-using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,11 +1,10 @@
 @page "/"
 @using System.Globalization
-@using System.Runtime.CompilerServices
 @using  System.Timers
 @using SmartTeslaAmpSetter.Shared
-@using SmartTeslaAmpSetter.Shared.Dtos
+@using SmartTeslaAmpSetter.Shared.Dtos.Settings
 @using SmartTeslaAmpSetter.Shared.Enums
-@inject HttpClient _http
+@inject HttpClient _httpClient
 @inject IToastService _toastService
 @inject IConfiguration _configuration
 
@@ -108,14 +107,6 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Voll geladen bei maximaler Geschwindigkeit
-                    </td>
-                    <td>
-                        @(car.CarState.FullChargeAtMaxAcSpeed.ToString("HH:mm dd.MM"))
-                    </td>
-                </tr>
-                <tr>
-                    <td>
                         Voll geladen in
                     </td>
                     <td>
@@ -200,7 +191,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var handler = _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        var handler = _httpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
         _settings = await handler;
         foreach (var car in _settings!.Cars)
         {
@@ -210,14 +201,14 @@ else
 
         _timer = new Timer();
         _timer.Interval = (_configuration.GetValue<int>("FrontendUpdateintervallSeconds") < 5 ? 5 : _configuration.GetValue<int>("FrontendUpdateintervallSeconds")) * 1000;
-        _timer.Elapsed += new ElapsedEventHandler(RefreshStates);
+        _timer.Elapsed += RefreshStates;
         _timer.Start();
     }
 
     private async Task ChangeChargeMode(int carId)
     {
         _chargemodeChangeButtonTexts[carId] = _buttonLoadingText;
-        var updateBackend = _http.PostAsync($"api/Config/ChangeChargeMode?carId={carId}", new StringContent(string.Empty));
+        var updateBackend = _httpClient.PostAsync($"api/Config/ChangeChargeMode?carId={carId}", new StringContent(string.Empty));
         var car = _settings?.Cars.First(c => c.Id == carId);
         var result = await updateBackend;
         if (result.IsSuccessStatusCode)
@@ -235,7 +226,7 @@ else
     private async Task UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
     {
         _saveButtonTexts[carId] = _buttonLoadingText;
-        var result = await _http.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
+        var result = await _httpClient.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
         if (result.IsSuccessStatusCode)
         {
             _toastService.ShowSuccess("Car Configuration updated");
@@ -249,7 +240,7 @@ else
 
     private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
-        var tmpSettings = await _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        var tmpSettings = await _httpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
         _settings!.InverterPower = tmpSettings!.InverterPower;
         _settings.Overage = tmpSettings.Overage;
         foreach (var tmpCar in tmpSettings.Cars)
@@ -260,10 +251,10 @@ else
         this.StateHasChanged();
     }
 
-    private async void RefreshSettings(bool autorefresh = false)
+    private async void RefreshSettings()
     {
         _refreshButtonText = _buttonLoadingText;
-        _settings = await _http.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        _settings = await _httpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
         this.StateHasChanged();
         _toastService.ShowSuccess("Refreshed");
         _refreshButtonText = _refreshButtonDefaultText;
