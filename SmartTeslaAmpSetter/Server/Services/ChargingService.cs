@@ -154,7 +154,7 @@ public class ChargingService
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
 
         
-        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(car);
+        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(car, teslaMateState);
 
         //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
         if (reachedMinimumSocAtFullSpeedChargeDateTime > car.CarConfiguration.LatestTimeToReachSoC 
@@ -267,15 +267,20 @@ public class ChargingService
         return ampChange;
     }
 
-    private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car)
+    private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car, TeslaMateState teslaMateState)
     {
         var socToCharge = (double) car.CarConfiguration.MinimumSoC - car.CarState.SoC;
         if (socToCharge < 1)
         {
             return DateTime.Now + TimeSpan.Zero;
         }
-        //ToDo: use correct soc/h with kWh
-        return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
+        var energyToCharge = car.CarConfiguration.UsableEnergy * 1000 * (decimal) (socToCharge / 100.0);
+        var maxChargingPower =
+            car.CarConfiguration.MaximumAmpere * 
+            teslaMateState.data.status.charging_details.charger_phases > 1 ? 3 : 1 
+                //Use 230 instead of actual voltage because of 0 Volt if charging is stopped
+                * 230;
+        return DateTime.Now + TimeSpan.FromHours((double) (energyToCharge/maxChargingPower));
     }
 
     private void UpdateEarliestTimesAfterSwitch(int carId)
