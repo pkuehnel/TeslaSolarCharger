@@ -19,13 +19,13 @@ public class ConfigJsonService
         _settings = settings;
     }
 
-    public bool CarConfigurationFileExists()
+    private bool CarConfigurationFileExists()
     {
         var path = GetConfigurationFileFullPath();
         return File.Exists(path);
     }
 
-    public string GetConfigurationFileFullPath()
+    private string GetConfigurationFileFullPath()
     {
         var configFileLocation = _configuration.GetValue<string>("ConfigFileLocation");
         var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
@@ -78,6 +78,9 @@ public class ConfigJsonService
                     {
                         ChargeMode = ChargeMode.MaxPower,
                         UpdatedSincLastWrite = true,
+                        MaximumAmpere = 16,
+                        MinimumAmpere = 5,
+                        UsableEnergy = 75,
                     },
                     CarState =
                     {

@@ -48,9 +48,7 @@ services:
       - TeslaMateApiBaseUrl=http://teslamateapi:8080
       - UpdateIntervalSeconds=30
       - CarPriorities=1|2
-      - GeoFence=Zu Hause
-      - MaxAmpPerCar=16
-      - MinAmpPerCar=1
+      - GeoFence=Home
       - MinutesUntilSwitchOn=5
       - MinutesUntilSwitchOff=5
       - PowerBuffer=0
@@ -105,8 +103,6 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 | **UpdateIntervalSeconds** | int | Intervall how often the charging amps should be set (Note: TeslaMateApi takes some time to get new current values, so do not set a value lower than 30) | 30 |
 | **CarPriorities** | string | TeslaMate Car Ids separated by \| in the priority order. | 1\|2 |
 | **GeoFence** | string | TeslaMate Geofence Name where amps should be set | Home |
-| **MaxAmpPerCar** | int | Maximum current that can be set to a single car | 16 |
-| **MinAmpPerCar** | int | Minimum current that can be set to a single car | 1 |
 | **MinutesUntilSwitchOn** | int | Minutes with more power to grid than minimum settable until charging starts | 5 |
 | **MinutesUntilSwitchOff** | int | Minutes with power from grid until charging stops | 5 |
 | **PowerBuffer** | int | Power Buffer in Watt | 0 |
