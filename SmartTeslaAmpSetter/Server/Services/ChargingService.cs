@@ -427,6 +427,10 @@ public class ChargingService
             {
                 result.EnsureSuccessStatusCode();
                 var state = await result.Content.ReadFromJsonAsync<TeslaMateState>().ConfigureAwait(false);
+                if (state != null && state.data.status.charging_details.charge_limit_soc < 50)
+                {
+                    state.data.status.charging_details.charge_limit_soc = 90;
+                }
                 teslaMateStates.Add(state ?? throw new InvalidOperationException());
             }
             catch (Exception e)
