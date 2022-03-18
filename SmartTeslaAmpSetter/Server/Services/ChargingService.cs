@@ -100,17 +100,23 @@ public class ChargingService
 
 
 
-    private static List<TeslaMateState> GetRelevantTeslaMateStates(List<TeslaMateState> teslaMateStates, string geofence)
+    private List<TeslaMateState> GetRelevantTeslaMateStates(List<TeslaMateState> teslaMateStates, string geofence)
     {
-        var relevantTeslaMateStates = teslaMateStates
-            .Where(t =>
-                t.data.status.car_geodata.geofence == geofence
-                && t.data.status.charging_details.plugged_in
-                && (t.data.status.climate_details.is_climate_on ||
-                    t.data.status.charging_details.charger_actual_current > 0 ||
-                    t.data.status.battery_details.battery_level <
+        var relevantTeslaMateStates = new List<TeslaMateState>();
+        foreach (var t in teslaMateStates)
+        {
+            if (t.data.status.car_geodata.geofence == geofence
+                //&& t.data.status.charging_details.plugged_in
+                && (t.data.status.climate_details.is_climate_on
+                    || t.data.status.charging_details.charger_actual_current > 0
+                    || t.data.status.battery_details.battery_level <
                     t.data.status.charging_details.charge_limit_soc - 2))
-            .ToList();
+            {
+                t.data.status.charging_details.plugged_in = true;
+                relevantTeslaMateStates.Add(t);
+            }
+        }
+
         return relevantTeslaMateStates;
     }
 
