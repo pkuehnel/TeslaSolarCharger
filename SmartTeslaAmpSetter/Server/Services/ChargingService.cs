@@ -163,8 +163,9 @@ public class ChargingService
         {
             car.CarState.AutoFullSpeedCharge = true;
         }
-        //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde
-        if (car.CarState.AutoFullSpeedCharge && car.CarState.SoC >= car.CarConfiguration.MinimumSoC)
+        //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde, oder Ziel SoC mehr als eine halbe Stunde zu früh erreicht
+        if (car.CarState.AutoFullSpeedCharge && 
+            (car.CarState.SoC >= car.CarConfiguration.MinimumSoC || reachedMinimumSocAtFullSpeedChargeDateTime < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
         {
             car.CarState.AutoFullSpeedCharge = false;
         }
