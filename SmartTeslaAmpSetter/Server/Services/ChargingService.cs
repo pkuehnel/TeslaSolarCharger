@@ -429,6 +429,7 @@ public class ChargingService
                 var state = await result.Content.ReadFromJsonAsync<TeslaMateState>().ConfigureAwait(false);
                 if (state != null && state.data.status.charging_details.charge_limit_soc < 50)
                 {
+                    _logger.LogWarning("Charge Limit of car number {carId} is below 50.", carId);
                     state.data.status.charging_details.charge_limit_soc = 90;
                 }
                 teslaMateStates.Add(state ?? throw new InvalidOperationException());
