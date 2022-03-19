@@ -79,7 +79,7 @@ public class ConfigJsonService
                         ChargeMode = ChargeMode.MaxPower,
                         UpdatedSincLastWrite = true,
                         MaximumAmpere = 16,
-                        MinimumAmpere = 5,
+                        MinimumAmpere = 2,
                         UsableEnergy = 75,
                     },
                     CarState =
