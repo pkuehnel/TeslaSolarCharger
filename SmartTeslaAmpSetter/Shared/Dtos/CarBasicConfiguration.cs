@@ -11,5 +11,5 @@ public class CarBasicConfiguration
     public string? CarName { get; }
     public int MaximumAmpere { get; set; }
     public int MinimumAmpere { get; set; }
-    public decimal UsableEnergy { get; set; }
+    public int UsableEnergy { get; set; }
 }
