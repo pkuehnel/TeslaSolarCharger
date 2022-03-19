@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 
 namespace SmartTeslaAmpSetter.Shared;
 
@@ -14,6 +14,9 @@ public class ConfigPropertyResolver : DefaultContractResolver
         nameof(Car.CarConfiguration.LatestTimeToReachSoC),
         nameof(Car.CarConfiguration.MinimumSoC),
         nameof(Car.CarConfiguration.ChargeMode),
+        nameof(Car.CarConfiguration.MinimumAmpere),
+        nameof(Car.CarConfiguration.MaximumAmpere),
+        nameof(Car.CarConfiguration.UsableEnergy),
         nameof(Car.Id),
     };
 

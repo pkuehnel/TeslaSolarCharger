@@ -48,9 +48,7 @@ services:
       - TeslaMateApiBaseUrl=http://teslamateapi:8080
       - UpdateIntervalSeconds=30
       - CarPriorities=1|2
-      - GeoFence=Zu Hause
-      - MaxAmpPerCar=16
-      - MinAmpPerCar=1
+      - GeoFence=Home
       - MinutesUntilSwitchOn=5
       - MinutesUntilSwitchOff=5
       - PowerBuffer=0
@@ -105,11 +103,11 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 | **UpdateIntervalSeconds** | int | Intervall how often the charging amps should be set (Note: TeslaMateApi takes some time to get new current values, so do not set a value lower than 30) | 30 |
 | **CarPriorities** | string | TeslaMate Car Ids separated by \| in the priority order. | 1\|2 |
 | **GeoFence** | string | TeslaMate Geofence Name where amps should be set | Home |
-| **MaxAmpPerCar** | int | Maximum current that can be set to a single car | 16 |
-| **MinAmpPerCar** | int | Minimum current that can be set to a single car | 1 |
 | **MinutesUntilSwitchOn** | int | Minutes with more power to grid than minimum settable until charging starts | 5 |
 | **MinutesUntilSwitchOff** | int | Minutes with power from grid until charging stops | 5 |
 | **PowerBuffer** | int | Power Buffer in Watt | 0 |
+| **CurrentPowerToGridJsonPattern** | string | If Power to grid is json formated use this to extract the correct value | $.data.overage |
+| **CurrentPowerToGridInvertValue** | boolean | Set this to `true` if Power from grid has positive values and power to grid has negative values | true |
 
 ### Car Priorities
 If you set `CarPriorities` environment variable like the example above, the car with ID 2 will only start charing, if car 1 is charging at full speed and there is still power left, or if car 1 is not charging due to reached battery limit or not within specified geofence. Note: You always have to add the car Ids to this list separated by `|`. Even if you only have one car you need to ad the car's Id but then without `|`.

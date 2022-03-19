@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Server.Dtos;
-using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
-using Car = SmartTeslaAmpSetter.Shared.Dtos.Car;
+using Car = SmartTeslaAmpSetter.Shared.Dtos.Settings.Car;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
@@ -146,13 +146,15 @@ public class ChargingService
         _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), teslaMateState.data.car.car_name, ampToRegulate);
         var finalAmpsToSet = teslaMateState.data.status.charging_details.charger_actual_current + ampToRegulate;
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
-        var ampChange = 0;
-        var maxAmpPerCar = _configuration.GetValue<int>("MaxAmpPerCar");
-        var minAmpPerCar = _configuration.GetValue<int>("MinAmpPerCar");
-        _logger.LogDebug("Max amp per car: {amp}", maxAmpPerCar);
-
         var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
-        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(car);
+        var ampChange = 0;
+        var minAmpPerCar = car.CarConfiguration.MinimumAmpere;
+        var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
+        _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
+        _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
+
+        var activePhases = teslaMateState.data.status.charging_details.charger_phases > 1 ? 3 : 1;
+        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(car, activePhases);
 
         //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
         if (reachedMinimumSocAtFullSpeedChargeDateTime > car.CarConfiguration.LatestTimeToReachSoC 
@@ -161,8 +163,9 @@ public class ChargingService
         {
             car.CarState.AutoFullSpeedCharge = true;
         }
-        //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde
-        if (car.CarState.AutoFullSpeedCharge && car.CarState.SoC >= car.CarConfiguration.MinimumSoC)
+        //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde, oder Ziel SoC mehr als eine halbe Stunde zu früh erreicht
+        if (car.CarState.AutoFullSpeedCharge && 
+            (car.CarState.SoC >= car.CarConfiguration.MinimumSoC || reachedMinimumSocAtFullSpeedChargeDateTime < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
         {
             car.CarState.AutoFullSpeedCharge = false;
         }
@@ -265,14 +268,19 @@ public class ChargingService
         return ampChange;
     }
 
-    private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car)
+    private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car, int numberOfPhases)
     {
         var socToCharge = (double) car.CarConfiguration.MinimumSoC - car.CarState.SoC;
         if (socToCharge < 1)
         {
             return DateTime.Now + TimeSpan.Zero;
         }
-        return DateTime.Now + TimeSpan.FromHours(socToCharge / 15);
+        var energyToCharge = car.CarConfiguration.UsableEnergy * 1000 * (decimal) (socToCharge / 100.0);
+        var maxChargingPower =
+            car.CarConfiguration.MaximumAmpere * numberOfPhases
+                //Use 230 instead of actual voltage because of 0 Volt if charging is stopped
+                * 230;
+        return DateTime.Now + TimeSpan.FromHours((double) (energyToCharge/maxChargingPower));
     }
 
     private void UpdateEarliestTimesAfterSwitch(int carId)
@@ -419,6 +427,11 @@ public class ChargingService
             {
                 result.EnsureSuccessStatusCode();
                 var state = await result.Content.ReadFromJsonAsync<TeslaMateState>().ConfigureAwait(false);
+                if (state != null && state.data.status.charging_details.charge_limit_soc < 50)
+                {
+                    _logger.LogWarning("Charge Limit of car number {carId} is below 50.", carId);
+                    state.data.status.charging_details.charge_limit_soc = 90;
+                }
                 teslaMateStates.Add(state ?? throw new InvalidOperationException());
             }
             catch (Exception e)

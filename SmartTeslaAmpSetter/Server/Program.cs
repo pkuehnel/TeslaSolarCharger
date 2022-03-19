@@ -4,7 +4,7 @@ using Quartz.Spi;
 using Serilog;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
-using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,4 +81,21 @@ async Task AddCarIdsToSettings(Settings settings1)
 {
     var configJsonService = app.Services.GetRequiredService<ConfigJsonService>();
     settings1.Cars = await configJsonService.GetCarsFromConfiguration();
+    foreach (var car in settings1.Cars)
+    {
+        if (car.CarConfiguration.UsableEnergy < 1)
+        {
+            car.CarConfiguration.UsableEnergy = 75;
+        }
+
+        if (car.CarConfiguration.MaximumAmpere < 1)
+        {
+            car.CarConfiguration.MaximumAmpere = 16;
+        }
+
+        if (car.CarConfiguration.MinimumAmpere < 16)
+        {
+            car.CarConfiguration.MinimumAmpere = 1;
+        }
+    }
 }
