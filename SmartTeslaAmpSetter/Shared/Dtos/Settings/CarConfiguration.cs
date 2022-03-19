@@ -10,7 +10,7 @@ public class CarConfiguration
     private DateTime _latestTimeToReachSoC;
     private int _maximumAmpere;
     private int _minimumAmpere;
-    private decimal _usableEnergy;
+    private int _usableEnergy;
 
     public CarConfiguration()
     {
@@ -70,7 +70,7 @@ public class CarConfiguration
         }
     }
 
-    public decimal UsableEnergy
+    public int UsableEnergy
     {
         get => _usableEnergy;
         set
