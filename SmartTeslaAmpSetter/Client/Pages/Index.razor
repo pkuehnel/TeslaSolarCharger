@@ -1,6 +1,6 @@
 @page "/"
 @using System.Globalization
-@using  System.Timers
+@using System.Timers
 @using SmartTeslaAmpSetter.Shared
 @using SmartTeslaAmpSetter.Shared.Dtos.Settings
 @using SmartTeslaAmpSetter.Shared.Enums
@@ -19,11 +19,11 @@ else
     <div class="shadow p-3 mb-5 bg-white rounded">
         @if (_settings.InverterPower != null)
         {
-            <div>Inverter: @_settings.InverterPower W</div>
-            <div>House: @(_settings.InverterPower - _settings.Overage - _settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome)) W</div>
+            <div><i class="fa-solid fa-solar-panel"></i> @_settings.InverterPower W</div>
+            <div><i class="fa-solid fa-house"></i> @(_settings.InverterPower - _settings.Overage - _settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome)) W</div>
         }
-        <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")">Grid: @(Math.Abs(_settings.Overage)) W</div>
-        <div>Cars: @_settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
+        <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")"><i class="fa-solid fa-bolt"></i> @(Math.Abs(_settings.Overage)) W</div>
+        <div><i class="fa-solid fa-car"></i> @_settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
         <button class="btn btn-primary col-sm-5 col-md-3" @onclick="() => RefreshSettings()">@_refreshButtonText</button>
     </div>
     @foreach (var car in _settings.Cars)
