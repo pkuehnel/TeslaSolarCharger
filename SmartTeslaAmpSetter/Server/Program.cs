@@ -5,6 +5,7 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Serilog;
+using SmartTeslaAmpSetter.Server;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
@@ -37,6 +38,8 @@ builder.Services
     .AddTransient<ConfigJsonService>()
     .AddSingleton<Settings>()
     .AddSingleton<MqttClient>(mqttClient)
+    .AddTransient<MqttFactory>()
+    .AddTransient<MqttHelper>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -63,7 +66,9 @@ var settings = app.Services.GetRequiredService<Settings>();
 
 await AddCarIdsToSettings(settings).ConfigureAwait(false);
 
-await ConfigureMqttClient().ConfigureAwait(false);
+var mqttHelper = app.Services.GetRequiredService<MqttHelper>();
+
+await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 jobManager.StartJobs(jobIntervall);
@@ -116,27 +121,3 @@ async Task AddCarIdsToSettings(Settings settings1)
     }
 }
 
-async Task ConfigureMqttClient()
-{
-    var mqqtClientId = app.Configuration.GetValue<string>("MqqtClientId");
-    var mosquitoServer = app.Configuration.GetValue<string>("MosquitoServer");
-    var mqttClientOptions = new MqttClientOptionsBuilder()
-        .WithClientId(mqqtClientId)
-        .WithTcpServer(mosquitoServer)
-        .Build();
-
-    mqttClient.ApplicationMessageReceivedAsync += e =>
-    {
-        Console.WriteLine($"Received application message for Topic {e.ApplicationMessage.Topic}.");
-        Console.WriteLine("String: " + e.ApplicationMessage.ConvertPayloadToString());
-        return Task.CompletedTask;
-    };
-
-    await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
-
-    var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
-        .WithTopicFilter(f => { f.WithTopic("teslamate/#"); })
-        .Build();
-
-    await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
-}
