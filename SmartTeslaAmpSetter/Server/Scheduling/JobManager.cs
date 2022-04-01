@@ -13,13 +13,12 @@ public class JobManager
 
 
 #pragma warning disable CS8618
-    public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory, IConfiguration configuration)
+    public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory)
 #pragma warning restore CS8618
     {
         _logger = logger;
         _jobFactory = jobFactory;
         _schedulerFactory = schedulerFactory;
-        var value = configuration.GetValue<string>("MosquitoServer");
     }
 
     public async void StartJobs(TimeSpan jobIntervall)

@@ -1,6 +1,4 @@
-using System.Diagnostics;
 using MQTTnet;
-using MQTTnet.Client;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
@@ -37,7 +35,7 @@ builder.Services
     .AddTransient<ConfigService>()
     .AddTransient<ConfigJsonService>()
     .AddSingleton<Settings>()
-    .AddSingleton<MqttClient>(mqttClient)
+    .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
     .AddTransient<MqttHelper>()
     ;
