@@ -29,6 +29,7 @@ public class ConfigService
     {
         var car = _settings.Cars.First(c => c.Id == carId);
         car.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
+        car.CarState.AutoFullSpeedCharge = false;
         return car.CarConfiguration.ChargeMode;
     }
 
