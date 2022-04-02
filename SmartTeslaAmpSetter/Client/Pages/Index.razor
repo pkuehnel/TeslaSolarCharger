@@ -110,7 +110,7 @@ else
                         Voll geladen in
                     </td>
                     <td>
-                        @((car.CarState.TimeUntilFullCharge.Days > 0 ? $"{car.CarState.TimeUntilFullCharge.Days}. " : "") + $"{car.CarState.TimeUntilFullCharge.Hours:D2}:{car.CarState.TimeUntilFullCharge.Minutes:D2}")
+                        @((car.CarState.TimeUntilFullCharge?.Days > 0 ? $"{car.CarState.TimeUntilFullCharge?.Days}. " : "") + $"{car.CarState.TimeUntilFullCharge?.Hours:D2}:{car.CarState.TimeUntilFullCharge?.Minutes:D2}")
                     </td>
                 </tr>
                 <tr>
@@ -118,7 +118,7 @@ else
                         Voll geladen um
                     </td>
                     <td>
-                        @((DateTime.Now + car.CarState.TimeUntilFullCharge).ToString("HH:mm dd.MM"))
+                        @((DateTime.Now + car.CarState.TimeUntilFullCharge)?.ToString("HH:mm dd.MM"))
                     </td>
                 </tr>
                 <tr>
