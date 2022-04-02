@@ -127,7 +127,7 @@ public class ChargingService
     private async Task<int> ChangeCarAmp(Car relevantCar, int ampToRegulate)
     {
         _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), relevantCar.CarState.Name, ampToRegulate);
-        var finalAmpsToSet = relevantCar.CarState.ChargerActualCurrent?? 0 + ampToRegulate;
+        var finalAmpsToSet = (relevantCar.CarState.ChargerActualCurrent?? 0) + ampToRegulate;
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
         var ampChange = 0;
         var minAmpPerCar = relevantCar.CarConfiguration.MinimumAmpere;
