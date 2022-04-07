@@ -29,18 +29,6 @@ public class TestBase : IDisposable
         LogLevelSwitch = logLevelSwitch;
 
         LogLevelSwitch.MinimumLevel = defaultLogEventLevel;
-        
-        Mock.Mock<IServiceScope>()
-            .Setup(x => x.ServiceProvider)
-            .Returns(Mock.Create<IServiceProvider>());
-
-        Mock.Mock<IServiceScopeFactory>()
-            .Setup(x => x.CreateScope())
-            .Returns(Mock.Create<IServiceScope>());
-
-        Mock.Mock<IServiceProvider>()
-            .Setup(x => x.GetService(typeof(IServiceScopeFactory)))
-            .Returns(Mock.Create<IServiceScopeFactory>());
     }
 
     private static (ILoggerFactory, LoggingLevelSwitch) GetOrCreateLoggerFactory(

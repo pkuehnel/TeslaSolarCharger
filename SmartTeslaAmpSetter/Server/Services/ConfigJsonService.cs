@@ -1,10 +1,12 @@
 ﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
+[assembly: InternalsVisibleTo("SmartTeslaAmpSetter.Tests")]
 namespace SmartTeslaAmpSetter.Server.Services;
 
 public class ConfigJsonService : IConfigJsonService
@@ -55,26 +57,26 @@ public class ConfigJsonService : IConfigJsonService
             car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
             car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
         }
+        
+        var carIds = _configuration.GetValue<string>("CarPriorities").Split("|").Select(id => Convert.ToInt32(id)).ToList();
 
-        var carIds = _configuration.GetValue<string>("CarPriorities").Split("|");
         RemoveOldCars(cars, carIds);
         
-        var newCarIds = carIds.Where(i => !cars.Any(c => c.Id.ToString().Equals(i))).ToList();
+        var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
         AddNewCars(newCarIds, cars);
 
         return cars;
     }
 
-    private static void AddNewCars(List<string> newCarIds, List<Car> cars)
+    internal void AddNewCars(List<int> newCarIds, List<Car> cars)
     {
         foreach (var carId in newCarIds)
         {
-            var id = int.Parse(carId);
-            if (cars.All(c => c.Id != id))
+            if (cars.All(c => c.Id != carId))
             {
                 var car = new Car
                 {
-                    Id = id,
+                    Id = carId,
                     CarConfiguration =
                     {
                         ChargeMode = ChargeMode.MaxPower,
@@ -121,14 +123,11 @@ public class ConfigJsonService : IConfigJsonService
         }
     }
 
-    private void RemoveOldCars(List<Car> cars, string[] carIds)
+    internal void RemoveOldCars(List<Car> cars, List<int> carIds)
     {
-        foreach (var car in cars)
+        foreach (var carId in carIds)
         {
-            if (!carIds.Any(c => c.Equals(car.Id.ToString())))
-            {
-                cars.RemoveAll(c => c.Id == car.Id);
-            }
+            cars.RemoveAll(c => c.Id == carId);
         }
     }
 }
