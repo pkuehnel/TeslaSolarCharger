@@ -1,7 +1,9 @@
+using MQTTnet;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Serilog;
+using SmartTeslaAmpSetter.Server;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
@@ -17,6 +19,10 @@ builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var mqttFactory = new MqttFactory();
+var mqttClient = mqttFactory.CreateMqttClient();
+
+
 builder.Services
     .AddTransient<JobManager>()
     .AddTransient<Job>()
@@ -29,6 +35,9 @@ builder.Services
     .AddTransient<ConfigService>()
     .AddTransient<ConfigJsonService>()
     .AddSingleton<Settings>()
+    .AddSingleton(mqttClient)
+    .AddTransient<MqttFactory>()
+    .AddTransient<MqttHelper>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -38,6 +47,12 @@ builder.Configuration
     .AddJsonFile("appsettings.json")
     .AddEnvironmentVariables();
 
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+if (environment == "Development")
+{
+    builder.Configuration.AddJsonFile("appsettings.Development.json");
+}
 
 
 var app = builder.Build();
@@ -48,6 +63,10 @@ var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
 var settings = app.Services.GetRequiredService<Settings>();
 
 await AddCarIdsToSettings(settings).ConfigureAwait(false);
+
+var mqttHelper = app.Services.GetRequiredService<MqttHelper>();
+
+await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 jobManager.StartJobs(jobIntervall);
@@ -99,3 +118,4 @@ async Task AddCarIdsToSettings(Settings settings1)
         }
     }
 }
+

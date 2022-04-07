@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
-using SmartTeslaAmpSetter.Server.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 using Car = SmartTeslaAmpSetter.Shared.Dtos.Settings.Car;
@@ -45,37 +44,48 @@ public class ChargingService
 
         overage -= buffer;
 
-        var carIds = _settings.Cars.Select(c => c.Id).ToList();
-
-        var teslaMateStates = await GetTeslaMateStates(carIds).ConfigureAwait(false);
-        
         var geofence = _configuration.GetValue<string>("GeoFence");
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
-        UpdateCarStates(teslaMateStates, geofence);
+        foreach (var car in _settings.Cars)
+        {
+            if (car.CarState.SocLimit == null)
+            {
+                _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
+                await WakeUpCar(car.Id).ConfigureAwait(false);
+            }
+        }
+
+        var relevantCarIds = GetRelevantCarIds(geofence);
+        _logger.LogDebug("Number of relevant Cars: {count}", relevantCarIds.Count);
+
+        var relevantCars = _settings.Cars.Where(c => relevantCarIds.Any(r => c.Id == r)).ToList();
+
+        foreach (var relevantCar in relevantCars)
+        {
+            relevantCar.CarState.ChargingPowerAtHome = relevantCar.CarState.ChargingPower;
+        }
+
+        foreach (var irrelevantCar in _settings.Cars
+                     .Where(c => c.CarState.PluggedIn != true).ToList())
+        {
+            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", irrelevantCar.Id);
+            UpdateEarliestTimesAfterSwitch(irrelevantCar.Id);
+            irrelevantCar.CarState.ChargingPowerAtHome = 0;
+        }
 
         if (onlyUpdateValues)
         {
             return;
         }
 
-        var relevantTeslaMateStates = GetRelevantTeslaMateStates(teslaMateStates, geofence);
-        _logger.LogDebug("Number of relevant Cars: {count}", relevantTeslaMateStates.Count);
-
-        foreach (var irrelevantTeslaMateState in teslaMateStates
-                     .Where(t => !t.data.status.charging_details.plugged_in).ToList())
-        {
-            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", irrelevantTeslaMateState.data.car.car_id);
-            UpdateEarliestTimesAfterSwitch(irrelevantTeslaMateState.data.car.car_id);
-        }
-
-        if (relevantTeslaMateStates.Count < 1)
+        if (relevantCarIds.Count < 1)
         {
             return;
         }
 
-        var currentRegulatedPower = relevantTeslaMateStates
-            .Sum(relevantTeslaMateState => relevantTeslaMateState.data.status.charging_details.ChargingPower);
+        var currentRegulatedPower = relevantCars
+            .Sum(c => c.CarState.ChargingPower);
         _logger.LogDebug("Current regulated Power: {power}", currentRegulatedPower);
 
         var powerToRegulate = overage;
@@ -83,185 +93,157 @@ public class ChargingService
 
         var ampToRegulate = Convert.ToInt32(Math.Floor(powerToRegulate / ((double)230 * 3)));
         _logger.LogDebug("Amp to regulate: {amp}", ampToRegulate);
-
-        var orderedRelevantTeslaMateStates = relevantTeslaMateStates;
+        
         if (ampToRegulate < 0)
         {
             _logger.LogDebug("Reversing car order");
-            orderedRelevantTeslaMateStates.Reverse();
+            relevantCars.Reverse();
         }
 
-        foreach (var releventTeslaMateState in orderedRelevantTeslaMateStates)
+        foreach (var relevantCar in relevantCars)
         {
-            _logger.LogDebug("Update Car amp for car {carname}", releventTeslaMateState.data.car.car_name);
-            ampToRegulate -= await ChangeCarAmp(releventTeslaMateState, ampToRegulate).ConfigureAwait(false);
+            _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
+            ampToRegulate -= await ChangeCarAmp(relevantCar, ampToRegulate).ConfigureAwait(false);
         }
     }
 
 
 
-    private static List<TeslaMateState> GetRelevantTeslaMateStates(List<TeslaMateState> teslaMateStates, string geofence)
+    private List<int> GetRelevantCarIds(string geofence)
     {
-        var relevantTeslaMateStates = teslaMateStates
-            .Where(t =>
-                t.data.status.car_geodata.geofence == geofence
-                && t.data.status.charging_details.plugged_in
-                && (t.data.status.climate_details.is_climate_on ||
-                    t.data.status.charging_details.charger_actual_current > 0 ||
-                    t.data.status.battery_details.battery_level <
-                    t.data.status.charging_details.charge_limit_soc - 2))
+        var relevantIds = _settings.Cars
+            .Where(c =>
+                c.CarState.Geofence == geofence
+                && c.CarState.PluggedIn == true
+                && (c.CarState.ClimateOn == true ||
+                    c.CarState.ChargerActualCurrent > 0 ||
+                    c.CarState.SoC < c.CarState.SocLimit - 2))
+            .Select(c => c.Id)
             .ToList();
-        return relevantTeslaMateStates;
+
+        return relevantIds;
     }
-
-
-
-    private void UpdateCarStates(List<TeslaMateState> teslaMateStates, string geofence)
+    
+    private async Task<int> ChangeCarAmp(Car relevantCar, int ampToRegulate)
     {
-        foreach (var teslaMateState in teslaMateStates)
-        {
-            var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
-            car.CarState.Name = teslaMateState.data.car.car_name;
-            car.CarState.Geofence = teslaMateState.data.status.car_geodata.geofence;
-            car.CarState.SoC = teslaMateState.data.status.battery_details.battery_level;
-            car.CarState.SocLimit = teslaMateState.data.status.charging_details.charge_limit_soc;
-            car.CarState.TimeUntilFullCharge =
-                TimeSpan.FromHours(teslaMateState.data.status.charging_details.time_to_full_charge);
-
-            // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
-            if (teslaMateState.data.status.car_geodata.geofence.Equals(geofence,
-                    StringComparison.InvariantCultureIgnoreCase))
-            {
-                car.CarState.ChargingPowerAtHome = teslaMateState.data.status.charging_details.ChargingPower;
-            }
-            else
-            {
-                car.CarState.ChargingPowerAtHome = 0;
-            }
-        }
-    }
-
-    private async Task<int> ChangeCarAmp(TeslaMateState teslaMateState, int ampToRegulate)
-    {
-        _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), teslaMateState.data.car.car_name, ampToRegulate);
-        var finalAmpsToSet = teslaMateState.data.status.charging_details.charger_actual_current + ampToRegulate;
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), relevantCar.CarState.Name, ampToRegulate);
+        var finalAmpsToSet = (relevantCar.CarState.ChargerActualCurrent?? 0) + ampToRegulate;
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
-        var car = _settings.Cars.First(c => c.Id == teslaMateState.data.car.car_id);
         var ampChange = 0;
-        var minAmpPerCar = car.CarConfiguration.MinimumAmpere;
-        var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
+        var minAmpPerCar = relevantCar.CarConfiguration.MinimumAmpere;
+        var maxAmpPerCar = relevantCar.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
 
-        var activePhases = teslaMateState.data.status.charging_details.charger_phases > 1 ? 3 : 1;
-        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(car, activePhases);
+        var activePhases = relevantCar.CarState.ChargerPhases > 1 ? 3 : 1;
+        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(relevantCar, activePhases);
 
         //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
-        if (reachedMinimumSocAtFullSpeedChargeDateTime > car.CarConfiguration.LatestTimeToReachSoC 
-            && car.CarConfiguration.LatestTimeToReachSoC > DateTime.Now 
-            || car.CarState.SoC < car.CarConfiguration.MinimumSoC && car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
+        if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC 
+            && relevantCar.CarConfiguration.LatestTimeToReachSoC > DateTime.Now 
+            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC && relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
         {
-            car.CarState.AutoFullSpeedCharge = true;
+            relevantCar.CarState.AutoFullSpeedCharge = true;
         }
         //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde, oder Ziel SoC mehr als eine halbe Stunde zu früh erreicht
-        if (car.CarState.AutoFullSpeedCharge && 
-            (car.CarState.SoC >= car.CarConfiguration.MinimumSoC || reachedMinimumSocAtFullSpeedChargeDateTime < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
+        if (relevantCar.CarState.AutoFullSpeedCharge && 
+            (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC || reachedMinimumSocAtFullSpeedChargeDateTime < relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
         {
-            car.CarState.AutoFullSpeedCharge = false;
+            relevantCar.CarState.AutoFullSpeedCharge = false;
         }
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
-        if (car.CarConfiguration.ChargeMode == ChargeMode.MaxPower || car.CarState.AutoFullSpeedCharge)
+        if (relevantCar.CarConfiguration.ChargeMode == ChargeMode.MaxPower || relevantCar.CarState.AutoFullSpeedCharge)
         {
             _logger.LogDebug("Max Power Charging");
-            if (teslaMateState.data.status.charging_details.charger_actual_current < maxAmpPerCar)
+            if (relevantCar.CarState.ChargerActualCurrent < maxAmpPerCar)
             {
                 var ampToSet = maxAmpPerCar;
 
-                if (teslaMateState.data.status.charging_details.charger_actual_current < 1)
+                if (relevantCar.CarState.ChargerActualCurrent < 1)
                 {
                     //Do not start charging when battery level near charge limit
-                    if (teslaMateState.data.status.battery_details.battery_level >=
-                        teslaMateState.data.status.charging_details.charge_limit_soc - 2)
+                    if (relevantCar.CarState.SoC >=
+                        relevantCar.CarState.SocLimit - 2)
                     {
                         return ampChange;
                     }
-                    await StartCharging(teslaMateState.data.car.car_id, ampToSet, teslaMateState.data.status.state).ConfigureAwait(false);
-                    ampChange += ampToSet - teslaMateState.data.status.charging_details.charger_actual_current;
-                    UpdateEarliestTimesAfterSwitch(teslaMateState.data.car.car_id);
+                    await StartCharging(relevantCar.Id, ampToSet, relevantCar.CarState.State).ConfigureAwait(false);
+                    ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent?? 0);
+                    UpdateEarliestTimesAfterSwitch(relevantCar.Id);
                 }
                 else
                 {
-                    await SetAmp(teslaMateState.data.car.car_id, ampToSet).ConfigureAwait(false);
-                    ampChange += ampToSet - teslaMateState.data.status.charging_details.charger_actual_current;
-                    UpdateEarliestTimesAfterSwitch(teslaMateState.data.car.car_id);
+                    await SetAmp(relevantCar.Id, ampToSet).ConfigureAwait(false);
+                    ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent?? 0);
+                    UpdateEarliestTimesAfterSwitch(relevantCar.Id);
                 }
 
             }
 
         }
         //Falls Laden beendet werden soll, aber noch ladend
-        else if (finalAmpsToSet < minAmpPerCar && teslaMateState.data.status.charging_details.charger_actual_current > 0)
+        else if (finalAmpsToSet < minAmpPerCar && relevantCar.CarState.ChargerActualCurrent > 0)
         {
             _logger.LogDebug("Charging should stop");
-            var earliestSwitchOff = EarliestSwitchOff(teslaMateState.data.car.car_id);
+            var earliestSwitchOff = EarliestSwitchOff(relevantCar.Id);
             //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
-            if (teslaMateState.data.status.climate_details.is_climate_on || earliestSwitchOff > DateTime.Now)
+            if (relevantCar.CarState.ClimateOn == true || earliestSwitchOff > DateTime.Now)
             {
                 _logger.LogDebug("Can not stop charing: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
-                    teslaMateState.data.status.climate_details.is_climate_on,
+                    relevantCar.CarState.ClimateOn,
                     earliestSwitchOff);
-                if (teslaMateState.data.status.charging_details.charger_actual_current != minAmpPerCar)
+                if (relevantCar.CarState.ChargerActualCurrent != minAmpPerCar)
                 {
-                    await SetAmp(teslaMateState.data.car.car_id, minAmpPerCar).ConfigureAwait(false);
+                    await SetAmp(relevantCar.Id, minAmpPerCar).ConfigureAwait(false);
                 }
-                ampChange += minAmpPerCar - teslaMateState.data.status.charging_details.charger_actual_current;
+                ampChange += minAmpPerCar - (relevantCar.CarState.ChargerActualCurrent?? 0);
             }
             //Laden Stoppen
             else
             {
                 _logger.LogDebug("Stop Charging");
-                await StopCharging(teslaMateState.data.car.car_id).ConfigureAwait(false);
-                ampChange -= teslaMateState.data.status.charging_details.charger_actual_current;
-                UpdateEarliestTimesAfterSwitch(teslaMateState.data.car.car_id);
+                await StopCharging(relevantCar.Id).ConfigureAwait(false);
+                ampChange -= relevantCar.CarState.ChargerActualCurrent ?? 0;
+                UpdateEarliestTimesAfterSwitch(relevantCar.Id);
             }
         }
         //Falls Laden beendet ist und beendet bleiben soll
         else if (finalAmpsToSet < minAmpPerCar)
         {
             _logger.LogDebug("Charging should stay stopped");
-            UpdateEarliestTimesAfterSwitch(teslaMateState.data.car.car_id);
+            UpdateEarliestTimesAfterSwitch(relevantCar.Id);
         }
         //Falls nicht ladend, aber laden soll beginnen
-        else if (finalAmpsToSet > minAmpPerCar && teslaMateState.data.status.charging_details.charger_actual_current == 0)
+        else if (finalAmpsToSet > minAmpPerCar && relevantCar.CarState.ChargerActualCurrent == 0)
         {
             _logger.LogDebug("Charging should start");
-            var earliestSwitchOn = EarliestSwitchOn(teslaMateState.data.car.car_id);
+            var earliestSwitchOn = EarliestSwitchOn(relevantCar.Id);
 
             if (earliestSwitchOn <= DateTime.Now)
             {
                 _logger.LogDebug("Charging should start");
                 var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-                await StartCharging(teslaMateState.data.car.car_id, startAmp, teslaMateState.data.status.state).ConfigureAwait(false);
+                await StartCharging(relevantCar.Id, startAmp, relevantCar.CarState.State).ConfigureAwait(false);
                 ampChange += startAmp;
-                UpdateEarliestTimesAfterSwitch(teslaMateState.data.car.car_id);
+                UpdateEarliestTimesAfterSwitch(relevantCar.Id);
             }
         }
         //Normal Ampere setzen
         else
         {
             _logger.LogDebug("Normal amp set");
-            UpdateEarliestTimesAfterSwitch(teslaMateState.data.car.car_id);
+            UpdateEarliestTimesAfterSwitch(relevantCar.Id);
             var ampToSet = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-            if (ampToSet != teslaMateState.data.status.charging_details.charger_actual_current)
+            if (ampToSet != relevantCar.CarState.ChargerActualCurrent)
             {
-                await SetAmp(teslaMateState.data.car.car_id, ampToSet).ConfigureAwait(false);
-                ampChange += ampToSet - teslaMateState.data.status.charging_details.charger_actual_current;
+                await SetAmp(relevantCar.Id, ampToSet).ConfigureAwait(false);
+                ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent ?? 0);
             }
             else
             {
                 _logger.LogDebug("Current actual amp: {currentActualAmp} same as amp to set: {ampToSet} Do not change anything",
-                    teslaMateState.data.status.charging_details.charger_actual_current, ampToSet);
+                    relevantCar.CarState.ChargerActualCurrent, ampToSet);
             }
         }
 
@@ -270,7 +252,7 @@ public class ChargingService
 
     private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car, int numberOfPhases)
     {
-        var socToCharge = (double) car.CarConfiguration.MinimumSoC - car.CarState.SoC;
+        var socToCharge = (double) car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
         if (socToCharge < 1)
         {
             return DateTime.Now + TimeSpan.Zero;
@@ -319,13 +301,14 @@ public class ChargingService
         return earliestSwitchOn;
     }
 
-    private async Task StartCharging(int carId, int startAmp, string carState)
+    private async Task StartCharging(int carId, int startAmp, string? carState)
     {
         _logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(StartCharging), carId, startAmp, carState);
 
-        if (carState.Equals("offline", StringComparison.CurrentCultureIgnoreCase) ||
-            carState.Equals("asleep", StringComparison.CurrentCultureIgnoreCase))
+        if (carState != null && (carState.Equals("offline", StringComparison.CurrentCultureIgnoreCase) ||
+                                 carState.Equals("asleep", StringComparison.CurrentCultureIgnoreCase)))
         {
+            _logger.LogInformation("Wakeup car before charging");
             await WakeUpCar(carId);
         }
 
@@ -411,34 +394,5 @@ public class ChargingService
         }
         response.EnsureSuccessStatusCode();
         return response;
-    }
-
-    private async Task<List<TeslaMateState>> GetTeslaMateStates(List<int> carIds)
-    {
-        _logger.LogTrace("{method}({@carIds})", nameof(GetTeslaMateStates), carIds);
-        var teslaMateStates = new List<TeslaMateState>();
-
-        foreach (var carId in carIds)
-        {
-            var stateUrl = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/status";
-            using var httpClient = new HttpClient();
-            var result = await httpClient.GetAsync(stateUrl).ConfigureAwait(false);
-            try
-            {
-                result.EnsureSuccessStatusCode();
-                var state = await result.Content.ReadFromJsonAsync<TeslaMateState>().ConfigureAwait(false);
-                if (state != null && state.data.status.charging_details.charge_limit_soc < 50)
-                {
-                    _logger.LogWarning("Charge Limit of car number {carId} is below 50.", carId);
-                    state.data.status.charging_details.charge_limit_soc = 90;
-                }
-                teslaMateStates.Add(state ?? throw new InvalidOperationException());
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, $"Could not get state of car {carId}");
-            }
-        }
-        return teslaMateStates;
     }
 }
