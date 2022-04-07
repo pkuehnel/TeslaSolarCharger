@@ -1,17 +1,18 @@
-﻿using SmartTeslaAmpSetter.Shared;
+﻿using SmartTeslaAmpSetter.Server.Contracts;
+using SmartTeslaAmpSetter.Shared;
 using SmartTeslaAmpSetter.Shared.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
-public class ConfigService
+public class ConfigService : IConfigService
 {
     private readonly ILogger<ConfigService> _logger;
     private readonly Settings _settings;
-    private readonly ChargingService _chargingService;
+    private readonly IChargingService _chargingService;
 
-    public ConfigService(ILogger<ConfigService> logger, Settings settings, ChargingService chargingService)
+    public ConfigService(ILogger<ConfigService> logger, Settings settings, IChargingService chargingService)
     {
         _logger = logger;
         _settings = settings;

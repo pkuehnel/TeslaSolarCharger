@@ -4,6 +4,7 @@ using Quartz.Impl;
 using Quartz.Spi;
 using Serilog;
 using SmartTeslaAmpSetter.Server;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
@@ -30,10 +31,10 @@ builder.Services
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
-    .AddTransient<ChargingService>()
-    .AddTransient<GridService>()
-    .AddTransient<ConfigService>()
-    .AddTransient<ConfigJsonService>()
+    .AddTransient<IChargingService, ChargingService>()
+    .AddTransient<IGridService, GridService>()
+    .AddTransient<IConfigService, ConfigService>()
+    .AddTransient<IConfigJsonService, ConfigJsonService>()
     .AddSingleton<Settings>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()

@@ -106,11 +106,11 @@ public class MqttHelper
             //ToDo: Add after next TeslaMateRelease
             //.WithTopicFilter(f =>
             //{
-            //    f.WithTopic("teslamate/cars/?/{TopicChargeCurrentRequest}");
+            //    f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequest}");
             //})
             //.WithTopicFilter(f =>
             //{
-            //    f.WithTopic("teslamate/cars/?/{TopicChargeCurrentRequestMax");
+            //    f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequestMax");
             //})
             .Build();
 

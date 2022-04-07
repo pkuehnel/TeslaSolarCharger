@@ -1,4 +1,5 @@
 ﻿using Quartz;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Services;
 
 namespace SmartTeslaAmpSetter.Server.Scheduling;
@@ -7,9 +8,9 @@ namespace SmartTeslaAmpSetter.Server.Scheduling;
 public class ConfigJsonUpdateJob : IJob
 {
     private readonly ILogger<ConfigJsonUpdateJob> _logger;
-    private readonly ConfigJsonService _service;
+    private readonly IConfigJsonService _service;
 
-    public ConfigJsonUpdateJob(ILogger<ConfigJsonUpdateJob> logger, ConfigJsonService service)
+    public ConfigJsonUpdateJob(ILogger<ConfigJsonUpdateJob> logger, IConfigJsonService service)
     {
         _logger = logger;
         _service = service;

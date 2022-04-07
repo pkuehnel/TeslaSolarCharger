@@ -1,12 +1,13 @@
 ﻿using System.Reflection;
 using Newtonsoft.Json;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
-public class ConfigJsonService
+public class ConfigJsonService : IConfigJsonService
 {
     private readonly ILogger<ConfigJsonService> _logger;
     private readonly IConfiguration _configuration;

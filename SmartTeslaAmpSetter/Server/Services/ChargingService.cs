@@ -1,20 +1,21 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 using Car = SmartTeslaAmpSetter.Shared.Dtos.Settings.Car;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
-public class ChargingService
+public class ChargingService : IChargingService
 {
     private readonly ILogger<ChargingService> _logger;
-    private readonly GridService _gridService;
+    private readonly IGridService _gridService;
     private readonly IConfiguration _configuration;
     private readonly Settings _settings;
     private readonly string _teslaMateBaseUrl;
 
-    public ChargingService(ILogger<ChargingService> logger, GridService gridService, IConfiguration configuration, Settings settings)
+    public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration, Settings settings)
     {
         _logger = logger;
         _gridService = gridService;
