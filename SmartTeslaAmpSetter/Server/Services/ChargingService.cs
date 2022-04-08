@@ -26,7 +26,7 @@ public class ChargingService : IChargingService
 
     public async Task SetNewChargingValues(bool onlyUpdateValues = false)
     {
-        _logger.LogTrace($"{nameof(SetNewChargingValues)}()");
+        _logger.LogTrace("{method}({param})", nameof(SetNewChargingValues), onlyUpdateValues);
 
         var overage = await _gridService.GetCurrentOverage().ConfigureAwait(false);
 
@@ -48,14 +48,7 @@ public class ChargingService : IChargingService
         var geofence = _configuration.GetValue<string>("GeoFence");
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
-        foreach (var car in _settings.Cars)
-        {
-            if (car.CarState.SocLimit == null)
-            {
-                _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
-                await WakeUpCar(car.Id).ConfigureAwait(false);
-            }
-        }
+        await WakeupCarsWithUnknownSocLimit(_settings.Cars);
 
         var relevantCarIds = GetRelevantCarIds(geofence);
         _logger.LogDebug("Number of relevant Cars: {count}", relevantCarIds.Count);
@@ -108,6 +101,23 @@ public class ChargingService : IChargingService
         }
     }
 
+    private async Task WakeupCarsWithUnknownSocLimit(List<Car> cars)
+    {
+        foreach (var car in cars)
+        {
+            var unknownSocLimit = IsSocLimitUnknown(car);
+            if (unknownSocLimit)
+            {
+                _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
+                await WakeUpCar(car.Id).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private bool IsSocLimitUnknown(Car car)
+    {
+        return car.CarState.SocLimit == null || car.CarState.SocLimit < 50;
+    }
 
 
     private List<int> GetRelevantCarIds(string geofence)

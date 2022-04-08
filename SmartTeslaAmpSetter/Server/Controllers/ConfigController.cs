@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Shared.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
@@ -10,9 +11,9 @@ namespace SmartTeslaAmpSetter.Server.Controllers
     [ApiController]
     public class ConfigController : ControllerBase
     {
-        private readonly ConfigService _service;
+        private readonly IConfigService _service;
 
-        public ConfigController(ConfigService service)
+        public ConfigController(IConfigService service)
         {
             _service = service;
         }
