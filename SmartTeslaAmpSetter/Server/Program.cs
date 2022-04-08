@@ -99,7 +99,7 @@ app.Run();
 
 async Task AddCarIdsToSettings(Settings settings1)
 {
-    var configJsonService = app.Services.GetRequiredService<ConfigJsonService>();
+    var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
     settings1.Cars = await configJsonService.GetCarsFromConfiguration();
     foreach (var car in settings1.Cars)
     {

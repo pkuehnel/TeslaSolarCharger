@@ -43,8 +43,8 @@ public class ConfigJsonService : IConfigJsonService
         {
             try
             {
-                var fileContent = await File.ReadAllTextAsync(GetConfigurationFileFullPath()).ConfigureAwait(false);
-                cars = JsonConvert.DeserializeObject<List<Car>>(fileContent) ?? throw new InvalidOperationException();
+                var fileContent = await GetCarConfigurationFileContent();
+                cars = DeserializeCarsFromConfigurationString(fileContent);
             }
             catch (Exception ex)
             {
@@ -52,20 +52,39 @@ public class ConfigJsonService : IConfigJsonService
             }
         }
 
-        foreach (var car in cars)
-        {
-            car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
-            car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
-        }
-        
         var carIds = _configuration.GetValue<string>("CarPriorities").Split("|").Select(id => Convert.ToInt32(id)).ToList();
-
         RemoveOldCars(cars, carIds);
-        
+
         var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
         AddNewCars(newCarIds, cars);
 
         return cars;
+    }
+
+    internal List<Car> DeserializeCarsFromConfigurationString(string fileContent)
+    {
+        _logger.LogTrace("{method}({param})", nameof(DeserializeCarsFromConfigurationString), fileContent);
+        var cars = JsonConvert.DeserializeObject<List<Car>>(fileContent) ?? throw new InvalidOperationException("Could not deserialize file content");
+        foreach (var car in cars)
+        {
+            car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
+            car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
+
+            var minDate = new DateTime(2022, 1, 1);
+            if (car.CarConfiguration.LatestTimeToReachSoC < minDate)
+            {
+                car.CarConfiguration.LatestTimeToReachSoC = minDate;
+            }
+        }
+
+
+        return cars;
+    }
+
+    private async Task<string> GetCarConfigurationFileContent()
+    {
+        var fileContent = await File.ReadAllTextAsync(GetConfigurationFileFullPath()).ConfigureAwait(false);
+        return fileContent;
     }
 
     internal void AddNewCars(List<int> newCarIds, List<Car> cars)

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Serilog.Events;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
@@ -66,5 +67,25 @@ public class ConfigJsonService : TestBase
         Assert.DoesNotContain(cars, car => car.Id == 3);
         Assert.Contains(cars, car => car.Id == 2);
         Assert.Contains(cars, car => car.Id == 4);
+    }
+
+    [Fact]
+    public void Deserializes_car_configuration()
+    {
+        var configString = "[{\"Id\":1,\"CarConfiguration\":{\"ChargeMode\":0,\"MinimumSoC\":70,\"LatestTimeToReachSoC\":\"2022-04-02T02:27:00\",\"MaximumAmpere\":15,\"MinimumAmpere\":5,\"UsableEnergy\":74}},{\"Id\":2,\"CarConfiguration\":{\"ChargeMode\":0,\"MinimumSoC\":0,\"LatestTimeToReachSoC\":\"0001-01-01T00:00:00\",\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":75}}]";
+
+        var configJsonService = Mock.Create<Server.Services.ConfigJsonService>();
+        var cars = configJsonService.DeserializeCarsFromConfigurationString(configString);
+
+        Assert.Equal(2, cars.Count);
+
+        var firstCar = cars.First();
+        var lastCar = cars.Last();
+
+        Assert.Equal(1, firstCar.Id);
+        Assert.Equal(2, lastCar.Id);
+
+        Assert.Equal(70, firstCar.CarConfiguration.MinimumSoC);
+        Assert.Equal(0, lastCar.CarConfiguration.MinimumSoC);
     }
 }
