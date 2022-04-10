@@ -1,10 +1,13 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
+using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Car = SmartTeslaAmpSetter.Shared.Dtos.Settings.Car;
 
+[assembly: InternalsVisibleTo("SmartTeslaAmpSetter.Tests")]
 namespace SmartTeslaAmpSetter.Server.Services;
 
 public class ChargingService : IChargingService
@@ -13,14 +16,17 @@ public class ChargingService : IChargingService
     private readonly IGridService _gridService;
     private readonly IConfiguration _configuration;
     private readonly Settings _settings;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly string _teslaMateBaseUrl;
 
-    public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration, Settings settings)
+    public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration,
+        Settings settings, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _gridService = gridService;
         _configuration = configuration;
         _settings = settings;
+        _dateTimeProvider = dateTimeProvider;
         _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
     }
 
@@ -250,7 +256,7 @@ public class ChargingService : IChargingService
         return ampChange;
     }
 
-    private static void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car relevantCar,
+    internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car relevantCar,
         DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
     {
         if (relevantCar.CarState.AutoFullSpeedCharge &&
@@ -262,11 +268,11 @@ public class ChargingService : IChargingService
         }
     }
 
-    private static void EnableFullSpeedChargeIfMinimumSocNotReachable(Car relevantCar,
+    internal void EnableFullSpeedChargeIfMinimumSocNotReachable(Car relevantCar,
         DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
     {
         if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC
-            && relevantCar.CarConfiguration.LatestTimeToReachSoC > DateTime.Now
+            && relevantCar.CarConfiguration.LatestTimeToReachSoC > _dateTimeProvider.Now()
             || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC &&
             relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
         {

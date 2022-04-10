@@ -8,6 +8,7 @@ using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
+using SmartTeslaAmpSetter.Shared.TimeProviding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,7 @@ builder.Services
     .AddTransient<IGridService, GridService>()
     .AddTransient<IConfigService, ConfigService>()
     .AddTransient<IConfigJsonService, ConfigJsonService>()
+    .AddTransient<IDateTimeProvider, DateTimeProvider>()
     .AddSingleton<Settings>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()

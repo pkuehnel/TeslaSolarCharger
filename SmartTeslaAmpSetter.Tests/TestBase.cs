@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using Autofac;
 using Autofac.Extras.Moq;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Xunit.Abstractions;
 
 namespace SmartTeslaAmpSetter.Tests;
@@ -22,7 +26,22 @@ public class TestBase : IDisposable
         LogEventLevel setupLogEventLevel = LogEventLevel.Warning,
         LogEventLevel defaultLogEventLevel = LogEventLevel.Debug)
     {
-        Mock = AutoMock.GetLoose();
+
+        var configDictionary = new Dictionary<string, string>
+        {
+            {"TeslaMateApiBaseUrl", "http://192.168.1.50:8097"},
+        };
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configDictionary)
+            .Build()
+            ;
+        
+        Mock = AutoMock.GetLoose(cfg =>
+        {
+            cfg.RegisterType(typeof(FakeDateTimeProvider));
+            cfg.RegisterInstance(configuration).As<IConfiguration>();
+        });
+        
 
         // ReSharper disable once UnusedVariable
         var (loggerFactory, logLevelSwitch) = GetOrCreateLoggerFactory(outputHelper, setupLogEventLevel);
