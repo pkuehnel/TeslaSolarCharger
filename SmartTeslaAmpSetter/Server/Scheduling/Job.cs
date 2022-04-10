@@ -1,5 +1,5 @@
 ﻿using Quartz;
-using SmartTeslaAmpSetter.Server.Services;
+using SmartTeslaAmpSetter.Server.Contracts;
 
 namespace SmartTeslaAmpSetter.Server.Scheduling;
 
@@ -7,9 +7,9 @@ namespace SmartTeslaAmpSetter.Server.Scheduling;
 public class Job : IJob
 {
     private readonly ILogger<Job> _logger;
-    private readonly ChargingService _chargingService;
+    private readonly IChargingService _chargingService;
 
-    public Job(ILogger<Job> logger, ChargingService chargingService)
+    public Job(ILogger<Job> logger, IChargingService chargingService)
     {
         _logger = logger;
         _chargingService = chargingService;

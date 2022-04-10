@@ -4,9 +4,11 @@ using Quartz.Impl;
 using Quartz.Spi;
 using Serilog;
 using SmartTeslaAmpSetter.Server;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
+using SmartTeslaAmpSetter.Shared.TimeProviding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,11 +32,12 @@ builder.Services
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
-    .AddTransient<ChargingService>()
-    .AddTransient<GridService>()
-    .AddTransient<ConfigService>()
-    .AddTransient<ConfigJsonService>()
-    .AddSingleton<Settings>()
+    .AddTransient<IChargingService, ChargingService>()
+    .AddTransient<IGridService, GridService>()
+    .AddTransient<IConfigService, ConfigService>()
+    .AddTransient<IConfigJsonService, ConfigJsonService>()
+    .AddTransient<IDateTimeProvider, DateTimeProvider>()
+    .AddTransient<ISettings, Settings>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
     .AddTransient<MqttHelper>()
@@ -60,9 +63,7 @@ var app = builder.Build();
 var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSeconds");
 var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
 
-var settings = app.Services.GetRequiredService<Settings>();
-
-await AddCarIdsToSettings(settings).ConfigureAwait(false);
+await AddCarIdsToSettings().ConfigureAwait(false);
 
 var mqttHelper = app.Services.GetRequiredService<MqttHelper>();
 
@@ -96,9 +97,10 @@ app.MapFallbackToFile("index.html");
 app.Run();
 
 
-async Task AddCarIdsToSettings(Settings settings1)
+async Task AddCarIdsToSettings()
 {
-    var configJsonService = app.Services.GetRequiredService<ConfigJsonService>();
+    var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
+    var settings1 = app.Services.GetRequiredService<ISettings>();
     settings1.Cars = await configJsonService.GetCarsFromConfiguration();
     foreach (var car in settings1.Cars)
     {

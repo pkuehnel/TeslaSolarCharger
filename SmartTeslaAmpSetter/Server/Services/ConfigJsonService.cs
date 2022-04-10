@@ -1,18 +1,21 @@
 ﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
+[assembly: InternalsVisibleTo("SmartTeslaAmpSetter.Tests")]
 namespace SmartTeslaAmpSetter.Server.Services;
 
-public class ConfigJsonService
+public class ConfigJsonService : IConfigJsonService
 {
     private readonly ILogger<ConfigJsonService> _logger;
     private readonly IConfiguration _configuration;
-    private readonly Settings _settings;
+    private readonly ISettings _settings;
 
-    public ConfigJsonService(ILogger<ConfigJsonService> logger, IConfiguration configuration, Settings settings)
+    public ConfigJsonService(ILogger<ConfigJsonService> logger, IConfiguration configuration, ISettings settings)
     {
         _logger = logger;
         _configuration = configuration;
@@ -40,8 +43,8 @@ public class ConfigJsonService
         {
             try
             {
-                var fileContent = await File.ReadAllTextAsync(GetConfigurationFileFullPath()).ConfigureAwait(false);
-                cars = JsonConvert.DeserializeObject<List<Car>>(fileContent) ?? throw new InvalidOperationException();
+                var fileContent = await GetCarConfigurationFileContent();
+                cars = DeserializeCarsFromConfigurationString(fileContent);
             }
             catch (Exception ex)
             {
@@ -49,31 +52,50 @@ public class ConfigJsonService
             }
         }
 
-        foreach (var car in cars)
-        {
-            car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
-            car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
-        }
-
-        var carIds = _configuration.GetValue<string>("CarPriorities").Split("|");
+        var carIds = _configuration.GetValue<string>("CarPriorities").Split("|").Select(id => Convert.ToInt32(id)).ToList();
         RemoveOldCars(cars, carIds);
-        
-        var newCarIds = carIds.Where(i => !cars.Any(c => c.Id.ToString().Equals(i))).ToList();
+
+        var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
         AddNewCars(newCarIds, cars);
 
         return cars;
     }
 
-    private static void AddNewCars(List<string> newCarIds, List<Car> cars)
+    internal List<Car> DeserializeCarsFromConfigurationString(string fileContent)
+    {
+        _logger.LogTrace("{method}({param})", nameof(DeserializeCarsFromConfigurationString), fileContent);
+        var cars = JsonConvert.DeserializeObject<List<Car>>(fileContent) ?? throw new InvalidOperationException("Could not deserialize file content");
+        foreach (var car in cars)
+        {
+            car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
+            car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
+
+            var minDate = new DateTime(2022, 1, 1);
+            if (car.CarConfiguration.LatestTimeToReachSoC < minDate)
+            {
+                car.CarConfiguration.LatestTimeToReachSoC = minDate;
+            }
+        }
+
+
+        return cars;
+    }
+
+    private async Task<string> GetCarConfigurationFileContent()
+    {
+        var fileContent = await File.ReadAllTextAsync(GetConfigurationFileFullPath()).ConfigureAwait(false);
+        return fileContent;
+    }
+
+    internal void AddNewCars(List<int> newCarIds, List<Car> cars)
     {
         foreach (var carId in newCarIds)
         {
-            var id = int.Parse(carId);
-            if (cars.All(c => c.Id != id))
+            if (cars.All(c => c.Id != carId))
             {
                 var car = new Car
                 {
-                    Id = id,
+                    Id = carId,
                     CarConfiguration =
                     {
                         ChargeMode = ChargeMode.MaxPower,
@@ -120,14 +142,11 @@ public class ConfigJsonService
         }
     }
 
-    private void RemoveOldCars(List<Car> cars, string[] carIds)
+    internal void RemoveOldCars(List<Car> cars, List<int> carIds)
     {
-        foreach (var car in cars)
+        foreach (var carId in carIds)
         {
-            if (!carIds.Any(c => c.Equals(car.Id.ToString())))
-            {
-                cars.RemoveAll(c => c.Id == car.Id);
-            }
+            cars.RemoveAll(c => c.Id == carId);
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SmartTeslaAmpSetter.Server.Services;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
@@ -10,9 +10,9 @@ namespace SmartTeslaAmpSetter.Server.Controllers
     [ApiController]
     public class ConfigController : ControllerBase
     {
-        private readonly ConfigService _service;
+        private readonly IConfigService _service;
 
-        public ConfigController(ConfigService service)
+        public ConfigController(IConfigService service)
         {
             _service = service;
         }
@@ -21,7 +21,7 @@ namespace SmartTeslaAmpSetter.Server.Controllers
         /// Get all settings and status of all cars
         /// </summary>
         [HttpGet]
-        public Task<Settings> GetSettings() => _service.GetSettings();
+        public Task<ISettings> GetSettings() => _service.GetSettings();
 
         /// <summary>
         /// Change Chargemode of car

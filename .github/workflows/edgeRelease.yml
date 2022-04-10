@@ -18,6 +18,14 @@ jobs:
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
 
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '6.0.x'
+    
+    - name: Run unit tests
+      run: dotnet test SmartTeslaAmpSetter.Tests
+      
     - name: Buildx
       id: buildx
       uses: docker/setup-buildx-action@v1

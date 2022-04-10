@@ -1,31 +1,38 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using Newtonsoft.Json;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
+using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Car = SmartTeslaAmpSetter.Shared.Dtos.Settings.Car;
 
+[assembly: InternalsVisibleTo("SmartTeslaAmpSetter.Tests")]
 namespace SmartTeslaAmpSetter.Server.Services;
 
-public class ChargingService
+public class ChargingService : IChargingService
 {
     private readonly ILogger<ChargingService> _logger;
-    private readonly GridService _gridService;
+    private readonly IGridService _gridService;
     private readonly IConfiguration _configuration;
-    private readonly Settings _settings;
+    private readonly ISettings _settings;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly string _teslaMateBaseUrl;
 
-    public ChargingService(ILogger<ChargingService> logger, GridService gridService, IConfiguration configuration, Settings settings)
+    public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration,
+        ISettings settings, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _gridService = gridService;
         _configuration = configuration;
         _settings = settings;
+        _dateTimeProvider = dateTimeProvider;
         _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
     }
 
     public async Task SetNewChargingValues(bool onlyUpdateValues = false)
     {
-        _logger.LogTrace($"{nameof(SetNewChargingValues)}()");
+        _logger.LogTrace("{method}({param})", nameof(SetNewChargingValues), onlyUpdateValues);
 
         var overage = await _gridService.GetCurrentOverage().ConfigureAwait(false);
 
@@ -47,14 +54,7 @@ public class ChargingService
         var geofence = _configuration.GetValue<string>("GeoFence");
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
-        foreach (var car in _settings.Cars)
-        {
-            if (car.CarState.SocLimit == null)
-            {
-                _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
-                await WakeUpCar(car.Id).ConfigureAwait(false);
-            }
-        }
+        await WakeupCarsWithUnknownSocLimit(_settings.Cars);
 
         var relevantCarIds = GetRelevantCarIds(geofence);
         _logger.LogDebug("Number of relevant Cars: {count}", relevantCarIds.Count);
@@ -107,9 +107,26 @@ public class ChargingService
         }
     }
 
+    private async Task WakeupCarsWithUnknownSocLimit(List<Car> cars)
+    {
+        foreach (var car in cars)
+        {
+            var unknownSocLimit = IsSocLimitUnknown(car);
+            if (unknownSocLimit)
+            {
+                _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
+                await WakeUpCar(car.Id).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private bool IsSocLimitUnknown(Car car)
+    {
+        return car.CarState.SocLimit == null || car.CarState.SocLimit < 50;
+    }
 
 
-    private List<int> GetRelevantCarIds(string geofence)
+    internal List<int> GetRelevantCarIds(string geofence)
     {
         var relevantIds = _settings.Cars
             .Where(c =>
@@ -138,19 +155,8 @@ public class ChargingService
         var activePhases = relevantCar.CarState.ChargerPhases > 1 ? 3 : 1;
         var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(relevantCar, activePhases);
 
-        //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
-        if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC 
-            && relevantCar.CarConfiguration.LatestTimeToReachSoC > DateTime.Now 
-            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC && relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
-        {
-            relevantCar.CarState.AutoFullSpeedCharge = true;
-        }
-        //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde, oder Ziel SoC mehr als eine halbe Stunde zu früh erreicht
-        if (relevantCar.CarState.AutoFullSpeedCharge && 
-            (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC || reachedMinimumSocAtFullSpeedChargeDateTime < relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
-        {
-            relevantCar.CarState.AutoFullSpeedCharge = false;
-        }
+        EnableFullSpeedChargeIfMinimumSocNotReachable(relevantCar, reachedMinimumSocAtFullSpeedChargeDateTime);
+        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(relevantCar, reachedMinimumSocAtFullSpeedChargeDateTime);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (relevantCar.CarConfiguration.ChargeMode == ChargeMode.MaxPower || relevantCar.CarState.AutoFullSpeedCharge)
@@ -248,6 +254,29 @@ public class ChargingService
         }
 
         return ampChange;
+    }
+
+    internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car relevantCar,
+        DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
+    {
+        if (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC 
+            || reachedMinimumSocAtFullSpeedChargeDateTime < relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30) 
+            && relevantCar.CarConfiguration.ChargeMode != ChargeMode.PvAndMinSoc)
+        {
+            relevantCar.CarState.AutoFullSpeedCharge = false;
+        }
+    }
+
+    internal void EnableFullSpeedChargeIfMinimumSocNotReachable(Car relevantCar,
+        DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
+    {
+        if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC
+            && relevantCar.CarConfiguration.LatestTimeToReachSoC > _dateTimeProvider.Now()
+            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC
+            && relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
+        {
+            relevantCar.CarState.AutoFullSpeedCharge = true;
+        }
     }
 
     private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car, int numberOfPhases)
