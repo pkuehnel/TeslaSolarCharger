@@ -1,6 +1,5 @@
 ﻿using Quartz;
 using SmartTeslaAmpSetter.Server.Contracts;
-using SmartTeslaAmpSetter.Server.Services;
 
 namespace SmartTeslaAmpSetter.Server.Scheduling;
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using Autofac.Extras.Moq;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
@@ -12,7 +11,7 @@ namespace SmartTeslaAmpSetter.Tests;
 
 public class TestBase : IDisposable
 {
-    private static readonly ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)> _loggerFactoryCache = new ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)>();
+    private static readonly ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)> LoggerFactoryCache = new ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)>();
 
     protected readonly AutoMock Mock;
 
@@ -25,6 +24,7 @@ public class TestBase : IDisposable
     {
         Mock = AutoMock.GetLoose();
 
+        // ReSharper disable once UnusedVariable
         var (loggerFactory, logLevelSwitch) = GetOrCreateLoggerFactory(outputHelper, setupLogEventLevel);
         LogLevelSwitch = logLevelSwitch;
 
@@ -40,7 +40,7 @@ public class TestBase : IDisposable
             throw new ArgumentNullException(nameof(testOutputHelper));
         }
 
-        var tuple = _loggerFactoryCache.GetOrAdd(testOutputHelper, CreateLoggerFactory(testOutputHelper));
+        var tuple = LoggerFactoryCache.GetOrAdd(testOutputHelper, CreateLoggerFactory(testOutputHelper));
         tuple.Item2.MinimumLevel = logEventLevel;
 
         return tuple;

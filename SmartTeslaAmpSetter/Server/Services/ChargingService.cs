@@ -149,19 +149,8 @@ public class ChargingService : IChargingService
         var activePhases = relevantCar.CarState.ChargerPhases > 1 ? 3 : 1;
         var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(relevantCar, activePhases);
 
-        //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
-        if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC 
-            && relevantCar.CarConfiguration.LatestTimeToReachSoC > DateTime.Now 
-            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC && relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
-        {
-            relevantCar.CarState.AutoFullSpeedCharge = true;
-        }
-        //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde, oder Ziel SoC mehr als eine halbe Stunde zu früh erreicht
-        if (relevantCar.CarState.AutoFullSpeedCharge && 
-            (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC || reachedMinimumSocAtFullSpeedChargeDateTime < relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
-        {
-            relevantCar.CarState.AutoFullSpeedCharge = false;
-        }
+        EnableFullSpeedChargeIfMinimumSocNotReachable(relevantCar, reachedMinimumSocAtFullSpeedChargeDateTime);
+        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(relevantCar, reachedMinimumSocAtFullSpeedChargeDateTime);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (relevantCar.CarConfiguration.ChargeMode == ChargeMode.MaxPower || relevantCar.CarState.AutoFullSpeedCharge)
@@ -259,6 +248,30 @@ public class ChargingService : IChargingService
         }
 
         return ampChange;
+    }
+
+    private static void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car relevantCar,
+        DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
+    {
+        if (relevantCar.CarState.AutoFullSpeedCharge &&
+            (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC ||
+             reachedMinimumSocAtFullSpeedChargeDateTime <
+             relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
+        {
+            relevantCar.CarState.AutoFullSpeedCharge = false;
+        }
+    }
+
+    private static void EnableFullSpeedChargeIfMinimumSocNotReachable(Car relevantCar,
+        DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
+    {
+        if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC
+            && relevantCar.CarConfiguration.LatestTimeToReachSoC > DateTime.Now
+            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC &&
+            relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
+        {
+            relevantCar.CarState.AutoFullSpeedCharge = true;
+        }
     }
 
     private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car, int numberOfPhases)
