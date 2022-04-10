@@ -15,12 +15,12 @@ public class ChargingService : IChargingService
     private readonly ILogger<ChargingService> _logger;
     private readonly IGridService _gridService;
     private readonly IConfiguration _configuration;
-    private readonly Settings _settings;
+    private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly string _teslaMateBaseUrl;
 
     public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration,
-        Settings settings, IDateTimeProvider dateTimeProvider)
+        ISettings settings, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _gridService = gridService;
@@ -126,7 +126,7 @@ public class ChargingService : IChargingService
     }
 
 
-    private List<int> GetRelevantCarIds(string geofence)
+    internal List<int> GetRelevantCarIds(string geofence)
     {
         var relevantIds = _settings.Cars
             .Where(c =>

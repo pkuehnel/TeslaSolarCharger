@@ -13,9 +13,9 @@ public class ConfigJsonService : IConfigJsonService
 {
     private readonly ILogger<ConfigJsonService> _logger;
     private readonly IConfiguration _configuration;
-    private readonly Settings _settings;
+    private readonly ISettings _settings;
 
-    public ConfigJsonService(ILogger<ConfigJsonService> logger, IConfiguration configuration, Settings settings)
+    public ConfigJsonService(ILogger<ConfigJsonService> logger, IConfiguration configuration, ISettings settings)
     {
         _logger = logger;
         _configuration = configuration;

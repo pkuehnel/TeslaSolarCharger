@@ -37,7 +37,7 @@ builder.Services
     .AddTransient<IConfigService, ConfigService>()
     .AddTransient<IConfigJsonService, ConfigJsonService>()
     .AddTransient<IDateTimeProvider, DateTimeProvider>()
-    .AddSingleton<Settings>()
+    .AddTransient<ISettings, Settings>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
     .AddTransient<MqttHelper>()
@@ -63,9 +63,7 @@ var app = builder.Build();
 var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSeconds");
 var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
 
-var settings = app.Services.GetRequiredService<Settings>();
-
-await AddCarIdsToSettings(settings).ConfigureAwait(false);
+await AddCarIdsToSettings().ConfigureAwait(false);
 
 var mqttHelper = app.Services.GetRequiredService<MqttHelper>();
 
@@ -99,9 +97,10 @@ app.MapFallbackToFile("index.html");
 app.Run();
 
 
-async Task AddCarIdsToSettings(Settings settings1)
+async Task AddCarIdsToSettings()
 {
     var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
+    var settings1 = app.Services.GetRequiredService<ISettings>();
     settings1.Cars = await configJsonService.GetCarsFromConfiguration();
     foreach (var car in settings1.Cars)
     {

@@ -1,6 +1,6 @@
 ﻿namespace SmartTeslaAmpSetter.Shared.Dtos.Settings;
 
-public class Settings
+public class Settings : ISettings
 {
     private List<Car> _cars = null!;
 

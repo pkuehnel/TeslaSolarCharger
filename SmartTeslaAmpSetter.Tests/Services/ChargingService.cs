@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Autofac;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
@@ -71,6 +72,48 @@ public class ChargingService : TestBase
                 throw new NotImplementedException("This test does not handle this charge mode");
         }
 
+    }
+
+    [Fact]
+    public void Gets_relevant_car_IDs()
+    {
+        var geofence = "Home";
+        var cars = new List<Car>()
+        {
+            new Car()
+            {
+                Id = 1,
+                CarState = new CarState()
+                {
+                    Geofence = geofence,
+                    PluggedIn = true,
+                    ClimateOn = false,
+                    ChargerActualCurrent = 3,
+                    SoC = 30,
+                    SocLimit = 60,
+                },
+            },
+            new Car()
+            {
+                Id = 2,
+                CarState = new CarState()
+                {
+                    Geofence = null,
+                    PluggedIn = true,
+                    ClimateOn = false,
+                    ChargerActualCurrent = 3,
+                    SoC = 30,
+                    SocLimit = 60,
+                },
+            },
+        };
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
+        var chargingService = Mock.Create<Server.Services.ChargingService>();
+
+        var relevantIds = chargingService.GetRelevantCarIds(geofence);
+
+        Assert.Contains(1, relevantIds);
+        Assert.Single(relevantIds);
     }
 
     private Car CreateDemoCar(ChargeMode chargeMode, DateTime latestTimeToReachSoC, int soC, int minimumSoC, bool autoFullSpeedCharge)

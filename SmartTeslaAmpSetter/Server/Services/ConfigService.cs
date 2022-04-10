@@ -9,17 +9,17 @@ namespace SmartTeslaAmpSetter.Server.Services;
 public class ConfigService : IConfigService
 {
     private readonly ILogger<ConfigService> _logger;
-    private readonly Settings _settings;
+    private readonly ISettings _settings;
     private readonly IChargingService _chargingService;
 
-    public ConfigService(ILogger<ConfigService> logger, Settings settings, IChargingService chargingService)
+    public ConfigService(ILogger<ConfigService> logger, ISettings settings, IChargingService chargingService)
     {
         _logger = logger;
         _settings = settings;
         _chargingService = chargingService;
     }
 
-    public async Task<Settings> GetSettings()
+    public async Task<ISettings> GetSettings()
     {
         _logger.LogTrace("{method}()", nameof(GetSettings));
         await _chargingService.SetNewChargingValues(true);
