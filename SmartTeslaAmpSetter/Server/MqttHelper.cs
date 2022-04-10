@@ -10,7 +10,7 @@ public class MqttHelper
     private readonly IConfiguration _configuration;
     private readonly MqttClient _mqttClient;
     private readonly MqttFactory _mqttFactory;
-    private readonly Settings _settings;
+    private readonly ISettings _settings;
 
     private const string TopicDisplayName = "display_name";
     private const string TopicSoc = "battery_level";
@@ -27,7 +27,7 @@ public class MqttHelper
     //private const string TopicChargeCurrentRequest = "charge_current_request";
     //public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
 
-    public MqttHelper(ILogger<MqttHelper> logger, IConfiguration configuration, MqttClient mqttClient, MqttFactory mqttFactory, Settings settings)
+    public MqttHelper(ILogger<MqttHelper> logger, IConfiguration configuration, MqttClient mqttClient, MqttFactory mqttFactory, ISettings settings)
     {
         _logger = logger;
         _configuration = configuration;
