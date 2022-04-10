@@ -16,15 +16,15 @@ public class ChargingService : TestBase
     }
 
     [Theory]
-    [InlineData(ChargeMode.PvAndMinSoc, -2, 10)]
-    [InlineData(ChargeMode.PvAndMinSoc, -2, -10)]
-    [InlineData(ChargeMode.PvAndMinSoc, 2, 10)]
-    [InlineData(ChargeMode.PvAndMinSoc, 2, -10)]
-    [InlineData(ChargeMode.PvOnly, -2, 10)]
-    [InlineData(ChargeMode.PvOnly, -2, -10)]
-    [InlineData(ChargeMode.PvOnly, 2, 10)]
-    [InlineData(ChargeMode.PvOnly, 2, -10)]
-    public void Does_autoenable_fullspeed_charge_if_needed(ChargeMode chargeMode, int fullSpeedChargeMinutesAfterLatestTime, int moreSocThanMinSoc)
+    [InlineData(ChargeMode.PvAndMinSoc, -32, 10, false)]
+    [InlineData(ChargeMode.PvAndMinSoc, 2, -10, false)]
+    [InlineData(ChargeMode.PvOnly, -32, 10, false)]
+    [InlineData(ChargeMode.PvOnly, 2, -10, false)]
+    [InlineData(ChargeMode.PvAndMinSoc, -32, 10, true)]
+    [InlineData(ChargeMode.PvAndMinSoc, 2, -10, true)]
+    [InlineData(ChargeMode.PvOnly, -32, 10, true)]
+    [InlineData(ChargeMode.PvOnly, 2, -10, true)]
+    public void Does_autoenable_fullspeed_charge_if_needed(ChargeMode chargeMode, int fullSpeedChargeMinutesAfterLatestTime, int moreSocThanMinSoc, bool autofullSpeedCharge)
     {
         var chargingService = Mock.Create<Server.Services.ChargingService>();
         var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
@@ -36,8 +36,14 @@ public class ChargingService : TestBase
 
         var minSoc = 50;
 
-        var car = CreateDemoCar(chargeMode, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc + moreSocThanMinSoc, minSoc);
-        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car, currentTime + timeSpanToReachMinSoCAtFullSpeedCharge);
+        var car = CreateDemoCar(chargeMode, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc + moreSocThanMinSoc, minSoc, autofullSpeedCharge);
+
+
+        var reachedMinimumSocAtFullSpeedChargeDateTime = currentTime + timeSpanToReachMinSoCAtFullSpeedCharge;
+
+        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car, reachedMinimumSocAtFullSpeedChargeDateTime);
+        chargingService.DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car, reachedMinimumSocAtFullSpeedChargeDateTime);
+
 
         if (fullSpeedChargeMinutesAfterLatestTime > 0)
         {
@@ -64,15 +70,16 @@ public class ChargingService : TestBase
             default:
                 throw new NotImplementedException("This test does not handle this charge mode");
         }
+
     }
 
-    private Car CreateDemoCar(ChargeMode chargeMode, DateTime latestTimeToReachSoC, int soC, int minimumSoC)
+    private Car CreateDemoCar(ChargeMode chargeMode, DateTime latestTimeToReachSoC, int soC, int minimumSoC, bool autoFullSpeedCharge)
     {
         var car = new Car()
         {
             CarState = new CarState()
             {
-                AutoFullSpeedCharge = false,
+                AutoFullSpeedCharge = autoFullSpeedCharge,
                 SoC = soC,
             },
             CarConfiguration = new CarConfiguration()

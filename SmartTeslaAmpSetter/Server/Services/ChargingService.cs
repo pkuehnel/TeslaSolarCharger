@@ -259,10 +259,9 @@ public class ChargingService : IChargingService
     internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car relevantCar,
         DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
     {
-        if (relevantCar.CarState.AutoFullSpeedCharge &&
-            (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC ||
-             reachedMinimumSocAtFullSpeedChargeDateTime <
-             relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
+        if (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC 
+            || reachedMinimumSocAtFullSpeedChargeDateTime < relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30) 
+            && relevantCar.CarConfiguration.ChargeMode != ChargeMode.PvAndMinSoc)
         {
             relevantCar.CarState.AutoFullSpeedCharge = false;
         }
@@ -273,8 +272,8 @@ public class ChargingService : IChargingService
     {
         if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC
             && relevantCar.CarConfiguration.LatestTimeToReachSoC > _dateTimeProvider.Now()
-            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC &&
-            relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
+            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC
+            && relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
         {
             relevantCar.CarState.AutoFullSpeedCharge = true;
         }
