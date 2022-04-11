@@ -108,6 +108,8 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 | **PowerBuffer** | int | Power Buffer in Watt | 0 |
 | **CurrentPowerToGridJsonPattern** | string | If Power to grid is json formated use this to extract the correct value | $.data.overage |
 | **CurrentPowerToGridInvertValue** | boolean | Set this to `true` if Power from grid has positive values and power to grid has negative values | true |
+| **TelegramBotKey** | string | Telegram Bot API key | 1234567890:ASDFuiauhwerlfvasedr |
+| **TelegramChannelId** | string | ChannelId Telegram bot should send messages to | -156480125 |
 
 ### Car Priorities
 If you set `CarPriorities` environment variable like the example above, the car with ID 2 will only start charing, if car 1 is charging at full speed and there is still power left, or if car 1 is not charging due to reached battery limit or not within specified geofence. Note: You always have to add the car Ids to this list separated by `|`. Even if you only have one car you need to ad the car's Id but then without `|`.
