@@ -30,9 +30,12 @@ public class TestBase : IDisposable
         var configDictionary = new Dictionary<string, string>
         {
             {"TeslaMateApiBaseUrl", "http://192.168.1.50:8097"},
+            {"TelegramBotKey", "5211099875:AAEGbVmcfyO_025tNsLDf3dvC5hC8vqqV44"},
+            {"TelegramChannelId", "-1001316332220"},
         };
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configDictionary)
+            .AddEnvironmentVariables()
             .Build()
             ;
         

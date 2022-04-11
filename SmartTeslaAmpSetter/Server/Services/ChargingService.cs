@@ -17,16 +17,18 @@ public class ChargingService : IChargingService
     private readonly IConfiguration _configuration;
     private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ITelegramService _telegramService;
     private readonly string _teslaMateBaseUrl;
 
     public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration,
-        ISettings settings, IDateTimeProvider dateTimeProvider)
+        ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService)
     {
         _logger = logger;
         _gridService = gridService;
         _configuration = configuration;
         _settings = settings;
         _dateTimeProvider = dateTimeProvider;
+        _telegramService = telegramService;
         _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
     }
 
@@ -115,6 +117,7 @@ public class ChargingService : IChargingService
             if (unknownSocLimit)
             {
                 _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
+                await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}. Waking up car.");
                 await WakeUpCar(car.Id).ConfigureAwait(false);
             }
         }
@@ -400,7 +403,8 @@ public class ChargingService : IChargingService
         var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Error while sending post to TeslaMate. Response: {response}", response.Content.ReadAsStringAsync());
+            _logger.LogError("Error while sending post to TeslaMate. Response: {response}", await response.Content.ReadAsStringAsync());
+            await _telegramService.SendMessage($"Error while sending post to TeslaMate. Response: {await response.Content.ReadAsStringAsync()}");
         }
         response.EnsureSuccessStatusCode();
         return response;

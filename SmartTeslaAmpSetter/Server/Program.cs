@@ -39,6 +39,7 @@ builder.Services
     .AddTransient<IConfigJsonService, ConfigJsonService>()
     .AddTransient<IDateTimeProvider, DateTimeProvider>()
     .AddTransient<IChargeTimeUpdateService, ChargeTimeUpdateService>()
+    .AddTransient<ITelegramService, TelegramService>()
     .AddSingleton<ISettings, Settings>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
@@ -61,6 +62,9 @@ if (environment == "Development")
 
 
 var app = builder.Build();
+
+var telegramService = app.Services.GetRequiredService<ITelegramService>();
+await telegramService.SendMessage("Application starting up");
 
 var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSeconds");
 var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
