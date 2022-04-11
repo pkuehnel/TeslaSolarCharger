@@ -40,10 +40,10 @@ public class ChargingService : TestBase
         var car = CreateDemoCar(chargeMode, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc + moreSocThanMinSoc, minSoc, autofullSpeedCharge);
 
 
-        var reachedMinimumSocAtFullSpeedChargeDateTime = currentTime + timeSpanToReachMinSoCAtFullSpeedCharge;
+        car.CarState.ReachingMinSocAtFullSpeedCharge = currentTime + timeSpanToReachMinSoCAtFullSpeedCharge;
 
-        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car, reachedMinimumSocAtFullSpeedChargeDateTime);
-        chargingService.DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car, reachedMinimumSocAtFullSpeedChargeDateTime);
+        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car);
+        chargingService.DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
 
 
         if (fullSpeedChargeMinutesAfterLatestTime > 0)
@@ -72,6 +72,52 @@ public class ChargingService : TestBase
                 throw new NotImplementedException("This test does not handle this charge mode");
         }
 
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Enable_Full_Speed_Charge_Can_Handle_Null_Values(bool autoFullSpeedCharge)
+    {
+        var chargingService = Mock.Create<Server.Services.ChargingService>();
+        var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
+            new NamedParameter("dateTime", new DateTime(2022, 4, 1, 14, 0, 0)));
+        var currentTime = currentTimeProvider.Now();
+
+        var timeSpanToLatestTimeToReachMinSoc = TimeSpan.FromMinutes(60);
+
+        var minSoc = 50;
+
+        var car = CreateDemoCar(ChargeMode.PvAndMinSoc, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc + 10, minSoc, autoFullSpeedCharge);
+
+        car.CarState.ReachingMinSocAtFullSpeedCharge = null;
+
+        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car);
+
+        Assert.Equal(autoFullSpeedCharge, car.CarState.AutoFullSpeedCharge);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Disable_Full_Speed_Charge_Can_Handle_Null_Values(bool autoFullSpeedCharge)
+    {
+        var chargingService = Mock.Create<Server.Services.ChargingService>();
+        var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
+            new NamedParameter("dateTime", new DateTime(2022, 4, 1, 14, 0, 0)));
+        var currentTime = currentTimeProvider.Now();
+
+        var timeSpanToLatestTimeToReachMinSoc = TimeSpan.FromMinutes(60);
+
+        var minSoc = 55;
+
+        var car = CreateDemoCar(ChargeMode.PvOnly, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc - 10, minSoc, autoFullSpeedCharge);
+
+        car.CarState.ReachingMinSocAtFullSpeedCharge = null;
+
+        chargingService.DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
+
+        Assert.False(car.CarState.AutoFullSpeedCharge);
     }
 
     [Fact]

@@ -37,6 +37,7 @@ public class JobManager
 
         var chargeLogJob = JobBuilder.Create<Job>().Build();
         var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
+        var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
 
         var defaultTrigger =
             TriggerBuilder.Create().WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)jobIntervall.TotalSeconds)).Build();
@@ -44,10 +45,14 @@ public class JobManager
         var updateJsonTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(10)).Build();
 
+        var chargeTimeUpdateTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(30)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargeLogJob,  new HashSet<ITrigger> { defaultTrigger }},
             {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
+            {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

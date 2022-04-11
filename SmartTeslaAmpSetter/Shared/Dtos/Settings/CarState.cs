@@ -9,6 +9,7 @@ public class CarState
     public int? SocLimit { get; set; }
     public string? Geofence { get; set; }
     public TimeSpan? TimeUntilFullCharge { get; set; }
+    public DateTime? ReachingMinSocAtFullSpeedCharge { get; set; }
     public bool AutoFullSpeedCharge { get; set; }
     public int LastSetAmp { get; set; }
     public int? ChargerPhases { get; set; }

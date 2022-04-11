@@ -151,12 +151,9 @@ public class ChargingService : IChargingService
         var maxAmpPerCar = relevantCar.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
-
-        var activePhases = relevantCar.CarState.ChargerPhases > 1 ? 3 : 1;
-        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(relevantCar, activePhases);
-
-        EnableFullSpeedChargeIfMinimumSocNotReachable(relevantCar, reachedMinimumSocAtFullSpeedChargeDateTime);
-        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(relevantCar, reachedMinimumSocAtFullSpeedChargeDateTime);
+        
+        EnableFullSpeedChargeIfMinimumSocNotReachable(relevantCar);
+        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(relevantCar);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (relevantCar.CarConfiguration.ChargeMode == ChargeMode.MaxPower || relevantCar.CarState.AutoFullSpeedCharge)
@@ -256,42 +253,26 @@ public class ChargingService : IChargingService
         return ampChange;
     }
 
-    internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car relevantCar,
-        DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
+    internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car car)
     {
-        if (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC 
-            || reachedMinimumSocAtFullSpeedChargeDateTime < relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30) 
-            && relevantCar.CarConfiguration.ChargeMode != ChargeMode.PvAndMinSoc)
+        if (car.CarState.ReachingMinSocAtFullSpeedCharge == null
+            || car.CarState.SoC >= car.CarConfiguration.MinimumSoC 
+            || car.CarState.ReachingMinSocAtFullSpeedCharge < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30) 
+            && car.CarConfiguration.ChargeMode != ChargeMode.PvAndMinSoc)
         {
-            relevantCar.CarState.AutoFullSpeedCharge = false;
+            car.CarState.AutoFullSpeedCharge = false;
         }
     }
 
-    internal void EnableFullSpeedChargeIfMinimumSocNotReachable(Car relevantCar,
-        DateTime reachedMinimumSocAtFullSpeedChargeDateTime)
+    internal void EnableFullSpeedChargeIfMinimumSocNotReachable(Car car)
     {
-        if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC
-            && relevantCar.CarConfiguration.LatestTimeToReachSoC > _dateTimeProvider.Now()
-            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC
-            && relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
+        if (car.CarState.ReachingMinSocAtFullSpeedCharge > car.CarConfiguration.LatestTimeToReachSoC
+            && car.CarConfiguration.LatestTimeToReachSoC > _dateTimeProvider.Now()
+            || car.CarState.SoC < car.CarConfiguration.MinimumSoC
+            && car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
         {
-            relevantCar.CarState.AutoFullSpeedCharge = true;
+            car.CarState.AutoFullSpeedCharge = true;
         }
-    }
-
-    private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car, int numberOfPhases)
-    {
-        var socToCharge = (double) car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
-        if (socToCharge < 1)
-        {
-            return DateTime.Now + TimeSpan.Zero;
-        }
-        var energyToCharge = car.CarConfiguration.UsableEnergy * 1000 * (decimal) (socToCharge / 100.0);
-        var maxChargingPower =
-            car.CarConfiguration.MaximumAmpere * numberOfPhases
-                //Use 230 instead of actual voltage because of 0 Volt if charging is stopped
-                * 230;
-        return DateTime.Now + TimeSpan.FromHours((double) (energyToCharge/maxChargingPower));
     }
 
     private void UpdateEarliestTimesAfterSwitch(int carId)
