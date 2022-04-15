@@ -142,6 +142,31 @@ public class ConfigJsonService : IConfigJsonService
         }
     }
 
+    public async Task AddCarIdsToSettings()
+    {
+        _logger.LogTrace("{method}", nameof(AddCarIdsToSettings));
+        _settings.Cars = await GetCarsFromConfiguration();
+        _logger.LogDebug("All cars added to settings");
+        foreach (var car in _settings.Cars)
+        {
+            if (car.CarConfiguration.UsableEnergy < 1)
+            {
+                car.CarConfiguration.UsableEnergy = 75;
+            }
+
+            if (car.CarConfiguration.MaximumAmpere < 1)
+            {
+                car.CarConfiguration.MaximumAmpere = 16;
+            }
+
+            if (car.CarConfiguration.MinimumAmpere < 16)
+            {
+                car.CarConfiguration.MinimumAmpere = 1;
+            }
+        }
+        _logger.LogDebug("All unset car configurations set.");
+    }
+
     internal void RemoveOldCars(List<Car> cars, List<int> carIds)
     {
         foreach (var carId in carIds)
