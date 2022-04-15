@@ -29,6 +29,10 @@ else
     @foreach (var car in _settings.Cars)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
+            @if (car.CarState.Healthy != true)
+            {
+                <i class="fa-solid fa-circle-exclamation"></i>
+            }
             <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
             <div class="col-sm-4 col-md-3">@car.CarConfiguration.ChargeMode.ToFriendlyString()</div> <button class="btn btn-primary col-sm-5 col-md-3" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -36,7 +40,7 @@ else
                 <p>
                     <label class="col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC:</label>
                     <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-               @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
+                           @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">%
                 </p>
             }
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -44,12 +48,12 @@ else
                 <p>
                     <label class="col-sm-4 col-md-3 col-lg-2" for="date">Datum:</label>
                     <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
                 </p>
                 <p>
                     <label class="col-sm-4 col-md-3 col-lg-2" for="time">Uhrzeit:</label>
                     <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC =  car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
             }
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -67,10 +71,10 @@ else
             <table>
                 <tr>
                     <th>
-                        Bezeichnung
+                        Topic
                     </th>
                     <th>
-                        Wert
+                        Value
                     </th>
                 </tr>
                 <tr>
@@ -91,7 +95,7 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Zuletzt gesetzte Ampere
+                        Last Set Amp
                     </td>
                     <td>
                         @car.CarState.LastSetAmp
@@ -99,7 +103,7 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Spätestes Ladeende
+                        LatestTimeToReachSoC
                     </td>
                     <td>
                         @(car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm dd.MM"))
@@ -107,7 +111,7 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Voll geladen in
+                        Full charge in
                     </td>
                     <td>
                         @((car.CarState.TimeUntilFullCharge?.Days > 0 ? $"{car.CarState.TimeUntilFullCharge?.Days}. " : "") + $"{car.CarState.TimeUntilFullCharge?.Hours:D2}:{car.CarState.TimeUntilFullCharge?.Minutes:D2}")
@@ -115,7 +119,7 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Voll geladen um
+                        Full charge at
                     </td>
                     <td>
                         @((DateTime.Now + car.CarState.TimeUntilFullCharge)?.ToString("HH:mm dd.MM"))
@@ -123,7 +127,7 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Ladestand
+                        SoC
                     </td>
                     <td>
                         @car.CarState.SoC
@@ -131,7 +135,7 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Ladelimit
+                        SoC Limit
                     </td>
                     <td>
                         @car.CarState.SocLimit
@@ -139,7 +143,7 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Lademodus
+                        Charge mode
                     </td>
                     <td>
                         @car.CarConfiguration.ChargeMode.ToString()
@@ -155,7 +159,7 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Ladebeginn um
+                        Charge start at
                     </td>
                     <td>
                         @car.CarState.ShouldStartChargingSince
@@ -163,10 +167,18 @@ else
                 </tr>
                 <tr>
                     <td>
-                        Ladeende um
+                        Charge end at
                     </td>
                     <td>
                         @car.CarState.ShouldStopChargingSince
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Car Healthy
+                    </td>
+                    <td>
+                        @car.CarState.Healthy
                     </td>
                 </tr>
             </table>

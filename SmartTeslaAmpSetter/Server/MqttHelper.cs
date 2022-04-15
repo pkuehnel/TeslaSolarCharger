@@ -23,6 +23,7 @@ public class MqttHelper
     private const string TopicIsClimateOn = "is_climate_on";
     private const string TopicTimeToFullCharge = "time_to_full_charge";
     private const string TopicState = "state";
+    private const string TopicHealthy = "healthy";
     //ToDo: Add after next TeslaMateRelease
     //private const string TopicChargeCurrentRequest = "charge_current_request";
     //public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
@@ -102,6 +103,10 @@ public class MqttHelper
             .WithTopicFilter(f =>
             {
                 f.WithTopic($"{topicPrefix}{TopicState}");
+            })
+            .WithTopicFilter(f =>
+            {
+                f.WithTopic($"{topicPrefix}{TopicHealthy}");
             })
             //ToDo: Add after next TeslaMateRelease
             //.WithTopicFilter(f =>
@@ -198,6 +203,11 @@ public class MqttHelper
                 break;
             case TopicState:
                 car.CarState.State = value.Value;
+                _logger.LogDebug("New car state detected {car state}", car.CarState.State);
+                break;
+            case TopicHealthy:
+                car.CarState.Healthy = Convert.ToBoolean(value.Value);
+                _logger.LogDebug("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.CarState.Healthy);
                 break;
         }
     }
