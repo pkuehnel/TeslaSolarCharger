@@ -403,8 +403,9 @@ public class ChargingService : IChargingService
         var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Error while sending post to TeslaMate. Response: {response}", await response.Content.ReadAsStringAsync());
-            await _telegramService.SendMessage($"Error while sending post to TeslaMate. Response: {await response.Content.ReadAsStringAsync()}");
+            var responseContentString = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Error while sending post to TeslaMate. Response: {response}", responseContentString);
+            await _telegramService.SendMessage($"Error while sending post to TeslaMate.\r\n RequestBody: {jsonString} \r\n Response: {responseContentString}");
         }
         response.EnsureSuccessStatusCode();
         return response;
