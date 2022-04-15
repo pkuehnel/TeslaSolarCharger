@@ -29,4 +29,5 @@ public class CarState
     }
 
     public string? State { get; set; }
+    public bool? Healthy { get; set; }
 }
