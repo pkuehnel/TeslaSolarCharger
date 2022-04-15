@@ -123,16 +123,20 @@ public class ConfigJsonService : IConfigJsonService
         {
             _logger.LogDebug("Update configuration.json");
             var fileInfo = new FileInfo(configFileLocation);
-            if (!Directory.Exists(fileInfo.Directory?.FullName))
+            var configDirectoryFullName = fileInfo.Directory?.FullName;
+            if (!Directory.Exists(configDirectoryFullName))
             {
-                Directory.CreateDirectory(fileInfo.Directory?.FullName ?? throw new InvalidOperationException());
+                _logger.LogDebug("Config directory {directoryname} does not exist.", configDirectoryFullName);
+                Directory.CreateDirectory(configDirectoryFullName ?? throw new InvalidOperationException());
             }
 
             var settings = new JsonSerializerSettings()
             {
                 ContractResolver = new ConfigPropertyResolver()
             };
+            _logger.LogDebug("Using {@cars} to create new json file", _settings.Cars);
             var json = JsonConvert.SerializeObject(_settings.Cars, settings);
+            _logger.LogDebug("Created json to save as config file: {json}", json);
             await File.WriteAllTextAsync(configFileLocation, json);
 
             foreach (var settingsCar in _settings.Cars)
