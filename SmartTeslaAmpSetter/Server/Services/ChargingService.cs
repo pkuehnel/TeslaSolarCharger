@@ -68,12 +68,18 @@ public class ChargingService : IChargingService
             relevantCar.CarState.ChargingPowerAtHome = relevantCar.CarState.ChargingPower;
         }
 
-        foreach (var irrelevantCar in _settings.Cars
+        //Do not combine with irrelevant cars because then charging would never start
+        foreach (var pluggedOutCar in _settings.Cars
                      .Where(c => c.CarState.PluggedIn != true).ToList())
         {
-            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", irrelevantCar.Id);
-            UpdateEarliestTimesAfterSwitch(irrelevantCar.Id);
-            irrelevantCar.CarState.ChargingPowerAtHome = 0;
+            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", pluggedOutCar.Id);
+            UpdateEarliestTimesAfterSwitch(pluggedOutCar.Id);
+            pluggedOutCar.CarState.ChargingPowerAtHome = 0;
+        }
+
+        foreach (var car in _settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)))
+        {
+            car.CarState.ChargingPowerAtHome = 0;
         }
 
         if (onlyUpdateValues)
