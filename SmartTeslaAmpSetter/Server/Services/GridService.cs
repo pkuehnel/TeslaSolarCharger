@@ -1,8 +1,9 @@
 ﻿using Newtonsoft.Json.Linq;
+using SmartTeslaAmpSetter.Server.Contracts;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
-public class GridService
+public class GridService : IGridService
 {
     private readonly ILogger<GridService> _logger;
     private readonly IConfiguration _configuration;

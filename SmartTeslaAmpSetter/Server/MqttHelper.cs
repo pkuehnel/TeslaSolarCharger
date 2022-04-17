@@ -10,7 +10,7 @@ public class MqttHelper
     private readonly IConfiguration _configuration;
     private readonly MqttClient _mqttClient;
     private readonly MqttFactory _mqttFactory;
-    private readonly Settings _settings;
+    private readonly ISettings _settings;
 
     private const string TopicDisplayName = "display_name";
     private const string TopicSoc = "battery_level";
@@ -23,11 +23,12 @@ public class MqttHelper
     private const string TopicIsClimateOn = "is_climate_on";
     private const string TopicTimeToFullCharge = "time_to_full_charge";
     private const string TopicState = "state";
+    private const string TopicHealthy = "healthy";
     //ToDo: Add after next TeslaMateRelease
     //private const string TopicChargeCurrentRequest = "charge_current_request";
     //public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
 
-    public MqttHelper(ILogger<MqttHelper> logger, IConfiguration configuration, MqttClient mqttClient, MqttFactory mqttFactory, Settings settings)
+    public MqttHelper(ILogger<MqttHelper> logger, IConfiguration configuration, MqttClient mqttClient, MqttFactory mqttFactory, ISettings settings)
     {
         _logger = logger;
         _configuration = configuration;
@@ -103,14 +104,18 @@ public class MqttHelper
             {
                 f.WithTopic($"{topicPrefix}{TopicState}");
             })
+            .WithTopicFilter(f =>
+            {
+                f.WithTopic($"{topicPrefix}{TopicHealthy}");
+            })
             //ToDo: Add after next TeslaMateRelease
             //.WithTopicFilter(f =>
             //{
-            //    f.WithTopic("teslamate/cars/?/{TopicChargeCurrentRequest}");
+            //    f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequest}");
             //})
             //.WithTopicFilter(f =>
             //{
-            //    f.WithTopic("teslamate/cars/?/{TopicChargeCurrentRequestMax");
+            //    f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequestMax");
             //})
             .Build();
 
@@ -198,6 +203,11 @@ public class MqttHelper
                 break;
             case TopicState:
                 car.CarState.State = value.Value;
+                _logger.LogDebug("New car state detected {car state}", car.CarState.State);
+                break;
+            case TopicHealthy:
+                car.CarState.Healthy = Convert.ToBoolean(value.Value);
+                _logger.LogDebug("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.CarState.Healthy);
                 break;
         }
     }

@@ -1,31 +1,40 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using Newtonsoft.Json;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
+using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Car = SmartTeslaAmpSetter.Shared.Dtos.Settings.Car;
 
+[assembly: InternalsVisibleTo("SmartTeslaAmpSetter.Tests")]
 namespace SmartTeslaAmpSetter.Server.Services;
 
-public class ChargingService
+public class ChargingService : IChargingService
 {
     private readonly ILogger<ChargingService> _logger;
-    private readonly GridService _gridService;
+    private readonly IGridService _gridService;
     private readonly IConfiguration _configuration;
-    private readonly Settings _settings;
+    private readonly ISettings _settings;
+    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ITelegramService _telegramService;
     private readonly string _teslaMateBaseUrl;
 
-    public ChargingService(ILogger<ChargingService> logger, GridService gridService, IConfiguration configuration, Settings settings)
+    public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration,
+        ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService)
     {
         _logger = logger;
         _gridService = gridService;
         _configuration = configuration;
         _settings = settings;
+        _dateTimeProvider = dateTimeProvider;
+        _telegramService = telegramService;
         _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
     }
 
     public async Task SetNewChargingValues(bool onlyUpdateValues = false)
     {
-        _logger.LogTrace($"{nameof(SetNewChargingValues)}()");
+        _logger.LogTrace("{method}({param})", nameof(SetNewChargingValues), onlyUpdateValues);
 
         var overage = await _gridService.GetCurrentOverage().ConfigureAwait(false);
 
@@ -47,14 +56,7 @@ public class ChargingService
         var geofence = _configuration.GetValue<string>("GeoFence");
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
-        foreach (var car in _settings.Cars)
-        {
-            if (car.CarState.SocLimit == null)
-            {
-                _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
-                await WakeUpCar(car.Id).ConfigureAwait(false);
-            }
-        }
+        await WakeupCarsWithUnknownSocLimit(_settings.Cars);
 
         var relevantCarIds = GetRelevantCarIds(geofence);
         _logger.LogDebug("Number of relevant Cars: {count}", relevantCarIds.Count);
@@ -107,9 +109,27 @@ public class ChargingService
         }
     }
 
+    private async Task WakeupCarsWithUnknownSocLimit(List<Car> cars)
+    {
+        foreach (var car in cars)
+        {
+            var unknownSocLimit = IsSocLimitUnknown(car);
+            if (unknownSocLimit)
+            {
+                _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
+                await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}. Waking up car.");
+                await WakeUpCar(car.Id).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private bool IsSocLimitUnknown(Car car)
+    {
+        return car.CarState.SocLimit == null || car.CarState.SocLimit < 50;
+    }
 
 
-    private List<int> GetRelevantCarIds(string geofence)
+    internal List<int> GetRelevantCarIds(string geofence)
     {
         var relevantIds = _settings.Cars
             .Where(c =>
@@ -134,23 +154,9 @@ public class ChargingService
         var maxAmpPerCar = relevantCar.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
-
-        var activePhases = relevantCar.CarState.ChargerPhases > 1 ? 3 : 1;
-        var reachedMinimumSocAtFullSpeedChargeDateTime = ReachedMinimumSocAtFullSpeedChargeDateTime(relevantCar, activePhases);
-
-        //FullSpeed Aktivieren, wenn Minimum Soc nicht mehr erreicht werden kann
-        if (reachedMinimumSocAtFullSpeedChargeDateTime > relevantCar.CarConfiguration.LatestTimeToReachSoC 
-            && relevantCar.CarConfiguration.LatestTimeToReachSoC > DateTime.Now 
-            || relevantCar.CarState.SoC < relevantCar.CarConfiguration.MinimumSoC && relevantCar.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
-        {
-            relevantCar.CarState.AutoFullSpeedCharge = true;
-        }
-        //FullSpeed deaktivieren, wenn Minimum Soc erreicht wurde, oder Ziel SoC mehr als eine halbe Stunde zu früh erreicht
-        if (relevantCar.CarState.AutoFullSpeedCharge && 
-            (relevantCar.CarState.SoC >= relevantCar.CarConfiguration.MinimumSoC || reachedMinimumSocAtFullSpeedChargeDateTime < relevantCar.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)))
-        {
-            relevantCar.CarState.AutoFullSpeedCharge = false;
-        }
+        
+        EnableFullSpeedChargeIfMinimumSocNotReachable(relevantCar);
+        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(relevantCar);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (relevantCar.CarConfiguration.ChargeMode == ChargeMode.MaxPower || relevantCar.CarState.AutoFullSpeedCharge)
@@ -250,19 +256,26 @@ public class ChargingService
         return ampChange;
     }
 
-    private static DateTime ReachedMinimumSocAtFullSpeedChargeDateTime(Car car, int numberOfPhases)
+    internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car car)
     {
-        var socToCharge = (double) car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
-        if (socToCharge < 1)
+        if (car.CarState.ReachingMinSocAtFullSpeedCharge == null
+            || car.CarState.SoC >= car.CarConfiguration.MinimumSoC 
+            || car.CarState.ReachingMinSocAtFullSpeedCharge < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30) 
+            && car.CarConfiguration.ChargeMode != ChargeMode.PvAndMinSoc)
         {
-            return DateTime.Now + TimeSpan.Zero;
+            car.CarState.AutoFullSpeedCharge = false;
         }
-        var energyToCharge = car.CarConfiguration.UsableEnergy * 1000 * (decimal) (socToCharge / 100.0);
-        var maxChargingPower =
-            car.CarConfiguration.MaximumAmpere * numberOfPhases
-                //Use 230 instead of actual voltage because of 0 Volt if charging is stopped
-                * 230;
-        return DateTime.Now + TimeSpan.FromHours((double) (energyToCharge/maxChargingPower));
+    }
+
+    internal void EnableFullSpeedChargeIfMinimumSocNotReachable(Car car)
+    {
+        if (car.CarState.ReachingMinSocAtFullSpeedCharge > car.CarConfiguration.LatestTimeToReachSoC
+            && car.CarConfiguration.LatestTimeToReachSoC > _dateTimeProvider.Now()
+            || car.CarState.SoC < car.CarConfiguration.MinimumSoC
+            && car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
+        {
+            car.CarState.AutoFullSpeedCharge = true;
+        }
     }
 
     private void UpdateEarliestTimesAfterSwitch(int carId)
@@ -390,7 +403,9 @@ public class ChargingService
         var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Error while sending post to TeslaMate. Response: {response}", response.Content.ReadAsStringAsync());
+            var responseContentString = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Error while sending post to TeslaMate. Response: {response}", responseContentString);
+            await _telegramService.SendMessage($"Error while sending post to TeslaMate.\r\n RequestBody: {jsonString} \r\n Response: {responseContentString}");
         }
         response.EnsureSuccessStatusCode();
         return response;

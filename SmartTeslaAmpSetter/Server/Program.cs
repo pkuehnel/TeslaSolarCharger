@@ -4,9 +4,11 @@ using Quartz.Impl;
 using Quartz.Spi;
 using Serilog;
 using SmartTeslaAmpSetter.Server;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
+using SmartTeslaAmpSetter.Shared.TimeProviding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,14 +29,18 @@ builder.Services
     .AddTransient<JobManager>()
     .AddTransient<Job>()
     .AddTransient<ConfigJsonUpdateJob>()
+    .AddTransient<ChargeTimeUpdateJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
-    .AddTransient<ChargingService>()
-    .AddTransient<GridService>()
-    .AddTransient<ConfigService>()
-    .AddTransient<ConfigJsonService>()
-    .AddSingleton<Settings>()
+    .AddTransient<IChargingService, ChargingService>()
+    .AddTransient<IGridService, GridService>()
+    .AddTransient<IConfigService, ConfigService>()
+    .AddTransient<IConfigJsonService, ConfigJsonService>()
+    .AddTransient<IDateTimeProvider, DateTimeProvider>()
+    .AddTransient<IChargeTimeUpdateService, ChargeTimeUpdateService>()
+    .AddTransient<ITelegramService, TelegramService>()
+    .AddSingleton<ISettings, Settings>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
     .AddTransient<MqttHelper>()
@@ -57,12 +63,15 @@ if (environment == "Development")
 
 var app = builder.Build();
 
+var telegramService = app.Services.GetRequiredService<ITelegramService>();
+await telegramService.SendMessage("Application starting up");
+
 var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSeconds");
 var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
 
-var settings = app.Services.GetRequiredService<Settings>();
+var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
 
-await AddCarIdsToSettings(settings).ConfigureAwait(false);
+await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 
 var mqttHelper = app.Services.GetRequiredService<MqttHelper>();
 
@@ -96,26 +105,5 @@ app.MapFallbackToFile("index.html");
 app.Run();
 
 
-async Task AddCarIdsToSettings(Settings settings1)
-{
-    var configJsonService = app.Services.GetRequiredService<ConfigJsonService>();
-    settings1.Cars = await configJsonService.GetCarsFromConfiguration();
-    foreach (var car in settings1.Cars)
-    {
-        if (car.CarConfiguration.UsableEnergy < 1)
-        {
-            car.CarConfiguration.UsableEnergy = 75;
-        }
 
-        if (car.CarConfiguration.MaximumAmpere < 1)
-        {
-            car.CarConfiguration.MaximumAmpere = 16;
-        }
-
-        if (car.CarConfiguration.MinimumAmpere < 16)
-        {
-            car.CarConfiguration.MinimumAmpere = 1;
-        }
-    }
-}
 

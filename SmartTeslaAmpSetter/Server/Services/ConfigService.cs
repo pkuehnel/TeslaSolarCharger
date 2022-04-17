@@ -1,24 +1,25 @@
-﻿using SmartTeslaAmpSetter.Shared;
+﻿using SmartTeslaAmpSetter.Server.Contracts;
+using SmartTeslaAmpSetter.Shared;
 using SmartTeslaAmpSetter.Shared.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
-public class ConfigService
+public class ConfigService : IConfigService
 {
     private readonly ILogger<ConfigService> _logger;
-    private readonly Settings _settings;
-    private readonly ChargingService _chargingService;
+    private readonly ISettings _settings;
+    private readonly IChargingService _chargingService;
 
-    public ConfigService(ILogger<ConfigService> logger, Settings settings, ChargingService chargingService)
+    public ConfigService(ILogger<ConfigService> logger, ISettings settings, IChargingService chargingService)
     {
         _logger = logger;
         _settings = settings;
         _chargingService = chargingService;
     }
 
-    public async Task<Settings> GetSettings()
+    public async Task<ISettings> GetSettings()
     {
         _logger.LogTrace("{method}()", nameof(GetSettings));
         await _chargingService.SetNewChargingValues(true);

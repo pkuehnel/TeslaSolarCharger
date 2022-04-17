@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <Folder Include="Enums\" />
+    <Folder Include="TimeProviding\" />
   </ItemGroup>
 
   <ItemGroup>
