@@ -18,10 +18,11 @@ public class ChargingService : IChargingService
     private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ITelegramService _telegramService;
-    private readonly string _teslaMateBaseUrl;
+    private readonly ITeslaService _teslaService;
 
     public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration,
-        ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService)
+        ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
+        ITeslaService teslaService)
     {
         _logger = logger;
         _gridService = gridService;
@@ -29,7 +30,7 @@ public class ChargingService : IChargingService
         _settings = settings;
         _dateTimeProvider = dateTimeProvider;
         _telegramService = telegramService;
-        _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
+        _teslaService = teslaService;
     }
 
     public async Task SetNewChargingValues(bool onlyUpdateValues = false)
@@ -132,7 +133,7 @@ public class ChargingService : IChargingService
             {
                 _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
                 await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}. Waking up car.");
-                await WakeUpCar(car.Id).ConfigureAwait(false);
+                await _teslaService.WakeUpCar(car.Id).ConfigureAwait(false);
             }
         }
     }
@@ -188,13 +189,13 @@ public class ChargingService : IChargingService
                     {
                         return ampChange;
                     }
-                    await StartCharging(relevantCar.Id, ampToSet, relevantCar.CarState.State).ConfigureAwait(false);
+                    await _teslaService.StartCharging(relevantCar.Id, ampToSet, relevantCar.CarState.State).ConfigureAwait(false);
                     ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent?? 0);
                     UpdateEarliestTimesAfterSwitch(relevantCar.Id);
                 }
                 else
                 {
-                    await SetAmp(relevantCar.Id, ampToSet).ConfigureAwait(false);
+                    await _teslaService.SetAmp(relevantCar.Id, ampToSet).ConfigureAwait(false);
                     ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent?? 0);
                     UpdateEarliestTimesAfterSwitch(relevantCar.Id);
                 }
@@ -215,7 +216,7 @@ public class ChargingService : IChargingService
                     earliestSwitchOff);
                 if (relevantCar.CarState.ChargerActualCurrent != minAmpPerCar)
                 {
-                    await SetAmp(relevantCar.Id, minAmpPerCar).ConfigureAwait(false);
+                    await _teslaService.SetAmp(relevantCar.Id, minAmpPerCar).ConfigureAwait(false);
                 }
                 ampChange += minAmpPerCar - (relevantCar.CarState.ChargerActualCurrent?? 0);
             }
@@ -223,7 +224,7 @@ public class ChargingService : IChargingService
             else
             {
                 _logger.LogDebug("Stop Charging");
-                await StopCharging(relevantCar.Id).ConfigureAwait(false);
+                await _teslaService.StopCharging(relevantCar.Id).ConfigureAwait(false);
                 ampChange -= relevantCar.CarState.ChargerActualCurrent ?? 0;
                 UpdateEarliestTimesAfterSwitch(relevantCar.Id);
             }
@@ -244,7 +245,7 @@ public class ChargingService : IChargingService
             {
                 _logger.LogDebug("Charging should start");
                 var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-                await StartCharging(relevantCar.Id, startAmp, relevantCar.CarState.State).ConfigureAwait(false);
+                await _teslaService.StartCharging(relevantCar.Id, startAmp, relevantCar.CarState.State).ConfigureAwait(false);
                 ampChange += startAmp;
                 UpdateEarliestTimesAfterSwitch(relevantCar.Id);
             }
@@ -257,7 +258,7 @@ public class ChargingService : IChargingService
             var ampToSet = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
             if (ampToSet != relevantCar.CarState.ChargerActualCurrent)
             {
-                await SetAmp(relevantCar.Id, ampToSet).ConfigureAwait(false);
+                await _teslaService.SetAmp(relevantCar.Id, ampToSet).ConfigureAwait(false);
                 ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent ?? 0);
             }
             else
@@ -326,102 +327,5 @@ public class ChargingService : IChargingService
 
         var earliestSwitchOn = car.CarState.ShouldStartChargingSince;
         return earliestSwitchOn;
-    }
-
-    private async Task StartCharging(int carId, int startAmp, string? carState)
-    {
-        _logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(StartCharging), carId, startAmp, carState);
-
-        if (carState != null && (carState.Equals("offline", StringComparison.CurrentCultureIgnoreCase) ||
-                                 carState.Equals("asleep", StringComparison.CurrentCultureIgnoreCase)))
-        {
-            _logger.LogInformation("Wakeup car before charging");
-            await WakeUpCar(carId);
-        }
-
-        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/charge_start";
-
-        var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
-
-        await ResumeLogging(carId);
-
-        await SetAmp(carId, startAmp).ConfigureAwait(false);
-
-        _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
-    }
-
-    private async Task WakeUpCar(int carId)
-    {
-        _logger.LogTrace("{method}({param})", nameof(WakeUpCar), carId);
-
-        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/wake_up";
-
-        var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
-        _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
-
-        await Task.Delay(TimeSpan.FromSeconds(20));
-    }
-
-    private async Task ResumeLogging(int carId)
-    {
-        _logger.LogTrace("{method}({param1})", nameof(ResumeLogging), carId);
-        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/logging/resume";
-        using var httpClient = new HttpClient();
-        var response = await httpClient.PutAsync(url, null);
-        response.EnsureSuccessStatusCode();
-    }
-
-    private async Task StopCharging(int carId)
-    {
-        _logger.LogTrace("{method}({param1})", nameof(StopCharging), carId);
-        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/charge_stop";
-
-        var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
-
-        var car = _settings.Cars.First(c => c.Id == carId);
-        car.CarState.LastSetAmp = 0;
-
-        _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
-    }
-
-    private async Task SetAmp(int carId, int amps)
-    {
-        _logger.LogTrace("{method}({param1}, {param2})", nameof(SetAmp), carId, amps);
-        var car = _settings.Cars.First(c => c.Id == carId);
-        var parameters = new Dictionary<string, string>()
-            {
-                {"charging_amps", amps.ToString()},
-            };
-
-        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/set_charging_amps";
-
-        var result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
-
-        if (amps < 5)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
-            result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
-        }
-
-        car.CarState.LastSetAmp = amps;
-
-        _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
-    }
-
-    private async Task<HttpResponseMessage> SendPostToTeslaMate(string url, Dictionary<string, string>? parameters = null)
-    {
-        _logger.LogTrace("{method}({param1}, {param2})", nameof(SendPostToTeslaMate), url, parameters);
-        var jsonString = JsonConvert.SerializeObject(parameters);
-        var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-        using var httpClient = new HttpClient();
-        var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
-        {
-            var responseContentString = await response.Content.ReadAsStringAsync();
-            _logger.LogError("Error while sending post to TeslaMate. Response: {response}", responseContentString);
-            await _telegramService.SendMessage($"Error while sending post to TeslaMate.\r\n RequestBody: {jsonString} \r\n Response: {responseContentString}");
-        }
-        response.EnsureSuccessStatusCode();
-        return response;
     }
 }
