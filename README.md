@@ -20,6 +20,7 @@ Needs:
   - [Power Buffer](#power-buffer)
   - [UI](#UI)
   - [Charge Modes](#charge-modes)
+  - [Telegram Notifications](#telegram-notifications)
   - [Plugins](#plugins)
     - [SMA-EnergyMeter Plugin](#sma-energymeter-plugin)
 
@@ -47,7 +48,7 @@ services:
       - CurrentPowerToGridUrl=http://192.168.1.50/api/CurrentPower
       - TeslaMateApiBaseUrl=http://teslamateapi:8080
       - UpdateIntervalSeconds=30
-      - CarPriorities=1|2
+      - CarPriorities=1
       - GeoFence=Home
       - MinutesUntilSwitchOn=5
       - MinutesUntilSwitchOff=5
@@ -125,6 +126,9 @@ Currently there are three different charge modes available:
 1. **PV only**: Only PV energy is used to charge unless there is a min SOC Level set. If so the software tries to start charging with maximum power to reach the desired SOC Level in time
 1. **Maximum Power**: Car charges with maximum available power
 1. **Min SoC + PV**: If plugged in the car starts charging with maximum power until set Min SoC is reached. After that only PV Power is used to charge the car.
+
+### Telegram Notifications
+If you set the environment variables `TelegramBotKey`and `TelegramChannelId`, you get messages, if a car can not be woken up, or any command could not be sent to a Tesla. Note: If your car takes longer than 30 seconds to wake up probably you will get an error notification, but as soon as the car is online charging starts.
 
 ### Plugins
 If your SmartMeter does not have a REST Endpoint as needed you can use plugins:
