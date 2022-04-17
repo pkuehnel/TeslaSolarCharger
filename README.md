@@ -129,6 +129,7 @@ Currently there are three different charge modes available:
 
 ### Telegram Notifications
 If you set the environment variables `TelegramBotKey`and `TelegramChannelId`, you get messages, if a car can not be woken up, or any command could not be sent to a Tesla. Note: If your car takes longer than 30 seconds to wake up probably you will get an error notification, but as soon as the car is online charging starts.
+You can check if your Key and Channel Id is working by restarting the container. If your configuration is working, on startup the application sends a demo message to the specified Telegram channel/chat.
 
 ### Plugins
 If your SmartMeter does not have a REST Endpoint as needed you can use plugins:
