@@ -12,17 +12,29 @@ public class MqttHelper
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _settings;
 
+    // ReSharper disable once InconsistentNaming
     private const string TopicDisplayName = "display_name";
+    // ReSharper disable once InconsistentNaming
     private const string TopicSoc = "battery_level";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargeLimit = "charge_limit_soc";
+    // ReSharper disable once InconsistentNaming
     private const string TopicGeofence = "geofence";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargerPhases = "charger_phases";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargerVoltage = "charger_voltage";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargerActualCurrent = "charger_actual_current";
+    // ReSharper disable once InconsistentNaming
     private const string TopicPluggedIn = "plugged_in";
+    // ReSharper disable once InconsistentNaming
     private const string TopicIsClimateOn = "is_climate_on";
+    // ReSharper disable once InconsistentNaming
     private const string TopicTimeToFullCharge = "time_to_full_charge";
+    // ReSharper disable once InconsistentNaming
     private const string TopicState = "state";
+    // ReSharper disable once InconsistentNaming
     private const string TopicHealthy = "healthy";
     //ToDo: Add after next TeslaMateRelease
     //private const string TopicChargeCurrentRequest = "charge_current_request";

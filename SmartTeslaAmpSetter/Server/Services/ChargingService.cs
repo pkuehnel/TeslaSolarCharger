@@ -59,7 +59,10 @@ public class ChargingService : IChargingService
         await WakeupCarsWithUnknownSocLimit(_settings.Cars);
 
         var relevantCarIds = GetRelevantCarIds(geofence);
-        _logger.LogDebug("Number of relevant Cars: {count}", relevantCarIds.Count);
+        _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
+        
+        var irrelevantCars = GetIrrelevantCars(relevantCarIds);
+        _logger.LogDebug("Irrelevant car ids: {@ids}", irrelevantCars.Select(c => c.Id));
 
         var relevantCars = _settings.Cars.Where(c => relevantCarIds.Any(r => c.Id == r)).ToList();
 
@@ -77,7 +80,7 @@ public class ChargingService : IChargingService
             pluggedOutCar.CarState.ChargingPowerAtHome = 0;
         }
 
-        foreach (var car in _settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)))
+        foreach (var car in irrelevantCars)
         {
             car.CarState.ChargingPowerAtHome = 0;
         }
@@ -113,6 +116,11 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
             ampToRegulate -= await ChangeCarAmp(relevantCar, ampToRegulate).ConfigureAwait(false);
         }
+    }
+
+    internal List<Car> GetIrrelevantCars(List<int> relevantCarIds)
+    {
+        return _settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)).ToList();
     }
 
     private async Task WakeupCarsWithUnknownSocLimit(List<Car> cars)
