@@ -59,17 +59,16 @@ public class ConfigJsonService : TestBase
 
         configJsonService.RemoveOldCars(cars, new List<int>() { 1, 3 });
 
-        Assert.DoesNotContain(cars, car => car.Id == 1);
-        Assert.DoesNotContain(cars, car => car.Id == 3);
-        Assert.Contains(cars, car => car.Id == 2);
-        Assert.Contains(cars, car => car.Id == 4);
+        Assert.Contains(cars, car => car.Id == 1);
+        Assert.Contains(cars, car => car.Id == 3);
+        Assert.DoesNotContain(cars, car => car.Id == 2);
+        Assert.DoesNotContain(cars, car => car.Id == 4);
     }
 
-    [Fact]
-    public void Deserializes_car_configuration()
+    [Theory]
+    [InlineData("[{\"Id\":1,\"CarConfiguration\":{\"ChargeMode\":1,\"MinimumSoC\":0,\"LatestTimeToReachSoC\":\"2022-04-11T00:00:00\",\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":75}},{\"Id\":2,\"CarConfiguration\":{\"ChargeMode\":2,\"MinimumSoC\":45,\"LatestTimeToReachSoC\":\"2022-04-11T00:00:00\",\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":75}}]")]
+    public void Deserializes_car_configuration(string configString)
     {
-        var configString = "[{\"Id\":1,\"CarConfiguration\":{\"ChargeMode\":0,\"MinimumSoC\":70,\"LatestTimeToReachSoC\":\"2022-04-02T02:27:00\",\"MaximumAmpere\":15,\"MinimumAmpere\":5,\"UsableEnergy\":74}},{\"Id\":2,\"CarConfiguration\":{\"ChargeMode\":0,\"MinimumSoC\":0,\"LatestTimeToReachSoC\":\"0001-01-01T00:00:00\",\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":75}}]";
-
         var configJsonService = Mock.Create<Server.Services.ConfigJsonService>();
         var cars = configJsonService.DeserializeCarsFromConfigurationString(configString);
 
@@ -78,10 +77,13 @@ public class ConfigJsonService : TestBase
         var firstCar = cars.First();
         var lastCar = cars.Last();
 
+        Assert.Equal(ChargeMode.PvOnly, firstCar.CarConfiguration.ChargeMode);
+        Assert.Equal(ChargeMode.PvAndMinSoc, lastCar.CarConfiguration.ChargeMode);
+
         Assert.Equal(1, firstCar.Id);
         Assert.Equal(2, lastCar.Id);
 
-        Assert.Equal(70, firstCar.CarConfiguration.MinimumSoC);
-        Assert.Equal(0, lastCar.CarConfiguration.MinimumSoC);
+        Assert.Equal(0, firstCar.CarConfiguration.MinimumSoC);
+        Assert.Equal(45, lastCar.CarConfiguration.MinimumSoC);
     }
 }

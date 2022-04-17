@@ -69,7 +69,9 @@ await telegramService.SendMessage("Application starting up");
 var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSeconds");
 var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
 
-await AddCarIdsToSettings().ConfigureAwait(false);
+var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
+
+await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 
 var mqttHelper = app.Services.GetRequiredService<MqttHelper>();
 
@@ -103,27 +105,5 @@ app.MapFallbackToFile("index.html");
 app.Run();
 
 
-async Task AddCarIdsToSettings()
-{
-    var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
-    var settings1 = app.Services.GetRequiredService<ISettings>();
-    settings1.Cars = await configJsonService.GetCarsFromConfiguration();
-    foreach (var car in settings1.Cars)
-    {
-        if (car.CarConfiguration.UsableEnergy < 1)
-        {
-            car.CarConfiguration.UsableEnergy = 75;
-        }
 
-        if (car.CarConfiguration.MaximumAmpere < 1)
-        {
-            car.CarConfiguration.MaximumAmpere = 16;
-        }
-
-        if (car.CarConfiguration.MinimumAmpere < 16)
-        {
-            car.CarConfiguration.MinimumAmpere = 1;
-        }
-    }
-}
 

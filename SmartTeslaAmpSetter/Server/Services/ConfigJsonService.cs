@@ -103,6 +103,7 @@ public class ConfigJsonService : IConfigJsonService
                         MaximumAmpere = 16,
                         MinimumAmpere = 2,
                         UsableEnergy = 75,
+                        LatestTimeToReachSoC = new DateTime(2022, 1, 1),
                     },
                     CarState =
                     {
@@ -119,20 +120,29 @@ public class ConfigJsonService : IConfigJsonService
     {
         _logger.LogTrace("{method}()", nameof(UpdateConfigJson));
         var configFileLocation = GetConfigurationFileFullPath();
-        if (_settings.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite))
+        var minDate = new DateTime(2022, 1, 1);
+        if (_settings.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite || c.CarConfiguration.LatestTimeToReachSoC < minDate))
         {
+            foreach (var car in _settings.Cars.Where(car => car.CarConfiguration.LatestTimeToReachSoC < minDate))
+            {
+                car.CarConfiguration.LatestTimeToReachSoC = minDate;
+            }
             _logger.LogDebug("Update configuration.json");
             var fileInfo = new FileInfo(configFileLocation);
-            if (!Directory.Exists(fileInfo.Directory?.FullName))
+            var configDirectoryFullName = fileInfo.Directory?.FullName;
+            if (!Directory.Exists(configDirectoryFullName))
             {
-                Directory.CreateDirectory(fileInfo.Directory?.FullName ?? throw new InvalidOperationException());
+                _logger.LogDebug("Config directory {directoryname} does not exist.", configDirectoryFullName);
+                Directory.CreateDirectory(configDirectoryFullName ?? throw new InvalidOperationException());
             }
 
             var settings = new JsonSerializerSettings()
             {
                 ContractResolver = new ConfigPropertyResolver()
             };
+            _logger.LogDebug("Using {@cars} to create new json file", _settings.Cars);
             var json = JsonConvert.SerializeObject(_settings.Cars, settings);
+            _logger.LogDebug("Created json to save as config file: {json}", json);
             await File.WriteAllTextAsync(configFileLocation, json);
 
             foreach (var settingsCar in _settings.Cars)
@@ -142,9 +152,38 @@ public class ConfigJsonService : IConfigJsonService
         }
     }
 
-    internal void RemoveOldCars(List<Car> cars, List<int> carIds)
+    public async Task AddCarIdsToSettings()
     {
-        foreach (var carId in carIds)
+        _logger.LogTrace("{method}", nameof(AddCarIdsToSettings));
+        _settings.Cars = await GetCarsFromConfiguration();
+        _logger.LogDebug("All cars added to settings");
+        foreach (var car in _settings.Cars)
+        {
+            if (car.CarConfiguration.UsableEnergy < 1)
+            {
+                car.CarConfiguration.UsableEnergy = 75;
+            }
+
+            if (car.CarConfiguration.MaximumAmpere < 1)
+            {
+                car.CarConfiguration.MaximumAmpere = 16;
+            }
+
+            if (car.CarConfiguration.MinimumAmpere < 16)
+            {
+                car.CarConfiguration.MinimumAmpere = 1;
+            }
+        }
+        _logger.LogDebug("All unset car configurations set.");
+    }
+
+    internal void RemoveOldCars(List<Car> cars, List<int> stillExistingCarIds)
+    {
+        var carsIdsToRemove = cars
+            .Where(c => !stillExistingCarIds.Any(i => c.Id == i))
+            .Select(c => c.Id)
+            .ToList();
+        foreach (var carId in carsIdsToRemove)
         {
             cars.RemoveAll(c => c.Id == carId);
         }

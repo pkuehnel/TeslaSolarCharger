@@ -6,4 +6,5 @@ public interface IConfigJsonService
 {
     Task<List<Car>> GetCarsFromConfiguration();
     Task UpdateConfigJson();
+    Task AddCarIdsToSettings();
 }
