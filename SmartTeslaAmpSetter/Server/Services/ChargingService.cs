@@ -59,7 +59,10 @@ public class ChargingService : IChargingService
         await WakeupCarsWithUnknownSocLimit(_settings.Cars);
 
         var relevantCarIds = GetRelevantCarIds(geofence);
-        _logger.LogDebug("Number of relevant Cars: {count}", relevantCarIds.Count);
+        _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
+        
+        var irrelevantCars = GetIrrelevantCars(relevantCarIds);
+        _logger.LogDebug("Irrelevant car ids: {@ids}", irrelevantCars.Select(c => c.Id));
 
         var relevantCars = _settings.Cars.Where(c => relevantCarIds.Any(r => c.Id == r)).ToList();
 
@@ -68,12 +71,18 @@ public class ChargingService : IChargingService
             relevantCar.CarState.ChargingPowerAtHome = relevantCar.CarState.ChargingPower;
         }
 
-        foreach (var irrelevantCar in _settings.Cars
+        //Do not combine with irrelevant cars because then charging would never start
+        foreach (var pluggedOutCar in _settings.Cars
                      .Where(c => c.CarState.PluggedIn != true).ToList())
         {
-            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", irrelevantCar.Id);
-            UpdateEarliestTimesAfterSwitch(irrelevantCar.Id);
-            irrelevantCar.CarState.ChargingPowerAtHome = 0;
+            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", pluggedOutCar.Id);
+            UpdateEarliestTimesAfterSwitch(pluggedOutCar.Id);
+            pluggedOutCar.CarState.ChargingPowerAtHome = 0;
+        }
+
+        foreach (var car in irrelevantCars)
+        {
+            car.CarState.ChargingPowerAtHome = 0;
         }
 
         if (onlyUpdateValues)
@@ -107,6 +116,11 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
             ampToRegulate -= await ChangeCarAmp(relevantCar, ampToRegulate).ConfigureAwait(false);
         }
+    }
+
+    internal List<Car> GetIrrelevantCars(List<int> relevantCarIds)
+    {
+        return _settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)).ToList();
     }
 
     private async Task WakeupCarsWithUnknownSocLimit(List<Car> cars)
