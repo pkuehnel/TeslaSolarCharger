@@ -59,10 +59,10 @@ public class ConfigJsonService : TestBase
 
         configJsonService.RemoveOldCars(cars, new List<int>() { 1, 3 });
 
-        Assert.DoesNotContain(cars, car => car.Id == 1);
-        Assert.DoesNotContain(cars, car => car.Id == 3);
-        Assert.Contains(cars, car => car.Id == 2);
-        Assert.Contains(cars, car => car.Id == 4);
+        Assert.Contains(cars, car => car.Id == 1);
+        Assert.Contains(cars, car => car.Id == 3);
+        Assert.DoesNotContain(cars, car => car.Id == 2);
+        Assert.DoesNotContain(cars, car => car.Id == 4);
     }
 
     [Theory]

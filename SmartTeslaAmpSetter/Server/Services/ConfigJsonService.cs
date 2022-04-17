@@ -177,9 +177,13 @@ public class ConfigJsonService : IConfigJsonService
         _logger.LogDebug("All unset car configurations set.");
     }
 
-    internal void RemoveOldCars(List<Car> cars, List<int> carIds)
+    internal void RemoveOldCars(List<Car> cars, List<int> stillExistingCarIds)
     {
-        foreach (var carId in carIds)
+        var carsIdsToRemove = cars
+            .Where(c => !stillExistingCarIds.Any(i => c.Id == i))
+            .Select(c => c.Id)
+            .ToList();
+        foreach (var carId in carsIdsToRemove)
         {
             cars.RemoveAll(c => c.Id == carId);
         }
