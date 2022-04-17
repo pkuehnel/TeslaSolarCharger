@@ -103,6 +103,7 @@ public class ConfigJsonService : IConfigJsonService
                         MaximumAmpere = 16,
                         MinimumAmpere = 2,
                         UsableEnergy = 75,
+                        LatestTimeToReachSoC = new DateTime(2022, 1, 1),
                     },
                     CarState =
                     {
@@ -119,8 +120,13 @@ public class ConfigJsonService : IConfigJsonService
     {
         _logger.LogTrace("{method}()", nameof(UpdateConfigJson));
         var configFileLocation = GetConfigurationFileFullPath();
-        if (_settings.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite))
+        var minDate = new DateTime(2022, 1, 1);
+        if (_settings.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite || c.CarConfiguration.LatestTimeToReachSoC < minDate))
         {
+            foreach (var car in _settings.Cars.Where(car => car.CarConfiguration.LatestTimeToReachSoC < minDate))
+            {
+                car.CarConfiguration.LatestTimeToReachSoC = minDate;
+            }
             _logger.LogDebug("Update configuration.json");
             var fileInfo = new FileInfo(configFileLocation);
             var configDirectoryFullName = fileInfo.Directory?.FullName;
