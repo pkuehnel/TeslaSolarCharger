@@ -7,6 +7,7 @@ using SmartTeslaAmpSetter.Shared.Enums;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Xunit;
 using Xunit.Abstractions;
+using CarState = SmartTeslaAmpSetter.Shared.Dtos.Settings.CarState;
 
 namespace SmartTeslaAmpSetter.Tests.Services;
 

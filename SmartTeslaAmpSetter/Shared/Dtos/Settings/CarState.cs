@@ -28,6 +28,7 @@ public class CarState
         }
     }
 
-    public string? State { get; set; }
+    public string? StateString { get; set; }
+    public Enums.CarState? State { get; set; }
     public bool? Healthy { get; set; }
 }

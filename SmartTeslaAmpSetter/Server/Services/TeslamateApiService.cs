@@ -2,13 +2,13 @@
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
+using CarState = SmartTeslaAmpSetter.Shared.Enums.CarState;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
 public class TeslamateApiService : ITeslaService
 {
     private readonly ILogger<TeslamateApiService> _logger;
-    private readonly IConfiguration _configuration;
     private readonly ITelegramService _telegramService;
     private readonly ISettings _settings;
     private readonly string _teslaMateBaseUrl;
@@ -16,28 +16,31 @@ public class TeslamateApiService : ITeslaService
     public TeslamateApiService(ILogger<TeslamateApiService> logger, IConfiguration configuration, ITelegramService telegramService, ISettings settings)
     {
         _logger = logger;
-        _configuration = configuration;
         _telegramService = telegramService;
         _settings = settings;
-        _teslaMateBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl");
+        _teslaMateBaseUrl = configuration.GetValue<string>("TeslaMateApiBaseUrl");
     }
 
-    public async Task StartCharging(int carId, int startAmp, string? carState)
+    public async Task StartCharging(int carId, int startAmp, CarState? carState)
     {
         _logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(StartCharging), carId, startAmp, carState);
 
-        if (carState != null && (carState.Equals("offline", StringComparison.CurrentCultureIgnoreCase) ||
-                                 carState.Equals("asleep", StringComparison.CurrentCultureIgnoreCase)))
+        if (carState == CarState.Offline ||
+            carState == CarState.Asleep)
         {
             _logger.LogInformation("Wakeup car before charging");
             await WakeUpCar(carId);
         }
 
+        if (carState == CarState.Suspended)
+        {
+            _logger.LogInformation("Logging is suspended");
+            await ResumeLogging(carId);
+        }
+
         var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/charge_start";
 
         var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
-
-        await ResumeLogging(carId);
 
         await SetAmp(carId, startAmp).ConfigureAwait(false);
 
@@ -65,6 +68,8 @@ public class TeslamateApiService : ITeslaService
 
         var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
+
+        await ResumeLogging(carId);
 
         await Task.Delay(TimeSpan.FromSeconds(20));
     }

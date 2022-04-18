@@ -1,6 +1,7 @@
 ﻿using MQTTnet;
 using MQTTnet.Client;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
+using CarState = SmartTeslaAmpSetter.Shared.Enums.CarState;
 
 namespace SmartTeslaAmpSetter.Server;
 
@@ -214,8 +215,33 @@ public class MqttHelper
                 }
                 break;
             case TopicState:
-                car.CarState.State = value.Value;
-                _logger.LogDebug("New car state detected {car state}", car.CarState.State);
+                car.CarState.StateString = value.Value;
+                switch (value.Value)
+                {
+                    case "asleep":
+                        car.CarState.State = CarState.Asleep;
+                        break;
+                    case "offline":
+                        car.CarState.State = CarState.Offline;
+                        break;
+                    case "online":
+                        car.CarState.State = CarState.Online;
+                        break;
+                    case "charging":
+                        car.CarState.State = CarState.Charging;
+                        break;
+                    case "suspended":
+                        car.CarState.State = CarState.Suspended;
+                        break;
+                    case "driving":
+                        car.CarState.State = CarState.Driving;
+                        break;
+                    default:
+                        _logger.LogWarning("Unknown car state deteckted: {carState}", value.Value);
+                        car.CarState.State = CarState.Unknown;
+                        break;
+                }
+                _logger.LogDebug("New car state detected {car state}", car.CarState.StateString);
                 break;
             case TopicHealthy:
                 car.CarState.Healthy = Convert.ToBoolean(value.Value);

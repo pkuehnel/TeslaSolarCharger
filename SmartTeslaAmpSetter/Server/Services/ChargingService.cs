@@ -1,6 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Text;
-using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
