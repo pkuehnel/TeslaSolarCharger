@@ -9,6 +9,8 @@
     <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
     <link href="SmartTeslaAmpSetter.Client.styles.css" rel="stylesheet" />
+    <link href="manifest.json" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="342x342" href="solar-panel-solid-342.png" />
     <script src="https://kit.fontawesome.com/f3249a5578.js" crossorigin="anonymous"></script>
 </head>
 
@@ -21,6 +23,7 @@
         <a class="dismiss">🗙</a>
     </div>
 <script src="_framework/blazor.webassembly.js"></script>
+<script>navigator.serviceWorker.register('service-worker.js');</script>
 <link href="_content/Blazored.Toast/blazored-toast.min.css" rel="stylesheet"/>
 </body>
 
