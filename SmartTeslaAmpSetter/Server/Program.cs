@@ -40,6 +40,7 @@ builder.Services
     .AddTransient<IDateTimeProvider, DateTimeProvider>()
     .AddTransient<IChargeTimeUpdateService, ChargeTimeUpdateService>()
     .AddTransient<ITelegramService, TelegramService>()
+    .AddTransient<ITeslaService, TeslamateApiService>()
     .AddSingleton<ISettings, Settings>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()

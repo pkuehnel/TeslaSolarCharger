@@ -1,6 +1,7 @@
 ﻿using MQTTnet;
 using MQTTnet.Client;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
+using CarState = SmartTeslaAmpSetter.Shared.Enums.CarState;
 
 namespace SmartTeslaAmpSetter.Server;
 
@@ -12,17 +13,29 @@ public class MqttHelper
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _settings;
 
+    // ReSharper disable once InconsistentNaming
     private const string TopicDisplayName = "display_name";
+    // ReSharper disable once InconsistentNaming
     private const string TopicSoc = "battery_level";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargeLimit = "charge_limit_soc";
+    // ReSharper disable once InconsistentNaming
     private const string TopicGeofence = "geofence";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargerPhases = "charger_phases";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargerVoltage = "charger_voltage";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargerActualCurrent = "charger_actual_current";
+    // ReSharper disable once InconsistentNaming
     private const string TopicPluggedIn = "plugged_in";
+    // ReSharper disable once InconsistentNaming
     private const string TopicIsClimateOn = "is_climate_on";
+    // ReSharper disable once InconsistentNaming
     private const string TopicTimeToFullCharge = "time_to_full_charge";
+    // ReSharper disable once InconsistentNaming
     private const string TopicState = "state";
+    // ReSharper disable once InconsistentNaming
     private const string TopicHealthy = "healthy";
     //ToDo: Add after next TeslaMateRelease
     //private const string TopicChargeCurrentRequest = "charge_current_request";
@@ -202,8 +215,33 @@ public class MqttHelper
                 }
                 break;
             case TopicState:
-                car.CarState.State = value.Value;
-                _logger.LogDebug("New car state detected {car state}", car.CarState.State);
+                car.CarState.StateString = value.Value;
+                switch (value.Value)
+                {
+                    case "asleep":
+                        car.CarState.State = CarState.Asleep;
+                        break;
+                    case "offline":
+                        car.CarState.State = CarState.Offline;
+                        break;
+                    case "online":
+                        car.CarState.State = CarState.Online;
+                        break;
+                    case "charging":
+                        car.CarState.State = CarState.Charging;
+                        break;
+                    case "suspended":
+                        car.CarState.State = CarState.Suspended;
+                        break;
+                    case "driving":
+                        car.CarState.State = CarState.Driving;
+                        break;
+                    default:
+                        _logger.LogWarning("Unknown car state deteckted: {carState}", value.Value);
+                        car.CarState.State = CarState.Unknown;
+                        break;
+                }
+                _logger.LogDebug("New car state detected {car state}", car.CarState.StateString);
                 break;
             case TopicHealthy:
                 car.CarState.Healthy = Convert.ToBoolean(value.Value);

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Autofac;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Xunit;
 using Xunit.Abstractions;
+using CarState = SmartTeslaAmpSetter.Shared.Dtos.Settings.CarState;
 
 namespace SmartTeslaAmpSetter.Tests.Services;
 
@@ -162,6 +164,48 @@ public class ChargingService : TestBase
         Assert.Single(relevantIds);
     }
 
+    [Fact]
+    public void Gets_irrelevant_cars()
+    {
+        var geofence = "Home";
+        var cars = new List<Car>()
+        {
+            new Car()
+            {
+                Id = 1,
+                CarState = new CarState()
+                {
+                    Geofence = geofence,
+                    PluggedIn = true,
+                    ClimateOn = false,
+                    ChargerActualCurrent = 3,
+                    SoC = 30,
+                    SocLimit = 60,
+                },
+            },
+            new Car()
+            {
+                Id = 2,
+                CarState = new CarState()
+                {
+                    Geofence = null,
+                    PluggedIn = true,
+                    ClimateOn = false,
+                    ChargerActualCurrent = 3,
+                    SoC = 30,
+                    SocLimit = 60,
+                },
+            },
+        };
+        Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
+        var chargingService = Mock.Create<Server.Services.ChargingService>();
+
+        var irrelevantCars = chargingService.GetIrrelevantCars(new List<int>(){1});
+
+        Assert.Single(irrelevantCars);
+        Assert.Contains(2, irrelevantCars.Select(c => c.Id));
+    }
+    
     private Car CreateDemoCar(ChargeMode chargeMode, DateTime latestTimeToReachSoC, int soC, int minimumSoC, bool autoFullSpeedCharge)
     {
         var car = new Car()
