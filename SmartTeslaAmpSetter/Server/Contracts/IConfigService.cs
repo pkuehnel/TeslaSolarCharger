@@ -8,7 +8,7 @@ public interface IConfigService
 {
     Task<ISettings> GetSettings();
     ChargeMode ChangeChargeMode(int carId);
-    void UpdateCarConfiguration(int id, CarConfiguration carConfiguration);
+    void UpdateCarConfiguration(int carId, CarConfiguration carConfiguration);
     List<CarBasicConfiguration> GetCarBasicConfigurations();
     void UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration);
 }
