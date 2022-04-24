@@ -62,7 +62,7 @@ public class ConfigService : IConfigService
 
     public void UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
-        _logger.LogTrace("{method}({param1}, {@param2})", carId, carBasicConfiguration);
+        _logger.LogTrace("{method}({param1}, {@param2})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
         var car = _settings.Cars.First(c => c.Id == carId);
         car.CarConfiguration.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
         car.CarConfiguration.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
