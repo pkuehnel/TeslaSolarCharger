@@ -33,6 +33,9 @@ public class TelegramService : ITelegramService
         }
 
         var requestUri = CreateRequestUri(message, botKey, channel);
+
+        httpClient.Timeout = TimeSpan.FromSeconds(1);
+
         var response = await httpClient.GetAsync(
             requestUri);
 
