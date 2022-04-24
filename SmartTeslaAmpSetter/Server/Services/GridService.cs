@@ -7,11 +7,13 @@ public class GridService : IGridService
 {
     private readonly ILogger<GridService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly ITelegramService _telegramService;
 
-    public GridService(ILogger<GridService> logger, IConfiguration configuration)
+    public GridService(ILogger<GridService> logger, IConfiguration configuration, ITelegramService telegramService)
     {
         _logger = logger;
         _configuration = configuration;
+        _telegramService = telegramService;
     }
 
     public async Task<int> GetCurrentOverage()
@@ -58,7 +60,14 @@ public class GridService : IGridService
         var response = await httpClient.GetAsync(
                 requestUri)
             .ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Getting current inverter power did result in statuscode {statusCode} with reason {reasonPhrase}", response.StatusCode, response.ReasonPhrase);
+            await _telegramService.SendMessage(
+                $"Getting current inverter power did result in statuscode {response.StatusCode} with reason {response.ReasonPhrase}");
+            return null;
+        }
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         if (int.TryParse(result, out var overage))
