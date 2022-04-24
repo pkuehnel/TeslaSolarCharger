@@ -238,7 +238,7 @@ public class ChargingService : IChargingService
             UpdateEarliestTimesAfterSwitch(relevantCar.Id);
         }
         //Falls nicht ladend, aber laden soll beginnen
-        else if (finalAmpsToSet > minAmpPerCar && relevantCar.CarState.ChargerActualCurrent == 0)
+        else if (finalAmpsToSet >= minAmpPerCar && relevantCar.CarState.ChargerActualCurrent == 0)
         {
             _logger.LogDebug("Charging should start");
             var earliestSwitchOn = EarliestSwitchOn(relevantCar.Id);
