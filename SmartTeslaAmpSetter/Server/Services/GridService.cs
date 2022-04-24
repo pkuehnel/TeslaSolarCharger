@@ -58,7 +58,11 @@ public class GridService : IGridService
         var response = await httpClient.GetAsync(
                 requestUri)
             .ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         if (int.TryParse(result, out var overage))
