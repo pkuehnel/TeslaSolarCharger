@@ -8,5 +8,6 @@ public enum CarState
     Charging,
     Suspended,
     Driving,
+    Updating,
     Unknown,
 }
