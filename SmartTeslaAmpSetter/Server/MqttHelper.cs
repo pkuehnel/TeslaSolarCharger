@@ -236,6 +236,9 @@ public class MqttHelper
                     case "driving":
                         car.CarState.State = CarState.Driving;
                         break;
+                    case "updating":
+                        car.CarState.State = CarState.Updating;
+                        break;
                     default:
                         _logger.LogWarning("Unknown car state deteckted: {carState}", value.Value);
                         car.CarState.State = CarState.Unknown;
