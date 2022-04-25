@@ -46,12 +46,12 @@ else
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
             {
                 <p>
-                    <label class="col-sm-4 col-md-3 col-lg-2" for="date">Datum:</label>
+                    <label class="col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
                     <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
                            @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
                 </p>
                 <p>
-                    <label class="col-sm-4 col-md-3 col-lg-2" for="time">Uhrzeit:</label>
+                    <label class="col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
                     <input class="col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
                            @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
