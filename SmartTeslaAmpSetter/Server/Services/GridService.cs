@@ -60,9 +60,10 @@ public class GridService : IGridService
 
     }
 
-    internal int GetIntegerFromString(string? result)
+    internal int GetIntegerFromString(string? inputString)
     {
-        return (int) double.Parse(result, CultureInfo.InvariantCulture);
+        _logger.LogTrace("{method}({param})", nameof(GetIntegerFromString), inputString);
+        return (int) double.Parse(inputString ?? throw new ArgumentNullException(nameof(inputString)), CultureInfo.InvariantCulture);
     }
 
     public async Task<int?> GetCurrentInverterPower()
