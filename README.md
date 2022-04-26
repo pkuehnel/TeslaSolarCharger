@@ -123,7 +123,7 @@ The current UI can display the car's names including SOC and SOC Limit + one But
 
 ### Charge Modes
 Currently there are three different charge modes available:
-1. **PV only**: Only PV energy is used to charge unless there is a min SOC Level set. If so the software tries to start charging with maximum power to reach the desired SOC Level in time
+1. **PV only**: Only solar energy is used to charge. You can set a SOC level which should be reached at a specific date and time. If solar energy is not enough to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, you have to specify `usable kWh` in the car settings section.
 1. **Maximum Power**: Car charges with maximum available power
 1. **Min SoC + PV**: If plugged in the car starts charging with maximum power until set Min SoC is reached. After that only PV Power is used to charge the car.
 

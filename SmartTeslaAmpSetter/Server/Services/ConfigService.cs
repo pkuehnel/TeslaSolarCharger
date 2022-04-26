@@ -28,20 +28,23 @@ public class ConfigService : IConfigService
 
     public ChargeMode ChangeChargeMode(int carId)
     {
+        _logger.LogTrace("{method},({param1})", nameof(ChangeChargeMode), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
         car.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
         car.CarState.AutoFullSpeedCharge = false;
         return car.CarConfiguration.ChargeMode;
     }
 
-    public void UpdateCarConfiguration(int id, CarConfiguration carConfiguration)
+    public void UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
     {
-        var existingCarIndex = _settings.Cars.FindIndex(c => c.Id == id);
+        _logger.LogTrace("{method}({param1}, {@param2})", nameof(UpdateCarConfiguration), carId, carConfiguration);
+        var existingCarIndex = _settings.Cars.FindIndex(c => c.Id == carId);
         _settings.Cars[existingCarIndex].CarConfiguration = carConfiguration;
     }
 
     public List<CarBasicConfiguration> GetCarBasicConfigurations()
     {
+        _logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
         var carSettings = new List<CarBasicConfiguration>();
 
         foreach (var car in _settings.Cars)
@@ -59,6 +62,7 @@ public class ConfigService : IConfigService
 
     public void UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
+        _logger.LogTrace("{method}({param1}, {@param2})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
         var car = _settings.Cars.First(c => c.Id == carId);
         car.CarConfiguration.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
         car.CarConfiguration.MaximumAmpere = carBasicConfiguration.MaximumAmpere;

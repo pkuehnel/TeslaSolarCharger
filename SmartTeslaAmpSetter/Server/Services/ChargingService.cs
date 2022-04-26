@@ -65,6 +65,9 @@ public class ChargingService : IChargingService
 
         var relevantCars = _settings.Cars.Where(c => relevantCarIds.Any(r => c.Id == r)).ToList();
 
+        _logger.LogTrace("Relevant cars: {@relevantCars}", relevantCars);
+        _logger.LogTrace("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
+
         foreach (var relevantCar in relevantCars)
         {
             relevantCar.CarState.ChargingPowerAtHome = relevantCar.CarState.ChargingPower;
@@ -174,7 +177,8 @@ public class ChargingService : IChargingService
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (relevantCar.CarConfiguration.ChargeMode == ChargeMode.MaxPower || relevantCar.CarState.AutoFullSpeedCharge)
         {
-            _logger.LogDebug("Max Power Charging");
+            _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}", 
+                relevantCar.CarConfiguration.ChargeMode, relevantCar.CarState.AutoFullSpeedCharge);
             if (relevantCar.CarState.ChargerActualCurrent < maxAmpPerCar)
             {
                 var ampToSet = maxAmpPerCar;
@@ -234,7 +238,7 @@ public class ChargingService : IChargingService
             UpdateEarliestTimesAfterSwitch(relevantCar.Id);
         }
         //Falls nicht ladend, aber laden soll beginnen
-        else if (finalAmpsToSet > minAmpPerCar && relevantCar.CarState.ChargerActualCurrent == 0)
+        else if (finalAmpsToSet >= minAmpPerCar && relevantCar.CarState.ChargerActualCurrent == 0)
         {
             _logger.LogDebug("Charging should start");
             var earliestSwitchOn = EarliestSwitchOn(relevantCar.Id);
