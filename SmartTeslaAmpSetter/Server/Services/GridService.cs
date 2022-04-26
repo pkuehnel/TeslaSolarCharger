@@ -21,10 +21,17 @@ public class GridService : IGridService
         _logger.LogTrace("{method}()", nameof(GetCurrentOverage));
         using var httpClient = new HttpClient();
         var requestUri = _configuration.GetValue<string>("CurrentPowerToGridUrl");
+        _logger.LogDebug("Using {uri} to get current overage.", requestUri);
         var response = await httpClient.GetAsync(
                 requestUri)
             .ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", response.StatusCode, response.ReasonPhrase);
+            response.EnsureSuccessStatusCode();
+        }
+
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         var jsonPattern = _configuration.GetValue<string>("CurrentPowerToGridJsonPattern");
