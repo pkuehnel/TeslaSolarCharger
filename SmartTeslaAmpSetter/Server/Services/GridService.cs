@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Globalization;
+using Newtonsoft.Json.Linq;
 using SmartTeslaAmpSetter.Server.Contracts;
 
 namespace SmartTeslaAmpSetter.Server.Services;
@@ -43,16 +44,26 @@ public class GridService : IGridService
                       throw new InvalidOperationException("Extracted Json Value is null")).Value<string>();
         }
 
-        if (int.TryParse(result, out var overage))
+        try
         {
+            var overage = GetIntegerFromString(result);
             if (_configuration.GetValue<bool>("CurrentPowerToGridInvertValue"))
             {
                 overage = -overage;
             }
-            return overage;
+            return overage ;
+        }
+        catch (Exception)
+        {
+            throw new InvalidCastException($"Could not parse result {result} from uri {requestUri} to integer");
         }
 
-        throw new InvalidCastException($"Could not parse result {result} from uri {requestUri} to integer");
+    }
+
+    internal int GetIntegerFromString(string? inputString)
+    {
+        _logger.LogTrace("{method}({param})", nameof(GetIntegerFromString), inputString);
+        return (int) double.Parse(inputString ?? throw new ArgumentNullException(nameof(inputString)), CultureInfo.InvariantCulture);
     }
 
     public async Task<int?> GetCurrentInverterPower()
@@ -77,11 +88,13 @@ public class GridService : IGridService
         }
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-        if (int.TryParse(result, out var overage))
+        try
         {
-            return overage;
+            return GetIntegerFromString(result);
         }
-
-        throw new InvalidCastException($"Could not parse result {result} from uri {requestUri} to integer");
+        catch (Exception)
+        {
+            throw new InvalidCastException($"Could not parse result {result} from uri {requestUri} to integer");
+        }
     }
 }
