@@ -13,14 +13,14 @@ public class ConfigJsonService : IConfigJsonService
 {
     private readonly ILogger<ConfigJsonService> _logger;
     private readonly ISettings _settings;
-    private readonly IConfigurationService _congConfigurationService;
+    private readonly IConfigurationWrapper _congConfigurationWrapper;
 
     public ConfigJsonService(ILogger<ConfigJsonService> logger, ISettings settings,
-        IConfigurationService congConfigurationService)
+        IConfigurationWrapper congConfigurationWrapper)
     {
         _logger = logger;
         _settings = settings;
-        _congConfigurationService = congConfigurationService;
+        _congConfigurationWrapper = congConfigurationWrapper;
     }
 
     private bool CarConfigurationFileExists()
@@ -31,7 +31,7 @@ public class ConfigJsonService : IConfigJsonService
 
     private string GetConfigurationFileFullPath()
     {
-        var configFileLocation = _congConfigurationService.ConfigFileLocation();
+        var configFileLocation = _congConfigurationWrapper.ConfigFileLocation();
         var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
         path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), configFileLocation);
         return path;
@@ -53,7 +53,7 @@ public class ConfigJsonService : IConfigJsonService
             }
         }
 
-        var carIds = _congConfigurationService.CarPriorities();
+        var carIds = _congConfigurationWrapper.CarPriorities();
         RemoveOldCars(cars, carIds);
 
         var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();

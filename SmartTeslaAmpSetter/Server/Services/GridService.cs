@@ -8,20 +8,20 @@ public class GridService : IGridService
 {
     private readonly ILogger<GridService> _logger;
     private readonly ITelegramService _telegramService;
-    private readonly IConfigurationService _configurationService;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
-    public GridService(ILogger<GridService> logger, ITelegramService telegramService, IConfigurationService configurationService)
+    public GridService(ILogger<GridService> logger, ITelegramService telegramService, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _telegramService = telegramService;
-        _configurationService = configurationService;
+        _configurationWrapper = configurationWrapper;
     }
 
     public async Task<int> GetCurrentOverage()
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentOverage));
         using var httpClient = new HttpClient();
-        var requestUri = _configurationService.CurrentPowerToGridUrl();
+        var requestUri = _configurationWrapper.CurrentPowerToGridUrl();
         _logger.LogDebug("Using {uri} to get current overage.", requestUri);
         var response = await httpClient.GetAsync(
                 requestUri)
@@ -35,7 +35,7 @@ public class GridService : IGridService
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-        var jsonPattern = _configurationService.CurrentPowerToGridJsonPattern();
+        var jsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
 
         if (jsonPattern != null)
         {
@@ -47,7 +47,7 @@ public class GridService : IGridService
         try
         {
             var overage = GetIntegerFromString(result);
-            if (_configurationService.CurrentPowerToGridInvertValue())
+            if (_configurationWrapper.CurrentPowerToGridInvertValue())
             {
                 overage = -overage;
             }
@@ -70,7 +70,7 @@ public class GridService : IGridService
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentInverterPower));
         using var httpClient = new HttpClient();
-        var requestUri = _configurationService.CurrentInverterPowerUrl();
+        var requestUri = _configurationWrapper.CurrentInverterPowerUrl();
         if (requestUri == null)
         {
             return null;

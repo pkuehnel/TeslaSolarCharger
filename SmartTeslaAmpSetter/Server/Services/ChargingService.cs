@@ -16,11 +16,11 @@ public class ChargingService : IChargingService
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ITelegramService _telegramService;
     private readonly ITeslaService _teslaService;
-    private readonly IConfigurationService _configurationService;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     public ChargingService(ILogger<ChargingService> logger, IGridService gridService,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
-        ITeslaService teslaService, IConfigurationService configurationService)
+        ITeslaService teslaService, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _gridService = gridService;
@@ -28,7 +28,7 @@ public class ChargingService : IChargingService
         _dateTimeProvider = dateTimeProvider;
         _telegramService = telegramService;
         _teslaService = teslaService;
-        _configurationService = configurationService;
+        _configurationWrapper = configurationWrapper;
     }
 
     public async Task SetNewChargingValues(bool onlyUpdateValues = false)
@@ -47,12 +47,12 @@ public class ChargingService : IChargingService
 
         _logger.LogDebug($"Current overage is {overage} Watt.");
 
-        var buffer = _configurationService.PowerBuffer();
+        var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
 
         overage -= buffer;
 
-        var geofence = _configurationService.GeoFence();
+        var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
         await WakeupCarsWithUnknownSocLimit(_settings.Cars);
@@ -306,7 +306,7 @@ public class ChargingService : IChargingService
     private DateTime EarliestSwitchOff(int carId)
     {
         _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOff), carId);
-        var timeSpanUntilSwitchOff = _configurationService.TimespanUntilSwitchOff();
+        var timeSpanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
         var car = _settings.Cars.First(c => c.Id == carId);
         if (car.CarState.ShouldStopChargingSince == DateTime.MaxValue)
         {
@@ -320,7 +320,7 @@ public class ChargingService : IChargingService
     private DateTime EarliestSwitchOn(int carId)
     {
         _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOn), carId);
-        var timeSpanUntilSwitchOn = _configurationService.TimeUntilSwitchOn();
+        var timeSpanUntilSwitchOn = _configurationWrapper.TimeUntilSwitchOn();
         var car = _settings.Cars.First(c => c.Id == carId);
         if (car.CarState.ShouldStartChargingSince == DateTime.MaxValue)
         {

@@ -27,10 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\SmartTeslaAmpSetter\Server\SmartTeslaAmpSetter.Server.csproj" />
     <ProjectReference Include="..\SmartTeslaAmpSetter\Shared\SmartTeslaAmpSetter.Shared.csproj" />
   </ItemGroup>

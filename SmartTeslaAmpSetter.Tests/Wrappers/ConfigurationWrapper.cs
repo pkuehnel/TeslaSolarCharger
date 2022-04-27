@@ -2,11 +2,11 @@
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SmartTeslaAmpSetter.Tests.Services;
+namespace SmartTeslaAmpSetter.Tests.Wrappers;
 
-public class ConfigurationService : TestBase
+public class ConfigurationWrapper : TestBase
 {
-    public ConfigurationService(ITestOutputHelper outputHelper)
+    public ConfigurationWrapper(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
     }
@@ -14,7 +14,7 @@ public class ConfigurationService : TestBase
     [Fact]
     public void Get_Not_Nullable_String()
     {
-        var configurationService = Mock.Create<Server.Services.ConfigurationService>();
+        var configurationService = Mock.Create<Server.Wrappers.ConfigurationWrapper>();
 
         var existingConfigValue = "TeslaMateApiBaseUrl";
         var teslaMateApiBaseUrl = 
@@ -28,7 +28,7 @@ public class ConfigurationService : TestBase
     [InlineData("notExisiting")]
     public void Throw_Exception_On_Null_String(string notExisitingConfigValue)
     {
-        var configurationService = Mock.Create<Server.Services.ConfigurationService>();
+        var configurationService = Mock.Create<Server.Wrappers.ConfigurationWrapper>();
         Assert.Throws<NullReferenceException>(
             () => configurationService.GetNotNullableConfigurationValue(notExisitingConfigValue));
     }
@@ -38,7 +38,7 @@ public class ConfigurationService : TestBase
     [InlineData("notExisiting")]
     public void Returns_Null_On_Non_Exisiting_Values(string notExisitingConfigValue)
     {
-        var configurationService = Mock.Create<Server.Services.ConfigurationService>();
+        var configurationService = Mock.Create<Server.Wrappers.ConfigurationWrapper>();
         var value = configurationService.GetNullableConfigurationValue(notExisitingConfigValue);
 
         Assert.Null(value);
@@ -51,7 +51,7 @@ public class ConfigurationService : TestBase
     [InlineData("notExisiting")]
     public void Get_TimeSpan_From_Minutes(string configName)
     {
-        var configurationService = Mock.Create<Server.Services.ConfigurationService>();
+        var configurationService = Mock.Create<Server.Wrappers.ConfigurationWrapper>();
         var timespan =
             configurationService.GetMinutesConfigurationValueIfGreaterThanMinumum(configName, TimeSpan.FromMinutes(1));
 
@@ -81,7 +81,7 @@ public class ConfigurationService : TestBase
     [InlineData("notExisiting")]
     public void Get_TimeSpan_From_Seconds(string configName)
     {
-        var configurationService = Mock.Create<Server.Services.ConfigurationService>();
+        var configurationService = Mock.Create<Server.Wrappers.ConfigurationWrapper>();
         var minimum = TimeSpan.FromSeconds(1);
         var timespan =
             configurationService.GetSecondsConfigurationValueIfGreaterThanMinumum(configName, minimum);

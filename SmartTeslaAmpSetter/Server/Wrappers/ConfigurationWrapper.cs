@@ -2,14 +2,14 @@
 using SmartTeslaAmpSetter.Server.Contracts;
 
 [assembly: InternalsVisibleTo("SmartTeslaAmpSetter.Tests")]
-namespace SmartTeslaAmpSetter.Server.Services;
+namespace SmartTeslaAmpSetter.Server.Wrappers;
 
-public class ConfigurationService : IConfigurationService
+public class ConfigurationWrapper : IConfigurationWrapper
 {
-    private readonly ILogger<ConfigurationService> _logger;
+    private readonly ILogger<ConfigurationWrapper> _logger;
     private readonly IConfiguration _configuration;
 
-    public ConfigurationService(ILogger<ConfigurationService> logger, IConfiguration configuration)
+    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration)
     {
         _logger = logger;
         _configuration = configuration;
