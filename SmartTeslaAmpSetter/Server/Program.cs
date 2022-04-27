@@ -3,7 +3,6 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Serilog;
-using SmartTeslaAmpSetter.Server;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
