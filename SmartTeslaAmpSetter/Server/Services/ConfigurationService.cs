@@ -114,7 +114,7 @@ public class ConfigurationService : IConfigurationService
         return value;
     }
 
-    public TimeSpan MinutesUntilSwitchOff()
+    public TimeSpan TimespanUntilSwitchOff()
     {
         var environmentVariableName = "MinutesUntilSwitchOn";
         var minimum = TimeSpan.FromMinutes(1);
@@ -127,6 +127,22 @@ public class ConfigurationService : IConfigurationService
     {
         var environmentVariableName = "PowerBuffer";
         var value = _configuration.GetValue<int>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? TelegramBotKey()
+    {
+        var environmentVariableName = "TelegramBotKey";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? TelegramChannelId()
+    {
+        var environmentVariableName = "TelegramChannelId";
+        var value = _configuration.GetValue<string>(environmentVariableName);
         _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }

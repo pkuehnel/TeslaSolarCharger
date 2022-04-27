@@ -14,6 +14,8 @@ public interface IConfigurationService
     List<int> CarPriorities();
     string GeoFence();
     TimeSpan TimeUntilSwitchOn();
-    TimeSpan MinutesUntilSwitchOff();
+    TimeSpan TimespanUntilSwitchOff();
     int PowerBuffer();
+    string? TelegramBotKey();
+    string? TelegramChannelId();
 }
