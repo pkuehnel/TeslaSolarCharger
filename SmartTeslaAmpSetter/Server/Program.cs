@@ -42,6 +42,7 @@ builder.Services
     .AddTransient<ITelegramService, TelegramService>()
     .AddTransient<ITeslaService, TeslamateApiService>()
     .AddSingleton<ISettings, Settings>()
+    .AddSingleton<IConfigurationService, ConfigurationService>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
     .AddTransient<MqttHelper>()

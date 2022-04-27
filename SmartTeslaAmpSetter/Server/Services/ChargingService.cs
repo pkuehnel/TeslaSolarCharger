@@ -12,23 +12,23 @@ public class ChargingService : IChargingService
 {
     private readonly ILogger<ChargingService> _logger;
     private readonly IGridService _gridService;
-    private readonly IConfiguration _configuration;
     private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ITelegramService _telegramService;
     private readonly ITeslaService _teslaService;
+    private readonly IConfigurationService _configurationService;
 
-    public ChargingService(ILogger<ChargingService> logger, IGridService gridService, IConfiguration configuration,
+    public ChargingService(ILogger<ChargingService> logger, IGridService gridService,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
-        ITeslaService teslaService)
+        ITeslaService teslaService, IConfigurationService configurationService)
     {
         _logger = logger;
         _gridService = gridService;
-        _configuration = configuration;
         _settings = settings;
         _dateTimeProvider = dateTimeProvider;
         _telegramService = telegramService;
         _teslaService = teslaService;
+        _configurationService = configurationService;
     }
 
     public async Task SetNewChargingValues(bool onlyUpdateValues = false)
@@ -47,12 +47,12 @@ public class ChargingService : IChargingService
 
         _logger.LogDebug($"Current overage is {overage} Watt.");
 
-        var buffer = _configuration.GetValue<int>("PowerBuffer");
+        var buffer = _configurationService.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
 
         overage -= buffer;
 
-        var geofence = _configuration.GetValue<string>("GeoFence");
+        var geofence = _configurationService.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
         await WakeupCarsWithUnknownSocLimit(_settings.Cars);
@@ -306,11 +306,11 @@ public class ChargingService : IChargingService
     private DateTime EarliestSwitchOff(int carId)
     {
         _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOff), carId);
-        var minutesUntilSwitchOff = _configuration.GetValue<int>("MinutesUntilSwitchOff");
+        var timeSpanUntilSwitchOff = _configurationService.TimespanUntilSwitchOff();
         var car = _settings.Cars.First(c => c.Id == carId);
         if (car.CarState.ShouldStopChargingSince == DateTime.MaxValue)
         {
-            car.CarState.ShouldStopChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOff);
+            car.CarState.ShouldStopChargingSince = DateTime.Now + timeSpanUntilSwitchOff;
         }
 
         var earliestSwitchOff = car.CarState.ShouldStopChargingSince;
@@ -320,11 +320,11 @@ public class ChargingService : IChargingService
     private DateTime EarliestSwitchOn(int carId)
     {
         _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOn), carId);
-        var minutesUntilSwitchOn = _configuration.GetValue<int>("MinutesUntilSwitchOn");
+        var timeSpanUntilSwitchOn = _configurationService.TimeUntilSwitchOn();
         var car = _settings.Cars.First(c => c.Id == carId);
         if (car.CarState.ShouldStartChargingSince == DateTime.MaxValue)
         {
-            car.CarState.ShouldStartChargingSince = DateTime.Now.AddMinutes(minutesUntilSwitchOn);
+            car.CarState.ShouldStartChargingSince = DateTime.Now + timeSpanUntilSwitchOn;
         }
 
         var earliestSwitchOn = car.CarState.ShouldStartChargingSince;
