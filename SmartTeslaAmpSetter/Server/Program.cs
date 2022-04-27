@@ -45,7 +45,7 @@ builder.Services
     .AddSingleton<IConfigurationService, ConfigurationService>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
-    .AddTransient<MqttHelper>()
+    .AddTransient<IMqttService, MqttService>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -75,7 +75,7 @@ var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
 
 await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 
-var mqttHelper = app.Services.GetRequiredService<MqttHelper>();
+var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 
 await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
 
