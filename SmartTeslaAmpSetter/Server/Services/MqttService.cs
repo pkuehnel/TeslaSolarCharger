@@ -1,13 +1,14 @@
 ﻿using MQTTnet;
 using MQTTnet.Client;
+using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using CarState = SmartTeslaAmpSetter.Shared.Enums.CarState;
 
-namespace SmartTeslaAmpSetter.Server;
+namespace SmartTeslaAmpSetter.Server.Services;
 
-public class MqttHelper
+public class MqttService : IMqttService
 {
-    private readonly ILogger<MqttHelper> _logger;
+    private readonly ILogger<MqttService> _logger;
     private readonly IConfiguration _configuration;
     private readonly MqttClient _mqttClient;
     private readonly MqttFactory _mqttFactory;
@@ -41,7 +42,7 @@ public class MqttHelper
     //private const string TopicChargeCurrentRequest = "charge_current_request";
     //public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
 
-    public MqttHelper(ILogger<MqttHelper> logger, IConfiguration configuration, MqttClient mqttClient, MqttFactory mqttFactory, ISettings settings)
+    public MqttService(ILogger<MqttService> logger, IConfiguration configuration, MqttClient mqttClient, MqttFactory mqttFactory, ISettings settings)
     {
         _logger = logger;
         _configuration = configuration;
