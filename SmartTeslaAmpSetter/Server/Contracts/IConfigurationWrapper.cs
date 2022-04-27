@@ -1,6 +1,6 @@
 ﻿namespace SmartTeslaAmpSetter.Server.Contracts;
 
-public interface IConfigurationService
+public interface IConfigurationWrapper
 {
     string ConfigFileLocation();
     TimeSpan UpdateIntervall();

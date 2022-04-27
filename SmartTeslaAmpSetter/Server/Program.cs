@@ -7,6 +7,7 @@ using SmartTeslaAmpSetter.Server;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
+using SmartTeslaAmpSetter.Server.Wrappers;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
 
@@ -42,7 +43,7 @@ builder.Services
     .AddTransient<ITelegramService, TelegramService>()
     .AddTransient<ITeslaService, TeslamateApiService>()
     .AddSingleton<ISettings, Settings>()
-    .AddSingleton<IConfigurationService, ConfigurationService>()
+    .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
     .AddTransient<IMqttService, MqttService>()
@@ -68,8 +69,8 @@ var app = builder.Build();
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up");
 
-var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSeconds");
-var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
+var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
+var jobIntervall = configurationWrapper.UpdateIntervall();
 
 var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
 

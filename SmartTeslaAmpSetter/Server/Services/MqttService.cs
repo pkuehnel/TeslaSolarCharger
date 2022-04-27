@@ -9,10 +9,10 @@ namespace SmartTeslaAmpSetter.Server.Services;
 public class MqttService : IMqttService
 {
     private readonly ILogger<MqttService> _logger;
-    private readonly IConfiguration _configuration;
     private readonly MqttClient _mqttClient;
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _settings;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     // ReSharper disable once InconsistentNaming
     private const string TopicDisplayName = "display_name";
@@ -42,20 +42,21 @@ public class MqttService : IMqttService
     //private const string TopicChargeCurrentRequest = "charge_current_request";
     //public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
 
-    public MqttService(ILogger<MqttService> logger, IConfiguration configuration, MqttClient mqttClient, MqttFactory mqttFactory, ISettings settings)
+    public MqttService(ILogger<MqttService> logger, MqttClient mqttClient, MqttFactory mqttFactory, 
+        ISettings settings, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
-        _configuration = configuration;
         _mqttClient = mqttClient;
         _mqttFactory = mqttFactory;
         _settings = settings;
+        _configurationWrapper = configurationWrapper;
     }
 
     public async Task ConfigureMqttClient()
     {
         _logger.LogTrace("{method}()", nameof(ConfigureMqttClient));
-        var mqqtClientId = _configuration.GetValue<string>("MqqtClientId");
-        var mosquitoServer = _configuration.GetValue<string>("MosquitoServer");
+        var mqqtClientId = _configurationWrapper.MqqtClientId();
+        var mosquitoServer = _configurationWrapper.MosquitoServer();
         var mqttClientOptions = new MqttClientOptionsBuilder()
             .WithClientId(mqqtClientId)
             .WithTcpServer(mosquitoServer)
