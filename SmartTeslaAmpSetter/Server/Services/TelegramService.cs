@@ -6,20 +6,20 @@ namespace SmartTeslaAmpSetter.Server.Services;
 public class TelegramService : ITelegramService
 {
     private readonly ILogger<TelegramService> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly IConfigurationService _configurationService;
 
-    public TelegramService(ILogger<TelegramService> logger, IConfiguration configuration)
+    public TelegramService(ILogger<TelegramService> logger, IConfigurationService configurationService)
     {
         _logger = logger;
-        _configuration = configuration;
+        _configurationService = configurationService;
     }
 
     public async Task<HttpStatusCode> SendMessage(string message)
     {
         _logger.LogTrace("{method}({param})", nameof(SendMessage), message);
         using var httpClient = new HttpClient();
-        var botKey = _configuration.GetValue<string>("TelegramBotKey");
-        var channel = _configuration.GetValue<string>("TelegramChannelId");
+        var botKey = _configurationService.TelegramBotKey();
+        var channel = _configurationService.TelegramChannelId();
         if (botKey == null)
         {
             _logger.LogInformation("Can not send Telegram Message because botkey is null.");
