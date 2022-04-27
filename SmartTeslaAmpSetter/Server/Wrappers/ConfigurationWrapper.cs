@@ -178,8 +178,16 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetValueIfGreaterThanMinimum(value, minimum);
     }
 
-    private static TimeSpan GetValueIfGreaterThanMinimum(TimeSpan value, TimeSpan minimum)
+    private TimeSpan GetValueIfGreaterThanMinimum(TimeSpan value, TimeSpan minimum)
     {
-        return value < minimum ? minimum : value;
+        if (value < minimum)
+        {
+            _logger.LogTrace("Replace value {value} with minumum value {minimum}", value, minimum);
+            return minimum;
+        }
+        else
+        {
+            return value;
+        }
     }
 }

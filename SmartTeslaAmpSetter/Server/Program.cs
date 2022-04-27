@@ -69,8 +69,8 @@ var app = builder.Build();
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up");
 
-var secondsFromConfig = app.Configuration.GetValue<double>("UpdateIntervalSeconds");
-var jobIntervall = TimeSpan.FromSeconds(secondsFromConfig);
+var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
+var jobIntervall = configurationWrapper.UpdateIntervall();
 
 var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
 
