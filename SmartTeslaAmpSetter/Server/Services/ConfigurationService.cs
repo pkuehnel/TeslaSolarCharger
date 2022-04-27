@@ -19,6 +19,7 @@ public class ConfigurationService : IConfigurationService
     {
         var environmentVariableName = "ConfigFileLocation";
         var value = GetNotNullableConfigurationValue(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
@@ -26,13 +27,16 @@ public class ConfigurationService : IConfigurationService
     {
         var environmentVariableName = "UpdateIntervallSeconds";
         var minimum = TimeSpan.FromSeconds(20);
-        return GetSecondsConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
+        var value = GetSecondsConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
     }
     
     public string MqqtClientId()
     {
         var environmentVariableName = "MqqtClientId";
         var value = GetNotNullableConfigurationValue(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
@@ -40,6 +44,7 @@ public class ConfigurationService : IConfigurationService
     {
         var environmentVariableName = "MosquitoServer";
         var value = GetNotNullableConfigurationValue(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
@@ -47,43 +52,56 @@ public class ConfigurationService : IConfigurationService
     {
         var environmentVariableName = "CurrentPowerToGridUrl";
         var value = GetNotNullableConfigurationValue(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
     public string? CurrentInverterPowerUrl()
     {
         var environmentVariableName = "CurrentInverterPowerUrl";
-        return GetNullableConfigurationValue(environmentVariableName);
+        var value = GetNullableConfigurationValue(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
     }
     
     public string? CurrentPowerToGridJsonPattern()
     {
-        return _configuration.GetValue<string>("CurrentPowerToGridJsonPattern");
+        var environmentVariableName = "CurrentPowerToGridJsonPattern";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
     }
 
     public bool CurrentPowerToGridInvertValue()
     {
-        return _configuration.GetValue<bool>("CurrentPowerToGridInvertValue");
+        var environmentVariableName = "CurrentPowerToGridInvertValue";
+        var value = _configuration.GetValue<bool>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
     }
 
     public string TeslaMateApiBaseUrl()
     {
         var environmentVariableName = "TeslaMateApiBaseUrl";
         var value = GetNotNullableConfigurationValue(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
     public List<int> CarPriorities()
     {
         var environmentVariableName = "CarPriorities";
-        var value = GetNotNullableConfigurationValue(environmentVariableName);
-        return value.Split("|").Select(id => Convert.ToInt32(id)).ToList();
+        var rawValue = GetNotNullableConfigurationValue(environmentVariableName);
+        var value = rawValue.Split("|").Select(id => Convert.ToInt32(id)).ToList();
+        _logger.LogDebug("Config value extracted: [{key}]: {@value}", environmentVariableName, value);
+        return value;
     }
 
     public string GeoFence()
     {
         var environmentVariableName = "GeoFence";
         var value = GetNotNullableConfigurationValue(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
@@ -91,19 +109,26 @@ public class ConfigurationService : IConfigurationService
     {
         var environmentVariableName = "MinutesUntilSwitchOn";
         var minimum = TimeSpan.FromMinutes(1);
-        return GetMinutesConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
+        var value = GetMinutesConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
     }
 
     public TimeSpan MinutesUntilSwitchOff()
     {
         var environmentVariableName = "MinutesUntilSwitchOn";
         var minimum = TimeSpan.FromMinutes(1);
-        return GetMinutesConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
+        var value = GetMinutesConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
     }
 
     public int PowerBuffer()
     {
-        return _configuration.GetValue<int>("PowerBuffer");
+        var environmentVariableName = "PowerBuffer";
+        var value = _configuration.GetValue<int>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
     }
 
     internal string GetNotNullableConfigurationValue(string environmentVariableName)
@@ -116,7 +141,7 @@ public class ConfigurationService : IConfigurationService
             _logger.LogError(exception, "Error getting configuration value");
             throw exception;
         }
-
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
