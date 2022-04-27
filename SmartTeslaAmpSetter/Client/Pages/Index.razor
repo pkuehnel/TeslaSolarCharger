@@ -228,7 +228,7 @@ else
         }
 
         _timer = new Timer();
-        _timer.Interval = (_configuration.GetValue<int>("FrontendUpdateintervallSeconds") < 5 ? 5 : _configuration.GetValue<int>("FrontendUpdateintervallSeconds")) * 1000;
+        _timer.Interval = 5000;
         _timer.Elapsed += RefreshStates;
         _timer.Start();
     }
