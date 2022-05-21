@@ -12,14 +12,15 @@ namespace SmartTeslaAmpSetter.Server.Services;
 public class ConfigJsonService : IConfigJsonService
 {
     private readonly ILogger<ConfigJsonService> _logger;
-    private readonly IConfiguration _configuration;
     private readonly ISettings _settings;
+    private readonly IConfigurationWrapper _congConfigurationWrapper;
 
-    public ConfigJsonService(ILogger<ConfigJsonService> logger, IConfiguration configuration, ISettings settings)
+    public ConfigJsonService(ILogger<ConfigJsonService> logger, ISettings settings,
+        IConfigurationWrapper congConfigurationWrapper)
     {
         _logger = logger;
-        _configuration = configuration;
         _settings = settings;
+        _congConfigurationWrapper = congConfigurationWrapper;
     }
 
     private bool CarConfigurationFileExists()
@@ -30,7 +31,7 @@ public class ConfigJsonService : IConfigJsonService
 
     private string GetConfigurationFileFullPath()
     {
-        var configFileLocation = _configuration.GetValue<string>("ConfigFileLocation");
+        var configFileLocation = _congConfigurationWrapper.ConfigFileLocation();
         var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
         path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), configFileLocation);
         return path;
@@ -52,7 +53,7 @@ public class ConfigJsonService : IConfigJsonService
             }
         }
 
-        var carIds = _configuration.GetValue<string>("CarPriorities").Split("|").Select(id => Convert.ToInt32(id)).ToList();
+        var carIds = _congConfigurationWrapper.CarPriorities();
         RemoveOldCars(cars, carIds);
 
         var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();

@@ -13,12 +13,13 @@ public class TeslamateApiService : ITeslaService
     private readonly ISettings _settings;
     private readonly string _teslaMateBaseUrl;
 
-    public TeslamateApiService(ILogger<TeslamateApiService> logger, IConfiguration configuration, ITelegramService telegramService, ISettings settings)
+    public TeslamateApiService(ILogger<TeslamateApiService> logger, ITelegramService telegramService, 
+        ISettings settings, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _telegramService = telegramService;
         _settings = settings;
-        _teslaMateBaseUrl = configuration.GetValue<string>("TeslaMateApiBaseUrl");
+        _teslaMateBaseUrl = configurationWrapper.TeslaMateApiBaseUrl();
     }
 
     public async Task StartCharging(int carId, int startAmp, CarState? carState)
