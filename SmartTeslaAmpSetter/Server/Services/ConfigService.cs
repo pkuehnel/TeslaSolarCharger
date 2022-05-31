@@ -54,6 +54,7 @@ public class ConfigService : IConfigService
                 MaximumAmpere = car.CarConfiguration.MaximumAmpere,
                 MinimumAmpere = car.CarConfiguration.MinimumAmpere,
                 UsableEnergy = car.CarConfiguration.UsableEnergy,
+                ShouldBeManaged = car.CarConfiguration.ShouldBeManaged,
             });
         }
 
@@ -67,5 +68,6 @@ public class ConfigService : IConfigService
         car.CarConfiguration.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
         car.CarConfiguration.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
         car.CarConfiguration.UsableEnergy = carBasicConfiguration.UsableEnergy;
+        car.CarConfiguration.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
     }
 }
