@@ -68,19 +68,8 @@ public class ChargingService : IChargingService
         _logger.LogTrace("Relevant cars: {@relevantCars}", relevantCars);
         _logger.LogTrace("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
 
-        foreach (var relevantCar in relevantCars)
-        {
-            relevantCar.CarState.ChargingPowerAtHome = relevantCar.CarState.ChargingPower;
-        }
-
-        //Do not combine with irrelevant cars because then charging would never start
-        foreach (var pluggedOutCar in _settings.Cars
-                     .Where(c => c.CarState.PluggedIn != true).ToList())
-        {
-            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", pluggedOutCar.Id);
-            UpdateEarliestTimesAfterSwitch(pluggedOutCar.Id);
-            pluggedOutCar.CarState.ChargingPowerAtHome = 0;
-        }
+        UpdateChargingPowerAtHome(geofence);
+        
 
         foreach (var car in irrelevantCars)
         {
@@ -117,6 +106,30 @@ public class ChargingService : IChargingService
         {
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
             ampToRegulate -= await ChangeCarAmp(relevantCar, ampToRegulate).ConfigureAwait(false);
+        }
+    }
+
+    private void UpdateChargingPowerAtHome(string geofence)
+    {
+        var carsAtHome = _settings.Cars.Where(c => c.CarState.Geofence == geofence).ToList();
+        foreach (var car in carsAtHome)
+        {
+            car.CarState.ChargingPowerAtHome = car.CarState.ChargingPower;
+        }
+        var carsNotAtHome = _settings.Cars.Where(car => !carsAtHome.Select(c => c.Id).Any(i => i == car.Id)).ToList();
+
+        foreach (var car in carsNotAtHome)
+        {
+            car.CarState.ChargingPowerAtHome = 0;
+        }
+
+        //Do not combine with irrelevant cars because then charging would never start
+        foreach (var pluggedOutCar in _settings.Cars
+                     .Where(c => c.CarState.PluggedIn != true).ToList())
+        {
+            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", pluggedOutCar.Id);
+            UpdateEarliestTimesAfterSwitch(pluggedOutCar.Id);
+            pluggedOutCar.CarState.ChargingPowerAtHome = 0;
         }
     }
 
