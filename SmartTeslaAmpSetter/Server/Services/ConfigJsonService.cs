@@ -174,6 +174,13 @@ public class ConfigJsonService : IConfigJsonService
             {
                 car.CarConfiguration.MinimumAmpere = 1;
             }
+
+            if (car.CarConfiguration.ShouldBeManaged == null)
+            {
+                var defaultValue = true;
+                _logger.LogInformation("Car {carId}: {variable} is not set, use default value {defaultValue}", car.Id, nameof(car.CarConfiguration.ShouldBeManaged), defaultValue);
+                car.CarConfiguration.ShouldBeManaged = defaultValue;
+            }
         }
         _logger.LogDebug("All unset car configurations set.");
     }

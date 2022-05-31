@@ -140,6 +140,10 @@ public class ChargingService : TestBase
                     SoC = 30,
                     SocLimit = 60,
                 },
+                CarConfiguration = new CarConfiguration()
+                {
+                    ShouldBeManaged = true,
+                },
             },
             new Car()
             {
@@ -152,6 +156,27 @@ public class ChargingService : TestBase
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
+                },
+                CarConfiguration = new CarConfiguration()
+                {
+                    ShouldBeManaged = true,
+                },
+            },
+            new Car()
+            {
+                Id = 3,
+                CarState = new CarState()
+                {
+                    Geofence = geofence,
+                    PluggedIn = true,
+                    ClimateOn = false,
+                    ChargerActualCurrent = 3,
+                    SoC = 30,
+                    SocLimit = 60,
+                },
+                CarConfiguration = new CarConfiguration()
+                {
+                    ShouldBeManaged = false,
                 },
             },
         };
@@ -182,6 +207,10 @@ public class ChargingService : TestBase
                     SoC = 30,
                     SocLimit = 60,
                 },
+                CarConfiguration = new CarConfiguration()
+                {
+                    ShouldBeManaged = true,
+                },
             },
             new Car()
             {
@@ -195,15 +224,37 @@ public class ChargingService : TestBase
                     SoC = 30,
                     SocLimit = 60,
                 },
+                CarConfiguration = new CarConfiguration()
+                {
+                    ShouldBeManaged = true,
+                },
+            },
+            new Car()
+            {
+                Id = 3,
+                CarState = new CarState()
+                {
+                    Geofence = geofence,
+                    PluggedIn = true,
+                    ClimateOn = false,
+                    ChargerActualCurrent = 3,
+                    SoC = 30,
+                    SocLimit = 60,
+                },
+                CarConfiguration = new CarConfiguration()
+                {
+                    ShouldBeManaged = false,
+                },
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
         var chargingService = Mock.Create<Server.Services.ChargingService>();
 
-        var irrelevantCars = chargingService.GetIrrelevantCars(new List<int>(){1});
-
-        Assert.Single(irrelevantCars);
+        var irrelevantCars = chargingService.GetIrrelevantCars(chargingService.GetRelevantCarIds(geofence));
+        
+        Assert.Equal(2, irrelevantCars.Count);
         Assert.Contains(2, irrelevantCars.Select(c => c.Id));
+        Assert.Contains(3, irrelevantCars.Select(c => c.Id));
     }
     
     private Car CreateDemoCar(ChargeMode chargeMode, DateTime latestTimeToReachSoC, int soC, int minimumSoC, bool autoFullSpeedCharge)

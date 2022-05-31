@@ -150,6 +150,7 @@ public class ChargingService : IChargingService
         var relevantIds = _settings.Cars
             .Where(c =>
                 c.CarState.Geofence == geofence
+                && c.CarConfiguration.ShouldBeManaged == true
                 && c.CarState.PluggedIn == true
                 && (c.CarState.ClimateOn == true ||
                     c.CarState.ChargerActualCurrent > 0 ||
