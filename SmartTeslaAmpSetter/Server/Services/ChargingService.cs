@@ -69,12 +69,6 @@ public class ChargingService : IChargingService
         _logger.LogTrace("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
 
         UpdateChargingPowerAtHome(geofence);
-        
-
-        foreach (var car in irrelevantCars)
-        {
-            car.CarState.ChargingPowerAtHome = 0;
-        }
 
         if (onlyUpdateValues)
         {
