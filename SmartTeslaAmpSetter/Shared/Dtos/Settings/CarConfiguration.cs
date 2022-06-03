@@ -11,10 +11,12 @@ public class CarConfiguration
     private int _maximumAmpere;
     private int _minimumAmpere;
     private int _usableEnergy;
+    private bool? _shouldBeManaged;
 
     public CarConfiguration()
     {
         UpdatedSincLastWrite = true;
+        _shouldBeManaged = true;
     }
 
     [JsonIgnore]
@@ -76,6 +78,16 @@ public class CarConfiguration
         set
         {
             _usableEnergy = value;
+            UpdatedSincLastWrite = true;
+        }
+    }
+
+    public bool? ShouldBeManaged
+    {
+        get => _shouldBeManaged;
+        set
+        {
+            _shouldBeManaged = value;
             UpdatedSincLastWrite = true;
         }
     }

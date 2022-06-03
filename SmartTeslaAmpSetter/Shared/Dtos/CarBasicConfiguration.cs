@@ -12,4 +12,5 @@ public class CarBasicConfiguration
     public int MaximumAmpere { get; set; }
     public int MinimumAmpere { get; set; }
     public int UsableEnergy { get; set; }
+    public bool? ShouldBeManaged { get; set; }
 }

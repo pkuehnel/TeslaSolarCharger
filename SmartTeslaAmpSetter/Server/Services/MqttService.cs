@@ -137,7 +137,7 @@ public class MqttService : IMqttService
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
     }
 
-    private void UpdateCar(TeslaMateValue value)
+    internal void UpdateCar(TeslaMateValue value)
     {
         var car = _settings.Cars.First(c => c.Id == value.CarId);
 
@@ -188,6 +188,13 @@ public class MqttService : IMqttService
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.CarState.ChargerActualCurrent = Convert.ToInt32(value.Value);
+                    if (car.CarState.ChargerActualCurrent < 5 &&
+                        car.CarState.LastSetAmp == car.CarState.ChargerActualCurrent - 1 &&
+                        car.CarState.LastSetAmp > 0)
+                    {
+                        _logger.LogWarning("CarId {carId}: Reducing {actualCurrent} from {originalValue} to {newValue} due to error in TeslaApi", car.Id, nameof(car.CarState.ChargerActualCurrent), car.CarState.ChargerActualCurrent, car.CarState.LastSetAmp);
+                        car.CarState.ChargerActualCurrent = car.CarState.LastSetAmp;
+                    }
                 }
                 else
                 {
