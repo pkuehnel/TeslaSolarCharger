@@ -2,5 +2,5 @@
 
 public interface IChargingService
 {
-    Task SetNewChargingValues(bool onlyUpdateValues = false);
+    Task SetNewChargingValues();
 }

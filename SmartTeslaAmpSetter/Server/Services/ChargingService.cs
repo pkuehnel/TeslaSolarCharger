@@ -31,26 +31,11 @@ public class ChargingService : IChargingService
         _configurationWrapper = configurationWrapper;
     }
 
-    public async Task SetNewChargingValues(bool onlyUpdateValues = false)
+    public async Task SetNewChargingValues()
     {
-        _logger.LogTrace("{method}({param})", nameof(SetNewChargingValues), onlyUpdateValues);
+        _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
 
-        var overage = await _gridService.GetCurrentOverage().ConfigureAwait(false);
-
-        _settings.Overage = overage;
-
-        _logger.LogDebug($"Current overage is {overage} Watt.");
-
-        var inverterPower = await _gridService.GetCurrentInverterPower().ConfigureAwait(false);
-
-        _settings.InverterPower = inverterPower;
-
-        _logger.LogDebug($"Current overage is {overage} Watt.");
-
-        var buffer = _configurationWrapper.PowerBuffer();
-        _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-
-        overage -= buffer;
+        _logger.LogDebug("Current overage is {overage} Watt.", _settings.Overage);
 
         var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
@@ -59,7 +44,7 @@ public class ChargingService : IChargingService
 
         var relevantCarIds = GetRelevantCarIds(geofence);
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
-        
+
         var irrelevantCars = GetIrrelevantCars(relevantCarIds);
         _logger.LogDebug("Irrelevant car ids: {@ids}", irrelevantCars.Select(c => c.Id));
 
@@ -70,11 +55,6 @@ public class ChargingService : IChargingService
 
         UpdateChargingPowerAtHome(geofence);
 
-        if (onlyUpdateValues)
-        {
-            return;
-        }
-
         if (relevantCarIds.Count < 1)
         {
             return;
@@ -84,7 +64,22 @@ public class ChargingService : IChargingService
             .Sum(c => c.CarState.ChargingPower);
         _logger.LogDebug("Current control Power: {power}", currentControledPower);
 
-        var powerToControl = overage;
+        if (_settings.Overage != null)
+        {
+            _logger.LogWarning("Can not control power as overage is unknown");
+            return;
+        }
+
+        var buffer = _configurationWrapper.PowerBuffer();
+        _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
+
+        var overage = _settings.Overage - buffer;
+
+#pragma warning disable CS8629
+        int powerToControl = (int)overage;
+#pragma warning restore CS8629
+
+
         _logger.LogDebug("Power to control: {power}", powerToControl);
 
         if (powerToControl < 0)
@@ -166,7 +161,7 @@ public class ChargingService : IChargingService
 
         return relevantIds;
     }
-    
+
     /// <summary>
     /// Changes ampere of car
     /// </summary>
@@ -176,21 +171,21 @@ public class ChargingService : IChargingService
     private async Task<int> ChangeCarAmp(Car car, int ampToChange)
     {
         _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), car.CarState.Name, ampToChange);
-        var finalAmpsToSet = (car.CarState.ChargerActualCurrent?? 0) + ampToChange;
+        var finalAmpsToSet = (car.CarState.ChargerActualCurrent ?? 0) + ampToChange;
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
         var ampChange = 0;
         var minAmpPerCar = car.CarConfiguration.MinimumAmpere;
         var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
-        
+
         EnableFullSpeedChargeIfMinimumSocNotReachable(car);
         DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (car.CarConfiguration.ChargeMode == ChargeMode.MaxPower || car.CarState.AutoFullSpeedCharge)
         {
-            _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}", 
+            _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}",
                 car.CarConfiguration.ChargeMode, car.CarState.AutoFullSpeedCharge);
             if (car.CarState.ChargerActualCurrent < maxAmpPerCar)
             {
@@ -205,13 +200,13 @@ public class ChargingService : IChargingService
                         return 0;
                     }
                     await _teslaService.StartCharging(car.Id, ampToSet, car.CarState.State).ConfigureAwait(false);
-                    ampChange += ampToSet - (car.CarState.ChargerActualCurrent?? 0);
+                    ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
                     UpdateEarliestTimesAfterSwitch(car.Id);
                 }
                 else
                 {
                     await _teslaService.SetAmp(car.Id, ampToSet).ConfigureAwait(false);
-                    ampChange += ampToSet - (car.CarState.ChargerActualCurrent?? 0);
+                    ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
                     UpdateEarliestTimesAfterSwitch(car.Id);
                 }
 
@@ -233,7 +228,7 @@ public class ChargingService : IChargingService
                 {
                     await _teslaService.SetAmp(car.Id, minAmpPerCar).ConfigureAwait(false);
                 }
-                ampChange += minAmpPerCar - (car.CarState.ChargerActualCurrent?? 0);
+                ampChange += minAmpPerCar - (car.CarState.ChargerActualCurrent ?? 0);
             }
             //Laden Stoppen
             else
@@ -289,8 +284,8 @@ public class ChargingService : IChargingService
     internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car car)
     {
         if (car.CarState.ReachingMinSocAtFullSpeedCharge == null
-            || car.CarState.SoC >= car.CarConfiguration.MinimumSoC 
-            || car.CarState.ReachingMinSocAtFullSpeedCharge < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30) 
+            || car.CarState.SoC >= car.CarConfiguration.MinimumSoC
+            || car.CarState.ReachingMinSocAtFullSpeedCharge < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)
             && car.CarConfiguration.ChargeMode != ChargeMode.PvAndMinSoc)
         {
             car.CarState.AutoFullSpeedCharge = false;

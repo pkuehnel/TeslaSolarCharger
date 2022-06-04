@@ -27,9 +27,10 @@ var mqttClient = mqttFactory.CreateMqttClient();
 
 builder.Services
     .AddTransient<JobManager>()
-    .AddTransient<Job>()
+    .AddTransient<ChargingValueJob>()
     .AddTransient<ConfigJsonUpdateJob>()
     .AddTransient<ChargeTimeUpdateJob>()
+    .AddTransient<PvValueJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -46,6 +47,7 @@ builder.Services
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
     .AddTransient<IMqttService, MqttService>()
+    .AddTransient<IPvValueService, PvValueService>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -68,9 +70,6 @@ var app = builder.Build();
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up");
 
-var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
-var jobIntervall = configurationWrapper.UpdateIntervall();
-
 var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
 
 await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
@@ -80,7 +79,7 @@ var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
-jobManager.StartJobs(jobIntervall);
+jobManager.StartJobs();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

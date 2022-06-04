@@ -6,7 +6,7 @@ namespace SmartTeslaAmpSetter.Server.Contracts;
 
 public interface IConfigService
 {
-    Task<ISettings> GetSettings();
+    ISettings GetSettings();
     ChargeMode ChangeChargeMode(int carId);
     void UpdateCarConfiguration(int carId, CarConfiguration carConfiguration);
     List<CarBasicConfiguration> GetCarBasicConfigurations();

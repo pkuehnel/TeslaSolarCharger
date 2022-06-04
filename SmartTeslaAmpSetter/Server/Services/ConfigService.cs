@@ -19,10 +19,9 @@ public class ConfigService : IConfigService
         _chargingService = chargingService;
     }
 
-    public async Task<ISettings> GetSettings()
+    public ISettings GetSettings()
     {
         _logger.LogTrace("{method}()", nameof(GetSettings));
-        await _chargingService.SetNewChargingValues(true);
         return _settings;
     }
 
