@@ -80,17 +80,14 @@ public class ChargingService : IChargingService
             return;
         }
 
-        var currentRegulatedPower = relevantCars
+        var currentControledPower = relevantCars
             .Sum(c => c.CarState.ChargingPower);
-        _logger.LogDebug("Current regulated Power: {power}", currentRegulatedPower);
+        _logger.LogDebug("Current control Power: {power}", currentControledPower);
 
-        var powerToRegulate = overage;
-        _logger.LogDebug("Power to regulate: {power}", powerToRegulate);
+        var powerToControl = overage;
+        _logger.LogDebug("Power to control: {power}", powerToControl);
 
-        var ampToRegulate = Convert.ToInt32(Math.Floor(powerToRegulate / ((double)230 * 3)));
-        _logger.LogDebug("Amp to regulate: {amp}", ampToRegulate);
-        
-        if (ampToRegulate < 0)
+        if (powerToControl < 0)
         {
             _logger.LogDebug("Reversing car order");
             relevantCars.Reverse();
@@ -98,8 +95,10 @@ public class ChargingService : IChargingService
 
         foreach (var relevantCar in relevantCars)
         {
+            var ampToControl = Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * (relevantCar.CarState.ActualPhases ?? 3))));
+            _logger.LogDebug("Amp to control: {amp}", ampToControl);
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
-            ampToRegulate -= await ChangeCarAmp(relevantCar, ampToRegulate).ConfigureAwait(false);
+            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl).ConfigureAwait(false);
         }
     }
 
@@ -168,117 +167,123 @@ public class ChargingService : IChargingService
         return relevantIds;
     }
     
-    private async Task<int> ChangeCarAmp(Car relevantCar, int ampToRegulate)
+    /// <summary>
+    /// Changes ampere of car
+    /// </summary>
+    /// <param name="car">car whose Ampere should be changed</param>
+    /// <param name="ampToChange">Needed amp difference</param>
+    /// <returns>Power difference</returns>
+    private async Task<int> ChangeCarAmp(Car car, int ampToChange)
     {
-        _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), relevantCar.CarState.Name, ampToRegulate);
-        var finalAmpsToSet = (relevantCar.CarState.ChargerActualCurrent?? 0) + ampToRegulate;
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), car.CarState.Name, ampToChange);
+        var finalAmpsToSet = (car.CarState.ChargerActualCurrent?? 0) + ampToChange;
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
         var ampChange = 0;
-        var minAmpPerCar = relevantCar.CarConfiguration.MinimumAmpere;
-        var maxAmpPerCar = relevantCar.CarConfiguration.MaximumAmpere;
+        var minAmpPerCar = car.CarConfiguration.MinimumAmpere;
+        var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
         
-        EnableFullSpeedChargeIfMinimumSocNotReachable(relevantCar);
-        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(relevantCar);
+        EnableFullSpeedChargeIfMinimumSocNotReachable(car);
+        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
-        if (relevantCar.CarConfiguration.ChargeMode == ChargeMode.MaxPower || relevantCar.CarState.AutoFullSpeedCharge)
+        if (car.CarConfiguration.ChargeMode == ChargeMode.MaxPower || car.CarState.AutoFullSpeedCharge)
         {
             _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}", 
-                relevantCar.CarConfiguration.ChargeMode, relevantCar.CarState.AutoFullSpeedCharge);
-            if (relevantCar.CarState.ChargerActualCurrent < maxAmpPerCar)
+                car.CarConfiguration.ChargeMode, car.CarState.AutoFullSpeedCharge);
+            if (car.CarState.ChargerActualCurrent < maxAmpPerCar)
             {
                 var ampToSet = maxAmpPerCar;
 
-                if (relevantCar.CarState.ChargerActualCurrent < 1)
+                if (car.CarState.ChargerActualCurrent < 1)
                 {
                     //Do not start charging when battery level near charge limit
-                    if (relevantCar.CarState.SoC >=
-                        relevantCar.CarState.SocLimit - 2)
+                    if (car.CarState.SoC >=
+                        car.CarState.SocLimit - 2)
                     {
-                        return ampChange;
+                        return 0;
                     }
-                    await _teslaService.StartCharging(relevantCar.Id, ampToSet, relevantCar.CarState.State).ConfigureAwait(false);
-                    ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent?? 0);
-                    UpdateEarliestTimesAfterSwitch(relevantCar.Id);
+                    await _teslaService.StartCharging(car.Id, ampToSet, car.CarState.State).ConfigureAwait(false);
+                    ampChange += ampToSet - (car.CarState.ChargerActualCurrent?? 0);
+                    UpdateEarliestTimesAfterSwitch(car.Id);
                 }
                 else
                 {
-                    await _teslaService.SetAmp(relevantCar.Id, ampToSet).ConfigureAwait(false);
-                    ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent?? 0);
-                    UpdateEarliestTimesAfterSwitch(relevantCar.Id);
+                    await _teslaService.SetAmp(car.Id, ampToSet).ConfigureAwait(false);
+                    ampChange += ampToSet - (car.CarState.ChargerActualCurrent?? 0);
+                    UpdateEarliestTimesAfterSwitch(car.Id);
                 }
 
             }
 
         }
         //Falls Laden beendet werden soll, aber noch ladend
-        else if (finalAmpsToSet < minAmpPerCar && relevantCar.CarState.ChargerActualCurrent > 0)
+        else if (finalAmpsToSet < minAmpPerCar && car.CarState.ChargerActualCurrent > 0)
         {
             _logger.LogDebug("Charging should stop");
-            var earliestSwitchOff = EarliestSwitchOff(relevantCar.Id);
+            var earliestSwitchOff = EarliestSwitchOff(car.Id);
             //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
-            if (relevantCar.CarState.ClimateOn == true || earliestSwitchOff > DateTime.Now)
+            if (car.CarState.ClimateOn == true || earliestSwitchOff > DateTime.Now)
             {
                 _logger.LogDebug("Can not stop charing: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
-                    relevantCar.CarState.ClimateOn,
+                    car.CarState.ClimateOn,
                     earliestSwitchOff);
-                if (relevantCar.CarState.ChargerActualCurrent != minAmpPerCar)
+                if (car.CarState.ChargerActualCurrent != minAmpPerCar)
                 {
-                    await _teslaService.SetAmp(relevantCar.Id, minAmpPerCar).ConfigureAwait(false);
+                    await _teslaService.SetAmp(car.Id, minAmpPerCar).ConfigureAwait(false);
                 }
-                ampChange += minAmpPerCar - (relevantCar.CarState.ChargerActualCurrent?? 0);
+                ampChange += minAmpPerCar - (car.CarState.ChargerActualCurrent?? 0);
             }
             //Laden Stoppen
             else
             {
                 _logger.LogDebug("Stop Charging");
-                await _teslaService.StopCharging(relevantCar.Id).ConfigureAwait(false);
-                ampChange -= relevantCar.CarState.ChargerActualCurrent ?? 0;
-                UpdateEarliestTimesAfterSwitch(relevantCar.Id);
+                await _teslaService.StopCharging(car.Id).ConfigureAwait(false);
+                ampChange -= car.CarState.ChargerActualCurrent ?? 0;
+                UpdateEarliestTimesAfterSwitch(car.Id);
             }
         }
         //Falls Laden beendet ist und beendet bleiben soll
         else if (finalAmpsToSet < minAmpPerCar)
         {
             _logger.LogDebug("Charging should stay stopped");
-            UpdateEarliestTimesAfterSwitch(relevantCar.Id);
+            UpdateEarliestTimesAfterSwitch(car.Id);
         }
         //Falls nicht ladend, aber laden soll beginnen
-        else if (finalAmpsToSet >= minAmpPerCar && relevantCar.CarState.ChargerActualCurrent == 0)
+        else if (finalAmpsToSet >= minAmpPerCar && car.CarState.ChargerActualCurrent == 0)
         {
             _logger.LogDebug("Charging should start");
-            var earliestSwitchOn = EarliestSwitchOn(relevantCar.Id);
+            var earliestSwitchOn = EarliestSwitchOn(car.Id);
 
             if (earliestSwitchOn <= DateTime.Now)
             {
                 _logger.LogDebug("Charging should start");
                 var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-                await _teslaService.StartCharging(relevantCar.Id, startAmp, relevantCar.CarState.State).ConfigureAwait(false);
+                await _teslaService.StartCharging(car.Id, startAmp, car.CarState.State).ConfigureAwait(false);
                 ampChange += startAmp;
-                UpdateEarliestTimesAfterSwitch(relevantCar.Id);
+                UpdateEarliestTimesAfterSwitch(car.Id);
             }
         }
         //Normal Ampere setzen
         else
         {
             _logger.LogDebug("Normal amp set");
-            UpdateEarliestTimesAfterSwitch(relevantCar.Id);
+            UpdateEarliestTimesAfterSwitch(car.Id);
             var ampToSet = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-            if (ampToSet != relevantCar.CarState.ChargerActualCurrent)
+            if (ampToSet != car.CarState.ChargerActualCurrent)
             {
-                await _teslaService.SetAmp(relevantCar.Id, ampToSet).ConfigureAwait(false);
-                ampChange += ampToSet - (relevantCar.CarState.ChargerActualCurrent ?? 0);
+                await _teslaService.SetAmp(car.Id, ampToSet).ConfigureAwait(false);
+                ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
             }
             else
             {
                 _logger.LogDebug("Current actual amp: {currentActualAmp} same as amp to set: {ampToSet} Do not change anything",
-                    relevantCar.CarState.ChargerActualCurrent, ampToSet);
+                    car.CarState.ChargerActualCurrent, ampToSet);
             }
         }
 
-        return ampChange;
+        return ampChange * (car.CarState.ChargerVoltage ?? 230) * (car.CarState.ActualPhases ?? 3);
     }
 
     internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car car)
