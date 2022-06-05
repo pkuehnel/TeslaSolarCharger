@@ -4,9 +4,8 @@
 @using SmartTeslaAmpSetter.Shared
 @using SmartTeslaAmpSetter.Shared.Dtos.Settings
 @using SmartTeslaAmpSetter.Shared.Enums
-@inject HttpClient _httpClient
-@inject IToastService _toastService
-@inject IConfiguration _configuration
+@inject HttpClient HttpClient
+@inject IToastService ToastService
 
 <PageTitle>Index</PageTitle>
 
@@ -225,7 +224,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var handler = _httpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        var handler = HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
         _settings = await handler;
         foreach (var car in _settings!.Cars)
         {
@@ -242,17 +241,17 @@ else
     private async Task ChangeChargeMode(int carId)
     {
         _chargemodeChangeButtonTexts[carId] = _buttonLoadingText;
-        var updateBackend = _httpClient.PostAsync($"api/Config/ChangeChargeMode?carId={carId}", new StringContent(string.Empty));
+        var updateBackend = HttpClient.PostAsync($"api/Config/ChangeChargeMode?carId={carId}", new StringContent(string.Empty));
         var car = _settings?.Cars.First(c => c.Id == carId);
         var result = await updateBackend;
         if (result.IsSuccessStatusCode)
         {
-            _toastService.ShowSuccess("ChargeMode Changed");
+            ToastService.ShowSuccess("ChargeMode Changed");
             car!.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
         }
         else
         {
-            _toastService.ShowError("Error changing ChargeMode");
+            ToastService.ShowError("Error changing ChargeMode");
         }
         _chargemodeChangeButtonTexts[carId] = _chargeModeChangeButtonDefaultText;
     }
@@ -260,21 +259,21 @@ else
     private async Task UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
     {
         _saveButtonTexts[carId] = _buttonLoadingText;
-        var result = await _httpClient.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
+        var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
         if (result.IsSuccessStatusCode)
         {
-            _toastService.ShowSuccess("Car Configuration updated");
+            ToastService.ShowSuccess("Car Configuration updated");
         }
         else
         {
-            _toastService.ShowError("Error updating car configuration");
+            ToastService.ShowError("Error updating car configuration");
         }
         _saveButtonTexts[carId] = _saveButtonDefaultText;
     }
 
     private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
-        var tmpSettings = await _httpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        var tmpSettings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
         _settings!.InverterPower = tmpSettings!.InverterPower;
         _settings.Overage = tmpSettings.Overage;
         foreach (var tmpCar in tmpSettings.Cars)
@@ -288,9 +287,9 @@ else
     private async void RefreshSettings()
     {
         _refreshButtonText = _buttonLoadingText;
-        _settings = await _httpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        _settings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
         this.StateHasChanged();
-        _toastService.ShowSuccess("Refreshed");
+        ToastService.ShowSuccess("Refreshed");
         _refreshButtonText = _refreshButtonDefaultText;
         this.StateHasChanged();
     }
