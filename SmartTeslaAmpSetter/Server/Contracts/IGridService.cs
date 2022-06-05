@@ -2,6 +2,6 @@
 
 public interface IGridService
 {
-    Task<int> GetCurrentOverage();
+    Task<int?> GetCurrentOverage();
     Task<int?> GetCurrentInverterPower();
 }

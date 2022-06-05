@@ -4,12 +4,12 @@ using SmartTeslaAmpSetter.Server.Contracts;
 namespace SmartTeslaAmpSetter.Server.Scheduling;
 
 [DisallowConcurrentExecution]
-public class Job : IJob
+public class ChargingValueJob : IJob
 {
-    private readonly ILogger<Job> _logger;
+    private readonly ILogger<ChargingValueJob> _logger;
     private readonly IChargingService _chargingService;
 
-    public Job(ILogger<Job> logger, IChargingService chargingService)
+    public ChargingValueJob(ILogger<ChargingValueJob> logger, IChargingService chargingService)
     {
         _logger = logger;
         _chargingService = chargingService;

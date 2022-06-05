@@ -17,7 +17,7 @@ public class GridService : IGridService
         _configurationWrapper = configurationWrapper;
     }
 
-    public async Task<int> GetCurrentOverage()
+    public async Task<int?> GetCurrentOverage()
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentOverage));
         using var httpClient = new HttpClient();
@@ -30,7 +30,7 @@ public class GridService : IGridService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", response.StatusCode, response.ReasonPhrase);
-            response.EnsureSuccessStatusCode();
+            return null;
         }
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

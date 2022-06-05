@@ -23,7 +23,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
-    public TimeSpan UpdateIntervall()
+    public TimeSpan ChargingValueJobUpdateIntervall()
     {
         var environmentVariableName = "UpdateIntervallSeconds";
         var minimum = TimeSpan.FromSeconds(20);

@@ -22,7 +22,13 @@ else
             <div><i class="fa-solid fa-solar-panel"></i> @_settings.InverterPower W</div>
             <div><i class="fa-solid fa-house"></i> @(_settings.InverterPower - _settings.Overage - _settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome)) W</div>
         }
-        <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")"><i class="fa-solid fa-bolt"></i> @(Math.Abs(_settings.Overage)) W</div>
+        <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")"><i class="fa-solid fa-bolt"></i>
+            @if (_settings.Overage != null)
+            {
+                var abs = @" " + Math.Abs((int)_settings.Overage);
+                @abs
+            }
+            W</div>
         <div><i class="fa-solid fa-car"></i> @_settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
         <button class="btn btn-primary col-6 col-sm-6 col-md-3" @onclick="() => RefreshSettings()">@_refreshButtonText</button>
     </div>
