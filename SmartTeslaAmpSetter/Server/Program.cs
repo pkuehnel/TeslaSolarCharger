@@ -7,6 +7,7 @@ using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
 using SmartTeslaAmpSetter.Server.Wrappers;
+using SmartTeslaAmpSetter.Shared.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
@@ -44,6 +45,7 @@ builder.Services
     .AddTransient<ITelegramService, TelegramService>()
     .AddTransient<ITeslaService, TeslamateApiService>()
     .AddSingleton<ISettings, Settings>()
+    .AddSingleton<IInMemoryValues, InMemoryValues>()
     .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
