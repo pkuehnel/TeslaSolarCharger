@@ -34,7 +34,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public TimeSpan PvValueJobUpdateIntervall()
     {
-        var environmentVariableName = "UpdateIntervallSeconds";
+        var environmentVariableName = "PvValueUpdateIntervalSeconds";
         var maximum = ChargingValueJobUpdateIntervall();
         var minimum = TimeSpan.FromSeconds(1);
         var value = TimeSpan.FromSeconds(_configuration.GetValue<int>(environmentVariableName));
