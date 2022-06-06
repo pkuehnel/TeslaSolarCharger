@@ -30,7 +30,7 @@ You can either use it in a Docker container or go download the code and deploy i
 
 ### Docker-compose
 
-If you run the simple Docker deployment of TeslaMate, then adding this will do the trick. You'll have the frontend available on port 7190 then.
+If you run the simple Docker deployment of TeslaMate, then adding this will do the trick. You'll have the frontend available on port 7190 then. Note: you have to change the CurrentPowerToGridUrl based on your environment. If you use the SMA Plugin you only have to update the IP address.
 
 ```yaml
 services:
@@ -45,9 +45,9 @@ services:
     depends_on:
       - teslamateapi
     environment:
-      - CurrentPowerToGridUrl=http://192.168.1.50/api/CurrentPower
+      - CurrentPowerToGridUrl=http://192.168.1.50/api/CurrentPower/GetPower
       - TeslaMateApiBaseUrl=http://teslamateapi:8080
-      - UpdateIntervalSeconds=30
+      - UpdateIntervalSeconds=20
       - CarPriorities=1
       - GeoFence=Home
       - MinutesUntilSwitchOn=5
@@ -154,5 +154,4 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:8453
-      - MaxValuesInLastValuesList=120
 ```

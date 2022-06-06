@@ -4,5 +4,5 @@ namespace Plugins.SmaEnergymeter;
 
 public class SharedValues
 {
-    public List<PowerValue> LastValues = new ();
+    public int Overage { get; set; }
 }
