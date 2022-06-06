@@ -16,7 +16,7 @@ namespace Plugins.SmaEnergymeter.Controllers
 
         [Obsolete]
         [HttpGet]
-        public int GetCurrentPower(int lastXSeconds)
+        public int GetCurrentPower(int lastXSeconds = 0)
         {
             return _currentPowerService.GetCurrentPower();
         }
