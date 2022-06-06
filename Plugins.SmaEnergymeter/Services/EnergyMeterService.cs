@@ -69,7 +69,7 @@ public class EnergyMeterService
             }
             else
             {
-                _sharedValues.Overage = (int)currentSupply;
+                _sharedValues.Overage = (int)currentOverage;
             }
         }
     }
