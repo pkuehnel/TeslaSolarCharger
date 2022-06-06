@@ -11,26 +11,9 @@ public class CurrentPowerService
         _sharedValues = sharedValues;
     }
 
-    public int GetCurrentPower(int lastXSeconds)
+    public int GetCurrentPower()
     {
-        _logger.LogTrace("{method}({param1})", nameof(GetCurrentPower), lastXSeconds);
-        var orderedValues = _sharedValues.LastValues
-            .Where(v => v.Timestamp >= DateTime.UtcNow.AddSeconds(-lastXSeconds))
-            .OrderBy(v => v.Timestamp)
-            .ToList();
-
-        long weightedSum = 0;
-        for (var i = 0; i < orderedValues.Count; i++)
-        {
-            _logger.LogTrace("Power Value: {value}", orderedValues[i].Power);
-            weightedSum += orderedValues[i].Power * (i + 1);
-            _logger.LogTrace("weightedSum: {value}", weightedSum);
-        }
-        var weightedCount = orderedValues.Count * (orderedValues.Count + 1) / 2;
-        if (weightedCount == 0)
-        {
-            throw new InvalidOperationException("There are no power values available");
-        }
-        return (int) (weightedSum / weightedCount);
+        _logger.LogTrace("{method}()", nameof(GetCurrentPower));
+        return _sharedValues.Overage;
     }
 }

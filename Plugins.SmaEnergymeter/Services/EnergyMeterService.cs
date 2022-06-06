@@ -62,27 +62,14 @@ public class EnergyMeterService
 
             _logger.LogTrace("current supply: {currentSupply}", currentSupply);
             _logger.LogTrace("current overage: {currentOverage}", currentOverage);
+            
             if (currentSupply > 0)
             {
-                _sharedValues.LastValues.Add(new()
-                {
-                    Timestamp = DateTime.UtcNow,
-                    Power = (int)-currentSupply,
-                });
+                _sharedValues.Overage = (int)-currentSupply;
             }
             else
             {
-                _sharedValues.LastValues.Add(new()
-                {
-                    Timestamp = DateTime.UtcNow,
-                    Power = (int)currentOverage,
-                });
-            }
-
-            var maxValuesInList = _configuration.GetValue<int>("MaxValuesInLastValuesList");
-            if (_sharedValues.LastValues.Count > maxValuesInList)
-            {
-                _sharedValues.LastValues.RemoveRange(0, _sharedValues.LastValues.Count - maxValuesInList);
+                _sharedValues.Overage = (int)currentSupply;
             }
         }
     }
