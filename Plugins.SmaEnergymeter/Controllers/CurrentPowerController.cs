@@ -21,7 +21,7 @@ namespace Plugins.SmaEnergymeter.Controllers
             return _currentPowerService.GetCurrentPower();
         }
 
-        [Route("api/[controller]/[action]")]
+        [Route("[action]")]
         [HttpGet]
         public int GetPower()
         {
