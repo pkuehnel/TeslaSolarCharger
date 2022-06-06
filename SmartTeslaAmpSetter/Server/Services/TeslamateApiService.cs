@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
 using SmartTeslaAmpSetter.Server.Contracts;
+using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using CarState = SmartTeslaAmpSetter.Shared.Enums.CarState;
 

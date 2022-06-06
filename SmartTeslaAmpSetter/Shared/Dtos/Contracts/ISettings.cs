@@ -1,4 +1,6 @@
-﻿namespace SmartTeslaAmpSetter.Shared.Dtos.Settings;
+﻿using SmartTeslaAmpSetter.Shared.Dtos.Settings;
+
+namespace SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 
 public interface ISettings
 {

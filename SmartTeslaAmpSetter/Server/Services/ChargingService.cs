@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using SmartTeslaAmpSetter.Server.Contracts;
+using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
@@ -17,10 +18,11 @@ public class ChargingService : IChargingService
     private readonly ITelegramService _telegramService;
     private readonly ITeslaService _teslaService;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly IPvValueService _pvValueService;
 
     public ChargingService(ILogger<ChargingService> logger, IGridService gridService,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
-        ITeslaService teslaService, IConfigurationWrapper configurationWrapper)
+        ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService)
     {
         _logger = logger;
         _gridService = gridService;
@@ -29,6 +31,7 @@ public class ChargingService : IChargingService
         _telegramService = telegramService;
         _teslaService = teslaService;
         _configurationWrapper = configurationWrapper;
+        _pvValueService = pvValueService;
     }
 
     public async Task SetNewChargingValues()
@@ -73,13 +76,13 @@ public class ChargingService : IChargingService
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
 
-        var overage = _settings.Overage - buffer;
+        var averagedOverage = _pvValueService.GetAveragedOverage();
+        _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
-#pragma warning disable CS8629
-        int powerToControl = (int)overage;
-#pragma warning restore CS8629
-
-
+        var overage = averagedOverage - buffer;
+        
+        var powerToControl = overage;
+        
         _logger.LogDebug("Power to control: {power}", powerToControl);
 
         if (powerToControl < 0)
