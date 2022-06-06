@@ -67,17 +67,18 @@ public class ChargingService : IChargingService
             .Sum(c => c.CarState.ChargingPower);
         _logger.LogDebug("Current control Power: {power}", currentControledPower);
 
-        if (_settings.Overage != null)
-        {
-            _logger.LogWarning("Can not control power as overage is unknown");
-            return;
-        }
-
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
 
         var averagedOverage = _pvValueService.GetAveragedOverage();
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
+
+        if (_settings.Overage != null)
+        {
+            _logger.LogWarning("Can not control power as overage is unknown");
+            //ToDo: add return
+            //return;
+        }
 
         var overage = averagedOverage - buffer;
         

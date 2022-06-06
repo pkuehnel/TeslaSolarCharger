@@ -27,6 +27,7 @@ public class PvValueService : IPvValueService
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
 
         var overage = await _gridService.GetCurrentOverage().ConfigureAwait(false);
+        _logger.LogDebug("Overage is {overage}", overage);
         _settings.Overage = overage;
         if (overage != null)
         {
@@ -37,6 +38,7 @@ public class PvValueService : IPvValueService
 
     public int GetAveragedOverage()
     {
+        _logger.LogTrace("{method}()", nameof(GetAveragedOverage));
         long weightedSum = 0;
         for (var i = 0; i < _inMemoryValues.OverageValues.Count; i++)
         {
@@ -54,6 +56,7 @@ public class PvValueService : IPvValueService
 
     private void AddOverageValueToInMemoryList(int overage)
     {
+        _logger.LogTrace("{method}({overage})", nameof(AddOverageValueToInMemoryList), overage);
         _inMemoryValues.OverageValues.Add(overage);
 
         var valuesToSave = (int)(_configurationWrapper.ChargingValueJobUpdateIntervall().TotalSeconds /
