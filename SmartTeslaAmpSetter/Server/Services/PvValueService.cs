@@ -40,6 +40,7 @@ public class PvValueService : IPvValueService
     {
         _logger.LogTrace("{method}()", nameof(GetAveragedOverage));
         long weightedSum = 0;
+        _logger.LogDebug("Build weighted average of {count} values", _inMemoryValues.OverageValues.Count);
         for (var i = 0; i < _inMemoryValues.OverageValues.Count; i++)
         {
             _logger.LogTrace("Power Value: {value}", _inMemoryValues.OverageValues[i]);
