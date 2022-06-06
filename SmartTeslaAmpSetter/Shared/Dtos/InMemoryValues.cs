@@ -6,8 +6,8 @@ public class InMemoryValues : IInMemoryValues
 {
     public List<int> OverageValues { get; set; }
 
-    public InMemoryValues(List<int> overageValues)
+    public InMemoryValues()
     {
-        OverageValues = overageValues;
+        OverageValues = new List<int>();
     }
 }
