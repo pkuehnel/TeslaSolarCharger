@@ -23,7 +23,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
-    public TimeSpan UpdateIntervall()
+    public TimeSpan ChargingValueJobUpdateIntervall()
     {
         var environmentVariableName = "UpdateIntervallSeconds";
         var minimum = TimeSpan.FromSeconds(20);
@@ -31,7 +31,26 @@ public class ConfigurationWrapper : IConfigurationWrapper
         _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
-    
+
+    public TimeSpan PvValueJobUpdateIntervall()
+    {
+        var environmentVariableName = "PvValueUpdateIntervalSeconds";
+        var maximum = ChargingValueJobUpdateIntervall();
+        var minimum = TimeSpan.FromSeconds(1);
+        var value = TimeSpan.FromSeconds(_configuration.GetValue<int>(environmentVariableName));
+
+        if (value > maximum)
+        {
+            value = maximum;
+        } 
+        else if (value < minimum)
+        {
+            value = minimum;
+        }
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
     public string MqqtClientId()
     {
         var environmentVariableName = "MqqtClientId";

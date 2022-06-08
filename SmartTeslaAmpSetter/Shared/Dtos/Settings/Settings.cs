@@ -1,4 +1,6 @@
-﻿namespace SmartTeslaAmpSetter.Shared.Dtos.Settings;
+﻿using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
+
+namespace SmartTeslaAmpSetter.Shared.Dtos.Settings;
 
 public class Settings : ISettings
 {
@@ -10,7 +12,7 @@ public class Settings : ISettings
     }
 
     public int? InverterPower { get; set; }
-    public int Overage { get; set; }
+    public int? Overage { get; set; }
 
     public List<Car> Cars
     {

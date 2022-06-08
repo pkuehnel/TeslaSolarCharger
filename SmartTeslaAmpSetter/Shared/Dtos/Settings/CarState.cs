@@ -13,6 +13,9 @@ public class CarState
     public bool AutoFullSpeedCharge { get; set; }
     public int LastSetAmp { get; set; }
     public int? ChargerPhases { get; set; }
+
+    public int? ActualPhases => ChargerPhases > 1 ? 3 : 1;
+
     public int? ChargerVoltage { get; set; }
     public int? ChargerActualCurrent { get; set; }
     public bool? PluggedIn { get; set; }
@@ -22,8 +25,7 @@ public class CarState
     {
         get
         {
-            var phases = ChargerPhases > 1 ? 3 : 1;
-            var power = ChargerActualCurrent * ChargerVoltage * phases;
+            var power = ChargerActualCurrent * ChargerVoltage * ActualPhases;
             return power;
         }
     }

@@ -1,6 +1,7 @@
 ﻿using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared;
 using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
@@ -19,10 +20,9 @@ public class ConfigService : IConfigService
         _chargingService = chargingService;
     }
 
-    public async Task<ISettings> GetSettings()
+    public ISettings GetSettings()
     {
         _logger.LogTrace("{method}()", nameof(GetSettings));
-        await _chargingService.SetNewChargingValues(true);
         return _settings;
     }
 

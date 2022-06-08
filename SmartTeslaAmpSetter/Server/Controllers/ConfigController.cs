@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos;
+using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 
@@ -21,7 +22,7 @@ namespace SmartTeslaAmpSetter.Server.Controllers
         /// Get all settings and status of all cars
         /// </summary>
         [HttpGet]
-        public Task<ISettings> GetSettings() => _service.GetSettings();
+        public ISettings GetSettings() => _service.GetSettings();
 
         /// <summary>
         /// Change Chargemode of car

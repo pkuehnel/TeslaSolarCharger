@@ -3,7 +3,8 @@
 public interface IConfigurationWrapper
 {
     string ConfigFileLocation();
-    TimeSpan UpdateIntervall();
+    TimeSpan ChargingValueJobUpdateIntervall();
+    TimeSpan PvValueJobUpdateIntervall();
     string MqqtClientId();
     string MosquitoServer();
     string CurrentPowerToGridUrl();

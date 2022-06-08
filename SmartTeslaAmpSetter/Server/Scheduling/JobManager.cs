@@ -1,5 +1,6 @@
 ﻿using Quartz;
 using Quartz.Spi;
+using SmartTeslaAmpSetter.Server.Contracts;
 
 namespace SmartTeslaAmpSetter.Server.Scheduling;
 
@@ -8,28 +9,33 @@ public class JobManager
     private readonly ILogger<JobManager> _logger;
     private readonly IJobFactory _jobFactory;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     private IScheduler _scheduler;
 
 
 #pragma warning disable CS8618
-    public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory)
+    public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory, IConfigurationWrapper configurationWrapper)
 #pragma warning restore CS8618
     {
         _logger = logger;
         _jobFactory = jobFactory;
         _schedulerFactory = schedulerFactory;
+        _configurationWrapper = configurationWrapper;
     }
 
-    public async void StartJobs(TimeSpan jobIntervall)
+    public async void StartJobs()
     {
-        _logger.LogTrace("{class}.{Method}()", nameof(JobManager), nameof(StartJobs));
+        _logger.LogTrace("{Method}()", nameof(StartJobs));
         _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
         _scheduler.JobFactory = _jobFactory;
 
-        var chargeLogJob = JobBuilder.Create<Job>().Build();
+        var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
         var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
         var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
+        var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
+
+        var jobIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
         var defaultTrigger =
             TriggerBuilder.Create().WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)jobIntervall.TotalSeconds)).Build();
@@ -40,11 +46,18 @@ public class JobManager
         var chargeTimeUpdateTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(30)).Build();
 
+        var pvValueJobIntervall = _configurationWrapper.PvValueJobUpdateIntervall();
+        _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
+
+        var pvValueTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
-            {chargeLogJob,  new HashSet<ITrigger> { defaultTrigger }},
+            {chargingValueJob,  new HashSet<ITrigger> { defaultTrigger }},
             {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
             {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
+            {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

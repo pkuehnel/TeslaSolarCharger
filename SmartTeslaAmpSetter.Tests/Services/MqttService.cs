@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SmartTeslaAmpSetter.Server.Services;
+using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using Xunit;
 using Xunit.Abstractions;
