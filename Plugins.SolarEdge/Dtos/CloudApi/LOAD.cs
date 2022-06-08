@@ -1,7 +1,7 @@
 ﻿namespace Plugins.SolarEdge.Dtos.CloudApi;
 
-public class LOAD
+public class Load
 {
-    public string status { get; set; }
-    public double currentPower { get; set; }
+    public string Status { get; set; }
+    public double CurrentPower { get; set; }
 }

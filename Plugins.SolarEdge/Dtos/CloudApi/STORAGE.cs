@@ -1,9 +1,9 @@
 ﻿namespace Plugins.SolarEdge.Dtos.CloudApi;
 
-public class STORAGE
+public class Storage
 {
-    public string status { get; set; }
-    public double currentPower { get; set; }
-    public int chargeLevel { get; set; }
-    public bool critical { get; set; }
+    public string Status { get; set; }
+    public double CurrentPower { get; set; }
+    public int ChargeLevel { get; set; }
+    public bool Critical { get; set; }
 }

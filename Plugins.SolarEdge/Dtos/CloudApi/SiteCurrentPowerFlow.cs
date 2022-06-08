@@ -2,11 +2,11 @@
 
 public class SiteCurrentPowerFlow
 {
-    public int updateRefreshRate { get; set; }
-    public string unit { get; set; }
-    public List<Connection> connections { get; set; }
-    public GRID GRID { get; set; }
-    public LOAD LOAD { get; set; }
-    public PV PV { get; set; }
-    public STORAGE STORAGE { get; set; }
+    public int UpdateRefreshRate { get; set; }
+    public string Unit { get; set; }
+    public List<Connection> Connections { get; set; }
+    public Grid Grid { get; set; }
+    public Load Load { get; set; }
+    public Pv Pv { get; set; }
+    public Storage Storage { get; set; }
 }

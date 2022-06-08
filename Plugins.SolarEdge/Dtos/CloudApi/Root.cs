@@ -4,5 +4,5 @@
 
 public class Root
 {
-    public SiteCurrentPowerFlow siteCurrentPowerFlow { get; set; }
+    public SiteCurrentPowerFlow SiteCurrentPowerFlow { get; set; }
 }

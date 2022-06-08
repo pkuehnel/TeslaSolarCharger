@@ -1,7 +1,7 @@
 ﻿namespace Plugins.SolarEdge.Dtos.CloudApi;
 
-public class GRID
+public class Grid
 {
-    public string status { get; set; }
+    public string Status { get; set; }
     public double currentPower { get; set; }
 }
