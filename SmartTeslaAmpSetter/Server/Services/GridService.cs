@@ -36,7 +36,6 @@ public class GridService : IGridService
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         var jsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
-
         if (jsonPattern != null)
         {
             _logger.LogDebug("Extract overage value from {result} with {jsonPattern}", result, jsonPattern);
@@ -87,6 +86,14 @@ public class GridService : IGridService
             return null;
         }
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        var jsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+        if (jsonPattern != null)
+        {
+            _logger.LogDebug("Extract overage value from {result} with {jsonPattern}", result, jsonPattern);
+            result = (JObject.Parse(result).SelectToken(jsonPattern) ??
+                      throw new InvalidOperationException("Extracted Json Value is null")).Value<string>();
+        }
 
         try
         {

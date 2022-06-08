@@ -91,6 +91,14 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
+    public string? CurrentInverterPowerJsonPattern()
+    {
+        var environmentVariableName = "CurrentInverterPowerJsonPattern";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
     public bool CurrentPowerToGridInvertValue()
     {
         var environmentVariableName = "CurrentPowerToGridInvertValue";

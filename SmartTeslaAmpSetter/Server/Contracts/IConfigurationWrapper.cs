@@ -19,4 +19,5 @@ public interface IConfigurationWrapper
     int PowerBuffer();
     string? TelegramBotKey();
     string? TelegramChannelId();
+    string? CurrentInverterPowerJsonPattern();
 }
