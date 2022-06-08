@@ -98,7 +98,7 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 
 | Variable | Type | Explanation | Example |
 |---|---|---|---|
-| **CurrentPowerToGridUrl** | string | URL to REST Endpoint of smart meter | http://192.168.1.50/api/CurrentPower |
+| **CurrentPowerToGridUrl** | string | URL to REST Endpoint of smart meter | http://192.168.1.50/api/CurrentPower/GetPower |
 | **CurrentInverterPowerUrl** | string | URL to REST Endpoint of inverter (optional) | http://192.168.1.50/api/CurrentInverterPower |
 | **TeslaMateApiBaseUrl** | string | Base URL to TeslaMateApi instance | http://teslamateapi:8080 |
 | **UpdateIntervalSeconds** | int | Intervall how often the charging amps should be set (Note: TeslaMateApi takes some time to get new current values, so do not set a value lower than 30) | 30 |
@@ -139,7 +139,7 @@ If your SmartMeter does not have a REST Endpoint as needed you can use plugins:
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/smartteslaampsettersmaplugin/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersmaplugin)
 [![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersmaplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersmaplugin)
 
-With the SMA Energymeter Plugin (note: Every SMA Home Manager 2.0 has an integrated EnergyMeter Interface, so this plugin is working with SMA Home Manager 2.0 as well) a new service is created, which receives the EnergyMeter values and averages them for the last x seconds. The URL of the endpoint is: http://ip-of-your-host:8453/api/CurrentPower?lastXSeconds=30
+With the SMA Energymeter Plugin (note: Every SMA Home Manager 2.0 has an integrated EnergyMeter Interface, so this plugin is working with SMA Home Manager 2.0 as well) a new service is created, which receives the EnergyMeter values and averages them for the last x seconds. The URL of the endpoint is: http://ip-of-your-host:8453/api/CurrentPower/GetPower
 To use the plugin add the following to your `docker-compose.yml`:
 ```yaml
 services:
