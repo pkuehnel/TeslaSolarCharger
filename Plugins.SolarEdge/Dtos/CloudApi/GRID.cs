@@ -3,5 +3,5 @@
 public class Grid
 {
     public string Status { get; set; }
-    public double currentPower { get; set; }
+    public double CurrentPower { get; set; }
 }

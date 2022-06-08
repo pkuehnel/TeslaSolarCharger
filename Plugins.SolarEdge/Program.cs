@@ -1,3 +1,8 @@
+using Plugins.SolarEdge;
+using Plugins.SolarEdge.Contracts;
+using Plugins.SolarEdge.Services;
+using Serilog;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +11,17 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddSingleton<SharedValues>();
+builder.Services.AddTransient<ICurrentValuesService, CurrentValuesService>()
+    ;
+
+builder.Host.UseSerilog((context, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration));
+
+builder.Configuration
+    .AddJsonFile("appsettings.json")
+    .AddEnvironmentVariables();
 
 var app = builder.Build();
 
