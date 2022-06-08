@@ -20,4 +20,12 @@ public interface IConfigurationWrapper
     string? TelegramBotKey();
     string? TelegramChannelId();
     string? CurrentInverterPowerJsonPattern();
+    string? CurrentPowerToGridXmlPattern();
+    string? CurrentInverterPowerXmlPattern();
+    string? CurrentPowerToGridXmlAttributeHeaderName();
+    string? CurrentPowerToGridXmlAttributeHeaderValue();
+    string? CurrentPowerToGridXmlAttributeValueName();
+    string? CurrentInverterPowerXmlAttributeHeaderName();
+    string? CurrentInverterPowerXmlAttributeHeaderValue();
+    string? CurrentInverterPowerXmlAttributeValueName();
 }
