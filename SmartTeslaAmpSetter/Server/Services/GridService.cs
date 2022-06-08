@@ -32,6 +32,8 @@ public class GridService : IGridService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", response.StatusCode, response.ReasonPhrase);
+            await _telegramService.SendMessage(
+                $"Getting current grid power did result in statuscode {response.StatusCode} with reason {response.ReasonPhrase}");
             return null;
         }
 
@@ -63,6 +65,49 @@ public class GridService : IGridService
         }
 
         return overage;
+    }
+    public async Task<int?> GetCurrentInverterPower()
+    {
+        _logger.LogTrace("{method}()", nameof(GetCurrentInverterPower));
+        using var httpClient = new HttpClient();
+        var requestUri = _configurationWrapper.CurrentInverterPowerUrl();
+        if (requestUri == null)
+        {
+            return null;
+        }
+        var response = await httpClient.GetAsync(
+                requestUri)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Getting current inverter power did result in statuscode {statusCode} with reason {reasonPhrase}", response.StatusCode, response.ReasonPhrase);
+            await _telegramService.SendMessage(
+                $"Getting current inverter power did result in statuscode {response.StatusCode} with reason {response.ReasonPhrase}");
+            return null;
+        }
+        var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        var pattern = "";
+        var jsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
+        var xmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
+        NodePatternType nodePatternType;
+        if (jsonPattern != null)
+        {
+            nodePatternType = NodePatternType.Json;
+            pattern = jsonPattern;
+        }
+        else if (xmlPattern != null)
+        {
+            nodePatternType = NodePatternType.Xml;
+            pattern = xmlPattern;
+        }
+        else
+        {
+            nodePatternType = NodePatternType.None;
+        }
+
+        return GetValueFromResult(pattern, result, nodePatternType, false);
     }
 
     /// <summary>
@@ -134,43 +179,5 @@ public class GridService : IGridService
         return (int)double.Parse(inputString ?? throw new ArgumentNullException(nameof(inputString)), CultureInfo.InvariantCulture);
     }
 
-    public async Task<int?> GetCurrentInverterPower()
-    {
-        _logger.LogTrace("{method}()", nameof(GetCurrentInverterPower));
-        using var httpClient = new HttpClient();
-        var requestUri = _configurationWrapper.CurrentInverterPowerUrl();
-        if (requestUri == null)
-        {
-            return null;
-        }
-        var response = await httpClient.GetAsync(
-                requestUri)
-            .ConfigureAwait(false);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogWarning("Getting current inverter power did result in statuscode {statusCode} with reason {reasonPhrase}", response.StatusCode, response.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current inverter power did result in statuscode {response.StatusCode} with reason {response.ReasonPhrase}");
-            return null;
-        }
-        var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-        var jsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
-        if (jsonPattern != null)
-        {
-            _logger.LogDebug("Extract overage value from {result} with {jsonPattern}", result, jsonPattern);
-            result = (JObject.Parse(result).SelectToken(jsonPattern) ??
-                      throw new InvalidOperationException("Extracted Json Value is null")).Value<string>();
-        }
-
-        try
-        {
-            return GetIntegerFromString(result);
-        }
-        catch (Exception)
-        {
-            throw new InvalidCastException($"Could not parse result {result} from uri {requestUri} to integer");
-        }
-    }
+    
 }
