@@ -40,7 +40,7 @@ jobs:
         file: ./SmartTeslaAmpSetter/Server/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/smartteslaampsetter:alpha
+        tags: pkuehnel/smartteslaampsetter:solaredge
 
   SmaEnergymeterPlugin:
     name: Building SMAPlugin Image
@@ -98,4 +98,4 @@ jobs:
         file: ./Plugins.SolarEdge/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/smartteslaampsettersolaredgeplugin:alpha
+        tags: pkuehnel/smartteslaampsettersolaredgeplugin:solaredge
