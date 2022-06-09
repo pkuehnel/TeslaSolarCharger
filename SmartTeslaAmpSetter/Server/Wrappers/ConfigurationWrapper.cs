@@ -91,6 +91,78 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
+    public string? CurrentPowerToGridXmlPattern()
+    {
+        var environmentVariableName = "CurrentPowerToGridXmlPattern";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? CurrentPowerToGridXmlAttributeHeaderName()
+    {
+        var environmentVariableName = "CurrentPowerToGridXmlAttributeHeaderName";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? CurrentPowerToGridXmlAttributeHeaderValue()
+    {
+        var environmentVariableName = "CurrentPowerToGridXmlAttributeHeaderValue";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? CurrentPowerToGridXmlAttributeValueName()
+    {
+        var environmentVariableName = "CurrentPowerToGridXmlAttributeValueName";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? CurrentInverterPowerJsonPattern()
+    {
+        var environmentVariableName = "CurrentInverterPowerJsonPattern";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? CurrentInverterPowerXmlPattern()
+    {
+        var environmentVariableName = "CurrentInverterPowerXmlPattern";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? CurrentInverterPowerXmlAttributeHeaderName()
+    {
+        var environmentVariableName = "CurrentInverterPowerXmlAttributeHeaderName";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? CurrentInverterPowerXmlAttributeHeaderValue()
+    {
+        var environmentVariableName = "CurrentInverterPowerXmlAttributeHeaderValue";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string? CurrentInverterPowerXmlAttributeValueName()
+    {
+        var environmentVariableName = "CurrentInverterPowerXmlAttributeValueName";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
     public bool CurrentPowerToGridInvertValue()
     {
         var environmentVariableName = "CurrentPowerToGridInvertValue";

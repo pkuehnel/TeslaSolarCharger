@@ -109,6 +109,7 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 | **PowerBuffer** | int | Power Buffer in Watt | 0 |
 | **CurrentPowerToGridJsonPattern** | string | If Power to grid is json formated use this to extract the correct value | $.data.overage |
 | **CurrentPowerToGridInvertValue** | boolean | Set this to `true` if Power from grid has positive values and power to grid has negative values | true |
+| **CurrentInverterPowerJsonPattern** | string | If Power from inverter is json formated use this to extract the correct value | $.data.overage |
 | **TelegramBotKey** | string | Telegram Bot API key | 1234567890:ASDFuiauhwerlfvasedr |
 | **TelegramChannelId** | string | ChannelId Telegram bot should send messages to | -156480125 |
 
