@@ -2,5 +2,6 @@
 
 public interface ICurrentValuesService
 {
-    Task<int> GetCurrentPower();
+    Task<int> GetCurrentPowerToGrid();
+    Task<int> GetInverterPower();
 }

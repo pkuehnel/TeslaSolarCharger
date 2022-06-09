@@ -24,12 +24,17 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(GetCurrentPowerToGrid));
         var latestValue = await GetLatestValue();
 
+        var value = (int)latestValue.SiteCurrentPowerFlow.Grid.CurrentPower;
         if (latestValue.SiteCurrentPowerFlow.Unit == "kW")
         {
-            return (int)(latestValue.SiteCurrentPowerFlow.Grid.currentPower * 1000);
+            value *= 1000;
         }
 
-        return (int)latestValue.SiteCurrentPowerFlow.Grid.currentPower;
+        if (latestValue.SiteCurrentPowerFlow.Connections.Any(c => c.From == "GRID"))
+        {
+            value = -value;
+        }
+        return value;
     }
 
     public async Task<int> GetInverterPower()

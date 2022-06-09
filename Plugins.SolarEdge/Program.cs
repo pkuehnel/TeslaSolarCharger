@@ -23,6 +23,12 @@ builder.Configuration
     .AddJsonFile("appsettings.json")
     .AddEnvironmentVariables();
 
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+if (environment == "Development")
+{
+    builder.Configuration.AddJsonFile("appsettings.Development.json");
+}
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
