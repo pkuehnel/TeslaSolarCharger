@@ -164,7 +164,7 @@ public class GridService : IGridService
                         }
                         break;
                     case 1:
-                        result = nodes[0]?.Value ?? "0";
+                        result = nodes[0]?.LastChild?.Value ?? "0";
                         break;
                 }
                 break;
