@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartTeslaAmpSetter.Shared"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plugins.SmaEnergymeter", "Plugins.SmaEnergymeter\Plugins.SmaEnergymeter.csproj", "{6F085517-A87C-4590-87B9-1ED0F926BD8D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartTeslaAmpSetter.Tests", "SmartTeslaAmpSetter.Tests\SmartTeslaAmpSetter.Tests.csproj", "{98CE240C-CC51-4658-BD0B-5BEE43297B9F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartTeslaAmpSetter.Tests", "SmartTeslaAmpSetter.Tests\SmartTeslaAmpSetter.Tests.csproj", "{98CE240C-CC51-4658-BD0B-5BEE43297B9F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plugins.SolarEdge", "Plugins.SolarEdge\Plugins.SolarEdge.csproj", "{9F3C7BDB-B856-4C09-BD17-784312A9B095}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{98CE240C-CC51-4658-BD0B-5BEE43297B9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98CE240C-CC51-4658-BD0B-5BEE43297B9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98CE240C-CC51-4658-BD0B-5BEE43297B9F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F3C7BDB-B856-4C09-BD17-784312A9B095}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F3C7BDB-B856-4C09-BD17-784312A9B095}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F3C7BDB-B856-4C09-BD17-784312A9B095}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F3C7BDB-B856-4C09-BD17-784312A9B095}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

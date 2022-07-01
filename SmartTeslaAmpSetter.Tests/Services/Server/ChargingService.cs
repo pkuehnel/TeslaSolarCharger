@@ -10,7 +10,7 @@ using Xunit;
 using Xunit.Abstractions;
 using CarState = SmartTeslaAmpSetter.Shared.Dtos.Settings.CarState;
 
-namespace SmartTeslaAmpSetter.Tests.Services;
+namespace SmartTeslaAmpSetter.Tests.Services.Server;
 
 public class ChargingService : TestBase
 {
@@ -30,7 +30,7 @@ public class ChargingService : TestBase
     [InlineData(ChargeMode.PvOnly, 2, -10, true)]
     public void Does_autoenable_fullspeed_charge_if_needed(ChargeMode chargeMode, int fullSpeedChargeMinutesAfterLatestTime, int moreSocThanMinSoc, bool autofullSpeedCharge)
     {
-        var chargingService = Mock.Create<Server.Services.ChargingService>();
+        var chargingService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ChargingService>();
         var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
             new NamedParameter("dateTime", new DateTime(2022, 4, 1, 14, 0, 0)));
         var currentTime = currentTimeProvider.Now();
@@ -82,7 +82,7 @@ public class ChargingService : TestBase
     [InlineData(true)]
     public void Enable_Full_Speed_Charge_Can_Handle_Null_Values(bool autoFullSpeedCharge)
     {
-        var chargingService = Mock.Create<Server.Services.ChargingService>();
+        var chargingService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ChargingService>();
         var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
             new NamedParameter("dateTime", new DateTime(2022, 4, 1, 14, 0, 0)));
         var currentTime = currentTimeProvider.Now();
@@ -105,7 +105,7 @@ public class ChargingService : TestBase
     [InlineData(true)]
     public void Disable_Full_Speed_Charge_Can_Handle_Null_Values(bool autoFullSpeedCharge)
     {
-        var chargingService = Mock.Create<Server.Services.ChargingService>();
+        var chargingService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ChargingService>();
         var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
             new NamedParameter("dateTime", new DateTime(2022, 4, 1, 14, 0, 0)));
         var currentTime = currentTimeProvider.Now();
@@ -182,7 +182,7 @@ public class ChargingService : TestBase
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
-        var chargingService = Mock.Create<Server.Services.ChargingService>();
+        var chargingService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ChargingService>();
 
         var relevantIds = chargingService.GetRelevantCarIds(geofence);
 
@@ -249,7 +249,7 @@ public class ChargingService : TestBase
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
-        var chargingService = Mock.Create<Server.Services.ChargingService>();
+        var chargingService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ChargingService>();
 
         var irrelevantCars = chargingService.GetIrrelevantCars(chargingService.GetRelevantCarIds(geofence));
         

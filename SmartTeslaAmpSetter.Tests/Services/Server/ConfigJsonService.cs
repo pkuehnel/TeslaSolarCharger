@@ -6,7 +6,7 @@ using SmartTeslaAmpSetter.Shared.Enums;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SmartTeslaAmpSetter.Tests.Services;
+namespace SmartTeslaAmpSetter.Tests.Services.Server;
 
 public class ConfigJsonService : TestBase
 {
@@ -21,7 +21,7 @@ public class ConfigJsonService : TestBase
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
-        var configJsonService = Mock.Create<Server.Services.ConfigJsonService>();
+        var configJsonService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ConfigJsonService>();
         configJsonService.AddNewCars(newCarIds, cars);
 
         Assert.Equal(newCarIds.Count, cars.Count);
@@ -33,7 +33,7 @@ public class ConfigJsonService : TestBase
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
-        var configJsonService = Mock.Create<Server.Services.ConfigJsonService>();
+        var configJsonService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ConfigJsonService>();
         configJsonService.AddNewCars(newCarIds, cars);
 
         foreach (var car in cars)
@@ -54,7 +54,7 @@ public class ConfigJsonService : TestBase
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
-        var configJsonService = Mock.Create<Server.Services.ConfigJsonService>();
+        var configJsonService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ConfigJsonService>();
         configJsonService.AddNewCars(newCarIds, cars);
 
         configJsonService.RemoveOldCars(cars, new List<int>() { 1, 3 });
@@ -69,7 +69,7 @@ public class ConfigJsonService : TestBase
     [InlineData("[{\"Id\":1,\"CarConfiguration\":{\"ChargeMode\":1,\"MinimumSoC\":0,\"LatestTimeToReachSoC\":\"2022-04-11T00:00:00\",\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":75}},{\"Id\":2,\"CarConfiguration\":{\"ChargeMode\":2,\"MinimumSoC\":45,\"LatestTimeToReachSoC\":\"2022-04-11T00:00:00\",\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":75}}]")]
     public void Deserializes_car_configuration(string configString)
     {
-        var configJsonService = Mock.Create<Server.Services.ConfigJsonService>();
+        var configJsonService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ConfigJsonService>();
         var cars = configJsonService.DeserializeCarsFromConfigurationString(configString);
 
         Assert.Equal(2, cars.Count);
