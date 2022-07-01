@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices.ComTypes;
-using SmartTeslaAmpSetter.Server.Contracts;
+﻿using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Enums;
 using Xunit;
 using Xunit.Abstractions;

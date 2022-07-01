@@ -1,7 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
-using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.Enums;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Car = SmartTeslaAmpSetter.Shared.Dtos.Settings.Car;
@@ -12,7 +11,6 @@ namespace SmartTeslaAmpSetter.Server.Services;
 public class ChargingService : IChargingService
 {
     private readonly ILogger<ChargingService> _logger;
-    private readonly IGridService _gridService;
     private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ITelegramService _telegramService;
@@ -20,12 +18,11 @@ public class ChargingService : IChargingService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IPvValueService _pvValueService;
 
-    public ChargingService(ILogger<ChargingService> logger, IGridService gridService,
+    public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService)
     {
         _logger = logger;
-        _gridService = gridService;
         _settings = settings;
         _dateTimeProvider = dateTimeProvider;
         _telegramService = telegramService;

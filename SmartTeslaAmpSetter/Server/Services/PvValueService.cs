@@ -1,6 +1,5 @@
 ﻿using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
-using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 

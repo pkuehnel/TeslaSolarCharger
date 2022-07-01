@@ -11,13 +11,11 @@ public class ConfigService : IConfigService
 {
     private readonly ILogger<ConfigService> _logger;
     private readonly ISettings _settings;
-    private readonly IChargingService _chargingService;
 
-    public ConfigService(ILogger<ConfigService> logger, ISettings settings, IChargingService chargingService)
+    public ConfigService(ILogger<ConfigService> logger, ISettings settings)
     {
         _logger = logger;
         _settings = settings;
-        _chargingService = chargingService;
     }
 
     public ISettings GetSettings()
