@@ -32,11 +32,7 @@ public class CarDbUpdateService : ICarDbUpdateService
                 .FirstOrDefaultAsync();
             _logger.LogTrace("Pilot Current for var {car} is {pilotCurrent}", car.Id, pilotCurrent);
 
-            //ToDo: Remove telegram notification
-            if (pilotCurrent < 16 && car.CarState.ChargerActualCurrent > 0)
-            {
-                await _telegramService.SendMessage($"Pilot Current for var {car.Id} is {pilotCurrent}");
-            }
+            car.CarState.ChargerPilotCurrent = pilotCurrent;
         }
     }
 }

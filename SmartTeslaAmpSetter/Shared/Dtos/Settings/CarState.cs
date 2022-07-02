@@ -18,6 +18,7 @@ public class CarState
 
     public int? ChargerVoltage { get; set; }
     public int? ChargerActualCurrent { get; set; }
+    public int? ChargerPilotCurrent { get; set; }
     public bool? PluggedIn { get; set; }
     public bool? ClimateOn { get; set; }
     public int? ChargingPowerAtHome { get; set; }
@@ -33,4 +34,5 @@ public class CarState
     public string? StateString { get; set; }
     public Enums.CarState? State { get; set; }
     public bool? Healthy { get; set; }
+    public bool ReducedChargeSpeedWarning { get; set; }
 }
