@@ -1,6 +1,6 @@
 ﻿using Quartz;
 using Quartz.Spi;
-using SmartTeslaAmpSetter.Server.Contracts;
+using SmartTeslaAmpSetter.Shared.Contracts;
 
 namespace SmartTeslaAmpSetter.Server.Scheduling;
 
@@ -34,10 +34,11 @@ public class JobManager
         var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
         var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
+        var carDbUpdateJob = JobBuilder.Create<CarDbUpdateJob>().Build();
 
         var jobIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
-        var defaultTrigger =
+        var chargingValueTrigger =
             TriggerBuilder.Create().WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)jobIntervall.TotalSeconds)).Build();
 
         var updateJsonTrigger = TriggerBuilder.Create()
@@ -52,12 +53,16 @@ public class JobManager
         var pvValueTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds)).Build();
 
+        var carDbUpdateTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(10)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
-            {chargingValueJob,  new HashSet<ITrigger> { defaultTrigger }},
+            {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
             {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
             {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
+            {carDbUpdateJob, new HashSet<ITrigger> {carDbUpdateTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

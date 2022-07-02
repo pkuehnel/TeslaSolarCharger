@@ -1,6 +1,7 @@
 ﻿using MQTTnet;
 using MQTTnet.Client;
 using SmartTeslaAmpSetter.Server.Contracts;
+using SmartTeslaAmpSetter.Shared.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using CarState = SmartTeslaAmpSetter.Shared.Enums.CarState;
 

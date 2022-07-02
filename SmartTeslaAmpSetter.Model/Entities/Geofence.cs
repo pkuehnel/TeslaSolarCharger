@@ -19,8 +19,8 @@
         public decimal? CostPerUnit { get; set; }
         public decimal? SessionFee { get; set; }
 
-        public virtual ICollection<ChargingProcess> ChargingProcesses { get; set; }
-        public virtual ICollection<Drive> DriveEndGeofences { get; set; }
-        public virtual ICollection<Drive> DriveStartGeofences { get; set; }
+        public ICollection<ChargingProcess> ChargingProcesses { get; set; }
+        public ICollection<Drive> DriveEndGeofences { get; set; }
+        public ICollection<Drive> DriveStartGeofences { get; set; }
     }
 }

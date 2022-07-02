@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SmartTeslaAmpSetter.Model.Contracts;
 using SmartTeslaAmpSetter.Model.Entities;
 
-namespace SmartTeslaAmpSetter.Model
+namespace SmartTeslaAmpSetter.Model.EntityFramework
 {
-    public class TeslamateContext : DbContext
+    public class TeslamateContext : DbContext, ITeslamateContext
     {
         public TeslamateContext()
         {
@@ -742,13 +743,6 @@ namespace SmartTeslaAmpSetter.Model
                     .HasForeignKey(d => d.CarId)
                     .HasConstraintName("updates_car_id_fkey");
             });
-
-            OnModelCreatingPartial(modelBuilder);
-        }
-
-        private void OnModelCreatingPartial(ModelBuilder modelBuilder)
-        {
-            throw new NotImplementedException();
         }
     }
 }

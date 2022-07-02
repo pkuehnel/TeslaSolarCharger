@@ -36,10 +36,10 @@
         public decimal? RatedBatteryRangeKm { get; set; }
         public short? UsableBatteryLevel { get; set; }
 
-        public virtual Car Car { get; set; } = null!;
-        public virtual Drive? Drive { get; set; }
-        public virtual ICollection<ChargingProcess> ChargingProcesses { get; set; }
-        public virtual ICollection<Drive> DriveEndPositions { get; set; }
-        public virtual ICollection<Drive> DriveStartPositions { get; set; }
+        public Car Car { get; set; } = null!;
+        public Drive? Drive { get; set; }
+        public ICollection<ChargingProcess> ChargingProcesses { get; set; }
+        public ICollection<Drive> DriveEndPositions { get; set; }
+        public ICollection<Drive> DriveStartPositions { get; set; }
     }
 }

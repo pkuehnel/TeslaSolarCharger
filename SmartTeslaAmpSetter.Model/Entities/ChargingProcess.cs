@@ -26,10 +26,10 @@
         public decimal? ChargeEnergyUsed { get; set; }
         public decimal? Cost { get; set; }
 
-        public virtual Address? Address { get; set; }
-        public virtual Car Car { get; set; } = null!;
-        public virtual Geofence? Geofence { get; set; }
-        public virtual Position Position { get; set; } = null!;
-        public virtual ICollection<Charge> Charges { get; set; }
+        public Address? Address { get; set; }
+        public Car Car { get; set; } = null!;
+        public Geofence? Geofence { get; set; }
+        public Position Position { get; set; } = null!;
+        public ICollection<Charge> Charges { get; set; }
     }
 }

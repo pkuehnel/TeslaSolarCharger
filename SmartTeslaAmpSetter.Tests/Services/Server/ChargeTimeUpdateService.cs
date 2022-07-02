@@ -1,4 +1,5 @@
 ﻿using System;
+using SmartTeslaAmpSetter.Shared.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Xunit;

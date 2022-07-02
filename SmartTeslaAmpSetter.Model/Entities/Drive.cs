@@ -31,13 +31,13 @@
         public int? StartGeofenceId { get; set; }
         public int? EndGeofenceId { get; set; }
 
-        public virtual Car Car { get; set; } = null!;
-        public virtual Address? EndAddress { get; set; }
-        public virtual Geofence? EndGeofence { get; set; }
-        public virtual Position? EndPosition { get; set; }
-        public virtual Address? StartAddress { get; set; }
-        public virtual Geofence? StartGeofence { get; set; }
-        public virtual Position? StartPosition { get; set; }
-        public virtual ICollection<Position> Positions { get; set; }
+        public Car Car { get; set; } = null!;
+        public Address? EndAddress { get; set; }
+        public Geofence? EndGeofence { get; set; }
+        public Position? EndPosition { get; set; }
+        public Address? StartAddress { get; set; }
+        public Geofence? StartGeofence { get; set; }
+        public Position? StartPosition { get; set; }
+        public ICollection<Position> Positions { get; set; }
     }
 }
