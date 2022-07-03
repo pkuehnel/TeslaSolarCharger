@@ -26,6 +26,7 @@ Needs:
     - [Inverter-Power](#inverter-power)
   - [Plugins](#plugins)
     - [SMA-EnergyMeter Plugin](#sma-energymeter-plugin)
+    - [Solaredge Plugin](#solaredge-plugin)
 
 ## How to use
 
@@ -138,7 +139,7 @@ You can check if your Key and Channel Id is working by restarting the container.
 ### Getting Values from XML
 If your energy monitoring device or inverter has no JSON but an XML API use the following instructions:
 Given an API endpoint `http://192.168.xxx.xxx/measurements.xml` which returns the following XML:
-```
+```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <Device Name="PIKO 4.6-2 MP plus" Type="Inverter" Platform="Net16" HmiPlatform="HMI17" NominalPower="4600" UserPowerLimit="nan" CountryPowerLimit="nan" Serial="XXXXXXXXXXXXXXXXXXXX" OEMSerial="XXXXXXXX" BusAddress="1" NetBiosName="XXXXXXXXXXXXXXX" WebPortal="PIKO Solar Portal" ManufacturerURL="kostal-solar-electric.com" IpAddress="192.168.XXX.XXX" DateTime="2022-06-08T19:33:25" MilliSeconds="806">
   <Measurements>
@@ -161,7 +162,7 @@ Given an API endpoint `http://192.168.xxx.xxx/measurements.xml` which returns th
 
 #### Grid-Power
 Assuming the `Measurement` node with `Type` `GridPower` is the power your house feeds to the grid you need the following environment variables:
-```
+```yaml
 - CurrentPowerToGridUrl=http://192.168.xxx.xxx/measurements.xml
 - CurrentPowerToGridXmlPattern=Device/Measurements/Measurement
 - CurrentPowerToGridXmlAttributeHeaderName=Type
@@ -171,7 +172,7 @@ Assuming the `Measurement` node with `Type` `GridPower` is the power your house 
 
 #### Inverter-Power
 Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverter is currently feeding you can use the following environment variables:
-```
+```yaml
 - CurrentInverterPowerUrl=http://192.168.xxx.xxx/measurements.xml
 - CurrentInverterPowerXmlPattern=Device/Measurements/Measurement
 - CurrentInverterPowerAttributeHeaderName=Type
@@ -203,4 +204,34 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:8453
+```
+
+#### Solaredge Plugin
+[![Docker version](https://img.shields.io/docker/v/pkuehnel/smartteslaampsettersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
+[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/smartteslaampsettersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
+[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
+
+Currently only the cloud API is supported. As there are not allowed more than 300 requests per plant, IP address and day, this integration is at this state very limited as you can only get the current power every few minutes. To use the solaredge plugin, you have to add another service to your `docker-compose.yml`:
+```yaml
+services:
+    solaredgeplugin:
+    image: pkuehnel/smartteslaampsettersolaredgeplugin:solaredge
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    environment:
+      - ASPNETCORE_URLS=http://+:8453
+      - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf&
+      - RefreshIntervallSeconds=360
+     ports:
+      - 8453:8453
+```
+Note: You have to change the cloud URL and also can change the refresh intervall. The default refresh intervall of 360 results in 240 of 300 allowed API calls per day.
+To use the plugin in the `smartteslaampsetter` you have to add the following environmentvariables to the `smartteslaampsetter` service:
+```yaml
+- CurrentPowerToGridUrl=http://solaredgeplugin:8453/api/CurrentValues/GetPowerToGrid
+- CurrentInverterPowerUrl=http://solaredgeplugin:8453/api/CurrentValues/GetInverterPower
 ```
