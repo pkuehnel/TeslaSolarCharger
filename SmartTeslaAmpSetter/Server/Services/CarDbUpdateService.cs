@@ -25,14 +25,23 @@ public class CarDbUpdateService : ICarDbUpdateService
         _logger.LogTrace("{method}()", nameof(UpdateCarsFromDatabase));
         foreach (var car in _settings.Cars)
         {
-            var pilotCurrent = await _teslamateContext.Charges
-                .Where(c => c.ChargingProcess.CarId == car.Id)
-                .OrderByDescending(c => c.Date)
-                .Select(c => c.ChargerPilotCurrent)
-                .FirstOrDefaultAsync();
-            _logger.LogTrace("Pilot Current for var {car} is {pilotCurrent}", car.Id, pilotCurrent);
-
-            car.CarState.ChargerPilotCurrent = pilotCurrent;
+            try
+            {
+                var pilotCurrent = await _teslamateContext.Charges
+                    .Where(c => c.ChargingProcess.CarId == car.Id)
+                    .OrderByDescending(c => c.Date)
+                    .Select(c => c.ChargerPilotCurrent)
+                    .FirstOrDefaultAsync();
+                _logger.LogTrace("Pilot Current for var {car} is {pilotCurrent}", car.Id, pilotCurrent);
+                car.CarState.ChargerPilotCurrent = pilotCurrent;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error while trying to get pilot current from database. Retrying in one minute.");
+                await Task.Delay(TimeSpan.FromMinutes(1));
+            }
+            
+            
         }
     }
 }
