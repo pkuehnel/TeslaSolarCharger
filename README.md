@@ -21,6 +21,9 @@ Needs:
   - [UI](#UI)
   - [Charge Modes](#charge-modes)
   - [Telegram Notifications](#telegram-notifications)
+  - [Getting Values from XML](#getting-values-from-xml)
+    - [Grid-Power](#grid-power)
+    - [Inverter-Power](#inverter-power)
   - [Plugins](#plugins)
     - [SMA-EnergyMeter Plugin](#sma-energymeter-plugin)
 
@@ -131,6 +134,51 @@ Currently there are three different charge modes available:
 ### Telegram Notifications
 If you set the environment variables `TelegramBotKey`and `TelegramChannelId`, you get messages, if a car can not be woken up, or any command could not be sent to a Tesla. Note: If your car takes longer than 30 seconds to wake up probably you will get an error notification, but as soon as the car is online charging starts.
 You can check if your Key and Channel Id is working by restarting the container. If your configuration is working, on startup the application sends a demo message to the specified Telegram channel/chat.
+
+### Getting Values from XML
+If your energy monitoring device or inverter has no JSON but an XML API use the following instructions:
+Given an API endpoint `http://192.168.xxx.xxx/measurements.xml` which returns the following XML:
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<Device Name="PIKO 4.6-2 MP plus" Type="Inverter" Platform="Net16" HmiPlatform="HMI17" NominalPower="4600" UserPowerLimit="nan" CountryPowerLimit="nan" Serial="XXXXXXXXXXXXXXXXXXXX" OEMSerial="XXXXXXXX" BusAddress="1" NetBiosName="XXXXXXXXXXXXXXX" WebPortal="PIKO Solar Portal" ManufacturerURL="kostal-solar-electric.com" IpAddress="192.168.XXX.XXX" DateTime="2022-06-08T19:33:25" MilliSeconds="806">
+  <Measurements>
+    <Measurement Value="231.3" Unit="V" Type="AC_Voltage"/>
+    <Measurement Value="1.132" Unit="A" Type="AC_Current"/>
+    <Measurement Value="256.1" Unit="W" Type="AC_Power"/>
+    <Measurement Value="264.3" Unit="W" Type="AC_Power_fast"/>
+    <Measurement Value="49.992" Unit="Hz" Type="AC_Frequency"/>
+    <Measurement Value="474.2" Unit="V" Type="DC_Voltage"/>
+    <Measurement Value="0.594" Unit="A" Type="DC_Current"/>
+    <Measurement Value="473.5" Unit="V" Type="LINK_Voltage"/>
+    <Measurement Value="18.7" Unit="W" Type="GridPower"/>
+    <Measurement Value="0.0" Unit="W" Type="GridConsumedPower"/>
+    <Measurement Value="18.7" Unit="W" Type="GridInjectedPower"/>
+    <Measurement Value="237.3" Unit="W" Type="OwnConsumedPower"/>
+    <Measurement Value="100.0" Unit="%" Type="Derating"/>
+  </Measurements>
+</Device>
+```
+
+#### Grid-Power
+Assuming the `Measurement` node with `Type` `GridPower` is the power your house feeds to the grid you need the following environment variables:
+```
+- CurrentPowerToGridUrl=http://192.168.xxx.xxx/measurements.xml
+- CurrentPowerToGridXmlPattern=Device/Measurements/Measurement
+- CurrentPowerToGridXmlAttributeHeaderName=Type
+- CurrentPowerToGridXmlAttributeHeaderValue=GridPower
+- CurrentPowerToGridXmlAttributeValueName=Value
+```
+
+#### Inverter-Power
+Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverter is currently feeding you can use the following environment variables:
+```
+- CurrentInverterPowerUrl=http://192.168.xxx.xxx/measurements.xml
+- CurrentInverterPowerXmlPattern=Device/Measurements/Measurement
+- CurrentInverterPowerAttributeHeaderName=Type
+- CurrentInverterPowerAttributeHeaderValue=AC_Power
+- CurrentInverterPowerAttributeValueName=Value
+```
+Note: This values are not needed, they are just used to show additional information.
 
 ### Plugins
 If your SmartMeter does not have a REST Endpoint as needed you can use plugins:
