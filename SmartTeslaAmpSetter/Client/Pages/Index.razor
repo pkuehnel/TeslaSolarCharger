@@ -98,6 +98,14 @@ else
                 </tr>
                 <tr>
                     <td>
+                        Pilot Current
+                    </td>
+                    <td>
+                        @car.CarState.ChargerPilotCurrent
+                    </td>
+                </tr>
+                <tr>
+                    <td>
                         StateString
                     </td>
                     <td>
@@ -216,8 +224,6 @@ else
 
     private readonly string _chargeModeChangeButtonDefaultText = "Change";
     private readonly string _saveButtonDefaultText = "Save";
-    private string _refreshButtonText = "Refresh";
-    private string _refreshButtonDefaultText = "Refresh";
     private readonly string _buttonLoadingText = "...";
 
     protected override async Task OnInitializedAsync()
@@ -279,16 +285,6 @@ else
             var car = _settings.Cars.First(c => c.Id == tmpCar.Id);
             car.CarState = tmpCar.CarState;
         }
-        this.StateHasChanged();
-    }
-
-    private async void RefreshSettings()
-    {
-        _refreshButtonText = _buttonLoadingText;
-        _settings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
-        this.StateHasChanged();
-        ToastService.ShowSuccess("Refreshed");
-        _refreshButtonText = _refreshButtonDefaultText;
         this.StateHasChanged();
     }
 }

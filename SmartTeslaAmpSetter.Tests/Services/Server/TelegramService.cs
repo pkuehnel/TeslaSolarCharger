@@ -1,7 +1,7 @@
 ﻿using Xunit;
 using Xunit.Abstractions;
 
-namespace SmartTeslaAmpSetter.Tests.Services;
+namespace SmartTeslaAmpSetter.Tests.Services.Server;
 
 public class TelegramService : TestBase
 {
@@ -16,7 +16,7 @@ public class TelegramService : TestBase
         var botKey = "0815:2asdf";
         var channelId = "5236466";
         var message = "Test";
-        var telegramService = Mock.Create<Server.Services.TelegramService>();
+        var telegramService = Mock.Create<SmartTeslaAmpSetter.Server.Services.TelegramService>();
 
         var uri = telegramService.CreateRequestUri(message, botKey, channelId);
 

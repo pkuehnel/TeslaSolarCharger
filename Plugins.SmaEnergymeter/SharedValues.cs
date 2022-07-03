@@ -1,6 +1,4 @@
-﻿using Plugins.SmaEnergymeter.Dtos;
-
-namespace Plugins.SmaEnergymeter;
+﻿namespace Plugins.SmaEnergymeter;
 
 public class SharedValues
 {

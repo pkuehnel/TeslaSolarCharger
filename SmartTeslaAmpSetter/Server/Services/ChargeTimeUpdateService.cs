@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using SmartTeslaAmpSetter.Server.Contracts;
+using SmartTeslaAmpSetter.Shared.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.TimeProviding;

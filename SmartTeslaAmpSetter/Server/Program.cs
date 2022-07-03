@@ -1,16 +1,20 @@
+using Microsoft.EntityFrameworkCore;
 using MQTTnet;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Serilog;
+using SmartTeslaAmpSetter.Model.Contracts;
+using SmartTeslaAmpSetter.Model.EntityFramework;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Scheduling;
 using SmartTeslaAmpSetter.Server.Services;
-using SmartTeslaAmpSetter.Server.Wrappers;
+using SmartTeslaAmpSetter.Shared.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos;
 using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
+using SmartTeslaAmpSetter.Shared.Wrappers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,13 +30,13 @@ builder.Services.AddSwaggerGen();
 var mqttFactory = new MqttFactory();
 var mqttClient = mqttFactory.CreateMqttClient();
 
-
 builder.Services
     .AddTransient<JobManager>()
     .AddTransient<ChargingValueJob>()
     .AddTransient<ConfigJsonUpdateJob>()
     .AddTransient<ChargeTimeUpdateJob>()
     .AddTransient<PvValueJob>()
+    .AddTransient<CarDbUpdateJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -51,6 +55,14 @@ builder.Services
     .AddTransient<MqttFactory>()
     .AddTransient<IMqttService, MqttService>()
     .AddTransient<IPvValueService, PvValueService>()
+    .AddTransient<IDbConnectionStringHelper, DbConnectionStringHelper>()
+    .AddDbContext<ITeslamateContext, TeslamateContext>((provider, options) =>
+    {
+        options.UseNpgsql(provider.GetRequiredService<IDbConnectionStringHelper>().GetConnectionString());
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }, ServiceLifetime.Transient, ServiceLifetime.Transient)
+    .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration

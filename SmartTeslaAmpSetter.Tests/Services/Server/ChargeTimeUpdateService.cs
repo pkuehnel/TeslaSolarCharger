@@ -1,10 +1,11 @@
 ﻿using System;
+using SmartTeslaAmpSetter.Shared.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SmartTeslaAmpSetter.Tests.Services;
+namespace SmartTeslaAmpSetter.Tests.Services.Server;
 
 public class ChargeTimeUpdateService : TestBase
 {
@@ -38,7 +39,7 @@ public class ChargeTimeUpdateService : TestBase
 
         var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
         Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
-        var chargingService = Mock.Create<Server.Services.ChargeTimeUpdateService>();
+        var chargingService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ChargeTimeUpdateService>();
 
         chargingService.UpdateChargeTime(car);
 
@@ -72,7 +73,7 @@ public class ChargeTimeUpdateService : TestBase
 
         var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
         Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
-        var chargingService = Mock.Create<Server.Services.ChargeTimeUpdateService>();
+        var chargingService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ChargeTimeUpdateService>();
 
         chargingService.UpdateChargeTime(car);
 
@@ -102,7 +103,7 @@ public class ChargeTimeUpdateService : TestBase
 
         var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
         Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
-        var chargingService = Mock.Create<Server.Services.ChargeTimeUpdateService>();
+        var chargingService = Mock.Create<SmartTeslaAmpSetter.Server.Services.ChargeTimeUpdateService>();
 
         chargingService.UpdateChargeTime(car);
 

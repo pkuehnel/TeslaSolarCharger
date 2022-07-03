@@ -7,7 +7,7 @@ using SmartTeslaAmpSetter.Shared.Dtos.Settings;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SmartTeslaAmpSetter.Tests.Services;
+namespace SmartTeslaAmpSetter.Tests.Services.Server;
 
 public class MqttService : TestBase
 {
@@ -37,7 +37,7 @@ public class MqttService : TestBase
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
 
-        var mqttService = Mock.Create<Server.Services.MqttService>();
+        var mqttService = Mock.Create<SmartTeslaAmpSetter.Server.Services.MqttService>();
 
         var teslamateValue = new TeslaMateValue()
         {

@@ -27,8 +27,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Plugins.SolarEdge\Plugins.SolarEdge.csproj" />
     <ProjectReference Include="..\SmartTeslaAmpSetter\Server\SmartTeslaAmpSetter.Server.csproj" />
     <ProjectReference Include="..\SmartTeslaAmpSetter\Shared\SmartTeslaAmpSetter.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\SolarEdgePlugin\" />
   </ItemGroup>
 
 </Project>
