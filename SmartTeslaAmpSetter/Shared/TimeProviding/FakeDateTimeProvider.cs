@@ -1,4 +1,6 @@
-﻿namespace SmartTeslaAmpSetter.Shared.TimeProviding;
+﻿using SmartTeslaAmpSetter.Shared.Contracts;
+
+namespace SmartTeslaAmpSetter.Shared.TimeProviding;
 
 public class FakeDateTimeProvider : IDateTimeProvider
 {

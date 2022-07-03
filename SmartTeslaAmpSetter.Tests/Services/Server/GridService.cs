@@ -1,5 +1,6 @@
 ﻿using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Enums;
+using SmartTeslaAmpSetter.Shared.Contracts;
 using Xunit;
 using Xunit.Abstractions;
 

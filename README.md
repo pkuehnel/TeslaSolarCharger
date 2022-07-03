@@ -116,6 +116,11 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
 | **CurrentInverterPowerJsonPattern** | string | If Power from inverter is json formated use this to extract the correct value | $.data.overage |
 | **TelegramBotKey** | string | Telegram Bot API key | 1234567890:ASDFuiauhwerlfvasedr |
 | **TelegramChannelId** | string | ChannelId Telegram bot should send messages to | -156480125 |
+| **TeslaMateDbServer** | string | Name or IP Address of the TeslaMate database service | database |
+| **TeslaMateDbPort** | int | Port of the TeslaMate database service | 5432 |
+| **TeslaMateDbDatabaseName** | string | Database Name of the TeslaMate database service | teslamate |
+| **TeslaMateDbUser** | string | Database user name of the TeslaMate database service | teslamate |
+| **TeslaMateDbPassword** | string | Database user's password of the TeslaMate database service | secret |
 
 ### Car Priorities
 If you set `CarPriorities` environment variable like the example above, the car with ID 2 will only start charing, if car 1 is charging at full speed and there is still power left, or if car 1 is not charging due to reached battery limit or not within specified geofence. Note: You always have to add the car Ids to this list separated by `|`. Even if you only have one car you need to ad the car's Id but then without `|`.

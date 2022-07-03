@@ -1,5 +1,4 @@
-﻿using Serilog.Events;
-using Xunit;
+﻿using Xunit;
 using Xunit.Abstractions;
 
 namespace SmartTeslaAmpSetter.Tests.Services.SolarEdgePlugin;
@@ -18,5 +17,6 @@ public class CurrentValuesService : TestBase
         var currentValuesService = Mock.Create<Plugins.SolarEdge.Services.CurrentValuesService>();
 
         var value = currentValuesService.GetCloudApiValueFromString(jsonString);
+        Assert.NotNull(value);
     }
 }

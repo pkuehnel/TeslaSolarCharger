@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using SmartTeslaAmpSetter.Server.Contracts;
+using SmartTeslaAmpSetter.Shared.Contracts;
 using SmartTeslaAmpSetter.Shared.Dtos.Contracts;
 using SmartTeslaAmpSetter.Shared.Enums;
 using SmartTeslaAmpSetter.Shared.TimeProviding;
@@ -179,6 +180,21 @@ public class ChargingService : IChargingService
         var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
+        if (car.CarState.ChargerPilotCurrent != null && maxAmpPerCar > car.CarState.ChargerPilotCurrent)
+        {
+            _logger.LogWarning("Charging speed of {carID} id reduced to {amp}", car.Id, car.CarState.ChargerPilotCurrent);
+            maxAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
+            if (!car.CarState.ReducedChargeSpeedWarning)
+            {
+                car.CarState.ReducedChargeSpeedWarning = true;
+                await _telegramService.SendMessage($"Charging of {car.CarState.Name} is reduced to {car.CarState.ChargerPilotCurrent} due to chargelimit of wallbox.").ConfigureAwait(false);
+            }
+        }
+        else if(car.CarState.ReducedChargeSpeedWarning)
+        {
+            car.CarState.ReducedChargeSpeedWarning = false;
+            await _telegramService.SendMessage($"Charging speed of {car.CarState.Name} is regained.").ConfigureAwait(false);
+        }
 
         EnableFullSpeedChargeIfMinimumSocNotReachable(car);
         DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);

@@ -1,4 +1,4 @@
-﻿namespace SmartTeslaAmpSetter.Server.Contracts;
+﻿namespace SmartTeslaAmpSetter.Shared.Contracts;
 
 public interface IConfigurationWrapper
 {
@@ -28,4 +28,9 @@ public interface IConfigurationWrapper
     string? CurrentInverterPowerXmlAttributeHeaderName();
     string? CurrentInverterPowerXmlAttributeHeaderValue();
     string? CurrentInverterPowerXmlAttributeValueName();
+    string TeslaMateDbServer();
+    int TeslaMateDbPort();
+    string TeslaMateDbDatabaseName();
+    string TeslaMateDbUser();
+    string TeslaMateDbPassword();
 }

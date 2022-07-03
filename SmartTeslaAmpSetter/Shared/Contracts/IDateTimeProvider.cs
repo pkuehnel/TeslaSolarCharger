@@ -1,4 +1,4 @@
-﻿namespace SmartTeslaAmpSetter.Shared.TimeProviding;
+﻿namespace SmartTeslaAmpSetter.Shared.Contracts;
 
 public interface IDateTimeProvider
 {

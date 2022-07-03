@@ -3,6 +3,7 @@ using System.Xml;
 using Newtonsoft.Json.Linq;
 using SmartTeslaAmpSetter.Server.Contracts;
 using SmartTeslaAmpSetter.Server.Enums;
+using SmartTeslaAmpSetter.Shared.Contracts;
 
 namespace SmartTeslaAmpSetter.Server.Services;
 
