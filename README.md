@@ -231,7 +231,7 @@ services:
       - ASPNETCORE_URLS=http://+:8453
       - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf&
       - RefreshIntervallSeconds=360
-     ports:
+    ports:
       - 8453:8453
 ```
 Note: You have to change the cloud URL and also can change the refresh intervall. The default refresh intervall of 360 results in 240 of 300 allowed API calls per day.
