@@ -1,0 +1,125 @@
+using Microsoft.EntityFrameworkCore;
+using MQTTnet;
+using Quartz;
+using Quartz.Impl;
+using Quartz.Spi;
+using Serilog;
+using SolarTeslaCharger.Model.Contracts;
+using SolarTeslaCharger.Model.EntityFramework;
+using SolarTeslaCharger.Server.Contracts;
+using SolarTeslaCharger.Server.Scheduling;
+using SolarTeslaCharger.Server.Services;
+using SolarTeslaCharger.Shared.Contracts;
+using SolarTeslaCharger.Shared.Dtos;
+using SolarTeslaCharger.Shared.Dtos.Contracts;
+using SolarTeslaCharger.Shared.Dtos.Settings;
+using SolarTeslaCharger.Shared.TimeProviding;
+using SolarTeslaCharger.Shared.Wrappers;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var mqttFactory = new MqttFactory();
+var mqttClient = mqttFactory.CreateMqttClient();
+
+builder.Services
+    .AddTransient<JobManager>()
+    .AddTransient<ChargingValueJob>()
+    .AddTransient<ConfigJsonUpdateJob>()
+    .AddTransient<ChargeTimeUpdateJob>()
+    .AddTransient<PvValueJob>()
+    .AddTransient<CarDbUpdateJob>()
+    .AddTransient<JobFactory>()
+    .AddTransient<IJobFactory, JobFactory>()
+    .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
+    .AddTransient<IChargingService, ChargingService>()
+    .AddTransient<IGridService, GridService>()
+    .AddTransient<IConfigService, ConfigService>()
+    .AddTransient<IConfigJsonService, ConfigJsonService>()
+    .AddTransient<IDateTimeProvider, DateTimeProvider>()
+    .AddTransient<IChargeTimeUpdateService, ChargeTimeUpdateService>()
+    .AddTransient<ITelegramService, TelegramService>()
+    .AddTransient<ITeslaService, TeslamateApiService>()
+    .AddSingleton<ISettings, Settings>()
+    .AddSingleton<IInMemoryValues, InMemoryValues>()
+    .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
+    .AddSingleton(mqttClient)
+    .AddTransient<MqttFactory>()
+    .AddTransient<IMqttService, MqttService>()
+    .AddTransient<IPvValueService, PvValueService>()
+    .AddTransient<IDbConnectionStringHelper, DbConnectionStringHelper>()
+    .AddDbContext<ITeslamateContext, TeslamateContext>((provider, options) =>
+    {
+        options.UseNpgsql(provider.GetRequiredService<IDbConnectionStringHelper>().GetConnectionString());
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }, ServiceLifetime.Transient, ServiceLifetime.Transient)
+    .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
+    ;
+
+builder.Host.UseSerilog((context, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration));
+
+builder.Configuration
+    .AddJsonFile("appsettings.json")
+    .AddEnvironmentVariables();
+
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+if (environment == "Development")
+{
+    builder.Configuration.AddJsonFile("appsettings.Development.json");
+}
+
+
+var app = builder.Build();
+
+var telegramService = app.Services.GetRequiredService<ITelegramService>();
+await telegramService.SendMessage("Application starting up");
+
+var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
+
+await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
+
+var mqttHelper = app.Services.GetRequiredService<IMqttService>();
+
+await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
+
+var jobManager = app.Services.GetRequiredService<JobManager>();
+jobManager.StartJobs();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseWebAssemblyDebugging();
+}
+else
+{
+    app.UseExceptionHandler("/Error");
+}
+
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.MapRazorPages();
+app.MapControllers();
+app.MapFallbackToFile("index.html");
+
+app.Run();
+
+
+
+

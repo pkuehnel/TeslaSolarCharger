@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32112.339
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plugins.SmaEnergymeter", "Plugins.SmaEnergymeter\Plugins.SmaEnergymeter.csproj", "{6F085517-A87C-4590-87B9-1ED0F926BD8D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plugins.SolarEdge", "Plugins.SolarEdge\Plugins.SolarEdge.csproj", "{9F3C7BDB-B856-4C09-BD17-784312A9B095}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SolarTeslaCharger.Client", "SolarTeslaCharger\Client\SolarTeslaCharger.Client.csproj", "{115FF417-8A44-4C69-A0C4-272D40904BF7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SolarTeslaCharger.Model", "SolarTeslaCharger.Model\SolarTeslaCharger.Model.csproj", "{720F025D-7306-4743-BBFA-290613271F8F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SolarTeslaCharger.Server", "SolarTeslaCharger\Server\SolarTeslaCharger.Server.csproj", "{2B81E520-207A-4A99-A32E-31E53019D07A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SolarTeslaCharger.Shared", "SolarTeslaCharger\Shared\SolarTeslaCharger.Shared.csproj", "{1C167701-86DB-4B70-B1E8-5F241564BF2E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SolarTeslaCharger.Tests", "SolarTeslaCharger.Tests\SolarTeslaCharger.Tests.csproj", "{9CD655D4-CB3E-4CE2-906D-014AC6432C50}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6F085517-A87C-4590-87B9-1ED0F926BD8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F085517-A87C-4590-87B9-1ED0F926BD8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F085517-A87C-4590-87B9-1ED0F926BD8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F085517-A87C-4590-87B9-1ED0F926BD8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F3C7BDB-B856-4C09-BD17-784312A9B095}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F3C7BDB-B856-4C09-BD17-784312A9B095}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F3C7BDB-B856-4C09-BD17-784312A9B095}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F3C7BDB-B856-4C09-BD17-784312A9B095}.Release|Any CPU.Build.0 = Release|Any CPU
+		{115FF417-8A44-4C69-A0C4-272D40904BF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{115FF417-8A44-4C69-A0C4-272D40904BF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{115FF417-8A44-4C69-A0C4-272D40904BF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{115FF417-8A44-4C69-A0C4-272D40904BF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{720F025D-7306-4743-BBFA-290613271F8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{720F025D-7306-4743-BBFA-290613271F8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{720F025D-7306-4743-BBFA-290613271F8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{720F025D-7306-4743-BBFA-290613271F8F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B81E520-207A-4A99-A32E-31E53019D07A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B81E520-207A-4A99-A32E-31E53019D07A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B81E520-207A-4A99-A32E-31E53019D07A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B81E520-207A-4A99-A32E-31E53019D07A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C167701-86DB-4B70-B1E8-5F241564BF2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C167701-86DB-4B70-B1E8-5F241564BF2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C167701-86DB-4B70-B1E8-5F241564BF2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C167701-86DB-4B70-B1E8-5F241564BF2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CD655D4-CB3E-4CE2-906D-014AC6432C50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CD655D4-CB3E-4CE2-906D-014AC6432C50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CD655D4-CB3E-4CE2-906D-014AC6432C50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CD655D4-CB3E-4CE2-906D-014AC6432C50}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3B8E82ED-8F81-48A4-9058-D41D55387423}
+	EndGlobalSection
+EndGlobal
