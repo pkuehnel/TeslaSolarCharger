@@ -5,8 +5,8 @@ on:
     branches: [ develop ]
 
 jobs:
-  SmartTeslaAmpSetter:
-    name: Building SmartTeslaAmpSetter image
+  SolarTeslaCharger:
+    name: Building SolarTeslaCharger image
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
         dotnet-version: '6.0.x'
     
     - name: Run unit tests
-      run: dotnet test SmartTeslaAmpSetter.Tests
+      run: dotnet test SolarTeslaCharger.Tests
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
@@ -34,13 +34,13 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
 
-    - name: Build and push SmartTeslaAmpSetter
+    - name: Build and push SolarTeslaCharger
       uses: docker/build-push-action@v2
       with:
-        file: ./SmartTeslaAmpSetter/Server/Dockerfile
+        file: ./SolarTeslaCharger/Server/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/smartteslaampsetter:alpha
+        tags: pkuehnel/solarteslacharger:alpha
 
   SmaEnergymeterPlugin:
     name: Building SMAPlugin Image
@@ -69,7 +69,7 @@ jobs:
         file: ./Plugins.SmaEnergymeter/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/smartteslaampsettersmaplugin:alpha
+        tags: pkuehnel/solarteslachargersmaplugin:alpha
 
   SolarEdgePlugin:
     name: Building SolarEdgePlugin Image
@@ -98,4 +98,4 @@ jobs:
         file: ./Plugins.SolarEdge/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/smartteslaampsettersolaredgeplugin:alpha
+        tags: pkuehnel/solarteslachargersolaredgeplugin:alpha

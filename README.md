@@ -1,11 +1,11 @@
-# SmartTeslaAmpSetter
+# SolarTeslaCharger
 
-[![Docker version](https://img.shields.io/docker/v/pkuehnel/smartteslaampsetter/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsetter)
-[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/smartteslaampsetter/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsetter)
-[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsetter)](https://hub.docker.com/r/pkuehnel/smartteslaampsetter)
+[![Docker version](https://img.shields.io/docker/v/pkuehnel/solarteslacharger/latest)](https://hub.docker.com/r/pkuehnel/solarteslacharger)
+[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/solarteslacharger/latest)](https://hub.docker.com/r/pkuehnel/solarteslacharger)
+[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/solarteslacharger)](https://hub.docker.com/r/pkuehnel/solarteslacharger)
 [![](https://img.shields.io/badge/Donate-PayPal-ff69b4.svg)](https://www.paypal.com/donate/?hosted_button_id=S3CK8Q9KV3JUL)
 
-SmartTeslaAmpSetter is service to set one or multiple Teslas' charging current using **[TeslaMateApi](https://github.com/tobiasehlert/teslamateapi)** and any REST Endpoint which presents the Watt to increase or reduce charging power
+SolarTeslaCharger is service to set one or multiple Teslas' charging current using **[TeslaMateApi](https://github.com/tobiasehlert/teslamateapi)** and any REST Endpoint which presents the Watt to increase or reduce charging power
 
 Needs:
 - A running **[TeslaMateApi](https://github.com/tobiasehlert/teslamateapi)** instance, which needs self-hosted data logger **[TeslaMate](https://github.com/adriankumpf/teslamate)**
@@ -38,8 +38,8 @@ If you run the simple Docker deployment of TeslaMate, then adding this will do t
 
 ```yaml
 services:
-    smartteslaampsetter:
-    image: pkuehnel/smartteslaampsetter:latest
+    solarteslacharger:
+    image: pkuehnel/solarteslacharger:latest
     logging:
         driver: "json-file"
         options:
@@ -190,16 +190,16 @@ Note: This values are not needed, they are just used to show additional informat
 If your SmartMeter does not have a REST Endpoint as needed you can use plugins:
 
 #### SMA-EnergyMeter Plugin
-[![Docker version](https://img.shields.io/docker/v/pkuehnel/smartteslaampsettersmaplugin/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersmaplugin)
-[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/smartteslaampsettersmaplugin/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersmaplugin)
-[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersmaplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersmaplugin)
+[![Docker version](https://img.shields.io/docker/v/pkuehnel/solarteslachargersmaplugin/latest)](https://hub.docker.com/r/pkuehnel/solarteslachargersmaplugin)
+[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/solarteslachargersmaplugin/latest)](https://hub.docker.com/r/pkuehnel/solarteslachargersmaplugin)
+[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/solarteslachargersmaplugin)](https://hub.docker.com/r/pkuehnel/solarteslachargersmaplugin)
 
 With the SMA Energymeter Plugin (note: Every SMA Home Manager 2.0 has an integrated EnergyMeter Interface, so this plugin is working with SMA Home Manager 2.0 as well) a new service is created, which receives the EnergyMeter values and averages them for the last x seconds. The URL of the endpoint is: http://ip-of-your-host:8453/api/CurrentPower/GetPower
 To use the plugin add the following to your `docker-compose.yml`:
 ```yaml
 services:
     smaplugin:
-    image: pkuehnel/smartteslaampsettersmaplugin:latest
+    image: pkuehnel/solarteslachargersmaplugin:latest
     logging:
         driver: "json-file"
         options:
@@ -212,15 +212,15 @@ services:
 ```
 
 #### Solaredge Plugin
-[![Docker version](https://img.shields.io/docker/v/pkuehnel/smartteslaampsettersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
-[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/smartteslaampsettersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
-[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
+[![Docker version](https://img.shields.io/docker/v/pkuehnel/solarteslachargersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/solarteslachargersolaredgeplugin)
+[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/solarteslachargersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/solarteslachargersolaredgeplugin)
+[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/solarteslachargersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/solarteslachargersolaredgeplugin)
 
 Currently only the cloud API is supported. As there are not allowed more than 300 requests per plant, IP address and day, this integration is at this state very limited as you can only get the current power every few minutes. To use the solaredge plugin, you have to add another service to your `docker-compose.yml`:
 ```yaml
 services:
     solaredgeplugin:
-    image: pkuehnel/smartteslaampsettersolaredgeplugin:solaredge
+    image: pkuehnel/solarteslachargersolaredgeplugin:solaredge
     logging:
         driver: "json-file"
         options:
@@ -235,7 +235,7 @@ services:
       - 8453:8453
 ```
 Note: You have to change the cloud URL and also can change the refresh intervall. The default refresh intervall of 360 results in 240 of 300 allowed API calls per day.
-To use the plugin in the `smartteslaampsetter` you have to add the following environmentvariables to the `smartteslaampsetter` service:
+To use the plugin in the `solarteslacharger` you have to add the following environmentvariables to the `solarteslacharger` service:
 ```yaml
 - CurrentPowerToGridUrl=http://solaredgeplugin:8453/api/CurrentValues/GetPowerToGrid
 - CurrentInverterPowerUrl=http://solaredgeplugin:8453/api/CurrentValues/GetInverterPower

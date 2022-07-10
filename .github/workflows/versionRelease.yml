@@ -30,7 +30,7 @@ jobs:
           dotnet-version: '6.0.x'
     
       - name: Run unit tests
-        run: dotnet test SmartTeslaAmpSetter.Tests
+        run: dotnet test SolarTeslaCharger.Tests
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -40,15 +40,15 @@ jobs:
         with:
           dotnet-version: 6.0.x
 
-      - name: Build SmartTeslaAmpSetter
+      - name: Build SolarTeslaCharger
         shell: bash
         run: |
           # Define some variables for things we need
           tag=$(git describe --tags --abbrev=0)
-          release_name="SmartTeslaAmpSetter-$tag-${{ matrix.kind }}"
+          release_name="SolarTeslaCharger-$tag-${{ matrix.kind }}"
 
           # Build everything
-          dotnet publish SmartTeslaAmpSetter/Server/SmartTeslaAmpSetter.Server.csproj --runtime "${{ matrix.kind }}" -c Release -o "$release_name"
+          dotnet publish SolarTeslaCharger/Server/SolarTeslaCharger.Server.csproj --runtime "${{ matrix.kind }}" -c Release -o "$release_name"
 
           # Pack files
           tar czvf "${release_name}.tar.gz" "$release_name"
@@ -95,8 +95,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  releaseDockerLatestSmartTeslaAmpSetter:
-    name: Building SmartTeslaAmpSetter image
+  releaseDockerLatestSolarTeslaCharger:
+    name: Building SolarTeslaCharger image
     runs-on: ubuntu-latest
 
     steps:
@@ -109,7 +109,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            pkuehnel/smartteslaampsetter
+            pkuehnel/solarteslacharger
           # generate Docker tags based on the following events/attributes
           tags: |
             type=semver,pattern={{version}}
@@ -127,10 +127,10 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
-      - name: Build and push SmartTeslaAmpSetter
+      - name: Build and push SolarTeslaCharger
         uses: docker/build-push-action@v2
         with:
-          file: ./SmartTeslaAmpSetter/Server/Dockerfile
+          file: ./SolarTeslaCharger/Server/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -149,7 +149,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            pkuehnel/smartteslaampsettersmaplugin
+            pkuehnel/solarteslachargersmaplugin
           # generate Docker tags based on the following events/attributes
           tags: |
             type=semver,pattern={{version}}
@@ -189,7 +189,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            pkuehnel/smartteslaampsettersolaredgeplugin
+            pkuehnel/solarteslachargersolaredgeplugin
           # generate Docker tags based on the following events/attributes
           tags: |
             type=semver,pattern={{version}}
