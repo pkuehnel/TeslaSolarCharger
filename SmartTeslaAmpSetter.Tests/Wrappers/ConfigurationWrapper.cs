@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -119,7 +120,10 @@ public class ConfigurationWrapper : TestBase
     {
         var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
         var value = configurationWrapper.CarConfigFileFullName();
-
-        Assert.Equal("configs/carConfig.json", value);
+        var pathSeparator = Path.DirectorySeparatorChar;
+        var linuxPathSeparator = '/';
+        var windowsPathSeparator = '\\';
+        Assert.True(pathSeparator.Equals(linuxPathSeparator) || pathSeparator.Equals(windowsPathSeparator));
+        Assert.Equal($"configs{pathSeparator}carConfig.json", value);
     }
 }
