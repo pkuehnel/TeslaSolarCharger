@@ -74,8 +74,7 @@ public class ChargingService : IChargingService
         if (_settings.Overage != null)
         {
             _logger.LogWarning("Can not control power as overage is unknown");
-            //ToDo: add return
-            //return;
+            return;
         }
 
         var overage = averagedOverage - buffer;

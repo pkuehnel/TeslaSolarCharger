@@ -2,7 +2,7 @@
 
 public interface IConfigurationWrapper
 {
-    string ConfigFileLocation();
+    string CarConfigFileFullName();
     TimeSpan ChargingValueJobUpdateIntervall();
     TimeSpan PvValueJobUpdateIntervall();
     string MqqtClientId();
