@@ -17,7 +17,16 @@ public class ConfigurationWrapper : IConfigurationWrapper
         _configuration = configuration;
     }
 
-    public string ConfigFileLocation()
+    public string CarConfigFileFullName()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "CarConfigFilename";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
+    internal string ConfigFileDirectory()
     {
         var environmentVariableName = "ConfigFileLocation";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);

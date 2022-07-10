@@ -33,6 +33,8 @@ public class TestBase : IDisposable
             {"ten", "10"},
             {"one", "1"},
             {"zero", "0"},
+            {"ConfigFileLocation", "configs"},
+            {"CarConfigFilename", "carConfig.json"},
         };
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configDictionary)

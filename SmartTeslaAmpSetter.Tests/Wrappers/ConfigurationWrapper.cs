@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -14,11 +15,11 @@ public class ConfigurationWrapper : TestBase
     [Fact]
     public void Get_Not_Nullable_String()
     {
-        var configurationService = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
 
         var existingConfigValue = "TeslaMateApiBaseUrl";
         var teslaMateApiBaseUrl = 
-            configurationService.GetNotNullableConfigurationValue<string>(existingConfigValue);
+            configurationWrapper.GetNotNullableConfigurationValue<string>(existingConfigValue);
         
         Assert.Equal("http://192.168.1.50:8097", teslaMateApiBaseUrl);
     }
@@ -28,9 +29,9 @@ public class ConfigurationWrapper : TestBase
     [InlineData("notExisiting")]
     public void Throw_Exception_On_Null_String(string notExisitingConfigValue)
     {
-        var configurationService = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
         Assert.Throws<NullReferenceException>(
-            () => configurationService.GetNotNullableConfigurationValue<string>(notExisitingConfigValue));
+            () => configurationWrapper.GetNotNullableConfigurationValue<string>(notExisitingConfigValue));
     }
 
     [Theory]
@@ -38,8 +39,8 @@ public class ConfigurationWrapper : TestBase
     [InlineData("notExisiting")]
     public void Returns_Null_On_Non_Exisiting_Values(string notExisitingConfigValue)
     {
-        var configurationService = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
-        var value = configurationService.GetNullableConfigurationValue<string>(notExisitingConfigValue);
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var value = configurationWrapper.GetNullableConfigurationValue<string>(notExisitingConfigValue);
 
         Assert.Null(value);
     }
@@ -51,9 +52,9 @@ public class ConfigurationWrapper : TestBase
     [InlineData("notExisiting")]
     public void Get_TimeSpan_From_Minutes(string configName)
     {
-        var configurationService = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
         var timespan =
-            configurationService.GetMinutesConfigurationValueIfGreaterThanMinumum(configName, TimeSpan.FromMinutes(1));
+            configurationWrapper.GetMinutesConfigurationValueIfGreaterThanMinumum(configName, TimeSpan.FromMinutes(1));
 
         switch (configName)
         {
@@ -81,10 +82,10 @@ public class ConfigurationWrapper : TestBase
     [InlineData("notExisiting")]
     public void Get_TimeSpan_From_Seconds(string configName)
     {
-        var configurationService = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
         var minimum = TimeSpan.FromSeconds(1);
         var timespan =
-            configurationService.GetSecondsConfigurationValueIfGreaterThanMinumum(configName, minimum);
+            configurationWrapper.GetSecondsConfigurationValueIfGreaterThanMinumum(configName, minimum);
 
         switch (configName)
         {
@@ -103,5 +104,26 @@ public class ConfigurationWrapper : TestBase
             default:
                 throw new NotImplementedException("Config name not converd in this test");
         }
+    }
+
+    [Fact]
+    public void GetConfigurationFileDirectory()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var value = configurationWrapper.ConfigFileDirectory();
+
+        Assert.Equal("configs", value);
+    }
+
+    [Fact]
+    public void GetCarConfigurationFileFullName()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var value = configurationWrapper.CarConfigFileFullName();
+        var pathSeparator = Path.DirectorySeparatorChar;
+        var linuxPathSeparator = '/';
+        var windowsPathSeparator = '\\';
+        Assert.True(pathSeparator.Equals(linuxPathSeparator) || pathSeparator.Equals(windowsPathSeparator));
+        Assert.Equal($"configs{pathSeparator}carConfig.json", value);
     }
 }

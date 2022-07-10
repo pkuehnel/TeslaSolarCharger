@@ -27,13 +27,13 @@ public class ConfigJsonService : IConfigJsonService
 
     private bool CarConfigurationFileExists()
     {
-        var path = GetConfigurationFileFullPath();
+        var path = GetCarConfigurationFileFullPath();
         return File.Exists(path);
     }
 
-    private string GetConfigurationFileFullPath()
+    private string GetCarConfigurationFileFullPath()
     {
-        var configFileLocation = _congConfigurationWrapper.ConfigFileLocation();
+        var configFileLocation = _congConfigurationWrapper.CarConfigFileFullName();
         var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
         path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), configFileLocation);
         return path;
@@ -86,7 +86,7 @@ public class ConfigJsonService : IConfigJsonService
 
     private async Task<string> GetCarConfigurationFileContent()
     {
-        var fileContent = await File.ReadAllTextAsync(GetConfigurationFileFullPath()).ConfigureAwait(false);
+        var fileContent = await File.ReadAllTextAsync(GetCarConfigurationFileFullPath()).ConfigureAwait(false);
         return fileContent;
     }
 
@@ -122,7 +122,7 @@ public class ConfigJsonService : IConfigJsonService
     public async Task UpdateConfigJson()
     {
         _logger.LogTrace("{method}()", nameof(UpdateConfigJson));
-        var configFileLocation = GetConfigurationFileFullPath();
+        var configFileLocation = GetCarConfigurationFileFullPath();
         var minDate = new DateTime(2022, 1, 1);
         if (_settings.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite || c.CarConfiguration.LatestTimeToReachSoC < minDate))
         {
