@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using Plugins.SolarEdge.Contracts;
 using Plugins.SolarEdge.Dtos.CloudApi;
 
-[assembly: InternalsVisibleTo("SolarTeslaCharger.Tests")]
+[assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace Plugins.SolarEdge.Services;
 
 public class CurrentValuesService : ICurrentValuesService

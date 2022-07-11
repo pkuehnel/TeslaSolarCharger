@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  SolarTeslaCharger:
-    name: Building SolarTeslaCharger image
+  TeslaSolarCharger:
+    name: Building TeslaSolarCharger image
     runs-on: ubuntu-latest
 
     steps:
@@ -24,7 +24,7 @@ jobs:
         dotnet-version: '6.0.x'
     
     - name: Run unit tests
-      run: dotnet test SolarTeslaCharger.Tests
+      run: dotnet test TeslaSolarCharger.Tests
       
     - name: Buildx
       id: buildx
@@ -36,13 +36,13 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
         
-    - name: Build and push SolarTeslaCharger
+    - name: Build and push TeslaSolarCharger
       uses: docker/build-push-action@v2
       with:
-        file: ./SolarTeslaCharger/Server/Dockerfile
+        file: ./TeslaSolarCharger/Server/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/solarteslacharger:edge
+        tags: pkuehnel/teslasolarcharger:edge
 
   SmaEnergymeterPlugin:
     name: Building SMAPlugin Image
@@ -71,7 +71,7 @@ jobs:
         file: ./Plugins.SmaEnergymeter/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/solarteslachargersmaplugin:edge
+        tags: pkuehnel/teslasolarchargersmaplugin:edge
 
   SolarEdgePlugin:
     name: Building SolarEdgePlugin Image
@@ -100,4 +100,4 @@ jobs:
         file: ./Plugins.SolarEdge/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/solarteslachargersolaredgeplugin:edge
+        tags: pkuehnel/teslasolarchargersolaredgeplugin:edge
