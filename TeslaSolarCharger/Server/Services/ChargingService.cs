@@ -70,7 +70,7 @@ public class ChargingService : IChargingService
         var averagedOverage = _pvValueService.GetAveragedOverage();
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
-        if (_settings.Overage != null)
+        if (_settings.Overage == null)
         {
             _logger.LogWarning("Can not control power as overage is unknown");
             return;
