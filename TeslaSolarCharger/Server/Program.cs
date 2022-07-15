@@ -7,6 +7,7 @@ using Serilog;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Contracts;
@@ -38,6 +39,7 @@ builder.Services
     .AddTransient<PvValueJob>()
     .AddTransient<CarDbUpdateJob>()
     .AddTransient<JobFactory>()
+    .AddTransient<EnvironmentVariableConverter>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
     .AddTransient<IChargingService, ChargingService>()

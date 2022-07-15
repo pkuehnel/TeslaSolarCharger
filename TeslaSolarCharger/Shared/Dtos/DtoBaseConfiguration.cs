@@ -51,7 +51,7 @@ public class DtoBaseConfiguration
     public string? CurrentPowerToGridXmlAttributeHeaderValue { get; set; }
     public string? CurrentPowerToGridXmlAttributeValueName { get; set; }
     public string? CurrentInverterPowerXmlPattern { get; set; }
-    public string? CurrentInverterPowerAttributeHeaderName { get; set; }
-    public string? CurrentInverterPowerAttributeHeaderValue { get; set; }
-    public string? CurrentInverterPowerAttributeValueName { get; set; }
+    public string? CurrentInverterPowerXmlAttributeHeaderName { get; set; }
+    public string? CurrentInverterPowerXmlAttributeHeaderValue { get; set; }
+    public string? CurrentInverterPowerXmlAttributeValueName { get; set; }
 }
