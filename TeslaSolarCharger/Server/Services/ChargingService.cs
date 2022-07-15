@@ -178,21 +178,7 @@ public class ChargingService : IChargingService
         var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
-        if (car.CarState.ChargerPilotCurrent != null && maxAmpPerCar > car.CarState.ChargerPilotCurrent)
-        {
-            _logger.LogWarning("Charging speed of {carID} id reduced to {amp}", car.Id, car.CarState.ChargerPilotCurrent);
-            maxAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
-            if (!car.CarState.ReducedChargeSpeedWarning)
-            {
-                car.CarState.ReducedChargeSpeedWarning = true;
-                await _telegramService.SendMessage($"Charging of {car.CarState.Name} is reduced to {car.CarState.ChargerPilotCurrent} due to chargelimit of wallbox.").ConfigureAwait(false);
-            }
-        }
-        else if(car.CarState.ReducedChargeSpeedWarning)
-        {
-            car.CarState.ReducedChargeSpeedWarning = false;
-            await _telegramService.SendMessage($"Charging speed of {car.CarState.Name} is regained.").ConfigureAwait(false);
-        }
+        await SendWarningOnChargerPilotReduced(car, maxAmpPerCar);
 
         EnableFullSpeedChargeIfMinimumSocNotReachable(car);
         DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
@@ -281,19 +267,41 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Normal amp set");
             UpdateEarliestTimesAfterSwitch(car.Id);
             var ampToSet = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-            if (ampToSet != car.CarState.ChargerActualCurrent)
+            if (ampToSet != car.CarState.ChargerRequestedCurrent)
             {
                 await _teslaService.SetAmp(car.Id, ampToSet).ConfigureAwait(false);
                 ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
             }
             else
             {
-                _logger.LogDebug("Current actual amp: {currentActualAmp} same as amp to set: {ampToSet} Do not change anything",
-                    car.CarState.ChargerActualCurrent, ampToSet);
+                _logger.LogDebug("Current requested amp: {currentRequestedAmp} same as amp to set: {ampToSet} Do not change anything",
+                    car.CarState.ChargerRequestedCurrent, ampToSet);
             }
         }
 
         return ampChange * (car.CarState.ChargerVoltage ?? 230) * (car.CarState.ActualPhases ?? 3);
+    }
+
+    private async Task SendWarningOnChargerPilotReduced(Car car, int maxAmpPerCar)
+    {
+        if (car.CarState.ChargerPilotCurrent != null && maxAmpPerCar > car.CarState.ChargerPilotCurrent)
+        {
+            _logger.LogWarning("Charging speed of {carID} id reduced to {amp}", car.Id, car.CarState.ChargerPilotCurrent);
+            maxAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
+            if (!car.CarState.ReducedChargeSpeedWarning)
+            {
+                car.CarState.ReducedChargeSpeedWarning = true;
+                await _telegramService
+                    .SendMessage(
+                        $"Charging of {car.CarState.Name} is reduced to {car.CarState.ChargerPilotCurrent} due to chargelimit of wallbox.")
+                    .ConfigureAwait(false);
+            }
+        }
+        else if (car.CarState.ReducedChargeSpeedWarning)
+        {
+            car.CarState.ReducedChargeSpeedWarning = false;
+            await _telegramService.SendMessage($"Charging speed of {car.CarState.Name} is regained.").ConfigureAwait(false);
+        }
     }
 
     internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car car)

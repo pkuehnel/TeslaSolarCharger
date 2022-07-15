@@ -22,7 +22,7 @@ public class MqttService : TestBase
     [InlineData("4")]
     [InlineData("5")]
     [InlineData("8")]
-    public void ReducesActualCurrentToLastSetAmpIfDifferenceIsOneAndBelow5A(string value)
+    public void ReducesActualCurrentToLastSetAmpIfDifferenceIsOneAndBelow5AAndEqualToRequestedCurrent(string value)
     {
         var cars = new List<Car>()
         {
@@ -32,6 +32,7 @@ public class MqttService : TestBase
                 CarState = new CarState()
                 {
                     LastSetAmp = 3,
+                    ChargerRequestedCurrent = 3,
                 },
             },
         };

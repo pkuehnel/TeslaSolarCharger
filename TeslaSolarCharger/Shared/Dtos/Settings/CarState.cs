@@ -19,6 +19,7 @@ public class CarState
     public int? ChargerVoltage { get; set; }
     public int? ChargerActualCurrent { get; set; }
     public int? ChargerPilotCurrent { get; set; }
+    public int? ChargerRequestedCurrent { get; set; }
     public bool? PluggedIn { get; set; }
     public bool? ClimateOn { get; set; }
     public int? ChargingPowerAtHome { get; set; }

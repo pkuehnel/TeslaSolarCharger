@@ -23,6 +23,8 @@ public class CarDbUpdateService : ICarDbUpdateService
     public async Task UpdateCarsFromDatabase()
     {
         _logger.LogTrace("{method}()", nameof(UpdateCarsFromDatabase));
+        _logger.LogWarning("Deprecated method called");
+        return;
         foreach (var car in _settings.Cars)
         {
             try
