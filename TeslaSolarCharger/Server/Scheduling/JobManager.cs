@@ -53,16 +53,12 @@ public class JobManager
         var pvValueTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds)).Build();
 
-        var carDbUpdateTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(10)).Build();
-
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
             {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
             {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
-            {carDbUpdateJob, new HashSet<ITrigger> {carDbUpdateTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);
