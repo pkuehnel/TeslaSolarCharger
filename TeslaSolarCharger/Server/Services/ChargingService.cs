@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -267,15 +267,15 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Normal amp set");
             UpdateEarliestTimesAfterSwitch(car.Id);
             var ampToSet = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-            if (ampToSet != car.CarState.ChargerActualCurrent)
+            if (ampToSet != car.CarState.ChargerRequestedCurrent)
             {
                 await _teslaService.SetAmp(car.Id, ampToSet).ConfigureAwait(false);
                 ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
             }
             else
             {
-                _logger.LogDebug("Current actual amp: {currentActualAmp} same as amp to set: {ampToSet} Do not change anything",
-                    car.CarState.ChargerActualCurrent, ampToSet);
+                _logger.LogDebug("Current requested amp: {currentRequestedAmp} same as amp to set: {ampToSet} Do not change anything",
+                    car.CarState.ChargerRequestedCurrent, ampToSet);
             }
         }
 
