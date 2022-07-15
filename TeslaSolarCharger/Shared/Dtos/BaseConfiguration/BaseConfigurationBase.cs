@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TeslaSolarCharger.Shared.Dtos;
+namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
-public class DtoBaseConfiguration
+public class BaseConfigurationBase
 {
     [Required]
     public string? CurrentPowerToGridUrl { get; set; }
