@@ -178,7 +178,7 @@ public class ChargingService : IChargingService
         var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
-        await SendWarningOnChargerPilotReduced(car, ref maxAmpPerCar);
+        await SendWarningOnChargerPilotReduced(car, maxAmpPerCar);
 
         EnableFullSpeedChargeIfMinimumSocNotReachable(car);
         DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
@@ -282,7 +282,7 @@ public class ChargingService : IChargingService
         return ampChange * (car.CarState.ChargerVoltage ?? 230) * (car.CarState.ActualPhases ?? 3);
     }
 
-    private async Task SendWarningOnChargerPilotReduced(Car car, ref int maxAmpPerCar)
+    private async Task SendWarningOnChargerPilotReduced(Car car, int maxAmpPerCar)
     {
         if (car.CarState.ChargerPilotCurrent != null && maxAmpPerCar > car.CarState.ChargerPilotCurrent)
         {
