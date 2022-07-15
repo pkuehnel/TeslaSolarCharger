@@ -171,7 +171,13 @@ public class ChargingService : IChargingService
     private async Task<int> ChangeCarAmp(Car car, int ampToChange)
     {
         _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), car.CarState.Name, ampToChange);
-        var finalAmpsToSet = (car.CarState.ChargerActualCurrent ?? 0) + ampToChange;
+        //This might happen if only climate is running or car nearly full which means full power is not needed.
+        if (ampToChange > 0 && car.CarState.ChargerRequestedCurrent > car.CarState.ChargerActualCurrent)
+        {
+            ampToChange = 0;
+            _logger.LogDebug("Set amp to change to {ampToChange} as car does not use full request.", ampToChange);
+        }
+        var finalAmpsToSet = (car.CarState.ChargerRequestedCurrent ?? 0) + ampToChange;
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
         var ampChange = 0;
         var minAmpPerCar = car.CarConfiguration.MinimumAmpere;
@@ -179,6 +185,19 @@ public class ChargingService : IChargingService
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
         await SendWarningOnChargerPilotReduced(car, maxAmpPerCar);
+
+        if (car.CarState.ChargerPilotCurrent != null)
+        {
+            if (minAmpPerCar > car.CarState.ChargerPilotCurrent)
+            {
+                minAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
+            }
+            if (maxAmpPerCar > car.CarState.ChargerPilotCurrent)
+            {
+                maxAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
+            }
+        }
+        
 
         EnableFullSpeedChargeIfMinimumSocNotReachable(car);
         DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
@@ -188,7 +207,7 @@ public class ChargingService : IChargingService
         {
             _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}",
                 car.CarConfiguration.ChargeMode, car.CarState.AutoFullSpeedCharge);
-            if (car.CarState.ChargerActualCurrent < maxAmpPerCar)
+            if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar)
             {
                 var ampToSet = maxAmpPerCar;
 
@@ -287,7 +306,6 @@ public class ChargingService : IChargingService
         if (car.CarState.ChargerPilotCurrent != null && maxAmpPerCar > car.CarState.ChargerPilotCurrent)
         {
             _logger.LogWarning("Charging speed of {carID} id reduced to {amp}", car.Id, car.CarState.ChargerPilotCurrent);
-            maxAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
             if (!car.CarState.ReducedChargeSpeedWarning)
             {
                 car.CarState.ReducedChargeSpeedWarning = true;

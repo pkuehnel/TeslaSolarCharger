@@ -87,9 +87,15 @@ public class TeslamateApiService : ITeslaService
 
         var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/set_charging_amps";
 
-        var result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
+        HttpResponseMessage? result = null;
+        if (car.CarState.ChargerRequestedCurrent != amps)
+        {
+            result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
+        }
+        
 
-        if (amps < 5)
+        if (amps < 5 && car.CarState.LastSetAmp > 5
+            || amps > 5 && car.CarState.LastSetAmp < 5)
         {
             await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
             result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
@@ -97,7 +103,10 @@ public class TeslamateApiService : ITeslaService
 
         car.CarState.LastSetAmp = amps;
 
-        _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
+        if (result != null)
+        {
+            _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
+        }
     }
 
     private async Task ResumeLogging(int carId)
