@@ -189,10 +189,12 @@ public class MqttService : IMqttService
                 {
                     car.CarState.ChargerActualCurrent = Convert.ToInt32(value.Value);
                     if (car.CarState.ChargerActualCurrent < 5 &&
+                        car.CarState.ChargerRequestedCurrent == car.CarState.LastSetAmp &&
                         car.CarState.LastSetAmp == car.CarState.ChargerActualCurrent - 1 &&
                         car.CarState.LastSetAmp > 0)
                     {
                         _logger.LogWarning("CarId {carId}: Reducing {actualCurrent} from {originalValue} to {newValue} due to error in TeslaApi", car.Id, nameof(car.CarState.ChargerActualCurrent), car.CarState.ChargerActualCurrent, car.CarState.LastSetAmp);
+                        //ToDo: Set to average of requested and actual current
                         car.CarState.ChargerActualCurrent = car.CarState.LastSetAmp;
                     }
                 }
