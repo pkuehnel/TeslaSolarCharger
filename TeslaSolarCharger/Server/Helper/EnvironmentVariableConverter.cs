@@ -1,4 +1,5 @@
 ﻿using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
 namespace TeslaSolarCharger.Server.Helper;
 
