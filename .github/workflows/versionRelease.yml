@@ -135,6 +135,46 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
+  releaseDockerLatestSmartTeslaAmpSetter:
+    name: Building SmartTeslaAmpSetter image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            pkuehnel/smartteslaampsetter
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=semver,pattern={{version}}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      
+      - name: Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: DockerHub login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASS}}
+          
+      - name: Build and push SmartTeslaAmpSetter
+        uses: docker/build-push-action@v2
+        with:
+          file: ./TeslaSolarCharger/Server/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
   releaseDockerLatestSmaEnergymeterplugin:
     name: Building SMAPlugin Image
     runs-on: ubuntu-latest
@@ -175,6 +215,46 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
+  releaseDockerLatestSmaEnergymeterplugin:
+    name: Building SMAPlugin Image old name
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            pkuehnel/smartteslaampsettersmaplugin
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=semver,pattern={{version}}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      
+      - name: Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: DockerHub login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASS}}
+          
+      - name: Build and push SmaPlugin
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Plugins.SmaEnergymeter/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
   releaseDockerLatestSolarEdgeplugin:
     name: Building SolarEdgePlugin Image
     runs-on: ubuntu-latest
@@ -190,6 +270,46 @@ jobs:
           # list of Docker images to use as base name for tags
           images: |
             pkuehnel/teslasolarchargersolaredgeplugin
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=semver,pattern={{version}}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      
+      - name: Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: DockerHub login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASS}}
+          
+      - name: Build and push SolarEdgePlugin
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Plugins.SolarEdge/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  releaseDockerLatestSolarEdgeplugin:
+    name: Building SolarEdgePlugin Image old name
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            pkuehnel/smartteslaampsettersolaredgeplugin
           # generate Docker tags based on the following events/attributes
           tags: |
             type=semver,pattern={{version}}
