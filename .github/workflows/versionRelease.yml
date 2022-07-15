@@ -175,7 +175,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
-  releaseDockerLatestSmaEnergymeterplugin:
+  releaseDockerLatestSmaEnergymeterpluginTeslaSolarCharger:
     name: Building SMAPlugin Image
     runs-on: ubuntu-latest
 
@@ -215,7 +215,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
-  releaseDockerLatestSmaEnergymeterplugin:
+  releaseDockerLatestSmaEnergymeterpluginSmartTeslaAmpSetter:
     name: Building SMAPlugin Image old name
     runs-on: ubuntu-latest
 
@@ -255,7 +255,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
-  releaseDockerLatestSolarEdgeplugin:
+  releaseDockerLatestSolarEdgepluginTeslaSolarCharger:
     name: Building SolarEdgePlugin Image
     runs-on: ubuntu-latest
 
@@ -295,7 +295,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
-  releaseDockerLatestSolarEdgeplugin:
+  releaseDockerLatestSolarEdgepluginSmartTeslaAmpSetter:
     name: Building SolarEdgePlugin Image old name
     runs-on: ubuntu-latest
 
