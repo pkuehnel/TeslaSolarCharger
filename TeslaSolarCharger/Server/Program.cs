@@ -93,6 +93,8 @@ var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 
 await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
 
+//ToDo: Add Convert to config.json
+
 var jobManager = app.Services.GetRequiredService<JobManager>();
 jobManager.StartJobs();
 
