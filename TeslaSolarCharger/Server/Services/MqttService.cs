@@ -1,4 +1,4 @@
-﻿using MQTTnet;
+using MQTTnet;
 using MQTTnet.Client;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -39,9 +39,9 @@ public class MqttService : IMqttService
     private const string TopicState = "state";
     // ReSharper disable once InconsistentNaming
     private const string TopicHealthy = "healthy";
-    //ToDo: Add after next TeslaMateRelease
-    //private const string TopicChargeCurrentRequest = "charge_current_request";
-    //public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
+    // ReSharper disable once UnusedMember.Local
+    private const string TopicChargeCurrentRequest = "charge_current_request";
+    public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
 
     public MqttService(ILogger<MqttService> logger, MqttClient mqttClient, MqttFactory mqttFactory, 
         ISettings settings, IConfigurationWrapper configurationWrapper)
@@ -124,15 +124,14 @@ public class MqttService : IMqttService
             {
                 f.WithTopic($"{topicPrefix}{TopicHealthy}");
             })
-            //ToDo: Add after next TeslaMateRelease
-            //.WithTopicFilter(f =>
-            //{
-            //    f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequest}");
-            //})
-            //.WithTopicFilter(f =>
-            //{
-            //    f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequestMax");
-            //})
+            .WithTopicFilter(f =>
+            {
+                f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequest}");
+            })
+            .WithTopicFilter(f =>
+            {
+                f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequestMax}");
+            })
             .Build();
 
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
@@ -259,6 +258,18 @@ public class MqttService : IMqttService
             case TopicHealthy:
                 car.CarState.Healthy = Convert.ToBoolean(value.Value);
                 _logger.LogDebug("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.CarState.Healthy);
+                break;
+            case TopicChargeCurrentRequest:
+                if (!string.IsNullOrWhiteSpace(value.Value))
+                {
+                    car.CarState.ChargerRequestedCurrent = Convert.ToInt32(value.Value);
+                }
+                break;
+            case TopicChargeCurrentRequestMax:
+                if (!string.IsNullOrWhiteSpace(value.Value))
+                {
+                    car.CarState.ChargerPilotCurrent = Convert.ToInt32(value.Value);
+                }
                 break;
         }
     }
