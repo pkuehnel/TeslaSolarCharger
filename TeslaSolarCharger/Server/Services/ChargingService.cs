@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -178,21 +178,7 @@ public class ChargingService : IChargingService
         var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
-        if (car.CarState.ChargerPilotCurrent != null && maxAmpPerCar > car.CarState.ChargerPilotCurrent)
-        {
-            _logger.LogWarning("Charging speed of {carID} id reduced to {amp}", car.Id, car.CarState.ChargerPilotCurrent);
-            maxAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
-            if (!car.CarState.ReducedChargeSpeedWarning)
-            {
-                car.CarState.ReducedChargeSpeedWarning = true;
-                await _telegramService.SendMessage($"Charging of {car.CarState.Name} is reduced to {car.CarState.ChargerPilotCurrent} due to chargelimit of wallbox.").ConfigureAwait(false);
-            }
-        }
-        else if(car.CarState.ReducedChargeSpeedWarning)
-        {
-            car.CarState.ReducedChargeSpeedWarning = false;
-            await _telegramService.SendMessage($"Charging speed of {car.CarState.Name} is regained.").ConfigureAwait(false);
-        }
+        await SendWarningOnChargerPilotReduced(car, ref maxAmpPerCar);
 
         EnableFullSpeedChargeIfMinimumSocNotReachable(car);
         DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
@@ -294,6 +280,28 @@ public class ChargingService : IChargingService
         }
 
         return ampChange * (car.CarState.ChargerVoltage ?? 230) * (car.CarState.ActualPhases ?? 3);
+    }
+
+    private async Task SendWarningOnChargerPilotReduced(Car car, ref int maxAmpPerCar)
+    {
+        if (car.CarState.ChargerPilotCurrent != null && maxAmpPerCar > car.CarState.ChargerPilotCurrent)
+        {
+            _logger.LogWarning("Charging speed of {carID} id reduced to {amp}", car.Id, car.CarState.ChargerPilotCurrent);
+            maxAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
+            if (!car.CarState.ReducedChargeSpeedWarning)
+            {
+                car.CarState.ReducedChargeSpeedWarning = true;
+                await _telegramService
+                    .SendMessage(
+                        $"Charging of {car.CarState.Name} is reduced to {car.CarState.ChargerPilotCurrent} due to chargelimit of wallbox.")
+                    .ConfigureAwait(false);
+            }
+        }
+        else if (car.CarState.ReducedChargeSpeedWarning)
+        {
+            car.CarState.ReducedChargeSpeedWarning = false;
+            await _telegramService.SendMessage($"Charging speed of {car.CarState.Name} is regained.").ConfigureAwait(false);
+        }
     }
 
     internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car car)
