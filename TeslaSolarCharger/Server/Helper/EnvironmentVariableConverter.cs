@@ -1,20 +1,23 @@
-﻿using TeslaSolarCharger.Shared.Dtos;
+﻿using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
 namespace TeslaSolarCharger.Server.Helper;
 
-public class EnvironmentVariableConverter
+public class EnvironmentVariableConverter : IEnvironmentVariableConverter
 {
     private readonly ILogger<EnvironmentVariableConverter> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IBaseConfigurationService _baseConfigurationService;
 
-    public EnvironmentVariableConverter(ILogger<EnvironmentVariableConverter> logger, IConfiguration configuration)
+    public EnvironmentVariableConverter(ILogger<EnvironmentVariableConverter> logger, IConfiguration configuration,
+        IBaseConfigurationService baseConfigurationService)
     {
         _logger = logger;
         _configuration = configuration;
+        _baseConfigurationService = baseConfigurationService;
     }
 
-    public void ConvertAllValues()
+    public async Task ConvertAllValues()
     {
         _logger.LogTrace("{method}()", nameof(ConvertAllValues));
         var dtoBaseConfiguration = new DtoBaseConfiguration()
@@ -49,11 +52,13 @@ public class EnvironmentVariableConverter
             CurrentInverterPowerXmlAttributeHeaderValue = _configuration.GetValue<string?>("CurrentInverterPowerAttributeHeaderValue"),
             CurrentInverterPowerXmlAttributeValueName = _configuration.GetValue<string?>("CurrentInverterPowerAttributeValueName"),
         };
-        var carPriorities = _configuration.GetValue<string>("");
+        var carPriorities = _configuration.GetValue<string>("CarPriorities");
         var elements = carPriorities.Split('|').ToList();
         foreach (var element in elements)
         {
             dtoBaseConfiguration.CarPriorities.Add(Convert.ToInt32(element));
         }
+
+        await _baseConfigurationService.SaveBaseConfiguration(dtoBaseConfiguration);
     }
 }
