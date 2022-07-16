@@ -1,6 +1,6 @@
 ﻿namespace TeslaSolarCharger.Shared.Enums;
 
-public enum CarState
+public enum CarStateEnum
 {
     Asleep,
     Offline,

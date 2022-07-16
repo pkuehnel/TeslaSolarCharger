@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
-using CarState = TeslaSolarCharger.Shared.Enums.CarState;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -23,18 +23,18 @@ public class TeslamateApiService : ITeslaService
         _teslaMateBaseUrl = configurationWrapper.TeslaMateApiBaseUrl();
     }
 
-    public async Task StartCharging(int carId, int startAmp, CarState? carState)
+    public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
     {
         _logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(StartCharging), carId, startAmp, carState);
 
-        if (carState == CarState.Offline ||
-            carState == CarState.Asleep)
+        if (carState == CarStateEnum.Offline ||
+            carState == CarStateEnum.Asleep)
         {
             _logger.LogInformation("Wakeup car before charging");
             await WakeUpCar(carId);
         }
 
-        if (carState == CarState.Suspended)
+        if (carState == CarStateEnum.Suspended)
         {
             _logger.LogInformation("Logging is suspended");
             await ResumeLogging(carId);
