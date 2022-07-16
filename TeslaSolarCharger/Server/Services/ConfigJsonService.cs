@@ -15,28 +15,20 @@ public class ConfigJsonService : IConfigJsonService
 {
     private readonly ILogger<ConfigJsonService> _logger;
     private readonly ISettings _settings;
-    private readonly IConfigurationWrapper _congConfigurationWrapper;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     public ConfigJsonService(ILogger<ConfigJsonService> logger, ISettings settings,
-        IConfigurationWrapper congConfigurationWrapper)
+        IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _settings = settings;
-        _congConfigurationWrapper = congConfigurationWrapper;
+        _configurationWrapper = configurationWrapper;
     }
 
     private bool CarConfigurationFileExists()
     {
-        var path = GetCarConfigurationFileFullPath();
+        var path = _configurationWrapper.CarConfigFileFullName();
         return File.Exists(path);
-    }
-
-    private string GetCarConfigurationFileFullPath()
-    {
-        var configFileLocation = _congConfigurationWrapper.CarConfigFileFullName();
-        var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
-        path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), configFileLocation);
-        return path;
     }
 
     public async Task<List<Car>> GetCarsFromConfiguration()
@@ -55,7 +47,7 @@ public class ConfigJsonService : IConfigJsonService
             }
         }
 
-        var carIds = _congConfigurationWrapper.CarPriorities();
+        var carIds = _configurationWrapper.CarPriorities();
         RemoveOldCars(cars, carIds);
 
         var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
@@ -86,7 +78,7 @@ public class ConfigJsonService : IConfigJsonService
 
     private async Task<string> GetCarConfigurationFileContent()
     {
-        var fileContent = await File.ReadAllTextAsync(GetCarConfigurationFileFullPath()).ConfigureAwait(false);
+        var fileContent = await File.ReadAllTextAsync(_configurationWrapper.CarConfigFileFullName()).ConfigureAwait(false);
         return fileContent;
     }
 
@@ -122,7 +114,7 @@ public class ConfigJsonService : IConfigJsonService
     public async Task UpdateConfigJson()
     {
         _logger.LogTrace("{method}()", nameof(UpdateConfigJson));
-        var configFileLocation = GetCarConfigurationFileFullPath();
+        var configFileLocation = _configurationWrapper.CarConfigFileFullName();
         var minDate = new DateTime(2022, 1, 1);
         if (_settings.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite || c.CarConfiguration.LatestTimeToReachSoC < minDate))
         {

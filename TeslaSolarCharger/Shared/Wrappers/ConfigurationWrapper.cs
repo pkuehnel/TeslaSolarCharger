@@ -1,3 +1,4 @@
+﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,9 @@ public class ConfigurationWrapper : IConfigurationWrapper
         var environmentVariableName = "ConfigFileLocation";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
         _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
+        path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), value);
+        return path;
     }
 
     public TimeSpan ChargingValueJobUpdateIntervall()
