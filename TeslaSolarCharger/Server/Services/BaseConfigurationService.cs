@@ -21,6 +21,20 @@ public class BaseConfigurationService : IBaseConfigurationService
     public async Task<DtoBaseConfiguration> GetBaseConfiguration()
     {
         _logger.LogTrace("{method}()", nameof(GetBaseConfiguration));
+        var jsonFileContent = await BaseConfigurationJsonFileContent();
+
+        var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent);
+
+        if (dtoBaseConfiguration == null)
+        {
+            throw new ArgumentException($"Could not deserialize {jsonFileContent} to {nameof(DtoBaseConfiguration)}");
+        }
+
+        return dtoBaseConfiguration;
+    }
+
+    private async Task<string> BaseConfigurationJsonFileContent()
+    {
         var cache = MemoryCache.Default;
 
         if (cache[_baseConfigurationMemoryCacheName] is not string jsonFileContent)
@@ -40,14 +54,7 @@ public class BaseConfigurationService : IBaseConfigurationService
             cache.Set(_baseConfigurationMemoryCacheName, jsonFileContent, cacheItemPolicy);
         }
 
-        var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent);
-
-        if (dtoBaseConfiguration == null)
-        {
-            throw new ArgumentException($"Could not deserialize {jsonFileContent} to {nameof(DtoBaseConfiguration)}");
-        }
-
-        return dtoBaseConfiguration;
+        return jsonFileContent;
     }
 
     public async Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration)
@@ -70,5 +77,12 @@ public class BaseConfigurationService : IBaseConfigurationService
         }
 
         await File.WriteAllTextAsync(configFileLocation, jsonFileContent);
+    }
+
+    public async Task<bool> IsBaseConfigurationJsonRelevant()
+    {
+        var jsonContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
+        var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(jsonContent);
+        return baseConfigurationJson?.LastEditDateTime != null;
     }
 }

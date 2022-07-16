@@ -20,6 +20,11 @@ public class EnvironmentVariableConverter : IEnvironmentVariableConverter
     public async Task ConvertAllValues()
     {
         _logger.LogTrace("{method}()", nameof(ConvertAllValues));
+        if (await _baseConfigurationService.IsBaseConfigurationJsonRelevant())
+        {
+            _logger.LogInformation("Do not convert environment variables to json file as json file has been edited.");
+            return;
+        }
         var dtoBaseConfiguration = new DtoBaseConfiguration()
         {
             CurrentPowerToGridUrl = _configuration.GetValue<string>("CurrentPowerToGridUrl"),
