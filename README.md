@@ -85,6 +85,7 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
     depends_on:
       - database
     environment:
+      - ENCRYPTION_KEY=MySuperSecretEncryptionKey
       - DATABASE_USER=teslamate
       - DATABASE_PASS=secret
       - DATABASE_NAME=teslamate
