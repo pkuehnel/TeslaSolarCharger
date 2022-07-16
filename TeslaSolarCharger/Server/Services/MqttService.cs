@@ -3,7 +3,7 @@ using MQTTnet.Client;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
-using CarState = TeslaSolarCharger.Shared.Enums.CarState;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -230,29 +230,29 @@ public class MqttService : IMqttService
                 switch (value.Value)
                 {
                     case "asleep":
-                        car.CarState.State = CarState.Asleep;
+                        car.CarState.State = CarStateEnum.Asleep;
                         break;
                     case "offline":
-                        car.CarState.State = CarState.Offline;
+                        car.CarState.State = CarStateEnum.Offline;
                         break;
                     case "online":
-                        car.CarState.State = CarState.Online;
+                        car.CarState.State = CarStateEnum.Online;
                         break;
                     case "charging":
-                        car.CarState.State = CarState.Charging;
+                        car.CarState.State = CarStateEnum.Charging;
                         break;
                     case "suspended":
-                        car.CarState.State = CarState.Suspended;
+                        car.CarState.State = CarStateEnum.Suspended;
                         break;
                     case "driving":
-                        car.CarState.State = CarState.Driving;
+                        car.CarState.State = CarStateEnum.Driving;
                         break;
                     case "updating":
-                        car.CarState.State = CarState.Updating;
+                        car.CarState.State = CarStateEnum.Updating;
                         break;
                     default:
                         _logger.LogWarning("Unknown car state deteckted: {carState}", value.Value);
-                        car.CarState.State = CarState.Unknown;
+                        car.CarState.State = CarStateEnum.Unknown;
                         break;
                 }
                 _logger.LogDebug("New car state detected {car state}", car.CarState.StateString);
