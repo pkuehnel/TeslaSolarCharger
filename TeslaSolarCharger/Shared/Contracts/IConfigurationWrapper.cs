@@ -33,4 +33,5 @@ public interface IConfigurationWrapper
     string TeslaMateDbDatabaseName();
     string TeslaMateDbUser();
     string TeslaMateDbPassword();
+    string BaseConfigFileFullName();
 }

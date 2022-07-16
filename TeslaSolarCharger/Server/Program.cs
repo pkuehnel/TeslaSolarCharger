@@ -39,7 +39,6 @@ builder.Services
     .AddTransient<PvValueJob>()
     .AddTransient<CarDbUpdateJob>()
     .AddTransient<JobFactory>()
-    .AddTransient<EnvironmentVariableConverter>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
     .AddTransient<IChargingService, ChargingService>()
@@ -65,6 +64,8 @@ builder.Services
         options.EnableDetailedErrors();
     }, ServiceLifetime.Transient, ServiceLifetime.Transient)
     .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
+    .AddTransient<IBaseConfigurationService, BaseConfigurationService>()
+    .AddTransient<IEnvironmentVariableConverter, EnvironmentVariableConverter>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -95,7 +96,8 @@ var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 
 await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
 
-//ToDo: Add Convert to config.json
+var environmentVariableConverter = app.Services.GetRequiredService<IEnvironmentVariableConverter>();
+await environmentVariableConverter.ConvertAllValues();
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 jobManager.StartJobs();
