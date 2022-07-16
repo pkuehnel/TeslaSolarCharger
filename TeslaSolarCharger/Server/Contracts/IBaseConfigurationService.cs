@@ -6,4 +6,5 @@ public interface IBaseConfigurationService
 {
     Task<DtoBaseConfiguration> GetBaseConfiguration();
     Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration);
+    Task<bool> IsBaseConfigurationJsonRelevant();
 }
