@@ -258,7 +258,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public TimeSpan TimespanUntilSwitchOff()
     {
-        var environmentVariableName = "MinutesUntilSwitchOn";
+        var environmentVariableName = "MinutesUntilSwitchOff";
         var minimum = TimeSpan.FromMinutes(1);
         var value = GetMinutesConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
         _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
