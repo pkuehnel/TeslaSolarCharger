@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 
 namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
@@ -16,7 +17,7 @@ public class BaseConfigurationBase
     [Range(1, int.MaxValue)]
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
     [Required]
-    public List<int> CarPriorities { get; set; } = new();
+    public string? CarPriorities { get; set; }
     [Required]
     public string? GeoFence { get; set; }
     [Required]
@@ -28,24 +29,26 @@ public class BaseConfigurationBase
     [Required]
     public int? PowerBuffer { get; set; } = 0;
     public string? CurrentPowerToGridJsonPattern { get; set; }
-    public bool? CurrentPowerToGridInvertValue { get; set; }
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+    public bool CurrentPowerToGridInvertValue { get; set; } 
     public string? CurrentInverterPowerJsonPattern { get; set; }
     public string? TelegramBotKey { get; set; }
     public string? TelegramChannelId { get; set; }
     [Required]
-    public string? TeslaMateDbServer { get; set; } = "database";
+    public string TeslaMateDbServer { get; set; } = "database";
     [Required]
-    public int? TeslaMateDbPort { get; set; } = 5432;
+    public int TeslaMateDbPort { get; set; } = 5432;
     [Required]
-    public string? TeslaMateDbDatabaseName { get; set; } = "teslamate";
+    public string TeslaMateDbDatabaseName { get; set; } = "teslamate";
     [Required]
-    public string? TeslaMateDbUser { get; set; } = "teslamate";
+    public string TeslaMateDbUser { get; set; } = "teslamate";
     [Required]
-    public string? TeslaMateDbPassword { get; set; } = "secret";
+    [DataType(DataType.Password)]
+    public string TeslaMateDbPassword { get; set; } = "secret";
     [Required]
-    public string? MqqtClientId { get; set; } = "TeslaSolarCharger";
+    public string MqqtClientId { get; set; } = "TeslaSolarCharger";
     [Required]
-    public string? MosquitoServer { get; set; } = "mosquitto";
+    public string MosquitoServer { get; set; } = "mosquitto";
     public string? CurrentPowerToGridXmlPattern { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderName { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderValue { get; set; }

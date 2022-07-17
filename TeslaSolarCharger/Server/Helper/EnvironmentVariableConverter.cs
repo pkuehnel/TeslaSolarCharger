@@ -32,12 +32,13 @@ public class EnvironmentVariableConverter : IEnvironmentVariableConverter
             TeslaMateApiBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl"),
             UpdateIntervalSeconds = _configuration.GetValue<int>("UpdateIntervalSeconds"),
             PvValueUpdateIntervalSeconds = _configuration.GetValue<int>("PvValueUpdateIntervalSeconds"),
+            CarPriorities = _configuration.GetValue<string>("CarPriorities"),
             GeoFence = _configuration.GetValue<string>("GeoFence"),
             MinutesUntilSwitchOn = _configuration.GetValue<int>("MinutesUntilSwitchOn"),
             MinutesUntilSwitchOff = _configuration.GetValue<int>("MinutesUntilSwitchOff"),
             PowerBuffer = _configuration.GetValue<int>("PowerBuffer"),
             CurrentPowerToGridJsonPattern = _configuration.GetValue<string?>("CurrentPowerToGridJsonPattern"),
-            CurrentPowerToGridInvertValue = _configuration.GetValue<bool?>("CurrentPowerToGridInvertValue"),
+            CurrentPowerToGridInvertValue = _configuration.GetValue<bool?>("CurrentPowerToGridInvertValue") == true,
             CurrentInverterPowerJsonPattern = _configuration.GetValue<string?>("CurrentInverterPowerJsonPattern"),
             TelegramBotKey = _configuration.GetValue<string?>("TelegramBotKey"),
             TelegramChannelId = _configuration.GetValue<string?>("TelegramChannelId"),
@@ -57,12 +58,6 @@ public class EnvironmentVariableConverter : IEnvironmentVariableConverter
             CurrentInverterPowerXmlAttributeHeaderValue = _configuration.GetValue<string?>("CurrentInverterPowerAttributeHeaderValue"),
             CurrentInverterPowerXmlAttributeValueName = _configuration.GetValue<string?>("CurrentInverterPowerAttributeValueName"),
         };
-        var carPriorities = _configuration.GetValue<string>("CarPriorities");
-        var elements = carPriorities.Split('|').ToList();
-        foreach (var element in elements)
-        {
-            dtoBaseConfiguration.CarPriorities.Add(Convert.ToInt32(element));
-        }
 
         await _baseConfigurationService.SaveBaseConfiguration(dtoBaseConfiguration);
     }
