@@ -1,6 +1,6 @@
 ﻿using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
-namespace TeslaSolarCharger.Server.Contracts;
+namespace TeslaSolarCharger.Shared.Contracts;
 
 public interface IBaseConfigurationService
 {

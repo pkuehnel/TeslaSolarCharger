@@ -1,10 +1,10 @@
 ﻿using System.Runtime.Caching;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
-namespace TeslaSolarCharger.Server.Services;
+namespace TeslaSolarCharger.Shared.Services;
 
 public class BaseConfigurationService : IBaseConfigurationService
 {
