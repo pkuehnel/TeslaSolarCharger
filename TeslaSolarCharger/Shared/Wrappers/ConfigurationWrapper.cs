@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TeslaSolarCharger.Shared.Contracts;
@@ -36,7 +36,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
-        var environmentVariableName = "UpdateIntervallSeconds";
+        var environmentVariableName = "UpdateIntervalSeconds";
         var minimum = TimeSpan.FromSeconds(20);
         var value = GetSecondsConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
         _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
