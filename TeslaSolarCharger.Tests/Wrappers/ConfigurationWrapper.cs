@@ -15,7 +15,7 @@ public class ConfigurationWrapper : TestBase
     [Fact]
     public void Get_Not_Nullable_String()
     {
-        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.EnvironmentVariableConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper>();
 
         var existingConfigValue = "TeslaMateApiBaseUrl";
         var teslaMateApiBaseUrl = 
@@ -29,7 +29,7 @@ public class ConfigurationWrapper : TestBase
     [InlineData("notExisiting")]
     public void Throw_Exception_On_Null_String(string notExisitingConfigValue)
     {
-        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.EnvironmentVariableConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper>();
         Assert.Throws<NullReferenceException>(
             () => configurationWrapper.GetNotNullableConfigurationValue<string>(notExisitingConfigValue));
     }
@@ -39,7 +39,7 @@ public class ConfigurationWrapper : TestBase
     [InlineData("notExisiting")]
     public void Returns_Null_On_Non_Exisiting_Values(string notExisitingConfigValue)
     {
-        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.EnvironmentVariableConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper>();
         var value = configurationWrapper.GetNullableConfigurationValue<string>(notExisitingConfigValue);
 
         Assert.Null(value);
@@ -52,7 +52,7 @@ public class ConfigurationWrapper : TestBase
     [InlineData("notExisiting")]
     public void Get_TimeSpan_From_Minutes(string configName)
     {
-        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.EnvironmentVariableConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper>();
         var timespan =
             configurationWrapper.GetMinutesConfigurationValueIfGreaterThanMinumum(configName, TimeSpan.FromMinutes(1));
 
@@ -82,7 +82,7 @@ public class ConfigurationWrapper : TestBase
     [InlineData("notExisiting")]
     public void Get_TimeSpan_From_Seconds(string configName)
     {
-        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.EnvironmentVariableConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper>();
         var minimum = TimeSpan.FromSeconds(1);
         var timespan =
             configurationWrapper.GetSecondsConfigurationValueIfGreaterThanMinumum(configName, minimum);
@@ -109,7 +109,7 @@ public class ConfigurationWrapper : TestBase
     [Fact]
     public void GetConfigurationFileDirectory()
     {
-        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.EnvironmentVariableConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper>();
         var value = configurationWrapper.ConfigFileDirectory();
 
         Assert.Equal("configs", value);
@@ -118,7 +118,7 @@ public class ConfigurationWrapper : TestBase
     [Fact]
     public void GetCarConfigurationFileFullName()
     {
-        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.EnvironmentVariableConfigurationWrapper>();
+        var configurationWrapper = Mock.Create<TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper>();
         var value = configurationWrapper.CarConfigFileFullName();
         var pathSeparator = Path.DirectorySeparatorChar;
         var linuxPathSeparator = '/';
