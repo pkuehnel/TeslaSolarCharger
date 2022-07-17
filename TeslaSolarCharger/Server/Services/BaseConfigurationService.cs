@@ -33,15 +33,14 @@ public class BaseConfigurationService : IBaseConfigurationService
         return dtoBaseConfiguration;
     }
 
-    private async Task<string> BaseConfigurationJsonFileContent()
+    private async Task<string?> BaseConfigurationJsonFileContent()
     {
         var cache = MemoryCache.Default;
-
-        if (cache[_baseConfigurationMemoryCacheName] is not string jsonFileContent)
+        var jsonFileContent = cache[_baseConfigurationMemoryCacheName] as string;
+        if (jsonFileContent == null)
         {
             var filePath = _configurationWrapper.BaseConfigFileFullName();
             var cacheItemPolicy = new CacheItemPolicy();
-
             var filePathList = new List<string>()
             {
                 filePath,
@@ -49,9 +48,12 @@ public class BaseConfigurationService : IBaseConfigurationService
 
             cacheItemPolicy.ChangeMonitors.Add(new HostFileChangeMonitor(filePathList));
 
-            jsonFileContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
+            if (File.Exists(filePath))
+            {
+                jsonFileContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
 
-            cache.Set(_baseConfigurationMemoryCacheName, jsonFileContent, cacheItemPolicy);
+                cache.Set(_baseConfigurationMemoryCacheName, jsonFileContent, cacheItemPolicy);
+            }
         }
 
         return jsonFileContent;
@@ -82,6 +84,10 @@ public class BaseConfigurationService : IBaseConfigurationService
     public async Task<bool> IsBaseConfigurationJsonRelevant()
     {
         var jsonContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
+        if (jsonContent == null)
+        {
+            return false;
+        }
         var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(jsonContent);
         return baseConfigurationJson?.LastEditDateTime != null;
     }
