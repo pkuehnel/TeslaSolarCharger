@@ -7,12 +7,12 @@ using TeslaSolarCharger.Shared.Contracts;
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Shared.Wrappers;
 
-public class ConfigurationWrapper : IConfigurationWrapper
+public class EnvironmentVariableConfigurationWrapper : IConfigurationWrapper
 {
-    private readonly ILogger<ConfigurationWrapper> _logger;
+    private readonly ILogger<EnvironmentVariableConfigurationWrapper> _logger;
     private readonly IConfiguration _configuration;
 
-    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration)
+    public EnvironmentVariableConfigurationWrapper(ILogger<EnvironmentVariableConfigurationWrapper> logger, IConfiguration configuration)
     {
         _logger = logger;
         _configuration = configuration;
