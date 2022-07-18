@@ -178,6 +178,12 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Set amp to change to {ampToChange} as car does not use full request.", ampToChange);
         }
         var finalAmpsToSet = (car.CarState.ChargerRequestedCurrent ?? 0) + ampToChange;
+
+        if (car.CarState.ChargerActualCurrent == 0)
+        {
+            finalAmpsToSet = (int)(car.CarState.ChargerActualCurrent + ampToChange);
+        }
+
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
         var ampChange = 0;
         var minAmpPerCar = car.CarConfiguration.MinimumAmpere;
