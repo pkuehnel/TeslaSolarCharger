@@ -1,7 +1,9 @@
 ﻿using System.Reflection;
+using System.Runtime.Caching;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
@@ -12,13 +14,12 @@ public class ConfigurationWrapper : IConfigurationWrapper
 {
     private readonly ILogger<ConfigurationWrapper> _logger;
     private readonly IConfiguration _configuration;
-    private readonly IBaseConfigurationService _baseConfigurationService;
+    private readonly string _baseConfigurationMemoryCacheName = "baseConfiguration";
 
-    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration, IBaseConfigurationService baseConfigurationService)
+    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration)
     {
         _logger = logger;
         _configuration = configuration;
-        _baseConfigurationService = baseConfigurationService;
     }
 
     public string CarConfigFileFullName()
@@ -271,6 +272,81 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     private DtoBaseConfiguration GetBaseConfiguration()
     {
-        return _baseConfigurationService.GetBaseConfiguration().GetAwaiter().GetResult();
+        return GetBaseConfigurationAsync().GetAwaiter().GetResult();
+    }
+
+
+    public async Task<DtoBaseConfiguration> GetBaseConfigurationAsync()
+    {
+        _logger.LogTrace("{method}()", nameof(GetBaseConfiguration));
+        var jsonFileContent = await BaseConfigurationJsonFileContent();
+
+        var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent);
+
+        if (dtoBaseConfiguration == null)
+        {
+            throw new ArgumentException($"Could not deserialize {jsonFileContent} to {nameof(DtoBaseConfiguration)}");
+        }
+
+        return dtoBaseConfiguration;
+    }
+
+    private async Task<string?> BaseConfigurationJsonFileContent()
+    {
+        var cache = MemoryCache.Default;
+        var jsonFileContent = cache[_baseConfigurationMemoryCacheName] as string;
+        if (jsonFileContent == null)
+        {
+            var filePath = BaseConfigFileFullName();
+            var cacheItemPolicy = new CacheItemPolicy();
+            var filePathList = new List<string>()
+            {
+                filePath,
+            };
+
+            cacheItemPolicy.ChangeMonitors.Add(new HostFileChangeMonitor(filePathList));
+
+            if (File.Exists(filePath))
+            {
+                jsonFileContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
+
+                cache.Set(_baseConfigurationMemoryCacheName, jsonFileContent, cacheItemPolicy);
+            }
+        }
+
+        return jsonFileContent;
+    }
+
+    public async Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration)
+    {
+        var baseConfigurationBase = (BaseConfigurationBase)baseConfiguration;
+        var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(JsonConvert.SerializeObject(baseConfigurationBase));
+        //if (false)
+        //{
+        //    baseConfigurationJson.LastEditDateTime = DateTime.UtcNow;
+        //}
+        var jsonFileContent = JsonConvert.SerializeObject(baseConfigurationJson);
+
+        var configFileLocation = BaseConfigFileFullName();
+        var fileInfo = new FileInfo(configFileLocation);
+        var configDirectoryFullName = fileInfo.Directory?.FullName;
+        if (!Directory.Exists(configDirectoryFullName))
+        {
+            _logger.LogDebug("Config directory {directoryname} does not exist.", configDirectoryFullName);
+            Directory.CreateDirectory(configDirectoryFullName ?? throw new InvalidOperationException());
+        }
+
+        await File.WriteAllTextAsync(configFileLocation, jsonFileContent);
+    }
+
+    public async Task<bool> IsBaseConfigurationJsonRelevant()
+    {
+        var jsonContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
+        if (jsonContent == null)
+        {
+            return false;
+        }
+        var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(jsonContent);
+        return baseConfigurationJson?.LastEditDateTime != null;
     }
 }
