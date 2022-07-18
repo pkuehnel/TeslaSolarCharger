@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Dtos.Settings;
+﻿using TeslaSolarCharger.Shared.Enums;
+
+namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
 public class CarState
 {
@@ -33,7 +35,7 @@ public class CarState
     }
 
     public string? StateString { get; set; }
-    public Enums.CarState? State { get; set; }
+    public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
 }

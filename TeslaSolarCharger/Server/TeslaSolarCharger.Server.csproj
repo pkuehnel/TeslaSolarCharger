@@ -50,6 +50,7 @@
 
   <ItemGroup>
     <Folder Include="Enums\" />
+    <Folder Include="Helper\" />
   </ItemGroup>
 
 

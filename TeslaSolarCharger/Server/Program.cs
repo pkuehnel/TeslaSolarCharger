@@ -7,6 +7,7 @@ using Serilog;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Contracts;
@@ -63,6 +64,7 @@ builder.Services
         options.EnableDetailedErrors();
     }, ServiceLifetime.Transient, ServiceLifetime.Transient)
     .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
+    .AddTransient<IEnvironmentVariableConverter, EnvironmentVariableConverter>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -81,6 +83,9 @@ if (environment == "Development")
 
 
 var app = builder.Build();
+
+var environmentVariableConverter = app.Services.GetRequiredService<IEnvironmentVariableConverter>();
+await environmentVariableConverter.ConvertAllValues();
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up");
