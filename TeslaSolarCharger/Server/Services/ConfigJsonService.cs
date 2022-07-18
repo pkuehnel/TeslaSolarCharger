@@ -164,7 +164,7 @@ public class ConfigJsonService : IConfigJsonService
                 car.CarConfiguration.MaximumAmpere = 16;
             }
 
-            if (car.CarConfiguration.MinimumAmpere < 16)
+            if (car.CarConfiguration.MinimumAmpere < 1)
             {
                 car.CarConfiguration.MinimumAmpere = 1;
             }
