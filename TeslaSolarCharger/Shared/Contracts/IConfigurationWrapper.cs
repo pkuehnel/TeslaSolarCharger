@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Contracts;
+﻿using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+
+namespace TeslaSolarCharger.Shared.Contracts;
 
 public interface IConfigurationWrapper
 {
@@ -34,4 +36,8 @@ public interface IConfigurationWrapper
     string TeslaMateDbUser();
     string TeslaMateDbPassword();
     string BaseConfigFileFullName();
+
+    Task<DtoBaseConfiguration> GetBaseConfigurationAsync();
+    Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration);
+    Task<bool> IsBaseConfigurationJsonRelevant();
 }

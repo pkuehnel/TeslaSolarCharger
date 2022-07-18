@@ -8,20 +8,20 @@ public class EnvironmentVariableConverter : IEnvironmentVariableConverter
 {
     private readonly ILogger<EnvironmentVariableConverter> _logger;
     private readonly IConfiguration _configuration;
-    private readonly IBaseConfigurationService _baseConfigurationService;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     public EnvironmentVariableConverter(ILogger<EnvironmentVariableConverter> logger, IConfiguration configuration,
-        IBaseConfigurationService baseConfigurationService)
+        IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _configuration = configuration;
-        _baseConfigurationService = baseConfigurationService;
+        _configurationWrapper = configurationWrapper;
     }
 
     public async Task ConvertAllValues()
     {
         _logger.LogTrace("{method}()", nameof(ConvertAllValues));
-        if (await _baseConfigurationService.IsBaseConfigurationJsonRelevant())
+        if (await _configurationWrapper.IsBaseConfigurationJsonRelevant())
         {
             _logger.LogInformation("Do not convert environment variables to json file as json file has been edited.");
             return;
@@ -60,6 +60,6 @@ public class EnvironmentVariableConverter : IEnvironmentVariableConverter
             CurrentInverterPowerXmlAttributeValueName = _configuration.GetValue<string?>("CurrentInverterPowerAttributeValueName"),
         };
 
-        await _baseConfigurationService.SaveBaseConfiguration(dtoBaseConfiguration);
+        await _configurationWrapper.SaveBaseConfiguration(dtoBaseConfiguration);
     }
 }

@@ -9,14 +9,14 @@ namespace TeslaSolarCharger.Server.Controllers
     [ApiController]
     public class BaseConfigurationController : ControllerBase
     {
-        private readonly IBaseConfigurationService _service;
+        private readonly IConfigurationWrapper _configurationWrapper;
 
-        public BaseConfigurationController(IBaseConfigurationService service)
+        public BaseConfigurationController(IConfigurationWrapper configurationWrapper)
         {
-            _service = service;
+            _configurationWrapper = configurationWrapper;
         }
 
         [HttpGet]
-        public Task<DtoBaseConfiguration> GetBaseConfiguration() => _service.GetBaseConfiguration();
+        public Task<DtoBaseConfiguration> GetBaseConfiguration() => _configurationWrapper.GetBaseConfigurationAsync();
     }
 }
