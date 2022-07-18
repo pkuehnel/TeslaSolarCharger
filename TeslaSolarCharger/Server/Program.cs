@@ -52,7 +52,7 @@ builder.Services
     .AddTransient<ITeslaService, TeslamateApiService>()
     .AddSingleton<ISettings, Settings>()
     .AddSingleton<IInMemoryValues, InMemoryValues>()
-    .AddSingleton<IConfigurationWrapper, EnvironmentVariableConfigurationWrapper>()
+    .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
     .AddSingleton(mqttClient)
     .AddTransient<MqttFactory>()
     .AddTransient<IMqttService, MqttService>()
