@@ -6,28 +6,28 @@ namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 public class BaseConfigurationBase
 {
     [Required]
-    public string? CurrentPowerToGridUrl { get; set; }
+    public string CurrentPowerToGridUrl { get; set; } = "http://192.168.1.50:5007/api/GridPower";
     public string? CurrentInverterPowerUrl { get; set; }
     [Required]
-    public string? TeslaMateApiBaseUrl { get; set; }
+    public string TeslaMateApiBaseUrl { get; set; } = "http://teslamateapi:8080";
     [Required]
     [Range(30, int.MaxValue)]
-    public int? UpdateIntervalSeconds { get; set; } = 30;
+    public int UpdateIntervalSeconds { get; set; } = 30;
     [Required]
     [Range(1, int.MaxValue)]
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
     [Required]
-    public string? CarPriorities { get; set; }
-    [Required]
-    public string? GeoFence { get; set; }
-    [Required]
-    [Range(1, int.MaxValue)]
-    public int? MinutesUntilSwitchOn { get; set; } = 5;
+    public string CarPriorities { get; set; } = "1";
+    [Required] 
+    public string GeoFence { get; set; } = "Home";
     [Required]
     [Range(1, int.MaxValue)]
-    public int? MinutesUntilSwitchOff { get; set; } = 5;
+    public int MinutesUntilSwitchOn { get; set; } = 5;
     [Required]
-    public int? PowerBuffer { get; set; } = 0;
+    [Range(1, int.MaxValue)]
+    public int MinutesUntilSwitchOff { get; set; } = 5;
+    [Required]
+    public int PowerBuffer { get; set; } = 0;
     public string? CurrentPowerToGridJsonPattern { get; set; }
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
     public bool CurrentPowerToGridInvertValue { get; set; } 
