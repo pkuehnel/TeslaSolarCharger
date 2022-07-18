@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Shared.Wrappers;
@@ -11,11 +12,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
 {
     private readonly ILogger<ConfigurationWrapper> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IBaseConfigurationService _baseConfigurationService;
 
-    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration)
+    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration, IBaseConfigurationService baseConfigurationService)
     {
         _logger = logger;
         _configuration = configuration;
+        _baseConfigurationService = baseConfigurationService;
     }
 
     public string CarConfigFileFullName()
@@ -48,19 +51,18 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
-        var environmentVariableName = "UpdateIntervalSeconds";
         var minimum = TimeSpan.FromSeconds(20);
-        var value = GetSecondsConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        var updateIntervalSeconds = GetBaseConfiguration().UpdateIntervalSeconds;
+        var value = GetValueIfGreaterThanMinimum(TimeSpan.FromSeconds(updateIntervalSeconds), minimum);
         return value;
     }
 
     public TimeSpan PvValueJobUpdateIntervall()
     {
-        var environmentVariableName = "PvValueUpdateIntervalSeconds";
         var maximum = ChargingValueJobUpdateIntervall();
         var minimum = TimeSpan.FromSeconds(1);
-        var value = TimeSpan.FromSeconds(_configuration.GetValue<int>(environmentVariableName));
+        var updateIntervalSeconds = GetBaseConfiguration().PvValueUpdateIntervalSeconds;
+        var value = TimeSpan.FromSeconds(updateIntervalSeconds ?? ChargingValueJobUpdateIntervall().TotalSeconds);
 
         if (value > maximum)
         {
@@ -70,235 +72,157 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             value = minimum;
         }
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
     public string MqqtClientId()
     {
-        var environmentVariableName = "MqqtClientId";
-        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().MqqtClientId;
     }
 
     public string MosquitoServer()
     {
-        var environmentVariableName = "MosquitoServer";
-        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().MosquitoServer;
     }
 
     public string TeslaMateDbServer()
     {
-        var environmentVariableName = "TeslaMateDbServer";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().TeslaMateDbServer;
     }
 
     public int TeslaMateDbPort()
     {
-        var environmentVariableName = "TeslaMateDbPort";
-        var value = _configuration.GetValue<int>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().TeslaMateDbPort;
     }
 
     public string TeslaMateDbDatabaseName()
     {
-        var environmentVariableName = "TeslaMateDbDatabaseName";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().TeslaMateDbDatabaseName;
     }
 
     public string TeslaMateDbUser()
     {
-        var environmentVariableName = "TeslaMateDbUser";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().TeslaMateDbUser;
     }
 
     public string TeslaMateDbPassword()
     {
-        var environmentVariableName = "TeslaMateDbPassword";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().TeslaMateDbPassword;
     }
 
     public string CurrentPowerToGridUrl()
     {
-        var environmentVariableName = "CurrentPowerToGridUrl";
-        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentPowerToGridUrl;
     }
 
     public string? CurrentInverterPowerUrl()
     {
-        var environmentVariableName = "CurrentInverterPowerUrl";
-        var value = GetNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentInverterPowerUrl;
     }
     
     public string? CurrentPowerToGridJsonPattern()
     {
-        var environmentVariableName = "CurrentPowerToGridJsonPattern";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentPowerToGridJsonPattern;
     }
 
     public string? CurrentPowerToGridXmlPattern()
     {
-        var environmentVariableName = "CurrentPowerToGridXmlPattern";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentPowerToGridXmlPattern;
     }
 
     public string? CurrentPowerToGridXmlAttributeHeaderName()
     {
-        var environmentVariableName = "CurrentPowerToGridXmlAttributeHeaderName";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentPowerToGridXmlAttributeHeaderName;
     }
 
     public string? CurrentPowerToGridXmlAttributeHeaderValue()
     {
-        var environmentVariableName = "CurrentPowerToGridXmlAttributeHeaderValue";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentPowerToGridXmlAttributeHeaderValue;
     }
 
     public string? CurrentPowerToGridXmlAttributeValueName()
     {
-        var environmentVariableName = "CurrentPowerToGridXmlAttributeValueName";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentPowerToGridXmlAttributeValueName;
     }
 
     public string? CurrentInverterPowerJsonPattern()
     {
-        var environmentVariableName = "CurrentInverterPowerJsonPattern";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentInverterPowerJsonPattern;
     }
 
     public string? CurrentInverterPowerXmlPattern()
     {
-        var environmentVariableName = "CurrentInverterPowerXmlPattern";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentInverterPowerXmlPattern;
     }
 
     public string? CurrentInverterPowerXmlAttributeHeaderName()
     {
-        var environmentVariableName = "CurrentInverterPowerXmlAttributeHeaderName";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentInverterPowerXmlAttributeHeaderName;
     }
 
     public string? CurrentInverterPowerXmlAttributeHeaderValue()
     {
-        var environmentVariableName = "CurrentInverterPowerXmlAttributeHeaderValue";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentInverterPowerXmlAttributeHeaderValue;
     }
 
     public string? CurrentInverterPowerXmlAttributeValueName()
     {
-        var environmentVariableName = "CurrentInverterPowerXmlAttributeValueName";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentInverterPowerXmlAttributeValueName;
     }
 
     public bool CurrentPowerToGridInvertValue()
     {
-        var environmentVariableName = "CurrentPowerToGridInvertValue";
-        var value = _configuration.GetValue<bool>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().CurrentPowerToGridInvertValue;
     }
 
     public string TeslaMateApiBaseUrl()
     {
-        var environmentVariableName = "TeslaMateApiBaseUrl";
-        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().TeslaMateApiBaseUrl;
     }
 
     public List<int> CarPriorities()
     {
-        var environmentVariableName = "CarPriorities";
-        var rawValue = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        var rawValue = GetBaseConfiguration().CarPriorities;
         var value = rawValue.Split("|").Select(id => Convert.ToInt32(id)).ToList();
-        _logger.LogDebug("Config value extracted: [{key}]: {@value}", environmentVariableName, value);
         return value;
     }
 
     public string GeoFence()
     {
-        var environmentVariableName = "GeoFence";
-        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().GeoFence;
     }
 
     public TimeSpan TimeUntilSwitchOn()
     {
-        var environmentVariableName = "MinutesUntilSwitchOn";
+        var rawValue = GetBaseConfiguration().MinutesUntilSwitchOn;
+        var timeSpan = TimeSpan.FromMinutes(rawValue);
         var minimum = TimeSpan.FromMinutes(1);
-        var value = GetMinutesConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        var value = GetValueIfGreaterThanMinimum(timeSpan, minimum);
         return value;
     }
 
     public TimeSpan TimespanUntilSwitchOff()
     {
-        var environmentVariableName = "MinutesUntilSwitchOff";
+        var rawValue = GetBaseConfiguration().MinutesUntilSwitchOff;
+        var timeSpan = TimeSpan.FromMinutes(rawValue);
         var minimum = TimeSpan.FromMinutes(1);
-        var value = GetMinutesConfigurationValueIfGreaterThanMinumum(environmentVariableName, minimum);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        var value = GetValueIfGreaterThanMinimum(timeSpan, minimum);
         return value;
     }
 
     public int PowerBuffer()
     {
-        var environmentVariableName = "PowerBuffer";
-        var value = _configuration.GetValue<int>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().PowerBuffer;
     }
 
     public string? TelegramBotKey()
     {
-        var environmentVariableName = "TelegramBotKey";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().TelegramBotKey;
     }
 
     public string? TelegramChannelId()
     {
-        var environmentVariableName = "TelegramChannelId";
-        var value = _configuration.GetValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
-        return value;
+        return GetBaseConfiguration().TelegramChannelId;
     }
 
     internal T GetNotNullableConfigurationValue<T>(string environmentVariableName)
@@ -343,5 +267,10 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             return value;
         }
+    }
+
+    private DtoBaseConfiguration GetBaseConfiguration()
+    {
+        return _baseConfigurationService.GetBaseConfiguration().GetAwaiter().GetResult();
     }
 }
