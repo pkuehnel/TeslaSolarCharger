@@ -84,6 +84,9 @@ if (environment == "Development")
 
 var app = builder.Build();
 
+var environmentVariableConverter = app.Services.GetRequiredService<IEnvironmentVariableConverter>();
+await environmentVariableConverter.ConvertAllValues();
+
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up");
 
@@ -94,9 +97,6 @@ await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 
 await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
-
-var environmentVariableConverter = app.Services.GetRequiredService<IEnvironmentVariableConverter>();
-await environmentVariableConverter.ConvertAllValues();
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 jobManager.StartJobs();
