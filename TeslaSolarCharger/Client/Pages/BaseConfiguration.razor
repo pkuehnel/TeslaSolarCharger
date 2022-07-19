@@ -158,11 +158,11 @@ else
         var result = await HttpClient.PutAsJsonAsync($"api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration);
         if (result.IsSuccessStatusCode)
         {
-            ToastService.ShowSuccess("Car Configuration updated");
+            ToastService.ShowSuccess("Base Configuration updated");
         }
         else
         {
-            ToastService.ShowError("Error updating car configuration");
+            ToastService.ShowError("Error updating base configuration");
         }
     }
 }
