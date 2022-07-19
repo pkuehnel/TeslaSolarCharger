@@ -279,7 +279,7 @@ public class ChargingService : IChargingService
 
             if (earliestSwitchOn <= DateTime.Now)
             {
-                _logger.LogDebug("Charging should start");
+                _logger.LogDebug("Charging is starting");
                 var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
                 await _teslaService.StartCharging(car.Id, startAmp, car.CarState.State).ConfigureAwait(false);
                 ampChange += startAmp;
@@ -354,35 +354,33 @@ public class ChargingService : IChargingService
     {
         _logger.LogTrace("{method}({param1})", nameof(UpdateEarliestTimesAfterSwitch), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
-        car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
-        car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
+        car.CarState.ShouldStopChargingSince = null;
+        car.CarState.ShouldStartChargingSince = null;
     }
 
-    private DateTime EarliestSwitchOff(int carId)
+    private DateTime? EarliestSwitchOff(int carId)
     {
         _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOff), carId);
-        var timeSpanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
         var car = _settings.Cars.First(c => c.Id == carId);
-        if (car.CarState.ShouldStopChargingSince == DateTime.MaxValue)
+        if (car.CarState.ShouldStopChargingSince == null)
         {
-            car.CarState.ShouldStopChargingSince = DateTime.Now + timeSpanUntilSwitchOff;
+            car.CarState.ShouldStopChargingSince = DateTime.Now;
         }
 
-        var earliestSwitchOff = car.CarState.ShouldStopChargingSince;
+        var earliestSwitchOff = car.CarState.ShouldStopChargingSince + _configurationWrapper.TimespanUntilSwitchOff();
         return earliestSwitchOff;
     }
 
-    private DateTime EarliestSwitchOn(int carId)
+    private DateTime? EarliestSwitchOn(int carId)
     {
         _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOn), carId);
-        var timeSpanUntilSwitchOn = _configurationWrapper.TimeUntilSwitchOn();
         var car = _settings.Cars.First(c => c.Id == carId);
-        if (car.CarState.ShouldStartChargingSince == DateTime.MaxValue)
+        if (car.CarState.ShouldStartChargingSince == null)
         {
-            car.CarState.ShouldStartChargingSince = DateTime.Now + timeSpanUntilSwitchOn;
+            car.CarState.ShouldStartChargingSince = DateTime.Now;
         }
 
-        var earliestSwitchOn = car.CarState.ShouldStartChargingSince;
+        var earliestSwitchOn = car.CarState.ShouldStartChargingSince + _configurationWrapper.TimespanUntilSwitchOn();
         return earliestSwitchOn;
     }
 }

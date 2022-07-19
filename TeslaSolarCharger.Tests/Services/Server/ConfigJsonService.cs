@@ -43,8 +43,8 @@ public class ConfigJsonService : TestBase
             Assert.Equal(16, car.CarConfiguration.MaximumAmpere);
             Assert.Equal(2, car.CarConfiguration.MinimumAmpere);
             Assert.Equal(75, car.CarConfiguration.UsableEnergy);
-            Assert.Equal(DateTime.MaxValue, car.CarState.ShouldStartChargingSince);
-            Assert.Equal(DateTime.MaxValue, car.CarState.ShouldStopChargingSince);
+            Assert.Null(car.CarState.ShouldStartChargingSince);
+            Assert.Null(car.CarState.ShouldStopChargingSince);
         }
     }
 
