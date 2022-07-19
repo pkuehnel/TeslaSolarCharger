@@ -29,7 +29,17 @@ public class CarState
     {
         get
         {
-            var power = ChargerActualCurrent * ChargerVoltage * ActualPhases;
+            float? currentToUse;
+            //Next lines because of wrong actual current on currents below 5A
+            if (ChargerRequestedCurrent < 5 && ChargerActualCurrent == ChargerRequestedCurrent + 1)
+            {
+                currentToUse = (float?)(ChargerActualCurrent + ChargerRequestedCurrent) / 2;
+            }
+            else
+            {
+                currentToUse = ChargerActualCurrent;
+            }
+            var power = (int?)(currentToUse * ChargerVoltage * ActualPhases);
             return power;
         }
     }
