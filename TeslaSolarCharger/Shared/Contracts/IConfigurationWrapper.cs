@@ -40,4 +40,5 @@ public interface IConfigurationWrapper
     Task<DtoBaseConfiguration> GetBaseConfigurationAsync();
     Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration);
     Task<bool> IsBaseConfigurationJsonRelevant();
+    Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration);
 }

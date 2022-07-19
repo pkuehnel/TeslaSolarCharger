@@ -336,7 +336,14 @@ public class ConfigurationWrapper : IConfigurationWrapper
             Directory.CreateDirectory(configDirectoryFullName ?? throw new InvalidOperationException());
         }
 
+        await UpdateJsonFile(configFileLocation, jsonFileContent).ConfigureAwait(false);
+    }
+
+    private async Task UpdateJsonFile(string configFileLocation, string jsonFileContent)
+    {
         await File.WriteAllTextAsync(configFileLocation, jsonFileContent);
+        var cache = MemoryCache.Default;
+        cache.Remove(_baseConfigurationMemoryCacheName, CacheEntryRemovedReason.ChangeMonitorChanged);
     }
 
     public async Task<bool> IsBaseConfigurationJsonRelevant()
@@ -348,5 +355,21 @@ public class ConfigurationWrapper : IConfigurationWrapper
         }
         var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(jsonContent);
         return baseConfigurationJson?.LastEditDateTime != null;
+    }
+
+    public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration)
+    {
+        var baseConfigurationBase = (BaseConfigurationBase)dtoBaseConfiguration;
+        var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(JsonConvert.SerializeObject(baseConfigurationBase));
+
+        if (baseConfigurationJson == null)
+        {
+            throw new InvalidOperationException("Could not deserialize dtoBaseConfiguration to baseconfigurationJson");
+        }
+        baseConfigurationJson.LastEditDateTime = DateTime.UtcNow;
+
+        var baseConfigurationJsonString = JsonConvert.SerializeObject(baseConfigurationJson);
+
+        await UpdateJsonFile(BaseConfigFileFullName(), baseConfigurationJsonString).ConfigureAwait(false);
     }
 }
