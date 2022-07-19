@@ -2,6 +2,7 @@
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using System.Runtime.InteropServices
 @inject HttpClient HttpClient
+@inject IToastService ToastService
 
 <PageTitle>Base Configuration</PageTitle>
 
@@ -152,8 +153,16 @@ else
     {
         _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
     }
-    private void HandleValidSubmit()
+    private async Task HandleValidSubmit()
     {
-        // Process the valid form
+        var result = await HttpClient.PutAsJsonAsync($"api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration);
+        if (result.IsSuccessStatusCode)
+        {
+            ToastService.ShowSuccess("Car Configuration updated");
+        }
+        else
+        {
+            ToastService.ShowError("Error updating car configuration");
+        }
     }
 }

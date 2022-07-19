@@ -18,5 +18,9 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public Task<DtoBaseConfiguration> GetBaseConfiguration() => _configurationWrapper.GetBaseConfigurationAsync();
+
+        [HttpPut]
+        public void UpdateBaseConfiguration([FromBody] DtoBaseConfiguration baseConfiguration) => 
+            _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration);
     }
 }
