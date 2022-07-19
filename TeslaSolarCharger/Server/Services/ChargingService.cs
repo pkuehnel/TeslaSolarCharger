@@ -367,7 +367,11 @@ public class ChargingService : IChargingService
             car.CarState.ShouldStopChargingSince = DateTime.Now;
         }
 
-        var earliestSwitchOff = car.CarState.ShouldStopChargingSince + _configurationWrapper.TimespanUntilSwitchOff();
+        var timespanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
+        var earliestSwitchOff = car.CarState.ShouldStopChargingSince + timespanUntilSwitchOff;
+        _logger.LogDebug("Should start charging since: {shoudStopChargingSince}", car.CarState.ShouldStopChargingSince);
+        _logger.LogDebug("Timespan until switch on: {timespanUntilSwitchOff}", timespanUntilSwitchOff);
+        _logger.LogDebug("Earliest switch off: {earliestSwitchOn}", earliestSwitchOff);
         return earliestSwitchOff;
     }
 
@@ -380,7 +384,11 @@ public class ChargingService : IChargingService
             car.CarState.ShouldStartChargingSince = DateTime.Now;
         }
 
-        var earliestSwitchOn = car.CarState.ShouldStartChargingSince + _configurationWrapper.TimespanUntilSwitchOn();
+        var timespanUntilSwitchOn = _configurationWrapper.TimespanUntilSwitchOn();
+        var earliestSwitchOn = car.CarState.ShouldStartChargingSince + timespanUntilSwitchOn;
+        _logger.LogDebug("Should start charging since: {shoudStartChargingSince}", car.CarState.ShouldStartChargingSince);
+        _logger.LogDebug("Timespan until switch on: {timespanUntilSwitchOn}", timespanUntilSwitchOn);
+        _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", earliestSwitchOn);
         return earliestSwitchOn;
     }
 }
