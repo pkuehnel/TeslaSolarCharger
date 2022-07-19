@@ -107,4 +107,17 @@ public class GridService : TestBase
         Assert.Equal(384, intValue);
     }
 
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData(" ", null)]
+    [InlineData(null, "")]
+    [InlineData(null, " ")]
+    public void Decides_Correct_Note_Pattern_Type_None(string jsonPattern, string xmlPattern)
+    {
+        var gridService = Mock.Create<TeslaSolarCharger.Server.Services.GridService>();
+        var nodePatternType = gridService.DecideNotePatternType(jsonPattern, xmlPattern);
+
+        Assert.Equal(NodePatternType.None, nodePatternType);
+    }
 }
