@@ -122,20 +122,15 @@ public class GridService : IGridService
         var pattern = "";
         var jsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
         var xmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
-        NodePatternType nodePatternType;
-        if (jsonPattern != null)
+        var nodePatternType = DecideNotePatternType(jsonPattern, xmlPattern);
+
+        if (nodePatternType == NodePatternType.Json)
         {
-            nodePatternType = NodePatternType.Json;
             pattern = jsonPattern;
         }
-        else if (xmlPattern != null)
+        else if (nodePatternType == NodePatternType.Xml)
         {
-            nodePatternType = NodePatternType.Xml;
             pattern = xmlPattern;
-        }
-        else
-        {
-            nodePatternType = NodePatternType.None;
         }
 
         return GetValueFromResult(pattern, result, nodePatternType, false);
