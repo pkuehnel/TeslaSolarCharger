@@ -62,8 +62,8 @@ public class ConfigJsonService : IConfigJsonService
         var cars = JsonConvert.DeserializeObject<List<Car>>(fileContent) ?? throw new InvalidOperationException("Could not deserialize file content");
         foreach (var car in cars)
         {
-            car.CarState.ShouldStopChargingSince = DateTime.MaxValue;
-            car.CarState.ShouldStartChargingSince = DateTime.MaxValue;
+            car.CarState.ShouldStopChargingSince = null;
+            car.CarState.ShouldStartChargingSince = null;
 
             var minDate = new DateTime(2022, 1, 1);
             if (car.CarConfiguration.LatestTimeToReachSoC < minDate)
@@ -102,8 +102,8 @@ public class ConfigJsonService : IConfigJsonService
                     },
                     CarState =
                     {
-                        ShouldStartChargingSince = DateTime.MaxValue,
-                        ShouldStopChargingSince = DateTime.MaxValue,
+                        ShouldStartChargingSince = null,
+                        ShouldStopChargingSince = null,
                     },
                 };
                 cars.Add(car);

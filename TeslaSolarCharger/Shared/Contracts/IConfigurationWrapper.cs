@@ -16,7 +16,7 @@ public interface IConfigurationWrapper
     string TeslaMateApiBaseUrl();
     List<int> CarPriorities();
     string GeoFence();
-    TimeSpan TimeUntilSwitchOn();
+    TimeSpan TimespanUntilSwitchOn();
     TimeSpan TimespanUntilSwitchOff();
     int PowerBuffer();
     string? TelegramBotKey();

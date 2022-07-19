@@ -193,7 +193,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().GeoFence;
     }
 
-    public TimeSpan TimeUntilSwitchOn()
+    public TimeSpan TimespanUntilSwitchOn()
     {
         var rawValue = GetBaseConfiguration().MinutesUntilSwitchOn;
         var timeSpan = TimeSpan.FromMinutes(rawValue);
