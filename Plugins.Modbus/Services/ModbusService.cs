@@ -24,7 +24,7 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
     }
 
     public int ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
-        int port, float factor)
+        int port, float factor, int? minimumResult)
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor})", 
             nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor);
@@ -40,6 +40,10 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
         var intValue = BitConverter.ToInt32(tmpArrayPowerComplete, 0);
         Disconnect();
         intValue = (int) ((double)factor *  intValue);
-        return intValue < 0 ? 0 : intValue;
+        if (minimumResult == null)
+        {
+            return intValue;
+        }
+        return intValue < minimumResult ? (int) minimumResult : intValue;
     }
 }

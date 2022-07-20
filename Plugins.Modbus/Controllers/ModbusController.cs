@@ -23,10 +23,10 @@ namespace Plugins.Modbus.Controllers
         /// <param name="ipAddress">The ip address of the modbus device</param>
         /// <param name="port">The modbus port of the modbus device</param>
         /// <param name="factor">The factor to multiply the outcoming modbus value with (e.g. if value is 0.1 W you have to use 10 as factor)</param>
+        /// <param name="minimumResult">Sets a minimum return result. This ist important, if your inverter does not send 0 as power if it is off.</param>
         /// <returns></returns>
         [HttpGet]
         public int GetValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
-            int port,
-            float factor) => _modbusService.ReadIntegerValue(unitIdentifier, startingAddress, quantity, ipAddress, port, factor);
+            int port, float factor, int? minimumResult = null) => _modbusService.ReadIntegerValue(unitIdentifier, startingAddress, quantity, ipAddress, port, factor, minimumResult);
     }
 }

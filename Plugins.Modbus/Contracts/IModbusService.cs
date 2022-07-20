@@ -3,5 +3,5 @@
 public interface IModbusService
 {
     int ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
-        float factor);
+        float factor, int? minimumResult);
 }
