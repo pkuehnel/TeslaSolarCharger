@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Xml;
 using Newtonsoft.Json.Linq;
+using Quartz.Util;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Shared.Contracts;
@@ -23,18 +24,10 @@ public class GridService : IGridService
     public async Task<int?> GetCurrentOverage()
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentOverage));
-        using var httpClient = new HttpClient();
-        var requestUri = _configurationWrapper.CurrentPowerToGridUrl();
-        _logger.LogDebug("Using {uri} to get current overage.", requestUri);
-        var response = await httpClient.GetAsync(
-                requestUri)
-            .ConfigureAwait(false);
 
-        if (!response.IsSuccessStatusCode)
+        var response = await GetCurrentOverageHtmlResponse().ConfigureAwait(false);
+        if (response == null)
         {
-            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", response.StatusCode, response.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current grid power did result in statuscode {response.StatusCode} with reason {response.ReasonPhrase}");
             return null;
         }
 
@@ -43,20 +36,15 @@ public class GridService : IGridService
         var pattern = "";
         var jsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
         var xmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
-        NodePatternType nodePatternType;
-        if (jsonPattern != null)
+        var nodePatternType = DecideNotePatternType(jsonPattern, xmlPattern);
+
+        if (nodePatternType == NodePatternType.Json)
         {
-            nodePatternType = NodePatternType.Json;
             pattern = jsonPattern;
         }
-        else if (xmlPattern != null)
+        else if (nodePatternType == NodePatternType.Xml)
         {
-            nodePatternType = NodePatternType.Xml;
             pattern = xmlPattern;
-        }
-        else
-        {
-            nodePatternType = NodePatternType.None;
         }
 
         var overage = GetValueFromResult(pattern, result, nodePatternType, true);
@@ -67,6 +55,48 @@ public class GridService : IGridService
 
         return overage;
     }
+
+    internal NodePatternType DecideNotePatternType(string? jsonPattern, string? xmlPattern)
+    {
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(DecideNotePatternType), jsonPattern, xmlPattern);
+        NodePatternType nodePatternType;
+        if (!jsonPattern.IsNullOrWhiteSpace())
+        {
+            nodePatternType = NodePatternType.Json;
+        }
+        else if (!xmlPattern.IsNullOrWhiteSpace())
+        {
+            nodePatternType = NodePatternType.Xml;
+        }
+        else
+        {
+            nodePatternType = NodePatternType.None;
+        }
+        _logger.LogDebug("Node pattern type is {nodePatternType}", nodePatternType);
+        return nodePatternType;
+    }
+
+    private async Task<HttpResponseMessage?> GetCurrentOverageHtmlResponse()
+    {
+        using var httpClient = new HttpClient();
+        var requestUri = _configurationWrapper.CurrentPowerToGridUrl();
+        _logger.LogDebug("Using {uri} to get current overage.", requestUri);
+        var response = await httpClient.GetAsync(
+                requestUri)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", response.StatusCode,
+                response.ReasonPhrase);
+            await _telegramService.SendMessage(
+                $"Getting current grid power did result in statuscode {response.StatusCode} with reason {response.ReasonPhrase}");
+            return null;
+        }
+
+        return response;
+    }
+
     public async Task<int?> GetCurrentInverterPower()
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentInverterPower));
@@ -92,20 +122,15 @@ public class GridService : IGridService
         var pattern = "";
         var jsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
         var xmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
-        NodePatternType nodePatternType;
-        if (jsonPattern != null)
+        var nodePatternType = DecideNotePatternType(jsonPattern, xmlPattern);
+
+        if (nodePatternType == NodePatternType.Json)
         {
-            nodePatternType = NodePatternType.Json;
             pattern = jsonPattern;
         }
-        else if (xmlPattern != null)
+        else if (nodePatternType == NodePatternType.Xml)
         {
-            nodePatternType = NodePatternType.Xml;
             pattern = xmlPattern;
-        }
-        else
-        {
-            nodePatternType = NodePatternType.None;
         }
 
         return GetValueFromResult(pattern, result, nodePatternType, false);

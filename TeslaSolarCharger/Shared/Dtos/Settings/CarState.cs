@@ -1,10 +1,12 @@
-﻿namespace TeslaSolarCharger.Shared.Dtos.Settings;
+﻿using TeslaSolarCharger.Shared.Enums;
+
+namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
 public class CarState
 {
     public string? Name { get; set; }
-    public DateTime ShouldStartChargingSince { get; set; }
-    public DateTime ShouldStopChargingSince { get; set; }
+    public DateTime? ShouldStartChargingSince { get; set; }
+    public DateTime? ShouldStopChargingSince { get; set; }
     public int? SoC { get; set; }
     public int? SocLimit { get; set; }
     public string? Geofence { get; set; }
@@ -27,13 +29,23 @@ public class CarState
     {
         get
         {
-            var power = ChargerActualCurrent * ChargerVoltage * ActualPhases;
+            float? currentToUse;
+            //Next lines because of wrong actual current on currents below 5A
+            if (ChargerRequestedCurrent < 5 && ChargerActualCurrent == ChargerRequestedCurrent + 1)
+            {
+                currentToUse = (float?)(ChargerActualCurrent + ChargerRequestedCurrent) / 2;
+            }
+            else
+            {
+                currentToUse = ChargerActualCurrent;
+            }
+            var power = (int?)(currentToUse * ChargerVoltage * ActualPhases);
             return power;
         }
     }
 
     public string? StateString { get; set; }
-    public Enums.CarState? State { get; set; }
+    public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
 }

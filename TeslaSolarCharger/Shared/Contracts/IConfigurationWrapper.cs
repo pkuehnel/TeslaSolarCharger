@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Contracts;
+﻿using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+
+namespace TeslaSolarCharger.Shared.Contracts;
 
 public interface IConfigurationWrapper
 {
@@ -14,7 +16,7 @@ public interface IConfigurationWrapper
     string TeslaMateApiBaseUrl();
     List<int> CarPriorities();
     string GeoFence();
-    TimeSpan TimeUntilSwitchOn();
+    TimeSpan TimespanUntilSwitchOn();
     TimeSpan TimespanUntilSwitchOff();
     int PowerBuffer();
     string? TelegramBotKey();
@@ -33,4 +35,10 @@ public interface IConfigurationWrapper
     string TeslaMateDbDatabaseName();
     string TeslaMateDbUser();
     string TeslaMateDbPassword();
+    string BaseConfigFileFullName();
+
+    Task<DtoBaseConfiguration> GetBaseConfigurationAsync();
+    Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration);
+    Task<bool> IsBaseConfigurationJsonRelevant();
+    Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration);
 }

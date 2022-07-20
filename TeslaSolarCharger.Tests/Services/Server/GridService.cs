@@ -107,4 +107,41 @@ public class GridService : TestBase
         Assert.Equal(384, intValue);
     }
 
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData(" ", null)]
+    [InlineData(null, "")]
+    [InlineData(null, " ")]
+    public void Decides_Correct_Note_Pattern_Type_None(string jsonPattern, string xmlPattern)
+    {
+        var gridService = Mock.Create<TeslaSolarCharger.Server.Services.GridService>();
+        var nodePatternType = gridService.DecideNotePatternType(jsonPattern, xmlPattern);
+
+        Assert.Equal(NodePatternType.None, nodePatternType);
+    }
+
+    [Theory]
+    [InlineData("$.data.overage", null)]
+    [InlineData("$.data.overage", "")]
+    [InlineData("$.data.overage", " ")]
+    public void Decides_Correct_Note_Pattern_Type_Json(string jsonPattern, string xmlPattern)
+    {
+        var gridService = Mock.Create<TeslaSolarCharger.Server.Services.GridService>();
+        var nodePatternType = gridService.DecideNotePatternType(jsonPattern, xmlPattern);
+
+        Assert.Equal(NodePatternType.Json, nodePatternType);
+    }
+
+    [Theory]
+    [InlineData(null, "Device/Measurements/Measurement")]
+    [InlineData("", "Device/Measurements/Measurement")]
+    [InlineData(" ", "Device/Measurements/Measurement")]
+    public void Decides_Correct_Note_Pattern_Type_Xml(string jsonPattern, string xmlPattern)
+    {
+        var gridService = Mock.Create<TeslaSolarCharger.Server.Services.GridService>();
+        var nodePatternType = gridService.DecideNotePatternType(jsonPattern, xmlPattern);
+
+        Assert.Equal(NodePatternType.Xml, nodePatternType);
+    }
 }
