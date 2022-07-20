@@ -23,13 +23,13 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
         }
     }
 
-    public int ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddresString,
+    public int ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
         int port, float factor)
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddresString}, {port}, {factor})", 
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddresString, port, factor);
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor})", 
+            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor);
 
-        var ipAddress = IPAddress.Parse(ipAddresString);
+        var ipAddress = IPAddress.Parse(ipAddressString);
         _logger.LogTrace("Connecting Modbus Client...");
         Connect(new IPEndPoint(ipAddress, port));
         _logger.LogTrace("Reading Holding Register...");
@@ -39,6 +39,7 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
         _logger.LogTrace("Converting to Int value...");
         var intValue = BitConverter.ToInt32(tmpArrayPowerComplete, 0);
         Disconnect();
-        return (int) ((double)factor *  intValue);
+        intValue = (int) ((double)factor *  intValue);
+        return intValue < 0 ? 0 : intValue;
     }
 }
