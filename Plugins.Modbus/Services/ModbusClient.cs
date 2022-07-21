@@ -33,12 +33,16 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         return intValue < minimumResult ? (int) minimumResult : intValue;
     }
 
-    public void DiconnectIfConnected()
+    public bool DiconnectIfConnected()
     {
         if (IsConnected)
         {
+            _logger.LogDebug("Client disconnected");
             Disconnect();
+            return true;
         }
+
+        return false;
     }
 
     private async Task<byte[]> GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
@@ -59,12 +63,14 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
             return tmpArrayPowerComplete;
         }
-        finally
+        catch (Exception)
         {
-            if (IsConnected)
+            if(IsConnected)
             {
                 Disconnect();
             }
+
+            throw;
         }
     }
 }

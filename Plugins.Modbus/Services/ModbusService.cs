@@ -44,10 +44,14 @@ public class ModbusService : IModbusService
     private void OnProcessExit(object? sender, EventArgs e)
     {
         _logger.LogTrace("Closing all open connections...");
+        var disconnectedClients = 0;
         foreach (var modbusClient in _modbusClients.Values)
         {
-            modbusClient.DiconnectIfConnected();
+            if (modbusClient.DiconnectIfConnected())
+            {
+                disconnectedClients++;
+            }
         }
-        _logger.LogTrace("{Count} clients diconnected.", _modbusClients.Count);
+        _logger.LogTrace("{disconnects} of {clients} clients diconnected.", disconnectedClients, _modbusClients.Count);
     }
 }

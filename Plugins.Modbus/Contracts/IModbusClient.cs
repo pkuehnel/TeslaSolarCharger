@@ -6,5 +6,5 @@ public interface IModbusClient
         string ipAddressString,
         int port, float factor, int connectDelay, int timeout, int? minimumResult);
 
-    void DiconnectIfConnected();
+    bool DiconnectIfConnected();
 }
