@@ -26,14 +26,10 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
     public int ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
         int port, float factor, int? minimumResult)
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor})", 
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor);
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, {minimumResult})", 
+            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, minimumResult);
 
-        var ipAddress = IPAddress.Parse(ipAddressString);
-        _logger.LogTrace("Connecting Modbus Client...");
-        Connect(new IPEndPoint(ipAddress, port));
-        _logger.LogTrace("Reading Holding Register...");
-        var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
+        var tmpArrayPowerComplete = GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port);
         _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
         tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
         _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
@@ -45,5 +41,40 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
             return intValue;
         }
         return intValue < minimumResult ? (int) minimumResult : intValue;
+    }
+
+    public string GetRawBytes(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port)
+    {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port})",
+            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port);
+
+        var tmpArrayPowerComplete = GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port);
+        return Convert.ToHexString(tmpArrayPowerComplete);
+    }
+
+    private byte[] GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
+        int port)
+    {
+        var ipAddress = IPAddress.Parse(ipAddressString);
+        _logger.LogTrace("Connecting Modbus Client...");
+        Connect(new IPEndPoint(ipAddress, port));
+        _logger.LogTrace("Reading Holding Register...");
+        try
+        {
+            var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
+            return tmpArrayPowerComplete;
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+        finally
+        {
+            if (IsConnected)
+            {
+                Disconnect();
+            }
+        }
+        
     }
 }
