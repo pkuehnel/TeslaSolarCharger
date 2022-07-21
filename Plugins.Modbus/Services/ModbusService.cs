@@ -41,17 +41,7 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
         }
         return intValue < minimumResult ? (int) minimumResult : intValue;
     }
-
-    public async Task<string> GetRawBytes(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString, int port, int connectDelay, int timeout)
-    {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port})",
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port);
-
-        var tmpArrayPowerComplete = await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
-        return Convert.ToHexString(tmpArrayPowerComplete);
-    }
-
+    
     private async Task<byte[]> GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
         int port, int connectDelay, int timeout)
     {
@@ -69,15 +59,11 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
         }
         catch (Exception)
         {
-            throw;
-        }
-        finally
-        {
             if (IsConnected)
             {
                 Disconnect();
             }
+            throw;
         }
-        
     }
 }
