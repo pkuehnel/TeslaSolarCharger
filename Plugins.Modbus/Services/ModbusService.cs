@@ -34,9 +34,9 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
         Connect(new IPEndPoint(ipAddress, port));
         _logger.LogTrace("Reading Holding Register...");
         var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
-        _logger.LogTrace("Reversing Array...");
+        _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
         tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
-        _logger.LogTrace("Converting to Int value...");
+        _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
         var intValue = BitConverter.ToInt32(tmpArrayPowerComplete, 0);
         Disconnect();
         intValue = (int) ((double)factor *  intValue);
