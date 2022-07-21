@@ -48,6 +48,6 @@ public class ModbusService : IModbusService
         {
             modbusClient.DiconnectIfConnected();
         }
-        _logger.LogTrace("All clients diconnected.");
+        _logger.LogTrace("{Count} clients diconnected.", _modbusClients.Count);
     }
 }
