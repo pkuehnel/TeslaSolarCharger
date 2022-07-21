@@ -32,7 +32,15 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         }
         return intValue < minimumResult ? (int) minimumResult : intValue;
     }
-    
+
+    public void DiconnectIfConnected()
+    {
+        if (IsConnected)
+        {
+            Disconnect();
+        }
+    }
+
     private async Task<byte[]> GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
         int port, int connectDelay, int timeout)
     {

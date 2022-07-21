@@ -20,6 +20,10 @@ public class ModbusService : IModbusService
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, {minimumResult})",
             nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, minimumResult);
         IModbusClient modbusClient;
+        if (_modbusClients.Count < 1)
+        {
+            AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
+        }
         if (_modbusClients.Any(c => c.Key == ipAddressString))
         {
             _logger.LogDebug("Use exising modbusClient");
@@ -35,5 +39,15 @@ public class ModbusService : IModbusService
         var value = await modbusClient.ReadIntegerValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
             connectDelay, timeout, minimumResult);
         return value;
+    }
+
+    private void OnProcessExit(object? sender, EventArgs e)
+    {
+        _logger.LogTrace("Closing all open connections...");
+        foreach (var modbusClient in _modbusClients.Values)
+        {
+            modbusClient.DiconnectIfConnected();
+        }
+        _logger.LogTrace("All clients diconnected.");
     }
 }
