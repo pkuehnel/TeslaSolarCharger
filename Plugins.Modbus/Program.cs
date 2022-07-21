@@ -1,7 +1,7 @@
-using FluentModbus;
 using Plugins.Modbus.Contracts;
 using Plugins.Modbus.Services;
 using Serilog;
+using ModbusClient = Plugins.Modbus.Services.ModbusClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +12,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddTransient<IModbusService, ModbusService>();
+builder.Services.AddSingleton<IModbusService, ModbusService>();
+builder.Services.AddTransient<IModbusClient, ModbusClient>();
 
 builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration));

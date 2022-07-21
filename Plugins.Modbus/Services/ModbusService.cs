@@ -1,69 +1,39 @@
-﻿using System.Net;
-using FluentModbus;
-using Plugins.Modbus.Contracts;
+﻿using Plugins.Modbus.Contracts;
 
 namespace Plugins.Modbus.Services;
 
-public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
+public class ModbusService : IModbusService
 {
     private readonly ILogger<ModbusService> _logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly Dictionary<string, IModbusClient> _modbusClients = new();
 
-    public ModbusService(ILogger<ModbusService> logger)
+    public ModbusService(ILogger<ModbusService> logger, IServiceProvider serviceProvider)
     {
         _logger = logger;
-    }
-    public void Dispose()
-    {
-        _logger.LogTrace("{method}()", nameof(Dispose));
-        if (IsConnected)
-        {
-            Disconnect();
-        }
+        _serviceProvider = serviceProvider;
     }
 
-    public async Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString,
-        int port, float factor, int connectDelay, int timeout, int? minimumResult)
+    public async Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
+        float factor, int connectDelay, int timeout, int? minimumResult)
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, {minimumResult})", 
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, {minimumResult})",
             nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, minimumResult);
+        IModbusClient modbusClient;
+        if (_modbusClients.Any(c => c.Key == ipAddressString))
+        {
+            _logger.LogDebug("Use exising modbusClient");
+            modbusClient = _modbusClients[ipAddressString];
+        }
+        else
+        {
+            _logger.LogDebug("Creating new ModbusClient");
+            modbusClient = _serviceProvider.GetRequiredService<IModbusClient>();
+            _modbusClients.Add(ipAddressString, modbusClient);
+        }
 
-        var tmpArrayPowerComplete = await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
-        _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
-        tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
-        _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
-        var intValue = BitConverter.ToInt32(tmpArrayPowerComplete, 0);
-        Disconnect();
-        intValue = (int) ((double)factor *  intValue);
-        if (minimumResult == null)
-        {
-            return intValue;
-        }
-        return intValue < minimumResult ? (int) minimumResult : intValue;
-    }
-    
-    private async Task<byte[]> GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
-        int port, int connectDelay, int timeout)
-    {
-        ReadTimeout = (int)TimeSpan.FromSeconds(timeout).TotalMilliseconds;
-        WriteTimeout = (int)TimeSpan.FromSeconds(timeout).TotalMilliseconds;
-        var ipAddress = IPAddress.Parse(ipAddressString);
-        _logger.LogTrace("Connecting Modbus Client...");
-        Connect(new IPEndPoint(ipAddress, port));
-        await Task.Delay(TimeSpan.FromSeconds(connectDelay)).ConfigureAwait(false);
-        _logger.LogTrace("Reading Holding Register...");
-        try
-        {
-            var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
-            return tmpArrayPowerComplete;
-        }
-        catch (Exception)
-        {
-            if (IsConnected)
-            {
-                Disconnect();
-            }
-            throw;
-        }
+        var value = await modbusClient.ReadIntegerValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            connectDelay, timeout, minimumResult);
+        return value;
     }
 }
