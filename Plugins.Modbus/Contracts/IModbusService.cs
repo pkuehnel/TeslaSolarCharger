@@ -2,8 +2,9 @@
 
 public interface IModbusService
 {
-    int ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
-        float factor, int? minimumResult);
+    Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
+        int port, float factor, int connectDelay, int timeout, int? minimumResult);
 
-    string GetRawBytes(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port);
+    Task<string> GetRawBytes(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
+        int port, int connectDelay, int timeout);
 }

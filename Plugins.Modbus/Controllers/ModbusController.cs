@@ -23,11 +23,14 @@ namespace Plugins.Modbus.Controllers
         /// <param name="ipAddress">The ip address of the modbus device</param>
         /// <param name="port">The modbus port of the modbus device</param>
         /// <param name="factor">The factor to multiply the outcoming modbus value with (e.g. if value is 0.1 W you have to use 10 as factor)</param>
+        /// <param name="connectDelaySeconds"></param>
+        /// <param name="timeoutSeconds"></param>
         /// <param name="minimumResult">Sets a minimum return result. This ist important, if your inverter does not send 0 as power if it is off.</param>
         /// <returns></returns>
         [HttpGet]
-        public int GetValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
-            int port, float factor, int? minimumResult = null) => _modbusService.ReadIntegerValue(unitIdentifier, startingAddress, quantity, ipAddress, port, factor, minimumResult);
+        public Task<int> GetValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
+            int port, float factor, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null) 
+            => _modbusService.ReadIntegerValue(unitIdentifier, startingAddress, quantity, ipAddress, port, factor, connectDelaySeconds, timeoutSeconds, minimumResult);
 
         /// <summary>
         /// Gets Raw byte string from Modbus
@@ -37,9 +40,11 @@ namespace Plugins.Modbus.Controllers
         /// <param name="quantity">The number of holding registers (16 bit per register) to read.</param>
         /// <param name="ipAddress">The ip address of the modbus device</param>
         /// <param name="port">The modbus port of the modbus device</param>
+        /// <param name="connectDelaySeconds">Delay between connection to server is established and communication starts</param>
+        /// <param name="timeoutSeconds">Connection timeoutSeconds</param>
         /// <returns></returns>
         [HttpGet]
-        public string GetRawBytes(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port) 
-            => _modbusService.GetRawBytes(unitIdentifier, startingAddress, quantity, ipAddress, port);
+        public Task<string> GetRawBytes(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port, int connectDelaySeconds, int timeoutSeconds) 
+            => _modbusService.GetRawBytes(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds);
     }
 }
