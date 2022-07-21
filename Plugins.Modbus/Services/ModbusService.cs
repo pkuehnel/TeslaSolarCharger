@@ -11,8 +11,8 @@ public class ModbusService : ModbusTcpClient, IDisposable, IModbusService
     public ModbusService(ILogger<ModbusService> logger)
     {
         _logger = logger;
-        ReadTimeout = 1000;
-        WriteTimeout = 1000;
+        ReadTimeout = 10000;
+        WriteTimeout = 10000;
     }
     public void Dispose()
     {
