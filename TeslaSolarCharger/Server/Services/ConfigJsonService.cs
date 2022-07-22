@@ -96,7 +96,7 @@ public class ConfigJsonService : IConfigJsonService
                         ChargeMode = ChargeMode.MaxPower,
                         UpdatedSincLastWrite = true,
                         MaximumAmpere = 16,
-                        MinimumAmpere = 2,
+                        MinimumAmpere = 1,
                         UsableEnergy = 75,
                         LatestTimeToReachSoC = new DateTime(2022, 1, 1),
                     },
