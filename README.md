@@ -9,20 +9,13 @@
 TeslaSolarCharger is a service to set one or multiple Teslas' charging current using the datalogger **[TeslaMate](https://github.com/adriankumpf/teslamate)**.
 ### Table of Contents
 
-- [How to use](#how-to-use)
+- [How to install](#how-to-install)
   - [Docker-compose](#docker-compose)
-  - [Environment variables](#environment-variables)
+  - [Setting up TeslaMate including TeslaSolarCharger](#Setting-up-TeslaMate-including-TeslaSolarCharger)
+    -[docker-compose.yml content](#docker-compose.yml-content)
+    -[First startup of the application](#first-startup-of-the-application)
+- [How to use](how-to-use)
   - [Car Priorities](#car-priorities)
-  - [Power Buffer](#power-buffer)
-  - [UI](#UI)
-  - [Charge Modes](#charge-modes)
-  - [Telegram Notifications](#telegram-notifications)
-  - [Getting Values from XML](#getting-values-from-xml)
-    - [Grid-Power](#grid-power)
-    - [Inverter-Power](#inverter-power)
-  - [Plugins](#plugins)
-    - [SMA-EnergyMeter Plugin](#sma-energymeter-plugin)
-    - [Solaredge Plugin](#solaredge-plugin)
 
 ## How to install
 
@@ -577,6 +570,7 @@ Depending on your used pluging you habe to paste one of the following URLs to th
 * SolarEdge Plugin: `http://solaredgeplugin/CurrentValues/GetPowerToGrid` If you also add `http://solaredgeplugin/CurrentValues/GetInverterPower` to the `Inverter Power Url` field, you can see the power production and how much your house consumes in the overview page.
 
 ###### Using the modbus plugin
+Warning: As this plugin keeps an open connection to your inverter it is highly recommended not to kill this container but always shut it down gracefully.
 To use the modbus plugin you have to create the url string by yourself. The URL looks like this:
 http://modbusplugin/api/Modbus/GetValue?unitIdentifier=3&startingAddress=<modbusregisterAddress>&quantity=<NumberOFModbusRegistersToRead>&ipAddress=<IPAdressOfModbusDevice>&port=502&factor=<conversionFactor>&connectDelaySeconds=1&timeoutSeconds=10
 
@@ -661,7 +655,7 @@ If you have more than one car (or your car does not have the ID 1), you can chan
 ###### Power Buffer
 If you set `PowerBuffer` to a value different from `0` the system uses the value as an offset. Eg. If you set `1000` the current of the car is reduced as long as there is less than 1000 Watt power going to the grid.
 
-## How to use the software
+## How to use
 After setting everything up, you can use the software via `http://your-ip-address:7190`.
 
 ### Charge Modes
