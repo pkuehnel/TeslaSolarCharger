@@ -38,7 +38,7 @@ public class ConfigJsonService : TestBase
 
         foreach (var car in cars)
         {
-            Assert.Equal(ChargeMode.MaxPower, car.CarConfiguration.ChargeMode);
+            Assert.Equal(ChargeMode.PvAndMinSoc, car.CarConfiguration.ChargeMode);
             Assert.True(car.CarConfiguration.UpdatedSincLastWrite);
             Assert.Equal(16, car.CarConfiguration.MaximumAmpere);
             Assert.Equal(2, car.CarConfiguration.MinimumAmpere);
