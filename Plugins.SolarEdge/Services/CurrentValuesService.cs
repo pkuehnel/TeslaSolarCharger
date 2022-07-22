@@ -52,12 +52,14 @@ public class CurrentValuesService : ICurrentValuesService
 
     private async Task<CloudApiValue> GetLatestValue()
     {
-        var refreshIntervall = TimeSpan.FromSeconds(_configuration.GetValue<int>("RefreshIntervallSeconds"));
-        _logger.LogDebug("Refresh Intervall is {refreshIntervall}", refreshIntervall);
+        var refreshIntervalInt = _configuration.GetValue<int?>("RefreshIntervalSeconds") ?? 
+                                 _configuration.GetValue<int>("RefreshIntervallSeconds");
+        var refreshInterval = TimeSpan.FromSeconds(refreshIntervalInt);
+        _logger.LogDebug("Refresh Interval is {refreshInterval}", refreshInterval);
 
 
         if (_sharedValues.CloudApiValues.Count < 1
-            || _sharedValues.CloudApiValues.Last().Key < DateTime.UtcNow - refreshIntervall)
+            || _sharedValues.CloudApiValues.Last().Key < DateTime.UtcNow - refreshInterval)
         {
             _logger.LogDebug("Get new Values from SolarEdge API");
             var jsonString = await GetCloudApiString().ConfigureAwait(false);
