@@ -3,14 +3,10 @@
 [![Docker version](https://img.shields.io/docker/v/pkuehnel/teslasolarcharger/latest)](https://hub.docker.com/r/pkuehnel/teslasolarcharger)
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarcharger/latest)](https://hub.docker.com/r/pkuehnel/teslasolarcharger)
 [![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarcharger)](https://hub.docker.com/r/pkuehnel/teslasolarcharger)
+[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsetter)](https://hub.docker.com/r/pkuehnel/smartteslaampsetter)
 [![](https://img.shields.io/badge/Donate-PayPal-ff69b4.svg)](https://www.paypal.com/donate/?hosted_button_id=S3CK8Q9KV3JUL)
 
-TeslaSolarCharger is service to set one or multiple Teslas' charging current using **[TeslaMateApi](https://github.com/tobiasehlert/teslamateapi)** and any REST Endpoint which presents the Watt to increase or reduce charging power
-
-Needs:
-- A running **[TeslaMateApi](https://github.com/tobiasehlert/teslamateapi)** instance, which needs self-hosted data logger **[TeslaMate](https://github.com/adriankumpf/teslamate)**
-- REST Endpoint from any Smart Meter which returns current power to grid (values > 0 --> power goes to grid, values < 0 power comes from grid)
-
+TeslaSolarCharger is a service to set one or multiple Teslas' charging current using the datalogger **[TeslaMate](https://github.com/adriankumpf/teslamate)**.
 ### Table of Contents
 
 - [How to use](#how-to-use)
@@ -34,46 +30,52 @@ You can either use it in a Docker container or go download the code and deploy i
 
 ### Docker-compose
 
-If you run the simple Docker deployment of TeslaMate, then adding this will do the trick. You'll have the frontend available on port 7190 then. Note: you have to change the CurrentPowerToGridUrl based on your environment. If you use the SMA Plugin you only have to update the IP address.
+The easiest way to use TeslaSolarCharger is with Docker. Depending on your System you need to [install Docker including Docker-Compose](https://dev.to/rohansawant/installing-docker-and-docker-compose-on-the-raspberry-pi-in-5-simple-steps-3mgl) first.
+
+### Setting up TeslaMate including TeslaSolarCharger
+
+So set up TeslaSolarCharger you have to create a `docker-compose.yml`(name is important!) file in a new directory. Note: During the setup some additional data folders to persist data will be created in that folder, so it is recommended to use a new directory for your `docker-compose.yml`.
+
+### docker-compose.yml content
+
+The needed content of your `docker-compose.yml` depends on your inverter. By default TeslaSolarCharger can consume JSON/XML REST APIs. To get the software running on [SMA](https://www.sma.de/) or [SolarEdge](https://www.solaredge.com/) you can use specific plugins, which create the needed JSON API. You can use the software with any ModbusTCP capable inverter also.
+
+#### Content without using a plugin
+
+Below you can see the content for your `docker-compose.yml` if you are not using any plugin. Note: It is recommended to change as few things as possible on this file as this will increase the effort to set everything up but feel free to change the database password, encryption key and Timezone. Important: If you change the password or the encryption key you need to use the same password and encyption key at all points in your `docker-compose.yml`
 
 ```yaml
+version: '3.3'
+
 services:
-    teslasolarcharger:
-    image: pkuehnel/teslasolarcharger:latest
-    logging:
-        driver: "json-file"
-        options:
-            max-file: "5"
-            max-size: "10m"
+  teslamate:
+    image: teslamate/teslamate:latest
     restart: always
-    depends_on:
-      - teslamateapi
     environment:
-      - CurrentPowerToGridUrl=http://192.168.1.50/api/CurrentPower/GetPower
-      - TeslaMateApiBaseUrl=http://teslamateapi:8080
-      - UpdateIntervalSeconds=20
-      - CarPriorities=1
-      - GeoFence=Home
-      - MinutesUntilSwitchOn=5
-      - MinutesUntilSwitchOff=5
-      - PowerBuffer=0
-      - TZ=Europe/Berlin
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+      - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
-      - 7190:80
+      - 4000:4000
     volumes:
-      - teslaampsetter-configs:/app/configs
-    .
-    .
-    .
-volumes:
-  .
-  .
-  .
-  teslaampsetter-configs:
-```
+      - ./import:/opt/app/import
+    cap_drop:
+      - all
 
-Note: TeslaMateApi has to be configured to allow any command without authentication:
-```yaml
+  database:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=teslamate
+      - POSTGRES_PASSWORD=secret ##You can change your password here
+      - POSTGRES_DB=teslamate
+    volumes:
+      - ./teslamate-db:/var/lib/postgresql/data
+
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
     logging:
@@ -85,43 +87,469 @@ Note: TeslaMateApi has to be configured to allow any command without authenticat
     depends_on:
       - database
     environment:
-      - ENCRYPTION_KEY=MySuperSecretEncryptionKey
       - DATABASE_USER=teslamate
-      - DATABASE_PASS=secret
+      - DATABASE_PASS=secret ##You can change your password here
       - DATABASE_NAME=teslamate
       - DATABASE_HOST=database
       - MQTT_HOST=mosquitto
-      - TZ=Europe/Berlin
+      - TZ=Europe/Berlin ##You can change your Timezone here
       - ENABLE_COMMANDS=true
       - COMMANDS_ALL=true
       - API_TOKEN_DISABLE=true
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+    #ports:
+    #  - 8080:8080
+
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
     ports:
-      - 8080:8080
+      - 3100:3000
+    volumes:
+      - ./teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - ./mosquitto-conf:/mosquitto/config
+      - ./mosquitto-data:/mosquitto/data
+      
+  teslasolarcharger:
+    image: pkuehnel/teslasolarcharger:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "100m"
+    restart: always
+    depends_on:
+      - teslamateapi
+    environment:
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 7190:80
+    volumes:
+      - ./teslasolarcharger-configs:/app/configs
+
 ```
 
-### Environment variables
+#### Content using SMA plugin
 
-| Variable | Type | Explanation | Example |
-|---|---|---|---|
-| **CurrentPowerToGridUrl** | string | URL to REST Endpoint of smart meter | http://192.168.1.50/api/CurrentPower/GetPower |
-| **CurrentInverterPowerUrl** | string | URL to REST Endpoint of inverter (optional) | http://192.168.1.50/api/CurrentInverterPower |
-| **TeslaMateApiBaseUrl** | string | Base URL to TeslaMateApi instance | http://teslamateapi:8080 |
-| **UpdateIntervalSeconds** | int | Intervall how often the charging amps should be set (Note: TeslaMateApi takes some time to get new current values, so do not set a value lower than 30) | 30 |
-| **CarPriorities** | string | TeslaMate Car Ids separated by \| in the priority order. | 1\|2 |
-| **GeoFence** | string | TeslaMate Geofence Name where amps should be set | Home |
-| **MinutesUntilSwitchOn** | int | Minutes with more power to grid than minimum settable until charging starts | 5 |
-| **MinutesUntilSwitchOff** | int | Minutes with power from grid until charging stops | 5 |
-| **PowerBuffer** | int | Power Buffer in Watt | 0 |
-| **CurrentPowerToGridJsonPattern** | string | If Power to grid is json formated use this to extract the correct value | $.data.overage |
-| **CurrentPowerToGridInvertValue** | boolean | Set this to `true` if Power from grid has positive values and power to grid has negative values | true |
-| **CurrentInverterPowerJsonPattern** | string | If Power from inverter is json formated use this to extract the correct value | $.data.overage |
-| **TelegramBotKey** | string | Telegram Bot API key | 1234567890:ASDFuiauhwerlfvasedr |
-| **TelegramChannelId** | string | ChannelId Telegram bot should send messages to | -156480125 |
-| **TeslaMateDbServer** | string | Name or IP Address of the TeslaMate database service | database |
-| **TeslaMateDbPort** | int | Port of the TeslaMate database service | 5432 |
-| **TeslaMateDbDatabaseName** | string | Database Name of the TeslaMate database service | teslamate |
-| **TeslaMateDbUser** | string | Database user name of the TeslaMate database service | teslamate |
-| **TeslaMateDbPassword** | string | Database user's password of the TeslaMate database service | secret |
+The SMA plugin is used to access the values from your EnergyMeter (or Sunny Home Manager 2.0).
+To use the plugin just add these lines to the bottom of your `docker-compose.yml`.
+```yaml
+  smaplugin:
+    image: pkuehnel/teslasolarchargersmaplugin:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    network_mode: host
+    ports:
+      - 7192:80
+
+```
+
+You can also copy the complete content from here:
+<details>
+  <summary>Complete file using SMA plugin</summary>
+
+```yaml
+version: '3.3'
+
+services:
+  teslamate:
+    image: teslamate/teslamate:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 4000:4000
+    volumes:
+      - ./import:/opt/app/import
+    cap_drop:
+      - all
+
+  database:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=teslamate
+      - POSTGRES_PASSWORD=secret ##You can change your password here
+      - POSTGRES_DB=teslamate
+    volumes:
+      - ./teslamate-db:/var/lib/postgresql/data
+
+  teslamateapi:
+    image: tobiasehlert/teslamateapi:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    depends_on:
+      - database
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - TZ=Europe/Berlin ##You can change your Timezone here
+      - ENABLE_COMMANDS=true
+      - COMMANDS_ALL=true
+      - API_TOKEN_DISABLE=true
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+    #ports:
+    #  - 8080:8080
+
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - ./teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - ./mosquitto-conf:/mosquitto/config
+      - ./mosquitto-data:/mosquitto/data
+      
+  teslasolarcharger:
+    image: pkuehnel/teslasolarcharger:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "100m"
+    restart: always
+    depends_on:
+      - teslamateapi
+    environment:
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 7190:80
+    volumes:
+      - ./teslasolarcharger-configs:/app/configs
+  
+  smaplugin:
+    image: pkuehnel/teslasolarchargersmaplugin:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    network_mode: host
+    ports:
+      - 7192:80
+```
+  
+</details>
+
+#### Content using SolarEdge plugin
+
+The SolarEdge Plugin is using the cloud API which is limited to 300 calls per day. To not exceed this limit there is an environmentvariable which limits the refresh interval to 360 seconds. This results in a very low update frequency of your power values. That is why it is recommended to use the ModbusPlugin below.
+
+To use the plugin just add these lines to the bottom of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable
+
+```yaml
+  solaredgeplugin:
+    image: pkuehnel/teslasolarchargersolaredgeplugin:solaredge
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    environment:
+      - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf& ##Change your site ID and API Key here
+      - RefreshIntervalSeconds=360
+    ports:
+      - 7193:80
+
+```
+
+You can also copy the complete content from here:
+<details>
+  <summary>Complete file using SolarEdge plugin</summary>
+
+```yaml
+version: '3.3'
+
+services:
+  teslamate:
+    image: teslamate/teslamate:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 4000:4000
+    volumes:
+      - ./import:/opt/app/import
+    cap_drop:
+      - all
+
+  database:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=teslamate
+      - POSTGRES_PASSWORD=secret ##You can change your password here
+      - POSTGRES_DB=teslamate
+    volumes:
+      - ./teslamate-db:/var/lib/postgresql/data
+
+  teslamateapi:
+    image: tobiasehlert/teslamateapi:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    depends_on:
+      - database
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - TZ=Europe/Berlin ##You can change your Timezone here
+      - ENABLE_COMMANDS=true
+      - COMMANDS_ALL=true
+      - API_TOKEN_DISABLE=true
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+    #ports:
+    #  - 8080:8080
+
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - ./teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - ./mosquitto-conf:/mosquitto/config
+      - ./mosquitto-data:/mosquitto/data
+      
+  teslasolarcharger:
+    image: pkuehnel/teslasolarcharger:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "100m"
+    restart: always
+    depends_on:
+      - teslamateapi
+    environment:
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 7190:80
+    volumes:
+      - ./teslasolarcharger-configs:/app/configs
+  
+  solaredgeplugin:
+    image: pkuehnel/teslasolarchargersolaredgeplugin:solaredge
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    environment:
+      - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf& ##Change your site ID and API Key here
+      - RefreshIntervalSeconds=360
+    ports:
+      - 7193:80
+
+```
+  
+</details>
+
+#### Content using Modbus plugin
+
+You can also use the Modbus plugin. This is a general plugin so don't be surprised if it does not work as excpected right after starting up. Feel free to share your configurations [here](https://github.com/pkuehnel/TeslaSolarCharger/discussions/174), so I can add templates for future users.
+
+To use the plugin just add these lines to the bottom of your `docker-compose.yml`.
+
+```yaml
+  modbusplugin:
+    image: pkuehnel/teslasolarchargermodbusplugin:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    ports:
+      - 7191:80
+
+```
+You can also copy the complete content from here:
+<details>
+  <summary>Complete file using SolarEdge plugin</summary>
+
+```yaml
+version: '3.3'
+
+services:
+  teslamate:
+    image: teslamate/teslamate:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 4000:4000
+    volumes:
+      - ./import:/opt/app/import
+    cap_drop:
+      - all
+
+  database:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=teslamate
+      - POSTGRES_PASSWORD=secret ##You can change your password here
+      - POSTGRES_DB=teslamate
+    volumes:
+      - ./teslamate-db:/var/lib/postgresql/data
+
+  teslamateapi:
+    image: tobiasehlert/teslamateapi:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    depends_on:
+      - database
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - TZ=Europe/Berlin ##You can change your Timezone here
+      - ENABLE_COMMANDS=true
+      - COMMANDS_ALL=true
+      - API_TOKEN_DISABLE=true
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+    #ports:
+    #  - 8080:8080
+
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - ./teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - ./mosquitto-conf:/mosquitto/config
+      - ./mosquitto-data:/mosquitto/data
+      
+  teslasolarcharger:
+    image: pkuehnel/teslasolarcharger:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "100m"
+    restart: always
+    depends_on:
+      - teslamateapi
+    environment:
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 7190:80
+    volumes:
+      - ./teslasolarcharger-configs:/app/configs
+  
+  modbusplugin:
+    image: pkuehnel/teslasolarchargermodbusplugin:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    ports:
+      - 7191:80
+
+```
+  
+</details>
 
 ### Car Priorities
 If you set `CarPriorities` environment variable like the example above, the car with ID 2 will only start charing, if car 1 is charging at full speed and there is still power left, or if car 1 is not charging due to reached battery limit or not within specified geofence. Note: You always have to add the car Ids to this list separated by `|`. Even if you only have one car you need to ad the car's Id but then without `|`.
