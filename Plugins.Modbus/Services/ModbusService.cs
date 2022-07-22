@@ -20,20 +20,23 @@ public class ModbusService : IModbusService
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, {minimumResult})",
             nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, minimumResult);
         IModbusClient modbusClient;
+
         if (_modbusClients.Count < 1)
         {
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
         }
-        if (_modbusClients.Any(c => c.Key == ipAddressString))
+
+        var keyString = $"{ipAddressString}:{port}";
+        if (_modbusClients.Any(c => c.Key == keyString))
         {
             _logger.LogDebug("Use exising modbusClient");
-            modbusClient = _modbusClients[ipAddressString];
+            modbusClient = _modbusClients[keyString];
         }
         else
         {
             _logger.LogDebug("Creating new ModbusClient");
             modbusClient = _serviceProvider.GetRequiredService<IModbusClient>();
-            _modbusClients.Add(ipAddressString, modbusClient);
+            _modbusClients.Add(keyString, modbusClient);
         }
 
         var value = await modbusClient.ReadIntegerValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
