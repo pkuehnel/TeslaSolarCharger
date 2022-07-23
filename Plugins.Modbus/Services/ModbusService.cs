@@ -14,14 +14,37 @@ public class ModbusService : IModbusService
         _serviceProvider = serviceProvider;
     }
 
-    public async Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity,
+    public async Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
         string ipAddressString, int port, float factor, int connectDelay, int timeout, int? minimumResult)
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
                          "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, 
+            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, 
             connectDelay, timeout,minimumResult);
 
+        var modbusClient = GetModbusClient(ipAddressString, port);
+
+        var value = await modbusClient.ReadInt32Value(unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            connectDelay, timeout, minimumResult);
+        return value;
+    }
+
+    public Task<short> ReadInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
+        float factor, int connectDelay, int timeout, int? minimumResult)
+    {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            connectDelay, timeout, minimumResult);
+        var modbusClient = GetModbusClient(ipAddressString, port);
+
+        var value = await modbusClient.ReadInt16Value(unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            connectDelay, timeout, minimumResult);
+        return value;
+    }
+
+    private IModbusClient GetModbusClient(string ipAddressString, int port)
+    {
         IModbusClient modbusClient;
 
         if (_modbusClients.Count < 1)
@@ -42,9 +65,7 @@ public class ModbusService : IModbusService
             _modbusClients.Add(keyString, modbusClient);
         }
 
-        var value = await modbusClient.ReadIntegerValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
-            connectDelay, timeout, minimumResult);
-        return value;
+        return modbusClient;
     }
 
     private void OnProcessExit(object? sender, EventArgs e)

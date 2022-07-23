@@ -13,12 +13,12 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         _logger = logger;
     }
 
-    public async Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity,
+    public async Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
         string ipAddressString, int port, float factor, int connectDelay, int timeout, int? minimumResult)
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
                          "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
             connectDelay, timeout, minimumResult);
 
         var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
@@ -53,6 +53,25 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         }
 
         return false;
+    }
+
+    public async Task<short> ReadInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
+        float factor, int connectDelay, int timeout, int? minimumResult)
+    {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            connectDelay, timeout, minimumResult);
+
+        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
+        _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
+        var intValue = BitConverter.ToInt16(tmpArrayPowerComplete, 0);
+        intValue = (short)((double)factor * intValue);
+        if (minimumResult == null)
+        {
+            return intValue;
+        }
+        return intValue < minimumResult ? (short)minimumResult : intValue;
     }
 
     private async Task<byte[]> GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,

@@ -578,17 +578,17 @@ Depending on your used pluging you habe to paste one of the following URLs to th
 Warning: As this plugin keeps an open connection to your inverter it is highly recommended not to kill this container but always shut it down gracefully.
 To use the modbus plugin you have to create the url string by yourself. The URL looks like this:
 ```
-http://modbusplugin/api/Modbus/GetValue?unitIdentifier=3&startingAddress=<modbusregisterAddress>&quantity=<NumberOFModbusRegistersToRead>&ipAddress=<IPAdressOfModbusDevice>&port=502&factor=<conversionFactor>&connectDelaySeconds=1&timeoutSeconds=10
+http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=<modbusregisterAddress>&quantity=<NumberOFModbusRegistersToRead>&ipAddress=<IPAdressOfModbusDevice>&port=502&factor=<conversionFactor>&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
 An example URL with all values filled could look like this:
 ```
-http://modbusplugin/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
+http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
 You can test the result of the URL by pasting it into your browser and replace `modbusplugin` with `ipOfYourDockerHost:7091` e.g: 
 ```
-http://192.168.1.50:7091/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
+http://192.168.1.50:7091/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
 What the values mean:
