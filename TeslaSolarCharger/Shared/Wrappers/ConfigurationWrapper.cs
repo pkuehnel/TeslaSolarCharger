@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.Caching;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
@@ -281,17 +281,70 @@ public class ConfigurationWrapper : IConfigurationWrapper
         _logger.LogTrace("{method}()", nameof(GetBaseConfiguration));
         var jsonFileContent = await BaseConfigurationJsonFileContent();
 
-        var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent);
+        var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent)!;
 
         if (dtoBaseConfiguration == null)
         {
             throw new ArgumentException($"Could not deserialize {jsonFileContent} to {nameof(DtoBaseConfiguration)}");
         }
 
+        if (string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridUrl))
+        {
+            await TryGetGridUrl(dtoBaseConfiguration).ConfigureAwait(false);
+        }
+
         return dtoBaseConfiguration;
     }
 
-    private async Task<string?> BaseConfigurationJsonFileContent()
+    private async Task TryGetGridUrl(DtoBaseConfiguration dtoBaseConfiguration)
+    {
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromMilliseconds(500);
+        //ToDo: as the plugin has to use the host network the pluginname is unknown
+        //try
+        //{
+        //    var result = await httpClient.GetAsync("http://smaplugin:7192/api/Hello/IsAlive");
+        //    if (result.IsSuccessStatusCode)
+        //    {
+        //        dtoBaseConfiguration.CurrentPowerToGridUrl = "http://smaplugin:7192/api/CurrentPower/GetPower";
+        //        return;
+        //    }
+        //}
+        //catch (Exception ex)
+        //{
+        //    _logger.LogWarning(ex, "Could not load values from SMA Plugin");
+        //}
+
+        try
+        {
+            var result = await httpClient.GetAsync("http://solaredgeplugin/api/Hello/IsAlive");
+            if (result.IsSuccessStatusCode)
+            {
+                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://solaredgeplugin/CurrentValues/GetPowerToGrid";
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load values from SolarEdge Plugin");
+        }
+
+        try
+        {
+            var result = await httpClient.GetAsync("http://modbusplugin/api/Hello/IsAlive");
+            if (result.IsSuccessStatusCode)
+            {
+                dtoBaseConfiguration.IsModbusGridUrl = true;
+                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load values from Modbus Plugin");
+        }
+    }
+
+    private async Task<string> BaseConfigurationJsonFileContent()
     {
         var cache = MemoryCache.Default;
         var jsonFileContent = cache[_baseConfigurationMemoryCacheName] as string;
@@ -314,7 +367,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
             }
         }
 
-        return jsonFileContent;
+        return jsonFileContent ?? throw new InvalidOperationException("Could not read BaseConfigurationJson file content.");
     }
 
     public async Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration)

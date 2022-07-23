@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Plugins.SmaEnergymeter.Controllers;
+namespace Plugins.Modbus.Controllers;
 
 [Route("api/[controller]/[action]")]
 [ApiController]

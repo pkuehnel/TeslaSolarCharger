@@ -153,8 +153,8 @@ To use the plugin just add these lines to the bottom of your `docker-compose.yml
             max-size: "10m"
     restart: always
     network_mode: host
-    ports:
-      - 7192:80
+    environment:
+      - ASPNETCORE_URLS=http://+:7192
 
 ```
 
@@ -267,8 +267,8 @@ services:
             max-size: "10m"
     restart: always
     network_mode: host
-    ports:
-      - 7192:80
+    environment:
+      - ASPNETCORE_URLS=http://+:7192
 ```
   
 </details>
@@ -285,7 +285,7 @@ To use the plugin just add these lines to the bottom of your `docker-compose.yml
 
 ```yaml
   solaredgeplugin:
-    image: pkuehnel/teslasolarchargersolaredgeplugin:solaredge
+    image: pkuehnel/teslasolarchargersolaredgeplugin:latest
     logging:
         driver: "json-file"
         options:
@@ -401,7 +401,7 @@ services:
       - ./teslasolarcharger-configs:/app/configs
   
   solaredgeplugin:
-    image: pkuehnel/teslasolarchargersolaredgeplugin:solaredge
+    image: pkuehnel/teslasolarchargersolaredgeplugin:latest
     logging:
         driver: "json-file"
         options:

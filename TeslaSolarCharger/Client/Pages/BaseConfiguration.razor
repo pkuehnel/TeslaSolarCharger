@@ -1,6 +1,7 @@
 ﻿@page "/BaseConfiguration"
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using System.Runtime.InteropServices
+@using System.Web
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 
@@ -28,6 +29,48 @@ else
             <label for="currentPowerToGridUrl">Grid Power Url</label>
             <InputText id="currentPowerToGridUrl" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridUrl" class="form-control" />
         </div>
+        <div class="form-group">
+            <InputCheckbox id="IsModbusGridUrl" @bind-Value="_dtoBaseConfiguration.IsModbusGridUrl" class="form-check-input" />
+            <label for="IsModbusGridUrl">Use Modbus Url Creation Tool</label>
+            <div>
+                <small id="IsModbusGridUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+            </div>
+        </div>
+        @if (_dtoBaseConfiguration.IsModbusGridUrl)
+        {
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusUnitIdentifier">Unit Identifier:</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridModbusUnitIdentifier" @bind:event="oninput" type="number" id="gridModbusUnitIdentifier" name="gridModbusUnitIdentifier">
+            </p>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusStartingAddress">Register Address:</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@StartingAddress" @bind:event="oninput" type="number" id="gridModbusStartingAddress" name="gridModbusStartingAddress">
+            </p>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusQuantity">Number of Registers:</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Quantity" @bind:event="oninput" type="number" id="gridModbusQuantity" name="gridModbusQuantity">
+            </p>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusIpAddress">IP address:</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@IpAddress" @bind:event="oninput" type="text" id="gridModbusIpAddress" name="gridModbusIpAddress">
+            </p>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusPort">Port:</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Port" @bind:event="oninput" type="number" id="gridModbusPort" name="gridModbusPort">
+            </p>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusFactor">Conversion factor:</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Factor" @bind:event="oninput" type="number" id="gridModbusFactor" name="gridModbusFactor">
+            </p>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusConnectDelaySeconds">Connect Delay (seconds):</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="gridModbusConnectDelaySeconds" name="gridModbusConnectDelaySeconds">
+            </p>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusTimeoutSeconds">Read Timeout (seconds):</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@TimeoutSeconds" @bind:event="oninput" type="number" id="gridModbusTimeoutSeconds" name="gridModbusTimeoutSeconds">
+            </p>
+        }
         <div class="form-group">
             <label for="powerBuffer">Power Buffer (Watt)</label>
             <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
@@ -158,10 +201,121 @@ else
 @code {
     private DtoBaseConfiguration? _dtoBaseConfiguration;
 
+    private string? GridModbusUnitIdentifier
+    {
+        get => _gridModbusUnitIdentifier;
+        set
+        {
+            _gridModbusUnitIdentifier = value;
+            UpdateGridUrlFromModbusValues();
+        }
+    }
+
+    private string? StartingAddress
+    {
+        get => _startingAddress;
+        set
+        {
+            _startingAddress = value;
+            UpdateGridUrlFromModbusValues();
+        }
+    }
+
+    private string? Quantity
+    {
+        get => _quantity;
+        set
+        {
+            _quantity = value;
+            UpdateGridUrlFromModbusValues();
+        }
+    }
+
+    private string? IpAddress
+    {
+        get => _ipAddress;
+        set
+        {
+            _ipAddress = value;
+            UpdateGridUrlFromModbusValues();
+        }
+    }
+
+    private string? Port
+    {
+        get => _port;
+        set
+        {
+            _port = value;
+            UpdateGridUrlFromModbusValues();
+        }
+    }
+
+    private string? Factor
+    {
+        get => _factor;
+        set
+        {
+            _factor = value;
+            UpdateGridUrlFromModbusValues();
+        }
+    }
+
+    private string? ConnectDelaySeconds
+    {
+        get => _connectDelaySeconds;
+        set
+        {
+            _connectDelaySeconds = value;
+            UpdateGridUrlFromModbusValues();
+        }
+    }
+
+    private string? TimeoutSeconds
+    {
+        get => _timeoutSeconds;
+        set
+        {
+            _timeoutSeconds = value;
+            UpdateGridUrlFromModbusValues();
+        }
+    }
+
+    private string? _gridModbusUnitIdentifier;
+    private string? _startingAddress;
+    private string? _quantity;
+    private string? _ipAddress;
+    private string? _port;
+    private string? _factor;
+    private string? _connectDelaySeconds;
+    private string? _timeoutSeconds;
+
     protected override async Task OnInitializedAsync()
     {
         _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
+        if (_dtoBaseConfiguration != null && _dtoBaseConfiguration.IsModbusGridUrl)
+        {
+            if (string.IsNullOrWhiteSpace(_dtoBaseConfiguration.CurrentPowerToGridUrl))
+            {
+                _dtoBaseConfiguration.CurrentPowerToGridUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10";
+            }
+            var uri = new Uri(_dtoBaseConfiguration.CurrentPowerToGridUrl);
+            GridModbusUnitIdentifier = HttpUtility.ParseQueryString(uri.Query).Get("unitIdentifier");
+            StartingAddress = HttpUtility.ParseQueryString(uri.Query).Get("startingAddress");
+            Quantity = HttpUtility.ParseQueryString(uri.Query).Get("quantity");
+            IpAddress = HttpUtility.ParseQueryString(uri.Query).Get("ipAddress");
+            Port = HttpUtility.ParseQueryString(uri.Query).Get("port");
+            Factor = HttpUtility.ParseQueryString(uri.Query).Get("factor");
+            ConnectDelaySeconds = HttpUtility.ParseQueryString(uri.Query).Get("connectDelaySeconds");
+            TimeoutSeconds = HttpUtility.ParseQueryString(uri.Query).Get("timeoutSeconds");
+        }
     }
+
+    private void UpdateGridUrlFromModbusValues()
+    {
+        _dtoBaseConfiguration.CurrentPowerToGridUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={GridModbusUnitIdentifier}&startingAddress={StartingAddress}&quantity={Quantity}&ipAddress={IpAddress}&port={Port}&factor={Factor}&connectDelaySeconds={ConnectDelaySeconds}&timeoutSeconds={TimeoutSeconds}";
+    }
+
     private async Task HandleValidSubmit()
     {
         var result = await HttpClient.PutAsJsonAsync($"api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration);
