@@ -12,8 +12,8 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
 - [How to install](#how-to-install)
   - [Docker-compose](#docker-compose)
   - [Setting up TeslaMate including TeslaSolarCharger](#Setting-up-TeslaMate-including-TeslaSolarCharger)
-    -[docker-compose.yml content](#docker-compose.yml-content)
-    -[First startup of the application](#first-startup-of-the-application)
+    - [docker-compose.yml content](#docker-compose.yml-content)
+    - [First startup of the application](#first-startup-of-the-application)
 - [How to use](how-to-use)
   - [Car Priorities](#car-priorities)
 
