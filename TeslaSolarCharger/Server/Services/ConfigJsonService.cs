@@ -93,7 +93,7 @@ public class ConfigJsonService : IConfigJsonService
                     Id = carId,
                     CarConfiguration =
                     {
-                        ChargeMode = ChargeMode.MaxPower,
+                        ChargeMode = ChargeMode.PvAndMinSoc,
                         UpdatedSincLastWrite = true,
                         MaximumAmpere = 16,
                         MinimumAmpere = 1,
