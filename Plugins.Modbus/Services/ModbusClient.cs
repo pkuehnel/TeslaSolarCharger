@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using FluentModbus;
 using Plugins.Modbus.Contracts;
 
@@ -13,24 +13,34 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         _logger = logger;
     }
 
-    public async Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString,
-        int port, float factor, int connectDelay, int timeout, int? minimumResult)
+    public async Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
+        string ipAddressString, int port, float factor, int connectDelay, int timeout, int? minimumResult)
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, {minimumResult})", 
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, minimumResult);
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            connectDelay, timeout, minimumResult);
 
-        var tmpArrayPowerComplete = await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
-        _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
-        tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
+        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
         _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
         var intValue = BitConverter.ToInt32(tmpArrayPowerComplete, 0);
-        intValue = (int) ((double)factor *  intValue);
+        intValue = (int)((double)factor * intValue);
         if (minimumResult == null)
         {
             return intValue;
         }
-        return intValue < minimumResult ? (int) minimumResult : intValue;
+        return intValue < minimumResult ? (int)minimumResult : intValue;
+    }
+
+    private async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
+        int port, int connectDelay, int timeout)
+    {
+        var tmpArrayPowerComplete =
+            await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
+                .ConfigureAwait(false);
+        _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
+        tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
+        return tmpArrayPowerComplete;
     }
 
     public bool DiconnectIfConnected()
@@ -43,6 +53,25 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         }
 
         return false;
+    }
+
+    public async Task<short> ReadInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
+        float factor, int connectDelay, int timeout, int? minimumResult)
+    {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            connectDelay, timeout, minimumResult);
+
+        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
+        _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
+        var intValue = BitConverter.ToInt16(tmpArrayPowerComplete, 0);
+        intValue = (short)((double)factor * intValue);
+        if (minimumResult == null)
+        {
+            return intValue;
+        }
+        return intValue < minimumResult ? (short)minimumResult : intValue;
     }
 
     private async Task<byte[]> GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
@@ -65,7 +94,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         }
         catch (Exception)
         {
-            if(IsConnected)
+            if (IsConnected)
             {
                 Disconnect();
             }
