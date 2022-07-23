@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Plugins.SmaEnergymeter.Controllers;
+namespace Plugins.SolarEdge.Controllers;
 
 [Route("api/[controller]/[action]")]
 [ApiController]

@@ -6,7 +6,8 @@ namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 public class BaseConfigurationBase
 {
     [Required]
-    public string CurrentPowerToGridUrl { get; set; } = "http://192.168.1.50:5007/api/GridPower";
+    public string? CurrentPowerToGridUrl { get; set; }
+    public bool IsModbusGridUrl { get; set; }
     public string? CurrentInverterPowerUrl { get; set; }
     [Required]
     public string TeslaMateApiBaseUrl { get; set; } = "http://teslamateapi:8080";
