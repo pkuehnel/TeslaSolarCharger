@@ -142,6 +142,15 @@ else
             <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.MqqtClientId" placeholder="TeslaSolarCharger" class="form-control" />
         </div>
         <hr />
+        <div class="form-group">
+            <label for="mosquitoServer">Telegram Bot Key</label>
+            <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.TelegramBotKey" placeholder="1234567890:ASDFuiauhwerlfvasedr" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="mqqtClientId">Telegram Channel ID</label>
+            <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.MqqtClientId" placeholder="-156480125" class="form-control" />
+        </div>
+        <hr />
         <button type="submit" class="btn btn-primary">Submit</button>
     </EditForm>
 }
