@@ -1,4 +1,4 @@
-﻿using Plugins.Modbus.Contracts;
+using Plugins.Modbus.Contracts;
 
 namespace Plugins.Modbus.Services;
 
@@ -14,11 +14,14 @@ public class ModbusService : IModbusService
         _serviceProvider = serviceProvider;
     }
 
-    public async Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
-        float factor, int connectDelay, int timeout, int? minimumResult)
+    public async Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity,
+        string ipAddressString, int port, float factor, int connectDelay, int timeout, int? minimumResult)
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, {minimumResult})",
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, minimumResult);
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, 
+            connectDelay, timeout,minimumResult);
+
         IModbusClient modbusClient;
 
         if (_modbusClients.Count < 1)

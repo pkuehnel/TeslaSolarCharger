@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using FluentModbus;
 using Plugins.Modbus.Contracts;
 
@@ -14,12 +14,13 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
     }
 
     public async Task<int> ReadIntegerValue(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString,
-        int port, float factor, int connectDelay, int timeout, int? minimumResult)
+        string ipAddressString, int port, float factor, int connectDelay, int timeout, int? minimumResult)
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, {minimumResult})", 
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, minimumResult);
-
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, 
+            connectDelay, timeout, minimumResult);
+        
         var tmpArrayPowerComplete = await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
         _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
         tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
