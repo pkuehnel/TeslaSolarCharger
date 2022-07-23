@@ -12,9 +12,9 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
 - [How to install](#how-to-install)
   - [Docker-compose](#docker-compose)
   - [Setting up TeslaMate including TeslaSolarCharger](#Setting-up-TeslaMate-including-TeslaSolarCharger)
-    - [docker-compose.yml content](#docker-compose.yml-content)
+    - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
-- [How to use](how-to-use)
+- [How to use](#how-to-use)
   - [Car Priorities](#car-priorities)
 
 ## How to install
@@ -27,7 +27,7 @@ The easiest way to use TeslaSolarCharger is with Docker. Depending on your Syste
 
 ### Setting up TeslaMate including TeslaSolarCharger
 
-So set up TeslaSolarCharger you have to create a `docker-compose.yml`(name is important!) file in a new directory. Note: During the setup some additional data folders to persist data will be created in that folder, so it is recommended to use a new directory for your `docker-compose.yml`.
+To set up TeslaSolarCharger you have to create a `docker-compose.yml` (name is important!) file in a new directory. Note: During the setup some additional data folders to persist data will be created in that folder, so it is recommended to use a new directory for your `docker-compose.yml`.
 
 #### docker-compose.yml content
 
@@ -140,6 +140,7 @@ services:
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersmaplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersmaplugin)
 [![Docker pulls new name](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersmaplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersmaplugin)
 [![Docker pulls old name](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersmaplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersmaplugin)
+
 The SMA plugin is used to access the values from your EnergyMeter (or Sunny Home Manager 2.0).
 To use the plugin just add these lines to the bottom of your `docker-compose.yml`.
 ```yaml
@@ -277,6 +278,7 @@ services:
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 [![Docker pulls new name](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 [![Docker pulls old name](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
+
 The SolarEdge Plugin is using the cloud API which is limited to 300 calls per day. To not exceed this limit there is an environmentvariable which limits the refresh interval to 360 seconds. This results in a very low update frequency of your power values. That is why it is recommended to use the ModbusPlugin below.
 
 To use the plugin just add these lines to the bottom of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable
@@ -420,6 +422,7 @@ services:
 [![Docker version](https://img.shields.io/docker/v/pkuehnel/teslasolarchargermodbusplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargermodbusplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
 [![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargermodbusplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
+
 You can also use the Modbus plugin. This is a general plugin so don't be surprised if it does not work as excpected right after starting up. Feel free to share your configurations [here](https://github.com/pkuehnel/TeslaSolarCharger/discussions/174), so I can add templates for future users.
 
 To use the plugin just add these lines to the bottom of your `docker-compose.yml`.
@@ -556,11 +559,11 @@ services:
 
 1. Move to your above created directory with your `docker-compose.yml`. 
 1. Start all containers using the command `docker-compose up -d`.
-1. Use a third party app to create a new Tesla Token [Android](https://play.google.com/store/apps/details?id=net.leveugle.teslatokens&hl=en_US&gl=US) [iOS](https://apps.apple.com/us/app/tesla-token/id1411393432)
-1. Open your browser and go to `http://your-ip-address:4000` and paste your token and your refresh token into the form.
-1. Go to `Geo-Fences` and add a Geo-Fence calles `Home` at the location you want TeslaSolarCharger to be active.
+1. Use a third party app to create a new Tesla Token [[Android](https://play.google.com/store/apps/details?id=net.leveugle.teslatokens&hl=en_US&gl=US)] [[iOS](https://apps.apple.com/us/app/tesla-token/id1411393432)]
+1. Open your browser, go to `http://your-ip-address:4000` and paste your token and your refresh token into the form.
+1. Go to `Geo-Fences` and add a Geo-Fence called `Home` at the location you want TeslaSolarCharger to be active.
 1. Open `http://your-ip-address:7190`
-1. Go to `Base Configuration` (if you are on mobile device it is behind menu button).
+1. Go to `Base Configuration` (if you are on a mobile device it is behind the menu button).
 
 ##### Setting Up Urls to get grid power
 To let the TeslaSolarCharger know how much power there is to charge the car you need to add a value in `Grid Power Url`.
@@ -574,17 +577,24 @@ Depending on your used pluging you habe to paste one of the following URLs to th
 ###### Using the modbus plugin
 Warning: As this plugin keeps an open connection to your inverter it is highly recommended not to kill this container but always shut it down gracefully.
 To use the modbus plugin you have to create the url string by yourself. The URL looks like this:
+```
 http://modbusplugin/api/Modbus/GetValue?unitIdentifier=3&startingAddress=<modbusregisterAddress>&quantity=<NumberOFModbusRegistersToRead>&ipAddress=<IPAdressOfModbusDevice>&port=502&factor=<conversionFactor>&connectDelaySeconds=1&timeoutSeconds=10
+```
 
 An example URL with all values filled could look like this:
+```
 http://modbusplugin/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=0&timeoutSeconds=1
+```
 
-You can test the result of the URL by pasting it into your browser and replace `modbusplugin` with `ipOfYourDockerHost:7091` e.g: http://192.168.1.50:7091/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=0&timeoutSeconds=1
+You can test the result of the URL by pasting it into your browser and replace `modbusplugin` with `ipOfYourDockerHost:7091` e.g: 
+```
+http://192.168.1.50:7091/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=0&timeoutSeconds=1
+```
 
-Also you can go to http://your-ip-address:7091/swagger. There you can try your values with a user interface.
+Also you can go to `http://your-ip-address:7091/swagger`. There you can try your values with a user interface.
 
 ###### Using no plugin
-If you have your own api you can also use these to get the grid power. Just insert the `Grid Power Url` and if there is a plain integer value it should work. If your API returns JSON or XML results you have to add the exact path to that specific value.
+If you have your own api or your energymeter directly has a REST API you can also use these to get the grid power. Just insert the `Grid Power Url` and if there is a plain integer value it should work. If your API returns JSON or XML results you have to add the exact path to that specific value.
 
 ###### Json Path
 If you have the following json result:
