@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.Caching;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
@@ -300,22 +300,46 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMilliseconds(500);
-        var result = await httpClient.GetAsync("http://smaplugin/api/Hello/IsAlive");
-        if (result.IsSuccessStatusCode)
+        try
         {
-            dtoBaseConfiguration.CurrentPowerToGridUrl = "http://smaplugin/api/CurrentPower/GetPower";
-            return;
+            var result = await httpClient.GetAsync("http://smaplugin/api/Hello/IsAlive");
+            if (result.IsSuccessStatusCode)
+            {
+                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://smaplugin/api/CurrentPower/GetPower";
+                return;
+            }
         }
-        result = await httpClient.GetAsync("http://solaredgeplugin/api/Hello/IsAlive");
-        if (result.IsSuccessStatusCode)
+        catch (Exception ex)
         {
-            dtoBaseConfiguration.CurrentPowerToGridUrl = "http://solaredgeplugin/CurrentValues/GetPowerToGrid";
-            return;
+            _logger.LogWarning(ex, "Could not load values from SMA Plugin");
         }
-        result = await httpClient.GetAsync("http://modbusplugin/api/Hello/IsAlive");
-        if (result.IsSuccessStatusCode)
+
+        try
         {
-            dtoBaseConfiguration.IsModbusGridUrl = true;
+            var result = await httpClient.GetAsync("http://solaredgeplugin/api/Hello/IsAlive");
+            if (result.IsSuccessStatusCode)
+            {
+                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://solaredgeplugin/CurrentValues/GetPowerToGrid";
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load values from SolarEdge Plugin");
+        }
+
+        try
+        {
+            var result = await httpClient.GetAsync("http://modbusplugin/api/Hello/IsAlive");
+            if (result.IsSuccessStatusCode)
+            {
+                dtoBaseConfiguration.IsModbusGridUrl = true;
+                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load values from Modbus Plugin");
         }
     }
 
