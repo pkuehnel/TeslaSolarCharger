@@ -583,15 +583,25 @@ http://modbusplugin/api/Modbus/GetValue?unitIdentifier=3&startingAddress=<modbus
 
 An example URL with all values filled could look like this:
 ```
-http://modbusplugin/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=0&timeoutSeconds=1
+http://modbusplugin/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
 You can test the result of the URL by pasting it into your browser and replace `modbusplugin` with `ipOfYourDockerHost:7091` e.g: 
 ```
-http://192.168.1.50:7091/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=0&timeoutSeconds=1
+http://192.168.1.50:7091/api/Modbus/GetValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
-Also you can go to `http://your-ip-address:7091/swagger`. There you can try your values with a user interface.
+What the values mean:
+* `unitIdentifier`: Internal ID of your inverter (in most cases 3)
+* `startingAddress`: Register address of the value you want to extract. You find this value in the documenation of your inverter
+* `quantity`: Number of registers to read from (for integer values should be 2)
+* `ipAddress`: IP Address of your inverter
+* `port`: Modbus TCP Port of your inverter (default: 502)
+* `factor`: Factor to multiply the resulting value with. The result should be Watt, so if your inverter returns Watt you can leave 1, if your inverter returns 0.1W you have to use 10.
+* `connectDelaySeconds`: Delay before communication the first time (you should use 1)
+* `timeoutSeconds`: Timeout until returning an error if inverter is not responding (you should use 10)
+
+For more convenience you can go to `http://your-ip-address:7091/swagger`. There you can try your values with a user interface.
 
 ###### Using no plugin
 If you have your own api or your energymeter directly has a REST API you can also use these to get the grid power. Just insert the `Grid Power Url` and if there is a plain integer value it should work. If your API returns JSON or XML results you have to add the exact path to that specific value.
