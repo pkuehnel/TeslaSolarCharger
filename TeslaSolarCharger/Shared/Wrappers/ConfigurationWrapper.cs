@@ -281,17 +281,45 @@ public class ConfigurationWrapper : IConfigurationWrapper
         _logger.LogTrace("{method}()", nameof(GetBaseConfiguration));
         var jsonFileContent = await BaseConfigurationJsonFileContent();
 
-        var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent);
+        var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent)!;
 
         if (dtoBaseConfiguration == null)
         {
             throw new ArgumentException($"Could not deserialize {jsonFileContent} to {nameof(DtoBaseConfiguration)}");
         }
 
+        if (string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridUrl))
+        {
+            await TryGetGridUrl(dtoBaseConfiguration).ConfigureAwait(false);
+        }
+
         return dtoBaseConfiguration;
     }
 
-    private async Task<string?> BaseConfigurationJsonFileContent()
+    private async Task TryGetGridUrl(DtoBaseConfiguration dtoBaseConfiguration)
+    {
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromMilliseconds(500);
+        var result = await httpClient.GetAsync("http://smaplugin/api/Hello/IsAlive");
+        if (result.IsSuccessStatusCode)
+        {
+            dtoBaseConfiguration.CurrentPowerToGridUrl = "http://smaplugin/api/CurrentPower/GetPower";
+            return;
+        }
+        result = await httpClient.GetAsync("http://solaredgeplugin/api/Hello/IsAlive");
+        if (result.IsSuccessStatusCode)
+        {
+            dtoBaseConfiguration.CurrentPowerToGridUrl = "http://solaredgeplugin/CurrentValues/GetPowerToGrid";
+            return;
+        }
+        result = await httpClient.GetAsync("http://modbusplugin/api/Hello/IsAlive");
+        if (result.IsSuccessStatusCode)
+        {
+            dtoBaseConfiguration.IsModbusGridUrl = true;
+        }
+    }
+
+    private async Task<string> BaseConfigurationJsonFileContent()
     {
         var cache = MemoryCache.Default;
         var jsonFileContent = cache[_baseConfigurationMemoryCacheName] as string;
@@ -314,7 +342,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
             }
         }
 
-        return jsonFileContent;
+        return jsonFileContent ?? throw new InvalidOperationException("Could not read BaseConfigurationJson file content.");
     }
 
     public async Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration)
