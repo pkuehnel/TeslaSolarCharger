@@ -300,19 +300,20 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMilliseconds(500);
-        try
-        {
-            var result = await httpClient.GetAsync("http://smaplugin:7192/api/Hello/IsAlive");
-            if (result.IsSuccessStatusCode)
-            {
-                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://smaplugin:7192/api/CurrentPower/GetPower";
-                return;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not load values from SMA Plugin");
-        }
+        //ToDo: as the plugin has to use the host network the pluginname is unknown
+        //try
+        //{
+        //    var result = await httpClient.GetAsync("http://smaplugin:7192/api/Hello/IsAlive");
+        //    if (result.IsSuccessStatusCode)
+        //    {
+        //        dtoBaseConfiguration.CurrentPowerToGridUrl = "http://smaplugin:7192/api/CurrentPower/GetPower";
+        //        return;
+        //    }
+        //}
+        //catch (Exception ex)
+        //{
+        //    _logger.LogWarning(ex, "Could not load values from SMA Plugin");
+        //}
 
         try
         {
