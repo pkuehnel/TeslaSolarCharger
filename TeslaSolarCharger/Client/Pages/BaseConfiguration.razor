@@ -29,6 +29,13 @@ else
             <label for="currentPowerToGridUrl">Grid Power Url</label>
             <InputText id="currentPowerToGridUrl" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridUrl" class="form-control" />
         </div>
+        <div class="form-group">
+            <InputCheckbox id="IsModbusGridUrl" @bind-Value="_dtoBaseConfiguration.IsModbusGridUrl" class="form-check-input" />
+            <label for="IsModbusGridUrl">Use Modbus Url Creation Tool</label>
+            <div>
+                <small id="IsModbusGridUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+            </div>
+        </div>
         @if (_dtoBaseConfiguration.IsModbusGridUrl)
         {
             <p>
