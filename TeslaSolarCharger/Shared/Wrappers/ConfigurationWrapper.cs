@@ -302,10 +302,10 @@ public class ConfigurationWrapper : IConfigurationWrapper
         httpClient.Timeout = TimeSpan.FromMilliseconds(500);
         try
         {
-            var result = await httpClient.GetAsync("http://smaplugin/api/Hello/IsAlive");
+            var result = await httpClient.GetAsync("http://smaplugin:7192/api/Hello/IsAlive");
             if (result.IsSuccessStatusCode)
             {
-                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://smaplugin/api/CurrentPower/GetPower";
+                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://smaplugin:7192/api/CurrentPower/GetPower";
                 return;
             }
         }
