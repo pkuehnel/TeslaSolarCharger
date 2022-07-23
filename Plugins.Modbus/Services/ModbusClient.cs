@@ -18,20 +18,29 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
                          "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, 
+            nameof(ReadIntegerValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
             connectDelay, timeout, minimumResult);
-        
-        var tmpArrayPowerComplete = await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
-        _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
-        tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
+
+        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
         _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
         var intValue = BitConverter.ToInt32(tmpArrayPowerComplete, 0);
-        intValue = (int) ((double)factor *  intValue);
+        intValue = (int)((double)factor * intValue);
         if (minimumResult == null)
         {
             return intValue;
         }
-        return intValue < minimumResult ? (int) minimumResult : intValue;
+        return intValue < minimumResult ? (int)minimumResult : intValue;
+    }
+
+    private async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
+        int port, int connectDelay, int timeout)
+    {
+        var tmpArrayPowerComplete =
+            await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
+                .ConfigureAwait(false);
+        _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
+        tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
+        return tmpArrayPowerComplete;
     }
 
     public bool DiconnectIfConnected()
@@ -66,7 +75,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         }
         catch (Exception)
         {
-            if(IsConnected)
+            if (IsConnected)
             {
                 Disconnect();
             }
