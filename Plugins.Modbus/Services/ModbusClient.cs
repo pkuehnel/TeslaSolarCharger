@@ -111,7 +111,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             Task.Run(async () =>
 #pragma warning restore CS4014
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(Convert.ToInt32(Environment.GetEnvironmentVariable("RequestBlockTime")))).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(Convert.ToInt32(Environment.GetEnvironmentVariable("RequestBlockMilliseconds")))).ConfigureAwait(false);
                 _semaphoreSlim.Release();
                 _logger.LogTrace("SemaphoreSlim released...");
             });
