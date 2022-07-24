@@ -7,10 +7,12 @@ namespace Plugins.Modbus.Services;
 public class ModbusClient : ModbusTcpClient, IModbusClient
 {
     private readonly ILogger<ModbusClient> _logger;
+    private readonly SemaphoreSlim _semaphoreSlim;
 
     public ModbusClient(ILogger<ModbusClient> logger)
     {
         _logger = logger;
+        _semaphoreSlim = new SemaphoreSlim(1);
     }
 
     public async Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
@@ -79,6 +81,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
     {
         ReadTimeout = (int)TimeSpan.FromSeconds(timeout).TotalMilliseconds;
         WriteTimeout = (int)TimeSpan.FromSeconds(timeout).TotalMilliseconds;
+        await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
         if (!IsConnected)
         {
             var ipAddress = IPAddress.Parse(ipAddressString);
@@ -100,6 +103,18 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             }
 
             throw;
+        }
+        finally
+        {
+            _logger.LogTrace("Releasing semaphoreSlim...");
+#pragma warning disable CS4014
+            Task.Run(async () =>
+#pragma warning restore CS4014
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(Convert.ToInt32(Environment.GetEnvironmentVariable("RequestBlockMilliseconds")))).ConfigureAwait(false);
+                _semaphoreSlim.Release();
+                _logger.LogTrace("SemaphoreSlim released...");
+            });
         }
     }
 }
