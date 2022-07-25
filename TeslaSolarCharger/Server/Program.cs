@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using MQTTnet;
+using MQTTnet.Adapter;
+using MQTTnet.Client;
+using MQTTnet.Diagnostics;
+using MQTTnet.Implementations;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
@@ -28,9 +32,6 @@ builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var mqttFactory = new MqttFactory();
-var mqttClient = mqttFactory.CreateMqttClient();
-
 builder.Services
     .AddTransient<JobManager>()
     .AddTransient<ChargingValueJob>()
@@ -52,7 +53,9 @@ builder.Services
     .AddSingleton<ISettings, Settings>()
     .AddSingleton<IInMemoryValues, InMemoryValues>()
     .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
-    .AddSingleton(mqttClient)
+    .AddSingleton<IMqttNetLogger, MqttNetNullLogger>()
+    .AddSingleton<IMqttClientAdapterFactory, MqttClientAdapterFactory>()
+    .AddSingleton<IMqttClient, MqttClient>()
     .AddTransient<MqttFactory>()
     .AddTransient<IMqttService, MqttService>()
     .AddTransient<IPvValueService, PvValueService>()
