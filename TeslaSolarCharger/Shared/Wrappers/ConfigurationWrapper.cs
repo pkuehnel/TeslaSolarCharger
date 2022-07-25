@@ -279,7 +279,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
     public async Task<DtoBaseConfiguration> GetBaseConfigurationAsync()
     {
         _logger.LogTrace("{method}()", nameof(GetBaseConfiguration));
-        var jsonFileContent = await BaseConfigurationJsonFileContent();
+        var jsonFileContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
 
         var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent)!;
 
@@ -401,8 +401,12 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public async Task<bool> IsBaseConfigurationJsonRelevant()
     {
-        var jsonContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
-        if (jsonContent == null)
+        string jsonContent;
+        try
+        {
+            jsonContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
+        }
+        catch(Exception)
         {
             return false;
         }
