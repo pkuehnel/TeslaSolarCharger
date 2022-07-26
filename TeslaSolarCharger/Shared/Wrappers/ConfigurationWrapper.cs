@@ -111,9 +111,14 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().TeslaMateDbPassword;
     }
 
-    public string CurrentPowerToGridUrl()
+    public string? CurrentPowerToGridUrl()
     {
         return GetBaseConfiguration().CurrentPowerToGridUrl;
+    }
+    
+    public Dictionary<string, string> CurrentPowerToGridHeaders()
+    {
+        return GetBaseConfiguration().CurrentPowerToGridHeaders;
     }
 
     public string? CurrentInverterPowerUrl()

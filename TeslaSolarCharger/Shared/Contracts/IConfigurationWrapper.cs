@@ -9,7 +9,7 @@ public interface IConfigurationWrapper
     TimeSpan PvValueJobUpdateIntervall();
     string MqqtClientId();
     string MosquitoServer();
-    string CurrentPowerToGridUrl();
+    string? CurrentPowerToGridUrl();
     string? CurrentInverterPowerUrl();
     string? CurrentPowerToGridJsonPattern();
     bool CurrentPowerToGridInvertValue();
@@ -41,4 +41,5 @@ public interface IConfigurationWrapper
     Task SaveBaseConfiguration(DtoBaseConfiguration baseConfiguration);
     Task<bool> IsBaseConfigurationJsonRelevant();
     Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration);
+    Dictionary<string, string> CurrentPowerToGridHeaders();
 }

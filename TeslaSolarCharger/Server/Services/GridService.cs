@@ -80,6 +80,14 @@ public class GridService : IGridService
     {
         using var httpClient = new HttpClient();
         var requestUri = _configurationWrapper.CurrentPowerToGridUrl();
+        foreach (var header in _configurationWrapper.CurrentPowerToGridHeaders())
+        {
+            if (string.IsNullOrEmpty(header.Key))
+            {
+                continue;
+            }
+            httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+        }
         _logger.LogDebug("Using {uri} to get current overage.", requestUri);
         var response = await httpClient.GetAsync(
                 requestUri)

@@ -7,6 +7,7 @@ public class BaseConfigurationBase
 {
     [Required]
     public string? CurrentPowerToGridUrl { get; set; }
+    public Dictionary<string, string> CurrentPowerToGridHeaders { get; set; } = new();
     public bool IsModbusGridUrl { get; set; }
     public string? CurrentInverterPowerUrl { get; set; }
     [Required]
