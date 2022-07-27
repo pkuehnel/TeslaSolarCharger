@@ -15,7 +15,7 @@ namespace TeslaSolarCharger.Tests;
 
 public class TestBase : IDisposable
 {
-    private static readonly ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)> LoggerFactoryCache = new ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)>();
+    private static readonly ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)> LoggerFactoryCache = new();
 
     protected readonly AutoMock Mock;
 

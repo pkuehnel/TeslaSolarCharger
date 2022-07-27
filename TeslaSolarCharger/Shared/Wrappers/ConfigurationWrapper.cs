@@ -176,9 +176,9 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().CurrentInverterPowerXmlAttributeValueName;
     }
 
-    public bool CurrentPowerToGridInvertValue()
+    public decimal CurrentPowerToGridCorrectionFactor()
     {
-        return GetBaseConfiguration().CurrentPowerToGridInvertValue;
+        return GetBaseConfiguration().CurrentPowerToGridCorrectionFactor;
     }
 
     public string TeslaMateApiBaseUrl()
@@ -406,17 +406,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public async Task<bool> IsBaseConfigurationJsonRelevant()
     {
-        string jsonContent;
-        try
-        {
-            jsonContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
-        }
-        catch(Exception)
-        {
-            return false;
-        }
-        var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(jsonContent);
-        return baseConfigurationJson?.LastEditDateTime != null;
+        return await Task.FromResult(File.Exists(BaseConfigFileFullName())).ConfigureAwait(false);
     }
 
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration)

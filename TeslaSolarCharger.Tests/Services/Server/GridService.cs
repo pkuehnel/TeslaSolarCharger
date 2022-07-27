@@ -13,23 +13,21 @@ public class GridService : TestBase
     }
 
     [Theory]
-    [InlineData("384.8746")]
     [InlineData("384")]
     [InlineData("384.0")]
-    [InlineData("384.147")]
+    [InlineData("384.00")]
     public void Can_extract_Integers_From_String(string value)
     {
         var gridService = Mock.Create<TeslaSolarCharger.Server.Services.GridService>();
-        var intValue = gridService.GetIntegerFromString(value);
+        var intValue = gridService.GetdoubleFromStringResult(value);
 
         Assert.Equal(384, intValue);
     }
 
     [Theory]
-    [InlineData("384.8746")]
     [InlineData("384")]
     [InlineData("384.0")]
-    [InlineData("384.147")]
+    [InlineData("384.00")]
     public void Can_Get_Integer_From_Plain_Result(string text)
     {
         var gridService = Mock.Create<TeslaSolarCharger.Server.Services.GridService>();
@@ -39,10 +37,9 @@ public class GridService : TestBase
     }
 
     [Theory]
-    [InlineData("384.8746")]
     [InlineData("384")]
     [InlineData("384.0")]
-    [InlineData("384.147")]
+    [InlineData("384.00")]
     public void Can_Get_Integer_From_Json_Result(string text)
     {
         var json = string.Format(
@@ -54,10 +51,9 @@ public class GridService : TestBase
     }
 
     [Theory]
-    [InlineData("384.8746")]
     [InlineData("384")]
     [InlineData("384.0")]
-    [InlineData("384.147")]
+    [InlineData("384.00")]
     public void Can_Get_Integer_From_Grid_Xml_Attribute_Result(string text)
     {
         var xml = string.Format(
@@ -73,10 +69,9 @@ public class GridService : TestBase
     }
 
     [Theory]
-    [InlineData("384.8746")]
     [InlineData("384")]
     [InlineData("384.0")]
-    [InlineData("384.147")]
+    [InlineData("384.00")]
     public void Can_Get_Integer_From_Inverter_Xml_Attribute_Result(string text)
     {
         var xml = string.Format(
@@ -92,10 +87,9 @@ public class GridService : TestBase
     }
 
     [Theory]
-    [InlineData("384.8746")]
     [InlineData("384")]
     [InlineData("384.0")]
-    [InlineData("384.147")]
+    [InlineData("384.00")]
     public void Can_Get_Integer_From_Xml_Node_Result(string text)
     {
         var xml = string.Format(

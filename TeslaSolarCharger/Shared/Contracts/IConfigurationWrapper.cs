@@ -12,7 +12,7 @@ public interface IConfigurationWrapper
     string? CurrentPowerToGridUrl();
     string? CurrentInverterPowerUrl();
     string? CurrentPowerToGridJsonPattern();
-    bool CurrentPowerToGridInvertValue();
+    decimal CurrentPowerToGridCorrectionFactor();
     string TeslaMateApiBaseUrl();
     List<int> CarPriorities();
     string GeoFence();
