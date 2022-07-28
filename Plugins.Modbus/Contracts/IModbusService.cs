@@ -6,4 +6,5 @@ public interface IModbusService
         int port, int connectDelay, int timeout, int? minimumResult);
 
     Task<short> ReadInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult);
+    Task<float> ReadFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult);
 }
