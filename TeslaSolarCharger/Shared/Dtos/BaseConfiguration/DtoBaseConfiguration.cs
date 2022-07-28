@@ -13,8 +13,8 @@ public class DtoBaseConfiguration : BaseConfigurationBase
         }
         set
         {
-            _currentPowerToGridCorrectionFactorString = CurrentPowerToGridCorrectionFactorString.Replace(",", ".");
-            CurrentPowerToGridCorrectionFactor = Convert.ToDecimal(CurrentPowerToGridCorrectionFactorString);
+            _currentPowerToGridCorrectionFactorString = value.Replace(",", ".");
+            CurrentPowerToGridCorrectionFactor = Convert.ToDecimal(_currentPowerToGridCorrectionFactorString);
         }
     }
 }
