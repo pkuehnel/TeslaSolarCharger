@@ -43,6 +43,20 @@ public class ModbusService : IModbusService
         return value;
     }
 
+    public async Task<float> ReadFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
+        int connectDelay, int timeout, int? minimumResult)
+    {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port,
+            connectDelay, timeout, minimumResult);
+        var modbusClient = GetModbusClient(ipAddressString, port);
+
+        var value = await modbusClient.ReadFloatValue(unitIdentifier, startingAddress, quantity, ipAddressString, port,
+            connectDelay, timeout, minimumResult);
+        return value;
+    }
+
     private IModbusClient GetModbusClient(string ipAddressString, int port)
     {
         IModbusClient modbusClient;

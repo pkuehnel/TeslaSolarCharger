@@ -39,6 +39,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         var tmpArrayPowerComplete =
             await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
                 .ConfigureAwait(false);
+        tmpArrayPowerComplete = StringToByteArray("C3533333");
         _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
         tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
         return tmpArrayPowerComplete;
@@ -67,6 +68,24 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
         _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
         var intValue = BitConverter.ToInt16(tmpArrayPowerComplete, 0);
+        if (minimumResult == null)
+        {
+            return intValue;
+        }
+        return intValue < minimumResult ? (short)minimumResult : intValue;
+    }
+
+    public async Task<float> ReadFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
+        int connectDelay, int timeout, int? minimumResult)
+    {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port,
+            connectDelay, timeout, minimumResult);
+
+        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
+        _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
+        var intValue = BitConverter.ToSingle(tmpArrayPowerComplete, 0);
         if (minimumResult == null)
         {
             return intValue;
@@ -114,5 +133,13 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
                 _logger.LogTrace("SemaphoreSlim released...");
             });
         }
+    }
+
+    public static byte[] StringToByteArray(string hex)
+    {
+        return Enumerable.Range(0, hex.Length)
+            .Where(x => x % 2 == 0)
+            .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+            .ToArray();
     }
 }
