@@ -39,7 +39,6 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         var tmpArrayPowerComplete =
             await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
                 .ConfigureAwait(false);
-        tmpArrayPowerComplete = StringToByteArray("C3533333");
         _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
         tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
         return tmpArrayPowerComplete;
