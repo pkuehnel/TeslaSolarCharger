@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Helper\" />
     <Folder Include="Services\SolarEdgePlugin\" />
   </ItemGroup>
 

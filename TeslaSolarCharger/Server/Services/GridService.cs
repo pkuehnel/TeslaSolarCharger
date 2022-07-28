@@ -48,12 +48,8 @@ public class GridService : IGridService
         }
 
         var overage = GetValueFromResult(pattern, result, nodePatternType, true);
-        if (_configurationWrapper.CurrentPowerToGridInvertValue())
-        {
-            overage = -overage;
-        }
 
-        return overage;
+        return (int?)(overage * (double) _configurationWrapper.CurrentPowerToGridCorrectionFactor());
     }
 
     internal NodePatternType DecideNotePatternType(string? jsonPattern, string? xmlPattern)
@@ -80,6 +76,14 @@ public class GridService : IGridService
     {
         using var httpClient = new HttpClient();
         var requestUri = _configurationWrapper.CurrentPowerToGridUrl();
+        foreach (var header in _configurationWrapper.CurrentPowerToGridHeaders())
+        {
+            if (string.IsNullOrEmpty(header.Key))
+            {
+                continue;
+            }
+            httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+        }
         _logger.LogDebug("Using {uri} to get current overage.", requestUri);
         var response = await httpClient.GetAsync(
                 requestUri)
@@ -133,7 +137,7 @@ public class GridService : IGridService
             pattern = xmlPattern;
         }
 
-        return GetValueFromResult(pattern, result, nodePatternType, false);
+        return (int?)GetValueFromResult(pattern, result, nodePatternType, false);
     }
 
     /// <summary>
@@ -146,7 +150,7 @@ public class GridService : IGridService
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
-    internal int GetValueFromResult(string pattern, string result, NodePatternType patternType, bool isGridValue)
+    internal double GetValueFromResult(string pattern, string result, NodePatternType patternType, bool isGridValue)
     {
         switch (patternType)
         {
@@ -196,13 +200,13 @@ public class GridService : IGridService
                 break;
         }
 
-        return GetIntegerFromString(result);
+        return GetdoubleFromStringResult(result);
     }
 
-    internal int GetIntegerFromString(string? inputString)
+    internal double GetdoubleFromStringResult(string? inputString)
     {
-        _logger.LogTrace("{method}({param})", nameof(GetIntegerFromString), inputString);
-        return (int)double.Parse(inputString ?? throw new ArgumentNullException(nameof(inputString)), CultureInfo.InvariantCulture);
+        _logger.LogTrace("{method}({param})", nameof(GetdoubleFromStringResult), inputString);
+        return double.Parse(inputString ?? throw new ArgumentNullException(nameof(inputString)), CultureInfo.InvariantCulture);
     }
 
     

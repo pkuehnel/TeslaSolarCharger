@@ -1,6 +1,5 @@
 ﻿@page "/BaseConfiguration"
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
-@using System.Runtime.InteropServices
 @using System.Web
 @inject HttpClient HttpClient
 @inject IToastService ToastService
@@ -28,6 +27,13 @@ else
         <div class="form-group">
             <label for="currentPowerToGridUrl">Grid Power Url</label>
             <InputText id="currentPowerToGridUrl" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridUrl" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="currentPowerToGridCorrectionFactor">Correction Factor</label>
+            <InputText id="currentPowerToGridCorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactorString" class="form-control" />
+            <div>
+                <small id="currentPowerToGridInvertValueHelp" class="form-text text-muted">Use this if consuming 1 W from the grid is not the value 1. E.g. if sending 1500 Watt to the grid is returned as 1.5 you have to enter -1000 here</small>
+            </div>
         </div>
         <div class="form-group">
             <InputCheckbox id="IsModbusGridUrl" @bind-Value="_dtoBaseConfiguration.IsModbusGridUrl" class="form-check-input" />
@@ -59,10 +65,6 @@ else
                 <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Port" @bind:event="oninput" type="number" id="gridModbusPort" name="gridModbusPort">
             </p>
             <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusFactor">Conversion factor:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Factor" @bind:event="oninput" type="number" id="gridModbusFactor" name="gridModbusFactor">
-            </p>
-            <p>
                 <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusConnectDelaySeconds">Connect Delay (seconds):</label>
                 <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="gridModbusConnectDelaySeconds" name="gridModbusConnectDelaySeconds">
             </p>
@@ -71,17 +73,30 @@ else
                 <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@TimeoutSeconds" @bind:event="oninput" type="number" id="gridModbusTimeoutSeconds" name="gridModbusTimeoutSeconds">
             </p>
         }
+        else
+        {
+            if (_dtoBaseConfiguration.CurrentPowerToGridHeaders.Count > 0)
+            {
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" >Key:</label>
+                <label class="col-6 col-sm-6 col-md-3 col-lg-2" >Value:</label>
+            }
+            for (var i = 0; i < _dtoBaseConfiguration.CurrentPowerToGridHeaders.Count; i++)
+            {
+                var header = _dtoBaseConfiguration.CurrentPowerToGridHeaders.ElementAt(i);
+                <p>
+                    <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
+                           @onchange="@(e => UpdateGridHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
+                           @onchange="@(e => _dtoBaseConfiguration.CurrentPowerToGridHeaders[header.Key] = e.Value?.ToString() ?? string.Empty)">
+                    <button class="btn btn-danger" @onclick="() => RemoveGridHeader(header.Key)">DEL</button>
+                </p>
+            }
+            <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => AddNewGridHeader()">Add new header</button></p>
+        }
         <div class="form-group">
             <label for="powerBuffer">Power Buffer (Watt)</label>
             <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
             <small id="powerBufferHelp" class="form-text text-muted">Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).</small>
-        </div>
-        <div class="form-group">
-            <InputCheckbox id="currentPowerToGridInvertValue" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridInvertValue" class="form-check-input" />
-            <label for="currentPowerToGridInvertValue">Invert Grid Power Value</label>
-            <div>
-                <small id="currentPowerToGridInvertValueHelp" class="form-text text-muted">Use this if consuming power from the grid is a positive value.</small>
-            </div>
         </div>
         <div class="form-group">
             <label for="currentPowerToGridJsonPattern">Grid Power Json Pattern</label>
@@ -251,16 +266,6 @@ else
         }
     }
 
-    private string? Factor
-    {
-        get => _factor;
-        set
-        {
-            _factor = value;
-            UpdateGridUrlFromModbusValues();
-        }
-    }
-
     private string? ConnectDelaySeconds
     {
         get => _connectDelaySeconds;
@@ -305,15 +310,31 @@ else
             Quantity = HttpUtility.ParseQueryString(uri.Query).Get("quantity");
             IpAddress = HttpUtility.ParseQueryString(uri.Query).Get("ipAddress");
             Port = HttpUtility.ParseQueryString(uri.Query).Get("port");
-            Factor = HttpUtility.ParseQueryString(uri.Query).Get("factor");
             ConnectDelaySeconds = HttpUtility.ParseQueryString(uri.Query).Get("connectDelaySeconds");
             TimeoutSeconds = HttpUtility.ParseQueryString(uri.Query).Get("timeoutSeconds");
         }
     }
 
+    private void UpdateGridHeaderKey(string oldKey, string newKey)
+    {
+        var value = _dtoBaseConfiguration?.CurrentPowerToGridHeaders[oldKey];
+        _dtoBaseConfiguration?.CurrentPowerToGridHeaders.Remove(oldKey);
+        _dtoBaseConfiguration?.CurrentPowerToGridHeaders.Add(newKey, value ?? string.Empty);
+    }
+
+    private void AddNewGridHeader()
+    {
+        _dtoBaseConfiguration?.CurrentPowerToGridHeaders.Add($"{_dtoBaseConfiguration?.CurrentPowerToGridHeaders.Count + 1}", "");
+    }
+
+    private void RemoveGridHeader(string key)
+    {
+        _dtoBaseConfiguration?.CurrentPowerToGridHeaders.Remove(key);
+    }
+
     private void UpdateGridUrlFromModbusValues()
     {
-        _dtoBaseConfiguration.CurrentPowerToGridUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={GridModbusUnitIdentifier}&startingAddress={StartingAddress}&quantity={Quantity}&ipAddress={IpAddress}&port={Port}&factor={Factor}&connectDelaySeconds={ConnectDelaySeconds}&timeoutSeconds={TimeoutSeconds}";
+        _dtoBaseConfiguration.CurrentPowerToGridUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={GridModbusUnitIdentifier}&startingAddress={StartingAddress}&quantity={Quantity}&ipAddress={IpAddress}&port={Port}&connectDelaySeconds={ConnectDelaySeconds}&timeoutSeconds={TimeoutSeconds}";
     }
 
     private async Task HandleValidSubmit()

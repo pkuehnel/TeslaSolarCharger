@@ -30,8 +30,8 @@ namespace Plugins.Modbus.Controllers
         [Obsolete]
         [HttpGet]
         public Task<int> GetValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
-            int port, float factor, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null) 
-            => GetInt32Value(unitIdentifier, startingAddress, quantity, ipAddress, port, factor, connectDelaySeconds, timeoutSeconds, minimumResult);
+            int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null) 
+            => GetInt32Value(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, minimumResult);
 
         /// <summary>
         /// Gets a Modbus Int32 value
@@ -48,8 +48,8 @@ namespace Plugins.Modbus.Controllers
         /// <returns>Modbus value converted to Int32</returns>
         [HttpGet]
         public Task<int> GetInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
-            int port, float factor, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
-            => _modbusService.ReadInt32Value(unitIdentifier, startingAddress, quantity, ipAddress, port, factor, connectDelaySeconds, timeoutSeconds, minimumResult);
+            int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
+            => _modbusService.ReadInt32Value(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, minimumResult);
 
         /// <summary>
         /// Gets a Modbus Int16 value
@@ -66,8 +66,8 @@ namespace Plugins.Modbus.Controllers
         /// <returns>Modbus value converted to Int16</returns>
         [HttpGet]
         public Task<short> GetInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
-            int port, float factor, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
-            => _modbusService.ReadInt16Value(unitIdentifier, startingAddress, quantity, ipAddress, port, factor, connectDelaySeconds, timeoutSeconds, minimumResult);
+            int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
+            => _modbusService.ReadInt16Value(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, minimumResult);
 
     }
 }

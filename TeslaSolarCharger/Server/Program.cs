@@ -67,7 +67,7 @@ builder.Services
         options.EnableDetailedErrors();
     }, ServiceLifetime.Transient, ServiceLifetime.Transient)
     .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
-    .AddTransient<IEnvironmentVariableConverter, EnvironmentVariableConverter>()
+    .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -87,8 +87,9 @@ if (environment == "Development")
 
 var app = builder.Build();
 
-var environmentVariableConverter = app.Services.GetRequiredService<IEnvironmentVariableConverter>();
-await environmentVariableConverter.ConvertAllValues();
+var environmentVariableConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
+await environmentVariableConverter.ConvertAllEnvironmentVariables();
+await environmentVariableConverter.ConvertBaseConfigToCurrentVersion();
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up");

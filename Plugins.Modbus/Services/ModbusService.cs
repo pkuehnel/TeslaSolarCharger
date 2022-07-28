@@ -15,30 +15,30 @@ public class ModbusService : IModbusService
     }
 
     public async Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString, int port, float factor, int connectDelay, int timeout, int? minimumResult)
+        string ipAddressString, int port, int connectDelay, int timeout, int? minimumResult)
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
                          "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor, 
+            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, 
             connectDelay, timeout,minimumResult);
 
         var modbusClient = GetModbusClient(ipAddressString, port);
 
-        var value = await modbusClient.ReadInt32Value(unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+        var value = await modbusClient.ReadInt32Value(unitIdentifier, startingAddress, quantity, ipAddressString, port, 
             connectDelay, timeout, minimumResult);
         return value;
     }
 
     public async Task<short> ReadInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
-        float factor, int connectDelay, int timeout, int? minimumResult)
+        int connectDelay, int timeout, int? minimumResult)
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, {factor}, " +
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
                          "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, 
             connectDelay, timeout, minimumResult);
         var modbusClient = GetModbusClient(ipAddressString, port);
 
-        var value = await modbusClient.ReadInt16Value(unitIdentifier, startingAddress, quantity, ipAddressString, port, factor,
+        var value = await modbusClient.ReadInt16Value(unitIdentifier, startingAddress, quantity, ipAddressString, port, 
             connectDelay, timeout, minimumResult);
         return value;
     }
