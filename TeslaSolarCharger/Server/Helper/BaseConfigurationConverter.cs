@@ -86,12 +86,17 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
     internal Version GetVersionFromBaseConfigurationJsonString(string oldBaseConfigurationJson)
     {
         var token = JObject.Parse(oldBaseConfigurationJson).SelectToken("$.Version");
-        if (token == null || token.Value<Version>() == null)
+        if (token == null)
+        {
+            return new Version(0, 1);
+        }
+        var value = token.Value<string>();
+        if (value == null)
         {
             return new Version(0, 1); ;
         }
 
-        return token.Value<Version>() ?? throw new InvalidOperationException();
+        return Version.Parse(value);
     }
 
     internal BaseConfigurationJson ConvertV0_1ToV1_0(BaseConfigurationJsonV0_1 oldBaseConfiguration)
