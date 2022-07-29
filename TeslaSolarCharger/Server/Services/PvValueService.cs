@@ -11,29 +11,88 @@ public class PvValueService : IPvValueService
     private readonly IGridService _gridService;
     private readonly IInMemoryValues _inMemoryValues;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly ITelegramService _telegramService;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings, IGridService gridService,
-        IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper)
+        IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper, ITelegramService telegramService)
     {
         _logger = logger;
         _settings = settings;
         _gridService = gridService;
         _inMemoryValues = inMemoryValues;
         _configurationWrapper = configurationWrapper;
+        _telegramService = telegramService;
     }
 
     public async Task UpdatePvValues()
     {
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
 
-        var overage = await _gridService.GetCurrentOverage().ConfigureAwait(false);
+        var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
+        var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
+        var httpResponse = await GetHttpResponse(gridRequestUrl, gridRequestHeaders).ConfigureAwait(false);
+        int? overage;
+        if (!httpResponse.IsSuccessStatusCode)
+        {
+            overage = null;
+            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                httpResponse.ReasonPhrase);
+            await _telegramService.SendMessage(
+                $"Getting current grid power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+        }
+        else
+        {
+            overage = await _gridService.GetCurrentOverage(httpResponse).ConfigureAwait(false);
+        }
+
+        var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
+        var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
+
+        if (inverterRequestUrl != null
+            && (!string.Equals(gridRequestUrl, inverterRequestUrl, StringComparison.InvariantCultureIgnoreCase)
+                || !(gridRequestHeaders.Count == inverterRequestHeaders.Count
+                     && !gridRequestHeaders.Except(inverterRequestHeaders).Any())))
+        {
+            httpResponse = await GetHttpResponse(inverterRequestUrl, inverterRequestHeaders).ConfigureAwait(false);
+        }
+
+        if (!httpResponse.IsSuccessStatusCode || inverterRequestUrl == null)
+        {
+            _settings.InverterPower = null;
+            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                httpResponse.ReasonPhrase);
+            await _telegramService.SendMessage(
+                $"Getting current grid power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+        }
+        else
+        {
+            _settings.InverterPower = await _gridService.GetCurrentInverterPower(httpResponse).ConfigureAwait(false);
+        }
+        
         _logger.LogDebug("Overage is {overage}", overage);
         _settings.Overage = overage;
         if (overage != null)
         {
             AddOverageValueToInMemoryList((int)overage);
         }
-        _settings.InverterPower = await _gridService.GetCurrentInverterPower().ConfigureAwait(false);
+    }
+
+    private async Task<HttpResponseMessage> GetHttpResponse(string? gridRequestUrl, Dictionary<string, string> requestHeaders)
+    {
+        if (string.IsNullOrEmpty(gridRequestUrl))
+        {
+            throw new ArgumentNullException(nameof(gridRequestUrl));
+        }
+
+        var request = new HttpRequestMessage(HttpMethod.Get, gridRequestUrl);
+        request.Headers.Add("Accept", "*/*");
+        foreach (var requestHeader in requestHeaders)
+        {
+            request.Headers.Add(requestHeader.Key, requestHeader.Value);
+        }
+        using var httpClient = new HttpClient();
+        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        return response;
     }
 
     public int GetAveragedOverage()

@@ -11,6 +11,8 @@ public class BaseConfigurationBase
     public Dictionary<string, string> CurrentPowerToGridHeaders { get; set; } = new();
     public bool IsModbusGridUrl { get; set; }
     public string? CurrentInverterPowerUrl { get; set; }
+    public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
+    public bool IsModbusInverterUrl { get; set; }
     [Required]
     public string TeslaMateApiBaseUrl { get; set; } = "http://teslamateapi:8080";
     [Required]
@@ -34,6 +36,7 @@ public class BaseConfigurationBase
     public string? CurrentPowerToGridJsonPattern { get; set; }
     public decimal CurrentPowerToGridCorrectionFactor { get; set; } = 1;
     public string? CurrentInverterPowerJsonPattern { get; set; }
+    public decimal CurrentInverterPowerCorrectionFactor { get; set; } = 1;
     public string? TelegramBotKey { get; set; }
     public string? TelegramChannelId { get; set; }
     [Required]
