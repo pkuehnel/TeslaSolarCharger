@@ -33,7 +33,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services
-    .AddTransient<JobManager>()
+    .AddSingleton<JobManager>()
     .AddTransient<ChargingValueJob>()
     .AddTransient<ConfigJsonUpdateJob>()
     .AddTransient<ChargeTimeUpdateJob>()
@@ -59,6 +59,7 @@ builder.Services
     .AddTransient<MqttFactory>()
     .AddTransient<IMqttService, MqttService>()
     .AddTransient<IPvValueService, PvValueService>()
+    .AddTransient<IBaseConfigurationService, BaseConfigurationService>()
     .AddTransient<IDbConnectionStringHelper, DbConnectionStringHelper>()
     .AddDbContext<ITeslamateContext, TeslamateContext>((provider, options) =>
     {
@@ -103,7 +104,7 @@ var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
-jobManager.StartJobs();
+await jobManager.StartJobs().ConfigureAwait(false);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
