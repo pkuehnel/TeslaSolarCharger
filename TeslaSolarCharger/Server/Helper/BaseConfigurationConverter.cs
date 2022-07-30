@@ -71,15 +71,31 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
     public async Task ConvertBaseConfigToCurrentVersion()
     {
         _logger.LogTrace("{method}()", nameof(ConvertBaseConfigToCurrentVersion));
+        var currentVersion = new Version(1, 0);
         var oldBaseConfigurationJson = await File.ReadAllTextAsync(_configurationWrapper.BaseConfigFileFullName()).ConfigureAwait(false);
-        var version = GetVersionFromBaseConfigurationJsonString(oldBaseConfigurationJson);
+        var oldVersion = GetVersionFromBaseConfigurationJsonString(oldBaseConfigurationJson);
         oldBaseConfigurationJson = await File.ReadAllTextAsync(_configurationWrapper.BaseConfigFileFullName()).ConfigureAwait(false);
-        await File.WriteAllTextAsync($"{_configurationWrapper.BaseConfigFileFullName()}.{version}", oldBaseConfigurationJson);
-        if (version.Equals(new Version(0, 1)))
+        await File.WriteAllTextAsync($"{_configurationWrapper.BaseConfigFileFullName()}.{oldVersion}", oldBaseConfigurationJson);
+        if (oldVersion.Equals(new Version(0, 1)))
         {
             var oldBaseConfiguration =
                 JsonConvert.DeserializeObject<BaseConfigurationJsonV0_1>(oldBaseConfigurationJson) ?? throw new InvalidOperationException("Could not deserialize baseConfigJson V0_1");
             ConvertV0_1ToV1_0(oldBaseConfiguration);
+        }
+
+        if (oldVersion > currentVersion)
+        {
+            var configsDirectory = _configurationWrapper.ConfigFileDirectory();
+            var fileFullNames = Directory.GetFiles(configsDirectory);
+            foreach (var fileFullName in fileFullNames)
+            {
+                var fileInfo = new FileInfo(fileFullName);
+                if (fileInfo.Name.StartsWith(_configurationWrapper.GetBaseConfigFileName()) &&
+                    fileInfo.Name.EndsWith($"{currentVersion}.json"))
+                {
+
+                }
+            }
         }
     }
 

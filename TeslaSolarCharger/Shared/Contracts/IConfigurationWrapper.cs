@@ -44,4 +44,11 @@ public interface IConfigurationWrapper
     Dictionary<string, string> CurrentPowerToGridHeaders();
     Dictionary<string, string> CurrentInverterPowerHeaders();
     decimal CurrentInverterPowerCorrectionFactor();
+    string ConfigFileDirectory();
+
+    /// <summary>
+    /// Baseconfig file name (excluding path)
+    /// </summary>
+    /// <returns></returns>
+    string GetBaseConfigFileName();
 }

@@ -31,16 +31,30 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return Path.Combine(configFileDirectory, value);
     }
 
+    /// <summary>
+    /// Baseconfig file Fullname (including path).
+    /// </summary>
+    /// <returns></returns>
     public string BaseConfigFileFullName()
     {
         var configFileDirectory = ConfigFileDirectory();
-        var environmentVariableName = "BaseConfigFileName";
-        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        var value = GetBaseConfigFileName();
         return Path.Combine(configFileDirectory, value);
     }
 
-    internal string ConfigFileDirectory()
+    /// <summary>
+    /// Baseconfig file name (excluding path)
+    /// </summary>
+    /// <returns></returns>
+    public string GetBaseConfigFileName()
+    {
+        var environmentVariableName = "BaseConfigFileName";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
+    public string ConfigFileDirectory()
     {
         var environmentVariableName = "ConfigFileLocation";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
