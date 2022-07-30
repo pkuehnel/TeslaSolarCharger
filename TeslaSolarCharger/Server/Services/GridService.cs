@@ -84,7 +84,7 @@ public class GridService : IGridService
             pattern = xmlPattern;
         }
 
-        var power = (int?)GetValueFromResult(pattern, result, nodePatternType, false);
+        var power = (double?)GetValueFromResult(pattern, result, nodePatternType, false);
 
         return (int?)(power * (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor());
     }
