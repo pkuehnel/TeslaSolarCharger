@@ -1,18 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 
-namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration.OldVersions.V0._1;
 
-public class BaseConfigurationBase
+// ReSharper disable once InconsistentNaming
+public class BaseConfigurationBaseV0_1
 {
-    public Version Version { get; set; } = new(1, 0);
     [Required]
     public string? CurrentPowerToGridUrl { get; set; }
     public Dictionary<string, string> CurrentPowerToGridHeaders { get; set; } = new();
     public bool IsModbusGridUrl { get; set; }
     public string? CurrentInverterPowerUrl { get; set; }
-    public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
-    public bool IsModbusInverterUrl { get; set; }
     [Required]
     public string TeslaMateApiBaseUrl { get; set; } = "http://teslamateapi:8080";
     [Required]
@@ -23,7 +21,7 @@ public class BaseConfigurationBase
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
     [Required]
     public string CarPriorities { get; set; } = "1";
-    [Required] 
+    [Required]
     public string GeoFence { get; set; } = "Home";
     [Required]
     [Range(1, int.MaxValue)]
@@ -34,9 +32,9 @@ public class BaseConfigurationBase
     [Required]
     public int PowerBuffer { get; set; } = 0;
     public string? CurrentPowerToGridJsonPattern { get; set; }
-    public decimal CurrentPowerToGridCorrectionFactor { get; set; } = 1;
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+    public bool CurrentPowerToGridInvertValue { get; set; }
     public string? CurrentInverterPowerJsonPattern { get; set; }
-    public decimal CurrentInverterPowerCorrectionFactor { get; set; } = 1;
     public string? TelegramBotKey { get; set; }
     public string? TelegramChannelId { get; set; }
     [Required]

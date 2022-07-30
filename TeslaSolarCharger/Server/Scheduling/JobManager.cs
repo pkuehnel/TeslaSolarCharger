@@ -24,7 +24,7 @@ public class JobManager
         _configurationWrapper = configurationWrapper;
     }
 
-    public async void StartJobs()
+    public async Task StartJobs()
     {
         _logger.LogTrace("{Method}()", nameof(StartJobs));
         _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
@@ -34,7 +34,6 @@ public class JobManager
         var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
         var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
-        var carDbUpdateJob = JobBuilder.Create<CarDbUpdateJob>().Build();
 
         var jobIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
@@ -64,5 +63,10 @@ public class JobManager
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);
 
         await _scheduler.Start().ConfigureAwait(false);
+    }
+
+    public async Task StopJobs()
+    {
+        await _scheduler.Shutdown(true);
     }
 }

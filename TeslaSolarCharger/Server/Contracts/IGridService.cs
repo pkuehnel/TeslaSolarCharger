@@ -2,6 +2,6 @@
 
 public interface IGridService
 {
-    Task<int?> GetCurrentOverage();
-    Task<int?> GetCurrentInverterPower();
+    Task<int?> GetCurrentOverage(HttpResponseMessage response);
+    Task<int?> GetCurrentInverterPower(HttpResponseMessage response);
 }

@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using MQTTnet;
+using MQTTnet.Adapter;
+using MQTTnet.Client;
+using MQTTnet.Diagnostics;
+using MQTTnet.Implementations;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
@@ -28,11 +32,8 @@ builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var mqttFactory = new MqttFactory();
-var mqttClient = mqttFactory.CreateMqttClient();
-
 builder.Services
-    .AddTransient<JobManager>()
+    .AddSingleton<JobManager>()
     .AddTransient<ChargingValueJob>()
     .AddTransient<ConfigJsonUpdateJob>()
     .AddTransient<ChargeTimeUpdateJob>()
@@ -52,10 +53,13 @@ builder.Services
     .AddSingleton<ISettings, Settings>()
     .AddSingleton<IInMemoryValues, InMemoryValues>()
     .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
-    .AddSingleton(mqttClient)
+    .AddSingleton<IMqttNetLogger, MqttNetNullLogger>()
+    .AddSingleton<IMqttClientAdapterFactory, MqttClientAdapterFactory>()
+    .AddSingleton<IMqttClient, MqttClient>()
     .AddTransient<MqttFactory>()
     .AddTransient<IMqttService, MqttService>()
     .AddTransient<IPvValueService, PvValueService>()
+    .AddTransient<IBaseConfigurationService, BaseConfigurationService>()
     .AddTransient<IDbConnectionStringHelper, DbConnectionStringHelper>()
     .AddDbContext<ITeslamateContext, TeslamateContext>((provider, options) =>
     {
@@ -64,7 +68,7 @@ builder.Services
         options.EnableDetailedErrors();
     }, ServiceLifetime.Transient, ServiceLifetime.Transient)
     .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
-    .AddTransient<IEnvironmentVariableConverter, EnvironmentVariableConverter>()
+    .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -84,8 +88,9 @@ if (environment == "Development")
 
 var app = builder.Build();
 
-var environmentVariableConverter = app.Services.GetRequiredService<IEnvironmentVariableConverter>();
-await environmentVariableConverter.ConvertAllValues();
+var environmentVariableConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
+await environmentVariableConverter.ConvertAllEnvironmentVariables();
+await environmentVariableConverter.ConvertBaseConfigToCurrentVersion();
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up");
@@ -99,7 +104,7 @@ var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
-jobManager.StartJobs();
+await jobManager.StartJobs().ConfigureAwait(false);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

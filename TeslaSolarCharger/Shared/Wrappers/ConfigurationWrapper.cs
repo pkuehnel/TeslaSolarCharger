@@ -53,6 +53,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
         var minimum = TimeSpan.FromSeconds(20);
+        var pvValueUpdateIntervalSeconds = GetBaseConfiguration().PvValueUpdateIntervalSeconds ?? 1;
+        if (minimum.TotalSeconds < pvValueUpdateIntervalSeconds)
+        {
+            minimum = TimeSpan.FromSeconds(pvValueUpdateIntervalSeconds);
+        }
         var updateIntervalSeconds = GetBaseConfiguration().UpdateIntervalSeconds;
         var value = GetValueIfGreaterThanMinimum(TimeSpan.FromSeconds(updateIntervalSeconds), minimum);
         return value;
@@ -60,16 +65,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public TimeSpan PvValueJobUpdateIntervall()
     {
-        var maximum = ChargingValueJobUpdateIntervall();
         var minimum = TimeSpan.FromSeconds(1);
         var updateIntervalSeconds = GetBaseConfiguration().PvValueUpdateIntervalSeconds;
         var value = TimeSpan.FromSeconds(updateIntervalSeconds ?? ChargingValueJobUpdateIntervall().TotalSeconds);
 
-        if (value > maximum)
-        {
-            value = maximum;
-        } 
-        else if (value < minimum)
+        if (value < minimum)
         {
             value = minimum;
         }
@@ -111,9 +111,19 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().TeslaMateDbPassword;
     }
 
-    public string CurrentPowerToGridUrl()
+    public string? CurrentPowerToGridUrl()
     {
         return GetBaseConfiguration().CurrentPowerToGridUrl;
+    }
+    
+    public Dictionary<string, string> CurrentPowerToGridHeaders()
+    {
+        return GetBaseConfiguration().CurrentPowerToGridHeaders;
+    }
+
+    public Dictionary<string, string> CurrentInverterPowerHeaders()
+    {
+        return GetBaseConfiguration().CurrentInverterPowerHeaders;
     }
 
     public string? CurrentInverterPowerUrl()
@@ -171,9 +181,14 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().CurrentInverterPowerXmlAttributeValueName;
     }
 
-    public bool CurrentPowerToGridInvertValue()
+    public decimal CurrentPowerToGridCorrectionFactor()
     {
-        return GetBaseConfiguration().CurrentPowerToGridInvertValue;
+        return GetBaseConfiguration().CurrentPowerToGridCorrectionFactor;
+    }
+
+    public decimal CurrentInverterPowerCorrectionFactor()
+    {
+        return GetBaseConfiguration().CurrentInverterPowerCorrectionFactor;
     }
 
     public string TeslaMateApiBaseUrl()
@@ -401,17 +416,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public async Task<bool> IsBaseConfigurationJsonRelevant()
     {
-        string jsonContent;
-        try
-        {
-            jsonContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
-        }
-        catch(Exception)
-        {
-            return false;
-        }
-        var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(jsonContent);
-        return baseConfigurationJson?.LastEditDateTime != null;
+        return await Task.FromResult(File.Exists(BaseConfigFileFullName())).ConfigureAwait(false);
     }
 
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration)

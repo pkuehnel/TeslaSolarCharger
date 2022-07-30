@@ -10,7 +10,7 @@ namespace TeslaSolarCharger.Server.Services;
 public class MqttService : IMqttService
 {
     private readonly ILogger<MqttService> _logger;
-    private readonly MqttClient _mqttClient;
+    private readonly IMqttClient _mqttClient;
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
@@ -43,7 +43,7 @@ public class MqttService : IMqttService
     private const string TopicChargeCurrentRequest = "charge_current_request";
     public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
 
-    public MqttService(ILogger<MqttService> logger, MqttClient mqttClient, MqttFactory mqttFactory, 
+    public MqttService(ILogger<MqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
         ISettings settings, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;

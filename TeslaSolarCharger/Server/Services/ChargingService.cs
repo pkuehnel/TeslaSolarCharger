@@ -131,7 +131,11 @@ public class ChargingService : IChargingService
         foreach (var car in cars)
         {
             var unknownSocLimit = IsSocLimitUnknown(car);
-            if (unknownSocLimit)
+            if (unknownSocLimit && 
+                (car.CarState.State == null ||
+                 car.CarState.State == CarStateEnum.Unknown ||
+                 car.CarState.State == CarStateEnum.Asleep ||
+                 car.CarState.State == CarStateEnum.Offline))
             {
                 _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
                 await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}. Waking up car.");
