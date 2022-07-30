@@ -11,25 +11,17 @@ namespace TeslaSolarCharger.Server.Services;
 public class GridService : IGridService
 {
     private readonly ILogger<GridService> _logger;
-    private readonly ITelegramService _telegramService;
     private readonly IConfigurationWrapper _configurationWrapper;
 
-    public GridService(ILogger<GridService> logger, ITelegramService telegramService, IConfigurationWrapper configurationWrapper)
+    public GridService(ILogger<GridService> logger, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
-        _telegramService = telegramService;
         _configurationWrapper = configurationWrapper;
     }
 
-    public async Task<int?> GetCurrentOverage()
+    public async Task<int?> GetCurrentOverage(HttpResponseMessage response)
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentOverage));
-
-        var response = await GetCurrentOverageHtmlResponse().ConfigureAwait(false);
-        if (response == null)
-        {
-            return null;
-        }
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -72,55 +64,10 @@ public class GridService : IGridService
         return nodePatternType;
     }
 
-    private async Task<HttpResponseMessage?> GetCurrentOverageHtmlResponse()
-    {
-        using var httpClient = new HttpClient();
-        var requestUri = _configurationWrapper.CurrentPowerToGridUrl();
-        foreach (var header in _configurationWrapper.CurrentPowerToGridHeaders())
-        {
-            if (string.IsNullOrEmpty(header.Key))
-            {
-                continue;
-            }
-            httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
-        }
-        _logger.LogDebug("Using {uri} to get current overage.", requestUri);
-        var response = await httpClient.GetAsync(
-                requestUri)
-            .ConfigureAwait(false);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", response.StatusCode,
-                response.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current grid power did result in statuscode {response.StatusCode} with reason {response.ReasonPhrase}");
-            return null;
-        }
-
-        return response;
-    }
-
-    public async Task<int?> GetCurrentInverterPower()
+    public async Task<int?> GetCurrentInverterPower(HttpResponseMessage response)
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentInverterPower));
-        using var httpClient = new HttpClient();
-        var requestUri = _configurationWrapper.CurrentInverterPowerUrl();
-        if (requestUri == null)
-        {
-            return null;
-        }
-        var response = await httpClient.GetAsync(
-                requestUri)
-            .ConfigureAwait(false);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogWarning("Getting current inverter power did result in statuscode {statusCode} with reason {reasonPhrase}", response.StatusCode, response.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current inverter power did result in statuscode {response.StatusCode} with reason {response.ReasonPhrase}");
-            return null;
-        }
+        
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         var pattern = "";
@@ -137,7 +84,9 @@ public class GridService : IGridService
             pattern = xmlPattern;
         }
 
-        return (int?)GetValueFromResult(pattern, result, nodePatternType, false);
+        var power = (int?)GetValueFromResult(pattern, result, nodePatternType, false);
+
+        return (int?)(power * (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor());
     }
 
     /// <summary>

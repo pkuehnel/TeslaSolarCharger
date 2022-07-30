@@ -42,4 +42,6 @@ public interface IConfigurationWrapper
     Task<bool> IsBaseConfigurationJsonRelevant();
     Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration);
     Dictionary<string, string> CurrentPowerToGridHeaders();
+    Dictionary<string, string> CurrentInverterPowerHeaders();
+    decimal CurrentInverterPowerCorrectionFactor();
 }

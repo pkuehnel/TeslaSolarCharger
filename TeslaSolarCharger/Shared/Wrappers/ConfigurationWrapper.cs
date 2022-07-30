@@ -121,6 +121,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().CurrentPowerToGridHeaders;
     }
 
+    public Dictionary<string, string> CurrentInverterPowerHeaders()
+    {
+        return GetBaseConfiguration().CurrentInverterPowerHeaders;
+    }
+
     public string? CurrentInverterPowerUrl()
     {
         return GetBaseConfiguration().CurrentInverterPowerUrl;
@@ -179,6 +184,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
     public decimal CurrentPowerToGridCorrectionFactor()
     {
         return GetBaseConfiguration().CurrentPowerToGridCorrectionFactor;
+    }
+
+    public decimal CurrentInverterPowerCorrectionFactor()
+    {
+        return GetBaseConfiguration().CurrentInverterPowerCorrectionFactor;
     }
 
     public string TeslaMateApiBaseUrl()
