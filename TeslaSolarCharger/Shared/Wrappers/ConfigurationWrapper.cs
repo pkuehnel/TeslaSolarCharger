@@ -53,6 +53,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
         var minimum = TimeSpan.FromSeconds(20);
+        var pvValueUpdateIntervalSeconds = GetBaseConfiguration().PvValueUpdateIntervalSeconds ?? 1;
+        if (minimum.TotalSeconds < pvValueUpdateIntervalSeconds)
+        {
+            minimum = TimeSpan.FromSeconds(pvValueUpdateIntervalSeconds);
+        }
         var updateIntervalSeconds = GetBaseConfiguration().UpdateIntervalSeconds;
         var value = GetValueIfGreaterThanMinimum(TimeSpan.FromSeconds(updateIntervalSeconds), minimum);
         return value;
@@ -60,16 +65,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public TimeSpan PvValueJobUpdateIntervall()
     {
-        var maximum = ChargingValueJobUpdateIntervall();
         var minimum = TimeSpan.FromSeconds(1);
         var updateIntervalSeconds = GetBaseConfiguration().PvValueUpdateIntervalSeconds;
         var value = TimeSpan.FromSeconds(updateIntervalSeconds ?? ChargingValueJobUpdateIntervall().TotalSeconds);
 
-        if (value > maximum)
-        {
-            value = maximum;
-        } 
-        else if (value < minimum)
+        if (value < minimum)
         {
             value = minimum;
         }
