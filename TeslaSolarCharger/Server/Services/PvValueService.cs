@@ -48,11 +48,19 @@ public class PvValueService : IPvValueService
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
         var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
 
+        var areInverterAndGridRequestUrlSame = string.Equals(gridRequestUrl, inverterRequestUrl,
+            StringComparison.InvariantCultureIgnoreCase);
+        _logger.LogTrace("inverter and grid request urls same: {value}", areInverterAndGridRequestUrlSame);
+
+        var areInverterAndGridHeadersSame = gridRequestHeaders.Count == inverterRequestHeaders.Count
+                && !gridRequestHeaders.Except(inverterRequestHeaders).Any();
+        _logger.LogTrace("inverter and grid headers same: {value}", areInverterAndGridHeadersSame);
+
         if (inverterRequestUrl != null
-            && (!string.Equals(gridRequestUrl, inverterRequestUrl, StringComparison.InvariantCultureIgnoreCase)
-                || !(gridRequestHeaders.Count == inverterRequestHeaders.Count
-                     && !gridRequestHeaders.Except(inverterRequestHeaders).Any())))
+            && (!areInverterAndGridRequestUrlSame
+                || !areInverterAndGridHeadersSame))
         {
+            _logger.LogTrace("Send another request for inverter power");
             httpResponse = await GetHttpResponse(inverterRequestUrl, inverterRequestHeaders).ConfigureAwait(false);
         }
 
@@ -79,6 +87,7 @@ public class PvValueService : IPvValueService
 
     private async Task<HttpResponseMessage> GetHttpResponse(string? gridRequestUrl, Dictionary<string, string> requestHeaders)
     {
+        _logger.LogTrace("{method}({url}, {headers})", nameof(GetHttpResponse), gridRequestUrl, requestHeaders);
         if (string.IsNullOrEmpty(gridRequestUrl))
         {
             throw new ArgumentNullException(nameof(gridRequestUrl));
