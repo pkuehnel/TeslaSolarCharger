@@ -73,6 +73,11 @@ public class MqttService : IMqttService
 
         try
         {
+            if (_mqttClient.IsConnected)
+            {
+                await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
+                    "Reconnecting with new configuration");
+            }
             await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
         }
         catch (Exception ex)
