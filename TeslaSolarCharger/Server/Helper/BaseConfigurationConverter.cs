@@ -44,7 +44,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
             MinutesUntilSwitchOff = _configuration.GetValue<int>("MinutesUntilSwitchOff") == 0 ? 5 : _configuration.GetValue<int>("MinutesUntilSwitchOff"),
             PowerBuffer = _configuration.GetValue<int>("PowerBuffer"),
             CurrentPowerToGridJsonPattern = _configuration.GetValue<string?>("CurrentPowerToGridJsonPattern"),
-            CurrentPowerToGridCorrectionFactor = _configuration.GetValue<bool?>("CurrentPowerToGridInvertValue") == true ? 1 : -1,
+            CurrentPowerToGridCorrectionFactor = _configuration.GetValue<bool?>("CurrentPowerToGridInvertValue") != true ? -1 : 1,
             CurrentInverterPowerJsonPattern = _configuration.GetValue<string?>("CurrentInverterPowerJsonPattern"),
             TelegramBotKey = _configuration.GetValue<string?>("TelegramBotKey"),
             TelegramChannelId = _configuration.GetValue<string?>("TelegramChannelId"),
