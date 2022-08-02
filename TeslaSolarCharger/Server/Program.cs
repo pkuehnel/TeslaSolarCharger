@@ -88,9 +88,9 @@ if (environment == "Development")
 
 var app = builder.Build();
 
-var environmentVariableConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
-await environmentVariableConverter.ConvertAllEnvironmentVariables();
-await environmentVariableConverter.ConvertBaseConfigToCurrentVersion();
+var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
+await baseConfigurationConverter.ConvertAllEnvironmentVariables();
+await baseConfigurationConverter.ConvertBaseConfigToCurrentVersion();
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up");
