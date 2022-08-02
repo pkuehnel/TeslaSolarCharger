@@ -19,7 +19,6 @@ else
         @if (_settings.InverterPower != null)
         {
             <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_settings.InverterPower W</div>
-            <div><i class="fa-solid fa-house" style="width: 25px;"></i>@(_settings.InverterPower - _settings.Overage - _settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome)) W</div>
         }
         <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")"><i class="fa-solid fa-bolt" style="width: 25px;"></i>
             @if (_settings.Overage != null)
