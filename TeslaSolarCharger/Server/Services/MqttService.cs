@@ -53,9 +53,9 @@ public class MqttService : IMqttService
         _configurationWrapper = configurationWrapper;
     }
 
-    public async Task ConfigureMqttClient()
+    public async Task ConnectMqttClient()
     {
-        _logger.LogTrace("{method}()", nameof(ConfigureMqttClient));
+        _logger.LogTrace("{method}()", nameof(ConnectMqttClient));
         var mqqtClientId = _configurationWrapper.MqqtClientId();
         var mosquitoServer = _configurationWrapper.MosquitoServer();
         var mqttClientOptions = new MqttClientOptionsBuilder()
@@ -71,7 +71,15 @@ public class MqttService : IMqttService
             return Task.CompletedTask;
         };
 
-        await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
+        try
+        {
+            await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not connect to TeslaMate mqtt server");
+            return;
+        }
 
         var topicPrefix = "teslamate/cars/+/";
 

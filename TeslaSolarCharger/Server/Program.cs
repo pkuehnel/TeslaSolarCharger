@@ -101,7 +101,7 @@ await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 
 var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 
-await mqttHelper.ConfigureMqttClient().ConfigureAwait(false);
+await mqttHelper.ConnectMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 await jobManager.StartJobs().ConfigureAwait(false);

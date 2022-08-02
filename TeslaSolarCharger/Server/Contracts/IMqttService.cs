@@ -2,5 +2,5 @@
 
 public interface IMqttService
 {
-    Task ConfigureMqttClient();
+    Task ConnectMqttClient();
 }
