@@ -25,4 +25,15 @@ public class DtoBaseConfiguration : BaseConfigurationBase
             CurrentInverterPowerCorrectionFactor = Convert.ToDecimal(_currentInverterPowerCorrectionFactorString);
         }
     }
+
+    private string? _homeBatterySocCorrectionFactorString;
+    public string HomeBatterySocCorrectionFactorString
+    {
+        get => HomeBatterySocCorrectionFactor.ToString(CultureInfo.InvariantCulture);
+        set
+        {
+            _homeBatterySocCorrectionFactorString = value.Replace(",", ".");
+            HomeBatterySocCorrectionFactor = Convert.ToDecimal(_homeBatterySocCorrectionFactorString);
+        }
+    }
 }

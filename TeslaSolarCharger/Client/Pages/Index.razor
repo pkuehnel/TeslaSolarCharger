@@ -26,6 +26,14 @@ else
                 @Math.Abs((int)_settings.Overage)
             }
             W</div>
+        @if (_settings.HomeBatterySoc != null)
+        {
+            <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_settings.HomeBatterySoc W</div>
+        }
+        @if (_settings.HomeBatteryPower != null)
+        {
+            <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_settings.HomeBatteryPower W</div>
+        }
         <div><i class="fa-solid fa-car" style="width: 25px;"></i>@_settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
     </div>
     @foreach (var car in _settings.Cars)

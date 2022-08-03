@@ -44,4 +44,12 @@ public interface IConfigurationWrapper
     Dictionary<string, string> CurrentPowerToGridHeaders();
     Dictionary<string, string> CurrentInverterPowerHeaders();
     decimal CurrentInverterPowerCorrectionFactor();
+    string? HomeBatterySocJsonPattern();
+    string? HomeBatterySocXmlPattern();
+    string? HomeBatterySocXmlAttributeHeaderName();
+    string? HomeBatterySocXmlAttributeHeaderValue();
+    string? HomeBatterySocXmlAttributeValueName();
+    decimal HomeBatterySocCorrectionFactor();
+    string? HomeBatterySocUrl();
+    Dictionary<string, string> HomeBatterySocHeaders();
 }

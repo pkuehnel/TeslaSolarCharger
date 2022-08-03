@@ -89,6 +89,31 @@ public class GridService : IGridService
         return (int?)(power * (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor());
     }
 
+    public async Task<int?> GetCurrentHomeBatterySoc(HttpResponseMessage response)
+    {
+        _logger.LogTrace("{method}()", nameof(GetCurrentHomeBatterySoc));
+
+        var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        var pattern = "";
+        var jsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
+        var xmlPattern = _configurationWrapper.HomeBatterySocXmlPattern();
+        var nodePatternType = DecideNotePatternType(jsonPattern, xmlPattern);
+
+        if (nodePatternType == NodePatternType.Json)
+        {
+            pattern = jsonPattern;
+        }
+        else if (nodePatternType == NodePatternType.Xml)
+        {
+            pattern = xmlPattern;
+        }
+
+        var power = (double?)GetValueFromResult(pattern, result, nodePatternType, false);
+
+        return (int?)(power * (double)_configurationWrapper.HomeBatterySocCorrectionFactor());
+    }
+
     /// <summary>
     /// 
     /// </summary>
