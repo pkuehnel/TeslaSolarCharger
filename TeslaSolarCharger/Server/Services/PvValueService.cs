@@ -64,7 +64,7 @@ public class PvValueService : IPvValueService
                 && !gridRequestHeaders.Except(inverterRequestHeaders).Any();
         _logger.LogTrace("inverter and grid headers same: {value}", areInverterAndGridHeadersSame);
 
-        if (inverterRequestUrl != null
+        if (!string.IsNullOrEmpty(inverterRequestUrl)
             && (!areInverterAndGridRequestUrlSame
                 || !areInverterAndGridHeadersSame))
         {
@@ -72,13 +72,16 @@ public class PvValueService : IPvValueService
             httpResponse = await GetHttpResponse(inverterRequestUrl, inverterRequestHeaders).ConfigureAwait(false);
         }
 
-        if (!httpResponse.IsSuccessStatusCode || inverterRequestUrl == null)
+        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(inverterRequestUrl))
         {
             _settings.InverterPower = null;
-            _logger.LogError("Could not get current inverter power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
-                httpResponse.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current inverter power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            if (!string.IsNullOrEmpty(inverterRequestUrl))
+            {
+                _logger.LogError("Could not get current inverter power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                    httpResponse.ReasonPhrase);
+                await _telegramService.SendMessage(
+                    $"Getting current inverter power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            }
         }
         else
         {
@@ -96,21 +99,24 @@ public class PvValueService : IPvValueService
                                             && !inverterRequestHeaders.Except(homeBatterySocHeaders).Any();
         _logger.LogTrace("Home battery soc and inverter headers same: {value}", areinverterAndHomeBatterySocHeadersSame);
 
-        if (homeBatterySocRequestUrl != null
-            && (!areGridAndHomeBatterySocRequestUrlSame
-                || !areinverterAndHomeBatterySocHeadersSame))
+        if (!string.IsNullOrEmpty(homeBatterySocRequestUrl)
+                                  && (!areGridAndHomeBatterySocRequestUrlSame
+                                      || !areinverterAndHomeBatterySocHeadersSame))
         {
             _logger.LogTrace("Send another request for home battery soc");
             httpResponse = await GetHttpResponse(homeBatterySocRequestUrl, homeBatterySocHeaders).ConfigureAwait(false);
         }
 
-        if (!httpResponse.IsSuccessStatusCode || homeBatterySocRequestUrl == null)
+        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatterySocRequestUrl))
         {
             _settings.HomeBatterySoc = null;
-            _logger.LogError("Could not get current home battery soc. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
-                httpResponse.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current home battery soc did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            if (!string.IsNullOrEmpty(homeBatterySocRequestUrl))
+            {
+                _logger.LogError("Could not get current home battery soc. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                    httpResponse.ReasonPhrase);
+                await _telegramService.SendMessage(
+                    $"Getting current home battery soc did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            }
         }
         else
         {
@@ -128,21 +134,24 @@ public class PvValueService : IPvValueService
                                                     && !homeBatterySocHeaders.Except(homeBatteryPowerHeaders).Any();
         _logger.LogTrace("Home battery power and home battery soc headers same: {value}", areHomeBatteryPowerAndGridHeadersSame);
 
-        if (homeBatteryPowerRequestUrl != null
-            && (!areHomeBatterySocAndHomeBatteryPowerRequestUrlSame
-                || !areHomeBatteryPowerAndGridHeadersSame))
+        if (!string.IsNullOrEmpty(homeBatteryPowerRequestUrl)
+                                  && (!areHomeBatterySocAndHomeBatteryPowerRequestUrlSame
+                                      || !areHomeBatteryPowerAndGridHeadersSame))
         {
             _logger.LogTrace("Send another request for home battery power");
             httpResponse = await GetHttpResponse(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders).ConfigureAwait(false);
         }
 
-        if (!httpResponse.IsSuccessStatusCode || homeBatteryPowerRequestUrl == null)
+        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
         {
             _settings.HomeBatteryPower = null;
-            _logger.LogError("Could not get current home battery power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
-                httpResponse.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current home battery power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            if (!string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
+            {
+                _logger.LogError("Could not get current home battery power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                    httpResponse.ReasonPhrase);
+                await _telegramService.SendMessage(
+                    $"Getting current home battery power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            }
         }
         else
         {
