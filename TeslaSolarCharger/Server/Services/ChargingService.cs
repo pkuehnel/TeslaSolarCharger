@@ -77,7 +77,26 @@ public class ChargingService : IChargingService
         }
 
         var overage = averagedOverage - buffer;
-        
+        _logger.LogTrace("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
+
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryMaxChargingPower();
+        if (homeBatteryMinSoc != null && homeBatteryMaxChargingPower != null)
+        {
+            var actualHomeBatterySoc = _settings.HomeBatterySoc;
+            var actualHomeBatteryPower = _settings.HomeBatteryPower;
+            if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
+            {
+                if (actualHomeBatterySoc < homeBatteryMinSoc && actualHomeBatteryPower < homeBatteryMaxChargingPower)
+                {
+                    overage -= (int) homeBatteryMaxChargingPower - (int) actualHomeBatteryPower;
+
+                    _logger.LogTrace("Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}", homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
+                }
+            }
+            
+        }
+
         var powerToControl = overage;
         
         _logger.LogDebug("Power to control: {power}", powerToControl);

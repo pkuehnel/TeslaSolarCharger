@@ -270,6 +270,16 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().HomeBatteryPowerCorrectionFactor;
     }
 
+    public int? HomeBatteryMinSoc()
+    {
+        return GetBaseConfiguration().HomeBatteryMinSoc;
+    }
+
+    public int? HomeBatteryMaxChargingPower()
+    {
+        return GetBaseConfiguration().HomeBatteryMaxChargingPower;
+    }
+
     public string TeslaMateApiBaseUrl()
     {
         return GetBaseConfiguration().TeslaMateApiBaseUrl;
