@@ -43,6 +43,8 @@ public class BaseConfigurationBase
     public decimal CurrentInverterPowerCorrectionFactor { get; set; } = 1;
     public string? HomeBatterySocJsonPattern { get; set; }
     public decimal HomeBatterySocCorrectionFactor { get; set; } = 1;
+    public string? HomeBatteryPowerJsonPattern { get; set; }
+    public decimal HomeBatteryPowerCorrectionFactor { get; set; } = 1;
     public string? TelegramBotKey { get; set; }
     public string? TelegramChannelId { get; set; }
     [Required]
@@ -72,5 +74,9 @@ public class BaseConfigurationBase
     public string? HomeBatterySocXmlAttributeHeaderName { get; set; }
     public string? HomeBatterySocXmlAttributeHeaderValue { get; set; }
     public string? HomeBatterySocXmlAttributeValueName { get; set; }
+    public string? HomeBatteryPowerXmlPattern { get; set; }
+    public string? HomeBatteryPowerXmlAttributeHeaderName { get; set; }
+    public string? HomeBatteryPowerXmlAttributeHeaderValue { get; set; }
+    public string? HomeBatteryPowerXmlAttributeValueName { get; set; }
 
 }

@@ -140,6 +140,16 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().HomeBatterySocHeaders;
     }
 
+    public string? HomeBatteryPowerUrl()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerUrl;
+    }
+
+    public Dictionary<string, string> HomeBatteryPowerHeaders()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerHeaders;
+    }
+
     public string? CurrentPowerToGridJsonPattern()
     {
         return GetBaseConfiguration().CurrentPowerToGridJsonPattern;
@@ -189,6 +199,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         return GetBaseConfiguration().CurrentInverterPowerXmlAttributeValueName;
     }
+
     public string? HomeBatterySocJsonPattern()
     {
         return GetBaseConfiguration().HomeBatterySocJsonPattern;
@@ -214,6 +225,31 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().HomeBatterySocXmlAttributeValueName;
     }
 
+    public string? HomeBatteryPowerJsonPattern()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerJsonPattern;
+    }
+
+    public string? HomeBatteryPowerXmlPattern()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerXmlPattern;
+    }
+
+    public string? HomeBatteryPowerXmlAttributeHeaderName()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerXmlAttributeHeaderName;
+    }
+
+    public string? HomeBatteryPowerXmlAttributeHeaderValue()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerXmlAttributeHeaderValue;
+    }
+
+    public string? HomeBatteryPowerXmlAttributeValueName()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerXmlAttributeValueName;
+    }
+
     public decimal CurrentPowerToGridCorrectionFactor()
     {
         return GetBaseConfiguration().CurrentPowerToGridCorrectionFactor;
@@ -223,9 +259,15 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         return GetBaseConfiguration().CurrentInverterPowerCorrectionFactor;
     }
+
     public decimal HomeBatterySocCorrectionFactor()
     {
         return GetBaseConfiguration().HomeBatterySocCorrectionFactor;
+    }
+
+    public decimal HomeBatteryPowerCorrectionFactor()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerCorrectionFactor;
     }
 
     public string TeslaMateApiBaseUrl()

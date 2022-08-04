@@ -88,17 +88,17 @@ public class PvValueService : IPvValueService
         var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
         var homeBatterySocHeaders = _configurationWrapper.HomeBatterySocHeaders();
 
-        var areGridAndHomeBatterySocRequestUrlSame = string.Equals(gridRequestUrl, homeBatterySocRequestUrl,
+        var areGridAndHomeBatterySocRequestUrlSame = string.Equals(inverterRequestUrl, homeBatterySocRequestUrl,
             StringComparison.InvariantCultureIgnoreCase);
-        _logger.LogTrace("Home battery soc and grid request urls same: {value}", areGridAndHomeBatterySocRequestUrlSame);
+        _logger.LogTrace("Home battery soc and inverter request urls same: {value}", areGridAndHomeBatterySocRequestUrlSame);
 
-        var areHomeBatterySocAndGridHeadersSame = gridRequestHeaders.Count == homeBatterySocHeaders.Count
-                                            && !gridRequestHeaders.Except(homeBatterySocHeaders).Any();
-        _logger.LogTrace("Home battery soc and grid headers same: {value}", areHomeBatterySocAndGridHeadersSame);
+        var areinverterAndHomeBatterySocHeadersSame = inverterRequestHeaders.Count == homeBatterySocHeaders.Count
+                                            && !inverterRequestHeaders.Except(homeBatterySocHeaders).Any();
+        _logger.LogTrace("Home battery soc and inverter headers same: {value}", areinverterAndHomeBatterySocHeadersSame);
 
         if (homeBatterySocRequestUrl != null
             && (!areGridAndHomeBatterySocRequestUrlSame
-                || !areHomeBatterySocAndGridHeadersSame))
+                || !areinverterAndHomeBatterySocHeadersSame))
         {
             _logger.LogTrace("Send another request for home battery soc");
             httpResponse = await GetHttpResponse(homeBatterySocRequestUrl, homeBatterySocHeaders).ConfigureAwait(false);
@@ -115,6 +115,38 @@ public class PvValueService : IPvValueService
         else
         {
             _settings.HomeBatterySoc = await _gridService.GetCurrentHomeBatterySoc(httpResponse).ConfigureAwait(false);
+        }
+
+        var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
+        var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
+
+        var areHomeBatterySocAndHomeBatteryPowerRequestUrlSame = string.Equals(homeBatterySocRequestUrl, homeBatteryPowerRequestUrl,
+            StringComparison.InvariantCultureIgnoreCase);
+        _logger.LogTrace("Home battery power and home battery soc request urls same: {value}", areHomeBatterySocAndHomeBatteryPowerRequestUrlSame);
+
+        var areHomeBatteryPowerAndGridHeadersSame = homeBatterySocHeaders.Count == homeBatteryPowerHeaders.Count
+                                                    && !homeBatterySocHeaders.Except(homeBatteryPowerHeaders).Any();
+        _logger.LogTrace("Home battery power and home battery soc headers same: {value}", areHomeBatteryPowerAndGridHeadersSame);
+
+        if (homeBatteryPowerRequestUrl != null
+            && (!areHomeBatterySocAndHomeBatteryPowerRequestUrlSame
+                || !areHomeBatteryPowerAndGridHeadersSame))
+        {
+            _logger.LogTrace("Send another request for home battery power");
+            httpResponse = await GetHttpResponse(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders).ConfigureAwait(false);
+        }
+
+        if (!httpResponse.IsSuccessStatusCode || homeBatteryPowerRequestUrl == null)
+        {
+            _settings.HomeBatteryPower = null;
+            _logger.LogError("Could not get current home battery power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                httpResponse.ReasonPhrase);
+            await _telegramService.SendMessage(
+                $"Getting current home battery power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+        }
+        else
+        {
+            _settings.HomeBatteryPower = await _gridService.GetCurrentHomeBatteryPower(httpResponse).ConfigureAwait(false);
         }
 
 

@@ -131,7 +131,7 @@ else
             </div>
         </div>
 
-        if (_dtoBaseConfiguration.HomeBatterySocHeaders.Count > 0)
+        @if (_dtoBaseConfiguration.HomeBatterySocHeaders.Count > 0)
         {
         <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
         <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
@@ -167,6 +167,56 @@ else
         <div class="form-group">
             <label for="homeBatterySocXmlAttributeValueName">Home Battery Soc XML Attribute Header Value</label>
             <InputText id="homeBatterySocXmlAttributeValueName" @bind-Value="_dtoBaseConfiguration.HomeBatterySocXmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
+        </div>
+        <hr />
+        <div class="form-group">
+            <label for="homeBatteryPowerUrl">HomeBatteryPower Url</label>
+            <InputText id="homeBatteryPowerUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerUrl" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="homeBatteryPowerCorrectionFactor">Correction Factor</label>
+            <InputText id="homeBatteryPowerCorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerCorrectionFactorString" class="form-control" />
+            <div>
+                <small id="homeBatteryPowerCorrectionFactorHelp" class="form-text text-muted">Use this if consuming 1 W from your home batter is not the value 1. E.g. if charging 1500 Watt to your home battery is returned as 1.5 you have to enter -1000 here</small>
+            </div>
+        </div>
+
+        @if (_dtoBaseConfiguration.HomeBatteryPowerHeaders.Count > 0)
+        {
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
+        <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
+        }
+        @for (var i = 0; i < _dtoBaseConfiguration.HomeBatteryPowerHeaders.Count; i++)
+        {
+            var header = _dtoBaseConfiguration.HomeBatteryPowerHeaders.ElementAt(i);
+            <p>
+                <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
+               @onchange="@(e => UpdateHomeBatteryPowerHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
+               @onchange="@(e => _dtoBaseConfiguration.HomeBatteryPowerHeaders[header.Key] = e.Value?.ToString() ?? string.Empty)">
+                <button type="button" class="btn btn-danger" @onclick="() => RemoveHomeBatteryPowerHeader(header.Key)">DEL</button>
+            </p>
+        }
+        <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => AddNewHomeBatteryPowerHeader()">Add new header</button></p>
+        <div class="form-group">
+            <label for="homeBatteryPowerJsonPattern">Home Battery Power Json Pattern</label>
+            <InputText id="homeBatteryPowerJsonPattern" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerJsonPattern" placeholder="$.data.overage" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="homeBatteryPowerXmlPattern">Home Battery Power XML Pattern</label>
+            <InputText id="homeBatteryPowerXmlPattern" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerXmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="homeBatteryPowerXmlAttributeHeaderName">Home Battery Power XML Attribute Header Name</label>
+            <InputText id="homeBatteryPowerXmlAttributeHeaderName" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="homeBatteryPowerXmlAttributeHeaderValue">Home Battery Power XML Attribute Header Value</label>
+            <InputText id="homeBatteryPowerXmlAttributeHeaderValue" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="homeBatteryPowerXmlAttributeValueName">Home Battery Power XML Attribute Header Value</label>
+            <InputText id="homeBatteryPowerXmlAttributeValueName" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
         </div>
         <hr />
         <div class="form-group">
@@ -584,9 +634,26 @@ else
         _dtoBaseConfiguration?.HomeBatterySocHeaders.Remove(key);
     }
 
+    private void UpdateHomeBatteryPowerHeaderKey(string oldKey, string newKey)
+    {
+        var value = _dtoBaseConfiguration?.HomeBatteryPowerHeaders[oldKey];
+        _dtoBaseConfiguration?.HomeBatteryPowerHeaders.Remove(oldKey);
+        _dtoBaseConfiguration?.HomeBatteryPowerHeaders.Add(newKey, value ?? string.Empty);
+    }
+
+    private void AddNewHomeBatteryPowerHeader()
+    {
+        _dtoBaseConfiguration?.HomeBatteryPowerHeaders.Add($"{_dtoBaseConfiguration?.HomeBatteryPowerHeaders.Count + 1}", "");
+    }
+
+    private void RemoveHomeBatteryPowerHeader(string key)
+    {
+        _dtoBaseConfiguration?.HomeBatteryPowerHeaders.Remove(key);
+    }
+
     private async Task HandleValidSubmit()
     {
-        var result = await HttpClient.PutAsJsonAsync($"api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration);
+        var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration);
         if (result.IsSuccessStatusCode)
         {
             ToastService.ShowSuccess("Base Configuration updated");

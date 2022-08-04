@@ -52,4 +52,12 @@ public interface IConfigurationWrapper
     decimal HomeBatterySocCorrectionFactor();
     string? HomeBatterySocUrl();
     Dictionary<string, string> HomeBatterySocHeaders();
+    string? HomeBatteryPowerUrl();
+    Dictionary<string, string> HomeBatteryPowerHeaders();
+    string? HomeBatteryPowerJsonPattern();
+    string? HomeBatteryPowerXmlPattern();
+    string? HomeBatteryPowerXmlAttributeHeaderName();
+    string? HomeBatteryPowerXmlAttributeHeaderValue();
+    string? HomeBatteryPowerXmlAttributeValueName();
+    decimal HomeBatteryPowerCorrectionFactor();
 }
