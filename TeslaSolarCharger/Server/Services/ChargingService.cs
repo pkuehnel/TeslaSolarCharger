@@ -93,6 +93,11 @@ public class ChargingService : IChargingService
 
                     _logger.LogTrace("Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}", homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
                 }
+                else if (actualHomeBatteryPower < 0)
+                {
+                    overage += (int) actualHomeBatteryPower;
+                    _logger.LogTrace("Overage after subtracting power coming from home battery ({actualHomeBatteryPower}): {overage}", actualHomeBatteryPower, overage);
+                }
             }
             
         }

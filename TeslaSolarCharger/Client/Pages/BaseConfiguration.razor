@@ -178,7 +178,6 @@ else
             <label for="homeBatterySocXmlAttributeValueName">Home Battery Soc XML Attribute Header Value</label>
             <InputText id="homeBatterySocXmlAttributeValueName" @bind-Value="_dtoBaseConfiguration.HomeBatterySocXmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
         </div>
-        <hr />
         <div class="form-group">
             <label for="homeBatteryPowerUrl">HomeBatteryPower Url</label>
             <InputText id="homeBatteryPowerUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerUrl" class="form-control" />
@@ -187,7 +186,7 @@ else
             <label for="homeBatteryPowerCorrectionFactor">Correction Factor</label>
             <InputText id="homeBatteryPowerCorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerCorrectionFactorString" class="form-control" />
             <div>
-                <small id="homeBatteryPowerCorrectionFactorHelp" class="form-text text-muted">Use this if consuming 1 W from your home batter is not the value 1. E.g. if charging 1500 Watt to your home battery is returned as 1.5 you have to enter -1000 here</small>
+                <small id="homeBatteryPowerCorrectionFactorHelp" class="form-text text-muted">Use this if consuming 1 W from your home batter is not the value -1. E.g. if charging 1500 Watt to your home battery is returned as 1.5 you have to enter 1000 here</small>
             </div>
         </div>
 
