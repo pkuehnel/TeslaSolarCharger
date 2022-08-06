@@ -15,8 +15,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <Optimize>True</Optimize>
   </PropertyGroup>
+	
+	<PropertyGroup>
+		<MinVerTagPrefix>v</MinVerTagPrefix>
+	</PropertyGroup>
 
-  <ItemGroup>
+	<ItemGroup>
     <Compile Remove="Dtos\**" />
     <Content Remove="Dtos\**" />
     <EmbeddedResource Remove="Dtos\**" />
