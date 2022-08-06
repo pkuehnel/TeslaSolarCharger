@@ -79,6 +79,6 @@ public class BaseConfigurationBase
     public string? HomeBatteryPowerXmlAttributeHeaderValue { get; set; }
     public string? HomeBatteryPowerXmlAttributeValueName { get; set; }
     public int? HomeBatteryMinSoc { get; set; }
-    public int? HomeBatteryMaxChargingPower { get; set; }
+    public int? HomeBatteryChargingPower { get; set; }
 
 }

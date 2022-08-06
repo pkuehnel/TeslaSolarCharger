@@ -61,5 +61,5 @@ public interface IConfigurationWrapper
     string? HomeBatteryPowerXmlAttributeValueName();
     decimal HomeBatteryPowerCorrectionFactor();
     int? HomeBatteryMinSoc();
-    int? HomeBatteryMaxChargingPower();
+    int? HomeBatteryChargingPower();
 }

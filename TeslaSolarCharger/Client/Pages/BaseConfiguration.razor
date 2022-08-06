@@ -125,9 +125,9 @@ else
             <small id="homeBatteryMinSocHelp" class="form-text text-muted">Set the SoC your home battery should get charged to before cars start to use full power.</small>
         </div>
         <div class="form-group">
-            <label for="homeBatteryMaxChargingPower">Home Battery Maximum continuous charging power (W)</label>
-            <InputNumber id="homeBatteryMaxChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryMaxChargingPower" class="form-control" />
-            <small id="homeBatteryMaxChargingPowerHelp" class="form-text text-muted">Set the power your home battery can charge with. This value is used to start charging when your home battery is below minimum SoC but your house combined with the charging power of your home battery uses less power than your solar system poduces. E.g. If you have set 90% home battery minimum SoC and 4000W home battery max charging power, the cars start charging if your home battery is charging with 4000W and there is still power left going to the grid even though your minimum SoC is not reached.</small>
+            <label for="homeBatteryChargingPower">Home Battery charging power (W)</label>
+            <InputNumber id="homeBatteryChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" class="form-control" />
+            <small id="homeBatteryChargingPowerHelp" class="form-text text-muted">Set the power your home battery should charge with when</small>
         </div>
         <div class="form-group">
             <label for="homeBatterySocUrl">HomeBatterySoc Url</label>
