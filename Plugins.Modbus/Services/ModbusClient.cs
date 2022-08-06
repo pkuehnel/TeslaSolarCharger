@@ -115,6 +115,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         {
             if (IsConnected)
             {
+                _logger.LogTrace("Disconnecting connected Modbus client...");
                 Disconnect();
             }
 
