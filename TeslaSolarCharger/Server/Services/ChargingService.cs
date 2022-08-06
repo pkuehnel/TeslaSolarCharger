@@ -80,11 +80,15 @@ public class ChargingService : IChargingService
         _logger.LogTrace("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
 
         var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        _logger.LogTrace("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        _logger.LogTrace("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
         if (homeBatteryMinSoc != null && homeBatteryMaxChargingPower != null)
         {
             var actualHomeBatterySoc = _settings.HomeBatterySoc;
+            _logger.LogTrace("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
             var actualHomeBatteryPower = _settings.HomeBatteryPower;
+            _logger.LogTrace("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
             if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
             {
                 if (actualHomeBatterySoc < homeBatteryMinSoc)
