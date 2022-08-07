@@ -100,7 +100,7 @@ public class ChargingService : IChargingService
                 else
                 {
                     overage += (int) actualHomeBatteryPower;
-                    _logger.LogTrace("Overage after subtracting power coming from home battery ({actualHomeBatteryPower}): {overage}", actualHomeBatteryPower, overage);
+                    _logger.LogTrace("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}", actualHomeBatteryPower, overage);
                 }
             }
             
