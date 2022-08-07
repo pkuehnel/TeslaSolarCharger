@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeslaSolarCharger.Model", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeslaSolarCharger.Tests", "TeslaSolarCharger.Tests\TeslaSolarCharger.Tests.csproj", "{775FCD4B-1B18-42D4-89DF-83A4160AC4A2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plugins.Modbus", "Plugins.Modbus\Plugins.Modbus.csproj", "{4693C8A8-B535-46AE-B42F-3CF8694334F2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plugins.Modbus", "Plugins.Modbus\Plugins.Modbus.csproj", "{4693C8A8-B535-46AE-B42F-3CF8694334F2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
