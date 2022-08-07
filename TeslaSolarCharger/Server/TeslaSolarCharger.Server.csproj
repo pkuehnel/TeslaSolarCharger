@@ -22,9 +22,9 @@
 
 	<Target Name="MyTarget" AfterTargets="MinVer" >
 		<PropertyGroup>
-			<FileVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).$(MinVerVersion.Split(`.`)[4])</FileVersion>
-			<PackageVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).$(MinVerVersion.Split(`.`)[4])</PackageVersion>
-			<Version>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).$(MinVerVersion.Split(`.`)[4])</Version>
+			<FileVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).0)</FileVersion>
+			<PackageVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).0)</PackageVersion>
+			<Version>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).0)</Version>
 		</PropertyGroup>
 	</Target>
 
