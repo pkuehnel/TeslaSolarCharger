@@ -20,13 +20,13 @@
 		<MinVerTagPrefix>v</MinVerTagPrefix>
 	</PropertyGroup>
 
-	<Target Name="MyTarget" AfterTargets="MinVer" >
+	<!--<Target Name="MyTarget" AfterTargets="MinVer" >
 		<PropertyGroup>
 			<FileVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).0)</FileVersion>
 			<PackageVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).0)</PackageVersion>
 			<Version>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).0)</Version>
 		</PropertyGroup>
-	</Target>
+	</Target>-->
 
 	<ItemGroup>
 		<Compile Remove="Dtos\**" />
