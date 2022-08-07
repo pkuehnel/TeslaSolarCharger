@@ -11,11 +11,14 @@
 	<Import Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets')" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets" />
 
 	<PropertyGroup Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets')">
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<TransformOnBuild>true</TransformOnBuild>
 		<OverwriteReadOnlyOutputFiles>true</OverwriteReadOnlyOutputFiles>
 		<TransformOutOfDateOnly>false</TransformOutOfDateOnly>
 	</PropertyGroup>
+
+    <PropertyGroup>
+	    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <Optimize>False</Optimize>
