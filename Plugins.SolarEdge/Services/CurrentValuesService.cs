@@ -24,7 +24,7 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(GetCurrentPowerToGrid));
         var latestValue = await GetLatestValue();
 
-        var value = (int)latestValue.SiteCurrentPowerFlow.Grid.CurrentPower;
+        var value = latestValue.SiteCurrentPowerFlow.Grid.CurrentPower;
         if (latestValue.SiteCurrentPowerFlow.Unit == "kW")
         {
             value *= 1000;
@@ -34,7 +34,7 @@ public class CurrentValuesService : ICurrentValuesService
         {
             value = -value;
         }
-        return value;
+        return (int) value;
     }
 
     public async Task<int> GetInverterPower()
