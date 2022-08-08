@@ -14,7 +14,7 @@ using System.Reflection;
 <#+
 
  int Major = 2;
- int Minor = 3;
+ int Minor = 4;
  
  static DateTime ProjectStartedDate = new DateTime(year: 2022, month: 1, day: 19);
  int DaysSinceProjectStarted = (int)((DateTime.UtcNow - ProjectStartedDate).TotalDays);
