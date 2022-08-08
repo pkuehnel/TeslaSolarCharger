@@ -9,6 +9,10 @@ public class BaseConfigurationBase
     [Required]
     public string? CurrentPowerToGridUrl { get; set; }
     public Dictionary<string, string> CurrentPowerToGridHeaders { get; set; } = new();
+    public string? HomeBatterySocUrl { get; set; }
+    public Dictionary<string, string> HomeBatterySocHeaders { get; set; } = new();
+    public string? HomeBatteryPowerUrl { get; set; }
+    public Dictionary<string, string> HomeBatteryPowerHeaders { get; set; } = new();
     public bool IsModbusGridUrl { get; set; }
     public string? CurrentInverterPowerUrl { get; set; }
     public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
@@ -37,6 +41,10 @@ public class BaseConfigurationBase
     public decimal CurrentPowerToGridCorrectionFactor { get; set; } = 1;
     public string? CurrentInverterPowerJsonPattern { get; set; }
     public decimal CurrentInverterPowerCorrectionFactor { get; set; } = 1;
+    public string? HomeBatterySocJsonPattern { get; set; }
+    public decimal HomeBatterySocCorrectionFactor { get; set; } = 1;
+    public string? HomeBatteryPowerJsonPattern { get; set; }
+    public decimal HomeBatteryPowerCorrectionFactor { get; set; } = 1;
     public string? TelegramBotKey { get; set; }
     public string? TelegramChannelId { get; set; }
     [Required]
@@ -62,4 +70,15 @@ public class BaseConfigurationBase
     public string? CurrentInverterPowerXmlAttributeHeaderName { get; set; }
     public string? CurrentInverterPowerXmlAttributeHeaderValue { get; set; }
     public string? CurrentInverterPowerXmlAttributeValueName { get; set; }
+    public string? HomeBatterySocXmlPattern { get; set; }
+    public string? HomeBatterySocXmlAttributeHeaderName { get; set; }
+    public string? HomeBatterySocXmlAttributeHeaderValue { get; set; }
+    public string? HomeBatterySocXmlAttributeValueName { get; set; }
+    public string? HomeBatteryPowerXmlPattern { get; set; }
+    public string? HomeBatteryPowerXmlAttributeHeaderName { get; set; }
+    public string? HomeBatteryPowerXmlAttributeHeaderValue { get; set; }
+    public string? HomeBatteryPowerXmlAttributeValueName { get; set; }
+    public int? HomeBatteryMinSoc { get; set; }
+    public int? HomeBatteryChargingPower { get; set; }
+
 }

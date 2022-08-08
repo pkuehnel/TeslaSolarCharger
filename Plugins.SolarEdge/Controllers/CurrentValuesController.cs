@@ -25,4 +25,16 @@ public class CurrentValuesController : ControllerBase
     {
         return _currentValuesService.GetInverterPower();
     }
+
+    [HttpGet]
+    public Task<int> GetHomeBatterySoc()
+    {
+        return _currentValuesService.GetHomeBatterySoc();
+    }
+
+    [HttpGet]
+    public Task<int> GetHomeBatteryPower()
+    {
+        return _currentValuesService.GetHomeBatteryPower();
+    }
 }

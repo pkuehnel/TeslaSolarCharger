@@ -26,6 +26,19 @@ else
                 @Math.Abs((int)_settings.Overage)
             }
             W</div>
+        @if (_settings.HomeBatterySoc != null)
+        {
+            <div><i class="fa-solid fa-battery-full" style="width: 25px;"></i>@_settings.HomeBatterySoc %</div>
+        }
+        @if (_settings.HomeBatteryPower != null)
+        {
+            <div class="@(_settings.HomeBatteryPower < 0 ? "text-danger" : "text-success")"><i class="fa-solid fa-battery-full" style="width: 25px;"></i>
+                @if (_settings.Overage != null)
+                {
+                    @Math.Abs((int)_settings.HomeBatteryPower)
+                }
+                W</div>
+        }
         <div><i class="fa-solid fa-car" style="width: 25px;"></i>@_settings.Cars.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
     </div>
     @foreach (var car in _settings.Cars)
@@ -296,6 +309,8 @@ else
         var tmpSettings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
         _settings!.InverterPower = tmpSettings!.InverterPower;
         _settings.Overage = tmpSettings.Overage;
+        _settings!.HomeBatterySoc = tmpSettings.HomeBatterySoc;
+        _settings.HomeBatteryPower = tmpSettings.HomeBatteryPower;
         foreach (var tmpCar in tmpSettings.Cars)
         {
             var car = _settings.Cars.First(c => c.Id == tmpCar.Id);

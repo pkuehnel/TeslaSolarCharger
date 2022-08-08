@@ -50,6 +50,31 @@ public class CurrentValuesService : ICurrentValuesService
         return (int)latestValue.SiteCurrentPowerFlow.Pv.CurrentPower;
     }
 
+    public async Task<int> GetHomeBatterySoc()
+    {
+        _logger.LogTrace("{method}()", nameof(GetHomeBatterySoc));
+        var latestValue = await GetLatestValue();
+
+        return latestValue.SiteCurrentPowerFlow.Storage.ChargeLevel;
+    }
+
+    public async Task<int> GetHomeBatteryPower()
+    {
+        _logger.LogTrace("{method}()", nameof(GetHomeBatteryPower));
+        var latestValue = await GetLatestValue();
+        var batteryPower = latestValue.SiteCurrentPowerFlow.Storage.CurrentPower;
+        if (string.Equals(latestValue.SiteCurrentPowerFlow.Storage.Status, "Discharging"))
+        {
+            batteryPower = -batteryPower;
+        }
+
+        if (latestValue.SiteCurrentPowerFlow.Unit == "kW")
+        {
+            return (int)(batteryPower * 1000);
+        }
+        return (int) batteryPower;
+    }
+
     private async Task<CloudApiValue> GetLatestValue()
     {
         var refreshIntervalInt = _configuration.GetValue<int?>("RefreshIntervalSeconds") ?? 
