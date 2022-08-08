@@ -17,6 +17,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
 - [Often used optional settings](#often-used-optional-settings)
   - [Car Priorities](#car-priorities)
   - [Power Buffer](#power-buffer)
+  - [Home Battery](#home-battery)
 - [How to use](#how-to-use)
   - [Charge Modes](#charge-modes)
 
@@ -683,6 +684,17 @@ If you have more than one car (or your car does not have the ID 1), you can chan
 
 ### Power Buffer
 If you set `PowerBuffer` to a value different from `0` the system uses the value as an offset. Eg. If you set `1000` the current of the car is reduced as long as there is less than 1000 Watt power going to the grid.
+
+### Home Battery
+To configure your home battery settings, you need to add following settings:
+* URL for getting the state of charge 
+* URL for getting current charging/discharging power
+* Home Battery Minimum Soc
+* Home Battery Charging Power
+
+If you use this feature in combination with the SolarEdge plugin the URLs are:
+* http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc
+* http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower
 
 ## How to use
 After setting everything up, you can use the software via `http://your-ip-address:7190`.
