@@ -24,7 +24,7 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(GetCurrentPowerToGrid));
         var latestValue = await GetLatestValue();
 
-        var value = (int)latestValue.SiteCurrentPowerFlow.Grid.CurrentPower;
+        var value = latestValue.SiteCurrentPowerFlow.Grid.CurrentPower;
         if (latestValue.SiteCurrentPowerFlow.Unit == "kW")
         {
             value *= 1000;
@@ -34,7 +34,7 @@ public class CurrentValuesService : ICurrentValuesService
         {
             value = -value;
         }
-        return value;
+        return (int) value;
     }
 
     public async Task<int> GetInverterPower()
@@ -48,6 +48,31 @@ public class CurrentValuesService : ICurrentValuesService
         }
 
         return (int)latestValue.SiteCurrentPowerFlow.Pv.CurrentPower;
+    }
+
+    public async Task<int> GetHomeBatterySoc()
+    {
+        _logger.LogTrace("{method}()", nameof(GetHomeBatterySoc));
+        var latestValue = await GetLatestValue();
+
+        return latestValue.SiteCurrentPowerFlow.Storage.ChargeLevel;
+    }
+
+    public async Task<int> GetHomeBatteryPower()
+    {
+        _logger.LogTrace("{method}()", nameof(GetHomeBatteryPower));
+        var latestValue = await GetLatestValue();
+        var batteryPower = latestValue.SiteCurrentPowerFlow.Storage.CurrentPower;
+        if (string.Equals(latestValue.SiteCurrentPowerFlow.Storage.Status, "Discharging"))
+        {
+            batteryPower = -batteryPower;
+        }
+
+        if (latestValue.SiteCurrentPowerFlow.Unit == "kW")
+        {
+            return (int)(batteryPower * 1000);
+        }
+        return (int) batteryPower;
     }
 
     private async Task<CloudApiValue> GetLatestValue()

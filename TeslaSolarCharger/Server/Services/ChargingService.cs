@@ -77,7 +77,35 @@ public class ChargingService : IChargingService
         }
 
         var overage = averagedOverage - buffer;
-        
+        _logger.LogTrace("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
+
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        _logger.LogTrace("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
+        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        _logger.LogTrace("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
+        if (homeBatteryMinSoc != null && homeBatteryMaxChargingPower != null)
+        {
+            var actualHomeBatterySoc = _settings.HomeBatterySoc;
+            _logger.LogTrace("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
+            var actualHomeBatteryPower = _settings.HomeBatteryPower;
+            _logger.LogTrace("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
+            if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
+            {
+                if (actualHomeBatterySoc < homeBatteryMinSoc)
+                {
+                    overage -= (int) homeBatteryMaxChargingPower - (int) actualHomeBatteryPower;
+
+                    _logger.LogTrace("Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}", homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
+                }
+                else
+                {
+                    overage += (int) actualHomeBatteryPower;
+                    _logger.LogTrace("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}", actualHomeBatteryPower, overage);
+                }
+            }
+            
+        }
+
         var powerToControl = overage;
         
         _logger.LogDebug("Power to control: {power}", powerToControl);

@@ -26,6 +26,7 @@ public class PvValueService : IPvValueService
 
     public async Task UpdatePvValues()
     {
+        //ToDo: remove copied code
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
 
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
@@ -45,6 +46,13 @@ public class PvValueService : IPvValueService
             overage = await _gridService.GetCurrentOverage(httpResponse).ConfigureAwait(false);
         }
 
+        _logger.LogDebug("Overage is {overage}", overage);
+        _settings.Overage = overage;
+        if (overage != null)
+        {
+            AddOverageValueToInMemoryList((int)overage);
+        }
+
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
         var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
 
@@ -56,7 +64,7 @@ public class PvValueService : IPvValueService
                 && !gridRequestHeaders.Except(inverterRequestHeaders).Any();
         _logger.LogTrace("inverter and grid headers same: {value}", areInverterAndGridHeadersSame);
 
-        if (inverterRequestUrl != null
+        if (!string.IsNullOrEmpty(inverterRequestUrl)
             && (!areInverterAndGridRequestUrlSame
                 || !areInverterAndGridHeadersSame))
         {
@@ -64,25 +72,93 @@ public class PvValueService : IPvValueService
             httpResponse = await GetHttpResponse(inverterRequestUrl, inverterRequestHeaders).ConfigureAwait(false);
         }
 
-        if (!httpResponse.IsSuccessStatusCode || inverterRequestUrl == null)
+        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(inverterRequestUrl))
         {
             _settings.InverterPower = null;
-            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
-                httpResponse.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current grid power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            if (!string.IsNullOrEmpty(inverterRequestUrl))
+            {
+                _logger.LogError("Could not get current inverter power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                    httpResponse.ReasonPhrase);
+                await _telegramService.SendMessage(
+                    $"Getting current inverter power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            }
         }
         else
         {
             _settings.InverterPower = await _gridService.GetCurrentInverterPower(httpResponse).ConfigureAwait(false);
         }
-        
-        _logger.LogDebug("Overage is {overage}", overage);
-        _settings.Overage = overage;
-        if (overage != null)
+
+        var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
+        var homeBatterySocHeaders = _configurationWrapper.HomeBatterySocHeaders();
+
+        var areGridAndHomeBatterySocRequestUrlSame = string.Equals(inverterRequestUrl, homeBatterySocRequestUrl,
+            StringComparison.InvariantCultureIgnoreCase);
+        _logger.LogTrace("Home battery soc and inverter request urls same: {value}", areGridAndHomeBatterySocRequestUrlSame);
+
+        var areinverterAndHomeBatterySocHeadersSame = inverterRequestHeaders.Count == homeBatterySocHeaders.Count
+                                            && !inverterRequestHeaders.Except(homeBatterySocHeaders).Any();
+        _logger.LogTrace("Home battery soc and inverter headers same: {value}", areinverterAndHomeBatterySocHeadersSame);
+
+        if (!string.IsNullOrEmpty(homeBatterySocRequestUrl)
+                                  && (!areGridAndHomeBatterySocRequestUrlSame
+                                      || !areinverterAndHomeBatterySocHeadersSame))
         {
-            AddOverageValueToInMemoryList((int)overage);
+            _logger.LogTrace("Send another request for home battery soc");
+            httpResponse = await GetHttpResponse(homeBatterySocRequestUrl, homeBatterySocHeaders).ConfigureAwait(false);
         }
+
+        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatterySocRequestUrl))
+        {
+            _settings.HomeBatterySoc = null;
+            if (!string.IsNullOrEmpty(homeBatterySocRequestUrl))
+            {
+                _logger.LogError("Could not get current home battery soc. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                    httpResponse.ReasonPhrase);
+                await _telegramService.SendMessage(
+                    $"Getting current home battery soc did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            }
+        }
+        else
+        {
+            _settings.HomeBatterySoc = await _gridService.GetCurrentHomeBatterySoc(httpResponse).ConfigureAwait(false);
+        }
+
+        var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
+        var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
+
+        var areHomeBatterySocAndHomeBatteryPowerRequestUrlSame = string.Equals(homeBatterySocRequestUrl, homeBatteryPowerRequestUrl,
+            StringComparison.InvariantCultureIgnoreCase);
+        _logger.LogTrace("Home battery power and home battery soc request urls same: {value}", areHomeBatterySocAndHomeBatteryPowerRequestUrlSame);
+
+        var areHomeBatteryPowerAndGridHeadersSame = homeBatterySocHeaders.Count == homeBatteryPowerHeaders.Count
+                                                    && !homeBatterySocHeaders.Except(homeBatteryPowerHeaders).Any();
+        _logger.LogTrace("Home battery power and home battery soc headers same: {value}", areHomeBatteryPowerAndGridHeadersSame);
+
+        if (!string.IsNullOrEmpty(homeBatteryPowerRequestUrl)
+                                  && (!areHomeBatterySocAndHomeBatteryPowerRequestUrlSame
+                                      || !areHomeBatteryPowerAndGridHeadersSame))
+        {
+            _logger.LogTrace("Send another request for home battery power");
+            httpResponse = await GetHttpResponse(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders).ConfigureAwait(false);
+        }
+
+        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
+        {
+            _settings.HomeBatteryPower = null;
+            if (!string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
+            {
+                _logger.LogError("Could not get current home battery power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                    httpResponse.ReasonPhrase);
+                await _telegramService.SendMessage(
+                    $"Getting current home battery power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}");
+            }
+        }
+        else
+        {
+            _settings.HomeBatteryPower = await _gridService.GetCurrentHomeBatteryPower(httpResponse).ConfigureAwait(false);
+        }
+
+
     }
 
     private async Task<HttpResponseMessage> GetHttpResponse(string? gridRequestUrl, Dictionary<string, string> requestHeaders)

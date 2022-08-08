@@ -14,8 +14,12 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
   - [Setting up TeslaMate including TeslaSolarCharger](#Setting-up-TeslaMate-including-TeslaSolarCharger)
     - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
-- [How to use](#how-to-use)
+- [Often used optional settings](#often-used-optional-settings)
   - [Car Priorities](#car-priorities)
+  - [Power Buffer](#power-buffer)
+  - [Home Battery](#home-battery)
+- [How to use](#how-to-use)
+  - [Charge Modes](#charge-modes)
 
 ## How to install
 
@@ -576,7 +580,11 @@ To let the TeslaSolarCharger know how much power there is to charge the car you 
 Note: In a future release these values will be filled in automatically, maybe it is already working and I just forgot to remove this section ;-)
 Depending on your used pluging you habe to paste one of the following URLs to the `Grid Power Url` field:
 * SMA Plugin: `http://smaplugin/api/CurrentPower/GetPower`
-* SolarEdge Plugin: `http://solaredgeplugin/CurrentValues/GetPowerToGrid` If you also add `http://solaredgeplugin/CurrentValues/GetInverterPower` to the `Inverter Power Url` field, you can see the power production and how much your house consumes in the overview page.
+* SolarEdge Plugin:
+  - Grid Power: `http://solaredgeplugin/api/CurrentValues/GetPowerToGrid` 
+  - Inverter Power: `http://solaredgeplugin/api/CurrentValues/GetInverterPower`
+  - Home Battery SoC: `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
+  - Home Battery Power: `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
 
 ###### Using the modbus plugin
 Warning: As this plugin keeps an open connection to your inverter it is highly recommended not to kill this container but always shut it down gracefully.
@@ -672,14 +680,31 @@ Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverte
 ```
 Note: This values are not needed, they are just used to show additional information.
 
-##### Often used optional Settings
+## Often used optional Settings
 When you are at this point your car connected to any charging cable in your set home area should start charging based on solar power. But there a few additional settings which are maybe helpful for your environment:
 
-###### Car Priorities
+### Car Priorities
 If you have more than one car (or your car does not have the ID 1), you can change this setting in the `Car Ids` form field separated by `|`. Note: The order of the IDs is the order of power distribution.
 
-###### Power Buffer
+### Power Buffer
 If you set `PowerBuffer` to a value different from `0` the system uses the value as an offset. Eg. If you set `1000` the current of the car is reduced as long as there is less than 1000 Watt power going to the grid.
+
+### Home Battery
+To configure your home battery, you need to add following settings:
+* URL for getting the state of charge 
+* URL for getting current charging/discharging power
+* Home Battery Minimum Soc
+* Home Battery Charging Power
+
+After setting everything up, your overview page should look like this:
+
+![image](https://user-images.githubusercontent.com/35361981/183434947-16d13372-09ff-45a7-94a2-8d4043f39f18.png)
+
+Note: If your battery is discharging the power should be displayed in red, if the battery is charging, the power should be displayed in green. If this is the other way around you have to update the `Correction Factor` below your `HomeBatteryPower Url` setting.
+
+If you use this feature in combination with the SolarEdge plugin the URLs are:
+* `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
+* `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
 
 ## How to use
 After setting everything up, you can use the software via `http://your-ip-address:7190`.

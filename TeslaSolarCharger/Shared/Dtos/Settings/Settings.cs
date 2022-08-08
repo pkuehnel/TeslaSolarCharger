@@ -13,6 +13,8 @@ public class Settings : ISettings
 
     public int? InverterPower { get; set; }
     public int? Overage { get; set; }
+    public int? HomeBatterySoc { get; set; }
+    public int? HomeBatteryPower { get; set; }
 
     public List<Car> Cars
     {
