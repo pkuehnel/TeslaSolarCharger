@@ -14,8 +14,11 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
   - [Setting up TeslaMate including TeslaSolarCharger](#Setting-up-TeslaMate-including-TeslaSolarCharger)
     - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
-- [How to use](#how-to-use)
+- [Often used optional settings](#often-used-optional-settings)
   - [Car Priorities](#car-priorities)
+  - [Power Buffer](#power-buffer)
+- [How to use](#how-to-use)
+  - [Charge Modes](#charge-modes)
 
 ## How to install
 
@@ -672,13 +675,13 @@ Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverte
 ```
 Note: This values are not needed, they are just used to show additional information.
 
-##### Often used optional Settings
+## Often used optional Settings
 When you are at this point your car connected to any charging cable in your set home area should start charging based on solar power. But there a few additional settings which are maybe helpful for your environment:
 
-###### Car Priorities
+### Car Priorities
 If you have more than one car (or your car does not have the ID 1), you can change this setting in the `Car Ids` form field separated by `|`. Note: The order of the IDs is the order of power distribution.
 
-###### Power Buffer
+### Power Buffer
 If you set `PowerBuffer` to a value different from `0` the system uses the value as an offset. Eg. If you set `1000` the current of the car is reduced as long as there is less than 1000 Watt power going to the grid.
 
 ## How to use
