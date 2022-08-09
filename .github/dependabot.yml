@@ -8,5 +8,6 @@ updates:
   - package-ecosystem: "nuget" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "daily"
     target-branch: "develop"
+    open-pull-requests-limit: 0
