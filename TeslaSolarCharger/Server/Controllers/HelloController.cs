@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
@@ -10,13 +8,5 @@ namespace TeslaSolarCharger.Server.Controllers
     {
         [HttpGet]
         public Task<bool> IsAlive() => Task.FromResult(true);
-
-        [HttpGet]
-        public Task<string?> CurrentVersion()
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-            return Task.FromResult(fileVersionInfo.ProductVersion);
-        }
     }
 }

@@ -226,19 +226,11 @@ else
 
     }
 }
-@if (_version == null)
-{
-    <p><em>Could not load version</em></p>
-}
-else
-{
-    <p><em>Version: @_version</em></p>
-}
+
 
 
 @code {
     private Settings? _settings;
-    private string? _version;
     private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
     private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
 
