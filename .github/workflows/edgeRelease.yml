@@ -22,6 +22,13 @@ jobs:
       uses: actions/setup-dotnet@v2
       with:
         dotnet-version: '6.0.x'
+
+    - name: Calculate version
+      uses: thefringeninja/action-minver@2.0.0-preview1
+      id: version
+      with:
+        tag-prefix: v
+        default-pre-release-phase: edge
     
     - name: Run unit tests
       run: dotnet test TeslaSolarCharger.Tests
@@ -39,6 +46,7 @@ jobs:
     - name: Build and push TeslaSolarCharger
       uses: docker/build-push-action@v2
       with:
+        build-args: MINVERVERSIONOVERRIDE=${{ steps.version.outputs.version }}
         file: ./TeslaSolarCharger/Server/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true

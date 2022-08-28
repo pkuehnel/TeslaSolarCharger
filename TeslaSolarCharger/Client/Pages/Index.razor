@@ -20,7 +20,8 @@ else
         {
             <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_settings.InverterPower W</div>
         }
-        <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")"><i class="fa-solid fa-bolt" style="width: 25px;"></i>
+        <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")">
+            <i class="fa-solid fa-bolt" style="width: 25px;"></i>
             @if (_settings.Overage != null)
             {
                 @Math.Abs((int)_settings.Overage)
@@ -55,7 +56,7 @@ else
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-                           @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">
+               @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">
                 </p>
             }
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -63,12 +64,12 @@ else
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
                 </p>
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
             }
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -138,14 +139,6 @@ else
                     </td>
                     <td>
                         @car.CarState.AutoFullSpeedCharge
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Last Set Amp
-                    </td>
-                    <td>
-                        @car.CarState.LastSetAmp
                     </td>
                 </tr>
                 <tr>
@@ -230,23 +223,25 @@ else
                 </tr>
             </table>
         </p>
+
+    }
+    @if (string.IsNullOrWhiteSpace(_version))
+    {
+        <p><em>Could not load version</em></p>
+    }
+    else
+    {
+        <p><em>Version: @_version</em></p>
     }
 }
-@if (_version == null)
-{
-    <p><em>Could not load version</em></p>
-}
-else
-{
-    <p><em>Version: @_version</em></p>
-}
+
 
 
 @code {
     private Settings? _settings;
-    private string? _version;
     private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
     private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
+    private string _version = "";
 
     private Timer? _timer;
 
@@ -256,9 +251,9 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _version = await HttpClient.GetStringAsync("api/Hello/CurrentVersion");
-        var handler = HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
-        _settings = await handler;
+        var settingsHandler = HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
+        _settings = await settingsHandler;
         foreach (var car in _settings!.Cars)
         {
             _chargemodeChangeButtonTexts.Add(car.Id, _chargeModeChangeButtonDefaultText);
