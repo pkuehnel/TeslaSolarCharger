@@ -40,7 +40,7 @@ public class ChargingService : IChargingService
         var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
-        await WakeupCarsWithUnknownSocLimit(_settings.Cars);
+        await WakeupCarsWithUnknownSocLimit(_settings.Cars).ConfigureAwait(false);
 
         var relevantCarIds = GetRelevantCarIds(geofence);
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
@@ -166,7 +166,7 @@ public class ChargingService : IChargingService
                  car.CarState.State == CarStateEnum.Offline))
             {
                 _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
-                await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}. Waking up car.");
+                await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}. Waking up car.").ConfigureAwait(false);
                 await _teslaService.WakeUpCar(car.Id).ConfigureAwait(false);
             }
         }
@@ -222,7 +222,7 @@ public class ChargingService : IChargingService
         var maxAmpPerCar = car.CarConfiguration.MaximumAmpere;
         _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
         _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
-        await SendWarningOnChargerPilotReduced(car, maxAmpPerCar);
+        await SendWarningOnChargerPilotReduced(car, maxAmpPerCar).ConfigureAwait(false);
 
         if (car.CarState.ChargerPilotCurrent != null)
         {

@@ -42,12 +42,12 @@ public class TelegramService : ITelegramService
         httpClient.Timeout = TimeSpan.FromSeconds(1);
 
         var response = await httpClient.GetAsync(
-            requestUri);
+            requestUri).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Can not send Telegram message: {statusCode}, {reasonphrase}, {body}", response.StatusCode, response.ReasonPhrase, await response.Content.ReadAsStringAsync());
+            _logger.LogError("Can not send Telegram message: {statusCode}, {reasonphrase}, {body}", response.StatusCode, response.ReasonPhrase, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
         }
 
         return response.StatusCode;

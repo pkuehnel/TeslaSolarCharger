@@ -25,7 +25,7 @@ public class ModbusService : IModbusService
         var modbusClient = GetModbusClient(ipAddressString, port);
 
         var value = await modbusClient.ReadInt32Value(unitIdentifier, startingAddress, quantity, ipAddressString, port, 
-            connectDelay, timeout, minimumResult);
+            connectDelay, timeout, minimumResult).ConfigureAwait(false);
         return value;
     }
 
@@ -39,7 +39,7 @@ public class ModbusService : IModbusService
         var modbusClient = GetModbusClient(ipAddressString, port);
 
         var value = await modbusClient.ReadInt16Value(unitIdentifier, startingAddress, quantity, ipAddressString, port, 
-            connectDelay, timeout, minimumResult);
+            connectDelay, timeout, minimumResult).ConfigureAwait(false);
         return value;
     }
 
@@ -53,7 +53,7 @@ public class ModbusService : IModbusService
         var modbusClient = GetModbusClient(ipAddressString, port);
 
         var value = await modbusClient.ReadFloatValue(unitIdentifier, startingAddress, quantity, ipAddressString, port,
-            connectDelay, timeout, minimumResult);
+            connectDelay, timeout, minimumResult).ConfigureAwait(false);
         return value;
     }
 

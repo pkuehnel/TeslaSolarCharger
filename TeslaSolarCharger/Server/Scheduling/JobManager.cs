@@ -67,6 +67,6 @@ public class JobManager
 
     public async Task StopJobs()
     {
-        await _scheduler.Shutdown(true);
+        await _scheduler.Shutdown(true).ConfigureAwait(false);
     }
 }
