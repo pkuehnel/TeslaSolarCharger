@@ -60,7 +60,7 @@ jobs:
         file: ./TeslaSolarCharger/Server/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarcharger:homebattery
+        tags: pkuehnel/teslasolarcharger:alpha
 
   SmaEnergymeterPlugin:
     name: Building SMAPlugin Image
@@ -122,7 +122,7 @@ jobs:
         file: ./Plugins.SolarEdge/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarchargersolaredgeplugin:homebattery
+        tags: pkuehnel/teslasolarchargersolaredgeplugin:alpha
 
   ModbusPlugin:
     name: Building ModbusPlugin Image
