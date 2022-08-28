@@ -36,8 +36,12 @@ public class ConfigService : IConfigService
     public void UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
     {
         _logger.LogTrace("{method}({param1}, {@param2})", nameof(UpdateCarConfiguration), carId, carConfiguration);
-        var existingCarIndex = _settings.Cars.FindIndex(c => c.Id == carId);
-        _settings.Cars[existingCarIndex].CarConfiguration = carConfiguration;
+        var existingCar = _settings.Cars.First(c => c.Id == carId);
+        if (carConfiguration.MinimumSoC > existingCar.CarState.SocLimit)
+        {
+            throw new InvalidOperationException("Can not set minimum soc lower than charge limit in Tesla App");
+        }
+        existingCar.CarConfiguration = carConfiguration;
     }
 
     public List<CarBasicConfiguration> GetCarBasicConfigurations()
