@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Quartz.Util;
+using System.Diagnostics;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 
@@ -34,6 +35,8 @@ public class TelegramService : ITelegramService
             return HttpStatusCode.Unauthorized;
         }
 
+        Debug.Assert(botKey != null, nameof(botKey) + " != null");
+        Debug.Assert(channel != null, nameof(channel) + " != null");
         var requestUri = CreateRequestUri(message, botKey, channel);
 
         httpClient.Timeout = TimeSpan.FromSeconds(1);

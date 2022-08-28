@@ -93,7 +93,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
         var value = token.Value<string>();
         if (value == null)
         {
-            return new Version(0, 1); ;
+            return new Version(0, 1);
         }
 
         return Version.Parse(value);

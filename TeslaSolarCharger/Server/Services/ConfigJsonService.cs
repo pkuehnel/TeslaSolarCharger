@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared;

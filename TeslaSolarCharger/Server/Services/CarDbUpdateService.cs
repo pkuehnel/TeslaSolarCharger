@@ -42,8 +42,8 @@ public class CarDbUpdateService : ICarDbUpdateService
                 _logger.LogError(exception, "Error while trying to get pilot current from database. Retrying in one minute.");
                 await Task.Delay(TimeSpan.FromMinutes(1));
             }
-            
-            
+
+
         }
     }
 }

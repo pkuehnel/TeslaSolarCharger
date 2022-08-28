@@ -63,7 +63,7 @@ public class ModbusService : IModbusService
 
         if (_modbusClients.Count < 1)
         {
-            AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
+            AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
         }
 
         var keyString = $"{ipAddressString}:{port}";

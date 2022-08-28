@@ -149,20 +149,20 @@ public class GridService : IGridService
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
-    internal double GetValueFromResult(string pattern, string result, NodePatternType patternType, bool isGridValue)
+    internal double GetValueFromResult(string? pattern, string result, NodePatternType patternType, bool isGridValue)
     {
         switch (patternType)
         {
             case NodePatternType.Json:
                 _logger.LogDebug("Extract overage value from json {result} with {pattern}", result, pattern);
-                result = (JObject.Parse(result).SelectToken(pattern) ??
+                result = (JObject.Parse(result).SelectToken(pattern ?? throw new ArgumentNullException(nameof(pattern))) ??
                           throw new InvalidOperationException("Could not find token by pattern")).Value<string>() ?? throw new InvalidOperationException("Extracted Json Value is null");
                 break;
             case NodePatternType.Xml:
                 _logger.LogDebug("Extract overage value from xml {result} with {pattern}", result, pattern);
                 var xmlDocument = new XmlDocument();
                 xmlDocument.LoadXml(result);
-                var nodes = xmlDocument.SelectNodes(pattern) ?? throw new InvalidOperationException("Could not find any nodes by pattern");
+                var nodes = xmlDocument.SelectNodes(pattern ?? throw new ArgumentNullException(nameof(pattern))) ?? throw new InvalidOperationException("Could not find any nodes by pattern");
                 switch (nodes.Count)
                 {
                     case < 1:
@@ -183,7 +183,7 @@ public class GridService : IGridService
                             : _configurationWrapper.CurrentInverterPowerXmlAttributeValueName())
                               ?? throw new InvalidOperationException("Could not get xmlAttributeValueName");
 
-                        for (int i = 0; i < nodes.Count; i++)
+                        for (var i = 0; i < nodes.Count; i++)
                         {
                             if (nodes[i]?.Attributes?[xmlAttributeHeaderName]?.Value == xmlAttributeHeaderValue)
                             {
