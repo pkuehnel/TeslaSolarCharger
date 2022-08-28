@@ -24,11 +24,17 @@ jobs:
       run: dotnet tool install --global minver-cli
 
     - name: get version
-      run: echo "MINVERBUILDMETADATA=$(minver --tag-prefix v --verbosity e)" >> $GITHUB_ENV 
+      run: echo "MINVERVERSIONOVERRIDE=$(minver --tag-prefix v --verbosity e)" >> $GITHUB_ENV 
 
     - name: echo environementvariable
-      run: echo ${{ env.MINVERBUILDMETADATA }}
-    
+      run: echo ${{ env.MINVERVERSIONOVERRIDE }}
+
+    - name: Calculate version
+      uses: thefringeninja/action-minver@2.0.0-preview1
+      id: version
+      with:
+        tag-prefix: v
+         
     - name: Run unit tests
       run: dotnet test TeslaSolarCharger.Tests
 
@@ -50,6 +56,7 @@ jobs:
       if: ${{ github.actor != 'dependabot[bot]' }}
       uses: docker/build-push-action@v3.1.0
       with:
+        build-args: MINVERVERSIONOVERRIDE=${{ steps.version.outputs.version }}
         file: ./TeslaSolarCharger/Server/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true

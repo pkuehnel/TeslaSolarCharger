@@ -225,6 +225,14 @@ else
         </p>
 
     }
+    @if (string.IsNullOrWhiteSpace(_version))
+    {
+        <p><em>Could not load version</em></p>
+    }
+    else
+    {
+        <p><em>Version: @_version</em></p>
+    }
 }
 
 
@@ -233,6 +241,7 @@ else
     private Settings? _settings;
     private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
     private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
+    private string _version = "";
 
     private Timer? _timer;
 
@@ -243,7 +252,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         var settingsHandler = HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
-        _version = await HttpClient.GetStringAsync("api/Hello/CurrentVersion");
+        _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
         _settings = await settingsHandler;
         foreach (var car in _settings!.Cars)
         {
