@@ -31,13 +31,13 @@ public class TeslamateApiService : ITeslaService
             carState == CarStateEnum.Asleep)
         {
             _logger.LogInformation("Wakeup car before charging");
-            await WakeUpCar(carId);
+            await WakeUpCar(carId).ConfigureAwait(false);
         }
 
         if (carState == CarStateEnum.Suspended)
         {
             _logger.LogInformation("Logging is suspended");
-            await ResumeLogging(carId);
+            await ResumeLogging(carId).ConfigureAwait(false);
         }
 
         var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/charge_start";
@@ -71,9 +71,9 @@ public class TeslamateApiService : ITeslaService
         var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
 
-        await ResumeLogging(carId);
+        await ResumeLogging(carId).ConfigureAwait(false);
 
-        await Task.Delay(TimeSpan.FromSeconds(20));
+        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
     }
 
     public async Task SetAmp(int carId, int amps)
@@ -114,7 +114,7 @@ public class TeslamateApiService : ITeslaService
         _logger.LogTrace("{method}({param1})", nameof(ResumeLogging), carId);
         var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/logging/resume";
         using var httpClient = new HttpClient();
-        var response = await httpClient.PutAsync(url, null);
+        var response = await httpClient.PutAsync(url, null).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
     }
 
@@ -127,9 +127,9 @@ public class TeslamateApiService : ITeslaService
         var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            var responseContentString = await response.Content.ReadAsStringAsync();
+            var responseContentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             _logger.LogError("Error while sending post to TeslaMate. Response: {response}", responseContentString);
-            await _telegramService.SendMessage($"Error while sending post to TeslaMate.\r\n RequestBody: {jsonString} \r\n Response: {responseContentString}");
+            await _telegramService.SendMessage($"Error while sending post to TeslaMate.\r\n RequestBody: {jsonString} \r\n Response: {responseContentString}").ConfigureAwait(false);
         }
         response.EnsureSuccessStatusCode();
         return response;

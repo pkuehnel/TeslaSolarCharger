@@ -26,7 +26,7 @@ public class BaseConfigurationService : IBaseConfigurationService
         _logger.LogTrace("{method}({@baseConfiguration})", nameof(UpdateBaseConfigurationAsync), baseConfiguration);
         await _jobManager.StopJobs().ConfigureAwait(false);
         await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
-        await _mqttService.ConnectMqttClient();
+        await _mqttService.ConnectMqttClient().ConfigureAwait(false);
         await _jobManager.StartJobs().ConfigureAwait(false);
     }
 }

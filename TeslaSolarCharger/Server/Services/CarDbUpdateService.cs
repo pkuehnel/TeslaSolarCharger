@@ -33,17 +33,17 @@ public class CarDbUpdateService : ICarDbUpdateService
                     .Where(c => c.ChargingProcess.CarId == car.Id)
                     .OrderByDescending(c => c.Date)
                     .Select(c => c.ChargerPilotCurrent)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync().ConfigureAwait(false);
                 _logger.LogTrace("Pilot Current for var {car} is {pilotCurrent}", car.Id, pilotCurrent);
                 car.CarState.ChargerPilotCurrent = pilotCurrent;
             }
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Error while trying to get pilot current from database. Retrying in one minute.");
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
             }
-            
-            
+
+
         }
     }
 }

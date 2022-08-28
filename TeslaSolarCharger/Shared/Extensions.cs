@@ -9,8 +9,8 @@ public static class Extensions
     {
         if (!typeof(T).IsEnum) throw new ArgumentException(String.Format("Argument {0} is not an Enum", typeof(T).FullName));
 
-        T[] arr = (T[])Enum.GetValues(src.GetType());
-        int j = Array.IndexOf(arr, src) + 1;
+        var arr = (T[])Enum.GetValues(src.GetType());
+        var j = Array.IndexOf(arr, src) + 1;
         return (arr.Length==j) ? arr[0] : arr[j];
     }
 
@@ -40,13 +40,13 @@ public static class Extensions
         if (source == null || destination == null)
             throw new Exception("Source or/and Destination Objects are null");
         // Getting the Types of the objects
-        Type typeDest = destination.GetType();
-        Type typeSrc = source.GetType();
+        var typeDest = destination.GetType();
+        var typeSrc = source.GetType();
 
         // Iterate the Properties of the source instance and  
         // populate them from their desination counterparts  
-        PropertyInfo[] srcProps = typeSrc.GetProperties();
-        foreach (PropertyInfo srcProp in srcProps)
+        var srcProps = typeSrc.GetProperties();
+        foreach (var srcProp in srcProps)
         {
             if (!srcProp.CanRead)
             {

@@ -89,11 +89,11 @@ if (environment == "Development")
 var app = builder.Build();
 
 var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
-await baseConfigurationConverter.ConvertAllEnvironmentVariables();
-await baseConfigurationConverter.ConvertBaseConfigToCurrentVersion();
+await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
+await baseConfigurationConverter.ConvertBaseConfigToCurrentVersion().ConfigureAwait(false);
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
-await telegramService.SendMessage("Application starting up");
+await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
 
 var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
 

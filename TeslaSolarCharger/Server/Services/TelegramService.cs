@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Quartz.Util;
+using System.Diagnostics;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 
@@ -34,17 +35,19 @@ public class TelegramService : ITelegramService
             return HttpStatusCode.Unauthorized;
         }
 
+        Debug.Assert(botKey != null, nameof(botKey) + " != null");
+        Debug.Assert(channel != null, nameof(channel) + " != null");
         var requestUri = CreateRequestUri(message, botKey, channel);
 
         httpClient.Timeout = TimeSpan.FromSeconds(1);
 
         var response = await httpClient.GetAsync(
-            requestUri);
+            requestUri).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Can not send Telegram message: {statusCode}, {reasonphrase}, {body}", response.StatusCode, response.ReasonPhrase, await response.Content.ReadAsStringAsync());
+            _logger.LogError("Can not send Telegram message: {statusCode}, {reasonphrase}, {body}", response.StatusCode, response.ReasonPhrase, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
         }
 
         return response.StatusCode;

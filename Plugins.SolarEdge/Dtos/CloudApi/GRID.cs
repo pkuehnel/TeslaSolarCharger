@@ -1,4 +1,5 @@
-﻿namespace Plugins.SolarEdge.Dtos.CloudApi;
+﻿#pragma warning disable CS8618
+namespace Plugins.SolarEdge.Dtos.CloudApi;
 
 public class Grid
 {

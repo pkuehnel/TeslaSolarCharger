@@ -26,7 +26,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
     public async Task ConvertAllEnvironmentVariables()
     {
         _logger.LogTrace("{method}()", nameof(ConvertAllEnvironmentVariables));
-        if (await _configurationWrapper.IsBaseConfigurationJsonRelevant())
+        if (await _configurationWrapper.IsBaseConfigurationJsonRelevant().ConfigureAwait(false))
         {
             _logger.LogInformation("Do not convert environment variables to json file as json already exists.");
             return;
@@ -65,7 +65,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
             CurrentInverterPowerXmlAttributeValueName = _configuration.GetValue<string?>("CurrentInverterPowerAttributeValueName"),
         };
 
-        await _configurationWrapper.SaveBaseConfiguration(dtoBaseConfiguration);
+        await _configurationWrapper.SaveBaseConfiguration(dtoBaseConfiguration).ConfigureAwait(false);
     }
 
     public async Task ConvertBaseConfigToCurrentVersion()
@@ -74,7 +74,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
         var oldBaseConfigurationJson = await File.ReadAllTextAsync(_configurationWrapper.BaseConfigFileFullName()).ConfigureAwait(false);
         var version = GetVersionFromBaseConfigurationJsonString(oldBaseConfigurationJson);
         oldBaseConfigurationJson = await File.ReadAllTextAsync(_configurationWrapper.BaseConfigFileFullName()).ConfigureAwait(false);
-        await File.WriteAllTextAsync($"{_configurationWrapper.BaseConfigFileFullName()}.{version}", oldBaseConfigurationJson);
+        await File.WriteAllTextAsync($"{_configurationWrapper.BaseConfigFileFullName()}.{version}", oldBaseConfigurationJson).ConfigureAwait(false);
         if (version.Equals(new Version(0, 1)))
         {
             var oldBaseConfiguration =
@@ -93,7 +93,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
         var value = token.Value<string>();
         if (value == null)
         {
-            return new Version(0, 1); ;
+            return new Version(0, 1);
         }
 
         return Version.Parse(value);

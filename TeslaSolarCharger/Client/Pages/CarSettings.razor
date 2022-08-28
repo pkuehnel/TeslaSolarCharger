@@ -49,7 +49,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations");
+        _carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
 
         foreach (var carBasicConfiguration in _carBasicConfigurations!)
         {
@@ -60,7 +60,7 @@ else
     private async Task UpdateCarConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         _saveButtonTexts[carId] = _buttonLoadingText;
-        var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarBasicConfiguration?carId={carId}", carBasicConfiguration);
+        var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarBasicConfiguration?carId={carId}", carBasicConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
             ToastService.ShowSuccess("Car Configuration updated");

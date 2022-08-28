@@ -252,8 +252,8 @@ else
     protected override async Task OnInitializedAsync()
     {
         var settingsHandler = HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
-        _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
-        _settings = await settingsHandler;
+        _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
+        _settings = await settingsHandler.ConfigureAwait(false);
         foreach (var car in _settings!.Cars)
         {
             _chargemodeChangeButtonTexts.Add(car.Id, _chargeModeChangeButtonDefaultText);
@@ -271,7 +271,7 @@ else
         _chargemodeChangeButtonTexts[carId] = _buttonLoadingText;
         var updateBackend = HttpClient.PostAsync($"api/Config/ChangeChargeMode?carId={carId}", new StringContent(string.Empty));
         var car = _settings?.Cars.First(c => c.Id == carId);
-        var result = await updateBackend;
+        var result = await updateBackend.ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
             ToastService.ShowSuccess("ChargeMode Changed");
@@ -287,7 +287,7 @@ else
     private async Task UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
     {
         _saveButtonTexts[carId] = _buttonLoadingText;
-        var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration);
+        var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
             ToastService.ShowSuccess("Car Configuration updated");
@@ -301,7 +301,7 @@ else
 
     private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
-        var tmpSettings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        var tmpSettings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
         _settings!.InverterPower = tmpSettings!.InverterPower;
         _settings.Overage = tmpSettings.Overage;
         _settings!.HomeBatterySoc = tmpSettings.HomeBatterySoc;
