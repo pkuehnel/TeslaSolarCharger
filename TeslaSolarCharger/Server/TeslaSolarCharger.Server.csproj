@@ -21,6 +21,10 @@
 		<MinVerVerbosity>diagnostic</MinVerVerbosity>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<MinVerDefaultPreReleasePhase>edge</MinVerDefaultPreReleasePhase>
+	</PropertyGroup>
+
 	<!--<Target Name="MyTarget" AfterTargets="MinVer" >
 		<PropertyGroup>
 			<FileVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).$(MinVerPreRelease.Split(`.`)[2]))</FileVersion>
