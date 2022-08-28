@@ -20,6 +20,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
   - [Home Battery](#home-battery)
 - [How to use](#how-to-use)
   - [Charge Modes](#charge-modes)
+- [Generate logfiles](#generate-logfiles)
 
 ## How to install
 
@@ -122,6 +123,7 @@ services:
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
     logging:
         driver: "json-file"
         options:
@@ -150,6 +152,7 @@ To use the plugin just add these lines to the bottom of your `docker-compose.yml
 ```yaml
   smaplugin:
     image: pkuehnel/teslasolarchargersmaplugin:latest
+    container_name: teslasolarcharger_smaplugin
     logging:
         driver: "json-file"
         options:
@@ -247,6 +250,7 @@ services:
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
     logging:
         driver: "json-file"
         options:
@@ -264,6 +268,7 @@ services:
   
   smaplugin:
     image: pkuehnel/teslasolarchargersmaplugin:latest
+    container_name: teslasolarcharger_smaplugin
     logging:
         driver: "json-file"
         options:
@@ -290,6 +295,7 @@ To use the plugin just add these lines to the bottom of your `docker-compose.yml
 ```yaml
   solaredgeplugin:
     image: pkuehnel/teslasolarchargersolaredgeplugin:latest
+    container_name: teslasolarcharger_solaredgeplugin
     logging:
         driver: "json-file"
         options:
@@ -389,6 +395,7 @@ services:
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
     logging:
         driver: "json-file"
         options:
@@ -406,6 +413,7 @@ services:
   
   solaredgeplugin:
     image: pkuehnel/teslasolarchargersolaredgeplugin:latest
+    container_name: teslasolarcharger_solaredgeplugin
     logging:
         driver: "json-file"
         options:
@@ -434,6 +442,7 @@ To use the plugin just add these lines to the bottom of your `docker-compose.yml
 ```yaml
   modbusplugin:
     image: pkuehnel/teslasolarchargermodbusplugin:latest
+    container_name: teslasolarcharger_modbusplugin
     logging:
         driver: "json-file"
         options:
@@ -531,6 +540,7 @@ services:
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
     logging:
         driver: "json-file"
         options:
@@ -548,6 +558,7 @@ services:
   
   modbusplugin:
     image: pkuehnel/teslasolarchargermodbusplugin:latest
+    container_name: teslasolarcharger_modbusplugin
     logging:
         driver: "json-file"
         options:
@@ -715,4 +726,22 @@ Currently there are three different charge modes available:
 1. **Maximum Power**: Car charges with maximum available power
 1. **Min SoC + PV**: If plugged in the car starts charging with maximum power until set Min SoC is reached. After that only PV Power is used to charge the car.
 
-
+## Generate logfiles
+To generate logfiles you have to write the logs for each container to a separate logfile.
+The commands if you used the docker-compose.yml files from above:
+For the main TeslaSolarCharger container:
+```
+docker logs teslasolarcharger > teslasolarcharger.log
+```
+For the SmaPlugin:
+```
+docker logs teslasolarcharger_smaplugin > teslasolarcharger_smaplugin.log
+```
+For the SolaredgePlugin:
+```
+docker logs teslasolarcharger_solaredgeplugin > teslasolarcharger_solaredgeplugin.log
+```
+For the ModbusPlugin:
+```
+docker logs teslasolarcharger_modbusplugin > teslasolarcharger_modbusplugin.log
+```
