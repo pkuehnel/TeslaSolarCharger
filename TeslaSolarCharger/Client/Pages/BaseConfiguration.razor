@@ -548,7 +548,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
+        _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
         if (_dtoBaseConfiguration != null && _dtoBaseConfiguration.IsModbusGridUrl)
         {
             if (string.IsNullOrWhiteSpace(_dtoBaseConfiguration.CurrentPowerToGridUrl))
@@ -668,7 +668,7 @@ else
 
     private async Task HandleValidSubmit()
     {
-        var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration);
+        var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
             ToastService.ShowSuccess("Base Configuration updated");
