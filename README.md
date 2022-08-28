@@ -728,20 +728,25 @@ Currently there are three different charge modes available:
 
 ## Generate logfiles
 To generate logfiles you have to write the logs for each container to a separate logfile.
-The commands if you used the docker-compose.yml files from above:
-For the main TeslaSolarCharger container:
+The commands if you used the docker-compose.yml files from above:<br />
+For the main **TeslaSolarCharger** container:
 ```
 docker logs teslasolarcharger > teslasolarcharger.log
 ```
-For the SmaPlugin:
+For the **SmaPlugin**:
 ```
 docker logs teslasolarcharger_smaplugin > teslasolarcharger_smaplugin.log
 ```
-For the SolaredgePlugin:
+For the **SolaredgePlugin**:
 ```
 docker logs teslasolarcharger_solaredgeplugin > teslasolarcharger_solaredgeplugin.log
 ```
-For the ModbusPlugin:
+For the **ModbusPlugin**:
 ```
 docker logs teslasolarcharger_modbusplugin > teslasolarcharger_modbusplugin.log
+```
+
+If you get an error like `Error: No such container:` you can look up the containernames with
+```
+docker ps
 ```
