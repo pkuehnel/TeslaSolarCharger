@@ -122,6 +122,7 @@ services:
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
     logging:
         driver: "json-file"
         options:
@@ -150,6 +151,7 @@ To use the plugin just add these lines to the bottom of your `docker-compose.yml
 ```yaml
   smaplugin:
     image: pkuehnel/teslasolarchargersmaplugin:latest
+    container_name: teslasolarcharger_smaplugin
     logging:
         driver: "json-file"
         options:
@@ -247,6 +249,7 @@ services:
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
     logging:
         driver: "json-file"
         options:
@@ -264,6 +267,7 @@ services:
   
   smaplugin:
     image: pkuehnel/teslasolarchargersmaplugin:latest
+    container_name: teslasolarcharger_smaplugin
     logging:
         driver: "json-file"
         options:
@@ -290,6 +294,7 @@ To use the plugin just add these lines to the bottom of your `docker-compose.yml
 ```yaml
   solaredgeplugin:
     image: pkuehnel/teslasolarchargersolaredgeplugin:latest
+    container_name: teslasolarcharger_solaredgeplugin
     logging:
         driver: "json-file"
         options:
@@ -389,6 +394,7 @@ services:
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
     logging:
         driver: "json-file"
         options:
@@ -406,6 +412,7 @@ services:
   
   solaredgeplugin:
     image: pkuehnel/teslasolarchargersolaredgeplugin:latest
+    container_name: teslasolarcharger_solaredgeplugin
     logging:
         driver: "json-file"
         options:
@@ -434,6 +441,7 @@ To use the plugin just add these lines to the bottom of your `docker-compose.yml
 ```yaml
   modbusplugin:
     image: pkuehnel/teslasolarchargermodbusplugin:latest
+    container_name: teslasolarcharger_modbusplugin
     logging:
         driver: "json-file"
         options:
@@ -531,6 +539,7 @@ services:
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
     logging:
         driver: "json-file"
         options:
@@ -548,6 +557,7 @@ services:
   
   modbusplugin:
     image: pkuehnel/teslasolarchargermodbusplugin:latest
+    container_name: teslasolarcharger_modbusplugin
     logging:
         driver: "json-file"
         options:
