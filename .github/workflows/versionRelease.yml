@@ -23,7 +23,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        
+        with:
+          fetch-depth: 0
+
       - name: Setup dotnet
         uses: actions/setup-dotnet@v2
         with:
@@ -126,6 +128,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       
       - name: Docker meta
         id: meta
@@ -174,6 +178,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       
       - name: Docker meta
         id: meta
