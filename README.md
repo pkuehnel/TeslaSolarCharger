@@ -20,6 +20,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
   - [Home Battery](#home-battery)
 - [How to use](#how-to-use)
   - [Charge Modes](#charge-modes)
+- [Generate logfiles](#generate-logfiles)
 
 ## How to install
 
@@ -725,4 +726,22 @@ Currently there are three different charge modes available:
 1. **Maximum Power**: Car charges with maximum available power
 1. **Min SoC + PV**: If plugged in the car starts charging with maximum power until set Min SoC is reached. After that only PV Power is used to charge the car.
 
-
+## Generate logfiles
+To generate logfiles you have to write the logs for each container to a separate logfile.
+The commands if you used the docker-compose.yml files from above:
+For the main TeslaSolarCharger container:
+```
+docker logs teslasolarcharger > teslasolarcharger.log
+```
+For the SmaPlugin:
+```
+docker logs teslasolarcharger_smaplugin > teslasolarcharger_smaplugin.log
+```
+For the SolaredgePlugin:
+```
+docker logs teslasolarcharger_solaredgeplugin > teslasolarcharger_solaredgeplugin.log
+```
+For the ModbusPlugin:
+```
+docker logs teslasolarcharger_modbusplugin > teslasolarcharger_modbusplugin.log
+```
