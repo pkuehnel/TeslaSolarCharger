@@ -20,20 +20,12 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: install minver-cli
-      run: dotnet tool install --global minver-cli
-
-    - name: get version
-      run: echo "MINVERVERSIONOVERRIDE=$(minver --tag-prefix v --verbosity e)" >> $GITHUB_ENV 
-
-    - name: echo environementvariable
-      run: echo ${{ env.MINVERVERSIONOVERRIDE }}
-
     - name: Calculate version
       uses: thefringeninja/action-minver@2.0.0-preview1
       id: version
       with:
         tag-prefix: v
+        default-pre-release-phase: alpha
          
     - name: Run unit tests
       run: dotnet test TeslaSolarCharger.Tests
