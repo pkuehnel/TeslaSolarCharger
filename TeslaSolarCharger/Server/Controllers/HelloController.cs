@@ -12,7 +12,7 @@ namespace TeslaSolarCharger.Server.Controllers
         public Task<bool> IsAlive() => Task.FromResult(true);
 
         [HttpGet]
-        public Task<string?> CurrentVersion()
+        public Task<string?> ProductVersion()
         {
             var assembly = Assembly.GetExecutingAssembly();
             var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);

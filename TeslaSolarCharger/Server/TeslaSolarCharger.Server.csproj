@@ -1,95 +1,77 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..</DockerfileContext>
-  </PropertyGroup>
-
-	<Import Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets')" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets" />
-
-	<PropertyGroup Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets')">
-		<TransformOnBuild>true</TransformOnBuild>
-		<OverwriteReadOnlyOutputFiles>true</OverwriteReadOnlyOutputFiles>
-		<TransformOutOfDateOnly>false</TransformOutOfDateOnly>
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>..\..</DockerfileContext>
 	</PropertyGroup>
 
-    <PropertyGroup>
-	    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<Optimize>False</Optimize>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<Optimize>True</Optimize>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>True</Optimize>
-  </PropertyGroup>
+	<PropertyGroup>
+		<MinVerTagPrefix>v</MinVerTagPrefix>
+		<MinVerVerbosity>diagnostic</MinVerVerbosity>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="Dtos\**" />
-    <Content Remove="Dtos\**" />
-    <EmbeddedResource Remove="Dtos\**" />
-    <None Remove="Dtos\**" />
-  </ItemGroup>
+	<PropertyGroup>
+		<MinVerDefaultPreReleasePhase>edge</MinVerDefaultPreReleasePhase>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="6.0.7" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.16.1" />
-    <PackageReference Include="MQTTnet" Version="4.1.0.247" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.6" />
-    <PackageReference Include="Quartz" Version="3.4.0" />
-    <PackageReference Include="Serilog.AspNetCore" Version="6.0.1" />
-    <PackageReference Include="Serilog.Settings.Configuration" Version="3.3.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-  </ItemGroup>
+	<!--<Target Name="MyTarget" AfterTargets="MinVer" >
+		<PropertyGroup>
+			<FileVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).$(MinVerPreRelease.Split(`.`)[2]))</FileVersion>
+			<PackageVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).$(MinVerPreRelease.Split(`.`)[2])))</PackageVersion>
+			<Version>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).$(MinVerPreRelease.Split(`.`)[2])))</Version>
+		</PropertyGroup>
+	</Target>-->
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\TeslaSolarCharger.Model\TeslaSolarCharger.Model.csproj" />
-    <ProjectReference Include="..\Client\TeslaSolarCharger.Client.csproj" />
-    <ProjectReference Include="..\Shared\TeslaSolarCharger.Shared.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Remove="Dtos\**" />
+		<Content Remove="Dtos\**" />
+		<EmbeddedResource Remove="Dtos\**" />
+		<None Remove="Dtos\**" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Content Update="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="6.0.7" />
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.16.1" />
+		<PackageReference Include="MinVer" Version="4.1.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="MQTTnet" Version="4.0.2.221" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.6" />
+		<PackageReference Include="Quartz" Version="3.4.0" />
+		<PackageReference Include="Serilog.AspNetCore" Version="6.0.1" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="3.3.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Enums\" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\TeslaSolarCharger.Model\TeslaSolarCharger.Model.csproj" />
+		<ProjectReference Include="..\Client\TeslaSolarCharger.Client.csproj" />
+		<ProjectReference Include="..\Shared\TeslaSolarCharger.Shared.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Include="VersionAutoIncrementer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>VersionAutoIncrementer.tt</DependentUpon>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<Content Update="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Update="VersionAutoIncrementer.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>VersionAutoIncrementer.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="VersionAutoIncrementer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>VersionAutoIncrementer.tt</DependentUpon>
-    </Compile>
-  </ItemGroup>
+	<ItemGroup>
+		<Folder Include="Enums\" />
+	</ItemGroup>
 
 
 </Project>
