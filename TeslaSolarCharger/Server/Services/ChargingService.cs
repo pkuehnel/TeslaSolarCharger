@@ -17,10 +17,12 @@ public class ChargingService : IChargingService
     private readonly ITeslaService _teslaService;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IPvValueService _pvValueService;
+    private readonly IMqttService _mqttService;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
-        ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService)
+        ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
+        IMqttService mqttService)
     {
         _logger = logger;
         _settings = settings;
@@ -29,6 +31,7 @@ public class ChargingService : IChargingService
         _teslaService = teslaService;
         _configurationWrapper = configurationWrapper;
         _pvValueService = pvValueService;
+        _mqttService = mqttService;
     }
 
     public async Task SetNewChargingValues()
@@ -39,6 +42,11 @@ public class ChargingService : IChargingService
 
         var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
+
+        if (!_mqttService.IsMqttClientConnected)
+        {
+            _logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
+        }
 
         await WakeupCarsWithUnknownSocLimit(_settings.Cars).ConfigureAwait(false);
 
