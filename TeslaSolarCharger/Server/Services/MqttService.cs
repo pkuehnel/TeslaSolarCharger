@@ -41,7 +41,9 @@ public class MqttService : IMqttService
     private const string TopicHealthy = "healthy";
     // ReSharper disable once UnusedMember.Local
     private const string TopicChargeCurrentRequest = "charge_current_request";
-    public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
+    private const string TopicChargeCurrentRequestMax = "charge_current_request_max";
+
+    public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
     public MqttService(ILogger<MqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
         ISettings settings, IConfigurationWrapper configurationWrapper)
