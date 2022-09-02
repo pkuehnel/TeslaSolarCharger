@@ -1,4 +1,5 @@
-﻿namespace Plugins.SolarEdge.Dtos.CloudApi;
+﻿#pragma warning disable CS8618
+namespace Plugins.SolarEdge.Dtos.CloudApi;
 
 // CloudApiValue myDeserializedClass = JsonConvert.DeserializeObject<CloudApiValue>(myJsonResponse);
 

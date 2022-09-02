@@ -17,6 +17,6 @@ public class ChargeTimeUpdateJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("Executing Job to update ChargeTimes");
-        await Task.Run(() => _service.UpdateChargeTimes());
+        await Task.Run(() => _service.UpdateChargeTimes()).ConfigureAwait(false);
     }
 }

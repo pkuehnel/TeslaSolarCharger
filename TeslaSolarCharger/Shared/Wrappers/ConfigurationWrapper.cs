@@ -421,7 +421,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
         try
         {
-            var result = await httpClient.GetAsync("http://solaredgeplugin/api/Hello/IsAlive");
+            var result = await httpClient.GetAsync("http://solaredgeplugin/api/Hello/IsAlive").ConfigureAwait(false);
             if (result.IsSuccessStatusCode)
             {
                 dtoBaseConfiguration.CurrentPowerToGridUrl = "http://solaredgeplugin/CurrentValues/GetPowerToGrid";
@@ -435,7 +435,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
         try
         {
-            var result = await httpClient.GetAsync("http://modbusplugin/api/Hello/IsAlive");
+            var result = await httpClient.GetAsync("http://modbusplugin/api/Hello/IsAlive").ConfigureAwait(false);
             if (result.IsSuccessStatusCode)
             {
                 dtoBaseConfiguration.IsModbusGridUrl = true;
@@ -498,7 +498,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     private async Task UpdateJsonFile(string configFileLocation, string jsonFileContent)
     {
-        await File.WriteAllTextAsync(configFileLocation, jsonFileContent);
+        await File.WriteAllTextAsync(configFileLocation, jsonFileContent).ConfigureAwait(false);
         var cache = MemoryCache.Default;
         cache.Remove(_baseConfigurationMemoryCacheName, CacheEntryRemovedReason.ChangeMonitorChanged);
     }

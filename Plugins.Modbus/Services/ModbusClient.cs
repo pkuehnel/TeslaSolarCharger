@@ -23,7 +23,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, 
             connectDelay, timeout, minimumResult);
 
-        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
+        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
         _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
         var intValue = BitConverter.ToInt32(tmpArrayPowerComplete, 0);
         if (minimumResult == null)
@@ -64,7 +64,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, 
             connectDelay, timeout, minimumResult);
 
-        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
+        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
         _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
         var intValue = BitConverter.ToInt16(tmpArrayPowerComplete, 0);
         if (minimumResult == null)
@@ -82,7 +82,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port,
             connectDelay, timeout, minimumResult);
 
-        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout);
+        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
         _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
         var intValue = BitConverter.ToSingle(tmpArrayPowerComplete, 0);
         if (minimumResult == null)

@@ -41,7 +41,9 @@ public class MqttService : IMqttService
     private const string TopicHealthy = "healthy";
     // ReSharper disable once UnusedMember.Local
     private const string TopicChargeCurrentRequest = "charge_current_request";
-    public const string TopicChargeCurrentRequestMax = "charge_current_request_max";
+    private const string TopicChargeCurrentRequestMax = "charge_current_request_max";
+
+    public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
     public MqttService(ILogger<MqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
         ISettings settings, IConfigurationWrapper configurationWrapper)
@@ -76,9 +78,9 @@ public class MqttService : IMqttService
             if (_mqttClient.IsConnected)
             {
                 await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
-                    "Reconnecting with new configuration");
+                    "Reconnecting with new configuration").ConfigureAwait(false);
             }
-            await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
+            await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -147,7 +149,7 @@ public class MqttService : IMqttService
             })
             .Build();
 
-        await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
+        await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
     }
 
     internal void UpdateCar(TeslaMateValue value)

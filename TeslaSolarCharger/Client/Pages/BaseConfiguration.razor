@@ -548,7 +548,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
+        _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
         if (_dtoBaseConfiguration != null && _dtoBaseConfiguration.IsModbusGridUrl)
         {
             if (string.IsNullOrWhiteSpace(_dtoBaseConfiguration.CurrentPowerToGridUrl))
@@ -601,7 +601,10 @@ else
 
     private void UpdateGridUrlFromModbusValues()
     {
-        _dtoBaseConfiguration.CurrentPowerToGridUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={GridModbusUnitIdentifier}&startingAddress={GridStartingAddress}&quantity={GridQuantity}&ipAddress={GridIpAddress}&port={GridPort}&connectDelaySeconds={GridConnectDelaySeconds}&timeoutSeconds={GridTimeoutSeconds}";
+        if (_dtoBaseConfiguration != null)
+        {
+            _dtoBaseConfiguration.CurrentPowerToGridUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={GridModbusUnitIdentifier}&startingAddress={GridStartingAddress}&quantity={GridQuantity}&ipAddress={GridIpAddress}&port={GridPort}&connectDelaySeconds={GridConnectDelaySeconds}&timeoutSeconds={GridTimeoutSeconds}";
+        }
     }
 
     private void UpdateInverterHeaderKey(string oldKey, string newKey)
@@ -623,7 +626,10 @@ else
 
     private void UpdateInverterUrlFromModbusValues()
     {
-        _dtoBaseConfiguration.CurrentInverterPowerUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={InverterModbusUnitIdentifier}&startingAddress={InverterStartingAddress}&quantity={InverterQuantity}&ipAddress={InverterIpAddress}&port={InverterPort}&connectDelaySeconds={InverterConnectDelaySeconds}&timeoutSeconds={InverterTimeoutSeconds}";
+        if (_dtoBaseConfiguration != null)
+        {
+            _dtoBaseConfiguration.CurrentInverterPowerUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={InverterModbusUnitIdentifier}&startingAddress={InverterStartingAddress}&quantity={InverterQuantity}&ipAddress={InverterIpAddress}&port={InverterPort}&connectDelaySeconds={InverterConnectDelaySeconds}&timeoutSeconds={InverterTimeoutSeconds}";
+        }
     }
 
     private void UpdateHomeBatterySocHeaderKey(string oldKey, string newKey)
@@ -662,7 +668,7 @@ else
 
     private async Task HandleValidSubmit()
     {
-        var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration);
+        var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
             ToastService.ShowSuccess("Base Configuration updated");

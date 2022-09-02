@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared;
@@ -38,7 +37,7 @@ public class ConfigJsonService : IConfigJsonService
         {
             try
             {
-                var fileContent = await GetCarConfigurationFileContent();
+                var fileContent = await GetCarConfigurationFileContent().ConfigureAwait(false);
                 cars = DeserializeCarsFromConfigurationString(fileContent);
             }
             catch (Exception ex)
@@ -138,7 +137,7 @@ public class ConfigJsonService : IConfigJsonService
             _logger.LogDebug("Using {@cars} to create new json file", _settings.Cars);
             var json = JsonConvert.SerializeObject(_settings.Cars, settings);
             _logger.LogDebug("Created json to save as config file: {json}", json);
-            await File.WriteAllTextAsync(configFileLocation, json);
+            await File.WriteAllTextAsync(configFileLocation, json).ConfigureAwait(false);
 
             foreach (var settingsCar in _settings.Cars)
             {
@@ -150,7 +149,7 @@ public class ConfigJsonService : IConfigJsonService
     public async Task AddCarIdsToSettings()
     {
         _logger.LogTrace("{method}", nameof(AddCarIdsToSettings));
-        _settings.Cars = await GetCarsFromConfiguration();
+        _settings.Cars = await GetCarsFromConfiguration().ConfigureAwait(false);
         _logger.LogDebug("All cars added to settings");
         foreach (var car in _settings.Cars)
         {
