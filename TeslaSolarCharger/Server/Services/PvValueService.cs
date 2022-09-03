@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Server.Contracts;
+﻿using Microsoft.AspNetCore.Http.Headers;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 
@@ -31,20 +32,9 @@ public class PvValueService : IPvValueService
 
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
         var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
-        var httpResponse = await GetHttpResponse(gridRequestUrl, gridRequestHeaders).ConfigureAwait(false);
-        int? overage;
-        if (!httpResponse.IsSuccessStatusCode)
-        {
-            overage = null;
-            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
-                httpResponse.ReasonPhrase);
-            await _telegramService.SendMessage(
-                $"Getting current grid power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}").ConfigureAwait(false);
-        }
-        else
-        {
-            overage = await _gridService.GetCurrentOverage(httpResponse).ConfigureAwait(false);
-        }
+        var gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
+        var gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
+        var overage = await GetOverageByGridResponse(gridHttpResponse).ConfigureAwait(false);
 
         _logger.LogDebug("Overage is {overage}", overage);
         _settings.Overage = overage;
@@ -69,23 +59,23 @@ public class PvValueService : IPvValueService
                 || !areInverterAndGridHeadersSame))
         {
             _logger.LogTrace("Send another request for inverter power");
-            httpResponse = await GetHttpResponse(inverterRequestUrl, inverterRequestHeaders).ConfigureAwait(false);
+            gridHttpResponse = await GetHttpResponse(inverterRequestUrl, inverterRequestHeaders).ConfigureAwait(false);
         }
 
-        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(inverterRequestUrl))
+        if (!gridHttpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(inverterRequestUrl))
         {
             _settings.InverterPower = null;
             if (!string.IsNullOrEmpty(inverterRequestUrl))
             {
-                _logger.LogError("Could not get current inverter power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
-                    httpResponse.ReasonPhrase);
+                _logger.LogError("Could not get current inverter power. {statusCode}, {reasonPhrase}", gridHttpResponse.StatusCode,
+                    gridHttpResponse.ReasonPhrase);
                 await _telegramService.SendMessage(
-                    $"Getting current inverter power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}").ConfigureAwait(false);
+                    $"Getting current inverter power did result in statuscode {gridHttpResponse.StatusCode} with reason {gridHttpResponse.ReasonPhrase}").ConfigureAwait(false);
             }
         }
         else
         {
-            _settings.InverterPower = await _gridService.GetCurrentInverterPower(httpResponse).ConfigureAwait(false);
+            _settings.InverterPower = await _gridService.GetCurrentInverterPower(gridHttpResponse).ConfigureAwait(false);
         }
 
         var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
@@ -104,23 +94,23 @@ public class PvValueService : IPvValueService
                                       || !areinverterAndHomeBatterySocHeadersSame))
         {
             _logger.LogTrace("Send another request for home battery soc");
-            httpResponse = await GetHttpResponse(homeBatterySocRequestUrl, homeBatterySocHeaders).ConfigureAwait(false);
+            gridHttpResponse = await GetHttpResponse(homeBatterySocRequestUrl, homeBatterySocHeaders).ConfigureAwait(false);
         }
 
-        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatterySocRequestUrl))
+        if (!gridHttpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatterySocRequestUrl))
         {
             _settings.HomeBatterySoc = null;
             if (!string.IsNullOrEmpty(homeBatterySocRequestUrl))
             {
-                _logger.LogError("Could not get current home battery soc. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
-                    httpResponse.ReasonPhrase);
+                _logger.LogError("Could not get current home battery soc. {statusCode}, {reasonPhrase}", gridHttpResponse.StatusCode,
+                    gridHttpResponse.ReasonPhrase);
                 await _telegramService.SendMessage(
-                    $"Getting current home battery soc did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}").ConfigureAwait(false);
+                    $"Getting current home battery soc did result in statuscode {gridHttpResponse.StatusCode} with reason {gridHttpResponse.ReasonPhrase}").ConfigureAwait(false);
             }
         }
         else
         {
-            _settings.HomeBatterySoc = await _gridService.GetCurrentHomeBatterySoc(httpResponse).ConfigureAwait(false);
+            _settings.HomeBatterySoc = await _gridService.GetCurrentHomeBatterySoc(gridHttpResponse).ConfigureAwait(false);
         }
 
         var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
@@ -139,31 +129,58 @@ public class PvValueService : IPvValueService
                                       || !areHomeBatteryPowerAndGridHeadersSame))
         {
             _logger.LogTrace("Send another request for home battery power");
-            httpResponse = await GetHttpResponse(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders).ConfigureAwait(false);
+            gridHttpResponse = await GetHttpResponse(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders).ConfigureAwait(false);
         }
 
-        if (!httpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
+        if (!gridHttpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
         {
             _settings.HomeBatteryPower = null;
             if (!string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
             {
-                _logger.LogError("Could not get current home battery power. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
-                    httpResponse.ReasonPhrase);
+                _logger.LogError("Could not get current home battery power. {statusCode}, {reasonPhrase}", gridHttpResponse.StatusCode,
+                    gridHttpResponse.ReasonPhrase);
                 await _telegramService.SendMessage(
-                    $"Getting current home battery power did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}").ConfigureAwait(false);
+                    $"Getting current home battery power did result in statuscode {gridHttpResponse.StatusCode} with reason {gridHttpResponse.ReasonPhrase}").ConfigureAwait(false);
             }
         }
         else
         {
-            _settings.HomeBatteryPower = await _gridService.GetCurrentHomeBatteryPower(httpResponse).ConfigureAwait(false);
+            _settings.HomeBatteryPower = await _gridService.GetCurrentHomeBatteryPower(gridHttpResponse).ConfigureAwait(false);
         }
 
 
     }
 
-    private async Task<HttpResponseMessage> GetHttpResponse(string? gridRequestUrl, Dictionary<string, string> requestHeaders)
+    private async Task<int?> GetOverageByGridResponse(HttpResponseMessage gridHttpResponse)
     {
-        _logger.LogTrace("{method}({url}, {headers})", nameof(GetHttpResponse), gridRequestUrl, requestHeaders);
+        int? overage;
+        if (!gridHttpResponse.IsSuccessStatusCode)
+        {
+            overage = null;
+            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", gridHttpResponse.StatusCode,
+                gridHttpResponse.ReasonPhrase);
+            await _telegramService.SendMessage(
+                    $"Getting current grid power did result in statuscode {gridHttpResponse.StatusCode} with reason {gridHttpResponse.ReasonPhrase}")
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            overage = await _gridService.GetCurrentOverage(gridHttpResponse).ConfigureAwait(false);
+        }
+
+        return overage;
+    }
+
+    private async Task<HttpResponseMessage> GetHttpResponse(HttpRequestMessage request)
+    {
+        _logger.LogTrace("{method}({request})", nameof(GetHttpResponse), request);
+        using var httpClient = new HttpClient();
+        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        return response;
+    }
+
+    private static HttpRequestMessage GenerateHttpRequestMessage(string? gridRequestUrl, Dictionary<string, string> requestHeaders)
+    {
         if (string.IsNullOrEmpty(gridRequestUrl))
         {
             throw new ArgumentNullException(nameof(gridRequestUrl));
@@ -175,9 +192,8 @@ public class PvValueService : IPvValueService
         {
             request.Headers.Add(requestHeader.Key, requestHeader.Value);
         }
-        using var httpClient = new HttpClient();
-        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
-        return response;
+
+        return request;
     }
 
     public int GetAveragedOverage()
