@@ -35,7 +35,6 @@ public class PvValueService : IPvValueService
         var gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
         var gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
         var overage = await GetOverageByGridResponse(gridHttpResponse).ConfigureAwait(false);
-
         _logger.LogDebug("Overage is {overage}", overage);
         _settings.Overage = overage;
         if (overage != null)
@@ -45,14 +44,16 @@ public class PvValueService : IPvValueService
 
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
         var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
-
-        var areInverterAndGridRequestUrlSame = string.Equals(gridRequestUrl, inverterRequestUrl,
-            StringComparison.InvariantCultureIgnoreCase);
-        _logger.LogTrace("inverter and grid request urls same: {value}", areInverterAndGridRequestUrlSame);
-
-        var areInverterAndGridHeadersSame = gridRequestHeaders.Count == inverterRequestHeaders.Count
-                && !gridRequestHeaders.Except(inverterRequestHeaders).Any();
-        _logger.LogTrace("inverter and grid headers same: {value}", areInverterAndGridHeadersSame);
+        var inverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
+        HttpResponseMessage? inverterHttpResponse;
+        if (IsSameRequest(gridRequest, inverterRequest))
+        {
+            inverterHttpResponse = gridHttpResponse;
+        }
+        else
+        {
+            inverterHttpResponse = await GetHttpResponse(inverterRequest).ConfigureAwait(false);
+        }
 
         if (!string.IsNullOrEmpty(inverterRequestUrl)
             && (!areInverterAndGridRequestUrlSame
