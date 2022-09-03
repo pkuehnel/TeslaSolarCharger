@@ -212,4 +212,42 @@ public class PvValueService : IPvValueService
             _inMemoryValues.OverageValues.RemoveRange(0, _inMemoryValues.OverageValues.Count - valuesToSave);
         }
     }
+
+    internal bool IsSameRequest(HttpRequestMessage httpRequestMessage1, HttpRequestMessage httpRequestMessage2)
+    {
+        if (httpRequestMessage1.Method != httpRequestMessage2.Method)
+        {
+            return false;
+        }
+
+        if (httpRequestMessage1.RequestUri != httpRequestMessage2.RequestUri)
+        {
+            return false;
+        }
+
+        if (httpRequestMessage1.Headers.Count() != httpRequestMessage2.Headers.Count())
+        {
+            return false;
+        }
+
+        foreach (var httpRequestHeader in httpRequestMessage1.Headers)
+        {
+            var message2Header = httpRequestMessage2.Headers.FirstOrDefault(h => h.Key.Equals(httpRequestHeader.Key));
+            if (message2Header.Key == default)
+            {
+                return false;
+            }
+            var message2HeaderValue = message2Header.Value.ToList();
+            foreach (var headerValue in httpRequestHeader.Value)
+            {
+                if (!message2HeaderValue.Any(v => string.Equals(v, headerValue, StringComparison.InvariantCulture)))
+                {
+                    return false;
+                }
+            }
+        }
+
+
+        return true;
+    }
 }
