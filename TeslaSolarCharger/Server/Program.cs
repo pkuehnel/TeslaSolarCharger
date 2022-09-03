@@ -43,7 +43,6 @@ builder.Services
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
     .AddTransient<IChargingService, ChargingService>()
-    .AddTransient<IGridService, GridService>()
     .AddTransient<IConfigService, ConfigService>()
     .AddTransient<IConfigJsonService, ConfigJsonService>()
     .AddTransient<IDateTimeProvider, DateTimeProvider>()

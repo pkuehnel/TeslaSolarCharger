@@ -1,5 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http.Headers;
+using Newtonsoft.Json.Linq;
+using Quartz.Util;
+using System.Globalization;
+using System.Xml;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 
@@ -9,17 +14,15 @@ public class PvValueService : IPvValueService
 {
     private readonly ILogger<PvValueService> _logger;
     private readonly ISettings _settings;
-    private readonly IGridService _gridService;
     private readonly IInMemoryValues _inMemoryValues;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITelegramService _telegramService;
 
-    public PvValueService(ILogger<PvValueService> logger, ISettings settings, IGridService gridService,
+    public PvValueService(ILogger<PvValueService> logger, ISettings settings,
         IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper, ITelegramService telegramService)
     {
         _logger = logger;
         _settings = settings;
-        _gridService = gridService;
         _inMemoryValues = inMemoryValues;
         _configurationWrapper = configurationWrapper;
         _telegramService = telegramService;
@@ -27,14 +30,16 @@ public class PvValueService : IPvValueService
 
     public async Task UpdatePvValues()
     {
-        //ToDo: remove copied code
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
 
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
         var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
         var gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
         var gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
-        var overage = await GetOverageByGridResponse(gridHttpResponse).ConfigureAwait(false);
+        var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+        var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
+        var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
+        var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor).ConfigureAwait(false);
         _logger.LogDebug("Overage is {overage}", overage);
         _settings.Overage = overage;
         if (overage != null)
@@ -43,133 +48,107 @@ public class PvValueService : IPvValueService
         }
 
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
-        var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
-        var inverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
-        HttpResponseMessage? inverterHttpResponse;
-        if (IsSameRequest(gridRequest, inverterRequest))
+        HttpRequestMessage? inverterRequest = default;
+        HttpResponseMessage? inverterHttpResponse = default;
+        if (!string.IsNullOrWhiteSpace(inverterRequestUrl))
         {
-            inverterHttpResponse = gridHttpResponse;
-        }
-        else
-        {
-            inverterHttpResponse = await GetHttpResponse(inverterRequest).ConfigureAwait(false);
-        }
-
-        if (!string.IsNullOrEmpty(inverterRequestUrl)
-            && (!areInverterAndGridRequestUrlSame
-                || !areInverterAndGridHeadersSame))
-        {
-            _logger.LogTrace("Send another request for inverter power");
-            gridHttpResponse = await GetHttpResponse(inverterRequestUrl, inverterRequestHeaders).ConfigureAwait(false);
-        }
-
-        if (!gridHttpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(inverterRequestUrl))
-        {
-            _settings.InverterPower = null;
-            if (!string.IsNullOrEmpty(inverterRequestUrl))
+            var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
+            inverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
+            if (IsSameRequest(gridRequest, inverterRequest))
             {
-                _logger.LogError("Could not get current inverter power. {statusCode}, {reasonPhrase}", gridHttpResponse.StatusCode,
-                    gridHttpResponse.ReasonPhrase);
-                await _telegramService.SendMessage(
-                    $"Getting current inverter power did result in statuscode {gridHttpResponse.StatusCode} with reason {gridHttpResponse.ReasonPhrase}").ConfigureAwait(false);
+                inverterHttpResponse = gridHttpResponse;
             }
-        }
-        else
-        {
-            _settings.InverterPower = await _gridService.GetCurrentInverterPower(gridHttpResponse).ConfigureAwait(false);
+            else
+            {
+                inverterHttpResponse = await GetHttpResponse(inverterRequest).ConfigureAwait(false);
+            }
+            var inverterJsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
+            var inverterXmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
+            var inverterCorrectionFactor = (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor();
+            var inverterPower = await GetValueByHttpResponse(inverterHttpResponse, inverterJsonPattern, inverterXmlPattern, inverterCorrectionFactor).ConfigureAwait(false);
+            _settings.InverterPower = inverterPower;
         }
 
         var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
-        var homeBatterySocHeaders = _configurationWrapper.HomeBatterySocHeaders();
-
-        var areGridAndHomeBatterySocRequestUrlSame = string.Equals(inverterRequestUrl, homeBatterySocRequestUrl,
-            StringComparison.InvariantCultureIgnoreCase);
-        _logger.LogTrace("Home battery soc and inverter request urls same: {value}", areGridAndHomeBatterySocRequestUrlSame);
-
-        var areinverterAndHomeBatterySocHeadersSame = inverterRequestHeaders.Count == homeBatterySocHeaders.Count
-                                            && !inverterRequestHeaders.Except(homeBatterySocHeaders).Any();
-        _logger.LogTrace("Home battery soc and inverter headers same: {value}", areinverterAndHomeBatterySocHeadersSame);
-
-        if (!string.IsNullOrEmpty(homeBatterySocRequestUrl)
-                                  && (!areGridAndHomeBatterySocRequestUrlSame
-                                      || !areinverterAndHomeBatterySocHeadersSame))
+        HttpRequestMessage? homeBatterySocRequest = default;
+        HttpResponseMessage? homeBatterySocHttpResponse = default;
+        if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl))
         {
-            _logger.LogTrace("Send another request for home battery soc");
-            gridHttpResponse = await GetHttpResponse(homeBatterySocRequestUrl, homeBatterySocHeaders).ConfigureAwait(false);
-        }
-
-        if (!gridHttpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatterySocRequestUrl))
-        {
-            _settings.HomeBatterySoc = null;
-            if (!string.IsNullOrEmpty(homeBatterySocRequestUrl))
+            var homeBatterySocHeaders = _configurationWrapper.HomeBatterySocHeaders();
+            homeBatterySocRequest = GenerateHttpRequestMessage(homeBatterySocRequestUrl, homeBatterySocHeaders);
+            if (IsSameRequest(gridRequest, homeBatterySocRequest))
             {
-                _logger.LogError("Could not get current home battery soc. {statusCode}, {reasonPhrase}", gridHttpResponse.StatusCode,
-                    gridHttpResponse.ReasonPhrase);
-                await _telegramService.SendMessage(
-                    $"Getting current home battery soc did result in statuscode {gridHttpResponse.StatusCode} with reason {gridHttpResponse.ReasonPhrase}").ConfigureAwait(false);
+                homeBatterySocHttpResponse = gridHttpResponse;
             }
-        }
-        else
-        {
-            _settings.HomeBatterySoc = await _gridService.GetCurrentHomeBatterySoc(gridHttpResponse).ConfigureAwait(false);
+            else if (inverterRequest != default && IsSameRequest(inverterRequest, homeBatterySocRequest))
+            {
+                homeBatterySocHttpResponse = inverterHttpResponse;
+            }
+            else
+            {
+                homeBatterySocHttpResponse = await GetHttpResponse(homeBatterySocRequest).ConfigureAwait(false);
+            }
+            var homeBatterySocJsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
+            var homeBatterySocXmlPattern = _configurationWrapper.HomeBatterySocXmlPattern();
+            var homeBatterySocCorrectionFactor = (double)_configurationWrapper.HomeBatterySocCorrectionFactor();
+            var homeBatterySoc = await GetValueByHttpResponse(homeBatterySocHttpResponse, homeBatterySocJsonPattern, homeBatterySocXmlPattern, homeBatterySocCorrectionFactor).ConfigureAwait(false);
+            _settings.HomeBatterySoc = homeBatterySoc;
         }
 
         var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
-        var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
-
-        var areHomeBatterySocAndHomeBatteryPowerRequestUrlSame = string.Equals(homeBatterySocRequestUrl, homeBatteryPowerRequestUrl,
-            StringComparison.InvariantCultureIgnoreCase);
-        _logger.LogTrace("Home battery power and home battery soc request urls same: {value}", areHomeBatterySocAndHomeBatteryPowerRequestUrlSame);
-
-        var areHomeBatteryPowerAndGridHeadersSame = homeBatterySocHeaders.Count == homeBatteryPowerHeaders.Count
-                                                    && !homeBatterySocHeaders.Except(homeBatteryPowerHeaders).Any();
-        _logger.LogTrace("Home battery power and home battery soc headers same: {value}", areHomeBatteryPowerAndGridHeadersSame);
-
-        if (!string.IsNullOrEmpty(homeBatteryPowerRequestUrl)
-                                  && (!areHomeBatterySocAndHomeBatteryPowerRequestUrlSame
-                                      || !areHomeBatteryPowerAndGridHeadersSame))
+        HttpRequestMessage? homeBatteryPowerRequest = default;
+        HttpResponseMessage? homeBatteryPowerHttpResponse = default;
+        if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl))
         {
-            _logger.LogTrace("Send another request for home battery power");
-            gridHttpResponse = await GetHttpResponse(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders).ConfigureAwait(false);
-        }
-
-        if (!gridHttpResponse.IsSuccessStatusCode || string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
-        {
-            _settings.HomeBatteryPower = null;
-            if (!string.IsNullOrEmpty(homeBatteryPowerRequestUrl))
+            var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
+            homeBatteryPowerRequest = GenerateHttpRequestMessage(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders);
+            if (IsSameRequest(gridRequest, homeBatteryPowerRequest))
             {
-                _logger.LogError("Could not get current home battery power. {statusCode}, {reasonPhrase}", gridHttpResponse.StatusCode,
-                    gridHttpResponse.ReasonPhrase);
-                await _telegramService.SendMessage(
-                    $"Getting current home battery power did result in statuscode {gridHttpResponse.StatusCode} with reason {gridHttpResponse.ReasonPhrase}").ConfigureAwait(false);
+                homeBatteryPowerHttpResponse = gridHttpResponse;
             }
+            else if (inverterRequest != default && IsSameRequest(inverterRequest, homeBatteryPowerRequest))
+            {
+                homeBatteryPowerHttpResponse = inverterHttpResponse;
+            }
+            else if (homeBatterySocRequest != default && IsSameRequest(homeBatterySocRequest, homeBatteryPowerRequest))
+            {
+                homeBatteryPowerHttpResponse = homeBatterySocHttpResponse;
+            }
+            else
+            {
+                homeBatteryPowerHttpResponse = await GetHttpResponse(homeBatteryPowerRequest).ConfigureAwait(false);
+            }
+            var homeBatteryPowerJsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
+            var homeBatteryPowerXmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
+            var homeBatteryPowerCorrectionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
+            var homeBatteryPower = await GetValueByHttpResponse(homeBatteryPowerHttpResponse, homeBatteryPowerJsonPattern, homeBatteryPowerXmlPattern, homeBatteryPowerCorrectionFactor).ConfigureAwait(false);
+            _settings.HomeBatteryPower = homeBatteryPower;
         }
-        else
-        {
-            _settings.HomeBatteryPower = await _gridService.GetCurrentHomeBatteryPower(gridHttpResponse).ConfigureAwait(false);
-        }
-
-
     }
 
-    private async Task<int?> GetOverageByGridResponse(HttpResponseMessage gridHttpResponse)
+    private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern, double correctionFactor)
     {
-        int? overage;
-        if (!gridHttpResponse.IsSuccessStatusCode)
+        int? intValue;
+        if (httpResponse == null)
         {
-            overage = null;
-            _logger.LogError("Could not get current overage. {statusCode}, {reasonPhrase}", gridHttpResponse.StatusCode,
-                gridHttpResponse.ReasonPhrase);
+            _logger.LogError("HttpResponse is null, extraction of value is not possible");
+            return null;
+        }
+        if (!httpResponse.IsSuccessStatusCode)
+        {
+            intValue = null;
+            _logger.LogError("Could not get value. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+                httpResponse.ReasonPhrase);
             await _telegramService.SendMessage(
-                    $"Getting current grid power did result in statuscode {gridHttpResponse.StatusCode} with reason {gridHttpResponse.ReasonPhrase}")
+                    $"Getting value did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}")
                 .ConfigureAwait(false);
         }
         else
         {
-            overage = await _gridService.GetCurrentOverage(gridHttpResponse).ConfigureAwait(false);
+            intValue = await GetIntegerValue(httpResponse, jsonPattern, xmlPattern, correctionFactor).ConfigureAwait(false);
         }
 
-        return overage;
+        return intValue;
     }
 
     private async Task<HttpResponseMessage> GetHttpResponse(HttpRequestMessage request)
@@ -266,5 +245,120 @@ public class PvValueService : IPvValueService
 
 
         return true;
+    }
+
+
+
+    public async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    {
+        _logger.LogTrace("{method}({jsonPattern}, {xmlPattern}, {correctionFactor})",
+            nameof(GetIntegerValue), jsonPattern, xmlPattern, correctionFactor);
+
+        var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        var pattern = "";
+        var nodePatternType = DecideNodePatternType(jsonPattern, xmlPattern);
+
+        if (nodePatternType == NodePatternType.Json)
+        {
+            pattern = jsonPattern;
+        }
+        else if (nodePatternType == NodePatternType.Xml)
+        {
+            pattern = xmlPattern;
+        }
+
+        var doubleValue = GetValueFromResult(pattern, result, nodePatternType, true);
+
+        return (int?)(doubleValue * correctionFactor);
+    }
+
+    internal NodePatternType DecideNodePatternType(string? jsonPattern, string? xmlPattern)
+    {
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(DecideNodePatternType), jsonPattern, xmlPattern);
+        NodePatternType nodePatternType;
+        if (!jsonPattern.IsNullOrWhiteSpace())
+        {
+            nodePatternType = NodePatternType.Json;
+        }
+        else if (!xmlPattern.IsNullOrWhiteSpace())
+        {
+            nodePatternType = NodePatternType.Xml;
+        }
+        else
+        {
+            nodePatternType = NodePatternType.None;
+        }
+        _logger.LogDebug("Node pattern type is {nodePatternType}", nodePatternType);
+        return nodePatternType;
+    }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="pattern"></param>
+    /// <param name="result"></param>
+    /// <param name="patternType"></param>
+    /// <param name="isGridValue">true if grid meter value is requested, false if inverter value is requested</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
+    internal double GetValueFromResult(string? pattern, string result, NodePatternType patternType, bool isGridValue)
+    {
+        switch (patternType)
+        {
+            case NodePatternType.Json:
+                _logger.LogDebug("Extract overage value from json {result} with {pattern}", result, pattern);
+                result = (JObject.Parse(result).SelectToken(pattern ?? throw new ArgumentNullException(nameof(pattern))) ??
+                          throw new InvalidOperationException("Could not find token by pattern")).Value<string>() ?? throw new InvalidOperationException("Extracted Json Value is null");
+                break;
+            case NodePatternType.Xml:
+                _logger.LogDebug("Extract overage value from xml {result} with {pattern}", result, pattern);
+                var xmlDocument = new XmlDocument();
+                xmlDocument.LoadXml(result);
+                var nodes = xmlDocument.SelectNodes(pattern ?? throw new ArgumentNullException(nameof(pattern))) ?? throw new InvalidOperationException("Could not find any nodes by pattern");
+                switch (nodes.Count)
+                {
+                    case < 1:
+                        throw new InvalidOperationException($"Could not find any nodes with pattern {pattern}");
+                    case > 2:
+                        var xmlAttributeHeaderName = (isGridValue
+                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName()
+                            : _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName())
+                              ?? throw new InvalidOperationException("Could not get xmlAttributeHeaderName");
+
+                        var xmlAttributeHeaderValue = (isGridValue
+                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue()
+                            : _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue())
+                              ?? throw new InvalidOperationException("Could not get xmlAttributeHeaderValue");
+
+                        var xmlAttributeValueName = (isGridValue
+                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeValueName()
+                            : _configurationWrapper.CurrentInverterPowerXmlAttributeValueName())
+                              ?? throw new InvalidOperationException("Could not get xmlAttributeValueName");
+
+                        for (var i = 0; i < nodes.Count; i++)
+                        {
+                            if (nodes[i]?.Attributes?[xmlAttributeHeaderName]?.Value == xmlAttributeHeaderValue)
+                            {
+                                result = nodes[i]?.Attributes?[xmlAttributeValueName]?.Value ?? "0";
+                                break;
+                            }
+                        }
+                        break;
+                    case 1:
+                        result = nodes[0]?.LastChild?.Value ?? "0";
+                        break;
+                }
+                break;
+        }
+
+        return GetdoubleFromStringResult(result);
+    }
+
+    internal double GetdoubleFromStringResult(string? inputString)
+    {
+        _logger.LogTrace("{method}({param})", nameof(GetdoubleFromStringResult), inputString);
+        return double.Parse(inputString ?? throw new ArgumentNullException(nameof(inputString)), CultureInfo.InvariantCulture);
     }
 }
