@@ -1,5 +1,6 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
+@using System.Timers
 @inject HttpClient HttpClient
 
 @if (_issues?.Count > 0)
@@ -28,9 +29,26 @@
 
 @code {
     private List<Issue>? _issues;
+    private Timer? _timer;
 
     protected override async Task OnInitializedAsync()
     {
+        await UpdateIssues().ConfigureAwait(false);
+
+        _timer = new Timer();
+        _timer.Interval = 10000;
+        _timer.Elapsed += Refresh;
+        _timer.Start();
+    }
+
+    private void Refresh(object? sender, ElapsedEventArgs e)
+    {
+        UpdateIssues().GetAwaiter().GetResult();
+    }
+
+    private async Task UpdateIssues()
+    {
         _issues = await HttpClient.GetFromJsonAsync<List<Issue>>("api/Issue/RefreshIssues").ConfigureAwait(false);
     }
+
 }

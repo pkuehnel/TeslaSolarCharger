@@ -1,6 +1,7 @@
 ﻿using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 
@@ -16,11 +17,12 @@ public class IssueValidationService : IIssueValidationService
     private readonly IPossibleIssues _possibleIssues;
     private readonly IssueKeys _issueKeys;
     private readonly GlobalConstants _globalConstants;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     public IssueValidationService(ILogger<IssueValidationService> logger,
         ITeslaService teslaService, IPvValueService pvValueService, ISettings settings,
         IMqttService mqttService, IPossibleIssues possibleIssues, IssueKeys issueKeys,
-        GlobalConstants globalConstants)
+        GlobalConstants globalConstants, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _teslaService = teslaService;
@@ -30,6 +32,7 @@ public class IssueValidationService : IIssueValidationService
         _possibleIssues = possibleIssues;
         _issueKeys = issueKeys;
         _globalConstants = globalConstants;
+        _configurationWrapper = configurationWrapper;
     }
 
     public List<Issue> RefreshIssues()
@@ -37,6 +40,7 @@ public class IssueValidationService : IIssueValidationService
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
         var issueList = new List<Issue>();
         issueList.AddRange(GetMqttIssues());
+        issueList.AddRange(PvValueIssues());
         return issueList;
     }
 
@@ -54,9 +58,41 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocLimitNotReadable));
         }
 
-        if (_settings.Cars.Any(c => c.CarState.SoC == null || c.CarState.SoC < _globalConstants.MinSocLimit))
+        if (_settings.Cars.Any(c => c.CarState.SoC == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocNotReadable));
+        }
+
+        return issues;
+    }
+
+    private List<Issue> PvValueIssues()
+    {
+        _logger.LogTrace("{method}()", nameof(GetMqttIssues));
+        var issues = new List<Issue>();
+        if (_settings.Overage == null)
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.GridPowerNotAvailable));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_configurationWrapper.CurrentInverterPowerUrl()) && _settings.InverterPower == null)
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.InverterPowerNotAvailable));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()) && _settings.HomeBatterySoc == null)
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotAvailable));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()) && _settings.HomeBatterySoc != null && (_settings.HomeBatterySoc > 100 || _settings.HomeBatterySoc < 0))
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotPlausible));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerUrl()) && _settings.HomeBatteryPower == null)
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryPowerNotAvailable));
         }
 
         return issues;
