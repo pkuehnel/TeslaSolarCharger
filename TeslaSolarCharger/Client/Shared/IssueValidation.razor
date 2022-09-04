@@ -49,6 +49,7 @@
     private async Task UpdateIssues()
     {
         _issues = await HttpClient.GetFromJsonAsync<List<Issue>>("api/Issue/RefreshIssues").ConfigureAwait(false);
+        this.StateHasChanged();
     }
 
 }
