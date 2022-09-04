@@ -3,5 +3,6 @@
 public class IssueKeys
 {
     public string MqttNotConnected = "MqttNotConnected";
-    public string SocLimitNotReadable = "SocLimitNotReadable";
+    public string CarSocLimitNotReadable = "CarSocLimitNotReadable";
+    public string CarSocNotReadable = "CarSocNotReadable";
 }

@@ -20,14 +20,22 @@ public class PossibleIssues : IPossibleIssues
                     )
             },
             {
-                issueKeys.SocLimitNotReadable, CreateIssue("Charging limit of at least one car is not available",
+                issueKeys.CarSocLimitNotReadable, CreateIssue("Charging limit of at least one car is not available",
                     IssueType.Error,
                     "Restart TeslaMate container",
                     "Wake up cars via Tesla App",
                     "Change Charging limit of cars",
                     "Are all car IDs configured in Base Configuration available in your Tesla Account?"
                     )
-            }
+            },
+            {
+                issueKeys.CarSocNotReadable, CreateIssue("SoC of at least one car is not available",
+                    IssueType.Error,
+                    "Restart TeslaMate container",
+                    "Wake up cars via Tesla App",
+                    "Are all car IDs configured in Base Configuration available in your Tesla Account?"
+                )
+            },
         };
     }
 

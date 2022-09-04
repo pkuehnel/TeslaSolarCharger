@@ -51,7 +51,12 @@ public class IssueValidationService : IIssueValidationService
 
         if (_settings.Cars.Any(c => c.CarState.SocLimit == null || c.CarState.SocLimit < _globalConstants.MinSocLimit))
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.SocLimitNotReadable));
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocLimitNotReadable));
+        }
+
+        if (_settings.Cars.Any(c => c.CarState.SoC == null || c.CarState.SoC < _globalConstants.MinSocLimit))
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocNotReadable));
         }
 
         return issues;
