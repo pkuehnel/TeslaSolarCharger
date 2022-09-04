@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -18,11 +19,12 @@ public class ChargingService : IChargingService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IPvValueService _pvValueService;
     private readonly IMqttService _mqttService;
+    private readonly GlobalConstants _globalConstants;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        IMqttService mqttService)
+        IMqttService mqttService, GlobalConstants globalConstants)
     {
         _logger = logger;
         _settings = settings;
@@ -32,6 +34,7 @@ public class ChargingService : IChargingService
         _configurationWrapper = configurationWrapper;
         _pvValueService = pvValueService;
         _mqttService = mqttService;
+        _globalConstants = globalConstants;
     }
 
     public async Task SetNewChargingValues()
@@ -48,7 +51,7 @@ public class ChargingService : IChargingService
             _logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
         }
 
-        await WakeupCarsWithUnknownSocLimit(_settings.Cars).ConfigureAwait(false);
+        await LogErrorForCarsWithUnknownSocLimit(_settings.Cars).ConfigureAwait(false);
 
         var relevantCarIds = GetRelevantCarIds(geofence);
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
@@ -162,7 +165,7 @@ public class ChargingService : IChargingService
         return _settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)).ToList();
     }
 
-    private async Task WakeupCarsWithUnknownSocLimit(List<Car> cars)
+    private async Task LogErrorForCarsWithUnknownSocLimit(List<Car> cars)
     {
         foreach (var car in cars)
         {
@@ -173,16 +176,15 @@ public class ChargingService : IChargingService
                  car.CarState.State == CarStateEnum.Asleep ||
                  car.CarState.State == CarStateEnum.Offline))
             {
-                _logger.LogWarning("Unknown charge limit of car {carId}. Waking up car.", car.Id);
-                await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}. Waking up car.").ConfigureAwait(false);
-                await _teslaService.WakeUpCar(car.Id).ConfigureAwait(false);
+                _logger.LogWarning("Unknown charge limit of car {carId}.", car.Id);
+                await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}.").ConfigureAwait(false);
             }
         }
     }
 
     private bool IsSocLimitUnknown(Car car)
     {
-        return car.CarState.SocLimit == null || car.CarState.SocLimit < 50;
+        return car.CarState.SocLimit == null || car.CarState.SocLimit < _globalConstants.MinSocLimit;
     }
 
 

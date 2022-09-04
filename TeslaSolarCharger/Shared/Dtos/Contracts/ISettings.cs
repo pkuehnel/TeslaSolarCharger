@@ -9,4 +9,5 @@ public interface ISettings
     List<Car> Cars { get; set; }
     int? HomeBatterySoc { get; set; }
     int? HomeBatteryPower { get; set; }
+    List<Issue> ActiveIssues { get; set; }
 }

@@ -12,6 +12,8 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Resources;
+using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Contracts;
@@ -43,7 +45,6 @@ builder.Services
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
     .AddTransient<IChargingService, ChargingService>()
-    .AddTransient<IGridService, GridService>()
     .AddTransient<IConfigService, ConfigService>()
     .AddTransient<IConfigJsonService, ConfigJsonService>()
     .AddTransient<IDateTimeProvider, DateTimeProvider>()
@@ -69,6 +70,10 @@ builder.Services
     }, ServiceLifetime.Transient, ServiceLifetime.Transient)
     .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
     .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
+    .AddSingleton<IPossibleIssues, PossibleIssues>()
+    .AddTransient<IIssueValidationService, IssueValidationService>()
+    .AddSingleton<IssueKeys>()
+    .AddSingleton<GlobalConstants>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
