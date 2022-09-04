@@ -4,5 +4,5 @@ namespace TeslaSolarCharger.Server.Contracts;
 
 public interface IIssueValidationService
 {
-    List<Issue> RefreshIssues();
+    Task<List<Issue>> RefreshIssues();
 }
