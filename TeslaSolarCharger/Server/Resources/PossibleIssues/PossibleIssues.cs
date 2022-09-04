@@ -52,22 +52,49 @@ public class PossibleIssues : IPossibleIssues
             },
             {
                 issueKeys.HomeBatterySocNotAvailable, CreateIssue("Home battery soc is not available",
-                    IssueType.Warning,
+                    IssueType.Error,
                     "Are all settings related to home battery soc (url, extraction patterns, headers,...) correct?",
                     "Are there any firewall related issues preventing reading the home battery soc value?"
                 )
             },
             {
                 issueKeys.HomeBatterySocNotPlausible, CreateIssue("Home battery soc is not plausible",
-                    IssueType.Warning,
+                    IssueType.Error,
                     "Change the correction factor. Soc needs to be a value between 0 and 100."
                 )
             },
             {
                 issueKeys.HomeBatteryPowerNotAvailable, CreateIssue("Home battery power is not available",
-                    IssueType.Warning,
+                    IssueType.Error,
                     "Are all settings related to home battery power (url, extraction patterns, headers,...) correct?",
                     "Are there any firewall related issues preventing reading the home battery power value?"
+                )
+            },
+            {
+                issueKeys.TeslaMateApiNotAvailable, CreateIssue("Could not access TeslaMateApi",
+                    IssueType.Error,
+                    "Is the TeslaMateApi container running",
+                    "Is the TeslaMateApi service name in your docker-compose.yml the same as configured in the Base Configuration Page?"
+                )
+            },
+            {
+                issueKeys.DatabaseNotAvailable, CreateIssue("Could not access Database",
+                    IssueType.Warning,
+                    "Is the database container running",
+                    "Is the database service name in your docker-compose.yml the same as configured in the Base Configuration Page?",
+                    "Did you change the database username or password in your docker-compose.yml and not update it in the Base Configuration Page?"
+                )
+            },
+            {
+                issueKeys.GeofenceNotAvailable, CreateIssue("Configured Geofence is not available in TeslaMate. This results in TeslaSolarCharger never set anything",
+                    IssueType.Warning,
+                    "Add a geofence with the same name as configured in your Base Configuration to TeslaMate."
+                )
+            },
+            {
+                issueKeys.CarIdNotAvailable, CreateIssue("At least one of your configured car IDs is not available in TeslaMate.",
+                    IssueType.Error,
+                    "Update the car IDs in your Base Configuration to existing car IDs in TeslaMate."
                 )
             },
         };
