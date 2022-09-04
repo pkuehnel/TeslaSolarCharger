@@ -6,11 +6,10 @@ public class Issue
 {
     public Issue()
     {
-        IssueCode = string.Empty;
         IssueMessage = string.Empty;
     }
 
-    public string IssueCode { get; set; }
     public string IssueMessage { get; set; }
+    public string[] PossibleSolutions { get; set; } = new string[]{};
     public IssueType? IssueType { get; set; }
 }

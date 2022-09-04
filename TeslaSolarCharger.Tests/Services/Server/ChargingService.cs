@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Autofac;
+using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -89,7 +90,8 @@ public class ChargingService : TestBase
 
         var timeSpanToLatestTimeToReachMinSoc = TimeSpan.FromMinutes(60);
 
-        var minSoc = 50;
+        var globalContants = Mock.Create<GlobalConstants>();
+        var minSoc = globalContants.MinSocLimit;
 
         var car = CreateDemoCar(ChargeMode.PvAndMinSoc, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc + 10, minSoc, autoFullSpeedCharge);
 

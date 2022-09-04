@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -18,11 +19,12 @@ public class ChargingService : IChargingService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IPvValueService _pvValueService;
     private readonly IMqttService _mqttService;
+    private readonly GlobalConstants _globalConstants;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        IMqttService mqttService)
+        IMqttService mqttService, GlobalConstants globalConstants)
     {
         _logger = logger;
         _settings = settings;
@@ -32,6 +34,7 @@ public class ChargingService : IChargingService
         _configurationWrapper = configurationWrapper;
         _pvValueService = pvValueService;
         _mqttService = mqttService;
+        _globalConstants = globalConstants;
     }
 
     public async Task SetNewChargingValues()
@@ -182,7 +185,7 @@ public class ChargingService : IChargingService
 
     private bool IsSocLimitUnknown(Car car)
     {
-        return car.CarState.SocLimit == null || car.CarState.SocLimit < 50;
+        return car.CarState.SocLimit == null || car.CarState.SocLimit < _globalConstants.MinSocLimit;
     }
 
 
