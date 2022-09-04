@@ -590,7 +590,7 @@ To let the TeslaSolarCharger know how much power there is to charge the car you 
 ###### Using vendor specific plugins
 Note: In a future release these values will be filled in automatically, maybe it is already working and I just forgot to remove this section ;-)
 Depending on your used pluging you habe to paste one of the following URLs to the `Grid Power Url` field:
-* SMA Plugin: `http://smaplugin/api/CurrentPower/GetPower`
+* SMA Plugin: `http://<IP of your Docker host>:7192/api/CurrentPower/GetPower`
 * SolarEdge Plugin:
   - Grid Power: `http://solaredgeplugin/api/CurrentValues/GetPowerToGrid` 
   - Inverter Power: `http://solaredgeplugin/api/CurrentValues/GetInverterPower`
