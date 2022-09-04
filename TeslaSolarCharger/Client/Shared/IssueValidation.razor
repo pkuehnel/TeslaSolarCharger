@@ -1,0 +1,54 @@
+﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
+@using System.Timers
+@inject HttpClient HttpClient
+
+@if (_issues?.Count > 0)
+{
+    <div class="shadow p-3 mb-5 bg-white rounded">
+        <h3>Issues:</h3>
+        @foreach (var issue in _issues)
+        {
+            <div style="background-color: @(issue.IssueType == IssueType.Error ? "red" : "yellow")">
+                <div>@issue.IssueMessage</div>
+                @if (issue.PossibleSolutions.Length > 0)
+                {
+                    <div>Possible solutions:</div>
+                    <ul>
+                        @foreach (var solution in issue.PossibleSolutions)
+                        {
+                            <li>@solution</li>
+                        }
+                    </ul>
+                }
+            </div>
+        }
+    </div>
+}
+
+
+@code {
+    private List<Issue>? _issues;
+    private Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateIssues().ConfigureAwait(false);
+
+        _timer = new Timer();
+        _timer.Interval = 10000;
+        _timer.Elapsed += Refresh;
+        _timer.Start();
+    }
+
+    private void Refresh(object? sender, ElapsedEventArgs e)
+    {
+        UpdateIssues().GetAwaiter().GetResult();
+    }
+
+    private async Task UpdateIssues()
+    {
+        _issues = await HttpClient.GetFromJsonAsync<List<Issue>>("api/Issue/RefreshIssues").ConfigureAwait(false);
+    }
+
+}

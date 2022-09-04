@@ -1,0 +1,13 @@
+﻿namespace TeslaSolarCharger.Server.Resources.PossibleIssues;
+
+public class IssueKeys
+{
+    public string MqttNotConnected = "MqttNotConnected";
+    public string CarSocLimitNotReadable = "CarSocLimitNotReadable";
+    public string CarSocNotReadable = "CarSocNotReadable";
+    public string GridPowerNotAvailable = "GridPowerNotAvailable";
+    public string InverterPowerNotAvailable = "InverterPowerNotAvailable";
+    public string HomeBatterySocNotAvailable = "HomeBatterySocNotAvailable";
+    public string HomeBatterySocNotPlausible = "HomeBatterySocNotPlausible";
+    public string HomeBatteryPowerNotAvailable = "HomeBatteryPowerNotAvailable";
+}

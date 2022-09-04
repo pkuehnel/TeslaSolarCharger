@@ -15,6 +15,7 @@ public class Settings : ISettings
     public int? Overage { get; set; }
     public int? HomeBatterySoc { get; set; }
     public int? HomeBatteryPower { get; set; }
+    public List<Issue> ActiveIssues { get; set; } = new();
 
     public List<Car> Cars
     {
