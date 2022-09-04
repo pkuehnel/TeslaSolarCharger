@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http.Headers;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Quartz.Util;
 using System.Globalization;
 using System.Xml;
@@ -96,12 +95,11 @@ public class PvValueService : IPvValueService
         }
 
         var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
-        HttpRequestMessage? homeBatteryPowerRequest = default;
-        HttpResponseMessage? homeBatteryPowerHttpResponse = default;
         if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl))
         {
             var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
-            homeBatteryPowerRequest = GenerateHttpRequestMessage(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders);
+            var homeBatteryPowerRequest = GenerateHttpRequestMessage(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders);
+            HttpResponseMessage? homeBatteryPowerHttpResponse;
             if (IsSameRequest(gridRequest, homeBatteryPowerRequest))
             {
                 homeBatteryPowerHttpResponse = gridHttpResponse;
