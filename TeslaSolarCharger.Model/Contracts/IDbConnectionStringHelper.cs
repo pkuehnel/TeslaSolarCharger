@@ -2,5 +2,6 @@
 
 public interface IDbConnectionStringHelper
 {
-    string GetConnectionString();
+    string GetTeslaMateConnectionString();
+    string GetTeslaSolarChargerDbPath();
 }

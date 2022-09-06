@@ -31,6 +31,15 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return Path.Combine(configFileDirectory, value);
     }
 
+    public string SqliteFileFullName()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "SqliteFileName";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
     public string BaseConfigFileFullName()
     {
         var configFileDirectory = ConfigFileDirectory();

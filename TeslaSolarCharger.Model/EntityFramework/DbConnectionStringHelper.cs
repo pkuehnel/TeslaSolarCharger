@@ -15,9 +15,9 @@ public class DbConnectionStringHelper : IDbConnectionStringHelper
         _configurationWrapper = configurationWrapper;
     }
 
-    public string GetConnectionString()
+    public string GetTeslaMateConnectionString()
     {
-        _logger.LogTrace("{method}()", nameof(GetConnectionString));
+        _logger.LogTrace("{method}()", nameof(GetTeslaMateConnectionString));
         var server = _configurationWrapper.TeslaMateDbServer();
         var port = _configurationWrapper.TeslaMateDbPort();
         var databaseName = _configurationWrapper.TeslaMateDbDatabaseName();
@@ -26,5 +26,11 @@ public class DbConnectionStringHelper : IDbConnectionStringHelper
         var connectionString = $"Host={server};Port={port};Database={databaseName};Username={username};Password={password}";
         _logger.LogTrace("ConnectionString: {connectionString}", connectionString);
         return connectionString;
+    }
+
+    public string GetTeslaSolarChargerDbPath()
+    {
+        _logger.LogTrace("{method}()", nameof(GetTeslaSolarChargerDbPath));
+        return _configurationWrapper.SqliteFileFullName();
     }
 }

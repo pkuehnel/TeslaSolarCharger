@@ -63,7 +63,13 @@ builder.Services
     .AddTransient<IDbConnectionStringHelper, DbConnectionStringHelper>()
     .AddDbContext<ITeslamateContext, TeslamateContext>((provider, options) =>
     {
-        options.UseNpgsql(provider.GetRequiredService<IDbConnectionStringHelper>().GetConnectionString());
+        options.UseNpgsql(provider.GetRequiredService<IDbConnectionStringHelper>().GetTeslaMateConnectionString());
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }, ServiceLifetime.Transient, ServiceLifetime.Transient)
+    .AddDbContext<ITeslaSolarChargerContext, TeslaSolarChargerContext>((provider, options) =>
+    {
+        options.UseSqlite(provider.GetRequiredService<IDbConnectionStringHelper>().GetTeslaSolarChargerDbPath());
         options.EnableSensitiveDataLogging();
         options.EnableDetailedErrors();
     }, ServiceLifetime.Transient, ServiceLifetime.Transient)
