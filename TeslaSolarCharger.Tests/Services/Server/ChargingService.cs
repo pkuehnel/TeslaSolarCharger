@@ -141,11 +141,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
+                    SocLimit = 60,
                 },
             },
             new Car()
@@ -158,11 +158,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
+                    SocLimit = 60,
                 },
             },
             new Car()
@@ -175,11 +175,12 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
+                    
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = false,
+                    SocLimit = 60,
                 },
             },
         };
@@ -208,11 +209,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
+                    SocLimit = 60,
                 },
             },
             new Car()
@@ -225,11 +226,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
+                    SocLimit = 60,
                 },
             },
             new Car()
@@ -242,11 +243,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = false,
+                    SocLimit = 60,
                 },
             },
         };

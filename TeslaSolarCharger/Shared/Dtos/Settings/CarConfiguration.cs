@@ -12,6 +12,7 @@ public class CarConfiguration
     private int _minimumAmpere;
     private int _usableEnergy;
     private bool? _shouldBeManaged;
+    private int? _socLimit;
 
     public CarConfiguration()
     {
@@ -31,6 +32,17 @@ public class CarConfiguration
             UpdatedSincLastWrite = true;
         }
     }
+
+    public int? SocLimit
+    {
+        get => _socLimit;
+        set
+        {
+            _socLimit = value;
+            UpdatedSincLastWrite = true;
+        }
+    }
+
 
     public int MinimumSoC
     {

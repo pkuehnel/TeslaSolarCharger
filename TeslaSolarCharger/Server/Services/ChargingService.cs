@@ -184,7 +184,7 @@ public class ChargingService : IChargingService
 
     private bool IsSocLimitUnknown(Car car)
     {
-        return car.CarState.SocLimit == null || car.CarState.SocLimit < _globalConstants.MinSocLimit;
+        return car.CarConfiguration.SocLimit == null || car.CarConfiguration.SocLimit < _globalConstants.MinSocLimit;
     }
 
 
@@ -197,7 +197,7 @@ public class ChargingService : IChargingService
                 && c.CarState.PluggedIn == true
                 && (c.CarState.ClimateOn == true ||
                     c.CarState.ChargerActualCurrent > 0 ||
-                    c.CarState.SoC < c.CarState.SocLimit - 2))
+                    c.CarState.SoC < c.CarConfiguration.SocLimit - 2))
             .Select(c => c.Id)
             .ToList();
 
@@ -263,7 +263,7 @@ public class ChargingService : IChargingService
                 {
                     //Do not start charging when battery level near charge limit
                     if (car.CarState.SoC >=
-                        car.CarState.SocLimit - 2)
+                        car.CarConfiguration.SocLimit - 2)
                     {
                         return 0;
                     }

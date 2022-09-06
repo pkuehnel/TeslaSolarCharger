@@ -31,6 +31,7 @@ public class PossibleIssues : IPossibleIssues
             {
                 issueKeys.CarSocNotReadable, CreateIssue("SoC of at least one car is not available",
                     IssueType.Error,
+                    "Is the database running? If not start the database container and then restart TeslaSolarCharger.",
                     "Restart TeslaMate container",
                     "Wake up cars via Tesla App",
                     "Are all car IDs configured in Base Configuration available in your Tesla Account?"

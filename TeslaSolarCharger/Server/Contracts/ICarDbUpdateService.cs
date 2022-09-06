@@ -2,5 +2,5 @@
 
 public interface ICarDbUpdateService
 {
-    Task UpdateCarsFromDatabase();
+    Task UpdateMissingCarDataFromDatabase();
 }
