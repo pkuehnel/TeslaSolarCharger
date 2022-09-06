@@ -68,6 +68,7 @@ public class ChargingService : IChargingService
 
         if (relevantCarIds.Count < 1)
         {
+            _settings.ControlledACarAtLastCycle = false;
             return;
         }
 
@@ -118,6 +119,16 @@ public class ChargingService : IChargingService
         }
 
         var powerToControl = overage;
+
+        if (!_settings.ControlledACarAtLastCycle && powerToControl < 690)
+        {
+            foreach (var relevantCar in relevantCars)
+            {
+                relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
+            }
+        }
+
+        _settings.ControlledACarAtLastCycle = true;
         
         _logger.LogDebug("Power to control: {power}", powerToControl);
 
