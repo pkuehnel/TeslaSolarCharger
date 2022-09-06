@@ -50,7 +50,7 @@ else
             {
                 <i class="fa-solid fa-circle-exclamation"></i>
             }
-            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
+            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarConfiguration.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
             <label class="col-5 col-sm-4 col-md-3 col-lg-2">@car.CarConfiguration.ChargeMode.ToFriendlyString()</label> <button class="btn btn-primary col-6 col-sm-6 col-md-3 col-lg-2" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
             {
@@ -179,7 +179,7 @@ else
                         SoC Limit
                     </td>
                     <td>
-                        @car.CarState.SocLimit
+                        @car.CarConfiguration.SocLimit
                     </td>
                 </tr>
                 <tr>

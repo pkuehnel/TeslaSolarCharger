@@ -8,7 +8,6 @@ public class CarState
     public DateTime? ShouldStartChargingSince { get; set; }
     public DateTime? ShouldStopChargingSince { get; set; }
     public int? SoC { get; set; }
-    public int? SocLimit { get; set; }
     public string? Geofence { get; set; }
     public TimeSpan? TimeUntilFullCharge { get; set; }
     public DateTime? ReachingMinSocAtFullSpeedCharge { get; set; }
