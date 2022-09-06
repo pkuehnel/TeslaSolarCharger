@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.Model.Entities
+﻿namespace TeslaSolarCharger.Model.Entities.TeslaMate
 {
     public class Drive
     {

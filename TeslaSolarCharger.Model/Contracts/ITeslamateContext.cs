@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TeslaSolarCharger.Model.Entities;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 
 namespace TeslaSolarCharger.Model.Contracts;
 
