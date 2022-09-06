@@ -10,4 +10,5 @@ public interface ISettings
     int? HomeBatterySoc { get; set; }
     int? HomeBatteryPower { get; set; }
     List<Issue> ActiveIssues { get; set; }
+    bool ControlledACarAtLastCycle { get; set; }
 }
