@@ -40,7 +40,6 @@ builder.Services
     .AddTransient<ConfigJsonUpdateJob>()
     .AddTransient<ChargeTimeUpdateJob>()
     .AddTransient<PvValueJob>()
-    .AddTransient<CarDbUpdateJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -103,6 +102,9 @@ await telegramService.SendMessage("Application starting up").ConfigureAwait(fals
 var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
 
 await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
+
+var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
+await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
 
 var mqttHelper = app.Services.GetRequiredService<IMqttService>();
 
