@@ -184,4 +184,20 @@ public class ChargingCostService : IChargingCostService
             }
         }
     }
+
+    public async Task<DtoChargeSummary> GetChargeSummary(int carId)
+    {
+        var handledCharges = await _teslaSolarChargerContext.HandledCharges
+            .Where(h => h.CalculatedPrice != null && h.CarId == carId)
+            .ToListAsync().ConfigureAwait(false);
+
+        var dtoChargeSummary = new DtoChargeSummary()
+        {
+            CarId = carId,
+            ChargeCost = (decimal)handledCharges.Sum(h => h.CalculatedPrice),
+            ChargedGridEnergy = (decimal)handledCharges.Sum(h => h.UsedGridEnergy),
+            ChargedSolarEnergy = (decimal)handledCharges.Sum(h => h.UsedSolarEnergy),
+        };
+        return dtoChargeSummary;
+    }
 }
