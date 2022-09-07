@@ -35,6 +35,7 @@ public class JobManager
         var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
         var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
+        var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
 
         var jobIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
@@ -56,6 +57,9 @@ public class JobManager
         var powerDistributionAddTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(16)).Build();
 
+        var handledChargeFinalizingTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(9)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
@@ -63,6 +67,7 @@ public class JobManager
             {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
+            {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

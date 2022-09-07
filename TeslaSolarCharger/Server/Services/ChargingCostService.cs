@@ -85,7 +85,7 @@ public class ChargingCostService : IChargingCostService
         }
         var powerDistribution = new PowerDistribution()
         {
-            CharingPower = (int)chargingPower,
+            ChargingPower = (int)chargingPower,
             PowerFromGrid = (int)powerFromGrid,
             TimeStamp = _dateTimeProvider.UtcNow(),
         };
@@ -106,13 +106,10 @@ public class ChargingCostService : IChargingCostService
                 return;
             }
 
-            var currentChargePriceId = await _teslaSolarChargerContext.ChargePrices
-                .Where(cp => cp.ValidSince < _dateTimeProvider.UtcNow())
-                .OrderByDescending(cp => cp.ValidSince)
-                .Select(cp => cp.Id)
-                .FirstOrDefaultAsync().ConfigureAwait(false);
+            var relevantDateTime = _dateTimeProvider.UtcNow();
+            var currentChargePrice = await CurrentChargePrice(relevantDateTime).ConfigureAwait(false);
 
-            if (currentChargePriceId == default)
+            if (currentChargePrice == default)
             {
                 _logger.LogWarning("No valid chargeprice is defined");
                 return;
@@ -122,7 +119,7 @@ public class ChargingCostService : IChargingCostService
             {
                 CarId = carId,
                 ChargingProcessId = latestOpenChargingProcessId,
-                ChargePriceId = currentChargePriceId,
+                ChargePriceId = currentChargePrice.Id,
             };
         }
 
@@ -139,5 +136,50 @@ public class ChargingCostService : IChargingCostService
         }
         _teslaSolarChargerContext.PowerDistributions.Add(powerDistribution);
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private async Task<ChargePrice?> CurrentChargePrice(DateTime relevantDateTime)
+    {
+        var currentChargePrice = await _teslaSolarChargerContext.ChargePrices
+            .Where(cp => cp.ValidSince < relevantDateTime)
+            .OrderByDescending(cp => cp.ValidSince)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        return currentChargePrice;
+    }
+
+    public async Task FinalizeHandledCharges()
+    {
+        _logger.LogTrace("{method}()", nameof(FinalizeHandledCharges));
+        var openHandledCharges = await _teslaSolarChargerContext.HandledCharges
+            .Where(h => h.CalculatedPrice == null)
+            .ToListAsync().ConfigureAwait(false);
+
+        var chargingProcessesOfOpenHandledCharges = await _teslamateContext.ChargingProcesses
+            .Where(c => openHandledCharges.Select(h => h.ChargingProcessId).Contains(c.Id)
+                        && c.EndDate != null)
+            .ToListAsync().ConfigureAwait(false);
+
+        foreach (var openHandledCharge in openHandledCharges)
+        {
+            var chargingProcess = chargingProcessesOfOpenHandledCharges.FirstOrDefault(c => c.Id == openHandledCharge.ChargingProcessId);
+            if (chargingProcess == default)
+            {
+                continue;
+            }
+            //ToDo: maybe calculate based on time differences in the future
+            var gridProportionAverage = await _teslaSolarChargerContext.PowerDistributions
+                .Where(p => p.HandledChargeId == openHandledCharge.Id)
+                .Select(p => p.GridProportion)
+                .AverageAsync().ConfigureAwait(false);
+            openHandledCharge.UsedGridEnergy = chargingProcess.ChargeEnergyUsed * (decimal?)gridProportionAverage;
+            openHandledCharge.UsedSolarEnergy = chargingProcess.ChargeEnergyUsed * ( 1 - (decimal?)gridProportionAverage);
+            var price = await CurrentChargePrice(chargingProcess.StartDate).ConfigureAwait(false);
+            if (price != default)
+            {
+                openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
+                                                    price.SolarPrice * openHandledCharge.UsedSolarEnergy;
+                await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            }
+        }
     }
 }

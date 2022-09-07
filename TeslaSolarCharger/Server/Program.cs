@@ -41,6 +41,7 @@ builder.Services
     .AddTransient<ChargeTimeUpdateJob>()
     .AddTransient<PvValueJob>()
     .AddTransient<PowerDistributionAddJob>()
+    .AddTransient<HandledChargeFinalizingJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()

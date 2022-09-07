@@ -3,11 +3,15 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Autofac;
 using Autofac.Extras.Moq;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Shared.TimeProviding;
 using Xunit.Abstractions;
 
@@ -18,6 +22,10 @@ public class TestBase : IDisposable
     private static readonly ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)> LoggerFactoryCache = new();
 
     protected readonly AutoMock Mock;
+
+    protected readonly ITeslaSolarChargerContext _ctx;
+
+    private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
 
     protected LoggingLevelSwitch LogLevelSwitch { get; }
 
@@ -46,13 +54,25 @@ public class TestBase : IDisposable
             cfg.RegisterType(typeof(FakeDateTimeProvider));
             cfg.RegisterInstance(configuration).As<IConfiguration>();
         });
-        
 
-        // ReSharper disable once UnusedVariable
+        // In-memory database only exists while the connection is open
+        _connection = new SqliteConnection("DataSource=:memory:");
+        _connection.Open();
+
         var (loggerFactory, logLevelSwitch) = GetOrCreateLoggerFactory(outputHelper, setupLogEventLevel);
         LogLevelSwitch = logLevelSwitch;
 
-        LogLevelSwitch.MinimumLevel = defaultLogEventLevel;
+        var options = new DbContextOptionsBuilder<TeslaSolarChargerContext>()
+            .UseLoggerFactory(loggerFactory)
+            .UseSqlite(_connection)
+            .EnableSensitiveDataLogging()
+            .EnableDetailedErrors()
+            .Options;
+
+        //ToDo: Create demo database for tests
+        //_ctx = (TeslaSolarChargerContext)Mock
+        //    .Provide<ITeslaSolarChargerContext>(new TeslaSolarChargerContext(options));
+        //_ctx.Database.EnsureCreated();
     }
 
     private static (ILoggerFactory, LoggingLevelSwitch) GetOrCreateLoggerFactory(
