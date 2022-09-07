@@ -60,7 +60,7 @@ public class ChargingCostService : IChargingCostService
             {
                 GridPrice = new decimal(0.28),
                 SolarPrice = new decimal(0.10),
-                ValidSince = DateTime.UtcNow,
+                ValidSince = new DateTime(2022, 9, 7),
             };
             _teslaSolarChargerContext.ChargePrices.Add(chargePrice);
             await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -173,7 +173,9 @@ public class ChargingCostService : IChargingCostService
                 .AverageAsync().ConfigureAwait(false);
             openHandledCharge.UsedGridEnergy = chargingProcess.ChargeEnergyUsed * (decimal?)gridProportionAverage;
             openHandledCharge.UsedSolarEnergy = chargingProcess.ChargeEnergyUsed * ( 1 - (decimal?)gridProportionAverage);
-            var price = await CurrentChargePrice(chargingProcess.StartDate).ConfigureAwait(false);
+            var price = await _teslaSolarChargerContext.ChargePrices
+                .FirstOrDefaultAsync(p => p.Id == openHandledCharge.ChargePriceId)
+                .ConfigureAwait(false);
             if (price != default)
             {
                 openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
