@@ -91,13 +91,15 @@ public class ChargingCostService : IChargingCostService
         };
         var latestOpenHandledCharge = await _teslaSolarChargerContext.HandledCharges
             .FirstOrDefaultAsync(h => h.Id == carId && h.UsedGridEnergy == null).ConfigureAwait(false);
-        if (latestOpenHandledCharge == default)
+        var latestOpenChargingProcessId = await _teslamateContext.ChargingProcesses
+            .OrderByDescending(cp => cp.StartDate)
+            .Where(cp => cp.CarId == carId && cp.EndDate == null)
+            .Select(cp => cp.Id)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+
+        if (latestOpenHandledCharge == default
+            || latestOpenHandledCharge.ChargingProcessId != latestOpenChargingProcessId)
         {
-            var latestOpenChargingProcessId = await _teslamateContext.ChargingProcesses
-                .OrderByDescending(cp => cp.StartDate)
-                .Where(cp => cp.CarId == carId && cp.EndDate == null)
-                .Select(cp => cp.Id)
-                .FirstOrDefaultAsync().ConfigureAwait(false);
             if (latestOpenChargingProcessId == default)
             {
                 _logger.LogWarning("Seems like car {carId} is charging but there is no open charging process found in TeslaMate0", carId);
