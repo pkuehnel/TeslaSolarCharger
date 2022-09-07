@@ -34,6 +34,7 @@ public class JobManager
         var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
         var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
+        var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
 
         var jobIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
@@ -52,12 +53,16 @@ public class JobManager
         var pvValueTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds)).Build();
 
+        var powerDistributionAddTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(16)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
             {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
             {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
+            {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

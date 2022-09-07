@@ -40,6 +40,7 @@ builder.Services
     .AddTransient<ConfigJsonUpdateJob>()
     .AddTransient<ChargeTimeUpdateJob>()
     .AddTransient<PvValueJob>()
+    .AddTransient<PowerDistributionAddJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -77,6 +78,7 @@ builder.Services
     .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
     .AddSingleton<IPossibleIssues, PossibleIssues>()
     .AddTransient<IIssueValidationService, IssueValidationService>()
+    .AddTransient<IChargingCostService, ChargingCostService>()
     .AddSingleton<IssueKeys>()
     .AddSingleton<GlobalConstants>()
     ;

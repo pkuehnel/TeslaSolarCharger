@@ -31,6 +31,7 @@ public class DbConnectionStringHelper : IDbConnectionStringHelper
     public string GetTeslaSolarChargerDbPath()
     {
         _logger.LogTrace("{method}()", nameof(GetTeslaSolarChargerDbPath));
-        return _configurationWrapper.SqliteFileFullName();
+        var connectionString = $"Data Source={_configurationWrapper.SqliteFileFullName()}";
+        return connectionString;
     }
 }

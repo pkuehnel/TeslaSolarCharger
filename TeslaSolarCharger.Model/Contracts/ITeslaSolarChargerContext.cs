@@ -10,5 +10,5 @@ public interface ITeslaSolarChargerContext
     DbSet<HandledCharge> HandledCharges { get; set; }
     DbSet<PowerDistribution> PowerDistributions { get; set; }
     ChangeTracker ChangeTracker { get; }
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken());
 }

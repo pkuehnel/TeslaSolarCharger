@@ -15,4 +15,9 @@ public class FakeDateTimeProvider : IDateTimeProvider
     {
         return _dateTime;
     }
+
+    public DateTime UtcNow()
+    {
+        return _dateTime;
+    }
 }
