@@ -27,12 +27,12 @@ public class ChargingCostService : IChargingCostService
         _settings = settings;
     }
 
-    public async Task UpdateChargePrice(int? chargePriceId, DtoChargePrice dtoChargePrice)
+    public async Task UpdateChargePrice(DtoChargePrice dtoChargePrice)
     {
-        _logger.LogTrace("{method}({chargePriceId}, @{dtoChargePrice})",
-            nameof(UpdateChargePrice), chargePriceId, dtoChargePrice);
+        _logger.LogTrace("{method}(@{dtoChargePrice})",
+            nameof(UpdateChargePrice), dtoChargePrice);
         ChargePrice chargePrice;
-        if (chargePriceId == null)
+        if (dtoChargePrice.Id == null)
         {
             chargePrice = new ChargePrice();
             _teslaSolarChargerContext.ChargePrices.Add(chargePrice);
