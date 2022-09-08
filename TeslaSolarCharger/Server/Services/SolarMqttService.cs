@@ -44,7 +44,7 @@ public class SolarMqttService : ISolarMqttService
         {
             var value = e.ApplicationMessage.ConvertPayloadToString();
             _logger.LogTrace("Payload for topic {topic} is {value}", e.ApplicationMessage.Topic, value);
-            _setting.Overage = Convert.ToInt32(value);
+            _setting.Overage = (int?)(Convert.ToInt32(value) * _configurationWrapper.CurrentPowerToGridCorrectionFactor());
             return Task.CompletedTask;
         };
 
