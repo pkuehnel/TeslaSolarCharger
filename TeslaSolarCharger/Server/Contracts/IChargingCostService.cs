@@ -8,4 +8,5 @@ public interface IChargingCostService
     Task FinalizeHandledCharges();
     Task<DtoChargeSummary> GetChargeSummary(int carId);
     Task UpdateChargePrice(DtoChargePrice dtoChargePrice);
+    Task<List<DtoChargePrice>> GetChargePrices();
 }

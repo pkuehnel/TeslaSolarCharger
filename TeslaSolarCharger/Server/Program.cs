@@ -12,6 +12,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Scheduling;
@@ -80,6 +81,7 @@ builder.Services
     .AddSingleton<IPossibleIssues, PossibleIssues>()
     .AddTransient<IIssueValidationService, IssueValidationService>()
     .AddTransient<IChargingCostService, ChargingCostService>()
+    .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
     .AddSingleton<IssueKeys>()
     .AddSingleton<GlobalConstants>()
     ;
