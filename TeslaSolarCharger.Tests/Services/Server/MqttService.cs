@@ -38,7 +38,7 @@ public class MqttService : TestBase
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
 
-        var mqttService = Mock.Create<TeslaSolarCharger.Server.Services.MqttService>();
+        var mqttService = Mock.Create<TeslaSolarCharger.Server.Services.TeslaMateMqttService>();
 
         var teslamateValue = new TeslaMateValue()
         {

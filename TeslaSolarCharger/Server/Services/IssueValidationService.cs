@@ -15,7 +15,7 @@ public class IssueValidationService : IIssueValidationService
     private readonly ITeslaService _teslaService;
     private readonly IPvValueService _pvValueService;
     private readonly ISettings _settings;
-    private readonly IMqttService _mqttService;
+    private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly IPossibleIssues _possibleIssues;
     private readonly IssueKeys _issueKeys;
     private readonly GlobalConstants _globalConstants;
@@ -24,7 +24,7 @@ public class IssueValidationService : IIssueValidationService
 
     public IssueValidationService(ILogger<IssueValidationService> logger,
         ITeslaService teslaService, IPvValueService pvValueService, ISettings settings,
-        IMqttService mqttService, IPossibleIssues possibleIssues, IssueKeys issueKeys,
+        ITeslaMateMqttService teslaMateMqttService, IPossibleIssues possibleIssues, IssueKeys issueKeys,
         GlobalConstants globalConstants, IConfigurationWrapper configurationWrapper,
         ITeslamateContext teslamateContext)
     {
@@ -32,7 +32,7 @@ public class IssueValidationService : IIssueValidationService
         _teslaService = teslaService;
         _pvValueService = pvValueService;
         _settings = settings;
-        _mqttService = mqttService;
+        _teslaMateMqttService = teslaMateMqttService;
         _possibleIssues = possibleIssues;
         _issueKeys = issueKeys;
         _globalConstants = globalConstants;
@@ -113,7 +113,7 @@ public class IssueValidationService : IIssueValidationService
     {
         _logger.LogTrace("{method}()", nameof(GetMqttIssues));
         var issues = new List<Issue>();
-        if (!_mqttService.IsMqttClientConnected)
+        if (!_teslaMateMqttService.IsMqttClientConnected)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.MqttNotConnected));
         }

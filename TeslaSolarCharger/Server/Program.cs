@@ -60,7 +60,7 @@ builder.Services
     .AddSingleton<IMqttClientAdapterFactory, MqttClientAdapterFactory>()
     .AddSingleton<IMqttClient, MqttClient>()
     .AddTransient<MqttFactory>()
-    .AddTransient<IMqttService, MqttService>()
+    .AddTransient<ITeslaMateMqttService, TeslaMateMqttService>()
     .AddTransient<IPvValueService, PvValueService>()
     .AddTransient<IBaseConfigurationService, BaseConfigurationService>()
     .AddTransient<IDbConnectionStringHelper, DbConnectionStringHelper>()
@@ -120,9 +120,9 @@ await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
 await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
 
-var mqttHelper = app.Services.GetRequiredService<IMqttService>();
+var teslaMateMqttService = app.Services.GetRequiredService<ITeslaMateMqttService>();
 
-await mqttHelper.ConnectMqttClient().ConfigureAwait(false);
+await teslaMateMqttService.ConnectMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 await jobManager.StartJobs().ConfigureAwait(false);

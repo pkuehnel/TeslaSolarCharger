@@ -1,6 +1,6 @@
 ﻿namespace TeslaSolarCharger.Server.Contracts;
 
-public interface IMqttService
+public interface ITeslaMateMqttService
 {
     Task ConnectMqttClient();
     bool IsMqttClientConnected { get; }
