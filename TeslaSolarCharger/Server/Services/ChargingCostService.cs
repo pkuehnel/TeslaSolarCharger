@@ -219,6 +219,11 @@ public class ChargingCostService : IChargingCostService
             .Where(h => h.CalculatedPrice != null && h.CarId == carId)
             .ToListAsync().ConfigureAwait(false);
 
+        return GetChargeSummary(carId, handledCharges);
+    }
+
+    private DtoChargeSummary GetChargeSummary(int carId, List<HandledCharge> handledCharges)
+    {
         var dtoChargeSummary = new DtoChargeSummary()
         {
             CarId = carId,
@@ -227,5 +232,23 @@ public class ChargingCostService : IChargingCostService
             ChargedSolarEnergy = (decimal)handledCharges.Sum(h => h.UsedSolarEnergy),
         };
         return dtoChargeSummary;
+    }
+
+    public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
+    {
+        var handledChargeGroups = (await _teslaSolarChargerContext.HandledCharges
+                .Where(h => h.CalculatedPrice != null)
+                .ToListAsync().ConfigureAwait(false))
+            .GroupBy(h => h.CarId).ToList();
+
+        var chargeSummaries = new Dictionary<int, DtoChargeSummary>();
+
+        foreach (var handledChargeGroup in handledChargeGroups)
+        {
+            var list = handledChargeGroup.ToList();
+            chargeSummaries.Add(handledChargeGroup.Key, GetChargeSummary(handledChargeGroup.Key, list));
+        }
+
+        return chargeSummaries;
     }
 }

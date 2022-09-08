@@ -23,6 +23,12 @@ namespace TeslaSolarCharger.Server.Controllers
         }
 
         [HttpGet]
+        public Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
+        {
+            return _chargingCostService.GetChargeSummaries();
+        }
+
+        [HttpGet]
         public Task<List<DtoChargePrice>> GetChargePrices()
         {
             return _chargingCostService.GetChargePrices();
