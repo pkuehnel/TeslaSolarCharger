@@ -32,19 +32,25 @@ public class PvValueService : IPvValueService
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
 
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
-        var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
-        var gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
-        var gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
-        var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
-        var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
-        var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
-        var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor).ConfigureAwait(false);
-        _logger.LogDebug("Overage is {overage}", overage);
-        _settings.Overage = overage;
-        if (overage != null)
+        HttpRequestMessage? gridRequest = default;
+        HttpResponseMessage? gridHttpResponse = default;
+        if (!string.IsNullOrWhiteSpace(gridRequestUrl))
         {
-            AddOverageValueToInMemoryList((int)overage);
+            var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
+            gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
+            gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
+            var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+            var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
+            var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
+            var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor).ConfigureAwait(false);
+            _logger.LogDebug("Overage is {overage}", overage);
+            _settings.Overage = overage;
+            if (overage != null)
+            {
+                AddOverageValueToInMemoryList((int)overage);
+            }
         }
+
 
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
         HttpRequestMessage? inverterRequest = default;
@@ -207,8 +213,12 @@ public class PvValueService : IPvValueService
         }
     }
 
-    internal bool IsSameRequest(HttpRequestMessage httpRequestMessage1, HttpRequestMessage httpRequestMessage2)
+    internal bool IsSameRequest(HttpRequestMessage? httpRequestMessage1, HttpRequestMessage httpRequestMessage2)
     {
+        if (httpRequestMessage1 == null)
+        {
+            return false;
+        }
         if (httpRequestMessage1.Method != httpRequestMessage2.Method)
         {
             return false;

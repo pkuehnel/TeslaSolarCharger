@@ -36,6 +36,14 @@ else
             </div>
         </div>
         <div class="form-group">
+            <label for="currentPowerToGridMqttTopic">CurrentPowerToGridMqttTopic</label>
+            <InputText id="currentPowerToGridMqttTopic" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridMqttTopic" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="solarMqttServer">SolarMqttServer</label>
+            <InputText id="solarMqttServer" @bind-Value="_dtoBaseConfiguration.SolarMqttServer" class="form-control" />
+        </div>
+        <div class="form-group">
             <label for="powerBuffer">Power Buffer (Watt)</label>
             <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
             <small id="powerBufferHelp" class="form-text text-muted">Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).</small>

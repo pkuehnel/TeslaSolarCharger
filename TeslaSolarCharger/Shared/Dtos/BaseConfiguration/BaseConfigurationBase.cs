@@ -5,7 +5,8 @@ namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 public class BaseConfigurationBase
 {
     public Version Version { get; set; } = new(1, 0);
-    [Required]
+    public string? SolarMqttServer { get; set; }
+    public string? CurrentPowerToGridMqttTopic { get; set; }
     public string? CurrentPowerToGridUrl { get; set; }
     public Dictionary<string, string> CurrentPowerToGridHeaders { get; set; } = new();
     public string? HomeBatterySocUrl { get; set; }

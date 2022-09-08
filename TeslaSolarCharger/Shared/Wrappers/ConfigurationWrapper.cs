@@ -124,7 +124,17 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         return GetBaseConfiguration().CurrentPowerToGridUrl;
     }
-    
+
+    public string? SolarMqttServer()
+    {
+        return GetBaseConfiguration().SolarMqttServer;
+    }
+
+    public string? CurrentPowerToGridMqttTopic()
+    {
+        return GetBaseConfiguration().CurrentPowerToGridMqttTopic;
+    }
+
     public Dictionary<string, string> CurrentPowerToGridHeaders()
     {
         return GetBaseConfiguration().CurrentPowerToGridHeaders;
@@ -401,10 +411,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
             throw new ArgumentException($"Could not deserialize {jsonFileContent} to {nameof(DtoBaseConfiguration)}");
         }
 
-        if (string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridUrl))
-        {
-            await TryGetGridUrl(dtoBaseConfiguration).ConfigureAwait(false);
-        }
+        //ToDo: Move to a point where only called once
+        //if (string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridUrl))
+        //{
+        //    await TryGetGridUrl(dtoBaseConfiguration).ConfigureAwait(false);
+        //}
 
         return dtoBaseConfiguration;
     }

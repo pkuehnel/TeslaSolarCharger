@@ -63,4 +63,6 @@ public interface IConfigurationWrapper
     int? HomeBatteryMinSoc();
     int? HomeBatteryChargingPower();
     string SqliteFileFullName();
+    string? SolarMqttServer();
+    string? CurrentPowerToGridMqttTopic();
 }
