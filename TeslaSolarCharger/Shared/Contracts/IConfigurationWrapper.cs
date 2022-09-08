@@ -62,4 +62,5 @@ public interface IConfigurationWrapper
     decimal HomeBatteryPowerCorrectionFactor();
     int? HomeBatteryMinSoc();
     int? HomeBatteryChargingPower();
+    string SqliteFileFullName();
 }

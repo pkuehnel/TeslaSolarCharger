@@ -147,8 +147,10 @@ public class ChargingService : IChargingService
         }
     }
 
+    //ToDO: extract because this results in worse chargingCostCalculation
     private void UpdateChargingPowerAtHome(string geofence)
     {
+        _logger.LogTrace("{method}({geofence})", nameof(UpdateChargingPowerAtHome), geofence);
         var carsAtHome = _settings.Cars.Where(c => c.CarState.Geofence == geofence).ToList();
         foreach (var car in carsAtHome)
         {
