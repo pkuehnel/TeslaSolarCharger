@@ -209,6 +209,8 @@ public class ChargingCostService : IChargingCostService
                 openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
                                                     price.SolarPrice * openHandledCharge.UsedSolarEnergy;
                 await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+                chargingProcess.Cost = openHandledCharge.CalculatedPrice;
+                await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
             }
         }
     }
