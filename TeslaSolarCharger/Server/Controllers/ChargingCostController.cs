@@ -34,6 +34,12 @@ namespace TeslaSolarCharger.Server.Controllers
             return _chargingCostService.GetChargePrices();
         }
 
+        [HttpGet]
+        public Task<DtoChargePrice> GetChargePriceById(int id)
+        {
+            return _chargingCostService.GetChargePriceById(id);
+        }
+
         [HttpPost]
         public Task UpdateChargePrice([FromBody] DtoChargePrice chargePrice)
         {

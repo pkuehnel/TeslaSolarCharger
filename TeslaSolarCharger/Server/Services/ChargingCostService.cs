@@ -253,4 +253,19 @@ public class ChargingCostService : IChargingCostService
 
         return chargeSummaries;
     }
+
+    public async Task<DtoChargePrice> GetChargePriceById(int id)
+    {
+        _logger.LogTrace("{method}({id})", nameof(GetChargePriceById), id);
+        var mapper = _mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<ChargePrice, DtoChargePrice>()
+                .ForMember(d => d.Id, opt => opt.MapFrom(c => c.Id));
+        });
+        var chargePrices = await _teslaSolarChargerContext.ChargePrices
+            .Where(c => c.Id == id)
+            .ProjectTo<DtoChargePrice>(mapper)
+            .FirstAsync().ConfigureAwait(false);
+        return chargePrices;
+    }
 }
