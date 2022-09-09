@@ -257,13 +257,20 @@ public class PvValueService : IPvValueService
 
 
 
-    public async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    private async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor)
     {
-        _logger.LogTrace("{method}({jsonPattern}, {xmlPattern}, {correctionFactor})",
-            nameof(GetIntegerValue), jsonPattern, xmlPattern, correctionFactor);
+        _logger.LogTrace("{method}({httpResonse}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
+            nameof(GetIntegerValue), response, jsonPattern, xmlPattern, correctionFactor);
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+        return GetIntegerValueByString(result, jsonPattern, xmlPattern, correctionFactor);
+    }
+
+    public int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    {
+        _logger.LogTrace("{method}({valueString}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
+            nameof(GetIntegerValueByString), valueString, jsonPattern, xmlPattern, correctionFactor);
         var pattern = "";
         var nodePatternType = DecideNodePatternType(jsonPattern, xmlPattern);
 
@@ -276,7 +283,7 @@ public class PvValueService : IPvValueService
             pattern = xmlPattern;
         }
 
-        var doubleValue = GetValueFromResult(pattern, result, nodePatternType, true);
+        var doubleValue = GetValueFromResult(pattern, valueString, nodePatternType, true);
 
         return (int?)(doubleValue * correctionFactor);
     }

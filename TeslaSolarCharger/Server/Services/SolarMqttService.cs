@@ -13,15 +13,17 @@ public class SolarMqttService : ISolarMqttService
     private readonly IMqttClient _mqttClient;
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _setting;
+    private readonly IPvValueService _pvValueService;
 
     public SolarMqttService(ILogger<SolarMqttService> logger, IConfigurationWrapper configurationWrapper,
-        IMqttClient mqttClient, MqttFactory mqttFactory, ISettings setting)
+        IMqttClient mqttClient, MqttFactory mqttFactory, ISettings setting, IPvValueService pvValueService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
         _mqttClient = mqttClient;
         _mqttFactory = mqttFactory;
         _setting = setting;
+        _pvValueService = pvValueService;
     }
 
     public async Task ConnectMqttClient()
@@ -44,7 +46,10 @@ public class SolarMqttService : ISolarMqttService
         {
             var value = e.ApplicationMessage.ConvertPayloadToString();
             _logger.LogTrace("Payload for topic {topic} is {value}", e.ApplicationMessage.Topic, value);
-            _setting.Overage = (int?)(Convert.ToInt32(value) * _configurationWrapper.CurrentPowerToGridCorrectionFactor());
+            var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+            var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
+            var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
+            _setting.Overage = _pvValueService.GetIntegerValueByString(value, gridJsonPattern, gridXmlPattern, gridCorrectionFactor);
             return Task.CompletedTask;
         };
 
