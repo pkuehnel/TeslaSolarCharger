@@ -29,13 +29,13 @@ public class SolarMqttService : ISolarMqttService
         _logger.LogTrace("{method}()", nameof(ConnectMqttClient));
         //ToDo: Client Id dynmaisch machen
         var mqqtClientId = "TeslaSolarCharger";
-        var mosquitoServer = _configurationWrapper.SolarMqttServer();
+        var mqttServer = GetMqttServerAndPort(out var mqttServerPort);
         var mqttClientOptions = new MqttClientOptionsBuilder()
             .WithClientId(mqqtClientId)
-            .WithTcpServer(mosquitoServer)
+            .WithTcpServer(mqttServer, mqttServerPort)
             .Build();
 
-        if (string.IsNullOrWhiteSpace(mosquitoServer))
+        if (string.IsNullOrWhiteSpace(mqttServer))
         {
             return;
         }
@@ -71,5 +71,19 @@ public class SolarMqttService : ISolarMqttService
             .Build();
 
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    internal string? GetMqttServerAndPort(out int? mqttServerPort)
+    {
+        var mqttServerIncludingPort = _configurationWrapper.SolarMqttServer();
+        var mqttServerAndPort = mqttServerIncludingPort?.Split(":");
+        var mqttServer = mqttServerAndPort?.FirstOrDefault();
+        mqttServerPort = null;
+        if (mqttServerAndPort != null && mqttServerAndPort.Length > 1)
+        {
+            mqttServerPort = Convert.ToInt32(mqttServerAndPort[1]);
+        }
+
+        return mqttServer;
     }
 }

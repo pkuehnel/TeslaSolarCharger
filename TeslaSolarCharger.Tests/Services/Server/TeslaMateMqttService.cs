@@ -9,9 +9,9 @@ using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
-public class MqttService : TestBase
+public class TeslaMateMqttService : TestBase
 {
-    public MqttService(ITestOutputHelper outputHelper)
+    public TeslaMateMqttService(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
     }
