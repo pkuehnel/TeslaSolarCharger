@@ -114,7 +114,7 @@ public class ChargingCostService : IChargingCostService
             TimeStamp = _dateTimeProvider.UtcNow(),
         };
         var latestOpenHandledCharge = await _teslaSolarChargerContext.HandledCharges
-            .FirstOrDefaultAsync(h => h.Id == carId && h.CalculatedPrice == null).ConfigureAwait(false);
+            .FirstOrDefaultAsync(h => h.CarId == carId && h.CalculatedPrice == null).ConfigureAwait(false);
         var latestOpenChargingProcessId = await _teslamateContext.ChargingProcesses
             .OrderByDescending(cp => cp.StartDate)
             .Where(cp => cp.CarId == carId && cp.EndDate == null)
@@ -208,8 +208,10 @@ public class ChargingCostService : IChargingCostService
                 .Select(p => p.GridProportion)
                 .AverageAsync().ConfigureAwait(false);
             _logger.LogDebug("Average grid proportion is {proportion}", gridProportionAverage);
-            openHandledCharge.UsedGridEnergy = chargingProcess.ChargeEnergyUsed * (decimal?)gridProportionAverage;
-            openHandledCharge.UsedSolarEnergy = chargingProcess.ChargeEnergyUsed * (1 - (decimal?)gridProportionAverage);
+
+            var usedEnergy = chargingProcess.ChargeEnergyUsed ?? chargingProcess.ChargeEnergyAdded;
+            openHandledCharge.UsedGridEnergy = usedEnergy * (decimal?)gridProportionAverage;
+            openHandledCharge.UsedSolarEnergy = usedEnergy * (1 - (decimal?)gridProportionAverage);
             var price = await _teslaSolarChargerContext.ChargePrices
                 .FirstOrDefaultAsync(p => p.Id == openHandledCharge.ChargePriceId)
                 .ConfigureAwait(false);
