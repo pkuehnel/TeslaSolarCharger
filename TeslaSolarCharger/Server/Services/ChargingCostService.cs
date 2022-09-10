@@ -35,7 +35,7 @@ public class ChargingCostService : IChargingCostService
 
     public async Task UpdateChargePrice(DtoChargePrice dtoChargePrice)
     {
-        _logger.LogTrace("{method}(@{dtoChargePrice})",
+        _logger.LogTrace("{method}({@dtoChargePrice})",
             nameof(UpdateChargePrice), dtoChargePrice);
         ChargePrice chargePrice;
         if (dtoChargePrice.Id == null)
@@ -121,7 +121,7 @@ public class ChargingCostService : IChargingCostService
             .Select(cp => cp.Id)
             .FirstOrDefaultAsync().ConfigureAwait(false);
 
-        _logger.LogDebug("latest open handled charge: @{latestOpenHandledCharge}, latest open charging process id: {id}",
+        _logger.LogDebug("latest open handled charge: {@latestOpenHandledCharge}, latest open charging process id: {id}",
             latestOpenHandledCharge, latestOpenChargingProcessId);
         if (latestOpenHandledCharge == default
             || latestOpenHandledCharge.ChargingProcessId != latestOpenChargingProcessId)
@@ -188,7 +188,7 @@ public class ChargingCostService : IChargingCostService
 
     private async Task FinalizeHandledCharges(List<HandledCharge> handledCharges)
     {
-        _logger.LogTrace("{method}(@{handledCharges})",
+        _logger.LogTrace("{method}({@handledCharges})",
             nameof(FinalizeHandledCharges), handledCharges);
         foreach (var openHandledCharge in handledCharges)
         {
