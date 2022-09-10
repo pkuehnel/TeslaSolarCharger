@@ -50,6 +50,10 @@ public class SolarMqttService : ISolarMqttService
             var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
             var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
             _setting.Overage = _pvValueService.GetIntegerValueByString(value, gridJsonPattern, gridXmlPattern, gridCorrectionFactor);
+            if (_setting.Overage != null)
+            {
+                _pvValueService.AddOverageValueToInMemoryList((int)_setting.Overage);
+            }
             return Task.CompletedTask;
         };
 

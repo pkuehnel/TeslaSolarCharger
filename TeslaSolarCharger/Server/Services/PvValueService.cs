@@ -199,7 +199,7 @@ public class PvValueService : IPvValueService
         return (int)(weightedSum / weightedCount);
     }
 
-    private void AddOverageValueToInMemoryList(int overage)
+    public void AddOverageValueToInMemoryList(int overage)
     {
         _logger.LogTrace("{method}({overage})", nameof(AddOverageValueToInMemoryList), overage);
         _inMemoryValues.OverageValues.Add(overage);
