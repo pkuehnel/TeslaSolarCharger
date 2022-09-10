@@ -209,7 +209,7 @@ public class ChargingCostService : IChargingCostService
                 .AverageAsync().ConfigureAwait(false);
             _logger.LogDebug("Average grid proportion is {proportion}", gridProportionAverage);
 
-            var usedEnergy = chargingProcess.ChargeEnergyUsed ?? chargingProcess.ChargeEnergyAdded;
+            var usedEnergy = (chargingProcess.ChargeEnergyUsed ?? chargingProcess.ChargeEnergyAdded) ?? 0;
             openHandledCharge.UsedGridEnergy = usedEnergy * (decimal?)gridProportionAverage;
             openHandledCharge.UsedSolarEnergy = usedEnergy * (1 - (decimal?)gridProportionAverage);
             var price = await _teslaSolarChargerContext.ChargePrices
