@@ -66,8 +66,9 @@ public class JobManager
             {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
             {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
-            {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
-            {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
+            //ToDo: Enable jobs before merge
+            //{powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
+            //{handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);
