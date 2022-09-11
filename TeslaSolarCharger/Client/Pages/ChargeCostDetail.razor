@@ -8,37 +8,49 @@
 <button class="btn btn-primary" @onclick="NavigateToList">All Charge costs</button>
 <h3>ChargePriceDetail</h3>
 
-<EditForm Model="_chargePrice" OnInvalidSubmit="@SaveChargePrice">
-    <div class="col-12 row">
-        <label class="col-5 col-sm-4 col-md-3 col-lg-2">Id</label>
-        <span class="col-6 col-sm-6 col-md-3 col-lg-2"> @_chargePrice.Id </span>
-    </div>
-    <div class="col-12 row">
-        <label class="col-5 col-sm-4 col-md-3 col-lg-2">Valid Since</label>
-        <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_chargePrice.ValidSince.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-               @onchange="@(e => _chargePrice.ValidSince = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)))">
-    </div>
-    <br />
-    <div class="col-12 row">
-        <span class="col-3 col-lg-3"></span>
-        <input type="submit" class="form-control col-3 col-lg-1 btn btn-primary" value="Save" />
-        <span>&nbsp;</span>
-        <input type="reset" class="form-control col-3 col-lg-1 btn btn-danger" value="Clear" />
-    </div>
-</EditForm>
+@if (ChargePrice != null)
+{
+    <EditForm Model="ChargePrice" OnSubmit="@SaveChargePrice">
+        <div class="col-12 row">
+            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Id</label>
+            <span class="col-6 col-sm-6 col-md-3 col-lg-2"> @ChargePrice.Id </span>
+        </div>
+        <div class="col-12 row">
+            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Valid Since</label>
+            <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@ChargePrice.ValidSince.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+                   @onchange="@(e => ChargePrice.ValidSince = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)))">
+        </div>
+        <div class="col-12 row">
+            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Solar Price</label>
+            <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.SolarPrice" id="solarPrice" name="solarPrice" step=".0001">
+        </div>
+        <div class="col-12 row">
+            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Grid Price</label>
+            <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.GridPrice" id="gridPrice" name="gridPrice" step=".0001">
+        </div>
+        <br />
+        <div class="col-12 row">
+            <span class="col-3 col-lg-3"></span>
+            <input type="submit" class="form-control col-3 col-lg-1 btn btn-primary" value="Save" />
+            <span>&nbsp;</span>
+            <input type="reset" class="form-control col-3 col-lg-1 btn btn-danger" value="Clear" />
+        </div>
+    </EditForm>
+}
+
 
 @code {
     [Parameter]
     public int? ChargeCostId { get; set; }
 
-    private DtoChargePrice? _chargePrice { get; set; }
+    private DtoChargePrice? ChargePrice { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        _chargePrice = new DtoChargePrice();
+        ChargePrice = new DtoChargePrice();
         if (ChargeCostId != null)
         {
-            _chargePrice = await HttpClient.GetFromJsonAsync<DtoChargePrice>($"api/ChargingCost/GetChargePriceById?id={ChargeCostId}").ConfigureAwait(false);
+            ChargePrice = await HttpClient.GetFromJsonAsync<DtoChargePrice>($"api/ChargingCost/GetChargePriceById?id={ChargeCostId}").ConfigureAwait(false);
         }
     }
 
@@ -49,7 +61,7 @@
 
     private async Task SaveChargePrice()
     {
-        await HttpClient.PostAsJsonAsync("api/ChargingCost/UpdateChargePrice", _chargePrice).ConfigureAwait(false);
+        await HttpClient.PostAsJsonAsync("api/ChargingCost/UpdateChargePrice", ChargePrice).ConfigureAwait(false);
         NavigateToList();
     }
 }
