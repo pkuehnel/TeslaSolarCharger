@@ -43,7 +43,7 @@ else
         @if (_settings.HomeBatteryPower != null)
         {
             <div class="@(_settings.HomeBatteryPower < 0 ? "text-danger" : "text-success")"><i class="fa-solid fa-battery-full" style="width: 25px;"></i>
-                @if (_settings.Overage != null)
+                @if (_settings.HomeBatteryPower != null)
                 {
                     @Math.Abs((int)_settings.HomeBatteryPower)
                 }
