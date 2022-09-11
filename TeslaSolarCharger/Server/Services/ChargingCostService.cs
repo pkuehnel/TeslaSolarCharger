@@ -1,6 +1,7 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using System.Collections.Generic;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -127,7 +128,7 @@ public class ChargingCostService : IChargingCostService
         if (latestOpenHandledCharge == default
             || latestOpenHandledCharge.ChargingProcessId != latestOpenChargingProcessId)
         {
-            
+
             if (latestOpenChargingProcessId == default)
             {
                 _logger.LogWarning("Seems like car {carId} is charging but there is no open charging process found in TeslaMate", carId);
@@ -153,7 +154,7 @@ public class ChargingCostService : IChargingCostService
         }
 
         powerDistribution.HandledCharge = latestOpenHandledCharge;
-        powerDistribution.GridProportion = (float)(powerFromGrid / (float) chargingPower);
+        powerDistribution.GridProportion = (float)(powerFromGrid / (float)chargingPower);
         _logger.LogTrace("Calculated grod proportion: {proportion}", powerDistribution.GridProportion);
         if (powerDistribution.GridProportion < 0)
         {
@@ -175,6 +176,38 @@ public class ChargingCostService : IChargingCostService
             .OrderByDescending(cp => cp.ValidSince)
             .FirstOrDefaultAsync().ConfigureAwait(false);
         return currentChargePrice;
+    }
+
+    public async Task DeleteDuplicatedHandleCharges()
+    {
+        var handledChargeChargingProcessIDs = await _teslaSolarChargerContext.HandledCharges
+            .Select(h => h.ChargingProcessId)
+            .ToListAsync().ConfigureAwait(false);
+
+        if (handledChargeChargingProcessIDs.Count == handledChargeChargingProcessIDs.Distinct().Count())
+        {
+            return;
+        }
+
+        var handledCharges = await _teslaSolarChargerContext.HandledCharges
+            .ToListAsync().ConfigureAwait(false);
+
+        var duplicates = handledCharges
+            .GroupBy(t => new { t.ChargingProcessId })
+            .Where(t => t.Count() > 1)
+            .SelectMany(x => x)
+            .ToList();
+
+        foreach (var duplicate in duplicates)
+        {
+            var chargeDistributions = await _teslaSolarChargerContext.PowerDistributions
+                .Where(p => p.HandledChargeId == duplicate.Id)
+                .ToListAsync().ConfigureAwait(false);
+            _teslaSolarChargerContext.PowerDistributions.RemoveRange(chargeDistributions);
+            _teslaSolarChargerContext.HandledCharges.Remove(duplicate);
+        }
+
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task FinalizeHandledCharges()

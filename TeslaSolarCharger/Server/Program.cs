@@ -107,6 +107,9 @@ var app = builder.Build();
 var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
 await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
+var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
+await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
+
 var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
 await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
 await baseConfigurationConverter.ConvertBaseConfigToCurrentVersion().ConfigureAwait(false);
