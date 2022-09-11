@@ -1,6 +1,5 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -240,9 +239,9 @@ public class ChargingCostService : IChargingCostService
         var dtoChargeSummary = new DtoChargeSummary()
         {
             CarId = carId,
-            ChargeCost = (decimal)handledCharges.Sum(h => h.CalculatedPrice),
-            ChargedGridEnergy = (decimal)handledCharges.Sum(h => h.UsedGridEnergy),
-            ChargedSolarEnergy = (decimal)handledCharges.Sum(h => h.UsedSolarEnergy),
+            ChargeCost = handledCharges.Sum(h => h.CalculatedPrice ?? 0),
+            ChargedGridEnergy = handledCharges.Sum(h => h.UsedGridEnergy ?? 0),
+            ChargedSolarEnergy = handledCharges.Sum(h => h.UsedSolarEnergy ?? 0),
         };
         return dtoChargeSummary;
     }

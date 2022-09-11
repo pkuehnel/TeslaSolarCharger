@@ -10,14 +10,12 @@ public class CarDbUpdateService : ICarDbUpdateService
     private readonly ILogger<CarDbUpdateService> _logger;
     private readonly ISettings _settings;
     private readonly ITeslamateContext _teslamateContext;
-    private readonly ITelegramService _telegramService;
 
-    public CarDbUpdateService(ILogger<CarDbUpdateService> logger, ISettings settings, ITeslamateContext teslamateContext, ITelegramService telegramService)
+    public CarDbUpdateService(ILogger<CarDbUpdateService> logger, ISettings settings, ITeslamateContext teslamateContext)
     {
         _logger = logger;
         _settings = settings;
         _teslamateContext = teslamateContext;
-        _telegramService = telegramService;
     }
 
     public async Task UpdateMissingCarDataFromDatabase()

@@ -30,7 +30,7 @@ else
                 <td>@chargePrice.ValidSince</td>
                 <td>@chargePrice.SolarPrice.ToString("0.00")</td>
                 <td>@chargePrice.GridPrice.ToString("0.00")</td>
-                <td><button class="btn btn-danger" @onclick="((args) => Delete(chargePrice.Id))"><span class="oi oi-trash" aria-hidden="true"></span></button></td>
+                <td><button class="btn btn-danger" @onclick="(_ => Delete(chargePrice.Id))"><span class="oi oi-trash" aria-hidden="true"></span></button></td>
             </tr>
         }
         </tbody>

@@ -12,5 +12,5 @@ public class HandledCharge
 
 
     public int ChargePriceId { get; set; }
-    public ChargePrice ChargePrice { get; set; }
+    public ChargePrice ChargePrice { get; set; } = new();
 }
