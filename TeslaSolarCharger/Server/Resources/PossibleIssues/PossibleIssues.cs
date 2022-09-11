@@ -72,6 +72,12 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
+                issueKeys.HomeBatteryHalfConfigured, CreateIssue("Home battery is not configured completly",
+                    IssueType.Error,
+                    "Did you completly configure values for Home Battery SOC and Home Battery Power?"
+                )
+            },
+            {
                 issueKeys.TeslaMateApiNotAvailable, CreateIssue("Could not access TeslaMateApi",
                     IssueType.Error,
                     "Is the TeslaMateApi container running",

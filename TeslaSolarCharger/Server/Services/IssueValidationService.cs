@@ -160,6 +160,11 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryPowerNotAvailable));
         }
 
+        if (string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerUrl()) != string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()))
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryHalfConfigured));
+        }
+
         return issues;
     }
 }

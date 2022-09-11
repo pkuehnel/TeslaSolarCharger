@@ -10,6 +10,7 @@ public class IssueKeys
     public string HomeBatterySocNotAvailable = "HomeBatterySocNotAvailable";
     public string HomeBatterySocNotPlausible = "HomeBatterySocNotPlausible";
     public string HomeBatteryPowerNotAvailable = "HomeBatteryPowerNotAvailable";
+    public string HomeBatteryHalfConfigured = "HomeBatteryHalfConfigured";
     public string TeslaMateApiNotAvailable = "TeslaMateApiNotAvailable";
     public string DatabaseNotAvailable = "DatabaseNotAvailable";
     public string GeofenceNotAvailable = "GeofenceNotAvailable";
