@@ -185,6 +185,7 @@ public class MqttService : IMqttService
                 break;
             case TopicGeofence:
                 car.CarState.Geofence = value.Value;
+                car.CarState.IsHomeGeofence = car.CarState.Geofence == _configurationWrapper.GeoFence();
                 break;
             case TopicChargerPhases:
                 if (!string.IsNullOrWhiteSpace(value.Value))

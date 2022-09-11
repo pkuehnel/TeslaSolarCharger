@@ -53,7 +53,7 @@ public class ChargingService : IChargingService
 
         await LogErrorForCarsWithUnknownSocLimit(_settings.Cars).ConfigureAwait(false);
 
-        var relevantCarIds = GetRelevantCarIds(geofence);
+        var relevantCarIds = GetRelevantCarIds();
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
 
         var irrelevantCars = GetIrrelevantCars(relevantCarIds);
@@ -63,8 +63,6 @@ public class ChargingService : IChargingService
 
         _logger.LogTrace("Relevant cars: {@relevantCars}", relevantCars);
         _logger.LogTrace("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
-
-        UpdateChargingPowerAtHome(geofence);
 
         if (relevantCarIds.Count < 1)
         {
@@ -147,32 +145,6 @@ public class ChargingService : IChargingService
         }
     }
 
-    //ToDO: extract because this results in worse chargingCostCalculation
-    private void UpdateChargingPowerAtHome(string geofence)
-    {
-        _logger.LogTrace("{method}({geofence})", nameof(UpdateChargingPowerAtHome), geofence);
-        var carsAtHome = _settings.Cars.Where(c => c.CarState.Geofence == geofence).ToList();
-        foreach (var car in carsAtHome)
-        {
-            car.CarState.ChargingPowerAtHome = car.CarState.ChargingPower;
-        }
-        var carsNotAtHome = _settings.Cars.Where(car => !carsAtHome.Select(c => c.Id).Any(i => i == car.Id)).ToList();
-
-        foreach (var car in carsNotAtHome)
-        {
-            car.CarState.ChargingPowerAtHome = 0;
-        }
-
-        //Do not combine with irrelevant cars because then charging would never start
-        foreach (var pluggedOutCar in _settings.Cars
-                     .Where(c => c.CarState.PluggedIn != true).ToList())
-        {
-            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", pluggedOutCar.Id);
-            UpdateEarliestTimesAfterSwitch(pluggedOutCar.Id);
-            pluggedOutCar.CarState.ChargingPowerAtHome = 0;
-        }
-    }
-
     internal List<Car> GetIrrelevantCars(List<int> relevantCarIds)
     {
         return _settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)).ToList();
@@ -201,11 +173,11 @@ public class ChargingService : IChargingService
     }
 
 
-    internal List<int> GetRelevantCarIds(string geofence)
+    internal List<int> GetRelevantCarIds()
     {
         var relevantIds = _settings.Cars
             .Where(c =>
-                c.CarState.Geofence == geofence
+                c.CarState.IsHomeGeofence == true
                 && c.CarConfiguration.ShouldBeManaged == true
                 && c.CarState.PluggedIn == true
                 && (c.CarState.ClimateOn == true ||
