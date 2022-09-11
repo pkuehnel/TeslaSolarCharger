@@ -17,6 +17,6 @@ public class PowerDistributionAddJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("Executing Job to update ChargeTimes");
-        await _service.HandleAllCars().ConfigureAwait(false);
+        await _service.AddPowerDistributionForAllCharingCars().ConfigureAwait(false);
     }
 }

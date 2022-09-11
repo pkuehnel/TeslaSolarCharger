@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 
@@ -23,9 +22,21 @@ namespace TeslaSolarCharger.Server.Controllers
         }
 
         [HttpGet]
+        public Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
+        {
+            return _chargingCostService.GetChargeSummaries();
+        }
+
+        [HttpGet]
         public Task<List<DtoChargePrice>> GetChargePrices()
         {
             return _chargingCostService.GetChargePrices();
+        }
+
+        [HttpGet]
+        public Task<DtoChargePrice> GetChargePriceById(int id)
+        {
+            return _chargingCostService.GetChargePriceById(id);
         }
 
         [HttpPost]

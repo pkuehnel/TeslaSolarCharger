@@ -39,8 +39,9 @@ public class MqttService : IMqttService
     private const string TopicState = "state";
     // ReSharper disable once InconsistentNaming
     private const string TopicHealthy = "healthy";
-    // ReSharper disable once UnusedMember.Local
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargeCurrentRequest = "charge_current_request";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargeCurrentRequestMax = "charge_current_request_max";
 
     public bool IsMqttClientConnected => _mqttClient.IsConnected;

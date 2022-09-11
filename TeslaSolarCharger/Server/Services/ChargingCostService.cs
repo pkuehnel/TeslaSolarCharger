@@ -1,6 +1,5 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -35,7 +34,7 @@ public class ChargingCostService : IChargingCostService
 
     public async Task UpdateChargePrice(DtoChargePrice dtoChargePrice)
     {
-        _logger.LogTrace("{method}(@{dtoChargePrice})",
+        _logger.LogTrace("{method}({@dtoChargePrice})",
             nameof(UpdateChargePrice), dtoChargePrice);
         ChargePrice chargePrice;
         if (dtoChargePrice.Id == null)
@@ -48,8 +47,8 @@ public class ChargingCostService : IChargingCostService
             chargePrice = await _teslaSolarChargerContext.ChargePrices.FirstAsync(c => c.Id == dtoChargePrice.Id).ConfigureAwait(false);
         }
 
-        chargePrice.GridPrice = dtoChargePrice.GridPrice;
-        chargePrice.SolarPrice = dtoChargePrice.SolarPrice;
+        chargePrice.GridPrice = (decimal)dtoChargePrice.GridPrice;
+        chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice;
         chargePrice.ValidSince = dtoChargePrice.ValidSince;
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
@@ -71,14 +70,15 @@ public class ChargingCostService : IChargingCostService
         return chargePrices;
     }
 
-    public async Task HandleAllCars()
+    public async Task AddPowerDistributionForAllCharingCars()
     {
-        _logger.LogTrace("{method}()", nameof(HandleAllCars));
+        _logger.LogTrace("{method}()", nameof(AddPowerDistributionForAllCharingCars));
         //ToDO: remove before release
         var chargePrice = await _teslaSolarChargerContext.ChargePrices
             .FirstOrDefaultAsync().ConfigureAwait(false);
         if (chargePrice == default)
         {
+            _logger.LogDebug("Add new charge price");
             chargePrice = new ChargePrice()
             {
                 GridPrice = new decimal(0.28),
@@ -113,24 +113,27 @@ public class ChargingCostService : IChargingCostService
             TimeStamp = _dateTimeProvider.UtcNow(),
         };
         var latestOpenHandledCharge = await _teslaSolarChargerContext.HandledCharges
-            .FirstOrDefaultAsync(h => h.Id == carId && h.UsedGridEnergy == null).ConfigureAwait(false);
+            .FirstOrDefaultAsync(h => h.CarId == carId && h.CalculatedPrice == null).ConfigureAwait(false);
         var latestOpenChargingProcessId = await _teslamateContext.ChargingProcesses
             .OrderByDescending(cp => cp.StartDate)
             .Where(cp => cp.CarId == carId && cp.EndDate == null)
             .Select(cp => cp.Id)
             .FirstOrDefaultAsync().ConfigureAwait(false);
 
+        _logger.LogDebug("latest open handled charge: {@latestOpenHandledCharge}, latest open charging process id: {id}",
+            latestOpenHandledCharge, latestOpenChargingProcessId);
         if (latestOpenHandledCharge == default
             || latestOpenHandledCharge.ChargingProcessId != latestOpenChargingProcessId)
         {
+            
             if (latestOpenChargingProcessId == default)
             {
-                _logger.LogWarning("Seems like car {carId} is charging but there is no open charging process found in TeslaMate0", carId);
+                _logger.LogWarning("Seems like car {carId} is charging but there is no open charging process found in TeslaMate", carId);
                 return;
             }
 
             var relevantDateTime = _dateTimeProvider.UtcNow();
-            var currentChargePrice = await CurrentChargePrice(relevantDateTime).ConfigureAwait(false);
+            var currentChargePrice = await GetRelevantChargePrice(relevantDateTime).ConfigureAwait(false);
 
             if (currentChargePrice == default)
             {
@@ -138,6 +141,7 @@ public class ChargingCostService : IChargingCostService
                 return;
             }
 
+            _logger.LogDebug("Creating new HandledCharge");
             latestOpenHandledCharge = new HandledCharge()
             {
                 CarId = carId,
@@ -161,8 +165,9 @@ public class ChargingCostService : IChargingCostService
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private async Task<ChargePrice?> CurrentChargePrice(DateTime relevantDateTime)
+    private async Task<ChargePrice?> GetRelevantChargePrice(DateTime relevantDateTime)
     {
+        _logger.LogTrace("{method}({dateTime})", nameof(GetRelevantChargePrice), relevantDateTime);
         var currentChargePrice = await _teslaSolarChargerContext.ChargePrices
             .Where(cp => cp.ValidSince < relevantDateTime)
             .OrderByDescending(cp => cp.ValidSince)
@@ -182,6 +187,8 @@ public class ChargingCostService : IChargingCostService
 
     private async Task FinalizeHandledCharges(List<HandledCharge> handledCharges)
     {
+        _logger.LogTrace("{method}({@handledCharges})",
+            nameof(FinalizeHandledCharges), handledCharges);
         foreach (var openHandledCharge in handledCharges)
         {
             var chargingProcess = _teslamateContext.ChargingProcesses.FirstOrDefault(c =>
@@ -193,14 +200,17 @@ public class ChargingCostService : IChargingCostService
                     openHandledCharge.ChargingProcessId, openHandledCharge.Id);
                 continue;
             }
-
+            _logger.LogDebug("Charging process found. Handled charge {id} can be finalized", openHandledCharge.Id);
             //ToDo: maybe calculate based on time differences in the future
             var gridProportionAverage = await _teslaSolarChargerContext.PowerDistributions
                 .Where(p => p.HandledChargeId == openHandledCharge.Id)
                 .Select(p => p.GridProportion)
                 .AverageAsync().ConfigureAwait(false);
-            openHandledCharge.UsedGridEnergy = chargingProcess.ChargeEnergyUsed * (decimal?)gridProportionAverage;
-            openHandledCharge.UsedSolarEnergy = chargingProcess.ChargeEnergyUsed * (1 - (decimal?)gridProportionAverage);
+            _logger.LogDebug("Average grid proportion is {proportion}", gridProportionAverage);
+
+            var usedEnergy = (chargingProcess.ChargeEnergyUsed ?? chargingProcess.ChargeEnergyAdded) ?? 0;
+            openHandledCharge.UsedGridEnergy = usedEnergy * (decimal?)gridProportionAverage;
+            openHandledCharge.UsedSolarEnergy = usedEnergy * (1 - (decimal?)gridProportionAverage);
             var price = await _teslaSolarChargerContext.ChargePrices
                 .FirstOrDefaultAsync(p => p.Id == openHandledCharge.ChargePriceId)
                 .ConfigureAwait(false);
@@ -209,6 +219,8 @@ public class ChargingCostService : IChargingCostService
                 openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
                                                     price.SolarPrice * openHandledCharge.UsedSolarEnergy;
                 await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+                chargingProcess.Cost = openHandledCharge.CalculatedPrice;
+                await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
             }
         }
     }
@@ -219,13 +231,51 @@ public class ChargingCostService : IChargingCostService
             .Where(h => h.CalculatedPrice != null && h.CarId == carId)
             .ToListAsync().ConfigureAwait(false);
 
+        return GetChargeSummary(carId, handledCharges);
+    }
+
+    private DtoChargeSummary GetChargeSummary(int carId, List<HandledCharge> handledCharges)
+    {
         var dtoChargeSummary = new DtoChargeSummary()
         {
             CarId = carId,
-            ChargeCost = (decimal)handledCharges.Sum(h => h.CalculatedPrice),
-            ChargedGridEnergy = (decimal)handledCharges.Sum(h => h.UsedGridEnergy),
-            ChargedSolarEnergy = (decimal)handledCharges.Sum(h => h.UsedSolarEnergy),
+            ChargeCost = handledCharges.Sum(h => h.CalculatedPrice ?? 0),
+            ChargedGridEnergy = handledCharges.Sum(h => h.UsedGridEnergy ?? 0),
+            ChargedSolarEnergy = handledCharges.Sum(h => h.UsedSolarEnergy ?? 0),
         };
         return dtoChargeSummary;
+    }
+
+    public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
+    {
+        var handledChargeGroups = (await _teslaSolarChargerContext.HandledCharges
+                .Where(h => h.CalculatedPrice != null)
+                .ToListAsync().ConfigureAwait(false))
+            .GroupBy(h => h.CarId).ToList();
+
+        var chargeSummaries = new Dictionary<int, DtoChargeSummary>();
+
+        foreach (var handledChargeGroup in handledChargeGroups)
+        {
+            var list = handledChargeGroup.ToList();
+            chargeSummaries.Add(handledChargeGroup.Key, GetChargeSummary(handledChargeGroup.Key, list));
+        }
+
+        return chargeSummaries;
+    }
+
+    public async Task<DtoChargePrice> GetChargePriceById(int id)
+    {
+        _logger.LogTrace("{method}({id})", nameof(GetChargePriceById), id);
+        var mapper = _mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<ChargePrice, DtoChargePrice>()
+                .ForMember(d => d.Id, opt => opt.MapFrom(c => c.Id));
+        });
+        var chargePrices = await _teslaSolarChargerContext.ChargePrices
+            .Where(c => c.Id == id)
+            .ProjectTo<DtoChargePrice>(mapper)
+            .FirstAsync().ConfigureAwait(false);
+        return chargePrices;
     }
 }
