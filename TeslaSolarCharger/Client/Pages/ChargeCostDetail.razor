@@ -10,7 +10,9 @@
 
 @if (ChargePrice != null)
 {
-    <EditForm Model="ChargePrice" OnSubmit="@SaveChargePrice">
+    <EditForm Model="ChargePrice" OnValidSubmit="@SaveChargePrice">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
         <div class="col-12 row">
             <label class="col-5 col-sm-4 col-md-3 col-lg-2">Id</label>
             <span class="col-6 col-sm-6 col-md-3 col-lg-2"> @ChargePrice.Id </span>
@@ -22,19 +24,14 @@
         </div>
         <div class="col-12 row">
             <label class="col-5 col-sm-4 col-md-3 col-lg-2">Solar Price</label>
-            <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.SolarPrice" id="solarPrice" name="solarPrice" step=".0001">
+            <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.SolarPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="solarPrice" name="solarPrice" step=".0001">
         </div>
         <div class="col-12 row">
             <label class="col-5 col-sm-4 col-md-3 col-lg-2">Grid Price</label>
-            <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.GridPrice" id="gridPrice" name="gridPrice" step=".0001">
+            <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.GridPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="gridPrice" name="gridPrice" step=".0001">
         </div>
-        <br />
-        <div class="col-12 row">
-            <span class="col-3 col-lg-3"></span>
-            <input type="submit" class="form-control col-3 col-lg-1 btn btn-primary" value="Save" />
-            <span>&nbsp;</span>
-            <input type="reset" class="form-control col-3 col-lg-1 btn btn-danger" value="Clear" />
-        </div>
+        <br/>
+        <button type="submit" class="btn btn-primary">Submit</button>
     </EditForm>
 }
 

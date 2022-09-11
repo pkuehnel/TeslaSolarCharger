@@ -47,8 +47,8 @@ public class ChargingCostService : IChargingCostService
             chargePrice = await _teslaSolarChargerContext.ChargePrices.FirstAsync(c => c.Id == dtoChargePrice.Id).ConfigureAwait(false);
         }
 
-        chargePrice.GridPrice = dtoChargePrice.GridPrice;
-        chargePrice.SolarPrice = dtoChargePrice.SolarPrice;
+        chargePrice.GridPrice = (decimal)dtoChargePrice.GridPrice;
+        chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice;
         chargePrice.ValidSince = dtoChargePrice.ValidSince;
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 

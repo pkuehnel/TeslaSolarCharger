@@ -28,8 +28,8 @@ else
             <tr>
                 <td><a href="/ChargePrice/detail/@chargePrice.Id">@chargePrice.Id</a></td>
                 <td>@chargePrice.ValidSince</td>
-                <td>@chargePrice.SolarPrice.ToString("0.00")</td>
-                <td>@chargePrice.GridPrice.ToString("0.00")</td>
+                    <td>@(chargePrice.SolarPrice != null ? ((decimal)chargePrice.SolarPrice).ToString("0.00") : "")</td>
+                    <td>@(chargePrice.GridPrice != null ? ((decimal)chargePrice.GridPrice).ToString("0.00") : "")</td>
                 <td><button class="btn btn-danger" @onclick="(_ => Delete(chargePrice.Id))"><span class="oi oi-trash" aria-hidden="true"></span></button></td>
             </tr>
         }
