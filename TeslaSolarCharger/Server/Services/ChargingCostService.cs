@@ -286,5 +286,7 @@ public class ChargingCostService : IChargingCostService
             .FirstAsync(c => c.Id == id).ConfigureAwait(false);
         _teslaSolarChargerContext.ChargePrices.Remove(chargePrice);
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        var handledCharges = await _teslaSolarChargerContext.HandledCharges.ToListAsync().ConfigureAwait(false);
+        await FinalizeHandledCharges(handledCharges).ConfigureAwait(false);
     }
 }
