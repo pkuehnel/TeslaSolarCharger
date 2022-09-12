@@ -113,6 +113,7 @@ public class ChargingCostService : IChargingCostService
             TimeStamp = _dateTimeProvider.UtcNow(),
         };
         var latestOpenHandledCharge = await _teslaSolarChargerContext.HandledCharges
+            .OrderByDescending(h => h.ChargingProcessId)
             .FirstOrDefaultAsync(h => h.CarId == carId && h.CalculatedPrice == null).ConfigureAwait(false);
         var latestOpenChargingProcessId = await _teslamateContext.ChargingProcesses
             .OrderByDescending(cp => cp.StartDate)
