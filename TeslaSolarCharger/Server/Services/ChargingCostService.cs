@@ -1,5 +1,6 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -285,6 +286,7 @@ public class ChargingCostService : IChargingCostService
         var chargePrice = await _teslaSolarChargerContext.ChargePrices
             .FirstAsync(c => c.Id == id).ConfigureAwait(false);
         _teslaSolarChargerContext.ChargePrices.Remove(chargePrice);
+        //ToDo: throw exception and discard changes if any handledCharge without corresponding chargePrice with _teslaSolarChargerContext.RejectChanges()
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var handledCharges = await _teslaSolarChargerContext.HandledCharges.ToListAsync().ConfigureAwait(false);
         await FinalizeHandledCharges(handledCharges).ConfigureAwait(false);

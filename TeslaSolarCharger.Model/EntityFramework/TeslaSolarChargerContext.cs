@@ -12,6 +12,24 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
     public string DbPath { get; }
 
+    public void RejectChanges()
+    {
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Modified:
+                case EntityState.Deleted:
+                    entry.State = EntityState.Modified; //Revert changes made to deleted entity.
+                    entry.State = EntityState.Unchanged;
+                    break;
+                case EntityState.Added:
+                    entry.State = EntityState.Detached;
+                    break;
+            }
+        }
+    }
+
 
     public TeslaSolarChargerContext()
     {
