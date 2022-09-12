@@ -7,5 +7,5 @@ public class ChargePrice
     public decimal SolarPrice { get; set; }
     public decimal GridPrice { get; set; }
 
-    public List<HandledCharge> HandledCharges { get; set; } = new();
+    public List<HandledCharge> HandledCharges { get; set; }
 }

@@ -52,6 +52,7 @@ else
 
     async Task Delete(int? id)
     {
-        
+        await HttpClient.DeleteAsync($"api/ChargingCost/DeleteChargePriceById?id={id}").ConfigureAwait(false);
+        await OnInitializedAsync().ConfigureAwait(false);
     }
 }
