@@ -201,8 +201,8 @@ public class ChargingService : IChargingService
         //This might happen if only climate is running or car nearly full which means full power is not needed.
         if (ampToChange > 0 && car.CarState.ChargerRequestedCurrent > car.CarState.ChargerActualCurrent && car.CarState.ChargerActualCurrent > 0)
         {
-            ampToChange = 0;
-            _logger.LogDebug("Set amp to change to {ampToChange} as car does not use full request.", ampToChange);
+            //ampToChange = 0;
+            _logger.LogWarning("Car does not use full request.");
         }
         var finalAmpsToSet = (car.CarState.ChargerRequestedCurrent ?? 0) + ampToChange;
 
