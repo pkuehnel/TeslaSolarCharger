@@ -11,4 +11,5 @@ public interface IChargingCostService
     Task<List<DtoChargePrice>> GetChargePrices();
     Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries();
     Task<DtoChargePrice> GetChargePriceById(int id);
+    Task DeleteChargePriceById(int id);
 }

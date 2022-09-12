@@ -279,4 +279,12 @@ public class ChargingCostService : IChargingCostService
             .FirstAsync().ConfigureAwait(false);
         return chargePrices;
     }
+
+    public async Task DeleteChargePriceById(int id)
+    {
+        var chargePrice = await _teslaSolarChargerContext.ChargePrices
+            .FirstAsync(c => c.Id == id).ConfigureAwait(false);
+        _teslaSolarChargerContext.ChargePrices.Remove(chargePrice);
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
 }
