@@ -59,11 +59,19 @@ else
             {
                 <i class="fa-solid fa-circle-exclamation"></i>
             }
-            @if (_chargeSummaries != null && _chargeSummaries.Any(c => c.Key == car.Id))
+            @if (_chargeSummaries != null)
             {
-                <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedSolarEnergy.ToString("0.00") kWh</div>
-                <div><i class="fa-solid fa-bolt" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedGridEnergy.ToString("0.00") kWh</div>
-                <div><i class="fa-solid fa-coins" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargeCost.ToString("0.00") €</div>
+                if (_chargeSummaries.Any(c => c.Key == car.Id))
+                {
+                    <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedSolarEnergy.ToString("0.00") kWh</div>
+                    <div><i class="fa-solid fa-bolt" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedGridEnergy.ToString("0.00") kWh</div>
+                    <div><i class="fa-solid fa-coins" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargeCost.ToString("0.00") €</div>
+                }
+                else
+                {
+                    <div>Chargeprices will show up nine minutes after the first charge with at least version 1.26.0</div>
+                }
+
             }
             <label class="col-5 col-sm-4 col-md-3 col-lg-2">@car.CarConfiguration.ChargeMode.ToFriendlyString()</label> <button class="btn btn-primary col-6 col-sm-6 col-md-3 col-lg-2" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
