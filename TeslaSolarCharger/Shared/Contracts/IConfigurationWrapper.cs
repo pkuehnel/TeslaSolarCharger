@@ -65,4 +65,7 @@ public interface IConfigurationWrapper
     string SqliteFileFullName();
     string? SolarMqttServer();
     string? CurrentPowerToGridMqttTopic();
+    string? HomeBatterySocMqttTopic();
+    string? CurrentInverterPowerMqttTopic();
+    string? HomeBatteryPowerMqttTopic();
 }

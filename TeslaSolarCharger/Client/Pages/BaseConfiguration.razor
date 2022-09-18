@@ -36,12 +36,18 @@ else
             </div>
         </div>
         <div class="form-group">
-            <label for="currentPowerToGridMqttTopic">CurrentPowerToGridMqttTopic</label>
-            <InputText id="currentPowerToGridMqttTopic" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridMqttTopic" class="form-control" />
+            <label for="solarMqttServer">Solar Mqtt-Server</label>
+            <InputText id="solarMqttServer" @bind-Value="_dtoBaseConfiguration.SolarMqttServer" class="form-control" />
+            <div>
+                <small id="solarMqttServer" class="form-text text-muted">This is only needed if you get solar values via MQTT</small>
+            </div>
         </div>
         <div class="form-group">
-            <label for="solarMqttServer">SolarMqttServer</label>
-            <InputText id="solarMqttServer" @bind-Value="_dtoBaseConfiguration.SolarMqttServer" class="form-control" />
+            <label for="currentPowerToGridMqttTopic">Grid Power Mqtt-Topic</label>
+            <InputText id="currentPowerToGridMqttTopic" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridMqttTopic" class="form-control" />
+            <div>
+                <small id="currentPowerToGridMqttTopic" class="form-text text-muted">This is only needed if you get solar values via MQTT</small>
+            </div>
         </div>
         <div class="form-group">
             <label for="powerBuffer">Power Buffer (Watt)</label>
@@ -142,6 +148,13 @@ else
             <InputText id="homeBatterySocUrl" @bind-Value="_dtoBaseConfiguration.HomeBatterySocUrl" class="form-control" />
         </div>
         <div class="form-group">
+            <label for="homeBatterySocMqttTopic">HomeBatterySoc Mqtt-Topic</label>
+            <InputText id="homeBatterySocMqttTopic" @bind-Value="_dtoBaseConfiguration.HomeBatterySocMqttTopic" class="form-control" />
+            <div>
+                <small id="homeBatterySocMqttTopic" class="form-text text-muted">This is only needed if you get solar values via MQTT</small>
+            </div>
+        </div>
+        <div class="form-group">
             <label for="homeBatterySocCorrectionFactor">Correction Factor</label>
             <InputText id="homeBatterySocCorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatterySocCorrectionFactorString" class="form-control" />
             <div>
@@ -186,9 +199,17 @@ else
             <label for="homeBatterySocXmlAttributeValueName">Home Battery Soc XML Attribute Header Value</label>
             <InputText id="homeBatterySocXmlAttributeValueName" @bind-Value="_dtoBaseConfiguration.HomeBatterySocXmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
         </div>
+        <hr />
         <div class="form-group">
             <label for="homeBatteryPowerUrl">HomeBatteryPower Url</label>
             <InputText id="homeBatteryPowerUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerUrl" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="homeBatteryPowerMqttTopic">HomeBatteryPower Mqtt-Topic</label>
+            <InputText id="homeBatteryPowerMqttTopic" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerMqttTopic" class="form-control" />
+            <div>
+                <small id="homeBatteryPowerMqttTopic" class="form-text text-muted">This is only needed if you get solar values via MQTT</small>
+            </div>
         </div>
         <div class="form-group">
             <label for="homeBatteryPowerCorrectionFactor">Correction Factor</label>
@@ -239,6 +260,13 @@ else
         <div class="form-group">
             <label for="currentInverterPowerUrl">Inverter Power Url</label>
             <InputText id="currentInverterPowerUrl" @bind-Value="_dtoBaseConfiguration.CurrentInverterPowerUrl" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="currentInverterPowerMqttTopic">Inverter Power Mqtt-Topic</label>
+            <InputText id="currentInverterPowerMqttTopic" @bind-Value="_dtoBaseConfiguration.CurrentInverterPowerMqttTopic" class="form-control" />
+            <div>
+                <small id="currentInverterPowerMqttTopic" class="form-text text-muted">This is only needed if you get solar values via MQTT</small>
+            </div>
         </div>
         <div class="form-group">
             <label for="currentInverterPowerCorrectionFactor">Correction Factor</label>

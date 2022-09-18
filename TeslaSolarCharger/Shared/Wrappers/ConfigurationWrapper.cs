@@ -140,6 +140,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().CurrentPowerToGridHeaders;
     }
 
+    public string? CurrentInverterPowerMqttTopic()
+    {
+        return GetBaseConfiguration().CurrentInverterPowerMqttTopic;
+    }
+
     public string? CurrentInverterPowerUrl()
     {
         return GetBaseConfiguration().CurrentInverterPowerUrl;
@@ -154,9 +159,19 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().HomeBatterySocUrl;
     }
 
+    public string? HomeBatterySocMqttTopic()
+    {
+        return GetBaseConfiguration().HomeBatterySocMqttTopic;
+    }
+
     public Dictionary<string, string> HomeBatterySocHeaders()
     {
         return GetBaseConfiguration().HomeBatterySocHeaders;
+    }
+
+    public string? HomeBatteryPowerMqttTopic()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerMqttTopic;
     }
 
     public string? HomeBatteryPowerUrl()

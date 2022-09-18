@@ -1,5 +1,6 @@
 ﻿using MQTTnet.Client;
 using MQTTnet;
+using MQTTnet.Packets;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -45,15 +46,45 @@ public class SolarMqttService : ISolarMqttService
         _mqttClient.ApplicationMessageReceivedAsync += e =>
         {
             var value = e.ApplicationMessage.ConvertPayloadToString();
-            _logger.LogTrace("Payload for topic {topic} is {value}", e.ApplicationMessage.Topic, value);
-            var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
-            var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
-            var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
-            _setting.Overage = _pvValueService.GetIntegerValueByString(value, gridJsonPattern, gridXmlPattern, gridCorrectionFactor);
-            if (_setting.Overage != null)
+            var topic = e.ApplicationMessage.Topic;
+            _logger.LogTrace("Payload for topic {topic} is {value}", topic, value);
+            if (topic == _configurationWrapper.CurrentPowerToGridMqttTopic())
             {
-                _pvValueService.AddOverageValueToInMemoryList((int)_setting.Overage);
+                var jsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+                var xmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
+                var correctionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
+                _setting.Overage = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+                if (_setting.Overage != null)
+                {
+                    _pvValueService.AddOverageValueToInMemoryList((int)_setting.Overage);
+                }
             }
+            else if (topic == _configurationWrapper.CurrentInverterPowerMqttTopic())
+            {
+                var jsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
+                var xmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
+                var correctionFactor = (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor();
+                _setting.InverterPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+            }
+            else if (topic == _configurationWrapper.HomeBatterySocMqttTopic())
+            {
+                var jsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
+                var xmlPattern = _configurationWrapper.HomeBatterySocXmlPattern();
+                var correctionFactor = (double)_configurationWrapper.HomeBatterySocCorrectionFactor();
+                _setting.HomeBatterySoc = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+            }
+            else if (topic == _configurationWrapper.HomeBatteryPowerMqttTopic())
+            {
+                var jsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
+                var xmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
+                var correctionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
+                _setting.HomeBatterySoc = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+            }
+            else
+            {
+                _logger.LogWarning("Received value does not match a topic");
+            }
+            
             return Task.CompletedTask;
         };
 
@@ -73,13 +104,38 @@ public class SolarMqttService : ISolarMqttService
         }
 
         var mqttSubscribeOptions = _mqttFactory.CreateSubscribeOptionsBuilder()
-            .WithTopicFilter(f =>
-            {
-                f.WithTopic($"{_configurationWrapper.CurrentPowerToGridMqttTopic()}");
-            })
             .Build();
 
+        mqttSubscribeOptions.TopicFilters = GetMqttTopicFilters();
+
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    private List<MqttTopicFilter> GetMqttTopicFilters()
+    {
+        var topicFilters = new List<MqttTopicFilter>();
+        var topics = new List<string?>()
+        {
+            _configurationWrapper.CurrentPowerToGridMqttTopic(),
+            _configurationWrapper.CurrentInverterPowerMqttTopic(),
+            _configurationWrapper.HomeBatterySocMqttTopic(),
+            _configurationWrapper.HomeBatteryPowerMqttTopic(),
+        };
+        foreach (var topic in topics)
+        {
+            if (!string.IsNullOrWhiteSpace(topic))
+            {
+                topicFilters.Add(GenerateMqttTopicFilter(topic));
+            }
+        }
+        return topicFilters;
+    }
+
+    private MqttTopicFilter GenerateMqttTopicFilter(string topic)
+    {
+        var mqttTopicFilterBuilder = new MqttTopicFilterBuilder();
+        mqttTopicFilterBuilder.WithTopic(topic);
+        return mqttTopicFilterBuilder.Build();
     }
 
     internal string? GetMqttServerAndPort(out int? mqttServerPort)
