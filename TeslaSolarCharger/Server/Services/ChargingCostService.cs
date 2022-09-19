@@ -203,6 +203,15 @@ public class ChargingCostService : IChargingCostService
             var chargeDistributions = await _teslaSolarChargerContext.PowerDistributions
                 .Where(p => p.HandledChargeId == duplicate.Id)
                 .ToListAsync().ConfigureAwait(false);
+            if (duplicate.ChargePriceId > 1)
+            {
+                var chargePrice = await _teslaSolarChargerContext.ChargePrices
+                    .FirstOrDefaultAsync(c => c.Id == duplicate.ChargePriceId).ConfigureAwait(false);
+                if (chargePrice != default)
+                {
+                    _teslaSolarChargerContext.ChargePrices.Remove(chargePrice);
+                }
+            }
             _teslaSolarChargerContext.PowerDistributions.RemoveRange(chargeDistributions);
             _teslaSolarChargerContext.HandledCharges.Remove(duplicate);
         }
