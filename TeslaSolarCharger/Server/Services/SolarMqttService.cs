@@ -78,7 +78,7 @@ public class SolarMqttService : ISolarMqttService
                 var jsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
                 var xmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
-                _setting.HomeBatterySoc = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+                _setting.HomeBatteryPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
             }
             else
             {
