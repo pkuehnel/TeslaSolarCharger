@@ -140,27 +140,30 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.GridPowerNotAvailable));
         }
 
-        if (!string.IsNullOrWhiteSpace(_configurationWrapper.CurrentInverterPowerUrl()) && _settings.InverterPower == null)
+        var isInverterPowerConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.CurrentInverterPowerUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.CurrentInverterPowerMqttTopic()));
+        if (isInverterPowerConfigured && _settings.InverterPower == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.InverterPowerNotAvailable));
         }
 
-        if (!string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()) && _settings.HomeBatterySoc == null)
+        var isHomeBatterySocConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocMqttTopic()));
+        if (isHomeBatterySocConfigured && _settings.HomeBatterySoc == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotAvailable));
         }
 
-        if (!string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()) && _settings.HomeBatterySoc != null && (_settings.HomeBatterySoc > 100 || _settings.HomeBatterySoc < 0))
+        if (isHomeBatterySocConfigured && _settings.HomeBatterySoc != null && (_settings.HomeBatterySoc > 100 || _settings.HomeBatterySoc < 0))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotPlausible));
         }
 
-        if (!string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerUrl()) && _settings.HomeBatteryPower == null)
+        var isHomeBatteryPowerConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerMqttTopic()));
+        if (isHomeBatteryPowerConfigured && _settings.HomeBatteryPower == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryPowerNotAvailable));
         }
 
-        if (string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerUrl()) != string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()))
+        if (isHomeBatteryPowerConfigured != isHomeBatterySocConfigured)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryHalfConfigured));
         }
