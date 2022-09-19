@@ -68,4 +68,5 @@ public interface IConfigurationWrapper
     string? HomeBatterySocMqttTopic();
     string? CurrentInverterPowerMqttTopic();
     string? HomeBatteryPowerMqttTopic();
+    Task TryAutoFillUrls();
 }
