@@ -115,7 +115,7 @@ await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait
 await baseConfigurationConverter.ConvertBaseConfigToCurrentVersion().ConfigureAwait(false);
 
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
-await configurationWrapper.TryAutoFillUrls()
+await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
