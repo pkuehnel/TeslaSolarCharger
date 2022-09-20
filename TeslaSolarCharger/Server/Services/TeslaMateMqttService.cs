@@ -7,9 +7,9 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class MqttService : IMqttService
+public class TeslaMateMqttService : ITeslaMateMqttService
 {
-    private readonly ILogger<MqttService> _logger;
+    private readonly ILogger<TeslaMateMqttService> _logger;
     private readonly IMqttClient _mqttClient;
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _settings;
@@ -46,7 +46,7 @@ public class MqttService : IMqttService
 
     public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
-    public MqttService(ILogger<MqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
+    public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
         ISettings settings, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;

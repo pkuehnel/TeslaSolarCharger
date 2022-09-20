@@ -56,11 +56,12 @@ builder.Services
     .AddSingleton<ISettings, Settings>()
     .AddSingleton<IInMemoryValues, InMemoryValues>()
     .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
-    .AddSingleton<IMqttNetLogger, MqttNetNullLogger>()
-    .AddSingleton<IMqttClientAdapterFactory, MqttClientAdapterFactory>()
-    .AddSingleton<IMqttClient, MqttClient>()
+    .AddTransient<IMqttNetLogger, MqttNetNullLogger>()
+    .AddTransient<IMqttClientAdapterFactory, MqttClientAdapterFactory>()
+    .AddTransient<IMqttClient, MqttClient>()
     .AddTransient<MqttFactory>()
-    .AddTransient<IMqttService, MqttService>()
+    .AddSingleton<ITeslaMateMqttService, TeslaMateMqttService>()
+    .AddSingleton<ISolarMqttService, SolarMqttService>()
     .AddTransient<IPvValueService, PvValueService>()
     .AddTransient<IBaseConfigurationService, BaseConfigurationService>()
     .AddTransient<IDbConnectionStringHelper, DbConnectionStringHelper>()
@@ -106,9 +107,15 @@ var app = builder.Build();
 var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
 await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
+var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
+await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
+
 var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
 await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
 await baseConfigurationConverter.ConvertBaseConfigToCurrentVersion().ConfigureAwait(false);
+
+var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
+await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
@@ -120,9 +127,11 @@ await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
 await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
 
-var mqttHelper = app.Services.GetRequiredService<IMqttService>();
+var teslaMateMqttService = app.Services.GetRequiredService<ITeslaMateMqttService>();
+await teslaMateMqttService.ConnectMqttClient().ConfigureAwait(false);
 
-await mqttHelper.ConnectMqttClient().ConfigureAwait(false);
+var solarMqttService = app.Services.GetRequiredService<ISolarMqttService>();
+await solarMqttService.ConnectMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 await jobManager.StartJobs().ConfigureAwait(false);

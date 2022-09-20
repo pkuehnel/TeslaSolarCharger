@@ -56,6 +56,19 @@ public class PvValueService : TestBase
     [InlineData("384")]
     [InlineData("384.0")]
     [InlineData("384.00")]
+    public void Can_Get_Integer_From_Simple_Result(string text)
+    {
+        var json = $"{{\"value\": {text}}}";
+        var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
+        var intValue = pvValueService.GetValueFromResult("$.value", json, NodePatternType.Json, true);
+
+        Assert.Equal(384, intValue);
+    }
+
+    [Theory]
+    [InlineData("384")]
+    [InlineData("384.0")]
+    [InlineData("384.00")]
     public void Can_Get_Integer_From_Grid_Xml_Attribute_Result(string text)
     {
         var xml = string.Format(

@@ -9,9 +9,9 @@ using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
-public class MqttService : TestBase
+public class TeslaMateMqttService : TestBase
 {
-    public MqttService(ITestOutputHelper outputHelper)
+    public TeslaMateMqttService(ITestOutputHelper outputHelper)
         : base(outputHelper)
     {
     }
@@ -38,7 +38,7 @@ public class MqttService : TestBase
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
 
-        var mqttService = Mock.Create<TeslaSolarCharger.Server.Services.MqttService>();
+        var mqttService = Mock.Create<TeslaSolarCharger.Server.Services.TeslaMateMqttService>();
 
         var teslamateValue = new TeslaMateValue()
         {

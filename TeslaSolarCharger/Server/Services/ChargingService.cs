@@ -18,13 +18,13 @@ public class ChargingService : IChargingService
     private readonly ITeslaService _teslaService;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IPvValueService _pvValueService;
-    private readonly IMqttService _mqttService;
+    private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly GlobalConstants _globalConstants;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        IMqttService mqttService, GlobalConstants globalConstants)
+        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants)
     {
         _logger = logger;
         _settings = settings;
@@ -33,7 +33,7 @@ public class ChargingService : IChargingService
         _teslaService = teslaService;
         _configurationWrapper = configurationWrapper;
         _pvValueService = pvValueService;
-        _mqttService = mqttService;
+        _teslaMateMqttService = teslaMateMqttService;
         _globalConstants = globalConstants;
     }
 
@@ -46,7 +46,7 @@ public class ChargingService : IChargingService
         var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
-        if (!_mqttService.IsMqttClientConnected)
+        if (!_teslaMateMqttService.IsMqttClientConnected)
         {
             _logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
         }
