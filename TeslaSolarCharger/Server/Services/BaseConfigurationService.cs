@@ -10,15 +10,17 @@ public class BaseConfigurationService : IBaseConfigurationService
     private readonly ILogger<BaseConfigurationService> _logger;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly JobManager _jobManager;
-    private readonly IMqttService _mqttService;
+    private readonly ITeslaMateMqttService _teslaMateMqttService;
+    private readonly ISolarMqttService _solarMqttService;
 
     public BaseConfigurationService(ILogger<BaseConfigurationService> logger, IConfigurationWrapper configurationWrapper,
-        JobManager jobManager, IMqttService mqttService)
+        JobManager jobManager, ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
         _jobManager = jobManager;
-        _mqttService = mqttService;
+        _teslaMateMqttService = teslaMateMqttService;
+        _solarMqttService = solarMqttService;
     }
 
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
@@ -26,7 +28,8 @@ public class BaseConfigurationService : IBaseConfigurationService
         _logger.LogTrace("{method}({@baseConfiguration})", nameof(UpdateBaseConfigurationAsync), baseConfiguration);
         await _jobManager.StopJobs().ConfigureAwait(false);
         await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
-        await _mqttService.ConnectMqttClient().ConfigureAwait(false);
+        await _teslaMateMqttService.ConnectMqttClient().ConfigureAwait(false);
+        await _solarMqttService.ConnectMqttClient().ConfigureAwait(false);
         await _jobManager.StartJobs().ConfigureAwait(false);
     }
 }

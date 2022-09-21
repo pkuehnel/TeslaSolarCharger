@@ -62,4 +62,11 @@ public interface IConfigurationWrapper
     decimal HomeBatteryPowerCorrectionFactor();
     int? HomeBatteryMinSoc();
     int? HomeBatteryChargingPower();
+    string SqliteFileFullName();
+    string? SolarMqttServer();
+    string? CurrentPowerToGridMqttTopic();
+    string? HomeBatterySocMqttTopic();
+    string? CurrentInverterPowerMqttTopic();
+    string? HomeBatteryPowerMqttTopic();
+    Task TryAutoFillUrls();
 }

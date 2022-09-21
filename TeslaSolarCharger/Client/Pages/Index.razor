@@ -2,12 +2,20 @@
 @using System.Globalization
 @using System.Timers
 @using TeslaSolarCharger.Shared
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Enums
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 
 <PageTitle>Tesla Solar Charger</PageTitle>
+
+<form action="https://www.paypal.com/donate" method="post" target="_top">
+    <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
+    <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+    <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
+</form>
+
 
 @if (_settings == null)
 {
@@ -35,7 +43,7 @@ else
         @if (_settings.HomeBatteryPower != null)
         {
             <div class="@(_settings.HomeBatteryPower < 0 ? "text-danger" : "text-success")"><i class="fa-solid fa-battery-full" style="width: 25px;"></i>
-                @if (_settings.Overage != null)
+                @if (_settings.HomeBatteryPower != null)
                 {
                     @Math.Abs((int)_settings.HomeBatteryPower)
                 }
@@ -46,18 +54,32 @@ else
     @foreach (var car in _settings.Cars)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
+            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarConfiguration.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
             @if (car.CarState.Healthy != true)
             {
                 <i class="fa-solid fa-circle-exclamation"></i>
             }
-            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
+            @if (_chargeSummaries != null)
+            {
+                if (_chargeSummaries.Any(c => c.Key == car.Id))
+                {
+                    <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedSolarEnergy.ToString("0.00") kWh</div>
+                    <div><i class="fa-solid fa-bolt" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedGridEnergy.ToString("0.00") kWh</div>
+                    <div><i class="fa-solid fa-coins" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargeCost.ToString("0.00") €</div>
+                }
+                else
+                {
+                    <div>Chargeprices will show up nine minutes after the first charge with at least version 2.6.0</div>
+                }
+
+            }
             <label class="col-5 col-sm-4 col-md-3 col-lg-2">@car.CarConfiguration.ChargeMode.ToFriendlyString()</label> <button class="btn btn-primary col-6 col-sm-6 col-md-3 col-lg-2" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
             {
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-               @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">
+                           @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">
                 </p>
             }
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -65,12 +87,12 @@ else
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
                 </p>
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
             }
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -108,6 +130,14 @@ else
                     </td>
                     <td>
                         @car.CarState.Name
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Actual Current
+                    </td>
+                    <td>
+                        @car.CarState.ChargerActualCurrent
                     </td>
                 </tr>
                 <tr>
@@ -179,7 +209,7 @@ else
                         SoC Limit
                     </td>
                     <td>
-                        @car.CarState.SocLimit
+                        @car.CarConfiguration.SocLimit
                     </td>
                 </tr>
                 <tr>
@@ -240,6 +270,7 @@ else
 
 @code {
     private Settings? _settings;
+    private Dictionary<int, DtoChargeSummary>? _chargeSummaries;
     private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
     private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
     private string _version = "";
@@ -252,14 +283,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var settingsHandler = HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings");
+        _settings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
-        _settings = await settingsHandler.ConfigureAwait(false);
         foreach (var car in _settings!.Cars)
         {
             _chargemodeChangeButtonTexts.Add(car.Id, _chargeModeChangeButtonDefaultText);
             _saveButtonTexts.Add(car.Id, _saveButtonDefaultText);
         }
+
+        _chargeSummaries = await HttpClient.GetFromJsonAsync<Dictionary<int, DtoChargeSummary>>("api/ChargingCost/GetChargeSummaries").ConfigureAwait(false);
 
         _timer = new Timer();
         _timer.Interval = 5000;

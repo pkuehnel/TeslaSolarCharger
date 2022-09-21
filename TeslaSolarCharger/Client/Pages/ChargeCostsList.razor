@@ -1,0 +1,58 @@
+﻿@page "/ChargePrices"
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+<h3>Charge Prices</h3>
+
+<button class="btn btn-primary" @onclick="NavigateToNew">New</button>
+
+@if (_chargePrices == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Valid since</th>
+            <th>Solar price per kWh</th>
+            <th>Grid price per kWh</th>
+            <th>Delete</th>
+        </tr>
+        </thead>
+        <tbody>
+            @foreach (var chargePrice in _chargePrices)
+        {
+            <tr>
+                <td><a href="/ChargePrice/detail/@chargePrice.Id">@chargePrice.Id</a></td>
+                <td>@chargePrice.ValidSince</td>
+                    <td>@(chargePrice.SolarPrice != null ? ((decimal)chargePrice.SolarPrice).ToString("0.00") : "")</td>
+                    <td>@(chargePrice.GridPrice != null ? ((decimal)chargePrice.GridPrice).ToString("0.00") : "")</td>
+                <td><button class="btn btn-danger" @onclick="(_ => Delete(chargePrice.Id))"><span class="oi oi-trash" aria-hidden="true"></span></button></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<DtoChargePrice>? _chargePrices;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _chargePrices = await HttpClient.GetFromJsonAsync<List<DtoChargePrice>>("api/ChargingCost/GetChargePrices").ConfigureAwait(false);
+    }
+
+    void NavigateToNew()
+    {
+        NavigationManager.NavigateTo("/ChargePrice/new");
+    }
+
+    async Task Delete(int? id)
+    {
+        await HttpClient.DeleteAsync($"api/ChargingCost/DeleteChargePriceById?id={id}").ConfigureAwait(false);
+        await OnInitializedAsync().ConfigureAwait(false);
+    }
+}

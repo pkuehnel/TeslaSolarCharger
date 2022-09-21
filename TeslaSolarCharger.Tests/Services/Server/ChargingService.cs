@@ -136,16 +136,16 @@ public class ChargingService : TestBase
                 Id = 1,
                 CarState = new CarState()
                 {
-                    Geofence = geofence,
+                    IsHomeGeofence = true,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
+                    SocLimit = 60,
                 },
             },
             new Car()
@@ -158,11 +158,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
+                    SocLimit = 60,
                 },
             },
             new Car()
@@ -170,23 +170,24 @@ public class ChargingService : TestBase
                 Id = 3,
                 CarState = new CarState()
                 {
-                    Geofence = geofence,
+                    IsHomeGeofence = true,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
+                    
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = false,
+                    SocLimit = 60,
                 },
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
         var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
 
-        var relevantIds = chargingService.GetRelevantCarIds(geofence);
+        var relevantIds = chargingService.GetRelevantCarIds();
 
         Assert.Contains(1, relevantIds);
         Assert.Single(relevantIds);
@@ -203,16 +204,16 @@ public class ChargingService : TestBase
                 Id = 1,
                 CarState = new CarState()
                 {
-                    Geofence = geofence,
+                    IsHomeGeofence = true,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
+                    SocLimit = 60,
                 },
             },
             new Car()
@@ -225,11 +226,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
+                    SocLimit = 60,
                 },
             },
             new Car()
@@ -237,23 +238,23 @@ public class ChargingService : TestBase
                 Id = 3,
                 CarState = new CarState()
                 {
-                    Geofence = geofence,
+                    IsHomeGeofence = true,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = false,
+                    SocLimit = 60,
                 },
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
         var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
 
-        var irrelevantCars = chargingService.GetIrrelevantCars(chargingService.GetRelevantCarIds(geofence));
+        var irrelevantCars = chargingService.GetIrrelevantCars(chargingService.GetRelevantCarIds());
         
         Assert.Equal(2, irrelevantCars.Count);
         Assert.Contains(2, irrelevantCars.Select(c => c.Id));

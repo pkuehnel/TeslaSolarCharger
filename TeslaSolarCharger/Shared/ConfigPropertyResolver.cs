@@ -18,6 +18,7 @@ public class ConfigPropertyResolver : DefaultContractResolver
         nameof(Car.CarConfiguration.MaximumAmpere),
         nameof(Car.CarConfiguration.UsableEnergy),
         nameof(Car.CarConfiguration.ShouldBeManaged),
+        nameof(Car.CarConfiguration.SocLimit),
         nameof(Car.Id),
     };
 

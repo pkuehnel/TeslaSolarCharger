@@ -10,37 +10,33 @@ public class CarDbUpdateService : ICarDbUpdateService
     private readonly ILogger<CarDbUpdateService> _logger;
     private readonly ISettings _settings;
     private readonly ITeslamateContext _teslamateContext;
-    private readonly ITelegramService _telegramService;
 
-    public CarDbUpdateService(ILogger<CarDbUpdateService> logger, ISettings settings, ITeslamateContext teslamateContext, ITelegramService telegramService)
+    public CarDbUpdateService(ILogger<CarDbUpdateService> logger, ISettings settings, ITeslamateContext teslamateContext)
     {
         _logger = logger;
         _settings = settings;
         _teslamateContext = teslamateContext;
-        _telegramService = telegramService;
     }
 
-    public async Task UpdateCarsFromDatabase()
+    public async Task UpdateMissingCarDataFromDatabase()
     {
-        _logger.LogTrace("{method}()", nameof(UpdateCarsFromDatabase));
+        _logger.LogTrace("{method}()", nameof(UpdateMissingCarDataFromDatabase));
         _logger.LogWarning("Deprecated method called");
-        return;
         foreach (var car in _settings.Cars)
         {
             try
             {
-                var pilotCurrent = await _teslamateContext.Charges
-                    .Where(c => c.ChargingProcess.CarId == car.Id)
-                    .OrderByDescending(c => c.Date)
-                    .Select(c => c.ChargerPilotCurrent)
+                var batteryLevel = await _teslamateContext.Positions
+                    .Where(p => p.CarId == car.Id)
+                    .OrderByDescending(p => p.Date)
+                    .Select(c => c.BatteryLevel)
                     .FirstOrDefaultAsync().ConfigureAwait(false);
-                _logger.LogTrace("Pilot Current for var {car} is {pilotCurrent}", car.Id, pilotCurrent);
-                car.CarState.ChargerPilotCurrent = pilotCurrent;
+                _logger.LogTrace("battery level for var {car} is {batteryLevel}", car.Id, batteryLevel);
+                car.CarState.SoC = batteryLevel;
             }
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Error while trying to get pilot current from database. Retrying in one minute.");
-                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
             }
 
 

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TeslaSolarCharger.Model.Entities;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 
 namespace TeslaSolarCharger.Model.Contracts;
 
@@ -18,4 +18,6 @@ public interface ITeslamateContext
     DbSet<State> States { get; set; }
     DbSet<Token> Tokens { get; set; }
     DbSet<Update> Updates { get; set; }
+
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken());
 }

@@ -31,6 +31,15 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return Path.Combine(configFileDirectory, value);
     }
 
+    public string SqliteFileFullName()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "SqliteFileName";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
     public string BaseConfigFileFullName()
     {
         var configFileDirectory = ConfigFileDirectory();
@@ -115,10 +124,25 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         return GetBaseConfiguration().CurrentPowerToGridUrl;
     }
-    
+
+    public string? SolarMqttServer()
+    {
+        return GetBaseConfiguration().SolarMqttServer;
+    }
+
+    public string? CurrentPowerToGridMqttTopic()
+    {
+        return GetBaseConfiguration().CurrentPowerToGridMqttTopic;
+    }
+
     public Dictionary<string, string> CurrentPowerToGridHeaders()
     {
         return GetBaseConfiguration().CurrentPowerToGridHeaders;
+    }
+
+    public string? CurrentInverterPowerMqttTopic()
+    {
+        return GetBaseConfiguration().CurrentInverterPowerMqttTopic;
     }
 
     public string? CurrentInverterPowerUrl()
@@ -135,9 +159,19 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().HomeBatterySocUrl;
     }
 
+    public string? HomeBatterySocMqttTopic()
+    {
+        return GetBaseConfiguration().HomeBatterySocMqttTopic;
+    }
+
     public Dictionary<string, string> HomeBatterySocHeaders()
     {
         return GetBaseConfiguration().HomeBatterySocHeaders;
+    }
+
+    public string? HomeBatteryPowerMqttTopic()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerMqttTopic;
     }
 
     public string? HomeBatteryPowerUrl()
@@ -391,17 +425,16 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             throw new ArgumentException($"Could not deserialize {jsonFileContent} to {nameof(DtoBaseConfiguration)}");
         }
-
-        if (string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridUrl))
-        {
-            await TryGetGridUrl(dtoBaseConfiguration).ConfigureAwait(false);
-        }
-
         return dtoBaseConfiguration;
     }
 
-    private async Task TryGetGridUrl(DtoBaseConfiguration dtoBaseConfiguration)
+    public async Task TryAutoFillUrls()
     {
+        var dtoBaseConfiguration = await GetBaseConfigurationAsync().ConfigureAwait(false);
+        if (!string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridUrl) && !string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridMqttTopic))
+        {
+            return;
+        }
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMilliseconds(500);
         //ToDo: as the plugin has to use the host network the pluginname is unknown

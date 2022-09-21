@@ -32,19 +32,25 @@ public class PvValueService : IPvValueService
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
 
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
-        var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
-        var gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
-        var gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
-        var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
-        var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
-        var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
-        var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor).ConfigureAwait(false);
-        _logger.LogDebug("Overage is {overage}", overage);
-        _settings.Overage = overage;
-        if (overage != null)
+        HttpRequestMessage? gridRequest = default;
+        HttpResponseMessage? gridHttpResponse = default;
+        if (!string.IsNullOrWhiteSpace(gridRequestUrl))
         {
-            AddOverageValueToInMemoryList((int)overage);
+            var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
+            gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
+            gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
+            var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+            var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
+            var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
+            var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor).ConfigureAwait(false);
+            _logger.LogDebug("Overage is {overage}", overage);
+            _settings.Overage = overage;
+            if (overage != null)
+            {
+                AddOverageValueToInMemoryList((int)overage);
+            }
         }
+
 
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
         HttpRequestMessage? inverterRequest = default;
@@ -193,7 +199,7 @@ public class PvValueService : IPvValueService
         return (int)(weightedSum / weightedCount);
     }
 
-    private void AddOverageValueToInMemoryList(int overage)
+    public void AddOverageValueToInMemoryList(int overage)
     {
         _logger.LogTrace("{method}({overage})", nameof(AddOverageValueToInMemoryList), overage);
         _inMemoryValues.OverageValues.Add(overage);
@@ -207,8 +213,12 @@ public class PvValueService : IPvValueService
         }
     }
 
-    internal bool IsSameRequest(HttpRequestMessage httpRequestMessage1, HttpRequestMessage httpRequestMessage2)
+    internal bool IsSameRequest(HttpRequestMessage? httpRequestMessage1, HttpRequestMessage httpRequestMessage2)
     {
+        if (httpRequestMessage1 == null)
+        {
+            return false;
+        }
         if (httpRequestMessage1.Method != httpRequestMessage2.Method)
         {
             return false;
@@ -247,13 +257,20 @@ public class PvValueService : IPvValueService
 
 
 
-    public async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    private async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor)
     {
-        _logger.LogTrace("{method}({jsonPattern}, {xmlPattern}, {correctionFactor})",
-            nameof(GetIntegerValue), jsonPattern, xmlPattern, correctionFactor);
+        _logger.LogTrace("{method}({httpResonse}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
+            nameof(GetIntegerValue), response, jsonPattern, xmlPattern, correctionFactor);
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+        return GetIntegerValueByString(result, jsonPattern, xmlPattern, correctionFactor);
+    }
+
+    public int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    {
+        _logger.LogTrace("{method}({valueString}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
+            nameof(GetIntegerValueByString), valueString, jsonPattern, xmlPattern, correctionFactor);
         var pattern = "";
         var nodePatternType = DecideNodePatternType(jsonPattern, xmlPattern);
 
@@ -266,7 +283,7 @@ public class PvValueService : IPvValueService
             pattern = xmlPattern;
         }
 
-        var doubleValue = GetValueFromResult(pattern, result, nodePatternType, true);
+        var doubleValue = GetValueFromResult(pattern, valueString, nodePatternType, true);
 
         return (int?)(doubleValue * correctionFactor);
     }

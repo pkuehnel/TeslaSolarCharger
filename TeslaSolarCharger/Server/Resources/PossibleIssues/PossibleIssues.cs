@@ -31,6 +31,7 @@ public class PossibleIssues : IPossibleIssues
             {
                 issueKeys.CarSocNotReadable, CreateIssue("SoC of at least one car is not available",
                     IssueType.Error,
+                    "Is the database running? If not start the database container and then restart TeslaSolarCharger.",
                     "Restart TeslaMate container",
                     "Wake up cars via Tesla App",
                     "Are all car IDs configured in Base Configuration available in your Tesla Account?"
@@ -68,6 +69,12 @@ public class PossibleIssues : IPossibleIssues
                     IssueType.Error,
                     "Are all settings related to home battery power (url, extraction patterns, headers,...) correct?",
                     "Are there any firewall related issues preventing reading the home battery power value?"
+                )
+            },
+            {
+                issueKeys.HomeBatteryHalfConfigured, CreateIssue("Home battery is not configured completly",
+                    IssueType.Error,
+                    "Did you completly configure values for Home Battery SOC and Home Battery Power?"
                 )
             },
             {

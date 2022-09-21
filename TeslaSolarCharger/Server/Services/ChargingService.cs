@@ -18,13 +18,13 @@ public class ChargingService : IChargingService
     private readonly ITeslaService _teslaService;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IPvValueService _pvValueService;
-    private readonly IMqttService _mqttService;
+    private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly GlobalConstants _globalConstants;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        IMqttService mqttService, GlobalConstants globalConstants)
+        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants)
     {
         _logger = logger;
         _settings = settings;
@@ -33,7 +33,7 @@ public class ChargingService : IChargingService
         _teslaService = teslaService;
         _configurationWrapper = configurationWrapper;
         _pvValueService = pvValueService;
-        _mqttService = mqttService;
+        _teslaMateMqttService = teslaMateMqttService;
         _globalConstants = globalConstants;
     }
 
@@ -46,14 +46,14 @@ public class ChargingService : IChargingService
         var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
-        if (!_mqttService.IsMqttClientConnected)
+        if (!_teslaMateMqttService.IsMqttClientConnected)
         {
             _logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
         }
 
         await LogErrorForCarsWithUnknownSocLimit(_settings.Cars).ConfigureAwait(false);
 
-        var relevantCarIds = GetRelevantCarIds(geofence);
+        var relevantCarIds = GetRelevantCarIds();
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
 
         var irrelevantCars = GetIrrelevantCars(relevantCarIds);
@@ -64,10 +64,9 @@ public class ChargingService : IChargingService
         _logger.LogTrace("Relevant cars: {@relevantCars}", relevantCars);
         _logger.LogTrace("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
 
-        UpdateChargingPowerAtHome(geofence);
-
         if (relevantCarIds.Count < 1)
         {
+            _settings.ControlledACarAtLastCycle = false;
             return;
         }
 
@@ -118,6 +117,16 @@ public class ChargingService : IChargingService
         }
 
         var powerToControl = overage;
+
+        if (!_settings.ControlledACarAtLastCycle && powerToControl < 690)
+        {
+            foreach (var relevantCar in relevantCars)
+            {
+                relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
+            }
+        }
+
+        _settings.ControlledACarAtLastCycle = true;
         
         _logger.LogDebug("Power to control: {power}", powerToControl);
 
@@ -133,30 +142,6 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Amp to control: {amp}", ampToControl);
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
             powerToControl -= await ChangeCarAmp(relevantCar, ampToControl).ConfigureAwait(false);
-        }
-    }
-
-    private void UpdateChargingPowerAtHome(string geofence)
-    {
-        var carsAtHome = _settings.Cars.Where(c => c.CarState.Geofence == geofence).ToList();
-        foreach (var car in carsAtHome)
-        {
-            car.CarState.ChargingPowerAtHome = car.CarState.ChargingPower;
-        }
-        var carsNotAtHome = _settings.Cars.Where(car => !carsAtHome.Select(c => c.Id).Any(i => i == car.Id)).ToList();
-
-        foreach (var car in carsNotAtHome)
-        {
-            car.CarState.ChargingPowerAtHome = 0;
-        }
-
-        //Do not combine with irrelevant cars because then charging would never start
-        foreach (var pluggedOutCar in _settings.Cars
-                     .Where(c => c.CarState.PluggedIn != true).ToList())
-        {
-            _logger.LogDebug("Resetting ChargeStart and ChargeStop for car {carId}", pluggedOutCar.Id);
-            UpdateEarliestTimesAfterSwitch(pluggedOutCar.Id);
-            pluggedOutCar.CarState.ChargingPowerAtHome = 0;
         }
     }
 
@@ -184,20 +169,20 @@ public class ChargingService : IChargingService
 
     private bool IsSocLimitUnknown(Car car)
     {
-        return car.CarState.SocLimit == null || car.CarState.SocLimit < _globalConstants.MinSocLimit;
+        return car.CarConfiguration.SocLimit == null || car.CarConfiguration.SocLimit < _globalConstants.MinSocLimit;
     }
 
 
-    internal List<int> GetRelevantCarIds(string geofence)
+    internal List<int> GetRelevantCarIds()
     {
         var relevantIds = _settings.Cars
             .Where(c =>
-                c.CarState.Geofence == geofence
+                c.CarState.IsHomeGeofence == true
                 && c.CarConfiguration.ShouldBeManaged == true
                 && c.CarState.PluggedIn == true
                 && (c.CarState.ClimateOn == true ||
                     c.CarState.ChargerActualCurrent > 0 ||
-                    c.CarState.SoC < c.CarState.SocLimit - 2))
+                    c.CarState.SoC < c.CarConfiguration.SocLimit - 2))
             .Select(c => c.Id)
             .ToList();
 
@@ -216,8 +201,8 @@ public class ChargingService : IChargingService
         //This might happen if only climate is running or car nearly full which means full power is not needed.
         if (ampToChange > 0 && car.CarState.ChargerRequestedCurrent > car.CarState.ChargerActualCurrent && car.CarState.ChargerActualCurrent > 0)
         {
-            ampToChange = 0;
-            _logger.LogDebug("Set amp to change to {ampToChange} as car does not use full request.", ampToChange);
+            //ampToChange = 0;
+            _logger.LogWarning("Car does not use full request.");
         }
         var finalAmpsToSet = (car.CarState.ChargerRequestedCurrent ?? 0) + ampToChange;
 
@@ -263,7 +248,7 @@ public class ChargingService : IChargingService
                 {
                     //Do not start charging when battery level near charge limit
                     if (car.CarState.SoC >=
-                        car.CarState.SocLimit - 2)
+                        car.CarConfiguration.SocLimit - 2)
                     {
                         return 0;
                     }

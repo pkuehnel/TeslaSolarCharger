@@ -7,9 +7,9 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class MqttService : IMqttService
+public class TeslaMateMqttService : ITeslaMateMqttService
 {
-    private readonly ILogger<MqttService> _logger;
+    private readonly ILogger<TeslaMateMqttService> _logger;
     private readonly IMqttClient _mqttClient;
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _settings;
@@ -39,13 +39,14 @@ public class MqttService : IMqttService
     private const string TopicState = "state";
     // ReSharper disable once InconsistentNaming
     private const string TopicHealthy = "healthy";
-    // ReSharper disable once UnusedMember.Local
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargeCurrentRequest = "charge_current_request";
+    // ReSharper disable once InconsistentNaming
     private const string TopicChargeCurrentRequestMax = "charge_current_request_max";
 
     public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
-    public MqttService(ILogger<MqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
+    public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
         ISettings settings, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
@@ -173,17 +174,18 @@ public class MqttService : IMqttService
             case TopicChargeLimit:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.SocLimit = Convert.ToInt32(value.Value);
+                    car.CarConfiguration.SocLimit = Convert.ToInt32(value.Value);
                     var minimumSettableSocLimit = 50;
-                    if (car.CarConfiguration.MinimumSoC > car.CarState.SocLimit && car.CarState.SocLimit > minimumSettableSocLimit)
+                    if (car.CarConfiguration.MinimumSoC > car.CarConfiguration.SocLimit && car.CarConfiguration.SocLimit > minimumSettableSocLimit)
                     {
-                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarState.SocLimit);
-                        car.CarConfiguration.MinimumSoC = (int)car.CarState.SocLimit;
+                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarConfiguration.SocLimit);
+                        car.CarConfiguration.MinimumSoC = (int)car.CarConfiguration.SocLimit;
                     }
                 }
                 break;
             case TopicGeofence:
                 car.CarState.Geofence = value.Value;
+                car.CarState.IsHomeGeofence = car.CarState.Geofence == _configurationWrapper.GeoFence();
                 break;
             case TopicChargerPhases:
                 if (!string.IsNullOrWhiteSpace(value.Value))
