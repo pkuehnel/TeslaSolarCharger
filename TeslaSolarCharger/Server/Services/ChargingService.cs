@@ -70,58 +70,19 @@ public class ChargingService : IChargingService
             return;
         }
 
-        var currentControledPower = relevantCars
-            .Sum(c => c.CarState.ChargingPower);
-        _logger.LogDebug("Current control Power: {power}", currentControledPower);
-
-        var buffer = _configurationWrapper.PowerBuffer();
-        _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-
-        var averagedOverage = _pvValueService.GetAveragedOverage();
-        _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
-
         if (_settings.Overage == null)
         {
             _logger.LogWarning("Can not control power as overage is unknown");
             return;
         }
 
-        var overage = averagedOverage - buffer;
-        _logger.LogTrace("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
-
-        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
-        _logger.LogTrace("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
-        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
-        _logger.LogTrace("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
-        if (homeBatteryMinSoc != null && homeBatteryMaxChargingPower != null)
-        {
-            var actualHomeBatterySoc = _settings.HomeBatterySoc;
-            _logger.LogTrace("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
-            var actualHomeBatteryPower = _settings.HomeBatteryPower;
-            _logger.LogTrace("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
-            if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
-            {
-                if (actualHomeBatterySoc < homeBatteryMinSoc)
-                {
-                    overage -= (int) homeBatteryMaxChargingPower - (int) actualHomeBatteryPower;
-
-                    _logger.LogTrace("Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}", homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
-                }
-                else
-                {
-                    overage += (int) actualHomeBatteryPower;
-                    _logger.LogTrace("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}", actualHomeBatteryPower, overage);
-                }
-            }
-            
-        }
-
-        var powerToControl = overage;
+        var powerToControl = CalculatePowerToControl(relevantCars);
 
         if (!_settings.ControlledACarAtLastCycle)
         {
             //Wait for the car to reach charging Power
-            await Task.Delay(TimeSpan.FromSeconds(15)).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(25)).ConfigureAwait(false);
+            powerToControl = CalculatePowerToControl(relevantCars);
             foreach (var relevantCar in relevantCars)
             {
                 if (powerToControl + relevantCar.CarState.ChargingPowerAtHome <
@@ -149,6 +110,54 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
             powerToControl -= await ChangeCarAmp(relevantCar, ampToControl).ConfigureAwait(false);
         }
+    }
+
+    private int CalculatePowerToControl(List<Car> relevantCars)
+    {
+        var currentControledPower = relevantCars
+            .Sum(c => c.CarState.ChargingPower);
+        _logger.LogDebug("Current control Power: {power}", currentControledPower);
+
+        var buffer = _configurationWrapper.PowerBuffer();
+        _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
+
+        var averagedOverage = _pvValueService.GetAveragedOverage();
+        _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
+
+        var overage = averagedOverage - buffer;
+        _logger.LogTrace("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
+
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        _logger.LogTrace("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
+        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        _logger.LogTrace("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
+        if (homeBatteryMinSoc != null && homeBatteryMaxChargingPower != null)
+        {
+            var actualHomeBatterySoc = _settings.HomeBatterySoc;
+            _logger.LogTrace("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
+            var actualHomeBatteryPower = _settings.HomeBatteryPower;
+            _logger.LogTrace("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
+            if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
+            {
+                if (actualHomeBatterySoc < homeBatteryMinSoc)
+                {
+                    overage -= (int)homeBatteryMaxChargingPower - (int)actualHomeBatteryPower;
+
+                    _logger.LogTrace(
+                        "Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}",
+                        homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
+                }
+                else
+                {
+                    overage += (int)actualHomeBatteryPower;
+                    _logger.LogTrace("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}",
+                        actualHomeBatteryPower, overage);
+                }
+            }
+        }
+
+        var powerToControl = overage;
+        return powerToControl;
     }
 
     internal List<Car> GetIrrelevantCars(List<int> relevantCarIds)
