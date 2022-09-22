@@ -153,6 +153,18 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
     }
 
+    public async Task ConnectClientIfNotConnected()
+    {
+        _logger.LogTrace("{method}()", nameof(ConnectClientIfNotConnected));
+        if (_mqttClient.IsConnected)
+        {
+            _logger.LogTrace("MqttClient is connected");
+            return;
+        }
+        _logger.LogWarning("MqttClient is not connected");
+        await ConnectMqttClient().ConfigureAwait(false);
+    }
+
     internal void UpdateCar(TeslaMateValue value)
     {
         var car = _settings.Cars.First(c => c.Id == value.CarId);
