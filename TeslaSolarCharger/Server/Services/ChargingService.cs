@@ -118,11 +118,17 @@ public class ChargingService : IChargingService
 
         var powerToControl = overage;
 
-        if (!_settings.ControlledACarAtLastCycle && powerToControl < 690)
+        if (!_settings.ControlledACarAtLastCycle)
         {
+            //Wait for the car to reach charging Power
+            await Task.Delay(TimeSpan.FromSeconds(15)).ConfigureAwait(false);
             foreach (var relevantCar in relevantCars)
             {
-                relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
+                if (powerToControl + relevantCar.CarState.ChargingPowerAtHome <
+                    relevantCar.CarState.ActualPhases * relevantCar.CarState.ChargerVoltage * relevantCar.CarConfiguration.MinimumAmpere)
+                {
+                    relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
+                }
             }
         }
 

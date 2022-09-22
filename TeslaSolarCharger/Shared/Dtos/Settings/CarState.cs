@@ -57,6 +57,15 @@ public class CarState
         }
     }
 
+    public int? SetChargingPower
+    {
+        get
+        {
+            var power = ChargerRequestedCurrent * ChargerVoltage * ActualPhases;
+            return power;
+        }
+    }
+
     public string? StateString { get; set; }
     public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
