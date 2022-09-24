@@ -6,6 +6,9 @@ public class BaseConfigurationBase
 {
     public Version Version { get; set; } = new(1, 0);
     public string? SolarMqttServer { get; set; }
+    public string? SolarMqttUserName { get; set; }
+    [DataType(DataType.Password)]
+    public string? SolarMqttPassword { get; set; }
     public string? CurrentPowerToGridMqttTopic { get; set; }
     public string? CurrentPowerToGridUrl { get; set; }
     public Dictionary<string, string> CurrentPowerToGridHeaders { get; set; } = new();
