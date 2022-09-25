@@ -46,8 +46,8 @@ public class SolarMqttService : ISolarMqttService
 
         if(!string.IsNullOrWhiteSpace(_configurationWrapper.SolarMqttUsername()) && !string.IsNullOrEmpty(_configurationWrapper.SolarMqttPassword()))
         {
-            var ascii = Encoding.ASCII;
-            var password = ascii.GetBytes(_configurationWrapper.SolarMqttPassword()!);
+            var utf8 = Encoding.UTF8;
+            var password = utf8.GetBytes(_configurationWrapper.SolarMqttPassword()!);
             mqttClientOptions.Credentials = new MqttClientCredentials(_configurationWrapper.SolarMqttUsername(), password);
         }
 
