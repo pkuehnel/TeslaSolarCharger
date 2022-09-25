@@ -1,6 +1,7 @@
 ﻿using MQTTnet.Client;
 using MQTTnet;
 using MQTTnet.Packets;
+using System.Text;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -39,8 +40,16 @@ public class SolarMqttService : ISolarMqttService
         }
         var mqttClientOptions = new MqttClientOptionsBuilder()
             .WithClientId(mqqtClientId)
+            .WithTimeout(TimeSpan.FromSeconds(5))
             .WithTcpServer(mqttServer, mqttServerPort)
             .Build();
+
+        if(!string.IsNullOrWhiteSpace(_configurationWrapper.SolarMqttUsername()) && !string.IsNullOrEmpty(_configurationWrapper.SolarMqttPassword()))
+        {
+            var ascii = Encoding.ASCII;
+            var password = ascii.GetBytes(_configurationWrapper.SolarMqttPassword()!);
+            mqttClientOptions.Credentials = new MqttClientCredentials(_configurationWrapper.SolarMqttUsername(), password);
+        }
 
         if (string.IsNullOrWhiteSpace(mqttServer))
         {

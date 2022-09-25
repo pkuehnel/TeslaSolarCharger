@@ -69,4 +69,6 @@ public interface IConfigurationWrapper
     string? CurrentInverterPowerMqttTopic();
     string? HomeBatteryPowerMqttTopic();
     Task TryAutoFillUrls();
+    string? SolarMqttUsername();
+    string? SolarMqttPassword();
 }
