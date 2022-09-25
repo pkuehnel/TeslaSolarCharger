@@ -43,6 +43,20 @@ else
             </div>
         </div>
         <div class="form-group">
+            <label for="solarMqttUserName">Solar Mqtt Username</label>
+            <InputText id="solarMqttUserName" @bind-Value="_dtoBaseConfiguration.SolarMqttUserName" placeholder="username" class="form-control" />
+            <div>
+                <small id="solarMqttUserNameHelp" class="form-text text-muted">Leave this blank if your mqtt server does not need authentication</small>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="solarMqttPassword">Solar Mqtt Password</label>
+            <InputText type="password" id="solarMqttPassword" @bind-Value="_dtoBaseConfiguration.SolarMqttPassword" placeholder="secret" class="form-control" />
+            <div>
+                <small id="solarMqttUserNameHelp" class="form-text text-muted">Leave this blank if your mqtt server does not need authentication</small>
+            </div>
+        </div>
+        <div class="form-group">
             <label for="currentPowerToGridMqttTopic">Grid Power Mqtt-Topic</label>
             <InputText id="currentPowerToGridMqttTopic" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridMqttTopic" class="form-control" />
             <div>
@@ -357,6 +371,9 @@ else
         <div class="form-group">
             <label for="updateIntervalSeconds">Car Power Adjustment Intervall (seconds)</label>
             <InputNumber id="updateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.UpdateIntervalSeconds" class="form-control" />
+            <div>
+                <small id="updateIntervalSecondsHelp" class="form-text text-muted">Note: It is not possible to use values below 20 seconds here, as there is a delay between the car changing its current and the Tesla API getting notified about this change.</small>
+            </div>
         </div>
         <div class="form-group">
             <label for="pvValueUpdateIntervalSeconds">Solar plant adjustment intervall (seconds)</label>

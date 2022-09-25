@@ -130,6 +130,16 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().SolarMqttServer;
     }
 
+    public string? SolarMqttUsername()
+    {
+        return GetBaseConfiguration().SolarMqttUserName;
+    }
+
+    public string? SolarMqttPassword()
+    {
+        return GetBaseConfiguration().SolarMqttPassword;
+    }
+
     public string? CurrentPowerToGridMqttTopic()
     {
         return GetBaseConfiguration().CurrentPowerToGridMqttTopic;

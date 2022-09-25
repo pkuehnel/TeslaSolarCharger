@@ -3,4 +3,5 @@
 public interface ISolarMqttService
 {
     Task ConnectMqttClient();
+    Task ConnectClientIfNotConnected();
 }

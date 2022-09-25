@@ -49,12 +49,45 @@ public class ChargingCostService : IChargingCostService
             chargePrice = await _teslaSolarChargerContext.ChargePrices.FirstAsync(c => c.Id == dtoChargePrice.Id).ConfigureAwait(false);
         }
 
-        chargePrice.GridPrice = (decimal)dtoChargePrice.GridPrice;
-        chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice;
+        //Can not be null as declared as Required in DTO
+        chargePrice.GridPrice = (decimal)dtoChargePrice.GridPrice!;
+        chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice!;
         chargePrice.ValidSince = dtoChargePrice.ValidSince;
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
+        await UpdateHandledChargesPriceCalculation().ConfigureAwait(false);
+    }
+
+    private async Task UpdateHandledChargesPriceCalculation()
+    {
         var handledCharges = await _teslaSolarChargerContext.HandledCharges.ToListAsync().ConfigureAwait(false);
+        var chargePrices = await _teslaSolarChargerContext.ChargePrices.OrderBy(c => c.ValidSince).ToListAsync()
+            .ConfigureAwait(false);
+        foreach (var handledCharge in handledCharges)
+        {
+            var chargingProcess = await _teslamateContext.ChargingProcesses
+                .FirstOrDefaultAsync(c => c.Id == handledCharge.ChargingProcessId).ConfigureAwait(false);
+            if (chargingProcess == default)
+            {
+                _logger.LogWarning("No charging process with id {chargingPricessId} found",
+                    handledCharge.ChargingProcessId);
+                var powerDistributions = await _teslaSolarChargerContext.PowerDistributions
+                    .Where(p => p.HandledChargeId == handledCharge.Id)
+                    .ToListAsync().ConfigureAwait(false);
+                foreach (var powerDistribution in powerDistributions)
+                {
+                    _teslaSolarChargerContext.PowerDistributions.Remove(powerDistribution);
+                }
+
+                _teslaSolarChargerContext.HandledCharges.Remove(handledCharge);
+                continue;
+            }
+
+            handledCharge.ChargePrice = chargePrices.Last(c => c.ValidSince < chargingProcess.StartDate);
+        }
+
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+
         await FinalizeHandledCharges(handledCharges).ConfigureAwait(false);
     }
 
@@ -328,9 +361,8 @@ public class ChargingCostService : IChargingCostService
         var chargePrice = await _teslaSolarChargerContext.ChargePrices
             .FirstAsync(c => c.Id == id).ConfigureAwait(false);
         _teslaSolarChargerContext.ChargePrices.Remove(chargePrice);
-        //ToDo: throw exception and discard changes if any handledCharge without corresponding chargePrice with _teslaSolarChargerContext.RejectChanges()
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var handledCharges = await _teslaSolarChargerContext.HandledCharges.ToListAsync().ConfigureAwait(false);
-        await FinalizeHandledCharges(handledCharges).ConfigureAwait(false);
+
+        await UpdateHandledChargesPriceCalculation().ConfigureAwait(false);
     }
 }

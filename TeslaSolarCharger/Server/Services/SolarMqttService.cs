@@ -1,6 +1,7 @@
 ﻿using MQTTnet.Client;
 using MQTTnet;
 using MQTTnet.Packets;
+using System.Text;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -33,10 +34,22 @@ public class SolarMqttService : ISolarMqttService
         //ToDo: Client Id dynmaisch machen
         var mqqtClientId = "TeslaSolarCharger";
         var mqttServer = GetMqttServerAndPort(out var mqttServerPort);
+        if (string.IsNullOrWhiteSpace(mqttServer))
+        {
+            _logger.LogDebug("No Mqtt Options defined for solar power. Do not connect MQTT Client.");
+        }
         var mqttClientOptions = new MqttClientOptionsBuilder()
             .WithClientId(mqqtClientId)
+            .WithTimeout(TimeSpan.FromSeconds(5))
             .WithTcpServer(mqttServer, mqttServerPort)
             .Build();
+
+        if(!string.IsNullOrWhiteSpace(_configurationWrapper.SolarMqttUsername()) && !string.IsNullOrEmpty(_configurationWrapper.SolarMqttPassword()))
+        {
+            var ascii = Encoding.ASCII;
+            var password = ascii.GetBytes(_configurationWrapper.SolarMqttPassword()!);
+            mqttClientOptions.Credentials = new MqttClientCredentials(_configurationWrapper.SolarMqttUsername(), password);
+        }
 
         if (string.IsNullOrWhiteSpace(mqttServer))
         {
@@ -138,9 +151,27 @@ public class SolarMqttService : ISolarMqttService
         return mqttTopicFilterBuilder.Build();
     }
 
+    public async Task ConnectClientIfNotConnected()
+    {
+        _logger.LogTrace("{method}()", nameof(ConnectClientIfNotConnected));
+        if (_mqttClient.IsConnected)
+        {
+            _logger.LogTrace("MqttClient is connected");
+            return;
+        }
+        _logger.LogInformation("SolarMqttClient is not connected. If you do note reveice your solar power values over MQTT this is nothing to worry about.");
+        await ConnectMqttClient().ConfigureAwait(false);
+    }
+
     internal string? GetMqttServerAndPort(out int? mqttServerPort)
     {
         var mqttServerIncludingPort = _configurationWrapper.SolarMqttServer();
+        if (string.IsNullOrWhiteSpace(mqttServerIncludingPort))
+        {
+            _logger.LogDebug("No Solar MQTT Server defined, do not extract servername and port");
+            mqttServerPort = null;
+            return null;
+        }
         var mqttServerAndPort = mqttServerIncludingPort?.Split(":");
         var mqttServer = mqttServerAndPort?.FirstOrDefault();
         mqttServerPort = null;

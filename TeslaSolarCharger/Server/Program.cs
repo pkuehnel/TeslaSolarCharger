@@ -43,6 +43,7 @@ builder.Services
     .AddTransient<PvValueJob>()
     .AddTransient<PowerDistributionAddJob>()
     .AddTransient<HandledChargeFinalizingJob>()
+    .AddTransient<MqttReconnectionJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -62,6 +63,7 @@ builder.Services
     .AddTransient<MqttFactory>()
     .AddSingleton<ITeslaMateMqttService, TeslaMateMqttService>()
     .AddSingleton<ISolarMqttService, SolarMqttService>()
+    .AddSingleton<IMqttConnectionService, MqttConnectionService>()
     .AddTransient<IPvValueService, PvValueService>()
     .AddTransient<IBaseConfigurationService, BaseConfigurationService>()
     .AddTransient<IDbConnectionStringHelper, DbConnectionStringHelper>()
@@ -127,12 +129,6 @@ await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 
 var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
 await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
-
-var teslaMateMqttService = app.Services.GetRequiredService<ITeslaMateMqttService>();
-await teslaMateMqttService.ConnectMqttClient().ConfigureAwait(false);
-
-var solarMqttService = app.Services.GetRequiredService<ISolarMqttService>();
-await solarMqttService.ConnectMqttClient().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 await jobManager.StartJobs().ConfigureAwait(false);
