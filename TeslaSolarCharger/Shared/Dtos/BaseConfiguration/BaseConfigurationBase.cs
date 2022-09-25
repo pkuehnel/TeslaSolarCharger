@@ -26,7 +26,7 @@ public class BaseConfigurationBase
     [Required]
     public string TeslaMateApiBaseUrl { get; set; } = "http://teslamateapi:8080";
     [Required]
-    [Range(30, int.MaxValue)]
+    [Range(25, int.MaxValue)]
     public int UpdateIntervalSeconds { get; set; } = 30;
     [Required]
     [Range(1, int.MaxValue)]
