@@ -32,7 +32,7 @@ else
                        @onchange="@(e => carBasicConfiguration.UsableEnergy = Int32.Parse(e.Value?.ToString() ?? "1"))">
             </p>
             <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="usableEnergy">Auto Set Amp:</label>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="usableEnergy">Use TeslaSolarCharger:</label>
                 <input class="col-6 col-sm-6 col-md-3 col-lg-2" checked="@carBasicConfiguration.ShouldBeManaged" type="checkbox" id="ShouldBeManaged" name="ShouldBeManaged" min="1" max="120"
                        @onchange="@(e => carBasicConfiguration.ShouldBeManaged = Boolean.Parse(e.Value?.ToString() ?? "true"))">
             </p>
