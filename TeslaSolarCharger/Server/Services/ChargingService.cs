@@ -66,6 +66,7 @@ public class ChargingService : IChargingService
 
         if (relevantCarIds.Count < 1)
         {
+            _logger.LogDebug("No car was charging this cycle.");
             _settings.ControlledACarAtLastCycle = false;
             return;
         }
@@ -81,18 +82,27 @@ public class ChargingService : IChargingService
         if (!_settings.ControlledACarAtLastCycle)
         {
             //Wait for the car to reach charging Power
+            _logger.LogDebug("No car was charging last charge cycle");
             await Task.Delay(TimeSpan.FromSeconds(25)).ConfigureAwait(false);
             powerToControl = CalculatePowerToControl(relevantCars);
+            _logger.LogDebug("Power to control: {powerToControl}", powerToControl);
             foreach (var relevantCar in relevantCars)
             {
-                if (powerToControl + relevantCar.CarState.ChargingPowerAtHome <
-                    relevantCar.CarState.ActualPhases * relevantCar.CarState.ChargerVoltage * relevantCar.CarConfiguration.MinimumAmpere)
+                _logger.LogDebug("New charging car: {carId}", relevantCar.Id);
+                var powerToControlIncludingChargingPower = powerToControl + relevantCar.CarState.ChargingPowerAtHome;
+                _logger.LogDebug($"Power to control including charging power: {powerToControl}", powerToControlIncludingChargingPower);
+                var minimumChargingPower = relevantCar.CarState.ActualPhases * relevantCar.CarState.ChargerVoltage * relevantCar.CarConfiguration.MinimumAmpere;
+                _logger.LogDebug("Minimum charging power {minimumChargingPower}", minimumChargingPower);
+                if (powerToControlIncludingChargingPower <
+                    minimumChargingPower)
                 {
+                    _logger.LogDebug("Set Should charge since to early date so car will stop charing.");
                     relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
                 }
             }
         }
 
+        _logger.LogDebug("At least one car is charging.");
         _settings.ControlledACarAtLastCycle = true;
         
         _logger.LogDebug("Power to control: {power}", powerToControl);
