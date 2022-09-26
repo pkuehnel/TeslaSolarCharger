@@ -97,6 +97,7 @@ public class ChargingService : IChargingService
                     minimumChargingPower)
                 {
                     _logger.LogDebug("Set Should charge since to early date so car will stop charing.");
+
                     relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
                 }
             }
