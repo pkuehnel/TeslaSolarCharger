@@ -124,6 +124,7 @@ public class ChargingService : IChargingService
 
     private int CalculatePowerToControl(List<Car> relevantCars)
     {
+        _logger.LogTrace("{method}({param})", nameof(CalculatePowerToControl), relevantCars);
         var currentControledPower = relevantCars
             .Sum(c => c.CarState.ChargingPower);
         _logger.LogDebug("Current control Power: {power}", currentControledPower);
