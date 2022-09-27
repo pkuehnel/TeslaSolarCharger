@@ -66,10 +66,64 @@ public class ChargingService : IChargingService
 
         if (relevantCarIds.Count < 1)
         {
+            _logger.LogDebug("No car was charging this cycle.");
             _settings.ControlledACarAtLastCycle = false;
             return;
         }
 
+        if (_settings.Overage == null)
+        {
+            _logger.LogWarning("Can not control power as overage is unknown");
+            return;
+        }
+
+        var powerToControl = CalculatePowerToControl(relevantCars);
+
+        if (!_settings.ControlledACarAtLastCycle)
+        {
+            //Wait for the car to reach charging Power
+            _logger.LogDebug("No car was charging last charge cycle");
+            await Task.Delay(TimeSpan.FromSeconds(25)).ConfigureAwait(false);
+            powerToControl = CalculatePowerToControl(relevantCars);
+            _logger.LogDebug("Power to control: {powerToControl}", powerToControl);
+            foreach (var relevantCar in relevantCars)
+            {
+                _logger.LogDebug("New charging car: {carId}", relevantCar.Id);
+                var powerToControlIncludingChargingPower = powerToControl + relevantCar.CarState.ChargingPowerAtHome;
+                _logger.LogDebug($"Power to control including charging power: {powerToControl}", powerToControlIncludingChargingPower);
+                var minimumChargingPower = relevantCar.CarState.ActualPhases * relevantCar.CarState.ChargerVoltage * relevantCar.CarConfiguration.MinimumAmpere;
+                _logger.LogDebug("Minimum charging power {minimumChargingPower}", minimumChargingPower);
+                if (powerToControlIncludingChargingPower <
+                    minimumChargingPower)
+                {
+                    _logger.LogDebug("Set Should charge since to early date so car will stop charing.");
+                    relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
+                }
+            }
+        }
+
+        _logger.LogDebug("At least one car is charging.");
+        _settings.ControlledACarAtLastCycle = true;
+        
+        _logger.LogDebug("Power to control: {power}", powerToControl);
+
+        if (powerToControl < 0)
+        {
+            _logger.LogDebug("Reversing car order");
+            relevantCars.Reverse();
+        }
+
+        foreach (var relevantCar in relevantCars)
+        {
+            var ampToControl = Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * (relevantCar.CarState.ActualPhases ?? 3))));
+            _logger.LogDebug("Amp to control: {amp}", ampToControl);
+            _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
+            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl).ConfigureAwait(false);
+        }
+    }
+
+    private int CalculatePowerToControl(List<Car> relevantCars)
+    {
         var currentControledPower = relevantCars
             .Sum(c => c.CarState.ChargingPower);
         _logger.LogDebug("Current control Power: {power}", currentControledPower);
@@ -79,12 +133,6 @@ public class ChargingService : IChargingService
 
         var averagedOverage = _pvValueService.GetAveragedOverage();
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
-
-        if (_settings.Overage == null)
-        {
-            _logger.LogWarning("Can not control power as overage is unknown");
-            return;
-        }
 
         var overage = averagedOverage - buffer;
         _logger.LogTrace("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
@@ -103,46 +151,23 @@ public class ChargingService : IChargingService
             {
                 if (actualHomeBatterySoc < homeBatteryMinSoc)
                 {
-                    overage -= (int) homeBatteryMaxChargingPower - (int) actualHomeBatteryPower;
+                    overage -= (int)homeBatteryMaxChargingPower - (int)actualHomeBatteryPower;
 
-                    _logger.LogTrace("Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}", homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
+                    _logger.LogTrace(
+                        "Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}",
+                        homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
                 }
                 else
                 {
-                    overage += (int) actualHomeBatteryPower;
-                    _logger.LogTrace("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}", actualHomeBatteryPower, overage);
+                    overage += (int)actualHomeBatteryPower;
+                    _logger.LogTrace("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}",
+                        actualHomeBatteryPower, overage);
                 }
             }
-            
         }
 
         var powerToControl = overage;
-
-        if (!_settings.ControlledACarAtLastCycle && powerToControl < 690)
-        {
-            foreach (var relevantCar in relevantCars)
-            {
-                relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
-            }
-        }
-
-        _settings.ControlledACarAtLastCycle = true;
-        
-        _logger.LogDebug("Power to control: {power}", powerToControl);
-
-        if (powerToControl < 0)
-        {
-            _logger.LogDebug("Reversing car order");
-            relevantCars.Reverse();
-        }
-
-        foreach (var relevantCar in relevantCars)
-        {
-            var ampToControl = Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * (relevantCar.CarState.ActualPhases ?? 3))));
-            _logger.LogDebug("Amp to control: {amp}", ampToControl);
-            _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
-            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl).ConfigureAwait(false);
-        }
+        return powerToControl;
     }
 
     internal List<Car> GetIrrelevantCars(List<int> relevantCarIds)
