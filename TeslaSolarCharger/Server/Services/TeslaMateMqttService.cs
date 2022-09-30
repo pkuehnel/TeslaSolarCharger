@@ -69,7 +69,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         _mqttClient.ApplicationMessageReceivedAsync += e =>
         {
             var value = GetValueFromMessage(e.ApplicationMessage);
-            _logger.LogDebug("Car Id: {carId}, Topic: {topic}, Value: {value}", value.CarId, value.Topic, value.Value);
+            _logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: {value}", value.CarId, value.Topic, value.Value);
             UpdateCar(value);
             return Task.CompletedTask;
         };
@@ -167,6 +167,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
 
     internal void UpdateCar(TeslaMateValue value)
     {
+        _logger.LogTrace("{method}({@param})", nameof(UpdateCar), value);
         var car = _settings.Cars.First(c => c.Id == value.CarId);
 
         switch (value.Topic)
@@ -290,11 +291,11 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                         car.CarState.State = CarStateEnum.Unknown;
                         break;
                 }
-                _logger.LogDebug("New car state detected {car state}", car.CarState.StateString);
+                _logger.LogTrace("New car state detected {car state}", car.CarState.StateString);
                 break;
             case TopicHealthy:
                 car.CarState.Healthy = Convert.ToBoolean(value.Value);
-                _logger.LogDebug("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.CarState.Healthy);
+                _logger.LogTrace("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.CarState.Healthy);
                 break;
             case TopicChargeCurrentRequest:
                 if (!string.IsNullOrWhiteSpace(value.Value))

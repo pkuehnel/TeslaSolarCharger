@@ -72,7 +72,7 @@ services:
       - POSTGRES_PASSWORD=secret ##You can change your password here
       - POSTGRES_DB=teslamate
     volumes:
-      - ./teslamate-db:/var/lib/postgresql/data
+      - teslamate-db:/var/lib/postgresql/data
 
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
@@ -109,7 +109,7 @@ services:
     ports:
       - 3100:3000
     volumes:
-      - ./teslamate-grafana-data:/var/lib/grafana
+      - teslamate-grafana-data:/var/lib/grafana
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -118,8 +118,8 @@ services:
     #ports:
     #  - 1883:1883
     volumes:
-      - ./mosquitto-conf:/mosquitto/config
-      - ./mosquitto-data:/mosquitto/data
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -133,11 +133,19 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
     volumes:
-      - ./teslasolarcharger-configs:/app/configs
+      - teslasolarcharger-configs:/app/configs
+
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
+  teslasolarcharger-configs:
 
 ```
 
@@ -199,7 +207,7 @@ services:
       - POSTGRES_PASSWORD=secret ##You can change your password here
       - POSTGRES_DB=teslamate
     volumes:
-      - ./teslamate-db:/var/lib/postgresql/data
+      - teslamate-db:/var/lib/postgresql/data
 
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
@@ -236,7 +244,7 @@ services:
     ports:
       - 3100:3000
     volumes:
-      - ./teslamate-grafana-data:/var/lib/grafana
+      - teslamate-grafana-data:/var/lib/grafana
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -245,8 +253,8 @@ services:
     #ports:
     #  - 1883:1883
     volumes:
-      - ./mosquitto-conf:/mosquitto/config
-      - ./mosquitto-data:/mosquitto/data
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -260,11 +268,12 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
     volumes:
-      - ./teslasolarcharger-configs:/app/configs
+      - teslasolarcharger-configs:/app/configs
   
   smaplugin:
     image: pkuehnel/teslasolarchargersmaplugin:latest
@@ -278,6 +287,14 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_URLS=http://+:7192
+
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
+  teslasolarcharger-configs:
+
 ```
   
 </details>
@@ -344,7 +361,7 @@ services:
       - POSTGRES_PASSWORD=secret ##You can change your password here
       - POSTGRES_DB=teslamate
     volumes:
-      - ./teslamate-db:/var/lib/postgresql/data
+      - teslamate-db:/var/lib/postgresql/data
 
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
@@ -381,7 +398,7 @@ services:
     ports:
       - 3100:3000
     volumes:
-      - ./teslamate-grafana-data:/var/lib/grafana
+      - teslamate-grafana-data:/var/lib/grafana
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -390,8 +407,8 @@ services:
     #ports:
     #  - 1883:1883
     volumes:
-      - ./mosquitto-conf:/mosquitto/config
-      - ./mosquitto-data:/mosquitto/data
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -405,11 +422,12 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
     volumes:
-      - ./teslasolarcharger-configs:/app/configs
+      - teslasolarcharger-configs:/app/configs
   
   solaredgeplugin:
     image: pkuehnel/teslasolarchargersolaredgeplugin:latest
@@ -425,6 +443,13 @@ services:
       - RefreshIntervalSeconds=360
     ports:
       - 7193:80
+
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
+  teslasolarcharger-configs:
 
 ```
   
@@ -489,7 +514,7 @@ services:
       - POSTGRES_PASSWORD=secret ##You can change your password here
       - POSTGRES_DB=teslamate
     volumes:
-      - ./teslamate-db:/var/lib/postgresql/data
+      - teslamate-db:/var/lib/postgresql/data
 
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
@@ -526,7 +551,7 @@ services:
     ports:
       - 3100:3000
     volumes:
-      - ./teslamate-grafana-data:/var/lib/grafana
+      - teslamate-grafana-data:/var/lib/grafana
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -535,8 +560,8 @@ services:
     #ports:
     #  - 1883:1883
     volumes:
-      - ./mosquitto-conf:/mosquitto/config
-      - ./mosquitto-data:/mosquitto/data
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -550,11 +575,12 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
     volumes:
-      - ./teslasolarcharger-configs:/app/configs
+      - teslasolarcharger-configs:/app/configs
   
   modbusplugin:
     image: pkuehnel/teslasolarchargermodbusplugin:latest
@@ -570,6 +596,12 @@ services:
     ports:
       - 7191:80
 
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
+  teslasolarcharger-configs:
 ```
   
 </details>
@@ -728,6 +760,7 @@ Currently there are three different charge modes available:
 
 ## Generate logfiles
 To generate logfiles you have to write the logs for each container to a separate logfile.
+Note: To create a more detailed logfile you have to add `- Serilog__MinimumLevel__Default=Verbose` as environment variable.
 The commands if you used the docker-compose.yml files from above:<br />
 For the main **TeslaSolarCharger** container:
 ```

@@ -38,10 +38,10 @@ public class JobManager
         var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
 
-        var jobIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
+        var chargingValueJobUpdateIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
         var chargingValueTrigger =
-            TriggerBuilder.Create().WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)jobIntervall.TotalSeconds)).Build();
+            TriggerBuilder.Create().WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)chargingValueJobUpdateIntervall.TotalSeconds)).Build();
 
         var updateJsonTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(10)).Build();

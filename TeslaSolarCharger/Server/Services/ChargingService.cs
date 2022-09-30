@@ -61,8 +61,8 @@ public class ChargingService : IChargingService
 
         var relevantCars = _settings.Cars.Where(c => relevantCarIds.Any(r => c.Id == r)).ToList();
 
-        _logger.LogTrace("Relevant cars: {@relevantCars}", relevantCars);
-        _logger.LogTrace("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
+        _logger.LogDebug("Relevant cars: {@relevantCars}", relevantCars);
+        _logger.LogDebug("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
 
         if (relevantCarIds.Count < 1)
         {
@@ -109,7 +109,7 @@ public class ChargingService : IChargingService
 
         if (powerToControl < 0)
         {
-            _logger.LogDebug("Reversing car order");
+            _logger.LogTrace("Reversing car order");
             relevantCars.Reverse();
         }
 
@@ -124,6 +124,7 @@ public class ChargingService : IChargingService
 
     private int CalculatePowerToControl(List<Car> relevantCars)
     {
+        _logger.LogTrace("{method}({param})", nameof(CalculatePowerToControl), relevantCars);
         var currentControledPower = relevantCars
             .Sum(c => c.CarState.ChargingPower);
         _logger.LogDebug("Current control Power: {power}", currentControledPower);

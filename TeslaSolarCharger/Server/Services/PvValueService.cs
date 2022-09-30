@@ -43,7 +43,7 @@ public class PvValueService : IPvValueService
             var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
             var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
             var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor).ConfigureAwait(false);
-            _logger.LogDebug("Overage is {overage}", overage);
+            _logger.LogTrace("Overage is {overage}", overage);
             _settings.Overage = overage;
             if (overage != null)
             {
@@ -184,7 +184,7 @@ public class PvValueService : IPvValueService
     {
         _logger.LogTrace("{method}()", nameof(GetAveragedOverage));
         long weightedSum = 0;
-        _logger.LogDebug("Build weighted average of {count} values", _inMemoryValues.OverageValues.Count);
+        _logger.LogTrace("Build weighted average of {count} values", _inMemoryValues.OverageValues.Count);
         for (var i = 0; i < _inMemoryValues.OverageValues.Count; i++)
         {
             _logger.LogTrace("Power Value: {value}", _inMemoryValues.OverageValues[i]);
@@ -304,7 +304,7 @@ public class PvValueService : IPvValueService
         {
             nodePatternType = NodePatternType.None;
         }
-        _logger.LogDebug("Node pattern type is {nodePatternType}", nodePatternType);
+        _logger.LogTrace("Node pattern type is {nodePatternType}", nodePatternType);
         return nodePatternType;
     }
     
@@ -323,12 +323,12 @@ public class PvValueService : IPvValueService
         switch (patternType)
         {
             case NodePatternType.Json:
-                _logger.LogDebug("Extract overage value from json {result} with {pattern}", result, pattern);
+                _logger.LogTrace("Extract overage value from json {result} with {pattern}", result, pattern);
                 result = (JObject.Parse(result).SelectToken(pattern ?? throw new ArgumentNullException(nameof(pattern))) ??
                           throw new InvalidOperationException("Could not find token by pattern")).Value<string>() ?? throw new InvalidOperationException("Extracted Json Value is null");
                 break;
             case NodePatternType.Xml:
-                _logger.LogDebug("Extract overage value from xml {result} with {pattern}", result, pattern);
+                _logger.LogTrace("Extract overage value from xml {result} with {pattern}", result, pattern);
                 var xmlDocument = new XmlDocument();
                 xmlDocument.LoadXml(result);
                 var nodes = xmlDocument.SelectNodes(pattern ?? throw new ArgumentNullException(nameof(pattern))) ?? throw new InvalidOperationException("Could not find any nodes by pattern");
