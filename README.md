@@ -732,6 +732,7 @@ Currently there are three different charge modes available:
 
 ## Generate logfiles
 To generate logfiles you have to write the logs for each container to a separate logfile.
+Note: To create a more detailed logfile you have to add `- Serilog__MinimumLevel__Default=Verbose` as environment variable.
 The commands if you used the docker-compose.yml files from above:<br />
 For the main **TeslaSolarCharger** container:
 ```
