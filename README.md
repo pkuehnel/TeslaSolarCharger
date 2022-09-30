@@ -133,6 +133,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -260,6 +261,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -405,6 +407,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -550,6 +553,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
