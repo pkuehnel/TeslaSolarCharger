@@ -44,7 +44,7 @@ public class EnergyMeterService
         {
             _logger.LogTrace("Waiting for new values");
             var byteArray = udpClient.Receive(ref groupEndPoint);
-            _logger.LogDebug("New values received");
+            _logger.LogTrace("New values received");
 
             if (byteArray.Length < 600)
             {
