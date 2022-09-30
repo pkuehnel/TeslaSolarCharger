@@ -133,6 +133,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -260,6 +261,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -405,6 +407,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -550,6 +553,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -728,6 +732,7 @@ Currently there are three different charge modes available:
 
 ## Generate logfiles
 To generate logfiles you have to write the logs for each container to a separate logfile.
+Note: To create a more detailed logfile you have to add `- Serilog__MinimumLevel__Default=Verbose` as environment variable.
 The commands if you used the docker-compose.yml files from above:<br />
 For the main **TeslaSolarCharger** container:
 ```

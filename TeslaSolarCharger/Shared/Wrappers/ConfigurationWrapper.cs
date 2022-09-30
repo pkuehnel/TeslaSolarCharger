@@ -27,7 +27,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         var configFileDirectory = ConfigFileDirectory();
         var environmentVariableName = "CarConfigFilename";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return Path.Combine(configFileDirectory, value);
     }
 
@@ -36,7 +36,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         var configFileDirectory = ConfigFileDirectory();
         var environmentVariableName = "SqliteFileName";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return Path.Combine(configFileDirectory, value);
     }
 
@@ -45,7 +45,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         var configFileDirectory = ConfigFileDirectory();
         var environmentVariableName = "BaseConfigFileName";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return Path.Combine(configFileDirectory, value);
     }
 
@@ -53,7 +53,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         var environmentVariableName = "ConfigFileLocation";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
         path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), value);
         return path;
@@ -384,7 +384,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
             _logger.LogError(exception, "Error getting configuration value");
             throw exception;
         }
-        _logger.LogDebug("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
