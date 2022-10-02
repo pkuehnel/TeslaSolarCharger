@@ -145,4 +145,4 @@ jobs:
         file: ./Plugins.Modbus/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarchargermodbusplugin:autoDispose
+        tags: pkuehnel/teslasolarchargermodbusplugin:alpha
