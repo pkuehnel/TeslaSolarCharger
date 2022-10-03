@@ -1,6 +1,6 @@
 ﻿namespace Plugins.Modbus.Contracts;
 
-public interface IModbusClient
+public interface IModbusClient : IDisposable
 {
     Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
         string ipAddressString,
