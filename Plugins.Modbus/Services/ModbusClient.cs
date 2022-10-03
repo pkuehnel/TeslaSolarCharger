@@ -111,11 +111,14 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
             return tmpArrayPowerComplete;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Could not get register value.");
             if (IsConnected)
             {
+                _logger.LogDebug("Disconnecting Modcus Client...");
                 Disconnect();
+                _logger.LogDebug("Modbus Client disconnected.");
             }
 
             throw;
@@ -140,5 +143,11 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             .Where(x => x % 2 == 0)
             .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
             .ToArray();
+    }
+
+    public void Dispose()
+    {
+        DiconnectIfConnected();
+        _semaphoreSlim.Dispose();
     }
 }
