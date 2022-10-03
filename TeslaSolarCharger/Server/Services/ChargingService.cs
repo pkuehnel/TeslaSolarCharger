@@ -96,7 +96,7 @@ public class ChargingService : IChargingService
                 if (powerToControlIncludingChargingPower <
                     minimumChargingPower)
                 {
-                    _logger.LogDebug("Set Should charge since to early date so car will stop charing.");
+                    _logger.LogDebug("Set Should charge since to early date so car will stop charging.");
                     relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
                 }
             }
@@ -136,32 +136,32 @@ public class ChargingService : IChargingService
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
         var overage = averagedOverage - buffer;
-        _logger.LogTrace("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
+        _logger.LogDebug("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
 
         var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
-        _logger.LogTrace("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
+        _logger.LogDebug("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
-        _logger.LogTrace("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
+        _logger.LogDebug("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
         if (homeBatteryMinSoc != null && homeBatteryMaxChargingPower != null)
         {
             var actualHomeBatterySoc = _settings.HomeBatterySoc;
-            _logger.LogTrace("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
+            _logger.LogDebug("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
             var actualHomeBatteryPower = _settings.HomeBatteryPower;
-            _logger.LogTrace("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
+            _logger.LogDebug("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
             if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
             {
                 if (actualHomeBatterySoc < homeBatteryMinSoc)
                 {
                     overage -= (int)homeBatteryMaxChargingPower - (int)actualHomeBatteryPower;
 
-                    _logger.LogTrace(
+                    _logger.LogDebug(
                         "Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}",
                         homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
                 }
                 else
                 {
                     overage += (int)actualHomeBatteryPower;
-                    _logger.LogTrace("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}",
+                    _logger.LogDebug("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}",
                         actualHomeBatteryPower, overage);
                 }
             }
@@ -300,7 +300,7 @@ public class ChargingService : IChargingService
             //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
             if (car.CarState.ClimateOn == true || earliestSwitchOff > DateTime.Now)
             {
-                _logger.LogDebug("Can not stop charing: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
+                _logger.LogDebug("Can not stop charging: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
                     car.CarState.ClimateOn,
                     earliestSwitchOff);
                 if (car.CarState.ChargerActualCurrent != minAmpPerCar)

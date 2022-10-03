@@ -105,9 +105,9 @@ public class ChargingCostService : IChargingCostService
         return chargePrices;
     }
 
-    public async Task AddPowerDistributionForAllCharingCars()
+    public async Task AddPowerDistributionForAllChargingCars()
     {
-        _logger.LogTrace("{method}()", nameof(AddPowerDistributionForAllCharingCars));
+        _logger.LogTrace("{method}()", nameof(AddPowerDistributionForAllChargingCars));
         //ToDO: remove before release
         var chargePrice = await _teslaSolarChargerContext.ChargePrices
             .FirstOrDefaultAsync().ConfigureAwait(false);
