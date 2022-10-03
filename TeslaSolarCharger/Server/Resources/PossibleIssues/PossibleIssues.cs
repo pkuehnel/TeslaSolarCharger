@@ -104,6 +104,18 @@ public class PossibleIssues : IPossibleIssues
                     "Update the car IDs in your Base Configuration to existing car IDs in TeslaMate."
                 )
             },
+            {
+                issueKeys.HomeBatteryMinimumSocNotConfigured, CreateIssue("Although you did set settings for your home battery you did not set Home Battery Minimum Soc (%)",
+                    IssueType.Error,
+                    "Set the Home Battery Minimum Soc (%) in your Base Configuration"
+                )
+            },
+            {
+                issueKeys.HomeBatteryChargingPowerNotConfigured, CreateIssue("Although you did set settings for your home battery you did not set Home Battery charging power (W)",
+                    IssueType.Error,
+                    "Set the Home Battery charging power (W) in your Base Configuration"
+                )
+            },
         };
     }
 
