@@ -96,7 +96,7 @@ public class ChargingService : IChargingService
                 if (powerToControlIncludingChargingPower <
                     minimumChargingPower)
                 {
-                    _logger.LogDebug("Set Should charge since to early date so car will stop charing.");
+                    _logger.LogDebug("Set Should charge since to early date so car will stop charging.");
                     relevantCar.CarState.ShouldStopChargingSince = new DateTime(2022, 1, 1);
                 }
             }
@@ -300,7 +300,7 @@ public class ChargingService : IChargingService
             //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
             if (car.CarState.ClimateOn == true || earliestSwitchOff > DateTime.Now)
             {
-                _logger.LogDebug("Can not stop charing: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
+                _logger.LogDebug("Can not stop charging: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
                     car.CarState.ClimateOn,
                     earliestSwitchOff);
                 if (car.CarState.ChargerActualCurrent != minAmpPerCar)
