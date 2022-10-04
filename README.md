@@ -74,6 +74,29 @@ services:
     volumes:
       - teslamate-db:/var/lib/postgresql/data
 
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
     logging:
@@ -98,29 +121,6 @@ services:
     #ports:
     #  - 8080:8080
 
-  grafana:
-    image: teslamate/grafana:latest
-    restart: always
-    environment:
-      - DATABASE_USER=teslamate
-      - DATABASE_PASS=secret ##You can change your password here
-      - DATABASE_NAME=teslamate
-      - DATABASE_HOST=database
-    ports:
-      - 3100:3000
-    volumes:
-      - teslamate-grafana-data:/var/lib/grafana
-
-  mosquitto:
-    image: eclipse-mosquitto:2
-    restart: always
-    command: mosquitto -c /mosquitto-no-auth.conf
-    #ports:
-    #  - 1883:1883
-    volumes:
-      - mosquitto-conf:/mosquitto/config
-      - mosquitto-data:/mosquitto/data
-      
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
     container_name: teslasolarcharger
@@ -209,6 +209,29 @@ services:
     volumes:
       - teslamate-db:/var/lib/postgresql/data
 
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
     logging:
@@ -232,29 +255,6 @@ services:
       - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
     #ports:
     #  - 8080:8080
-
-  grafana:
-    image: teslamate/grafana:latest
-    restart: always
-    environment:
-      - DATABASE_USER=teslamate
-      - DATABASE_PASS=secret ##You can change your password here
-      - DATABASE_NAME=teslamate
-      - DATABASE_HOST=database
-    ports:
-      - 3100:3000
-    volumes:
-      - teslamate-grafana-data:/var/lib/grafana
-
-  mosquitto:
-    image: eclipse-mosquitto:2
-    restart: always
-    command: mosquitto -c /mosquitto-no-auth.conf
-    #ports:
-    #  - 1883:1883
-    volumes:
-      - mosquitto-conf:/mosquitto/config
-      - mosquitto-data:/mosquitto/data
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -363,6 +363,30 @@ services:
     volumes:
       - teslamate-db:/var/lib/postgresql/data
 
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
+
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
     logging:
@@ -386,29 +410,6 @@ services:
       - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
     #ports:
     #  - 8080:8080
-
-  grafana:
-    image: teslamate/grafana:latest
-    restart: always
-    environment:
-      - DATABASE_USER=teslamate
-      - DATABASE_PASS=secret ##You can change your password here
-      - DATABASE_NAME=teslamate
-      - DATABASE_HOST=database
-    ports:
-      - 3100:3000
-    volumes:
-      - teslamate-grafana-data:/var/lib/grafana
-
-  mosquitto:
-    image: eclipse-mosquitto:2
-    restart: always
-    command: mosquitto -c /mosquitto-no-auth.conf
-    #ports:
-    #  - 1883:1883
-    volumes:
-      - mosquitto-conf:/mosquitto/config
-      - mosquitto-data:/mosquitto/data
       
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
@@ -516,6 +517,29 @@ services:
     volumes:
       - teslamate-db:/var/lib/postgresql/data
 
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
   teslamateapi:
     image: tobiasehlert/teslamateapi:latest
     logging:
@@ -540,29 +564,6 @@ services:
     #ports:
     #  - 8080:8080
 
-  grafana:
-    image: teslamate/grafana:latest
-    restart: always
-    environment:
-      - DATABASE_USER=teslamate
-      - DATABASE_PASS=secret ##You can change your password here
-      - DATABASE_NAME=teslamate
-      - DATABASE_HOST=database
-    ports:
-      - 3100:3000
-    volumes:
-      - teslamate-grafana-data:/var/lib/grafana
-
-  mosquitto:
-    image: eclipse-mosquitto:2
-    restart: always
-    command: mosquitto -c /mosquitto-no-auth.conf
-    #ports:
-    #  - 1883:1883
-    volumes:
-      - mosquitto-conf:/mosquitto/config
-      - mosquitto-data:/mosquitto/data
-      
   teslasolarcharger:
     image: pkuehnel/teslasolarcharger:latest
     container_name: teslasolarcharger
