@@ -127,7 +127,7 @@ public class ChargingService : IChargingService
         _logger.LogTrace("{method}({param})", nameof(CalculatePowerToControl), relevantCars);
         var currentControledPower = relevantCars
             .Sum(c => c.CarState.ChargingPower);
-        _logger.LogDebug("Current control Power: {power}", currentControledPower);
+        _logger.LogDebug("Current controlled Power: {power}", currentControledPower);
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
@@ -205,7 +205,8 @@ public class ChargingService : IChargingService
             .Where(c =>
                 c.CarState.IsHomeGeofence == true
                 && c.CarConfiguration.ShouldBeManaged == true
-                && c.CarState.PluggedIn == true
+                //next line changed from == true to != false due to issue https://github.com/pkuehnel/TeslaSolarCharger/issues/365
+                && c.CarState.PluggedIn != false
                 && (c.CarState.ClimateOn == true ||
                     c.CarState.ChargerActualCurrent > 0 ||
                     c.CarState.SoC < c.CarConfiguration.SocLimit - 2))
