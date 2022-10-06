@@ -242,6 +242,8 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             case TopicPluggedIn:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
+                    //ToDo: remove debug Logging was only needed because of https://github.com/pkuehnel/TeslaSolarCharger/issues/365
+                    _logger.LogDebug("Plugged in changed to {value}", value.Value);
                     car.CarState.PluggedIn = Convert.ToBoolean(value.Value);
                 }
                 break;
