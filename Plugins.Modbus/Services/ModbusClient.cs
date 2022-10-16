@@ -33,7 +33,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         return intValue < minimumResult ? (int)minimumResult : intValue;
     }
 
-    private async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
+    public async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
         int port, int connectDelay, int timeout)
     {
         var tmpArrayPowerComplete =

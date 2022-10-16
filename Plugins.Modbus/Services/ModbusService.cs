@@ -14,6 +14,63 @@ public class ModbusService : IModbusService
         _serviceProvider = serviceProvider;
     }
 
+    public async Task<object> ReadValue<T>(byte unitIdentifier, ushort startingAddress, ushort quantity,
+        string ipAddressString, int port, int connectDelay, int timeout, int? minimumResult) where T : struct
+    {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
+                         "{connectDelay}, {timeout}, {minimumResult})",
+            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port,
+            connectDelay, timeout, minimumResult);
+
+        var modbusClient = GetModbusClient(ipAddressString, port);
+        byte[] byteArray;
+        try
+        {
+            byteArray = await modbusClient.GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not get byte array. Dispose modbus client");
+            modbusClient.Dispose();
+            _modbusClients.Remove(GetKeyString(ipAddressString, port));
+            throw;
+        }
+
+        if (typeof(T) == typeof(int))
+        {
+            return (T) Convert.ChangeType(BitConverter.ToInt32(byteArray, 0), typeof(T));
+        }
+
+        if (typeof(T) == typeof(float))
+        {
+            return (T)Convert.ChangeType(BitConverter.ToSingle(byteArray, 0), typeof(T));
+        }
+
+        if (typeof(T) == typeof(short))
+        {
+            return (T)Convert.ChangeType(BitConverter.ToInt16(byteArray, 0), typeof(T));
+        }
+
+        if (typeof(T) == typeof(uint))
+        {
+            return (T)Convert.ChangeType(BitConverter.ToUInt32(byteArray, 0), typeof(T));
+        }
+
+        if (typeof(T) == typeof(ushort))
+        {
+            return (T)Convert.ChangeType(BitConverter.ToUInt16(byteArray, 0), typeof(T));
+        }
+
+        if (typeof(T) == typeof(ulong))
+        {
+            return (T)Convert.ChangeType(BitConverter.ToUInt64(byteArray, 0), typeof(T));
+        }
+
+        throw new NotImplementedException($"Can not convert value of type: {typeof(T)}");
+
+    }
+
     public async Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
         string ipAddressString, int port, int connectDelay, int timeout, int? minimumResult)
     {
