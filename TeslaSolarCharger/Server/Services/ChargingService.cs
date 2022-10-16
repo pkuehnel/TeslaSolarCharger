@@ -224,7 +224,7 @@ public class ChargingService : IChargingService
     /// <returns>Power difference</returns>
     private async Task<int> ChangeCarAmp(Car car, int ampToChange)
     {
-        _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), car.CarState.Name, ampToChange);
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), car.Id, ampToChange);
         //This might happen if only climate is running or car nearly full which means full power is not needed.
         if (ampToChange > 0 && car.CarState.ChargerRequestedCurrent > car.CarState.ChargerActualCurrent && car.CarState.ChargerActualCurrent > 0)
         {
@@ -326,7 +326,7 @@ public class ChargingService : IChargingService
             UpdateEarliestTimesAfterSwitch(car.Id);
         }
         //Falls nicht ladend, aber laden soll beginnen
-        else if (finalAmpsToSet >= minAmpPerCar && car.CarState.ChargerActualCurrent == 0)
+        else if (finalAmpsToSet >= minAmpPerCar && (car.CarState.ChargerActualCurrent is 0 or null))
         {
             _logger.LogDebug("Charging should start");
             var earliestSwitchOn = EarliestSwitchOn(car.Id);
