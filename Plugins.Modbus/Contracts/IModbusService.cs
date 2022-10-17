@@ -9,5 +9,5 @@ public interface IModbusService
     Task<float> ReadFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult);
 
     Task<object> ReadValue<T>(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString, int port, int connectDelay, int timeout, int? minimumResult) where T : struct;
+        string ipAddressString, int port, int connectDelay, int timeout) where T : struct;
 }

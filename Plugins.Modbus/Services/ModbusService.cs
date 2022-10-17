@@ -15,12 +15,12 @@ public class ModbusService : IModbusService
     }
 
     public async Task<object> ReadValue<T>(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString, int port, int connectDelay, int timeout, int? minimumResult) where T : struct
+        string ipAddressString, int port, int connectDelay, int timeout) where T : struct
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
-                         "{connectDelay}, {timeout}, {minimumResult})",
+                         "{connectDelay}, {timeout})",
             nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port,
-            connectDelay, timeout, minimumResult);
+            connectDelay, timeout);
 
         var modbusClient = GetModbusClient(ipAddressString, port);
         byte[] byteArray;
