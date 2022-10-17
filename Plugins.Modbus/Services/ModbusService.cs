@@ -19,7 +19,7 @@ public class ModbusService : IModbusService
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
                          "{connectDelay}, {timeout})",
-            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port,
+            nameof(ReadValue), unitIdentifier, startingAddress, quantity, ipAddressString, port,
             connectDelay, timeout);
 
         var modbusClient = GetModbusClient(ipAddressString, port);
@@ -74,79 +74,6 @@ public class ModbusService : IModbusService
 
         throw new NotImplementedException($"Can not convert value of type: {typeof(T)}");
 
-    }
-
-    public async Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString, int port, int connectDelay, int timeout, int? minimumResult)
-    {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
-                         "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, 
-            connectDelay, timeout,minimumResult);
-
-        var modbusClient = GetModbusClient(ipAddressString, port);
-
-        try
-        {
-            var value = await modbusClient.ReadInt32Value(unitIdentifier, startingAddress, quantity, ipAddressString, port,
-                connectDelay, timeout, minimumResult).ConfigureAwait(false);
-            return value;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Could not get value. Dispose modbus client");
-            modbusClient.Dispose();
-            _modbusClients.Remove(GetKeyString(ipAddressString, port));
-            throw;
-        }
-        
-    }
-
-    public async Task<short> ReadInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
-        int connectDelay, int timeout, int? minimumResult)
-    {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
-                         "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, 
-            connectDelay, timeout, minimumResult);
-        var modbusClient = GetModbusClient(ipAddressString, port);
-
-        try
-        {
-            var value = await modbusClient.ReadInt16Value(unitIdentifier, startingAddress, quantity, ipAddressString, port,
-                connectDelay, timeout, minimumResult).ConfigureAwait(false);
-            return value;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Could not get value. Dispose modbus client");
-            modbusClient.Dispose();
-            _modbusClients.Remove(GetKeyString(ipAddressString, port));
-            throw;
-        }
-    }
-
-    public async Task<float> ReadFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
-        int connectDelay, int timeout, int? minimumResult)
-    {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
-                         "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port,
-            connectDelay, timeout, minimumResult);
-        var modbusClient = GetModbusClient(ipAddressString, port);
-        try
-        {
-            var value = await modbusClient.ReadFloatValue(unitIdentifier, startingAddress, quantity, ipAddressString, port,
-                connectDelay, timeout, minimumResult).ConfigureAwait(false);
-            return value;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Could not get value. Dispose modbus client");
-            modbusClient.Dispose();
-            _modbusClients.Remove(GetKeyString(ipAddressString, port));
-            throw;
-        }
     }
 
     private IModbusClient GetModbusClient(string ipAddressString, int port)
