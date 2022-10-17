@@ -24,6 +24,11 @@ public class ModbusService : IModbusService
 
         var modbusClient = GetModbusClient(ipAddressString, port);
         byte[] byteArray;
+        if (timeout < 1)
+        {
+            _logger.LogDebug("Timeout is reduced to minimum value of 1 second");
+            timeout = 1;
+        }
         try
         {
             byteArray = await modbusClient.GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
