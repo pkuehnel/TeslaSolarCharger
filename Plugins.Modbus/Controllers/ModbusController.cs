@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Plugins.Modbus.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace Plugins.Modbus.Controllers
 {
@@ -14,6 +15,27 @@ namespace Plugins.Modbus.Controllers
             _modbusService = modbusService;
         }
 
+        public Task<object> GetTypedValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
+            int port, int connectDelaySeconds, int timeoutSeconds, ModbusValueType modbusValueType)
+        {
+            return modbusValueType switch
+            {
+                ModbusValueType.Int => _modbusService.ReadValue<int>(unitIdentifier, startingAddress, quantity, ipAddress, port,
+                    connectDelaySeconds, timeoutSeconds),
+                ModbusValueType.Float => _modbusService.ReadValue<float>(unitIdentifier, startingAddress, quantity, ipAddress, port,
+                    connectDelaySeconds, timeoutSeconds),
+                ModbusValueType.Short => _modbusService.ReadValue<short>(unitIdentifier, startingAddress, quantity, ipAddress, port,
+                    connectDelaySeconds, timeoutSeconds),
+                ModbusValueType.UInt => _modbusService.ReadValue<uint>(unitIdentifier, startingAddress, quantity, ipAddress, port,
+                    connectDelaySeconds, timeoutSeconds),
+                ModbusValueType.UShort => _modbusService.ReadValue<ushort>(unitIdentifier, startingAddress, quantity, ipAddress, port,
+                    connectDelaySeconds, timeoutSeconds),
+                ModbusValueType.Ulong => _modbusService.ReadValue<ulong>(unitIdentifier, startingAddress, quantity, ipAddress, port,
+                    connectDelaySeconds, timeoutSeconds),
+                _ => throw new ArgumentOutOfRangeException(nameof(modbusValueType), modbusValueType, null)
+            };
+        }
+
         /// <summary>
         /// Gets a Modbus Integer value
         /// </summary>
@@ -24,13 +46,12 @@ namespace Plugins.Modbus.Controllers
         /// <param name="port">The modbus port of the modbus device</param>
         /// <param name="connectDelaySeconds"></param>
         /// <param name="timeoutSeconds"></param>
-        /// <param name="minimumResult">Sets a minimum return result. This ist important, if your inverter does not send 0 as power if it is off.</param>
         /// <returns></returns>
         [Obsolete]
         [HttpGet]
-        public Task<int> GetValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
-            int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null) 
-            => GetInt32Value(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, minimumResult);
+        public Task<object> GetValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
+            int port, int connectDelaySeconds, int timeoutSeconds) 
+            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Int);
 
         /// <summary>
         /// Gets a Modbus Int32 value
@@ -42,12 +63,12 @@ namespace Plugins.Modbus.Controllers
         /// <param name="port">The modbus port of the modbus device</param>
         /// <param name="connectDelaySeconds"></param>
         /// <param name="timeoutSeconds"></param>
-        /// <param name="minimumResult">Sets a minimum return result. This ist important, if your inverter does not send 0 as power if it is off.</param>
         /// <returns>Modbus value converted to Int32</returns>
+        [Obsolete]
         [HttpGet]
-        public Task<int> GetInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
-            int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
-            => _modbusService.ReadInt32Value(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, minimumResult);
+        public Task<object> GetInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
+            int port, int connectDelaySeconds, int timeoutSeconds)
+            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Int);
 
         /// <summary>
         /// Gets a Modbus Int16 value
@@ -61,10 +82,11 @@ namespace Plugins.Modbus.Controllers
         /// <param name="timeoutSeconds"></param>
         /// <param name="minimumResult">Sets a minimum return result. This ist important, if your inverter does not send 0 as power if it is off.</param>
         /// <returns>Modbus value converted to Int16</returns>
+        [Obsolete]
         [HttpGet]
-        public Task<short> GetInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
+        public Task<object> GetInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
             int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
-            => _modbusService.ReadInt16Value(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, minimumResult);
+            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Short);
 
         /// <summary>
         /// Gets a Modbus Float value
@@ -78,10 +100,11 @@ namespace Plugins.Modbus.Controllers
         /// <param name="timeoutSeconds"></param>
         /// <param name="minimumResult">Sets a minimum return result. This ist important, if your inverter does not send 0 as power if it is off.</param>
         /// <returns>Modbus value converted to float</returns>
+        [Obsolete]
         [HttpGet]
-        public Task<float> GetFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
+        public Task<object> GetFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
             int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
-            => _modbusService.ReadFloatValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, minimumResult);
+            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Float);
 
     }
 }

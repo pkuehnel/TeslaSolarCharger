@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TeslaSolarCharger\Shared\TeslaSolarCharger.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="EnvironmentVariables.env">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
