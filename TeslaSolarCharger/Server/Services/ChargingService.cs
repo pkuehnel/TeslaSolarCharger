@@ -64,6 +64,11 @@ public class ChargingService : IChargingService
         _logger.LogDebug("Relevant cars: {@relevantCars}", relevantCars);
         _logger.LogDebug("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
 
+        foreach (var irrelevantCar in irrelevantCars)
+        {
+            UpdateEarliestTimesAfterSwitch(irrelevantCar.Id);
+        }
+
         if (relevantCarIds.Count < 1)
         {
             _logger.LogDebug("No car was charging this cycle.");
