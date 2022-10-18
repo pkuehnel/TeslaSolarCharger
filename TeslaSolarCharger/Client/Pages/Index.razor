@@ -186,7 +186,10 @@ else
                         Full charge at
                     </td>
                     <td>
-                        @((DateTime.Now + car.CarState.TimeUntilFullCharge)?.ToString("HH:mm dd.MM"))
+                        @if(car.CarState.TimeUntilFullCharge > TimeSpan.Zero)
+                        {
+                            @((DateTime.Now + car.CarState.TimeUntilFullCharge)?.ToString("HH:mm dd.MM"))
+                        }
                     </td>
                 </tr>
                 <tr>
