@@ -15,26 +15,8 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         _semaphoreSlim = new SemaphoreSlim(1);
     }
 
-    public async Task<int> ReadInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString, int port, int connectDelay, int timeout, int? minimumResult)
-    {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
-                         "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadInt32Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, 
-            connectDelay, timeout, minimumResult);
-
-        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
-        _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
-        var intValue = BitConverter.ToInt32(tmpArrayPowerComplete, 0);
-        if (minimumResult == null)
-        {
-            return intValue;
-        }
-        return intValue < minimumResult ? (int)minimumResult : intValue;
-    }
-
-    private async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
-        int port, int connectDelay, int timeout)
+    public async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
+         int port, int connectDelay, int timeout)
     {
         var tmpArrayPowerComplete =
             await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
@@ -56,44 +38,8 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         return false;
     }
 
-    public async Task<short> ReadInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
-        int connectDelay, int timeout, int? minimumResult)
-    {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
-                         "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port, 
-            connectDelay, timeout, minimumResult);
-
-        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
-        _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
-        var intValue = BitConverter.ToInt16(tmpArrayPowerComplete, 0);
-        if (minimumResult == null)
-        {
-            return intValue;
-        }
-        return intValue < minimumResult ? (short)minimumResult : intValue;
-    }
-
-    public async Task<float> ReadFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString, int port,
-        int connectDelay, int timeout, int? minimumResult)
-    {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
-                         "{connectDelay}, {timeout}, {minimumResult})",
-            nameof(ReadInt16Value), unitIdentifier, startingAddress, quantity, ipAddressString, port,
-            connectDelay, timeout, minimumResult);
-
-        var tmpArrayPowerComplete = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout).ConfigureAwait(false);
-        _logger.LogTrace("Converting {array} to Int value...", Convert.ToHexString(tmpArrayPowerComplete));
-        var intValue = BitConverter.ToSingle(tmpArrayPowerComplete, 0);
-        if (minimumResult == null)
-        {
-            return intValue;
-        }
-        return intValue < minimumResult ? (short)minimumResult : intValue;
-    }
-
     private async Task<byte[]> GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
-        int port, int connectDelay, int timeout)
+         int port, int connectDelay, int timeout)
     {
         ReadTimeout = (int)TimeSpan.FromSeconds(timeout).TotalMilliseconds;
         WriteTimeout = (int)TimeSpan.FromSeconds(timeout).TotalMilliseconds;
@@ -135,19 +81,5 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
                 _logger.LogTrace("SemaphoreSlim released...");
             });
         }
-    }
-
-    public static byte[] StringToByteArray(string hex)
-    {
-        return Enumerable.Range(0, hex.Length)
-            .Where(x => x % 2 == 0)
-            .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
-            .ToArray();
-    }
-
-    public void Dispose()
-    {
-        DiconnectIfConnected();
-        _semaphoreSlim.Dispose();
     }
 }
