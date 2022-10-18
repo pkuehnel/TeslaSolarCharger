@@ -1,6 +1,5 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.Server.Contracts;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
@@ -8,15 +7,20 @@ namespace TeslaSolarCharger.Server.Controllers
     [ApiController]
     public class HelloController : ControllerBase
     {
+        private readonly ICoreService _coreService;
+
+        public HelloController(ICoreService coreService)
+        {
+            _coreService = coreService;
+        }
+
         [HttpGet]
         public Task<bool> IsAlive() => Task.FromResult(true);
 
         [HttpGet]
         public Task<string?> ProductVersion()
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-            return Task.FromResult(fileVersionInfo.ProductVersion);
+            return _coreService.GetCurrentVersion();
         }
     }
 }
