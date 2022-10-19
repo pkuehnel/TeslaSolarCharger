@@ -108,21 +108,7 @@ public class ChargingCostService : IChargingCostService
     public async Task AddPowerDistributionForAllChargingCars()
     {
         _logger.LogTrace("{method}()", nameof(AddPowerDistributionForAllChargingCars));
-        //ToDO: remove before release
-        var chargePrice = await _teslaSolarChargerContext.ChargePrices
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        if (chargePrice == default)
-        {
-            _logger.LogDebug("Add new charge price");
-            chargePrice = new ChargePrice()
-            {
-                GridPrice = new decimal(0.28),
-                SolarPrice = new decimal(0.10),
-                ValidSince = new DateTime(2022, 9, 7),
-            };
-            _teslaSolarChargerContext.ChargePrices.Add(chargePrice);
-            await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        }
+        await CreateDefaultChargePrice().ConfigureAwait(false);
         foreach (var car in _settings.Cars)
         {
             if (car.CarState.ChargingPowerAtHome > 0)
@@ -209,6 +195,24 @@ public class ChargingCostService : IChargingCostService
             .OrderByDescending(cp => cp.ValidSince)
             .FirstOrDefaultAsync().ConfigureAwait(false);
         return currentChargePrice;
+    }
+
+    private async Task CreateDefaultChargePrice()
+    {
+        var chargePrice = await _teslaSolarChargerContext.ChargePrices
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (chargePrice == default)
+        {
+            _logger.LogDebug("Add new charge price");
+            chargePrice = new ChargePrice()
+            {
+                GridPrice = new decimal(0.28),
+                SolarPrice = new decimal(0.10),
+                ValidSince = new DateTime(2022, 9, 7),
+            };
+            _teslaSolarChargerContext.ChargePrices.Add(chargePrice);
+            await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 
     public async Task DeleteDuplicatedHandleCharges()

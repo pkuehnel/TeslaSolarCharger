@@ -1,6 +1,7 @@
 using System.Net;
 using FluentModbus;
 using Plugins.Modbus.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace Plugins.Modbus.Services;
 
@@ -16,10 +17,12 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
     }
 
     public async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
-         int port, int connectDelay, int timeout)
+        int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType)
     {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddress}, {port}, {connectDelay}, {timeout}, {modbusRegisterType})",
+            nameof(GetByteArray), unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType);
         var tmpArrayPowerComplete =
-            await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
+            await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType)
                 .ConfigureAwait(false);
         _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
         tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
@@ -39,8 +42,10 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
     }
 
     private async Task<byte[]> GetRegisterValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
-         int port, int connectDelay, int timeout)
+        int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType)
     {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddress}, {port}, {connectDelay}, {timeout}, {modbusRegisterType})",
+            nameof(GetRegisterValue), unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType);
         ReadTimeout = (int)TimeSpan.FromSeconds(timeout).TotalMilliseconds;
         WriteTimeout = (int)TimeSpan.FromSeconds(timeout).TotalMilliseconds;
         await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
@@ -54,15 +59,18 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         _logger.LogTrace("Reading Holding Register...");
         try
         {
-            var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
-            return tmpArrayPowerComplete;
+            if (modbusRegisterType == ModbusRegisterType.HoldingRegister)
+            {
+                return ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
+            }
+            return ReadInputRegisters(unitIdentifier, startingAddress, quantity).ToArray();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not get register value.");
             if (IsConnected)
             {
-                _logger.LogDebug("Disconnecting Modcus Client...");
+                _logger.LogDebug("Disconnecting Modbus Client...");
                 Disconnect();
                 _logger.LogDebug("Modbus Client disconnected.");
             }
