@@ -54,7 +54,8 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         _logger.LogTrace("Reading Holding Register...");
         try
         {
-            var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
+            //var tmpArrayPowerComplete = ReadHoldingRegisters(unitIdentifier, startingAddress, quantity).ToArray();
+            var tmpArrayPowerComplete = ReadInputRegisters(unitIdentifier, startingAddress, quantity).ToArray();
             return tmpArrayPowerComplete;
         }
         catch (Exception ex)
