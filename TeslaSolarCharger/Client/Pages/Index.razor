@@ -178,7 +178,10 @@ else
                         Full charge in
                     </td>
                     <td>
-                        @((car.CarState.TimeUntilFullCharge?.Days > 0 ? $"{car.CarState.TimeUntilFullCharge?.Days}. " : "") + $"{car.CarState.TimeUntilFullCharge?.Hours:D2}:{car.CarState.TimeUntilFullCharge?.Minutes:D2}")
+                        @if (car.CarState.TimeUntilFullCharge > TimeSpan.Zero)
+                        {
+                            @((car.CarState.TimeUntilFullCharge?.Days > 0 ? $"{car.CarState.TimeUntilFullCharge?.Days}. " : "") + $"{car.CarState.TimeUntilFullCharge?.Hours:D2}:{car.CarState.TimeUntilFullCharge?.Minutes:D2}")
+                        }
                     </td>
                 </tr>
                 <tr>
