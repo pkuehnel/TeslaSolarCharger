@@ -1,4 +1,5 @@
 using Plugins.Modbus.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace Plugins.Modbus.Services;
 
@@ -15,7 +16,7 @@ public class ModbusService : IModbusService
     }
 
     public async Task<object> ReadValue<T>(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString, int port, int connectDelay, int timeout) where T : struct
+        string ipAddressString, int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType) where T : struct
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
                          "{connectDelay}, {timeout})",
@@ -26,12 +27,12 @@ public class ModbusService : IModbusService
         byte[] byteArray;
         if (timeout < 1)
         {
-            _logger.LogDebug("Timeout is reduced to minimum value of 1 second");
+            _logger.LogDebug("Timeout is raised to minimum value of 1 second");
             timeout = 1;
         }
         try
         {
-            byteArray = await modbusClient.GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout)
+            byteArray = await modbusClient.GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -78,6 +79,7 @@ public class ModbusService : IModbusService
 
     private IModbusClient GetModbusClient(string ipAddressString, int port)
     {
+        _logger.LogTrace("{method}({ipAddress}, {port})", nameof(GetModbusClient), ipAddressString, port);
         IModbusClient modbusClient;
 
         if (_modbusClients.Count < 1)
@@ -103,6 +105,7 @@ public class ModbusService : IModbusService
 
     private string GetKeyString(string ipAddressString, int port)
     {
+        _logger.LogTrace("{method}({ipAddress}, {port})", nameof(GetKeyString), ipAddressString, port);
         var keyString = $"{ipAddressString}:{port}";
         return keyString;
     }
@@ -118,6 +121,6 @@ public class ModbusService : IModbusService
                 disconnectedClients++;
             }
         }
-        _logger.LogTrace("{disconnects} of {clients} clients diconnected.", disconnectedClients, _modbusClients.Count);
+        _logger.LogDebug("{disconnects} of {clients} clients diconnected.", disconnectedClients, _modbusClients.Count);
     }
 }
