@@ -15,6 +15,7 @@ namespace Plugins.Modbus.Controllers
             _modbusService = modbusService;
         }
 
+        [HttpGet]
         public Task<object> GetTypedValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
             int port, int connectDelaySeconds, int timeoutSeconds, ModbusValueType modbusValueType, ModbusRegisterType modbusRegisterType)
         {
