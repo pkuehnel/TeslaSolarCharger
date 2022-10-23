@@ -15,8 +15,6 @@
 else
 {
     <EditForm Model="@_dtoBaseConfiguration" OnValidSubmit="@HandleValidSubmit">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
         <hr />
         <div class="form-group">
             <label for="carPriorities">Car Ids</label>
@@ -436,6 +434,8 @@ else
             <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.TelegramChannelId" placeholder="-156480125" class="form-control" />
         </div>
         <hr />
+        <DataAnnotationsValidator />
+        <ValidationSummary />
         <button type="submit" class="btn btn-primary">Submit</button>
     </EditForm>
 }
