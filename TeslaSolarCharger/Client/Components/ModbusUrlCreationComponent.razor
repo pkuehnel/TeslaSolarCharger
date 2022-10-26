@@ -1,7 +1,31 @@
-@using System.Web
+﻿@using System.Web
+@using TeslaSolarCharger.Shared
+@using TeslaSolarCharger.Shared.Enums
 <p>
     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusUnitIdentifier">Unit Identifier:</label>
     <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ModbusUnitIdentifier" @bind:event="oninput" type="number" id="modbusUnitIdentifier" name="modbusUnitIdentifier">
+</p>
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="registerType">Register Type:</label>
+    <InputSelect @bind-Value="@RegisterType" id="registerType" name="registerType">
+          
+        @foreach (var value in Enum.GetValues<ModbusRegisterType>())
+        {
+            
+            <option value="@value">@value.ToFriendlyString()</option>
+        }
+    </InputSelect>
+</p>
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="valueType">Value Type:</label>
+    <InputSelect @bind-Value="@ValueType" id="valueType" name="valueType">
+
+        @foreach (var value in Enum.GetValues<ModbusValueType>())
+        {
+
+            <option value="@value">@value.ToFriendlyString()</option>
+        }
+    </InputSelect>
 </p>
 <p>
     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusStartingAddress">Register Address:</label>
@@ -99,6 +123,26 @@
         }
     }
 
+    private ModbusRegisterType? RegisterType
+    {
+        get => _modbusRegisterType;
+        set
+        {
+            _modbusRegisterType = value;
+            UpdateUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
+    private ModbusValueType? ValueType
+    {
+        get => _modbusValueType;
+        set
+        {
+            _modbusValueType = value;
+            UpdateUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
     private string? _modbusUnitIdentifier;
     private string? _startingAddress;
     private string? _quantity;
@@ -106,6 +150,9 @@
     private string? _port;
     private string? _connectDelaySeconds;
     private string? _timeoutSeconds;
+    private ModbusRegisterType? _modbusRegisterType;
+    private ModbusValueType? _modbusValueType;
+
 
     [Parameter]
     public string? ModbusUrl { get; set; }
@@ -115,10 +162,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        //ToDo: test if this is executed when not displayed
         if (string.IsNullOrWhiteSpace(ModbusUrl))
         {
-            ModbusUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=2";
+            ModbusUrl = "http://modbusplugin/api/Modbus/GetTypedValue?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=2&modbusValueType=0&modbusRegisterType=0";
         }
         if (!string.IsNullOrEmpty(ModbusUrl) && ModbusUrl.StartsWith("http://modbusplugin/api/Modbus/"))
         {
@@ -130,12 +176,47 @@
             Port = HttpUtility.ParseQueryString(uri.Query).Get("port");
             ConnectDelaySeconds = HttpUtility.ParseQueryString(uri.Query).Get("connectDelaySeconds");
             TimeoutSeconds = HttpUtility.ParseQueryString(uri.Query).Get("timeoutSeconds");
+            var modbusValueTypeString = HttpUtility.ParseQueryString(uri.Query).Get("modbusValueType");
+            if (string.IsNullOrEmpty(modbusValueTypeString))
+            {
+                ValueType = null;
+                var methodName = uri.Segments.Last();
+                if (methodName.Equals("GetValue", StringComparison.CurrentCultureIgnoreCase) || methodName.Equals("GetInt32Value", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    ValueType = ModbusValueType.Int;
+                }
+                else if (methodName.Equals("GetInt16Value", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    ValueType = ModbusValueType.Short;
+                }
+                else if (methodName.Equals("GetFloatValue", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    ValueType = ModbusValueType.Float;
+                }
+                else
+                {
+                    ValueType = ModbusValueType.Int;
+                }
+            }
+            else
+            {
+                ValueType = (ModbusValueType?)Enum.Parse(typeof(ModbusValueType), modbusValueTypeString);
+            }
+            var modbusRegisterTypeString = HttpUtility.ParseQueryString(uri.Query).Get("modbusValueType");
+            if (string.IsNullOrEmpty(modbusRegisterTypeString))
+            {
+                RegisterType = ModbusRegisterType.HoldingRegister;
+            }
+            else
+            {
+                ValueType = (ModbusValueType?)Enum.Parse(typeof(ModbusValueType), modbusRegisterTypeString);
+            }
         }
     }
 
     private async Task UpdateUrlFromModbusValues()
     {
-        ModbusUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={ModbusUnitIdentifier}&startingAddress={StartingAddress}&quantity={Quantity}&ipAddress={IpAddress}&port={Port}&connectDelaySeconds={ConnectDelaySeconds}&timeoutSeconds={TimeoutSeconds}";
+        ModbusUrl = $"http://modbusplugin/api/Modbus/GetTypedValue?unitIdentifier={ModbusUnitIdentifier}&startingAddress={StartingAddress}&quantity={Quantity}&ipAddress={IpAddress}&port={Port}&connectDelaySeconds={ConnectDelaySeconds}&timeoutSeconds={TimeoutSeconds}&modbusValueType={ValueType}&modbusRegisterType={RegisterType}";
         await ModbusUrlChanged.InvokeAsync(ModbusUrl).ConfigureAwait(false);
     }
 }
