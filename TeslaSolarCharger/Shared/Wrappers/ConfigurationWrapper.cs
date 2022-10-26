@@ -464,12 +464,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
         try
         {
-            var result = await httpClient.GetAsync("http://solaredgeplugin/api/Hello/IsAlive").ConfigureAwait(false);
-            if (result.IsSuccessStatusCode)
-            {
-                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://solaredgeplugin/CurrentValues/GetPowerToGrid";
-                return;
-            }
+            //ToDo: update url in Frontend
+            //var result = await httpClient.GetAsync("http://solaredgeplugin/api/Hello/IsAlive").ConfigureAwait(false);
+            //if (result.IsSuccessStatusCode)
+            //{
+            //    dtoBaseConfiguration.CurrentPowerToGridUrl = "http://solaredgeplugin/CurrentValues/GetPowerToGrid";
+            //    return;
+            //}
         }
         catch (Exception ex)
         {
@@ -478,12 +479,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
         try
         {
-            var result = await httpClient.GetAsync("http://modbusplugin/api/Hello/IsAlive").ConfigureAwait(false);
-            if (result.IsSuccessStatusCode)
-            {
-                dtoBaseConfiguration.IsModbusGridUrl = true;
-                dtoBaseConfiguration.CurrentPowerToGridUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10";
-            }
+            //ToDo: update url in Frontend
+            //var result = await httpClient.GetAsync("http://modbusplugin/api/Hello/IsAlive").ConfigureAwait(false);
+            //if (result.IsSuccessStatusCode)
+            //{
+            //    dtoBaseConfiguration.IsModbusGridUrl = true;
+            //    dtoBaseConfiguration.CurrentPowerToGridUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10";
+            //}
         }
         catch (Exception ex)
         {
