@@ -29,6 +29,40 @@ public static class Extensions
         }
     }
 
+    public static string ToFriendlyString(this ModbusRegisterType modbusRegisterType)
+    {
+        switch (modbusRegisterType)
+        {
+            case ModbusRegisterType.HoldingRegister:
+                return "Holding Register";
+            case ModbusRegisterType.InputRegister:
+                return "Input Register";
+            default:
+                return modbusRegisterType.ToString();
+        }
+    }
+
+    public static string ToFriendlyString(this ModbusValueType modbusValueType)
+    {
+        switch (modbusValueType)
+        {
+            case ModbusValueType.Int:
+                return "Int 32";
+            case ModbusValueType.Float:
+                return "Float";
+            case ModbusValueType.Short:
+                return "Int 16";
+            case ModbusValueType.UInt:
+                return "Uint 32";
+            case ModbusValueType.UShort:
+                return "Uint 16";
+            case ModbusValueType.Ulong:
+                return "Uint 64";
+            default:
+                return modbusValueType.ToString();
+        }
+    }
+
     /// <summary>
     /// Extension for 'Object' that copies the properties to a destination object.
     /// </summary>
