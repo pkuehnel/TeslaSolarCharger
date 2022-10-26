@@ -1,0 +1,141 @@
+﻿@using System.Web
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusUnitIdentifier">Unit Identifier:</label>
+    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridModbusUnitIdentifier" @bind:event="oninput" type="number" id="gridModbusUnitIdentifier" name="gridModbusUnitIdentifier">
+</p>
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusStartingAddress">Register Address:</label>
+    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridStartingAddress" @bind:event="oninput" type="number" id="gridModbusStartingAddress" name="gridModbusStartingAddress">
+</p>
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusQuantity">Number of Registers:</label>
+    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridQuantity" @bind:event="oninput" type="number" id="gridModbusQuantity" name="gridModbusQuantity">
+</p>
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusIpAddress">IP address:</label>
+    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridIpAddress" @bind:event="oninput" type="text" id="gridModbusIpAddress" name="gridModbusIpAddress">
+</p>
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusPort">Port:</label>
+    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridPort" @bind:event="oninput" type="number" id="gridModbusPort" name="gridModbusPort">
+</p>
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusConnectDelaySeconds">Connect Delay (seconds):</label>
+    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridConnectDelaySeconds" @bind:event="oninput" type="number" id="gridModbusConnectDelaySeconds" name="gridModbusConnectDelaySeconds">
+</p>
+<p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusTimeoutSeconds">Read Timeout (seconds):</label>
+    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridTimeoutSeconds" @bind:event="oninput" type="number" id="gridModbusTimeoutSeconds" name="gridModbusTimeoutSeconds">
+</p>
+
+@code {
+    private string? GridModbusUnitIdentifier
+    {
+        get => _gridModbusUnitIdentifier;
+        set
+        {
+            _gridModbusUnitIdentifier = value;
+            UpdateGridUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
+    private string? GridStartingAddress
+    {
+        get => _gridStartingAddress;
+        set
+        {
+            _gridStartingAddress = value;
+            UpdateGridUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
+    private string? GridQuantity
+    {
+        get => _gridQuantity;
+        set
+        {
+            _gridQuantity = value;
+            UpdateGridUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
+    private string? GridIpAddress
+    {
+        get => _gridIpAddress;
+        set
+        {
+            _gridIpAddress = value;
+            UpdateGridUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
+    private string? GridPort
+    {
+        get => _gridPort;
+        set
+        {
+            _gridPort = value;
+            UpdateGridUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
+    private string? GridConnectDelaySeconds
+    {
+        get => _gridConnectDelaySeconds;
+        set
+        {
+            _gridConnectDelaySeconds = value;
+            UpdateGridUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
+    private string? GridTimeoutSeconds
+    {
+        get => _gridTimeoutSeconds;
+        set
+        {
+            _gridTimeoutSeconds = value;
+            UpdateGridUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
+    private string? _gridModbusUnitIdentifier;
+    private string? _gridStartingAddress;
+    private string? _gridQuantity;
+    private string? _gridIpAddress;
+    private string? _gridPort;
+    private string? _gridConnectDelaySeconds;
+    private string? _gridTimeoutSeconds;
+
+    [Parameter]
+    public string? ModbusUrl { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ModbusUrlChanged { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //ToDo: test if this is executed when not displayed
+        if (string.IsNullOrWhiteSpace(ModbusUrl))
+        {
+            ModbusUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=2";
+        }
+        if (!string.IsNullOrEmpty(ModbusUrl))
+        {
+            var uri = new Uri(ModbusUrl);
+            GridModbusUnitIdentifier = HttpUtility.ParseQueryString(uri.Query).Get("unitIdentifier");
+            GridStartingAddress = HttpUtility.ParseQueryString(uri.Query).Get("startingAddress");
+            GridQuantity = HttpUtility.ParseQueryString(uri.Query).Get("quantity");
+            GridIpAddress = HttpUtility.ParseQueryString(uri.Query).Get("ipAddress");
+            GridPort = HttpUtility.ParseQueryString(uri.Query).Get("port");
+            GridConnectDelaySeconds = HttpUtility.ParseQueryString(uri.Query).Get("connectDelaySeconds");
+            GridTimeoutSeconds = HttpUtility.ParseQueryString(uri.Query).Get("timeoutSeconds");
+        }
+    }
+
+    private async Task UpdateGridUrlFromModbusValues()
+    {
+        ModbusUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={GridModbusUnitIdentifier}&startingAddress={GridStartingAddress}&quantity={GridQuantity}&ipAddress={GridIpAddress}&port={GridPort}&connectDelaySeconds={GridConnectDelaySeconds}&timeoutSeconds={GridTimeoutSeconds}";
+        await ModbusUrlChanged.InvokeAsync(ModbusUrl).ConfigureAwait(false);
+    }
+}
