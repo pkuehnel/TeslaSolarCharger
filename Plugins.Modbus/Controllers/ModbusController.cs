@@ -15,23 +15,24 @@ namespace Plugins.Modbus.Controllers
             _modbusService = modbusService;
         }
 
+        [HttpGet]
         public Task<object> GetTypedValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
-            int port, int connectDelaySeconds, int timeoutSeconds, ModbusValueType modbusValueType)
+            int port, int connectDelaySeconds, int timeoutSeconds, ModbusValueType modbusValueType, ModbusRegisterType modbusRegisterType)
         {
             return modbusValueType switch
             {
                 ModbusValueType.Int => _modbusService.ReadValue<int>(unitIdentifier, startingAddress, quantity, ipAddress, port,
-                    connectDelaySeconds, timeoutSeconds),
+                    connectDelaySeconds, timeoutSeconds, modbusRegisterType),
                 ModbusValueType.Float => _modbusService.ReadValue<float>(unitIdentifier, startingAddress, quantity, ipAddress, port,
-                    connectDelaySeconds, timeoutSeconds),
+                    connectDelaySeconds, timeoutSeconds, modbusRegisterType),
                 ModbusValueType.Short => _modbusService.ReadValue<short>(unitIdentifier, startingAddress, quantity, ipAddress, port,
-                    connectDelaySeconds, timeoutSeconds),
+                    connectDelaySeconds, timeoutSeconds, modbusRegisterType),
                 ModbusValueType.UInt => _modbusService.ReadValue<uint>(unitIdentifier, startingAddress, quantity, ipAddress, port,
-                    connectDelaySeconds, timeoutSeconds),
+                    connectDelaySeconds, timeoutSeconds, modbusRegisterType),
                 ModbusValueType.UShort => _modbusService.ReadValue<ushort>(unitIdentifier, startingAddress, quantity, ipAddress, port,
-                    connectDelaySeconds, timeoutSeconds),
+                    connectDelaySeconds, timeoutSeconds, modbusRegisterType),
                 ModbusValueType.Ulong => _modbusService.ReadValue<ulong>(unitIdentifier, startingAddress, quantity, ipAddress, port,
-                    connectDelaySeconds, timeoutSeconds),
+                    connectDelaySeconds, timeoutSeconds, modbusRegisterType),
                 _ => throw new ArgumentOutOfRangeException(nameof(modbusValueType), modbusValueType, null)
             };
         }
@@ -51,7 +52,7 @@ namespace Plugins.Modbus.Controllers
         [HttpGet]
         public Task<object> GetValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
             int port, int connectDelaySeconds, int timeoutSeconds) 
-            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Int);
+            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Int, ModbusRegisterType.HoldingRegister);
 
         /// <summary>
         /// Gets a Modbus Int32 value
@@ -68,7 +69,7 @@ namespace Plugins.Modbus.Controllers
         [HttpGet]
         public Task<object> GetInt32Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
             int port, int connectDelaySeconds, int timeoutSeconds)
-            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Int);
+            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Int, ModbusRegisterType.HoldingRegister);
 
         /// <summary>
         /// Gets a Modbus Int16 value
@@ -86,7 +87,7 @@ namespace Plugins.Modbus.Controllers
         [HttpGet]
         public Task<object> GetInt16Value(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
             int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
-            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Short);
+            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Short, ModbusRegisterType.HoldingRegister);
 
         /// <summary>
         /// Gets a Modbus Float value
@@ -104,7 +105,7 @@ namespace Plugins.Modbus.Controllers
         [HttpGet]
         public Task<object> GetFloatValue(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
             int port, int connectDelaySeconds, int timeoutSeconds, int? minimumResult = null)
-            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Float);
+            => GetTypedValue(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, ModbusValueType.Float, ModbusRegisterType.HoldingRegister);
 
     }
 }

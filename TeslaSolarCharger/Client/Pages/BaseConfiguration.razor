@@ -1,4 +1,5 @@
 ﻿@page "/BaseConfiguration"
+@using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using System.Web
 @inject HttpClient HttpClient
@@ -15,8 +16,6 @@
 else
 {
     <EditForm Model="@_dtoBaseConfiguration" OnValidSubmit="@HandleValidSubmit">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
         <hr />
         <div class="form-group">
             <label for="carPriorities">Car Ids</label>
@@ -77,34 +76,9 @@ else
         </div>
         @if (_dtoBaseConfiguration.IsModbusGridUrl)
         {
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusUnitIdentifier">Unit Identifier:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridModbusUnitIdentifier" @bind:event="oninput" type="number" id="gridModbusUnitIdentifier" name="gridModbusUnitIdentifier">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusStartingAddress">Register Address:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridStartingAddress" @bind:event="oninput" type="number" id="gridModbusStartingAddress" name="gridModbusStartingAddress">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusQuantity">Number of Registers:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridQuantity" @bind:event="oninput" type="number" id="gridModbusQuantity" name="gridModbusQuantity">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusIpAddress">IP address:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridIpAddress" @bind:event="oninput" type="text" id="gridModbusIpAddress" name="gridModbusIpAddress">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusPort">Port:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridPort" @bind:event="oninput" type="number" id="gridModbusPort" name="gridModbusPort">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusConnectDelaySeconds">Connect Delay (seconds):</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridConnectDelaySeconds" @bind:event="oninput" type="number" id="gridModbusConnectDelaySeconds" name="gridModbusConnectDelaySeconds">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridModbusTimeoutSeconds">Read Timeout (seconds):</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@GridTimeoutSeconds" @bind:event="oninput" type="number" id="gridModbusTimeoutSeconds" name="gridModbusTimeoutSeconds">
-            </p>
+            <ModbusUrlCreationComponent 
+                @bind-ModbusUrl="_dtoBaseConfiguration.CurrentPowerToGridUrl"
+                @bind-ModbusUrl:event="ModbusUrlChanged" />
         }
         else
         {
@@ -176,23 +150,38 @@ else
             </div>
         </div>
 
-        @if (_dtoBaseConfiguration.HomeBatterySocHeaders.Count > 0)
+        <div class="form-group">
+            <InputCheckbox id="IsModbusGridUrl" @bind-Value="_dtoBaseConfiguration.IsModbusHomeBatterySocUrl" class="form-check-input" />
+            <label for="IsModbusGridUrl">Use Modbus Url Creation Tool</label>
+            <div>
+                <small id="IsModbusGridUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+            </div>
+        </div>
+        @if (_dtoBaseConfiguration.IsModbusHomeBatterySocUrl)
         {
-        <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
-        <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
+            <ModbusUrlCreationComponent @bind-ModbusUrl="_dtoBaseConfiguration.HomeBatterySocUrl"
+                                @bind-ModbusUrl:event="ModbusUrlChanged" />
         }
-        @for (var i = 0; i < _dtoBaseConfiguration.HomeBatterySocHeaders.Count; i++)
+        else
         {
-            var header = _dtoBaseConfiguration.HomeBatterySocHeaders.ElementAt(i);
-            <p>
-                <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
-               @onchange="@(e => UpdateHomeBatterySocHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
-               @onchange="@(e => _dtoBaseConfiguration.HomeBatterySocHeaders[header.Key] = e.Value?.ToString() ?? string.Empty)">
-                <button type="button" class="btn btn-danger" @onclick="() => RemoveHomeBatterySocHeader(header.Key)">DEL</button>
-            </p>
+            @if (_dtoBaseConfiguration.HomeBatterySocHeaders.Count > 0)
+            {
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
+                <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
+            }
+            @for (var i = 0; i < _dtoBaseConfiguration.HomeBatterySocHeaders.Count; i++)
+            {
+                var header = _dtoBaseConfiguration.HomeBatterySocHeaders.ElementAt(i);
+                <p>
+                    <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
+                           @onchange="@(e => UpdateHomeBatterySocHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
+                           @onchange="@(e => _dtoBaseConfiguration.HomeBatterySocHeaders[header.Key] = e.Value?.ToString() ?? string.Empty)">
+                    <button type="button" class="btn btn-danger" @onclick="() => RemoveHomeBatterySocHeader(header.Key)">DEL</button>
+                </p>
+            }
+            <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => AddNewHomeBatterySocHeader()">Add new header</button></p>
         }
-        <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => AddNewHomeBatterySocHeader()">Add new header</button></p>
         <div class="form-group">
             <label for="homeBatterySocJsonPattern">Home Battery Soc Json Pattern</label>
             <InputText id="homeBatterySocJsonPattern" @bind-Value="_dtoBaseConfiguration.HomeBatterySocJsonPattern" placeholder="$.data.overage" class="form-control" />
@@ -232,24 +221,40 @@ else
                 <small id="homeBatteryPowerCorrectionFactorHelp" class="form-text text-muted">Use this if consuming 1 W from your home batter is not the value -1. E.g. if charging 1500 Watt to your home battery is returned as 1.5 you have to enter 1000 here</small>
             </div>
         </div>
+        
+        <div class="form-group">
+            <InputCheckbox id="IsModbusGridUrl" @bind-Value="_dtoBaseConfiguration.IsModbusHomeBatteryPowerUrl" class="form-check-input" />
+            <label for="IsModbusGridUrl">Use Modbus Url Creation Tool</label>
+            <div>
+                <small id="IsModbusGridUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+            </div>
+        </div>
+        @if (_dtoBaseConfiguration.IsModbusHomeBatteryPowerUrl)
+        {
+            <ModbusUrlCreationComponent @bind-ModbusUrl="_dtoBaseConfiguration.HomeBatteryPowerUrl"
+                                        @bind-ModbusUrl:event="ModbusUrlChanged" />
+        }
+        else
+        {
+            @if (_dtoBaseConfiguration.HomeBatteryPowerHeaders.Count > 0)
+            {
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
+                <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
+            }
+            @for (var i = 0; i < _dtoBaseConfiguration.HomeBatteryPowerHeaders.Count; i++)
+            {
+                var header = _dtoBaseConfiguration.HomeBatteryPowerHeaders.ElementAt(i);
+                <p>
+                    <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
+                           @onchange="@(e => UpdateHomeBatteryPowerHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
+                           @onchange="@(e => _dtoBaseConfiguration.HomeBatteryPowerHeaders[header.Key] = e.Value?.ToString() ?? string.Empty)">
+                    <button type="button" class="btn btn-danger" @onclick="() => RemoveHomeBatteryPowerHeader(header.Key)">DEL</button>
+                </p>
+            }
+            <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => AddNewHomeBatteryPowerHeader()">Add new header</button></p>
+        }
 
-        @if (_dtoBaseConfiguration.HomeBatteryPowerHeaders.Count > 0)
-        {
-        <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
-        <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
-        }
-        @for (var i = 0; i < _dtoBaseConfiguration.HomeBatteryPowerHeaders.Count; i++)
-        {
-            var header = _dtoBaseConfiguration.HomeBatteryPowerHeaders.ElementAt(i);
-            <p>
-                <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
-               @onchange="@(e => UpdateHomeBatteryPowerHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
-               @onchange="@(e => _dtoBaseConfiguration.HomeBatteryPowerHeaders[header.Key] = e.Value?.ToString() ?? string.Empty)">
-                <button type="button" class="btn btn-danger" @onclick="() => RemoveHomeBatteryPowerHeader(header.Key)">DEL</button>
-            </p>
-        }
-        <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => AddNewHomeBatteryPowerHeader()">Add new header</button></p>
         <div class="form-group">
             <label for="homeBatteryPowerJsonPattern">Home Battery Power Json Pattern</label>
             <InputText id="homeBatteryPowerJsonPattern" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerJsonPattern" placeholder="$.data.overage" class="form-control" />
@@ -298,34 +303,8 @@ else
         </div>
         @if (_dtoBaseConfiguration.IsModbusInverterUrl)
         {
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterModbusUnitIdentifier">Unit Identifier:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@InverterModbusUnitIdentifier" @bind:event="oninput" type="number" id="inverterModbusUnitIdentifier" name="inverterModbusUnitIdentifier">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterModbusStartingAddress">Register Address:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@InverterStartingAddress" @bind:event="oninput" type="number" id="inverterModbusStartingAddress" name="inverterModbusStartingAddress">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterModbusQuantity">Number of Registers:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@InverterQuantity" @bind:event="oninput" type="number" id="inverterModbusQuantity" name="inverterModbusQuantity">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterModbusIpAddress">IP address:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@InverterIpAddress" @bind:event="oninput" type="text" id="inverterModbusIpAddress" name="inverterModbusIpAddress">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterModbusPort">Port:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@InverterPort" @bind:event="oninput" type="number" id="inverterModbusPort" name="inverterModbusPort">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterModbusConnectDelaySeconds">Connect Delay (seconds):</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@InverterConnectDelaySeconds" @bind:event="oninput" type="number" id="inverterModbusConnectDelaySeconds" name="inverterModbusConnectDelaySeconds">
-            </p>
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterModbusTimeoutSeconds">Read Timeout (seconds):</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@InverterTimeoutSeconds" @bind:event="oninput" type="number" id="inverterModbusTimeoutSeconds" name="inverterModbusTimeoutSeconds">
-            </p>
+            <ModbusUrlCreationComponent @bind-ModbusUrl="_dtoBaseConfiguration.CurrentInverterPowerUrl"
+                                @bind-ModbusUrl:event="ModbusUrlChanged" />
         }
         else
         {
@@ -436,6 +415,8 @@ else
             <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.TelegramChannelId" placeholder="-156480125" class="form-control" />
         </div>
         <hr />
+        <DataAnnotationsValidator />
+        <ValidationSummary />
         <button type="submit" class="btn btn-primary">Submit</button>
     </EditForm>
 }
@@ -443,196 +424,9 @@ else
 @code {
     private DtoBaseConfiguration? _dtoBaseConfiguration;
 
-    private string? GridModbusUnitIdentifier
-    {
-        get => _gridModbusUnitIdentifier;
-        set
-        {
-            _gridModbusUnitIdentifier = value;
-            UpdateGridUrlFromModbusValues();
-        }
-    }
-
-    private string? GridStartingAddress
-    {
-        get => _gridStartingAddress;
-        set
-        {
-            _gridStartingAddress = value;
-            UpdateGridUrlFromModbusValues();
-        }
-    }
-
-    private string? GridQuantity
-    {
-        get => _gridQuantity;
-        set
-        {
-            _gridQuantity = value;
-            UpdateGridUrlFromModbusValues();
-        }
-    }
-
-    private string? GridIpAddress
-    {
-        get => _gridIpAddress;
-        set
-        {
-            _gridIpAddress = value;
-            UpdateGridUrlFromModbusValues();
-        }
-    }
-
-    private string? GridPort
-    {
-        get => _gridPort;
-        set
-        {
-            _gridPort = value;
-            UpdateGridUrlFromModbusValues();
-        }
-    }
-
-    private string? GridConnectDelaySeconds
-    {
-        get => _gridConnectDelaySeconds;
-        set
-        {
-            _gridConnectDelaySeconds = value;
-            UpdateGridUrlFromModbusValues();
-        }
-    }
-
-    private string? GridTimeoutSeconds
-    {
-        get => _gridTimeoutSeconds;
-        set
-        {
-            _gridTimeoutSeconds = value;
-            UpdateGridUrlFromModbusValues();
-        }
-    }
-
-    private string? InverterModbusUnitIdentifier
-    {
-        get => _inverterModbusUnitIdentifier;
-        set
-        {
-            _inverterModbusUnitIdentifier = value;
-            UpdateInverterUrlFromModbusValues();
-        }
-    }
-
-    private string? InverterStartingAddress
-    {
-        get => _inverterStartingAddress;
-        set
-        {
-            _inverterStartingAddress = value;
-            UpdateInverterUrlFromModbusValues();
-        }
-    }
-
-    private string? InverterQuantity
-    {
-        get => _inverterQuantity;
-        set
-        {
-            _inverterQuantity = value;
-            UpdateInverterUrlFromModbusValues();
-        }
-    }
-
-    private string? InverterIpAddress
-    {
-        get => _inverterIpAddress;
-        set
-        {
-            _inverterIpAddress = value;
-            UpdateInverterUrlFromModbusValues();
-        }
-    }
-
-    private string? InverterPort
-    {
-        get => _inverterPort;
-        set
-        {
-            _inverterPort = value;
-            UpdateInverterUrlFromModbusValues();
-        }
-    }
-
-    private string? InverterConnectDelaySeconds
-    {
-        get => _inverterConnectDelaySeconds;
-        set
-        {
-            _inverterConnectDelaySeconds = value;
-            UpdateInverterUrlFromModbusValues();
-        }
-    }
-
-    private string? InverterTimeoutSeconds
-    {
-        get => _inverterTimeoutSeconds;
-        set
-        {
-            _inverterTimeoutSeconds = value;
-            UpdateInverterUrlFromModbusValues();
-        }
-    }
-
-    private string? _gridModbusUnitIdentifier;
-    private string? _gridStartingAddress;
-    private string? _gridQuantity;
-    private string? _gridIpAddress;
-    private string? _gridPort;
-    private string? _gridConnectDelaySeconds;
-    private string? _gridTimeoutSeconds;
-
-    private string? _inverterModbusUnitIdentifier;
-    private string? _inverterStartingAddress;
-    private string? _inverterQuantity;
-    private string? _inverterIpAddress;
-    private string? _inverterPort;
-    private string? _inverterConnectDelaySeconds;
-    private string? _inverterTimeoutSeconds;
-
     protected override async Task OnInitializedAsync()
     {
         _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
-        if (_dtoBaseConfiguration != null && _dtoBaseConfiguration.IsModbusGridUrl)
-        {
-            if (string.IsNullOrWhiteSpace(_dtoBaseConfiguration.CurrentPowerToGridUrl))
-            {
-                _dtoBaseConfiguration.CurrentPowerToGridUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10";
-            }
-            var uri = new Uri(_dtoBaseConfiguration.CurrentPowerToGridUrl);
-            GridModbusUnitIdentifier = HttpUtility.ParseQueryString(uri.Query).Get("unitIdentifier");
-            GridStartingAddress = HttpUtility.ParseQueryString(uri.Query).Get("startingAddress");
-            GridQuantity = HttpUtility.ParseQueryString(uri.Query).Get("quantity");
-            GridIpAddress = HttpUtility.ParseQueryString(uri.Query).Get("ipAddress");
-            GridPort = HttpUtility.ParseQueryString(uri.Query).Get("port");
-            GridConnectDelaySeconds = HttpUtility.ParseQueryString(uri.Query).Get("connectDelaySeconds");
-            GridTimeoutSeconds = HttpUtility.ParseQueryString(uri.Query).Get("timeoutSeconds");
-        }
-
-        if (_dtoBaseConfiguration != null && _dtoBaseConfiguration.IsModbusInverterUrl)
-        {
-            if (string.IsNullOrWhiteSpace(_dtoBaseConfiguration.CurrentInverterPowerUrl))
-            {
-                _dtoBaseConfiguration.CurrentInverterPowerUrl = "http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10";
-            }
-            var uri = new Uri(_dtoBaseConfiguration.CurrentInverterPowerUrl);
-            InverterModbusUnitIdentifier = HttpUtility.ParseQueryString(uri.Query).Get("unitIdentifier");
-            InverterStartingAddress = HttpUtility.ParseQueryString(uri.Query).Get("startingAddress");
-            InverterQuantity = HttpUtility.ParseQueryString(uri.Query).Get("quantity");
-            InverterIpAddress = HttpUtility.ParseQueryString(uri.Query).Get("ipAddress");
-            InverterPort = HttpUtility.ParseQueryString(uri.Query).Get("port");
-            InverterConnectDelaySeconds = HttpUtility.ParseQueryString(uri.Query).Get("connectDelaySeconds");
-            InverterTimeoutSeconds = HttpUtility.ParseQueryString(uri.Query).Get("timeoutSeconds");
-        }
     }
 
     private void UpdateGridHeaderKey(string oldKey, string newKey)
@@ -652,14 +446,6 @@ else
         _dtoBaseConfiguration?.CurrentPowerToGridHeaders.Remove(key);
     }
 
-    private void UpdateGridUrlFromModbusValues()
-    {
-        if (_dtoBaseConfiguration != null)
-        {
-            _dtoBaseConfiguration.CurrentPowerToGridUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={GridModbusUnitIdentifier}&startingAddress={GridStartingAddress}&quantity={GridQuantity}&ipAddress={GridIpAddress}&port={GridPort}&connectDelaySeconds={GridConnectDelaySeconds}&timeoutSeconds={GridTimeoutSeconds}";
-        }
-    }
-
     private void UpdateInverterHeaderKey(string oldKey, string newKey)
     {
         var value = _dtoBaseConfiguration?.CurrentInverterPowerHeaders[oldKey];
@@ -675,14 +461,6 @@ else
     private void RemoveInverterHeader(string key)
     {
         _dtoBaseConfiguration?.CurrentInverterPowerHeaders.Remove(key);
-    }
-
-    private void UpdateInverterUrlFromModbusValues()
-    {
-        if (_dtoBaseConfiguration != null)
-        {
-            _dtoBaseConfiguration.CurrentInverterPowerUrl = $"http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier={InverterModbusUnitIdentifier}&startingAddress={InverterStartingAddress}&quantity={InverterQuantity}&ipAddress={InverterIpAddress}&port={InverterPort}&connectDelaySeconds={InverterConnectDelaySeconds}&timeoutSeconds={InverterTimeoutSeconds}";
-        }
     }
 
     private void UpdateHomeBatterySocHeaderKey(string oldKey, string newKey)
