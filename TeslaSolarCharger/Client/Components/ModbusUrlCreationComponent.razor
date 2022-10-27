@@ -166,6 +166,7 @@
         {
             ModbusUrl = "http://modbusplugin/api/Modbus/GetTypedValue?unitIdentifier=3&startingAddress=&quantity=&ipAddress=&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=2&modbusValueType=0&modbusRegisterType=0";
         }
+        ModbusUrl = "http://modbusplugin/api/Modbus/GetTypedValue?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&connectDelaySeconds=0&timeoutSeconds=1&modbusValueType=Float&modbusRegisterType=InputRegister";
         if (!string.IsNullOrEmpty(ModbusUrl) && ModbusUrl.StartsWith("http://modbusplugin/api/Modbus/"))
         {
             var uri = new Uri(ModbusUrl);
@@ -202,14 +203,14 @@
             {
                 ValueType = (ModbusValueType?)Enum.Parse(typeof(ModbusValueType), modbusValueTypeString);
             }
-            var modbusRegisterTypeString = HttpUtility.ParseQueryString(uri.Query).Get("modbusValueType");
+            var modbusRegisterTypeString = HttpUtility.ParseQueryString(uri.Query).Get("modbusRegisterType");
             if (string.IsNullOrEmpty(modbusRegisterTypeString))
             {
                 RegisterType = ModbusRegisterType.HoldingRegister;
             }
             else
             {
-                ValueType = (ModbusValueType?)Enum.Parse(typeof(ModbusValueType), modbusRegisterTypeString);
+                RegisterType = (ModbusRegisterType?)Enum.Parse(typeof(ModbusRegisterType), modbusRegisterTypeString);
             }
         }
     }
