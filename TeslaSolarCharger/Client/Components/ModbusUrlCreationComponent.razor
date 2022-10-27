@@ -1,4 +1,4 @@
-﻿@using System.Web
+@using System.Web
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
 <p>
@@ -202,7 +202,7 @@
             {
                 ValueType = (ModbusValueType?)Enum.Parse(typeof(ModbusValueType), modbusValueTypeString);
             }
-            var modbusRegisterTypeString = HttpUtility.ParseQueryString(uri.Query).Get("modbusValueType");
+            var modbusRegisterTypeString = HttpUtility.ParseQueryString(uri.Query).Get("modbusRegisterType");
             if (string.IsNullOrEmpty(modbusRegisterTypeString))
             {
                 RegisterType = ModbusRegisterType.HoldingRegister;
