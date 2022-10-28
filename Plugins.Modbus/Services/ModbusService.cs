@@ -1,4 +1,6 @@
 using Plugins.Modbus.Contracts;
+using System.Text;
+using System.Threading;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace Plugins.Modbus.Services;
@@ -18,30 +20,12 @@ public class ModbusService : IModbusService
     public async Task<object> ReadValue<T>(byte unitIdentifier, ushort startingAddress, ushort quantity,
         string ipAddressString, int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType) where T : struct
     {
-        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
-                         "{connectDelay}, {timeout})",
-            nameof(ReadValue), unitIdentifier, startingAddress, quantity, ipAddressString, port,
-            connectDelay, timeout);
+        _logger.LogTrace("{method}<{type}>({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
+                         "{connectDelay}, {timeout}, {modbusRegisterType})",
+            nameof(ReadValue), typeof(T), unitIdentifier, startingAddress, quantity, ipAddressString, port,
+            connectDelay, timeout, modbusRegisterType);
 
-        var modbusClient = GetModbusClient(ipAddressString, port);
-        byte[] byteArray;
-        if (timeout < 1)
-        {
-            _logger.LogDebug("Timeout is raised to minimum value of 1 second");
-            timeout = 1;
-        }
-        try
-        {
-            byteArray = await modbusClient.GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType)
-                .ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Could not get byte array. Dispose modbus client");
-            modbusClient.Dispose();
-            _modbusClients.Remove(GetKeyString(ipAddressString, port));
-            throw;
-        }
+        var byteArray = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType).ConfigureAwait(false);
 
         if (typeof(T) == typeof(int))
         {
@@ -75,6 +59,53 @@ public class ModbusService : IModbusService
 
         throw new NotImplementedException($"Can not convert value of type: {typeof(T)}");
 
+    }
+
+    private async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
+        int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType)
+    {
+        _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
+                         "{connectDelay}, {timeout}, {modbusRegisterType})",
+            nameof(ReadValue), unitIdentifier, startingAddress, quantity, ipAddressString, port,
+            connectDelay, timeout, modbusRegisterType);
+        var modbusClient = GetModbusClient(ipAddressString, port);
+        byte[] byteArray;
+        if (timeout < 1)
+        {
+            _logger.LogDebug("Timeout is raised to minimum value of 1 second");
+            timeout = 1;
+        }
+
+        try
+        {
+            byteArray = await modbusClient.GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port,
+                    connectDelay, timeout, modbusRegisterType)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not get byte array. Dispose modbus client");
+            modbusClient.Dispose();
+            _modbusClients.Remove(GetKeyString(ipAddressString, port));
+            throw;
+        }
+
+        return byteArray;
+    }
+
+    public async Task<string> GetBinaryString(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port,
+        int connectDelaySeconds, int timeoutSeconds, ModbusRegisterType modbusRegisterType)
+    {
+        var byteArray = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, modbusRegisterType).ConfigureAwait(false);
+        byteArray = byteArray.Reverse().ToArray();
+        var stringbuilder = new StringBuilder();
+        foreach(var byteString in byteArray)
+        {
+            stringbuilder.Append(Convert.ToString(byteString, 2).PadLeft(8, '0'));
+            stringbuilder.Append(" ");
+        }
+
+        return stringbuilder.ToString();
     }
 
     private IModbusClient GetModbusClient(string ipAddressString, int port)
