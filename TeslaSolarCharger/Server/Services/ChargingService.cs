@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Shared.Contracts;
@@ -428,8 +428,8 @@ public class ChargingService : IChargingService
 
         var timespanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
         var earliestSwitchOff = car.CarState.ShouldStopChargingSince + timespanUntilSwitchOff;
-        _logger.LogDebug("Should start charging since: {shoudStopChargingSince}", car.CarState.ShouldStopChargingSince);
-        _logger.LogDebug("Timespan until switch on: {timespanUntilSwitchOff}", timespanUntilSwitchOff);
+        _logger.LogDebug("Should stop charging since: {shoudStopChargingSince}", car.CarState.ShouldStopChargingSince);
+        _logger.LogDebug("Timespan until switch off: {timespanUntilSwitchOff}", timespanUntilSwitchOff);
         _logger.LogDebug("Earliest switch off: {earliestSwitchOn}", earliestSwitchOff);
         return earliestSwitchOff;
     }
