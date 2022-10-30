@@ -47,6 +47,7 @@ public class PossibleIssues : IPossibleIssues
             {
                 issueKeys.InverterPowerNotAvailable, CreateIssue("Inverter power is not available",
                     IssueType.Warning,
+                    "Does your inverter currently produce energy? Some inverters do not return any value if solar power is not available and you can ignore this issue.",
                     "Are all settings related to inverter power (url, extraction patterns, headers,...) correct?",
                     "Are there any firewall related issues preventing reading the inverter power value?"
                 )
