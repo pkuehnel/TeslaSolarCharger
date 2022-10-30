@@ -9,4 +9,6 @@ public interface IModbusService
 
     Task<string> GetBinaryString(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port,
         int connectDelaySeconds, int timeoutSeconds, ModbusRegisterType modbusRegisterType);
+
+    Task<string> GetBinarySubString(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port, int connectDelaySeconds, int timeoutSeconds, ModbusRegisterType modbusRegisterType, int startIndex, int length);
 }
