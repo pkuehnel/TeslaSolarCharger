@@ -17,7 +17,9 @@ public class BaseConfigurationBase
     public Dictionary<string, string> HomeBatterySocHeaders { get; set; } = new();
     public string? HomeBatteryPowerMqttTopic { get; set; }
     public string? HomeBatteryPowerUrl { get; set; }
+    public string? HomeBatteryPowerInversionUrl { get; set; }
     public Dictionary<string, string> HomeBatteryPowerHeaders { get; set; } = new();
+    public Dictionary<string, string> HomeBatteryPowerInversionHeaders { get; set; } = new();
     public bool IsModbusGridUrl { get; set; }
     public bool IsModbusHomeBatterySocUrl { get; set; }
     public bool IsModbusHomeBatteryPowerUrl { get; set; }

@@ -71,4 +71,6 @@ public interface IConfigurationWrapper
     Task TryAutoFillUrls();
     string? SolarMqttUsername();
     string? SolarMqttPassword();
+    string? HomeBatteryPowerInversionUrl();
+    Dictionary<string, string> HomeBatteryPowerInversionHeaders();
 }
