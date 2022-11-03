@@ -11,6 +11,8 @@ public class ModbusService : IModbusService
     private readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<string, IModbusClient> _modbusClients = new();
 
+    private readonly string _byteDelimiter = " ";
+
     public ModbusService(ILogger<ModbusService> logger, IServiceProvider serviceProvider)
     {
         _logger = logger;
@@ -102,10 +104,19 @@ public class ModbusService : IModbusService
         foreach(var byteString in byteArray)
         {
             stringbuilder.Append(Convert.ToString(byteString, 2).PadLeft(8, '0'));
-            stringbuilder.Append(" ");
+            stringbuilder.Append(_byteDelimiter);
         }
 
         return stringbuilder.ToString();
+    }
+
+    public async Task<string> GetBinarySubString(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port, int connectDelaySeconds,
+        int timeoutSeconds, ModbusRegisterType modbusRegisterType, int startIndex, int length)
+    {
+        var binaryString = await GetBinaryString(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds,
+            modbusRegisterType).ConfigureAwait(false);
+        binaryString = binaryString.Replace(_byteDelimiter, string.Empty);
+        return binaryString.Substring(startIndex, length);
     }
 
     private IModbusClient GetModbusClient(string ipAddressString, int port)

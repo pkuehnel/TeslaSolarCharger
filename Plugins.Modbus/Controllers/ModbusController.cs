@@ -16,6 +16,12 @@ namespace Plugins.Modbus.Controllers
         }
 
         [HttpGet]
+        public Task<string> GetBinarySubString(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
+            int port, int connectDelaySeconds, int timeoutSeconds, ModbusRegisterType modbusRegisterType, int startIndex, int length)
+            => _modbusService.GetBinarySubString(unitIdentifier, startingAddress, quantity, ipAddress, port,
+                connectDelaySeconds, timeoutSeconds, modbusRegisterType, startIndex, length);
+
+        [HttpGet]
         public Task<string> GetBinaryString(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress,
             int port, int connectDelaySeconds, int timeoutSeconds, ModbusRegisterType modbusRegisterType)
             => _modbusService.GetBinaryString(unitIdentifier, startingAddress, quantity, ipAddress, port,

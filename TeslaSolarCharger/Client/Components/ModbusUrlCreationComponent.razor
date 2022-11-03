@@ -53,6 +53,8 @@
 </p>
 
 @code {
+
+    #region HelperProperties
     private string? ModbusUnitIdentifier
     {
         get => _modbusUnitIdentifier;
@@ -142,6 +144,8 @@
             UpdateUrlFromModbusValues().GetAwaiter().GetResult();
         }
     }
+
+    #endregion
 
     private string? _modbusUnitIdentifier;
     private string? _startingAddress;

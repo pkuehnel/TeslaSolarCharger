@@ -126,6 +126,21 @@ public class PvValueService : IPvValueService
             var homeBatteryPowerXmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
             var homeBatteryPowerCorrectionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
             var homeBatteryPower = await GetValueByHttpResponse(homeBatteryPowerHttpResponse, homeBatteryPowerJsonPattern, homeBatteryPowerXmlPattern, homeBatteryPowerCorrectionFactor).ConfigureAwait(false);
+            var homeBatteryPowerInversionRequestUrl = _configurationWrapper.HomeBatteryPowerInversionUrl();
+            if (!string.IsNullOrEmpty(homeBatteryPowerInversionRequestUrl))
+            {
+                var homeBatteryPowerInversionHeaders = _configurationWrapper.HomeBatteryPowerInversionHeaders();
+                //ToDo: implement setting Headers in frontend
+                var homeBatteryPowerInversionRequest = GenerateHttpRequestMessage(homeBatteryPowerInversionRequestUrl, homeBatteryPowerInversionHeaders);
+                var homeBatteryPowerInversionHttpResponse = await GetHttpResponse(homeBatteryPowerInversionRequest).ConfigureAwait(false);
+                var shouldInvertHomeBatteryPowerInt = await GetValueByHttpResponse(homeBatteryPowerInversionHttpResponse, null, null, 1).ConfigureAwait(false);
+                var shouldInvertHomeBatteryPower = Convert.ToBoolean(shouldInvertHomeBatteryPowerInt);
+                if (shouldInvertHomeBatteryPower)
+                {
+                    homeBatteryPower = -homeBatteryPower;
+                }
+            }
+
             _settings.HomeBatteryPower = homeBatteryPower;
         }
     }

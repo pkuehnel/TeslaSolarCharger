@@ -189,9 +189,19 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().HomeBatteryPowerUrl;
     }
 
+    public string? HomeBatteryPowerInversionUrl()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerInversionUrl;
+    }
+
     public Dictionary<string, string> HomeBatteryPowerHeaders()
     {
         return GetBaseConfiguration().HomeBatteryPowerHeaders;
+    }
+
+    public Dictionary<string, string> HomeBatteryPowerInversionHeaders()
+    {
+        return GetBaseConfiguration().HomeBatteryPowerInversionHeaders;
     }
 
     public string? CurrentPowerToGridJsonPattern()
