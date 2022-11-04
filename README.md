@@ -5,6 +5,8 @@
 [![Docker pulls new name](https://img.shields.io/docker/pulls/pkuehnel/teslasolarcharger)](https://hub.docker.com/r/pkuehnel/teslasolarcharger)
 [![Docker pulls old name](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsetter)](https://hub.docker.com/r/pkuehnel/smartteslaampsetter)
 [![](https://img.shields.io/badge/Donate-PayPal-ff69b4.svg)](https://www.paypal.com/donate/?hosted_button_id=S3CK8Q9KV3JUL)
+[![edgeRelease](https://github.com/pkuehnel/TeslaSolarCharger/actions/workflows/edgeRelease.yml/badge.svg)](https://github.com/pkuehnel/TeslaSolarCharger/actions/workflows/edgeRelease.yml)
+
 
 TeslaSolarCharger is a service to set one or multiple Teslas' charging current using the datalogger **[TeslaMate](https://github.com/adriankumpf/teslamate)**.
 
