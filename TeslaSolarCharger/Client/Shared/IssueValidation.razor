@@ -17,7 +17,7 @@
                     <ul>
                         @foreach (var solution in issue.PossibleSolutions)
                         {
-                            <li>@solution</li>
+                            <li>@((MarkupString)solution)</li>
                         }
                     </ul>
                 }
