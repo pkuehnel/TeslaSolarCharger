@@ -1,7 +1,7 @@
 ﻿using Quartz;
 using TeslaSolarCharger.Server.Contracts;
 
-namespace TeslaSolarCharger.Server.Scheduling;
+namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
 [DisallowConcurrentExecution]
 public class ConfigJsonUpdateJob : IJob

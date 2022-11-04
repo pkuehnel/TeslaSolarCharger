@@ -16,6 +16,7 @@ using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;

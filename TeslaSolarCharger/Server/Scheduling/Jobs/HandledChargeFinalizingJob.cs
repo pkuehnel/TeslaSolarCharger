@@ -1,15 +1,14 @@
 ﻿using Quartz;
 using TeslaSolarCharger.Server.Contracts;
 
-namespace TeslaSolarCharger.Server.Scheduling;
+namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
-[DisallowConcurrentExecution]
-public class PowerDistributionAddJob : IJob
+public class HandledChargeFinalizingJob : IJob
 {
     private readonly ILogger<ChargeTimeUpdateJob> _logger;
     private readonly IChargingCostService _service;
 
-    public PowerDistributionAddJob(ILogger<ChargeTimeUpdateJob> logger, IChargingCostService service)
+    public HandledChargeFinalizingJob(ILogger<ChargeTimeUpdateJob> logger, IChargingCostService service)
     {
         _logger = logger;
         _service = service;
@@ -17,6 +16,6 @@ public class PowerDistributionAddJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("Executing Job to update ChargeTimes");
-        await _service.AddPowerDistributionForAllChargingCars().ConfigureAwait(false);
+        await _service.FinalizeHandledCharges().ConfigureAwait(false);
     }
 }

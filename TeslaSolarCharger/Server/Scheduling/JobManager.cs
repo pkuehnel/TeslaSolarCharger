@@ -1,5 +1,6 @@
 ﻿using Quartz;
 using Quartz.Spi;
+using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Shared.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling;
