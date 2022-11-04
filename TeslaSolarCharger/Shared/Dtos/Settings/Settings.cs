@@ -11,6 +11,7 @@ public class Settings : ISettings
         Cars = new List<Car>();
     }
 
+    public bool IsNewVersionAvailable { get; set; }
     public int? InverterPower { get; set; }
     public int? Overage { get; set; }
     public int? HomeBatterySoc { get; set; }

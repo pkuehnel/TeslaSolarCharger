@@ -38,6 +38,7 @@ public class JobManager
         var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
         var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
+        var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
 
         var chargingValueJobUpdateIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
@@ -65,6 +66,9 @@ public class JobManager
         var mqttReconnectionTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(54)).Build();
 
+        var newVersionCheckTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(47)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
@@ -74,6 +78,7 @@ public class JobManager
             {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
             {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
+            {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

@@ -15,7 +15,7 @@ public class HandledChargeFinalizingJob : IJob
     }
     public async Task Execute(IJobExecutionContext context)
     {
-        _logger.LogTrace("Executing Job to update ChargeTimes");
+        _logger.LogTrace("{method}({context})", nameof(Execute), context);
         await _service.FinalizeHandledCharges().ConfigureAwait(false);
     }
 }

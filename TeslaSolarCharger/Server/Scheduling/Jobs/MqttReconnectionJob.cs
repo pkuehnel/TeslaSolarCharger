@@ -16,7 +16,7 @@ public class MqttReconnectionJob : IJob
     }
     public async Task Execute(IJobExecutionContext context)
     {
-        _logger.LogTrace("Executing Job to reconnect MQTT Services");
+        _logger.LogTrace("{method}({context})", nameof(Execute), context);
         await _service.ReconnectMqttServices().ConfigureAwait(false);
     }
 }

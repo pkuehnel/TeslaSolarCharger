@@ -45,6 +45,7 @@ builder.Services
     .AddTransient<PowerDistributionAddJob>()
     .AddTransient<HandledChargeFinalizingJob>()
     .AddTransient<MqttReconnectionJob>()
+    .AddTransient<NewVersionCheckJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -87,6 +88,7 @@ builder.Services
     .AddTransient<IChargingCostService, ChargingCostService>()
     .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
     .AddTransient<ICoreService, CoreService>()
+    .AddTransient<INewVersionCheckService, NewVersionCheckService>()
     .AddSingleton<IssueKeys>()
     .AddSingleton<GlobalConstants>()
     ;
