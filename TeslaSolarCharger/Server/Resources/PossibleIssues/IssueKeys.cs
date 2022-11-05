@@ -17,4 +17,5 @@ public class IssueKeys
     public string DatabaseNotAvailable = "DatabaseNotAvailable";
     public string GeofenceNotAvailable = "GeofenceNotAvailable";
     public string CarIdNotAvailable = "CarIdNotAvailable";
+    public string VersionNotUpToDate = "VersionNotUpToDate";
 }

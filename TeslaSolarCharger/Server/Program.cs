@@ -16,6 +16,7 @@ using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -44,6 +45,7 @@ builder.Services
     .AddTransient<PowerDistributionAddJob>()
     .AddTransient<HandledChargeFinalizingJob>()
     .AddTransient<MqttReconnectionJob>()
+    .AddTransient<NewVersionCheckJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -86,6 +88,7 @@ builder.Services
     .AddTransient<IChargingCostService, ChargingCostService>()
     .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
     .AddTransient<ICoreService, CoreService>()
+    .AddTransient<INewVersionCheckService, NewVersionCheckService>()
     .AddSingleton<IssueKeys>()
     .AddSingleton<GlobalConstants>()
     ;
