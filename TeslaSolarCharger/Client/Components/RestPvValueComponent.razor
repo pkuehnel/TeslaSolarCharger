@@ -40,27 +40,28 @@ else
         </p>
     }
     <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="AddNewHeader">Add new header</button></p>
+    <div class="form-group">
+        <label for="JsonPattern">@(RestValue) Json Pattern</label>
+        <InputText id="JsonPattern" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label for="XmlPattern">@(RestValue) XML Pattern</label>
+        <InputText id="XmlPattern" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label for="XmlAttributeHeaderName">@(RestValue) XML Attribute Header Name</label>
+        <InputText id="XmlAttributeHeaderName" @bind-Value="XmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label for="XmlAttributeHeaderValue">@(RestValue) XML Attribute Header Value</label>
+        <InputText id="XmlAttributeHeaderValue" @bind-Value="XmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label for="XmlAttributeValueName">@(RestValue) XML Attribute Header Value</label>
+        <InputText id="XmlAttributeValueName" @bind-Value="XmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
+    </div>
 }
-<div class="form-group">
-    <label for="JsonPattern">@(RestValue) Json Pattern</label>
-    <InputText id="JsonPattern" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
-</div>
-<div class="form-group">
-    <label for="XmlPattern">@(RestValue) XML Pattern</label>
-    <InputText id="XmlPattern" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
-</div>
-<div class="form-group">
-    <label for="XmlAttributeHeaderName">@(RestValue) XML Attribute Header Name</label>
-    <InputText id="XmlAttributeHeaderName" @bind-Value="XmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
-</div>
-<div class="form-group">
-    <label for="XmlAttributeHeaderValue">@(RestValue) XML Attribute Header Value</label>
-    <InputText id="XmlAttributeHeaderValue" @bind-Value="XmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
-</div>
-<div class="form-group">
-    <label for="XmlAttributeValueName">@(RestValue) XML Attribute Header Value</label>
-    <InputText id="XmlAttributeValueName" @bind-Value="XmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
-</div>
+
 
 @code {
     [Parameter]
