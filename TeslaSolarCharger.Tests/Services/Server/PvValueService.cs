@@ -33,7 +33,7 @@ public class PvValueService : TestBase
     public void Can_Get_Integer_From_Plain_Result(string text)
     {
         var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
-        var intValue = pvValueService.GetValueFromResult("", text, NodePatternType.None, true);
+        var intValue = pvValueService.GetValueFromResult("", text, NodePatternType.Direct, true);
 
         Assert.Equal(384, intValue);
     }
@@ -127,7 +127,7 @@ public class PvValueService : TestBase
         var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
         var nodePatternType = pvValueService.DecideNodePatternType(jsonPattern, xmlPattern);
 
-        Assert.Equal(NodePatternType.None, nodePatternType);
+        Assert.Equal(NodePatternType.Direct, nodePatternType);
     }
 
     [Theory]

@@ -2,7 +2,7 @@
 
 public enum NodePatternType
 {
+    Direct,
     Json,
     Xml,
-    None,
 }

@@ -317,7 +317,7 @@ public class PvValueService : IPvValueService
         }
         else
         {
-            nodePatternType = NodePatternType.None;
+            nodePatternType = NodePatternType.Direct;
         }
         _logger.LogTrace("Node pattern type is {nodePatternType}", nodePatternType);
         return nodePatternType;

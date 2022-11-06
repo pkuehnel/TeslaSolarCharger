@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Enums;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Shared.Wrappers;
@@ -445,7 +446,95 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             throw new ArgumentException($"Could not deserialize {jsonFileContent} to {nameof(DtoBaseConfiguration)}");
         }
+
+        if (dtoBaseConfiguration.FrontendConfiguration == null)
+        {
+            CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+        }
+
+
         return dtoBaseConfiguration;
+    }
+
+    internal void CreateDefaultFrontendConfiguration(DtoBaseConfiguration dtoBaseConfiguration)
+    {
+        dtoBaseConfiguration.FrontendConfiguration = new FrontendConfiguration();
+
+        SetHomeBatteryDefaultConfiguration(dtoBaseConfiguration);
+
+        SetGridDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        SetInverterDefaultFrontendConfiguration(dtoBaseConfiguration);
+    }
+
+    private void SetInverterDefaultFrontendConfiguration(DtoBaseConfiguration dtoBaseConfiguration)
+    {
+        dtoBaseConfiguration.FrontendConfiguration ??= new FrontendConfiguration();
+
+        if (!string.IsNullOrEmpty(dtoBaseConfiguration.CurrentInverterPowerMqttTopic))
+        {
+            dtoBaseConfiguration.FrontendConfiguration.InverterValueSource = SolarValueSource.Mqtt;
+        }
+        else if (dtoBaseConfiguration.IsModbusCurrentInverterPowerUrl)
+        {
+            dtoBaseConfiguration.FrontendConfiguration.InverterValueSource = SolarValueSource.Modbus;
+        }
+        else if (!string.IsNullOrEmpty(dtoBaseConfiguration.CurrentInverterPowerUrl))
+        {
+            dtoBaseConfiguration.FrontendConfiguration.InverterValueSource = SolarValueSource.Rest;
+        }
+        else
+        {
+            dtoBaseConfiguration.FrontendConfiguration.InverterValueSource = SolarValueSource.None;
+        }
+    }
+
+    private void SetGridDefaultFrontendConfiguration(DtoBaseConfiguration dtoBaseConfiguration)
+    {
+        dtoBaseConfiguration.FrontendConfiguration ??= new FrontendConfiguration();
+        if (!string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridMqttTopic))
+        {
+            dtoBaseConfiguration.FrontendConfiguration.GridValueSource = SolarValueSource.Mqtt;
+        }
+        else if (dtoBaseConfiguration.IsModbusGridUrl)
+        {
+            dtoBaseConfiguration.FrontendConfiguration.GridValueSource = SolarValueSource.Modbus;
+        }
+        else if (!string.IsNullOrEmpty(dtoBaseConfiguration.CurrentPowerToGridUrl))
+        {
+            dtoBaseConfiguration.FrontendConfiguration.GridValueSource = SolarValueSource.Rest;
+        }
+        else
+        {
+            dtoBaseConfiguration.FrontendConfiguration.GridValueSource = SolarValueSource.None;
+        }
+    }
+
+    private void SetHomeBatteryDefaultConfiguration(DtoBaseConfiguration dtoBaseConfiguration)
+    {
+        dtoBaseConfiguration.FrontendConfiguration ??= new FrontendConfiguration();
+        if (string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatteryPowerMqttTopic)
+            && string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatteryPowerUrl)
+            && string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatterySocMqttTopic)
+            && string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatterySocUrl)
+           )
+        {
+            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.None;
+        }
+        else if (!string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatteryPowerMqttTopic)
+                 || !string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatterySocMqttTopic))
+        {
+            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.Mqtt;
+        }
+        else if (dtoBaseConfiguration.IsModbusHomeBatteryPowerUrl
+                 || dtoBaseConfiguration.IsModbusHomeBatterySocUrl)
+        {
+            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.Modbus;
+        }
+        else
+        {
+            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.Rest;
+        }
     }
 
     public async Task TryAutoFillUrls()
