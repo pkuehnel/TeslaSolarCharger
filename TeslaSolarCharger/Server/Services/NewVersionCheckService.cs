@@ -30,6 +30,11 @@ public class NewVersionCheckService : INewVersionCheckService
 
         try
         {
+            if (currentVersion.Contains("-"))
+            {
+                _settings.IsNewVersionAvailable = false;
+                return;
+            }
             var localVersion = Version.Parse(currentVersion);
             _logger.LogDebug("Local version is {localVersion}", localVersion);
             var finalUrl = await GetRedirectedUrlAsync("https://github.com/pkuehnel/TeslaSolarCharger/releases/latest").ConfigureAwait(false);

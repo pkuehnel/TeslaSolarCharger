@@ -24,17 +24,6 @@ else
         </div>
         <hr />
         <div class="form-group">
-            <label for="currentPowerToGridUrl">Grid Power Url</label>
-            <InputText id="currentPowerToGridUrl" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridUrl" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label for="currentPowerToGridCorrectionFactor">Correction Factor</label>
-            <InputText id="currentPowerToGridCorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactorString" class="form-control" />
-            <div>
-                <small id="currentPowerToGridCorrectionFactorHelp" class="form-text text-muted">Use this if consuming 1 W from the grid is not the value 1. E.g. if sending 1500 Watt to the grid is returned as 1.5 you have to enter -1000 here</small>
-            </div>
-        </div>
-        <div class="form-group">
             <label for="solarMqttServer">Solar Mqtt-Server</label>
             <InputText id="solarMqttServer" @bind-Value="_dtoBaseConfiguration.SolarMqttServer" class="form-control" />
             <div>
@@ -67,59 +56,27 @@ else
             <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
             <small id="powerBufferHelp" class="form-text text-muted">Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).</small>
         </div>
-        <div class="form-group">
-            <InputCheckbox id="IsModbusGridUrl" @bind-Value="_dtoBaseConfiguration.IsModbusGridUrl" class="form-check-input" />
-            <label for="IsModbusGridUrl">Use Modbus Url Creation Tool</label>
-            <div>
-                <small id="IsModbusGridUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
-            </div>
-        </div>
-        @if (_dtoBaseConfiguration.IsModbusGridUrl)
-        {
-            <ModbusUrlCreationComponent 
-                @bind-ModbusUrl="_dtoBaseConfiguration.CurrentPowerToGridUrl"
-                @bind-ModbusUrl:event="ModbusUrlChanged" />
-        }
-        else
-        {
-            if (_dtoBaseConfiguration.CurrentPowerToGridHeaders.Count > 0)
-            {
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
-                <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
-            }
-            for (var i = 0; i < _dtoBaseConfiguration.CurrentPowerToGridHeaders.Count; i++)
-            {
-                var header = _dtoBaseConfiguration.CurrentPowerToGridHeaders.ElementAt(i);
-                <p>
-                    <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
-               @onchange="@(e => UpdateGridHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
-               @onchange="@(e => _dtoBaseConfiguration.CurrentPowerToGridHeaders[header.Key] = e.Value?.ToString() ?? string.Empty)">
-                    <button type="button" class="btn btn-danger" @onclick="() => RemoveGridHeader(header.Key)">DEL</button>
-                </p>
-            }
-            <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => AddNewGridHeader()">Add new header</button></p>
-        }
-        <div class="form-group">
-            <label for="currentPowerToGridJsonPattern">Grid Power Json Pattern</label>
-            <InputText id="currentPowerToGridJsonPattern" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridJsonPattern" placeholder="$.data.overage" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label for="currentPowerToGridXmlPattern">Grid Power XML Pattern</label>
-            <InputText id="currentPowerToGridXmlPattern" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridXmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label for="currentPowerToGridXmlAttributeHeaderName">Grid Power XML Attribute Header Name</label>
-            <InputText id="currentPowerToGridXmlAttributeHeaderName" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label for="currentPowerToGridXmlAttributeHeaderValue">Grid Power XML Attribute Header Value</label>
-            <InputText id="currentPowerToGridXmlAttributeHeaderValue" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label for="currentPowerToGridXmlAttributeValueName">Grid Power XML Attribute Header Value</label>
-            <InputText id="currentPowerToGridXmlAttributeValueName" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
-        </div>
+        <RestPvValueComponent 
+            RestValue="Grid Power"
+            @bind-Url="_dtoBaseConfiguration.CurrentPowerToGridUrl"
+            @bind-Url:event="UrlChanged"
+            @bind-CorrectionFactor="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactorString"
+            @bind-CorrectionFactor:event="CorrectionFactorChanged"
+            @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusGridUrl"
+            @bind-IsModbusUrl:event="IsModbusUrlChanged"
+            @bind-Headers="_dtoBaseConfiguration.CurrentPowerToGridHeaders"
+            @bind-Headers:event="HeadersChanged"
+            @bind-JsonPattern="_dtoBaseConfiguration.CurrentPowerToGridJsonPattern"
+            @bind-JsonPattern:event="JsonPatternChanged"
+            @bind-XmlPattern="_dtoBaseConfiguration.CurrentPowerToGridXmlPattern"
+            @bind-XmlPattern:event="XmlPatternChanged"
+            @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderName"
+            @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
+            @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderValue"
+            @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
+            @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeValueName"
+            @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged"
+            />
         <hr />
         <div class="form-group">
             <label for="homeBatteryMinSoc">Home Battery Minimum Soc (%)</label>

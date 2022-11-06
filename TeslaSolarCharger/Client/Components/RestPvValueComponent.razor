@@ -1,0 +1,223 @@
+﻿<div class="form-group">
+    <label for="Url">@RestValue Url</label>
+    <InputText id="Url" @bind-Value="Url" class="form-control" />
+</div>
+<div class="form-group">
+    <label for="CorrectionFactor">Correction Factor</label>
+    <InputText id="CorrectionFactor" @bind-Value="CorrectionFactor" class="form-control" />
+    <div>
+        <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+    </div>
+</div>
+<div class="form-group">
+    <InputCheckbox id="IsModbusUrl" @bind-Value="IsModbusUrl" class="form-check-input" />
+    <label for="IsModbusUrl">Use Modbus Url Creation Tool</label>
+    <div>
+        <small id="IsModbusUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+    </div>
+</div>
+@if (IsModbusUrl)
+{
+    <ModbusUrlCreationComponent @bind-ModbusUrl="Url"
+                            @bind-ModbusUrl:event="ModbusUrlChanged" />
+}
+else
+{
+    if (Headers.Count > 0)
+    {
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
+        <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
+    }
+    for (var i = 0; i < Headers.Count; i++)
+    {
+        var header = Headers.ElementAt(i);
+        <p>
+            <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
+           @onchange="@(e => UpdateHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
+            <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
+           @onchange="@(e => Headers[header.Key] = e.Value?.ToString() ?? string.Empty)">
+            <button type="button" class="btn btn-danger" @onclick="() => RemoveHeader(header.Key)">DEL</button>
+        </p>
+    }
+    <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="AddNewHeader">Add new header</button></p>
+}
+<div class="form-group">
+    <label for="JsonPattern">@(RestValue) Json Pattern</label>
+    <InputText id="JsonPattern" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
+</div>
+<div class="form-group">
+    <label for="XmlPattern">@(RestValue) XML Pattern</label>
+    <InputText id="XmlPattern" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
+</div>
+<div class="form-group">
+    <label for="XmlAttributeHeaderName">@(RestValue) XML Attribute Header Name</label>
+    <InputText id="XmlAttributeHeaderName" @bind-Value="XmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
+</div>
+<div class="form-group">
+    <label for="XmlAttributeHeaderValue">@(RestValue) XML Attribute Header Value</label>
+    <InputText id="XmlAttributeHeaderValue" @bind-Value="XmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
+</div>
+<div class="form-group">
+    <label for="XmlAttributeValueName">@(RestValue) XML Attribute Header Value</label>
+    <InputText id="XmlAttributeValueName" @bind-Value="XmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
+</div>
+
+@code {
+    [Parameter]
+    public string RestValue { get; set; }
+
+    [Parameter]
+    public string? Url
+    {
+        get => _url;
+        set
+        {
+            if (_url == value) return;
+            _url = value;
+            UrlChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> UrlChanged { get; set; }
+
+    [Parameter]
+    public string CorrectionFactor
+    {
+        get => _correctionFactor;
+        set
+        {
+            if (_correctionFactor == value) return;
+            _correctionFactor = value;
+            CorrectionFactorChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> CorrectionFactorChanged { get; set; }
+
+    [Parameter]
+    public bool IsModbusUrl
+    {
+        get => _isModbusUrl;
+        set
+        {
+            if (_isModbusUrl == value) return;
+            _isModbusUrl = value;
+            IsModbusUrlChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<bool> IsModbusUrlChanged { get; set; }
+
+    [Parameter]
+    public Dictionary<string, string> Headers { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> HeadersChanged { get; set; }
+
+    [Parameter]
+    public string? JsonPattern
+    {
+        get => _jsonPattern;
+        set
+        {
+            if (_jsonPattern == value) return;
+            _jsonPattern = value;
+            JsonPatternChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> JsonPatternChanged { get; set; }
+
+    [Parameter]
+    public string? XmlPattern
+    {
+        get => _xmlPattern;
+        set
+        {
+            if (_xmlPattern == value) return;
+            _xmlPattern = value;
+            XmlPatternChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> XmlPatternChanged { get; set; }
+
+    [Parameter]
+    public string? XmlAttributeHeaderName
+    {
+        get => _xmlAttributeHeaderName;
+        set
+        {
+            if (_xmlAttributeHeaderName == value) return;
+            _xmlAttributeHeaderName = value;
+            XmlAttributeHeaderNameChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> XmlAttributeHeaderNameChanged { get; set; }
+
+    [Parameter]
+    public string? XmlAttributeHeaderValue
+    {
+        get => _xmlAttributeHeaderValue;
+        set
+        {
+            if (_xmlAttributeHeaderValue == value) return;
+            _xmlAttributeHeaderValue = value;
+            XmlAttributeHeaderValueChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> XmlAttributeHeaderValueChanged { get; set; }
+
+    [Parameter]
+    public string? XmlAttributeValueName
+    {
+        get => _xmlAttributeValueName;
+        set
+        {
+            if (_xmlAttributeValueName == value) return;
+            _xmlAttributeValueName = value;
+            XmlAttributeValueNameChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> XmlAttributeValueNameChanged { get; set; }
+
+    private void UpdateHeaderKey(string oldKey, string newKey)
+    {
+        var value = Headers[oldKey];
+        Headers.Remove(oldKey);
+        Headers.Add(newKey, value ?? string.Empty);
+        HeadersChanged.InvokeAsync(Headers);
+    }
+
+    private void AddNewHeader()
+    {
+        Headers.Add($"{Headers.Count + 1}", "");
+        HeadersChanged.InvokeAsync(Headers);
+    }
+
+    private void RemoveHeader(string key)
+    {
+        Headers.Remove(key);
+        HeadersChanged.InvokeAsync(Headers);
+    }
+
+    private string? _url;
+    private string _correctionFactor;
+    private bool _isModbusUrl;
+    private string? _jsonPattern;
+    private string? _xmlPattern;
+    private string? _xmlAttributeHeaderName;
+    private string? _xmlAttributeHeaderValue;
+    private string? _xmlAttributeValueName;
+}
