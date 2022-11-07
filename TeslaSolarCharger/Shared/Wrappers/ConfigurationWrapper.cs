@@ -529,21 +529,21 @@ public class ConfigurationWrapper : IConfigurationWrapper
             && string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatterySocUrl)
            )
         {
-            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.None;
+            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource = SolarValueSource.None;
         }
         else if (!string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatteryPowerMqttTopic)
                  || !string.IsNullOrEmpty(dtoBaseConfiguration.HomeBatterySocMqttTopic))
         {
-            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.Mqtt;
+            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource = SolarValueSource.Mqtt;
         }
         else if (dtoBaseConfiguration.IsModbusHomeBatteryPowerUrl
                  || dtoBaseConfiguration.IsModbusHomeBatterySocUrl)
         {
-            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.Modbus;
+            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource = SolarValueSource.Modbus;
         }
         else
         {
-            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.Rest;
+            dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource = SolarValueSource.Rest;
         }
 
         dtoBaseConfiguration.FrontendConfiguration.HomeBatteryPowerNodePatternType =

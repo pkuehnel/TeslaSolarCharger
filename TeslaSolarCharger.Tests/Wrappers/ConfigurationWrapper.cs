@@ -137,7 +137,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.Rest, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.Rest, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.Rest, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.Rest, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.Modbus, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.Modbus, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.Modbus, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -230,7 +230,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.Modbus, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.Mqtt, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -260,7 +260,7 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.Mqtt, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.Mqtt, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 
     [Fact]
@@ -275,6 +275,6 @@ public class ConfigurationWrapper : TestBase
         Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
         Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
         Assert.Equal(SolarValueSource.Mqtt, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
-        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 }
