@@ -1,0 +1,118 @@
+﻿@using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared
+@inject INodePatternTypeHelper NodePatternTypeHelper
+
+
+<div class="form-group">
+    <label for="Url">@RestValue Url</label>
+    <InputText id="Url" @bind-Value="Url" class="form-control" />
+</div>
+@if (SolarValueSource == SolarValueSource.Modbus)
+{
+    <div class="form-group">
+        <InputCheckbox id="IsModbusUrl" @bind-Value="IsModbusUrl" class="form-check-input" />
+        <label for="IsModbusUrl">Use Modbus Url Creation Tool</label>
+        <div>
+            <small id="IsModbusUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+        </div>
+    </div>
+    @if (IsModbusUrl)
+    {
+        <ModbusUrlCreationComponent @bind-ModbusUrl="Url"
+                                    @bind-ModbusUrl:event="ModbusUrlChanged" />
+    }
+}
+else
+{
+    if (Headers.Count > 0)
+    {
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
+        <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
+    }
+    for (var i = 0; i < Headers.Count; i++)
+    {
+        var header = Headers.ElementAt(i);
+        <p>
+            <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
+           @onchange="@(e => UpdateHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
+            <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
+           @onchange="@(e => Headers[header.Key] = e.Value?.ToString() ?? string.Empty)">
+            <button type="button" class="btn btn-danger" @onclick="() => RemoveHeader(header.Key)">DEL</button>
+        </p>
+    }
+    <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="AddNewHeader">Add new header</button></p>
+    
+}
+
+
+@code {
+    [Parameter]
+    public string RestValue { get; set; }
+
+    [Parameter]
+    public SolarValueSource SolarValueSource { get; set; }
+
+    [Parameter]
+    public string? Url
+    {
+        get => _url;
+        set
+        {
+            if (_url == value) return;
+            _url = value;
+            UrlChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string> UrlChanged { get; set; }
+
+
+    [Parameter]
+    public bool IsModbusUrl
+    {
+        get => _isModbusUrl;
+        set
+        {
+            if (_isModbusUrl == value) return;
+            _isModbusUrl = value;
+            IsModbusUrlChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<bool> IsModbusUrlChanged { get; set; }
+
+    [Parameter]
+    public Dictionary<string, string> Headers { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> HeadersChanged { get; set; }
+
+
+    private void UpdateHeaderKey(string oldKey, string newKey)
+    {
+        var value = Headers[oldKey];
+        Headers.Remove(oldKey);
+        Headers.Add(newKey, value ?? string.Empty);
+        HeadersChanged.InvokeAsync(Headers);
+    }
+
+    private void AddNewHeader()
+    {
+        Headers.Add($"{Headers.Count + 1}", "");
+        HeadersChanged.InvokeAsync(Headers);
+    }
+
+    private void RemoveHeader(string key)
+    {
+        Headers.Remove(key);
+        HeadersChanged.InvokeAsync(Headers);
+    }
+
+    private string? _url;
+    private bool _isModbusUrl;
+
+
+}

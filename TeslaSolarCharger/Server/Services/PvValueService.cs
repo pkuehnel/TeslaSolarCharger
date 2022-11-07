@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -16,15 +17,18 @@ public class PvValueService : IPvValueService
     private readonly IInMemoryValues _inMemoryValues;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITelegramService _telegramService;
+    private readonly INodePatternTypeHelper _nodePatternTypeHelper;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
-        IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper, ITelegramService telegramService)
+        IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper, ITelegramService telegramService,
+        INodePatternTypeHelper nodePatternTypeHelper)
     {
         _logger = logger;
         _settings = settings;
         _inMemoryValues = inMemoryValues;
         _configurationWrapper = configurationWrapper;
         _telegramService = telegramService;
+        _nodePatternTypeHelper = nodePatternTypeHelper;
     }
 
     public async Task UpdatePvValues()
@@ -287,7 +291,7 @@ public class PvValueService : IPvValueService
         _logger.LogTrace("{method}({valueString}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
             nameof(GetIntegerValueByString), valueString, jsonPattern, xmlPattern, correctionFactor);
         var pattern = "";
-        var nodePatternType = DecideNodePatternType(jsonPattern, xmlPattern);
+        var nodePatternType = _nodePatternTypeHelper.DecideNodePatternType(jsonPattern, xmlPattern);
 
         if (nodePatternType == NodePatternType.Json)
         {
@@ -303,25 +307,7 @@ public class PvValueService : IPvValueService
         return (int?)(doubleValue * correctionFactor);
     }
 
-    internal NodePatternType DecideNodePatternType(string? jsonPattern, string? xmlPattern)
-    {
-        _logger.LogTrace("{method}({param1}, {param2})", nameof(DecideNodePatternType), jsonPattern, xmlPattern);
-        NodePatternType nodePatternType;
-        if (!jsonPattern.IsNullOrWhiteSpace())
-        {
-            nodePatternType = NodePatternType.Json;
-        }
-        else if (!xmlPattern.IsNullOrWhiteSpace())
-        {
-            nodePatternType = NodePatternType.Xml;
-        }
-        else
-        {
-            nodePatternType = NodePatternType.None;
-        }
-        _logger.LogTrace("Node pattern type is {nodePatternType}", nodePatternType);
-        return nodePatternType;
-    }
+    
     
     /// <summary>
     /// 

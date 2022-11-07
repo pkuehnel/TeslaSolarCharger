@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Enums;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -122,5 +125,156 @@ public class ConfigurationWrapper : TestBase
         var value = configurationWrapper.CarConfigFileFullName();
         var fileInfo = new FileInfo(value);
         Assert.Equal("carConfig.json", fileInfo.Name);
+    }
+
+    [Fact]
+    public void SetsCorrectNoValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectGridOnlyRestValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.CurrentPowerToGridUrl = "http://192.168.1.50:5007/api/ChargingLog/GetCurrentGridPower";
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.Rest, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectHomeBatteryOnlyRestValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.HomeBatteryPowerUrl = "http://192.168.1.50:5007/api/ChargingLog/GetCurrentGridPower";
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.Rest, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectInverterOnlyRestValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.CurrentInverterPowerUrl = "http://192.168.1.50:5007/api/ChargingLog/GetCurrentGridPower";
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.Rest, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectGridOnlyModbusValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.CurrentPowerToGridUrl = "http://192.168.1.50:5007/api/ChargingLog/GetCurrentGridPower";
+        dtoBaseConfiguration.IsModbusGridUrl = true;
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.Modbus, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectHomeBatteryOnlyModbusValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.HomeBatteryPowerUrl = "http://192.168.1.50:5007/api/ChargingLog/GetCurrentGridPower";
+        dtoBaseConfiguration.IsModbusHomeBatteryPowerUrl = true;
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.Modbus, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectInverterOnlyModbusValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.CurrentInverterPowerUrl = "http://192.168.1.50:5007/api/ChargingLog/GetCurrentGridPower";
+        dtoBaseConfiguration.IsModbusCurrentInverterPowerUrl = true;
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.Modbus, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectGridOnlyMqttValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.CurrentPowerToGridMqttTopic = "power";
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.Mqtt, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectHomeBatteryOnlyMqttValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.HomeBatterySocMqttTopic = "power";
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.Mqtt, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
+    }
+
+    [Fact]
+    public void SetsCorrectInverterOnlyMqttValueSources()
+    {
+        var configurationWrapper = Mock.Create<Shared.Wrappers.ConfigurationWrapper>();
+        var dtoBaseConfiguration = new DtoBaseConfiguration();
+        dtoBaseConfiguration.CurrentInverterPowerMqttTopic = "power";
+
+        configurationWrapper.CreateDefaultFrontendConfiguration(dtoBaseConfiguration);
+
+        Assert.NotNull(dtoBaseConfiguration.FrontendConfiguration);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.GridValueSource);
+        Assert.Equal(SolarValueSource.Mqtt, dtoBaseConfiguration.FrontendConfiguration.InverterValueSource);
+        Assert.Equal(SolarValueSource.None, dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource);
     }
 }

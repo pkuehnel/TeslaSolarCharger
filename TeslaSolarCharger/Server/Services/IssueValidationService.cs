@@ -48,6 +48,7 @@ public class IssueValidationService : IIssueValidationService
         issueList.AddRange(PvValueIssues());
         issueList.AddRange(await GetTeslaMateApiIssues().ConfigureAwait(false));
         issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
+        issueList.AddRange(SofwareIssues());
         return issueList;
     }
 
@@ -178,6 +179,17 @@ public class IssueValidationService : IIssueValidationService
             (_configurationWrapper.HomeBatteryChargingPower() == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryChargingPowerNotConfigured));
+        }
+
+        return issues;
+    }
+
+    private List<Issue> SofwareIssues()
+    {
+        var issues = new List<Issue>();
+        if (_settings.IsNewVersionAvailable)
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.VersionNotUpToDate));
         }
 
         return issues;

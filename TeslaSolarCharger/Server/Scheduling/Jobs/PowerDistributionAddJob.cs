@@ -1,7 +1,7 @@
 ﻿using Quartz;
 using TeslaSolarCharger.Server.Contracts;
 
-namespace TeslaSolarCharger.Server.Scheduling;
+namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
 [DisallowConcurrentExecution]
 public class PowerDistributionAddJob : IJob
@@ -16,7 +16,7 @@ public class PowerDistributionAddJob : IJob
     }
     public async Task Execute(IJobExecutionContext context)
     {
-        _logger.LogTrace("Executing Job to update ChargeTimes");
+        _logger.LogTrace("{method}({context})", nameof(Execute), context);
         await _service.AddPowerDistributionForAllChargingCars().ConfigureAwait(false);
     }
 }

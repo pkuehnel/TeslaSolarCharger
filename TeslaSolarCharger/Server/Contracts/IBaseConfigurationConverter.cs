@@ -3,5 +3,5 @@
 public interface IBaseConfigurationConverter
 {
     Task ConvertAllEnvironmentVariables();
-    Task ConvertBaseConfigToCurrentVersion();
+    Task ConvertBaseConfigToV1_0();
 }
