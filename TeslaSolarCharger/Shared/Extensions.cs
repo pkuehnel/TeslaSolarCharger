@@ -60,7 +60,7 @@ public static class Extensions
         switch (nodePatternType)
         {
             case NodePatternType.Json:
-                return "JOSN";
+                return "JSON";
             case NodePatternType.Xml:
                 return "XML";
             default:
