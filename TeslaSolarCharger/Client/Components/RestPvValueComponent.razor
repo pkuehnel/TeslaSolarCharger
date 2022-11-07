@@ -9,13 +9,6 @@
     <InputText id="Url" @bind-Value="Url" class="form-control" />
 </div>
 <div class="form-group">
-    <label for="CorrectionFactor">Correction Factor</label>
-    <InputText id="CorrectionFactor" @bind-Value="CorrectionFactor" class="form-control" />
-    <div>
-        <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
-    </div>
-</div>
-<div class="form-group">
     <InputCheckbox id="IsModbusUrl" @bind-Value="IsModbusUrl" class="form-check-input" />
     <label for="IsModbusUrl">Use Modbus Url Creation Tool</label>
     <div>
@@ -101,21 +94,7 @@ else
 
     [Parameter]
     public EventCallback<string> UrlChanged { get; set; }
-
-    [Parameter]
-    public string CorrectionFactor
-    {
-        get => _correctionFactor;
-        set
-        {
-            if (_correctionFactor == value) return;
-            _correctionFactor = value;
-            CorrectionFactorChanged.InvokeAsync(value);
-        }
-    }
-
-    [Parameter]
-    public EventCallback<string> CorrectionFactorChanged { get; set; }
+    
 
     [Parameter]
     public bool IsModbusUrl
@@ -249,7 +228,6 @@ else
     }
 
     private string? _url;
-    private string _correctionFactor;
     private bool _isModbusUrl;
     private NodePatternType? _nodePatternType;
     private string? _jsonPattern;
