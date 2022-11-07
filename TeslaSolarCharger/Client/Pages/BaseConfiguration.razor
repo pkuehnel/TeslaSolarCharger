@@ -28,9 +28,9 @@ else
         </div>
         <hr />
         @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource == SolarValueSource.Mqtt
-            || _dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource == SolarValueSource.Mqtt
-            || _dtoBaseConfiguration.FrontendConfiguration!.InverterValueSource == SolarValueSource.Mqtt
-            )
+       || _dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource == SolarValueSource.Mqtt
+       || _dtoBaseConfiguration.FrontendConfiguration!.InverterValueSource == SolarValueSource.Mqtt
+       )
         {
             <div class="form-group">
                 <label for="solarMqttServer">Solar Mqtt-Server</label>
@@ -54,10 +54,10 @@ else
                 </div>
             </div>
         }
-        
+
         <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridValueSource">Grid Value Source:</label>
         <InputSelect @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource" id="gridValueSource" name="gridValueSource">
-          
+
             @foreach (var value in Enum.GetValues<SolarValueSource>())
             {
                 <option value="@value">@value.ToFriendlyString()</option>
@@ -75,7 +75,7 @@ else
             <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
             <small id="powerBufferHelp" class="form-text text-muted">Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).</small>
         </div>
-        
+
         <div class="form-group">
             <label for="CorrectionFactor">Correction Factor</label>
             <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactorString" class="form-control" />
@@ -86,35 +86,31 @@ else
 
         @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
         {
-            <RestPvValueComponent 
-                RestValue="Grid Power"
-                SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource"
-                @bind-Url="_dtoBaseConfiguration.CurrentPowerToGridUrl"
-                @bind-Url:event="UrlChanged"
-                @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusGridUrl"
-                @bind-IsModbusUrl:event="IsModbusUrlChanged"
-                @bind-Headers="_dtoBaseConfiguration.CurrentPowerToGridHeaders"
-                @bind-Headers:event="HeadersChanged"
-            />
+            <RestPvValueComponent RestValue="Grid Power"
+                          SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource"
+                          @bind-Url="_dtoBaseConfiguration.CurrentPowerToGridUrl"
+                          @bind-Url:event="UrlChanged"
+                          @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusGridUrl"
+                          @bind-IsModbusUrl:event="IsModbusUrlChanged"
+                          @bind-Headers="_dtoBaseConfiguration.CurrentPowerToGridHeaders"
+                          @bind-Headers:event="HeadersChanged" />
         }
-        
+
         @if (_dtoBaseConfiguration.FrontendConfiguration.GridValueSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
         {
-            <NodePatternTypeComponent
-                RestValue="Grid Power"
-                @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.GridPowerNodePatternType"
-                @bind-NodePatternType:event="NodePatternTypeChanged"
-                @bind-JsonPattern="_dtoBaseConfiguration.CurrentPowerToGridJsonPattern"
-                @bind-JsonPattern:event="JsonPatternChanged"
-                @bind-XmlPattern="_dtoBaseConfiguration.CurrentPowerToGridXmlPattern"
-                @bind-XmlPattern:event="XmlPatternChanged"
-                @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderName"
-                @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
-                @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderValue"
-                @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
-                @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeValueName"
-                @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged"
-            />
+            <NodePatternTypeComponent RestValue="Grid Power"
+                              @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.GridPowerNodePatternType"
+                              @bind-NodePatternType:event="NodePatternTypeChanged"
+                              @bind-JsonPattern="_dtoBaseConfiguration.CurrentPowerToGridJsonPattern"
+                              @bind-JsonPattern:event="JsonPatternChanged"
+                              @bind-XmlPattern="_dtoBaseConfiguration.CurrentPowerToGridXmlPattern"
+                              @bind-XmlPattern:event="XmlPatternChanged"
+                              @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderName"
+                              @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
+                              @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderValue"
+                              @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
+                              @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeValueName"
+                              @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
         }
         <hr />
 
@@ -150,7 +146,7 @@ else
                 </div>
             </div>
         }
-        
+
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
         {
             <div class="form-group">
@@ -161,40 +157,35 @@ else
                 </div>
             </div>
         }
-        
+
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Rest or SolarValueSource.Modbus)
         {
-            <RestPvValueComponent 
-                RestValue="Home Battery SoC"
-                SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource"
-                @bind-Url="_dtoBaseConfiguration.HomeBatterySocUrl"
-                @bind-Url:event="UrlChanged"
-                @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusHomeBatterySocUrl"
-                @bind-IsModbusUrl:event="IsModbusUrlChanged"
-                @bind-Headers="_dtoBaseConfiguration.HomeBatterySocHeaders"
-                @bind-Headers:event="HeadersChanged"
-                
-            />
+            <RestPvValueComponent RestValue="Home Battery SoC"
+                          SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource"
+                          @bind-Url="_dtoBaseConfiguration.HomeBatterySocUrl"
+                          @bind-Url:event="UrlChanged"
+                          @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusHomeBatterySocUrl"
+                          @bind-IsModbusUrl:event="IsModbusUrlChanged"
+                          @bind-Headers="_dtoBaseConfiguration.HomeBatterySocHeaders"
+                          @bind-Headers:event="HeadersChanged" />
         }
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
         {
-            <NodePatternTypeComponent 
-                RestValue="Home Battery SoC"
-                @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatterySocNodePatternType"
-                @bind-NodePatternType:event="NodePatternTypeChanged"
-                @bind-JsonPattern="_dtoBaseConfiguration.HomeBatterySocJsonPattern"
-                @bind-JsonPattern:event="JsonPatternChanged"
-                @bind-XmlPattern="_dtoBaseConfiguration.HomeBatterySocXmlPattern"
-                @bind-XmlPattern:event="XmlPatternChanged"
-                @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.HomeBatterySocXmlAttributeHeaderName"
-                @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
-                @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.HomeBatterySocXmlAttributeHeaderValue"
-                @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
-                @bind-XmlAttributeValueName="_dtoBaseConfiguration.HomeBatterySocXmlAttributeValueName"
-                @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged"
-                />
+            <NodePatternTypeComponent RestValue="Home Battery SoC"
+                              @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatterySocNodePatternType"
+                              @bind-NodePatternType:event="NodePatternTypeChanged"
+                              @bind-JsonPattern="_dtoBaseConfiguration.HomeBatterySocJsonPattern"
+                              @bind-JsonPattern:event="JsonPatternChanged"
+                              @bind-XmlPattern="_dtoBaseConfiguration.HomeBatterySocXmlPattern"
+                              @bind-XmlPattern:event="XmlPatternChanged"
+                              @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.HomeBatterySocXmlAttributeHeaderName"
+                              @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
+                              @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.HomeBatterySocXmlAttributeHeaderValue"
+                              @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
+                              @bind-XmlAttributeValueName="_dtoBaseConfiguration.HomeBatterySocXmlAttributeValueName"
+                              @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
         }
-        
+
 
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
         {
@@ -220,19 +211,17 @@ else
                 </div>
             </div>
         }
-        
+
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Rest or SolarValueSource.Modbus)
         {
-            <RestPvValueComponent 
-                RestValue="Home Battery Power"
+            <RestPvValueComponent RestValue="Home Battery Power"
                           SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource"
-                @bind-Url="_dtoBaseConfiguration.HomeBatteryPowerUrl"
-                @bind-Url:event="UrlChanged"
-                @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusHomeBatteryPowerUrl"
-                @bind-IsModbusUrl:event="IsModbusUrlChanged"
-                @bind-Headers="_dtoBaseConfiguration.HomeBatteryPowerHeaders"
-                @bind-Headers:event="HeadersChanged"
-            />
+                          @bind-Url="_dtoBaseConfiguration.HomeBatteryPowerUrl"
+                          @bind-Url:event="UrlChanged"
+                          @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusHomeBatteryPowerUrl"
+                          @bind-IsModbusUrl:event="IsModbusUrlChanged"
+                          @bind-Headers="_dtoBaseConfiguration.HomeBatteryPowerHeaders"
+                          @bind-Headers:event="HeadersChanged" />
 
             <div class="form-group">
                 <label for="homeBatteryPowerInversionUrl">HomeBatteryPowerInversion Url</label>
@@ -242,24 +231,22 @@ else
                 </div>
             </div>
         }
-        
+
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
         {
-            <NodePatternTypeComponent
-                RestValue="Home Battery Power"
-                @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryPowerNodePatternType"
-                @bind-NodePatternType:event="NodePatternTypeChanged"
-                @bind-JsonPattern="_dtoBaseConfiguration.HomeBatteryPowerJsonPattern"
-                @bind-JsonPattern:event="JsonPatternChanged"
-                @bind-XmlPattern="_dtoBaseConfiguration.HomeBatteryPowerXmlPattern"
-                @bind-XmlPattern:event="XmlPatternChanged"
-                @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeHeaderName"
-                @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
-                @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeHeaderValue"
-                @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
-                @bind-XmlAttributeValueName="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeValueName"
-                @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged"
-                />
+            <NodePatternTypeComponent RestValue="Home Battery Power"
+                              @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryPowerNodePatternType"
+                              @bind-NodePatternType:event="NodePatternTypeChanged"
+                              @bind-JsonPattern="_dtoBaseConfiguration.HomeBatteryPowerJsonPattern"
+                              @bind-JsonPattern:event="JsonPatternChanged"
+                              @bind-XmlPattern="_dtoBaseConfiguration.HomeBatteryPowerXmlPattern"
+                              @bind-XmlPattern:event="XmlPatternChanged"
+                              @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeHeaderName"
+                              @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
+                              @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeHeaderValue"
+                              @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
+                              @bind-XmlAttributeValueName="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeValueName"
+                              @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
         }
 
         <hr />
@@ -291,38 +278,33 @@ else
                 </div>
             </div>
         }
-        
+
         @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
         {
-            <RestPvValueComponent 
-                RestValue="Inverter Power"
-                SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource"
-                @bind-Url="_dtoBaseConfiguration.CurrentInverterPowerUrl"
-                @bind-Url:event="UrlChanged"
-                @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusCurrentInverterPowerUrl"
-                @bind-IsModbusUrl:event="IsModbusUrlChanged"
-                @bind-Headers="_dtoBaseConfiguration.CurrentInverterPowerHeaders"
-                @bind-Headers:event="HeadersChanged"
-                
-            />
+            <RestPvValueComponent RestValue="Inverter Power"
+                          SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource"
+                          @bind-Url="_dtoBaseConfiguration.CurrentInverterPowerUrl"
+                          @bind-Url:event="UrlChanged"
+                          @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusCurrentInverterPowerUrl"
+                          @bind-IsModbusUrl:event="IsModbusUrlChanged"
+                          @bind-Headers="_dtoBaseConfiguration.CurrentInverterPowerHeaders"
+                          @bind-Headers:event="HeadersChanged" />
         }
         @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
         {
-            <NodePatternTypeComponent
-                RestValue="Inverter Power"
-                @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.InverterPowerNodePatternType"
-                @bind-NodePatternType:event="NodePatternTypeChanged"
-                @bind-JsonPattern="_dtoBaseConfiguration.CurrentInverterPowerJsonPattern"
-                @bind-JsonPattern:event="JsonPatternChanged"
-                @bind-XmlPattern="_dtoBaseConfiguration.CurrentInverterPowerXmlPattern"
-                @bind-XmlPattern:event="XmlPatternChanged"
-                @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeHeaderName"
-                @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
-                @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeHeaderValue"
-                @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
-                @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeValueName"
-                @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged"
-                />
+            <NodePatternTypeComponent RestValue="Inverter Power"
+                              @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.InverterPowerNodePatternType"
+                              @bind-NodePatternType:event="NodePatternTypeChanged"
+                              @bind-JsonPattern="_dtoBaseConfiguration.CurrentInverterPowerJsonPattern"
+                              @bind-JsonPattern:event="JsonPatternChanged"
+                              @bind-XmlPattern="_dtoBaseConfiguration.CurrentInverterPowerXmlPattern"
+                              @bind-XmlPattern:event="XmlPatternChanged"
+                              @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeHeaderName"
+                              @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
+                              @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeHeaderValue"
+                              @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
+                              @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeValueName"
+                              @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
         }
         <hr />
         <div class="form-group">
@@ -345,14 +327,14 @@ else
         <hr />
         <div>The following values need no change. Please only change values here if you know what you are doing.</div>
         <CollapsePanel CollapsedColor="@_collapsedColor"
-                       ExpandedColor="@_expandedColor"
-                       HoverColor="@_hoverColor"
-                       Disabled="@_isCollapseDisabled"
-                       Collapsed="@_isCollapsed"
-                       ContentHeight="@_height"
-                       Animate="@_isAnimated"
-                       ShowContentOverflow="@_showOverflow"
-                       OnCollapseChanged="OnCollapsed">
+                   ExpandedColor="@_expandedColor"
+                   HoverColor="@_hoverColor"
+                   Disabled="@_isCollapseDisabled"
+                   Collapsed="@_isCollapsed"
+                   ContentHeight="@_height"
+                   Animate="@_isAnimated"
+                   ShowContentOverflow="@_showOverflow"
+                   OnCollapseChanged="OnCollapsed">
             <CollapsedHeaderContent>
                 <div class="w-100">
                     <b>Expand</b>
