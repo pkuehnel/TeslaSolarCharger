@@ -143,13 +143,17 @@ else
             </div>
         }
         
-        <div class="form-group">
-            <label for="CorrectionFactor">Correction Factor</label>
-            <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatterySocCorrectionFactorString" class="form-control" />
-            <div>
-                <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+        @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource != SolarValueSource.None)
+        {
+            <div class="form-group">
+                <label for="CorrectionFactor">Correction Factor</label>
+                <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatterySocCorrectionFactorString" class="form-control" />
+                <div>
+                    <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+                </div>
             </div>
-        </div>
+        }
+        
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
         {
             <RestPvValueComponent 
@@ -174,8 +178,10 @@ else
                 @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged"
             />
         }
-        
-        <hr />
+        @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource != SolarValueSource.None)
+        {
+            <hr />
+        }
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource == SolarValueSource.Mqtt)
         {
             <div class="form-group">
@@ -186,13 +192,17 @@ else
                 </div>
             </div>
         }
-        <div class="form-group">
-            <label for="CorrectionFactor">Correction Factor</label>
-            <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerCorrectionFactorString" class="form-control" />
-            <div>
-                <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+        @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource != SolarValueSource.None)
+        {
+            <div class="form-group">
+                <label for="CorrectionFactor">Correction Factor</label>
+                <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerCorrectionFactorString" class="form-control" />
+                <div>
+                    <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+                </div>
             </div>
-        </div>
+        }
+        
         @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
         {
             <RestPvValueComponent 
@@ -235,13 +245,18 @@ else
                 </div>
             </div>
         }
-        <div class="form-group">
-            <label for="CorrectionFactor">Correction Factor</label>
-            <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentInverterPowerCorrectionFactorString" class="form-control" />
-            <div>
-                <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+
+        @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource != SolarValueSource.None)
+        {
+            <div class="form-group">
+                <label for="CorrectionFactor">Correction Factor</label>
+                <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentInverterPowerCorrectionFactorString" class="form-control" />
+                <div>
+                    <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+                </div>
             </div>
-        </div>
+        }
+        
         @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
         {
             <RestPvValueComponent 
