@@ -8,15 +8,16 @@
     <label for="Url">@RestValue Url</label>
     <InputText id="Url" @bind-Value="Url" class="form-control" />
 </div>
-<div class="form-group">
-    <InputCheckbox id="IsModbusUrl" @bind-Value="IsModbusUrl" class="form-check-input" />
-    <label for="IsModbusUrl">Use Modbus Url Creation Tool</label>
-    <div>
-        <small id="IsModbusUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
-    </div>
-</div>
 @if (IsModbusUrl)
 {
+    <div class="form-group">
+        <InputCheckbox id="IsModbusUrl" @bind-Value="IsModbusUrl" class="form-check-input" />
+        <label for="IsModbusUrl">Use Modbus Url Creation Tool</label>
+        <div>
+            <small id="IsModbusUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+        </div>
+    </div>
+
     <ModbusUrlCreationComponent @bind-ModbusUrl="Url"
                             @bind-ModbusUrl:event="ModbusUrlChanged" />
 }
@@ -41,7 +42,7 @@ else
     <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="AddNewHeader">Add new header</button></p>
     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="nodePatternType">Result Type:</label>
     <InputSelect @bind-Value="@NodePatternType" id="nodePatternType" name="nodePatternType">
-          
+
         @foreach (var value in Enum.GetValues<NodePatternType>())
         {
             <option value="@value">@value.ToFriendlyString()</option>
@@ -94,7 +95,7 @@ else
 
     [Parameter]
     public EventCallback<string> UrlChanged { get; set; }
-    
+
 
     [Parameter]
     public bool IsModbusUrl
