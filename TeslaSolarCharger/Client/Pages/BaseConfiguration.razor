@@ -226,6 +226,14 @@ else
                 @bind-XmlAttributeValueName="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeValueName"
                 @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged"
             />
+
+            <div class="form-group">
+                <label for="homeBatteryPowerInversionUrl">HomeBatteryPowerInversion Url</label>
+                <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" />
+                <div>
+                    <small id="homeBatteryPowerInversionUrlHelp" class="form-text text-muted">Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response.</small>
+                </div>
+            </div>
         }
         <hr />
         <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterValueSource">Inverter Value Source:</label>
