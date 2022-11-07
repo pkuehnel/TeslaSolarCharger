@@ -89,11 +89,6 @@ else
                     <InputText id="currentPowerToGridMqttTopic" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridMqttTopic" class="form-control" />
                 </div>
             }
-            <div class="form-group">
-                <label for="powerBuffer">Power Buffer (Watt)</label>
-                <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
-                <small id="powerBufferHelp" class="form-text text-muted">Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).</small>
-            </div>
 
             @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
             {
@@ -123,6 +118,12 @@ else
                                   @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeValueName"
                                   @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
             }
+            <div class="form-group">
+                <label for="powerBuffer">Power Buffer (Watt)</label>
+                <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
+                <small id="powerBufferHelp" class="form-text text-muted">Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).</small>
+            </div>
+
             <div class="form-group">
                 <label for="CorrectionFactor">Correction Factor</label>
                 <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactorString" class="form-control" />
