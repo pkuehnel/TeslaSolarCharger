@@ -294,17 +294,6 @@ else
                 </div>
             }
 
-            @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource != SolarValueSource.None)
-            {
-                <div class="form-group">
-                    <label for="CorrectionFactor">Correction Factor</label>
-                    <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentInverterPowerCorrectionFactorString" class="form-control" />
-                    <div>
-                        <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
-                    </div>
-                </div>
-            }
-
             @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
             {
                 <RestPvValueComponent RestValue="Inverter Power"
@@ -331,6 +320,16 @@ else
                                   @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
                                   @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeValueName"
                                   @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
+            }
+            @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource != SolarValueSource.None)
+            {
+                <div class="form-group">
+                    <label for="CorrectionFactor">Correction Factor</label>
+                    <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentInverterPowerCorrectionFactorString" class="form-control" />
+                    <div>
+                        <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+                    </div>
+                </div>
             }
         </div>
         <div class="shadow p-3 mb-5 bg-white rounded">
