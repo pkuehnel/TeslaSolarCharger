@@ -8,6 +8,7 @@
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 
+
 <PageTitle>Base Configuration</PageTitle>
 
 <h3>Base Configuration</h3>
@@ -87,6 +88,8 @@ else
                 @bind-IsModbusUrl:event="IsModbusUrlChanged"
                 @bind-Headers="_dtoBaseConfiguration.CurrentPowerToGridHeaders"
                 @bind-Headers:event="HeadersChanged"
+                @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.GridPowerNodePatternType"
+                @bind-NodePatternType:event="NodePatternTypeChanged"
                 @bind-JsonPattern="_dtoBaseConfiguration.CurrentPowerToGridJsonPattern"
                 @bind-JsonPattern:event="JsonPatternChanged"
                 @bind-XmlPattern="_dtoBaseConfiguration.CurrentPowerToGridXmlPattern"
@@ -146,6 +149,8 @@ else
                 @bind-IsModbusUrl:event="IsModbusUrlChanged"
                 @bind-Headers="_dtoBaseConfiguration.HomeBatterySocHeaders"
                 @bind-Headers:event="HeadersChanged"
+                @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatterySocNodePatternType"
+                @bind-NodePatternType:event="NodePatternTypeChanged"
                 @bind-JsonPattern="_dtoBaseConfiguration.HomeBatterySocJsonPattern"
                 @bind-JsonPattern:event="JsonPatternChanged"
                 @bind-XmlPattern="_dtoBaseConfiguration.HomeBatterySocXmlPattern"
@@ -182,6 +187,8 @@ else
                 @bind-IsModbusUrl:event="IsModbusUrlChanged"
                 @bind-Headers="_dtoBaseConfiguration.HomeBatteryPowerHeaders"
                 @bind-Headers:event="HeadersChanged"
+                @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryPowerNodePatternType"
+                @bind-NodePatternType:event="NodePatternTypeChanged"
                 @bind-JsonPattern="_dtoBaseConfiguration.HomeBatteryPowerJsonPattern"
                 @bind-JsonPattern:event="JsonPatternChanged"
                 @bind-XmlPattern="_dtoBaseConfiguration.HomeBatteryPowerXmlPattern"
@@ -224,6 +231,8 @@ else
                 @bind-IsModbusUrl:event="IsModbusUrlChanged"
                 @bind-Headers="_dtoBaseConfiguration.CurrentInverterPowerHeaders"
                 @bind-Headers:event="HeadersChanged"
+                @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.InverterPowerNodePatternType"
+                @bind-NodePatternType:event="NodePatternTypeChanged"
                 @bind-JsonPattern="_dtoBaseConfiguration.CurrentInverterPowerJsonPattern"
                 @bind-JsonPattern:event="JsonPatternChanged"
                 @bind-XmlPattern="_dtoBaseConfiguration.CurrentInverterPowerXmlPattern"

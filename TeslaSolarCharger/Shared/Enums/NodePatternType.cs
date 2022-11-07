@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.Server.Enums;
+﻿namespace TeslaSolarCharger.Shared.Enums;
 
 public enum NodePatternType
 {

@@ -15,12 +15,14 @@ public class ConfigurationWrapper : IConfigurationWrapper
 {
     private readonly ILogger<ConfigurationWrapper> _logger;
     private readonly IConfiguration _configuration;
+    private readonly INodePatternTypeHelper _nodePatternTypeHelper;
     private readonly string _baseConfigurationMemoryCacheName = "baseConfiguration";
 
-    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration)
+    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration, INodePatternTypeHelper nodePatternTypeHelper)
     {
         _logger = logger;
         _configuration = configuration;
+        _nodePatternTypeHelper = nodePatternTypeHelper;
     }
 
     public string CarConfigFileFullName()
@@ -487,6 +489,10 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             dtoBaseConfiguration.FrontendConfiguration.InverterValueSource = SolarValueSource.None;
         }
+
+        dtoBaseConfiguration.FrontendConfiguration.InverterPowerNodePatternType =
+            _nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.CurrentInverterPowerJsonPattern,
+                dtoBaseConfiguration.CurrentInverterPowerXmlPattern);
     }
 
     private void SetGridDefaultFrontendConfiguration(DtoBaseConfiguration dtoBaseConfiguration)
@@ -508,6 +514,10 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             dtoBaseConfiguration.FrontendConfiguration.GridValueSource = SolarValueSource.None;
         }
+
+        dtoBaseConfiguration.FrontendConfiguration.GridPowerNodePatternType =
+            _nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.CurrentPowerToGridJsonPattern,
+                dtoBaseConfiguration.CurrentPowerToGridXmlPattern);
     }
 
     private void SetHomeBatteryDefaultConfiguration(DtoBaseConfiguration dtoBaseConfiguration)
@@ -535,6 +545,14 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValueSource = SolarValueSource.Rest;
         }
+
+        dtoBaseConfiguration.FrontendConfiguration.HomeBatteryPowerNodePatternType =
+            _nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.HomeBatteryPowerJsonPattern,
+                dtoBaseConfiguration.HomeBatteryPowerXmlPattern);
+
+        dtoBaseConfiguration.FrontendConfiguration.HomeBatterySocNodePatternType =
+            _nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.HomeBatterySocJsonPattern,
+                dtoBaseConfiguration.HomeBatterySocXmlPattern);
     }
 
     public async Task TryAutoFillUrls()

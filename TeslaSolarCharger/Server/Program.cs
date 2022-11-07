@@ -22,6 +22,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
 
@@ -89,6 +90,7 @@ builder.Services
     .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
     .AddTransient<ICoreService, CoreService>()
     .AddTransient<INewVersionCheckService, NewVersionCheckService>()
+    .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
     .AddSingleton<IssueKeys>()
     .AddSingleton<GlobalConstants>()
     ;

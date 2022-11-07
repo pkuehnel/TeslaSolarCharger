@@ -1,4 +1,10 @@
-﻿<div class="form-group">
+﻿@using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared
+@inject INodePatternTypeHelper NodePatternTypeHelper
+
+
+<div class="form-group">
     <label for="Url">@RestValue Url</label>
     <InputText id="Url" @bind-Value="Url" class="form-control" />
 </div>
@@ -40,26 +46,40 @@ else
         </p>
     }
     <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="AddNewHeader">Add new header</button></p>
-    <div class="form-group">
-        <label for="JsonPattern">@(RestValue) Json Pattern</label>
-        <InputText id="JsonPattern" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label for="XmlPattern">@(RestValue) XML Pattern</label>
-        <InputText id="XmlPattern" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label for="XmlAttributeHeaderName">@(RestValue) XML Attribute Header Name</label>
-        <InputText id="XmlAttributeHeaderName" @bind-Value="XmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label for="XmlAttributeHeaderValue">@(RestValue) XML Attribute Header Value</label>
-        <InputText id="XmlAttributeHeaderValue" @bind-Value="XmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label for="XmlAttributeValueName">@(RestValue) XML Attribute Header Value</label>
-        <InputText id="XmlAttributeValueName" @bind-Value="XmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
-    </div>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="nodePatternType">Result Type:</label>
+    <InputSelect @bind-Value="@NodePatternType" id="nodePatternType" name="nodePatternType">
+          
+        @foreach (var value in Enum.GetValues<NodePatternType>())
+        {
+            <option value="@value">@value.ToFriendlyString()</option>
+        }
+    </InputSelect>
+    @if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Json)
+    {
+        <div class="form-group">
+            <label for="JsonPattern">@(RestValue) Json Pattern</label>
+            <InputText id="JsonPattern" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
+        </div>
+    }
+    @if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Xml)
+    {
+        <div class="form-group">
+            <label for="XmlPattern">@(RestValue) XML Pattern</label>
+            <InputText id="XmlPattern" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="XmlAttributeHeaderName">@(RestValue) XML Attribute Header Name</label>
+            <InputText id="XmlAttributeHeaderName" @bind-Value="XmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="XmlAttributeHeaderValue">@(RestValue) XML Attribute Header Value</label>
+            <InputText id="XmlAttributeHeaderValue" @bind-Value="XmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="XmlAttributeValueName">@(RestValue) XML Attribute Header Value</label>
+            <InputText id="XmlAttributeValueName" @bind-Value="XmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
+        </div>
+    }
 }
 
 
@@ -117,6 +137,21 @@ else
 
     [Parameter]
     public EventCallback<Dictionary<string, string>> HeadersChanged { get; set; }
+
+    [Parameter]
+    public NodePatternType? NodePatternType
+    {
+        get => _nodePatternType;
+        set
+        {
+            if (_nodePatternType == value) return;
+            _nodePatternType = value;
+            NodePatternTypeChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<NodePatternType?> NodePatternTypeChanged { get; set; }
 
     [Parameter]
     public string? JsonPattern
@@ -216,6 +251,7 @@ else
     private string? _url;
     private string _correctionFactor;
     private bool _isModbusUrl;
+    private NodePatternType? _nodePatternType;
     private string? _jsonPattern;
     private string? _xmlPattern;
     private string? _xmlAttributeHeaderName;
