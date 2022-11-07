@@ -48,7 +48,7 @@ else
        )
         {
             <div class="shadow p-3 mb-5 bg-white rounded">
-                <h3>MQTT Server settins</h3>
+                <h3>MQTT Server settings</h3>
                 <div class="form-group">
                     <label for="solarMqttServer">Solar Mqtt-Server</label>
                     <InputText id="solarMqttServer" @bind-Value="_dtoBaseConfiguration.SolarMqttServer" class="form-control" />
@@ -237,14 +237,6 @@ else
                               @bind-IsModbusUrl:event="IsModbusUrlChanged"
                               @bind-Headers="_dtoBaseConfiguration.HomeBatteryPowerHeaders"
                               @bind-Headers:event="HeadersChanged" />
-
-                <div class="form-group">
-                    <label for="homeBatteryPowerInversionUrl">HomeBatteryPowerInversion Url</label>
-                    <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" />
-                    <div>
-                        <small id="homeBatteryPowerInversionUrlHelp" class="form-text text-muted">Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response.</small>
-                    </div>
-                </div>
             }
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
@@ -270,6 +262,13 @@ else
                     <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerCorrectionFactorString" class="form-control" />
                     <div>
                         <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="homeBatteryPowerInversionUrl">HomeBatteryPowerInversion Url</label>
+                    <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" />
+                    <div>
+                        <small id="homeBatteryPowerInversionUrlHelp" class="form-text text-muted">Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response.</small>
                     </div>
                 </div>
             }
@@ -335,13 +334,14 @@ else
             }
         </div>
         <div class="shadow p-3 mb-5 bg-white rounded">
+            <h3>Telegram:</h3>
             <div class="form-group">
                 <label for="mosquitoServer">Telegram Bot Key</label>
-                <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.TelegramBotKey" placeholder="1234567890:ASDFuiauhwerlfvasedr" class="form-control" />
+                <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.TelegramBotKey" placeholder="1234567890:ASDFuiauhwerlfvasedr" class="form-control"/>
             </div>
             <div class="form-group">
                 <label for="mqqtClientId">Telegram Channel ID</label>
-                <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.TelegramChannelId" placeholder="-156480125" class="form-control" />
+                <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.TelegramChannelId" placeholder="-156480125" class="form-control"/>
             </div>
         </div>
         <div>The following values need no change. Please only change values here if you know what you are doing.</div>
