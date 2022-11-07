@@ -1,6 +1,7 @@
 ﻿using System.Net.Http;
 using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -33,7 +34,7 @@ public class PvValueService : TestBase
     public void Can_Get_Integer_From_Plain_Result(string text)
     {
         var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
-        var intValue = pvValueService.GetValueFromResult("", text, NodePatternType.None, true);
+        var intValue = pvValueService.GetValueFromResult("", text, NodePatternType.Direct, true);
 
         Assert.Equal(384, intValue);
     }
@@ -114,44 +115,6 @@ public class PvValueService : TestBase
         var intValue = pvValueService.GetValueFromResult("Device/Measurements/GridPower", xml, NodePatternType.Xml, false);
 
         Assert.Equal(384, intValue);
-    }
-
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData("", null)]
-    [InlineData(" ", null)]
-    [InlineData(null, "")]
-    [InlineData(null, " ")]
-    public void Decides_Correct_Note_Pattern_Type_None(string jsonPattern, string xmlPattern)
-    {
-        var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
-        var nodePatternType = pvValueService.DecideNodePatternType(jsonPattern, xmlPattern);
-
-        Assert.Equal(NodePatternType.None, nodePatternType);
-    }
-
-    [Theory]
-    [InlineData("$.data.overage", null)]
-    [InlineData("$.data.overage", "")]
-    [InlineData("$.data.overage", " ")]
-    public void Decides_Correct_Note_Pattern_Type_Json(string jsonPattern, string xmlPattern)
-    {
-        var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
-        var nodePatternType = pvValueService.DecideNodePatternType(jsonPattern, xmlPattern);
-
-        Assert.Equal(NodePatternType.Json, nodePatternType);
-    }
-
-    [Theory]
-    [InlineData(null, "Device/Measurements/Measurement")]
-    [InlineData("", "Device/Measurements/Measurement")]
-    [InlineData(" ", "Device/Measurements/Measurement")]
-    public void Decides_Correct_Note_Pattern_Type_Xml(string jsonPattern, string xmlPattern)
-    {
-        var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
-        var nodePatternType = pvValueService.DecideNodePatternType(jsonPattern, xmlPattern);
-
-        Assert.Equal(NodePatternType.Xml, nodePatternType);
     }
 
     [Fact]

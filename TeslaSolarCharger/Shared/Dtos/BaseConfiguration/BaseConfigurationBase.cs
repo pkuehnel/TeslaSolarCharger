@@ -91,4 +91,6 @@ public class BaseConfigurationBase
     public int? HomeBatteryMinSoc { get; set; }
     public int? HomeBatteryChargingPower { get; set; }
 
+    public FrontendConfiguration? FrontendConfiguration { get; set; }
+
 }

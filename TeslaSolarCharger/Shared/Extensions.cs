@@ -42,6 +42,32 @@ public static class Extensions
         }
     }
 
+    public static string ToFriendlyString(this SolarValueSource solarValueSource)
+    {
+        switch (solarValueSource)
+        {
+            case SolarValueSource.Rest:
+                return "REST";
+            case SolarValueSource.Mqtt:
+                return "MQTT";
+            default:
+                return solarValueSource.ToString();
+        }
+    }
+
+    public static string ToFriendlyString(this NodePatternType nodePatternType)
+    {
+        switch (nodePatternType)
+        {
+            case NodePatternType.Json:
+                return "JOSN";
+            case NodePatternType.Xml:
+                return "XML";
+            default:
+                return nodePatternType.ToString();
+        }
+    }
+
     public static string ToFriendlyString(this ModbusValueType modbusValueType)
     {
         switch (modbusValueType)

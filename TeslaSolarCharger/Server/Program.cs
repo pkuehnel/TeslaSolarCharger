@@ -22,6 +22,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
 
@@ -89,6 +90,7 @@ builder.Services
     .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
     .AddTransient<ICoreService, CoreService>()
     .AddTransient<INewVersionCheckService, NewVersionCheckService>()
+    .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
     .AddSingleton<IssueKeys>()
     .AddSingleton<GlobalConstants>()
     ;
@@ -112,7 +114,7 @@ var app = builder.Build();
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
 await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
-await baseConfigurationConverter.ConvertBaseConfigToCurrentVersion().ConfigureAwait(false);
+await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
 
 var coreService = app.Services.GetRequiredService<ICoreService>();
 coreService.LogVersion();

@@ -68,9 +68,9 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
         await _configurationWrapper.SaveBaseConfiguration(dtoBaseConfiguration).ConfigureAwait(false);
     }
 
-    public async Task ConvertBaseConfigToCurrentVersion()
+    public async Task ConvertBaseConfigToV1_0()
     {
-        _logger.LogTrace("{method}()", nameof(ConvertBaseConfigToCurrentVersion));
+        _logger.LogTrace("{method}()", nameof(ConvertBaseConfigToV1_0));
         var oldBaseConfigurationJson = await File.ReadAllTextAsync(_configurationWrapper.BaseConfigFileFullName()).ConfigureAwait(false);
         var version = GetVersionFromBaseConfigurationJsonString(oldBaseConfigurationJson);
         oldBaseConfigurationJson = await File.ReadAllTextAsync(_configurationWrapper.BaseConfigFileFullName()).ConfigureAwait(false);
