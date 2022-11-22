@@ -38,7 +38,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services
-    .AddSingleton<JobManager>()
+    .AddTransient<JobManager>()
     .AddTransient<ChargingValueJob>()
     .AddTransient<ConfigJsonUpdateJob>()
     .AddTransient<ChargeTimeUpdateJob>()

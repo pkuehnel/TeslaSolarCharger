@@ -26,10 +26,10 @@ public class BaseConfigurationService : IBaseConfigurationService
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
     {
         _logger.LogTrace("{method}({@baseConfiguration})", nameof(UpdateBaseConfigurationAsync), baseConfiguration);
-        await _jobManager.StopJobs().ConfigureAwait(false);
+        //await _jobManager.StopJobs().ConfigureAwait(false);
         await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
         await _teslaMateMqttService.ConnectMqttClient().ConfigureAwait(false);
         await _solarMqttService.ConnectMqttClient().ConfigureAwait(false);
-        await _jobManager.StartJobs().ConfigureAwait(false);
+        //await _jobManager.StartJobs().ConfigureAwait(false);
     }
 }
