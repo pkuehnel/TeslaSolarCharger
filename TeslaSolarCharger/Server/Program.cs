@@ -93,21 +93,21 @@ builder.Services
     .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
     .AddSingleton<IssueKeys>()
     .AddSingleton<GlobalConstants>()
-    .AddQuartz((IServiceCollectionQuartzConfigurator quartzOptions) =>
-    {
-        quartzOptions.UseMicrosoftDependencyInjectionJobFactory();
-        quartzOptions.ScheduleJob<PowerDistributionAddJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(16).RepeatForever()));
-        quartzOptions.ScheduleJob<ConfigJsonUpdateJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(10).RepeatForever()));
-        quartzOptions.ScheduleJob<ChargeTimeUpdateJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(30).RepeatForever()));
-        quartzOptions.ScheduleJob<HandledChargeFinalizingJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(9).RepeatForever()));
-        quartzOptions.ScheduleJob<MqttReconnectionJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(54).RepeatForever()));
-        quartzOptions.ScheduleJob<NewVersionCheckJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInHours(47).RepeatForever()));
-    })
-    .AddQuartzHostedService(options =>
-    {
-        // when shutting down we want jobs to complete gracefully
-        options.WaitForJobsToComplete = true;
-    });
+    //.AddQuartz((IServiceCollectionQuartzConfigurator quartzOptions) =>
+    //{
+    //    quartzOptions.UseMicrosoftDependencyInjectionJobFactory();
+    //    quartzOptions.ScheduleJob<PowerDistributionAddJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(16).RepeatForever()));
+    //    quartzOptions.ScheduleJob<ConfigJsonUpdateJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(10).RepeatForever()));
+    //    quartzOptions.ScheduleJob<ChargeTimeUpdateJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(30).RepeatForever()));
+    //    quartzOptions.ScheduleJob<HandledChargeFinalizingJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(9).RepeatForever()));
+    //    quartzOptions.ScheduleJob<MqttReconnectionJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(54).RepeatForever()));
+    //    quartzOptions.ScheduleJob<NewVersionCheckJob>(job => job.StartNow().WithSimpleSchedule(x => x.WithIntervalInHours(47).RepeatForever()));
+    //})
+    //.AddQuartzHostedService(options =>
+    //{
+    //    // when shutting down we want jobs to complete gracefully
+    //    options.WaitForJobsToComplete = true;
+    //});
 ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
