@@ -58,7 +58,7 @@ public class JobManager
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds)).Build();
 
         var powerDistributionAddTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(16)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(1)).Build();
 
         var handledChargeFinalizingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(9)).Build();
@@ -71,14 +71,14 @@ public class JobManager
 
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
-            {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
-            {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
-            {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
-            {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
+            //{chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
+            //{configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
+            //{chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
+            //{pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
-            {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
-            {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
-            {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
+            //{handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
+            //{mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
+            //{newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

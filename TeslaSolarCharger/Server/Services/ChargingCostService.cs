@@ -20,6 +20,7 @@ public class ChargingCostService : IChargingCostService
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISettings _settings;
     private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
+    private readonly List<string> _strings;
 
     public ChargingCostService(ILogger<ChargingCostService> logger,
         ITeslaSolarChargerContext teslaSolarChargerContext, ITeslamateContext teslamateContext,
@@ -32,6 +33,15 @@ public class ChargingCostService : IChargingCostService
         _dateTimeProvider = dateTimeProvider;
         _settings = settings;
         _mapperConfigurationFactory = mapperConfigurationFactory;
+        var guid = Guid.NewGuid();
+        _logger.LogWarning("Constructor called " + guid);
+        _strings = new List<string>();
+        for (var i = 0; i < 100000; i++)
+        {
+            _strings.Add("new String" + guid);
+        }
+        _logger.LogWarning("Constructor exit");
+
     }
 
     public async Task UpdateChargePrice(DtoChargePrice dtoChargePrice)
@@ -107,15 +117,15 @@ public class ChargingCostService : IChargingCostService
 
     public async Task AddPowerDistributionForAllChargingCars()
     {
-        _logger.LogTrace("{method}()", nameof(AddPowerDistributionForAllChargingCars));
-        await CreateDefaultChargePrice().ConfigureAwait(false);
-        foreach (var car in _settings.Cars)
-        {
-            if (car.CarState.ChargingPowerAtHome > 0)
-            {
-                await AddPowerDistribution(car.Id, car.CarState.ChargingPowerAtHome, -_settings.Overage).ConfigureAwait(false);
-            }
-        }
+        _logger.LogWarning("{method}()", nameof(AddPowerDistributionForAllChargingCars));
+        //await CreateDefaultChargePrice().ConfigureAwait(false);
+        //foreach (var car in _settings.Cars)
+        //{
+        //    if (car.CarState.ChargingPowerAtHome > 0)
+        //    {
+        //        await AddPowerDistribution(car.Id, car.CarState.ChargingPowerAtHome, -_settings.Overage).ConfigureAwait(false);
+        //    }
+        //}
     }
 
     private async Task AddPowerDistribution(int carId, int? chargingPower, int? powerFromGrid)
