@@ -25,6 +25,7 @@ using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
+using static Quartz.Logging.OperationName;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -93,7 +94,17 @@ builder.Services
     .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
     .AddSingleton<IssueKeys>()
     .AddSingleton<GlobalConstants>()
-    ;
+    .AddQuartz((IServiceCollectionQuartzConfigurator quartzOptions) =>
+    {
+        quartzOptions.UseMicrosoftDependencyInjectionJobFactory();
+        quartzOptions.ScheduleJob<PowerDistributionAddJob>(job => job.WithSimpleSchedule(x => x.WithIntervalInSeconds(16).RepeatForever()));
+        quartzOptions.ScheduleJob<ConfigJsonUpdateJob>(job => job.WithSimpleSchedule(x => x.WithIntervalInSeconds(10).RepeatForever()));
+        quartzOptions.ScheduleJob<ChargeTimeUpdateJob>(job => job.WithSimpleSchedule(x => x.WithIntervalInSeconds(30).RepeatForever()));
+        quartzOptions.ScheduleJob<HandledChargeFinalizingJob>(job => job.WithSimpleSchedule(x => x.WithIntervalInSeconds(9).RepeatForever()));
+        quartzOptions.ScheduleJob<MqttReconnectionJob>(job => job.WithSimpleSchedule(x => x.WithIntervalInSeconds(54).RepeatForever()));
+        quartzOptions.ScheduleJob<NewVersionCheckJob>(job => job.WithSimpleSchedule(x => x.WithIntervalInHours(47).RepeatForever()));
+    }).AddQuartzServer();
+;
 
 builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration));
