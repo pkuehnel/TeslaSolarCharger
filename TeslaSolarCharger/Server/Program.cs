@@ -39,14 +39,14 @@ builder.Services.AddSwaggerGen();
 
 builder.Services
     .AddSingleton<JobManager>()
-    //.AddTransient<ChargingValueJob>()
-    //.AddTransient<ConfigJsonUpdateJob>()
-    //.AddTransient<ChargeTimeUpdateJob>()
-    //.AddTransient<PvValueJob>()
-    //.AddTransient<PowerDistributionAddJob>()
-    //.AddTransient<HandledChargeFinalizingJob>()
-    //.AddTransient<MqttReconnectionJob>()
-    //.AddTransient<NewVersionCheckJob>()
+    .AddTransient<ChargingValueJob>()
+    .AddTransient<ConfigJsonUpdateJob>()
+    .AddTransient<ChargeTimeUpdateJob>()
+    .AddTransient<PvValueJob>()
+    .AddTransient<PowerDistributionAddJob>()
+    .AddTransient<HandledChargeFinalizingJob>()
+    .AddTransient<MqttReconnectionJob>()
+    .AddTransient<NewVersionCheckJob>()
     .AddTransient<JobFactory>()
     .AddTransient<IJobFactory, JobFactory>()
     .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -154,7 +154,9 @@ var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
 await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
-await jobManager.StartJobs().ConfigureAwait(false);
+#pragma warning disable CS4014
+jobManager.StartJobs();
+#pragma warning restore CS4014
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
