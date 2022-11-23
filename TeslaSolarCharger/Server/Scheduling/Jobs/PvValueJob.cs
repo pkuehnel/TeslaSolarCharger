@@ -7,18 +7,16 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 public class PvValueJob : IJob
 {
     private readonly ILogger<PvValueJob> _logger;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IPvValueService _service;
 
-    public PvValueJob(ILogger<PvValueJob> logger, IServiceScopeFactory serviceScopeFactory)
+    public PvValueJob(ILogger<PvValueJob> logger, IPvValueService service)
     {
         _logger = logger;
-        _serviceScopeFactory = serviceScopeFactory;
+        _service = service;
     }
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        using var scope = _serviceScopeFactory.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<IPvValueService>();
-        await service.UpdatePvValues().ConfigureAwait(false);
+        await _service.UpdatePvValues().ConfigureAwait(false);
     }
 }

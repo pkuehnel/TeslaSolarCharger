@@ -7,18 +7,16 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 public class MqttReconnectionJob : IJob
 {
     private readonly ILogger<MqttReconnectionJob> _logger;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IMqttConnectionService _service;
 
-    public MqttReconnectionJob(ILogger<MqttReconnectionJob> logger, IServiceScopeFactory serviceScopeFactory)
+    public MqttReconnectionJob(ILogger<MqttReconnectionJob> logger, IMqttConnectionService service)
     {
         _logger = logger;
-        _serviceScopeFactory = serviceScopeFactory;
+        _service = service;
     }
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        using var scope = _serviceScopeFactory.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<IMqttConnectionService>();
-        await service.ReconnectMqttServices().ConfigureAwait(false);
+        await _service.ReconnectMqttServices().ConfigureAwait(false);
     }
 }
