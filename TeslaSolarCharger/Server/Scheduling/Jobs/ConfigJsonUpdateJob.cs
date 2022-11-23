@@ -7,16 +7,18 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 public class ConfigJsonUpdateJob : IJob
 {
     private readonly ILogger<ConfigJsonUpdateJob> _logger;
-    private readonly IConfigJsonService _service;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
-    public ConfigJsonUpdateJob(ILogger<ConfigJsonUpdateJob> logger, IConfigJsonService service)
+    public ConfigJsonUpdateJob(ILogger<ConfigJsonUpdateJob> logger, IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
-        _service = service;
+        _serviceScopeFactory = serviceScopeFactory;
     }
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await _service.UpdateConfigJson().ConfigureAwait(false);
+        using var scope = _serviceScopeFactory.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IConfigJsonService>();
+        await service.UpdateConfigJson().ConfigureAwait(false);
     }
 }
