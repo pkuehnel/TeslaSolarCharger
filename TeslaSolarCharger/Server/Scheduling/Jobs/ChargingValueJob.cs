@@ -7,17 +7,19 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 public class ChargingValueJob : IJob
 {
     private readonly ILogger<ChargingValueJob> _logger;
-    private readonly IChargingService _chargingService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
-    public ChargingValueJob(ILogger<ChargingValueJob> logger, IChargingService chargingService)
+    public ChargingValueJob(ILogger<ChargingValueJob> logger, IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
-        _chargingService = chargingService;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await _chargingService.SetNewChargingValues().ConfigureAwait(false);
+        using var scope = _serviceScopeFactory.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IChargingService>();
+        await service.SetNewChargingValues().ConfigureAwait(false);
     }
 }
