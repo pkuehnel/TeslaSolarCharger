@@ -144,18 +144,6 @@ else
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
             {
-                <h5>General:</h5>
-                <div class="form-group">
-                    <label for="homeBatteryMinSoc">Home Battery Minimum Soc (%)</label>
-                    <InputNumber id="homeBatteryMinSoc" @bind-Value="_dtoBaseConfiguration.HomeBatteryMinSoc" class="form-control" />
-                    <small id="homeBatteryMinSocHelp" class="form-text text-muted">Set the SoC your home battery should get charged to before cars start to use full power.</small>
-                </div>
-                <div class="form-group">
-                    <label for="homeBatteryChargingPower">Home Battery charging power (W)</label>
-                    <InputNumber id="homeBatteryChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" class="form-control" />
-                    <small id="homeBatteryChargingPowerHelp" class="form-text text-muted">Set the power your home battery should charge with as long as SoC is below set minimum SoC.</small>
-                </div>
-                <hr />
                 <h5>Home Battery Soc:</h5>
             }
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
@@ -207,12 +195,16 @@ else
                         <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label for="homeBatteryMinSoc">Home Battery Minimum Soc (%)</label>
+                    <InputNumber id="homeBatteryMinSoc" @bind-Value="_dtoBaseConfiguration.HomeBatteryMinSoc" class="form-control" />
+                    <small id="homeBatteryMinSocHelp" class="form-text text-muted">Set the SoC your home battery should get charged to before cars start to use full power.</small>
+                </div>
             }
 
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
             {
-                <hr />
                 <h5>Home Battery Power:</h5>
             }
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
@@ -270,6 +262,11 @@ else
                     <div>
                         <small id="homeBatteryPowerInversionUrlHelp" class="form-text text-muted">Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response.</small>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label for="homeBatteryChargingPower">Home Battery charging power (W)</label>
+                    <InputNumber id="homeBatteryChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" class="form-control" />
+                    <small id="homeBatteryChargingPowerHelp" class="form-text text-muted">Set the power your home battery should charge with as long as SoC is below set minimum SoC.</small>
                 </div>
             }
 
