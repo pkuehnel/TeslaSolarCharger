@@ -7,18 +7,16 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 public class NewVersionCheckJob : IJob
 {
     private readonly ILogger<NewVersionCheckJob> _logger;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly INewVersionCheckService _service;
 
-    public NewVersionCheckJob(ILogger<NewVersionCheckJob> logger, IServiceScopeFactory serviceScopeFactory)
+    public NewVersionCheckJob(ILogger<NewVersionCheckJob> logger, INewVersionCheckService service)
     {
         _logger = logger;
-        _serviceScopeFactory = serviceScopeFactory;
+        _service = service;
     }
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        using var scope = _serviceScopeFactory.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<INewVersionCheckService>();
-        await service.CheckForNewVersion().ConfigureAwait(false);
+        await _service.CheckForNewVersion().ConfigureAwait(false);
     }
 }
