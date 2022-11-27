@@ -16,13 +16,16 @@ public class ConfigurationWrapper : IConfigurationWrapper
     private readonly ILogger<ConfigurationWrapper> _logger;
     private readonly IConfiguration _configuration;
     private readonly INodePatternTypeHelper _nodePatternTypeHelper;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly string _baseConfigurationMemoryCacheName = "baseConfiguration";
 
-    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration, INodePatternTypeHelper nodePatternTypeHelper)
+    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration, INodePatternTypeHelper nodePatternTypeHelper,
+        IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _configuration = configuration;
         _nodePatternTypeHelper = nodePatternTypeHelper;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public string CarConfigFileFullName()
@@ -679,7 +682,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             throw new InvalidOperationException("Could not deserialize dtoBaseConfiguration to baseconfigurationJson");
         }
-        baseConfigurationJson.LastEditDateTime = DateTime.UtcNow;
+        baseConfigurationJson.LastEditDateTime = _dateTimeProvider.UtcNow();
 
         var baseConfigurationJsonString = JsonConvert.SerializeObject(baseConfigurationJson);
 
