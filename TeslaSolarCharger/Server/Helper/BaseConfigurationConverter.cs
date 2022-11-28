@@ -14,13 +14,15 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
     private readonly ILogger<BaseConfigurationConverter> _logger;
     private readonly IConfiguration _configuration;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public BaseConfigurationConverter(ILogger<BaseConfigurationConverter> logger, IConfiguration configuration,
-        IConfigurationWrapper configurationWrapper)
+        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _configuration = configuration;
         _configurationWrapper = configurationWrapper;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task ConvertAllEnvironmentVariables()
@@ -105,7 +107,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
         oldBaseConfiguration.CopyProperties(baseConfiguration);
         baseConfiguration.Version = new Version(1, 0);
         baseConfiguration.CurrentPowerToGridCorrectionFactor = oldBaseConfiguration.CurrentPowerToGridInvertValue ? -1 : 1;
-        baseConfiguration.LastEditDateTime = DateTime.UtcNow;
+        baseConfiguration.LastEditDateTime = _dateTimeProvider.UtcNow();
         UpdateGridPowerUrlIfNeeded(baseConfiguration);
 
         return baseConfiguration;
