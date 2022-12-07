@@ -27,23 +27,23 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
 
 ## How to install
 
-You can either install the software in a Docker container or go download the code and deploy it yourself on any server.
+You can either install the software in a Docker container or download the binaries and deploy it on any server.
 
 ### Docker-compose
 
-The easiest way to use TeslaSolarCharger is with Docker. Depending on your System you need to [install Docker including Docker-Compose](https://dev.to/rohansawant/installing-docker-and-docker-compose-on-the-raspberry-pi-in-5-simple-steps-3mgl) first.
+The easiest way to use TeslaSolarCharger is with Docker. Depending on your system, you have to [install Docker, including Docker-Compose](https://dev.to/rohansawant/installing-docker-and-docker-compose-on-the-raspberry-pi-in-5-simple-steps-3mgl), first.
 
 ### Setting up TeslaMate including TeslaSolarCharger
 
-To set up TeslaSolarCharger you have to create a `docker-compose.yml` (name is important!) file in a new directory. Note: During the setup some additional data folders to persist data will be created in that folder, so it is recommended to use a new directory for your `docker-compose.yml`.
+To set up TeslaSolarCharger, you must create a `docker-compose.yml` (name is important!) file in a new directory. Note: During the setup, some additional data folders to persist data will be created in that folder, so it is recommended to use a new directory for your `docker-compose.yml`.
 
 #### docker-compose.yml content
 
-The needed content of your `docker-compose.yml` depends on your inverter. By default TeslaSolarCharger can consume JSON/XML REST APIs. To get the software running on [SMA](https://www.sma.de/) or [SolarEdge](https://www.solaredge.com/) you can use specific plugins, which create the needed JSON API. You can use the software with any ModbusTCP capable inverter also.
+The needed content of your `docker-compose.yml` depends on your inverter. By default, TeslaSolarCharger can consume JSON/XML REST APIs. To get the software running on [SMA](https://www.sma.de/) or [SolarEdge](https://www.solaredge.com/), you can use specific plugins which create the needed JSON API. You can use the software with any ModbusTCP-capable inverter also.
 
 ##### Content without using a plugin
 
-Below you can see the content for your `docker-compose.yml` if you are not using any plugin. Note: It is recommended to change as few things as possible on this file as this will increase the effort to set everything up but feel free to change the database password, encryption key and Timezone. Important: If you change the password or the encryption key you need to use the same password and encyption key at all points in your `docker-compose.yml`
+Below you can see the content for your `docker-compose.yml` if you are not using any plugin. Note: I recommend changing as few things as possible on this file as this will increase the effort to set everything up but feel free to change the database password, encryption key, and Timezone. Important: If you change the password or the encryption key, you need to use the same password and encryption key at all points in your `docker-compose.yml`
 
 ```yaml
 version: '3.3'
@@ -159,8 +159,8 @@ volumes:
 [![Docker pulls new name](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersmaplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersmaplugin)
 [![Docker pulls old name](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersmaplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersmaplugin)
 
-The SMA plugin is used to access the values from your EnergyMeter (or Sunny Home Manager 2.0).
-To use the plugin just add these lines to the bottom of your `docker-compose.yml`.
+The SMA plugin is used to access your EnergyMeter (or Sunny Home Manager 2.0) values.
+To use the plugin, add these lines to the bottom of your `docker-compose.yml`.
 
 ```yaml
   smaplugin:
@@ -311,9 +311,9 @@ volumes:
 [![Docker pulls new name](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 [![Docker pulls old name](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
 
-The SolarEdge Plugin is using the cloud API which is limited to 300 calls per day. To not exceed this limit there is an environment variable which limits the refresh interval to 360 seconds. This results in a very low update frequency of your power values. That is why it is recommended to use the ModbusPlugin below.
+The SolarEdge Plugin uses the cloud API, which is limited to 300 calls per day. To stay within this limit, there is an environment variable that limits the refresh interval to 360 seconds. This results in a very low update frequency of your power values. That is why it is recommended to use the ModbusPlugin below.
 
-To use the plugin just add these lines to the bottom of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable
+To use the plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable
 
 ```yaml
   solaredgeplugin:
@@ -468,9 +468,9 @@ volumes:
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargermodbusplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
 [![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargermodbusplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
 
-You can also use the Modbus plugin. This is a general plugin so don't be surprised if it does not work as expected right after starting up. Feel free to share your configurations [here](https://github.com/pkuehnel/TeslaSolarCharger/discussions/174), so I can add templates for future users.
+You can also use the Modbus plugin. This is a general plugin, so don't be surprised if it does not work as expected right after starting up. Feel free to share your configurations [here](https://github.com/pkuehnel/TeslaSolarCharger/discussions/174) so I can add templates for future users.
 
-To use the plugin just add these lines to the bottom of your `docker-compose.yml`. Note: As some inverters struggle with to many requests within a specific time you can change `RequestBlockMilliseconds` environment variable.
+To use the plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: As some inverters struggle with too many requests within a specific time, you can change the `RequestBlockMilliseconds` environment variable.
 
 ```yaml
   modbusplugin:
@@ -619,20 +619,20 @@ volumes:
 
 1. Move to your above created directory with your `docker-compose.yml`.
 1. Start all containers using the command `docker-compose up -d`.
-1. Use a third party app to create a new Tesla Token [[Android](https://play.google.com/store/apps/details?id=net.leveugle.teslatokens&hl=en_US&gl=US)] [[iOS](https://apps.apple.com/us/app/tesla-token/id1411393432)]
-1. Open your browser, go to `http://your-ip-address:4000` and paste your token and your refresh token into the form.
+1. Use a third-party app to create a new Tesla Token [[Android](https://play.google.com/store/apps/details?id=net.leveugle.teslatokens&hl=en_US&gl=US)] [[iOS](https://apps.apple.com/us/app/tesla-token/id1411393432)]
+1. Open your browser, go to `http://your-ip-address:4000` and paste your token and refresh token into the form.
 1. Go to `Geo-Fences` and add a Geo-Fence called `Home` at the location you want TeslaSolarCharger to be active.
 1. Open `http://your-ip-address:7190`
-1. Go to `Base Configuration` (if you are on a mobile device it is behind the menu button).
+1. Go to `Base Configuration` (if you are on a mobile device, it is behind the menu button).
 
 ##### Setting Up Urls to get grid power
 
-To let the TeslaSolarCharger know how much power there is to charge the car you need to add a value in `Grid Power Url`.
+To let the TeslaSolarCharger know how much power there is to charge the car, you need to add a value in `Grid Power Url`.
 
 ###### Using vendor specific plugins
 
-Note: In a future release these values will be filled in automatically, maybe it is already working and I just forgot to remove this section ;-)
-Depending on your used plugins you have to paste one of the following URLs to the `Grid Power Url` field:
+**Note:** These values will be filled in automatically in a future release. Maybe it is already working, and I just forgot to remove this section ;-)
+Depending on your used plugins, you have to paste one of the following URLs to the `Grid Power Url` field:
 
 - SMA Plugin: `http://<IP of your Docker host>:7192/api/CurrentPower/GetPower`
 - SolarEdge Plugin:
@@ -641,10 +641,10 @@ Depending on your used plugins you have to paste one of the following URLs to th
   - Home Battery SoC: `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
   - Home Battery Power: `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
 
-###### Using the modbus plugin
+###### Using the Modbus plugin
 
-Warning: As this plugin keeps an open connection to your inverter it is highly recommended not to kill this container but always shut it down gracefully.
-To use the modbus plugin you have to create the url string by yourself. The URL looks like this:
+**Warning:** As this plugin keeps an open connection to your inverter, it is highly recommended not to kill this container but always shut it down gracefully.
+To use the Modbus plugin, you must create the URL string yourself. The URL looks like this:
 
 ```text
 http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=<modbusregisterAddress>&quantity=<NumberOFModbusRegistersToRead>&ipAddress=<IPAdressOfModbusDevice>&port=502&factor=<conversionFactor>&connectDelaySeconds=1&timeoutSeconds=10
@@ -656,7 +656,7 @@ An example URL with all values filled could look like this:
 http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
-You can test the result of the URL by pasting it into your browser and replace `modbusplugin` with `ipOfYourDockerHost:7091` e.g:
+You can test the result of the URL by pasting it into your browser and replacing `modbusplugin` with `ipOfYourDockerHost:7091`, e.g.:
 
 ```text
 http://192.168.1.50:7091/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
@@ -664,24 +664,24 @@ http://192.168.1.50:7091/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddre
 
 What the values mean:
 
-- `unitIdentifier`: Internal ID of your inverter (in most cases 3)
-- `startingAddress`: Register address of the value you want to extract. You find this value in the documenation of your inverter
+- `unitIdentifier`: Internal ID of your inverter (in most cases, 3)
+- `startingAddress`: Register address of the value you want to extract. You will find this value in the documentation of your inverter.
 - `quantity`: Number of registers to read from (for integer values should be 2)
 - `ipAddress`: IP Address of your inverter
 - `port`: Modbus TCP Port of your inverter (default: 502)
-- `factor`: Factor to multiply the resulting value with. The result should be Watt, so if your inverter returns Watt you can leave 1, if your inverter returns 0.1W you have to use 10.
+- `factor`: Factor to multiply the resulting value with. The result should be Watt, so if your inverter returns Watt, you can leave 1. If your inverter returns 0.1W, you have to use 10.
 - `connectDelaySeconds`: Delay before communication the first time (you should use 1)
-- `timeoutSeconds`: Timeout until returning an error if inverter is not responding (you should use 10)
+- `timeoutSeconds`: Timeout until returning an error if the inverter is not responding (you should use 10)
 
-For more convenience you can go to `http://your-ip-address:7091/swagger`. There you can try your values with a user interface.
+For more convenience, you can go to `http://your-ip-address:7091/swagger`. There you can try your values with a user interface.
 
 ###### Using no plugin
 
-If you have your own api or your energymeter directly has a REST API you can also use these to get the grid power. Just insert the `Grid Power Url` and if there is a plain integer value it should work. If your API returns JSON or XML results you have to add the exact path to that specific value.
+If you have your own API or your energymeter directly has a REST API, you can also use these to get the grid power. Just insert the `Grid Power Url` Url; if there is a plain integer value, it should work. If your API returns JSON or XML results, you must add the exact path to that specific value.
 
-###### Json Path
+###### JSON Path
 
-If you have the following json result:
+If you have the following JSON result:
 
 ```json
 {
@@ -701,8 +701,7 @@ You can use `$.data.value` as `Grid Power Json Pattern`.
 
 ###### XML Path
 
-If your energy monitoring device or inverter has no JSON but an XML API use the following instructions:
-Given an API endpoint `http://192.168.xxx.xxx/measurements.xml` which returns the following XML:
+If your energy monitoring device or inverter has no JSON, but an XML API, use the following instructions: Given an API endpoint `http://192.168.xxx.xxx/measurements.xml` which returns the following XML:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -726,7 +725,7 @@ Given an API endpoint `http://192.168.xxx.xxx/measurements.xml` which returns th
 ```
 
 Grid Power:
-Assuming the `Measurement` node with `Type` `GridPower` is the power your house feeds to the grid you need the following values in your Base configuration:
+Assuming the `Measurement` node with `Type` `GridPower` is the power your house feeds to the grid, you need the following values in your Base configuration:
 
 ```yaml
 - CurrentPowerToGridUrl=http://192.168.xxx.xxx/measurements.xml
@@ -737,7 +736,7 @@ Assuming the `Measurement` node with `Type` `GridPower` is the power your house 
 ```
 
 Inverter Power:
-Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverter is currently feeding you can use the following  values in your Base configuration:
+Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverter is currently feeding, you can use the following  values in your Base configuration:
 
 ```yaml
 - CurrentInverterPowerUrl=http://192.168.xxx.xxx/measurements.xml
@@ -747,23 +746,23 @@ Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverte
 - CurrentInverterPowerAttributeValueName=Value
 ```
 
-Note: This values are not needed, they are just used to show additional information.
+**Note:** These values are not needed. They are just used to show additional information.
 
-## Often used optional Settings
+## Often used optional settings
 
-When you are at this point your car connected to any charging cable in your set home area should start charging based on solar power. But there a few additional settings which are maybe helpful for your environment:
+When you are at this point, your car connected to any charging cable in your set home area should start charging based on solar power. But there are a few additional settings that are maybe helpful for your environment:
 
 ### Car Priorities
 
-If you have more than one car (or your car does not have the ID 1), you can change this setting in the `Car Ids` form field separated by `|`. Note: The order of the IDs is the order of power distribution.
+If you have more than one car (or your car does not have ID 1), you can change this setting in the `Car Ids` form field separated by `|`. Note: The order of the IDs is the order of power distribution.
 
 ### Power Buffer
 
-If you set `PowerBuffer` to a value different from `0` the system uses the value as an offset. Eg. If you set `1000` the current of the car is reduced as long as there is less than 1000 Watt power going to the grid.
+If you set `PowerBuffer` to a value different from `0`, the system uses the value as an offset. E.g., If you set `1000`, the car's current is reduced as long as less than 1000 Watt power goes to the grid.
 
 ### Home Battery
 
-To configure your home battery, you need to add following settings:
+To configure your home battery, you need to add the following settings:
 
 - URL for getting the state of charge
 - URL for getting current charging/discharging power
@@ -774,9 +773,9 @@ After setting everything up, your overview page should look like this:
 
 ![image](https://user-images.githubusercontent.com/35361981/183434947-16d13372-09ff-45a7-94a2-8d4043f39f18.png)
 
-⚠️ Note: If your battery is discharging the power should be displayed in red, if the battery is charging, the power should be displayed in green. If this is the other way around you have to update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number e.g. `-1.0`.
+**Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number, e.g. `-1.0`.
 
-If you use this feature in combination with the SolarEdge plugin the URLs are:
+If you use this feature in combination with the SolarEdge plugin, the URLs are:
 
 - `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
 - `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
@@ -787,16 +786,16 @@ After setting everything up, you can use the software via `http://your-ip-addres
 
 ### Charge Modes
 
-Currently there are three different charge modes available:
+Currently, there are three different charge modes available:
 
-1. **PV only**: Only solar energy is used to charge. You can set a SOC level which should be reached at a specific date and time. If solar energy is not enough to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, you have to specify `usable kWh` in the car settings section.
-1. **Maximum Power**: Car charges with maximum available power
-1. **Min SoC + PV**: If plugged in the car starts charging with maximum power until set Min SoC is reached. After that only PV Power is used to charge the car.
+1. **PV only**: Only solar energy is used to charge. You can set a SOC level which should be reached at a specific date and time. If solar power is not enough to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, you must specify `usable kWh` in the car settings section.
+1. **Maximum Power**: The car charges with the maximum available power
+1. **Min SoC + PV**: If plugged in, the car starts charging with maximum power until the set Min SoC is reached. After that, only PV Power is used to charge the car.
 
 ## Generate logfiles
 
-To generate logfiles you have to write the logs for each container to a separate logfile.
-Note: To create a more detailed logfile you have to add `- Serilog__MinimumLevel__Default=Verbose` as environment variable.
+To generate logfiles, you must write each container's logs to a separate logfile. 
+**Note:** To create a more detailed logfile, you must add `- Serilog__MinimumLevel__Default=Verbose` as environment variable.
 The commands if you used the docker-compose.yml files from above:<br />
 For the main **TeslaSolarCharger** container:
 

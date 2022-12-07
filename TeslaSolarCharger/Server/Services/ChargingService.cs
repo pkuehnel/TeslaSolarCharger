@@ -304,7 +304,7 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Charging should stop");
             var earliestSwitchOff = EarliestSwitchOff(car.Id);
             //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
-            if (car.CarState.ClimateOn == true || earliestSwitchOff > DateTime.Now)
+            if (car.CarState.ClimateOn == true || earliestSwitchOff > _dateTimeProvider.Now())
             {
                 _logger.LogDebug("Can not stop charging: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
                     car.CarState.ClimateOn,
@@ -336,7 +336,7 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Charging should start");
             var earliestSwitchOn = EarliestSwitchOn(car.Id);
 
-            if (earliestSwitchOn <= DateTime.Now)
+            if (earliestSwitchOn <= _dateTimeProvider.Now())
             {
                 _logger.LogDebug("Charging is starting");
                 var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
@@ -423,7 +423,7 @@ public class ChargingService : IChargingService
         var car = _settings.Cars.First(c => c.Id == carId);
         if (car.CarState.ShouldStopChargingSince == null)
         {
-            car.CarState.ShouldStopChargingSince = DateTime.Now;
+            car.CarState.ShouldStopChargingSince = _dateTimeProvider.Now();
         }
 
         var timespanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
@@ -440,7 +440,7 @@ public class ChargingService : IChargingService
         var car = _settings.Cars.First(c => c.Id == carId);
         if (car.CarState.ShouldStartChargingSince == null)
         {
-            car.CarState.ShouldStartChargingSince = DateTime.Now;
+            car.CarState.ShouldStartChargingSince = _dateTimeProvider.Now();
         }
 
         var timespanUntilSwitchOn = _configurationWrapper.TimespanUntilSwitchOn();

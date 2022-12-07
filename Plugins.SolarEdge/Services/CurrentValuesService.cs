@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Plugins.SolarEdge.Contracts;
 using Plugins.SolarEdge.Dtos.CloudApi;
+using TeslaSolarCharger.Shared.Contracts;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace Plugins.SolarEdge.Services;
@@ -11,12 +12,15 @@ public class CurrentValuesService : ICurrentValuesService
     private readonly ILogger<CurrentValuesService> _logger;
     private readonly SharedValues _sharedValues;
     private readonly IConfiguration _configuration;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
-    public CurrentValuesService(ILogger<CurrentValuesService> logger, SharedValues sharedValues, IConfiguration configuration)
+    public CurrentValuesService(ILogger<CurrentValuesService> logger, SharedValues sharedValues, IConfiguration configuration,
+        IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _sharedValues = sharedValues;
         _configuration = configuration;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task<int> GetCurrentPowerToGrid()
@@ -84,7 +88,7 @@ public class CurrentValuesService : ICurrentValuesService
 
 
         if (_sharedValues.CloudApiValues.Count < 1
-            || _sharedValues.CloudApiValues.Last().Key < DateTime.UtcNow - refreshInterval)
+            || _sharedValues.CloudApiValues.Last().Key < _dateTimeProvider.UtcNow() - refreshInterval)
         {
             _logger.LogDebug("Get new Values from SolarEdge API");
             var jsonString = await GetCloudApiString().ConfigureAwait(false);
@@ -99,7 +103,7 @@ public class CurrentValuesService : ICurrentValuesService
     private void AddCloudApiValueToSharedValues(CloudApiValue cloudApiValue)
     {
         _logger.LogTrace("{method}({param1})", nameof(AddCloudApiValueToSharedValues), cloudApiValue);
-        var currentDateTime = DateTime.UtcNow;
+        var currentDateTime = _dateTimeProvider.UtcNow();
         _sharedValues.CloudApiValues.Add(currentDateTime, cloudApiValue);
     }
 

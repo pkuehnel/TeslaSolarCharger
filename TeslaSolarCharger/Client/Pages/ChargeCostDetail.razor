@@ -2,8 +2,10 @@
 @page "/ChargePrice/new"
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using System.Globalization
+@using TeslaSolarCharger.Shared.Contracts
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
+@inject IDateTimeProvider DateTimeProvider
 
 <button class="btn btn-primary" @onclick="NavigateToList">All Charge costs</button>
 <h3>ChargePriceDetail</h3>
@@ -44,7 +46,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ChargePrice = new DtoChargePrice();
+        ChargePrice = new DtoChargePrice()
+        {
+            ValidSince = DateTimeProvider.Now(),
+        };
         if (ChargeCostId != null)
         {
             ChargePrice = await HttpClient.GetFromJsonAsync<DtoChargePrice>($"api/ChargingCost/GetChargePriceById?id={ChargeCostId}").ConfigureAwait(false);
