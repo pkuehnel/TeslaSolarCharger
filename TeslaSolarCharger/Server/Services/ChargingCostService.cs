@@ -65,6 +65,7 @@ public class ChargingCostService : IChargingCostService
             .ConfigureAwait(false);
         foreach (var handledCharge in handledCharges)
         {
+
             var chargingProcess = await _teslamateContext.ChargingProcesses
                 .FirstOrDefaultAsync(c => c.Id == handledCharge.ChargingProcessId).ConfigureAwait(false);
             if (chargingProcess == default)
@@ -199,12 +200,11 @@ public class ChargingCostService : IChargingCostService
 
     private async Task CreateDefaultChargePrice()
     {
-        var chargePrice = await _teslaSolarChargerContext.ChargePrices
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        if (chargePrice == default)
+        if (! await _teslaSolarChargerContext.ChargePrices
+                .AnyAsync().ConfigureAwait(false))
         {
             _logger.LogDebug("Add new charge price");
-            chargePrice = new ChargePrice()
+            var chargePrice = new ChargePrice()
             {
                 GridPrice = new decimal(0.28),
                 SolarPrice = new decimal(0.10),
