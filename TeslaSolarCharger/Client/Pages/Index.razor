@@ -349,6 +349,7 @@ else
         {
             var car = _settings.Cars.First(c => c.Id == tmpCar.Id);
             car.CarState = tmpCar.CarState;
+            car.CarConfiguration.SocLimit = tmpCar.CarConfiguration.SocLimit;
         }
         this.StateHasChanged();
     }
