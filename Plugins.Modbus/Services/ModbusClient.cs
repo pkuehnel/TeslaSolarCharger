@@ -1,6 +1,6 @@
-using System.Net;
 using FluentModbus;
 using Plugins.Modbus.Contracts;
+using System.Net;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace Plugins.Modbus.Services;
@@ -17,7 +17,7 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
     }
 
     public async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
-        int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType)
+        int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType, bool registerSwap)
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddress}, {port}, {connectDelay}, {timeout}, {modbusRegisterType})",
             nameof(GetByteArray), unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType);
@@ -25,7 +25,12 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
             await GetRegisterValue(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType)
                 .ConfigureAwait(false);
         _logger.LogTrace("Reversing Array {array}", Convert.ToHexString(tmpArrayPowerComplete));
+
         tmpArrayPowerComplete = tmpArrayPowerComplete.Reverse().ToArray();
+
+        if (registerSwap)
+            SwapRegisters(tmpArrayPowerComplete);
+
         return tmpArrayPowerComplete;
     }
 
@@ -88,6 +93,22 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
                 _semaphoreSlim.Release();
                 _logger.LogTrace("SemaphoreSlim released...");
             });
+        }
+    }
+    private static void SwapRegisters(byte[] data)
+    {
+        if (data.Length % 4 == 0)
+        {
+            byte[] _temp = new byte[data.Length];
+            Buffer.BlockCopy(data, 0, _temp, 0, data.Length);
+            for (int i = 0; i < data.Length; i += 4)
+            {
+                _temp[i + 0] = data[i + 2];
+                _temp[i + 1] = data[i + 3];
+                _temp[i + 2] = data[i + 0];
+                _temp[i + 3] = data[i + 1];
+            }
+            Buffer.BlockCopy(_temp, 0, data, 0, data.Length);
         }
     }
 }
