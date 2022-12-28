@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -50,6 +51,23 @@ public class IssueValidationService : IIssueValidationService
         issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
         issueList.AddRange(SofwareIssues());
         return issueList;
+    }
+
+    public async Task<DtoValue<int>> ErrorCount()
+    {
+        _logger.LogTrace("{method}()", nameof(ErrorCount));
+        var issues = await RefreshIssues().ConfigureAwait(false);
+        var errorIssues = issues.Where(i => i.IssueType == IssueType.Error).ToList();
+        return new DtoValue<int>(errorIssues.Count);
+    }
+
+    public async Task<DtoValue<int>> WarningCount()
+    {
+        _logger.LogTrace("{method}()", nameof(WarningCount));
+        var issues = await RefreshIssues().ConfigureAwait(false);
+        var warningIssues = issues.Where(i => i.IssueType == IssueType.Warning).ToList();
+        var warningCount = new DtoValue<int>(warningIssues.Count);
+        return warningCount;
     }
 
     private async Task<List<Issue>> GetDatabaseIssues()
