@@ -100,7 +100,6 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
         if (data.Length % 4 == 0)
         {
             byte[] _temp = new byte[data.Length];
-            Buffer.BlockCopy(data, 0, _temp, 0, data.Length);
             for (int i = 0; i < data.Length; i += 4)
             {
                 _temp[i + 0] = data[i + 2];
