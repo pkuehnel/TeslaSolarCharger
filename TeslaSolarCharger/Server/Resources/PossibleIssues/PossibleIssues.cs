@@ -124,6 +124,15 @@ public class PossibleIssues : IPossibleIssues
                     "Update to latest version with <code>docker-compose pull</code> and <code>docker-compose up -d</code>."
                 )
             },
+            {
+                issueKeys.CorrectionFactorZero, CreateIssue("At least one correction factor is set to 0, resulting in the result always being 0.",
+                    IssueType.Error,
+                    "Set the grid power correction factor to a value different than 0.",
+                    "Set the inverter power correction factor to a value different than 0.",
+                    "Set the home battery power correction factor to a value different than 0.",
+                    "Set the home batter SoC correction factor to a value different than 0."
+                )
+            },
         };
     }
 
