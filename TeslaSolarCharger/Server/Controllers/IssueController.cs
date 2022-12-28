@@ -27,13 +27,13 @@ namespace TeslaSolarCharger.Server.Controllers
         /// </summary>
         /// <returns>Inter value with number of active errors</returns>
         [HttpGet]
-        public Task<int> ErrorCount() => _issueValidationService.ErrorCount();
+        public Task<DtoValue<int>> ErrorCount() => _issueValidationService.ErrorCount();
 
         /// <summary>
         /// Get number of current active warning issues.
         /// </summary>
         /// <returns>Inter value with number of active warnings</returns>
         [HttpGet]
-        public Task<int> WarningCount() => _issueValidationService.WarningCount();
+        public Task<DtoValue<int>> WarningCount() => _issueValidationService.WarningCount();
     }
 }
