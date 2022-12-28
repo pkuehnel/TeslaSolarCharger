@@ -1,5 +1,8 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
+using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
@@ -15,13 +18,15 @@ public class ConfigJsonService : IConfigJsonService
     private readonly ILogger<ConfigJsonService> _logger;
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
 
     public ConfigJsonService(ILogger<ConfigJsonService> logger, ISettings settings,
-        IConfigurationWrapper configurationWrapper)
+        IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext)
     {
         _logger = logger;
         _settings = settings;
         _configurationWrapper = configurationWrapper;
+        _teslaSolarChargerContext = teslaSolarChargerContext;
     }
 
     private bool CarConfigurationFileExists()
@@ -142,6 +147,27 @@ public class ConfigJsonService : IConfigJsonService
             foreach (var settingsCar in _settings.Cars)
             {
                 settingsCar.CarConfiguration.UpdatedSincLastWrite = false;
+            }
+        }
+
+        foreach (var car in _settings.Cars)
+        {
+            var cachedCarState = await _teslaSolarChargerContext.CachedCarStates
+                .FirstOrDefaultAsync(c => c.CarId == car.Id).ConfigureAwait(false);
+            if (cachedCarState == null)
+            {
+                cachedCarState = new CachedCarState()
+                {
+                    CarId = car.Id,
+                };
+                _teslaSolarChargerContext.CachedCarStates.Add(cachedCarState);
+            }
+
+            if (car.CarState.SocLimit != default)
+            {
+                cachedCarState.CarStateJson = JsonConvert.SerializeObject(car.CarState);
+                cachedCarState.LastUpdated = DateTime.UtcNow;
+                await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
             }
         }
     }
