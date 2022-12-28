@@ -1,6 +1,5 @@
 using Plugins.Modbus.Contracts;
 using System.Text;
-using System.Threading;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace Plugins.Modbus.Services;
@@ -20,18 +19,18 @@ public class ModbusService : IModbusService
     }
 
     public async Task<object> ReadValue<T>(byte unitIdentifier, ushort startingAddress, ushort quantity,
-        string ipAddressString, int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType) where T : struct
+        string ipAddressString, int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType, bool registerSwap) where T : struct
     {
         _logger.LogTrace("{method}<{type}>({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
                          "{connectDelay}, {timeout}, {modbusRegisterType})",
             nameof(ReadValue), typeof(T), unitIdentifier, startingAddress, quantity, ipAddressString, port,
             connectDelay, timeout, modbusRegisterType);
 
-        var byteArray = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType).ConfigureAwait(false);
+        var byteArray = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port, connectDelay, timeout, modbusRegisterType, registerSwap).ConfigureAwait(false);
 
         if (typeof(T) == typeof(int))
         {
-            return (T) Convert.ChangeType(BitConverter.ToInt32(byteArray, 0), typeof(T));
+            return (T)Convert.ChangeType(BitConverter.ToInt32(byteArray, 0), typeof(T));
         }
 
         if (typeof(T) == typeof(float))
@@ -64,7 +63,7 @@ public class ModbusService : IModbusService
     }
 
     private async Task<byte[]> GetByteArray(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddressString,
-        int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType)
+        int port, int connectDelay, int timeout, ModbusRegisterType modbusRegisterType, bool registerSwap)
     {
         _logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity}, {ipAddressString}, {port}, " +
                          "{connectDelay}, {timeout}, {modbusRegisterType})",
@@ -81,7 +80,7 @@ public class ModbusService : IModbusService
         try
         {
             byteArray = await modbusClient.GetByteArray(unitIdentifier, startingAddress, quantity, ipAddressString, port,
-                    connectDelay, timeout, modbusRegisterType)
+                    connectDelay, timeout, modbusRegisterType, registerSwap)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -96,12 +95,12 @@ public class ModbusService : IModbusService
     }
 
     public async Task<string> GetBinaryString(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port,
-        int connectDelaySeconds, int timeoutSeconds, ModbusRegisterType modbusRegisterType)
+        int connectDelaySeconds, int timeoutSeconds, ModbusRegisterType modbusRegisterType, bool registerSwap)
     {
-        var byteArray = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, modbusRegisterType).ConfigureAwait(false);
+        var byteArray = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, modbusRegisterType, registerSwap).ConfigureAwait(false);
         byteArray = byteArray.Reverse().ToArray();
         var stringbuilder = new StringBuilder();
-        foreach(var byteString in byteArray)
+        foreach (var byteString in byteArray)
         {
             stringbuilder.Append(Convert.ToString(byteString, 2).PadLeft(8, '0'));
             stringbuilder.Append(_byteDelimiter);
@@ -111,10 +110,10 @@ public class ModbusService : IModbusService
     }
 
     public async Task<string> GetBinarySubString(byte unitIdentifier, ushort startingAddress, ushort quantity, string ipAddress, int port, int connectDelaySeconds,
-        int timeoutSeconds, ModbusRegisterType modbusRegisterType, int startIndex, int length)
+        int timeoutSeconds, ModbusRegisterType modbusRegisterType, bool registerSwap, int startIndex, int length)
     {
         var binaryString = await GetBinaryString(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds,
-            modbusRegisterType).ConfigureAwait(false);
+            modbusRegisterType, registerSwap).ConfigureAwait(false);
         binaryString = binaryString.Replace(_byteDelimiter, string.Empty);
         return binaryString.Substring(startIndex, length);
     }

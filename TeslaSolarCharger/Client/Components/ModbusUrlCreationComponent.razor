@@ -44,6 +44,10 @@
     <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Port" @bind:event="oninput" type="number" id="modbusPort" name="modbusPort">
 </p>
 <p>
+    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="swapRegisters">Swap Register (bigEndian / littleEndian):</label>
+    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@SwapRegisters" type="checkbox" id="swapRegisters" name="swapRegisters">
+</p>
+<p>
     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusConnectDelaySeconds">Connect Delay (seconds):</label>
     <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="modbusConnectDelaySeconds" name="modbusConnectDelaySeconds">
 </p>
@@ -145,6 +149,16 @@
         }
     }
 
+    private bool? SwapRegisters
+    {
+        get => _swapRegisters;
+        set
+        {
+            _swapRegisters = value;
+            UpdateUrlFromModbusValues().GetAwaiter().GetResult();
+        }
+    }
+
     #endregion
 
     private string? _modbusUnitIdentifier;
@@ -156,6 +170,7 @@
     private string? _timeoutSeconds;
     private ModbusRegisterType? _modbusRegisterType;
     private ModbusValueType? _modbusValueType;
+    private bool? _swapRegisters;
 
 
     [Parameter]
@@ -215,12 +230,21 @@
             {
                 RegisterType = (ModbusRegisterType?)Enum.Parse(typeof(ModbusRegisterType), modbusRegisterTypeString);
             }
+            var registerSwapString = HttpUtility.ParseQueryString(uri.Query).Get("registerSwap");
+            if (string.IsNullOrEmpty(registerSwapString))
+            {
+                SwapRegisters = false;
+            }
+            else
+            {
+                SwapRegisters = Boolean.Parse(registerSwapString);
+            }
         }
     }
 
     private async Task UpdateUrlFromModbusValues()
     {
-        ModbusUrl = $"http://modbusplugin/api/Modbus/GetTypedValue?unitIdentifier={ModbusUnitIdentifier}&startingAddress={StartingAddress}&quantity={Quantity}&ipAddress={IpAddress}&port={Port}&connectDelaySeconds={ConnectDelaySeconds}&timeoutSeconds={TimeoutSeconds}&modbusValueType={ValueType}&modbusRegisterType={RegisterType}";
+        ModbusUrl = $"http://modbusplugin/api/Modbus/GetTypedValue?unitIdentifier={ModbusUnitIdentifier}&startingAddress={StartingAddress}&quantity={Quantity}&ipAddress={IpAddress}&port={Port}&connectDelaySeconds={ConnectDelaySeconds}&timeoutSeconds={TimeoutSeconds}&modbusValueType={ValueType}&modbusRegisterType={RegisterType}&registerSwap={SwapRegisters}";
         await ModbusUrlChanged.InvokeAsync(ModbusUrl).ConfigureAwait(false);
     }
 }
