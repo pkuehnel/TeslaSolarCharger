@@ -47,7 +47,7 @@ else
     @foreach (var car in _settings.Cars)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarConfiguration.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
+            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
             @if (car.CarState.Healthy != true)
             {
                 <i class="fa-solid fa-circle-exclamation"></i>
@@ -208,7 +208,7 @@ else
                         SoC Limit
                     </td>
                     <td>
-                        @car.CarConfiguration.SocLimit
+                        @car.CarState.SocLimit
                     </td>
                 </tr>
                 <tr>
@@ -349,7 +349,7 @@ else
         {
             var car = _settings.Cars.First(c => c.Id == tmpCar.Id);
             car.CarState = tmpCar.CarState;
-            car.CarConfiguration.SocLimit = tmpCar.CarConfiguration.SocLimit;
+            car.CarState.SocLimit = tmpCar.CarState.SocLimit;
         }
         this.StateHasChanged();
     }

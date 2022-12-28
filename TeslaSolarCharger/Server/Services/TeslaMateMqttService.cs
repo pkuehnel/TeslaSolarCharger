@@ -188,12 +188,12 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             case TopicChargeLimit:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarConfiguration.SocLimit = Convert.ToInt32(value.Value);
+                    car.CarState.SocLimit = Convert.ToInt32(value.Value);
                     var minimumSettableSocLimit = 50;
-                    if (car.CarConfiguration.MinimumSoC > car.CarConfiguration.SocLimit && car.CarConfiguration.SocLimit > minimumSettableSocLimit)
+                    if (car.CarConfiguration.MinimumSoC > car.CarState.SocLimit && car.CarState.SocLimit > minimumSettableSocLimit)
                     {
-                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarConfiguration.SocLimit);
-                        car.CarConfiguration.MinimumSoC = (int)car.CarConfiguration.SocLimit;
+                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarState.SocLimit);
+                        car.CarConfiguration.MinimumSoC = (int)car.CarState.SocLimit;
                     }
                 }
                 break;
