@@ -42,6 +42,7 @@ public class PvValueService : IPvValueService
         {
             var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
             gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
+            _logger.LogTrace("Request grid power.");
             gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
             var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
             var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
@@ -69,6 +70,7 @@ public class PvValueService : IPvValueService
             }
             else
             {
+                _logger.LogTrace("Request inverter power.");
                 inverterHttpResponse = await GetHttpResponse(inverterRequest).ConfigureAwait(false);
             }
             var inverterJsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
@@ -95,6 +97,7 @@ public class PvValueService : IPvValueService
             }
             else
             {
+                _logger.LogTrace("Request home battery soc.");
                 homeBatterySocHttpResponse = await GetHttpResponse(homeBatterySocRequest).ConfigureAwait(false);
             }
             var homeBatterySocJsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
@@ -124,6 +127,7 @@ public class PvValueService : IPvValueService
             }
             else
             {
+                _logger.LogTrace("Request home battery power.");
                 homeBatteryPowerHttpResponse = await GetHttpResponse(homeBatteryPowerRequest).ConfigureAwait(false);
             }
             var homeBatteryPowerJsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
@@ -136,6 +140,7 @@ public class PvValueService : IPvValueService
                 var homeBatteryPowerInversionHeaders = _configurationWrapper.HomeBatteryPowerInversionHeaders();
                 //ToDo: implement setting Headers in frontend
                 var homeBatteryPowerInversionRequest = GenerateHttpRequestMessage(homeBatteryPowerInversionRequestUrl, homeBatteryPowerInversionHeaders);
+                _logger.LogTrace("Request home battery power inversion.");
                 var homeBatteryPowerInversionHttpResponse = await GetHttpResponse(homeBatteryPowerInversionRequest).ConfigureAwait(false);
                 var shouldInvertHomeBatteryPowerInt = await GetValueByHttpResponse(homeBatteryPowerInversionHttpResponse, null, null, 1).ConfigureAwait(false);
                 var shouldInvertHomeBatteryPower = Convert.ToBoolean(shouldInvertHomeBatteryPowerInt);
@@ -176,7 +181,7 @@ public class PvValueService : IPvValueService
 
     private async Task<HttpResponseMessage> GetHttpResponse(HttpRequestMessage request)
     {
-        _logger.LogTrace("{method}({request})", nameof(GetHttpResponse), request);
+        _logger.LogTrace("{method}({request}) [called by {callingMethod}]", nameof(GetHttpResponse), request, new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.Name);
         using var httpClient = new HttpClient();
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         return response;
