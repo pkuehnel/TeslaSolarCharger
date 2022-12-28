@@ -50,6 +50,7 @@ public class IssueValidationService : IIssueValidationService
         issueList.AddRange(await GetTeslaMateApiIssues().ConfigureAwait(false));
         issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
         issueList.AddRange(SofwareIssues());
+        issueList.AddRange(ConfigurationIssues());
         return issueList;
     }
 
@@ -210,6 +211,21 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.VersionNotUpToDate));
         }
 
+        return issues;
+    }
+
+    private List<Issue> ConfigurationIssues()
+    {
+        var issues = new List<Issue>();
+
+        if (_configurationWrapper.CurrentPowerToGridCorrectionFactor() == (decimal)0.0
+            || _configurationWrapper.HomeBatteryPowerCorrectionFactor() == (decimal)0.0
+            || _configurationWrapper.HomeBatterySocCorrectionFactor() == (decimal)0.0
+            || _configurationWrapper.CurrentInverterPowerCorrectionFactor() == (decimal)0.0
+           )
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CorrectionFactorZero));
+        }
         return issues;
     }
 }
