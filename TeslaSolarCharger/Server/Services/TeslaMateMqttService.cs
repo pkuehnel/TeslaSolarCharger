@@ -1,8 +1,11 @@
 using MQTTnet;
 using MQTTnet.Client;
+using Newtonsoft.Json;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -14,6 +17,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
 
     // ReSharper disable once InconsistentNaming
     private const string TopicDisplayName = "display_name";
@@ -47,13 +51,14 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
     public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
-        ISettings settings, IConfigurationWrapper configurationWrapper)
+        ISettings settings, IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext)
     {
         _logger = logger;
         _mqttClient = mqttClient;
         _mqttFactory = mqttFactory;
         _settings = settings;
         _configurationWrapper = configurationWrapper;
+        _teslaSolarChargerContext = teslaSolarChargerContext;
     }
 
     public async Task ConnectMqttClient()
@@ -75,13 +80,17 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             return Task.CompletedTask;
         };
 
+
+        if (_mqttClient.IsConnected)
+        {
+            await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
+                "Reconnecting with new configuration").ConfigureAwait(false);
+        }
+
+        LoadCachedCarStatesFromDatabase();
+
         try
         {
-            if (_mqttClient.IsConnected)
-            {
-                await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
-                    "Reconnecting with new configuration").ConfigureAwait(false);
-            }
             await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -154,6 +163,28 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
     }
 
+    private void LoadCachedCarStatesFromDatabase()
+    {
+        foreach (var car in _settings.Cars)
+        {
+            var cachedCarState = _teslaSolarChargerContext.CachedCarStates.FirstOrDefault(c => c.CarId == car.Id);
+            if (cachedCarState == default)
+            {
+                _logger.LogWarning("No cached car state found for car with id {carId}", car.Id);
+                continue;
+            }
+
+            var carState = JsonConvert.DeserializeObject<CarState>(cachedCarState.CarStateJson);
+            if (carState == null)
+            {
+                _logger.LogWarning("Could not deserialized cached car state for car with id {carId}", car.Id);
+                continue;
+            }
+
+            car.CarState = carState;
+        }
+    }
+
     public async Task ConnectClientIfNotConnected()
     {
         _logger.LogTrace("{method}()", nameof(ConnectClientIfNotConnected));
@@ -188,12 +219,12 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             case TopicChargeLimit:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarConfiguration.SocLimit = Convert.ToInt32(value.Value);
+                    car.CarState.SocLimit = Convert.ToInt32(value.Value);
                     var minimumSettableSocLimit = 50;
-                    if (car.CarConfiguration.MinimumSoC > car.CarConfiguration.SocLimit && car.CarConfiguration.SocLimit > minimumSettableSocLimit)
+                    if (car.CarConfiguration.MinimumSoC > car.CarState.SocLimit && car.CarState.SocLimit > minimumSettableSocLimit)
                     {
-                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarConfiguration.SocLimit);
-                        car.CarConfiguration.MinimumSoC = (int)car.CarConfiguration.SocLimit;
+                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarState.SocLimit);
+                        car.CarConfiguration.MinimumSoC = (int)car.CarState.SocLimit;
                     }
                 }
                 break;
