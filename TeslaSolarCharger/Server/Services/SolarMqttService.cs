@@ -32,7 +32,8 @@ public class SolarMqttService : ISolarMqttService
     {
         _logger.LogTrace("{method}()", nameof(ConnectMqttClient));
         //ToDo: Client Id dynmaisch machen
-        var mqqtClientId = "TeslaSolarCharger";
+        var guid = Guid.NewGuid();
+        var mqqtClientId = $"TeslaSolarCharger{guid}";
         var mqttServer = GetMqttServerAndPort(out var mqttServerPort);
         if (string.IsNullOrWhiteSpace(mqttServer))
         {
