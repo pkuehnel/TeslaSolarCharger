@@ -53,20 +53,21 @@ public class IssueValidationService : IIssueValidationService
         return issueList;
     }
 
-    public async Task<int> ErrorCount()
+    public async Task<DtoValue<int>> ErrorCount()
     {
         _logger.LogTrace("{method}()", nameof(ErrorCount));
         var issues = await RefreshIssues().ConfigureAwait(false);
         var errorIssues = issues.Where(i => i.IssueType == IssueType.Error).ToList();
-        return errorIssues.Count;
+        return new DtoValue<int>(errorIssues.Count);
     }
 
-    public async Task<int> WarningCount()
+    public async Task<DtoValue<int>> WarningCount()
     {
         _logger.LogTrace("{method}()", nameof(WarningCount));
         var issues = await RefreshIssues().ConfigureAwait(false);
         var warningIssues = issues.Where(i => i.IssueType == IssueType.Warning).ToList();
-        return warningIssues.Count;
+        var warningCount = new DtoValue<int>(warningIssues.Count);
+        return warningCount;
     }
 
     private async Task<List<Issue>> GetDatabaseIssues()
