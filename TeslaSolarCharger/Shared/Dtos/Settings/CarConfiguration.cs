@@ -33,17 +33,6 @@ public class CarConfiguration
         }
     }
 
-    public int? SocLimit
-    {
-        get => _socLimit;
-        set
-        {
-            _socLimit = value;
-            UpdatedSincLastWrite = true;
-        }
-    }
-
-
     public int MinimumSoC
     {
         get => _minimumSoC;
