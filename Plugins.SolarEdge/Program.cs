@@ -2,6 +2,8 @@ using Plugins.SolarEdge;
 using Plugins.SolarEdge.Contracts;
 using Plugins.SolarEdge.Services;
 using Serilog;
+using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.TimeProviding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<SharedValues>();
 builder.Services.AddTransient<ICurrentValuesService, CurrentValuesService>()
+    .AddTransient<IDateTimeProvider, DateTimeProvider>()
     ;
 
 builder.Host.UseSerilog((context, configuration) => configuration
