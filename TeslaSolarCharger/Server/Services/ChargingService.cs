@@ -66,7 +66,7 @@ public class ChargingService : IChargingService
 
         foreach (var irrelevantCar in irrelevantCars)
         {
-            UpdateEarliestTimesAfterSwitch(irrelevantCar.Id);
+            SetEarliestTimesAfterSwitchToNull(irrelevantCar.Id);
         }
 
         if (relevantCarIds.Count < 1)
@@ -82,14 +82,19 @@ public class ChargingService : IChargingService
             return;
         }
 
-        var powerToControl = CalculatePowerToControl(relevantCars);
+
+        var currentControledPower = relevantCars
+            .Sum(c => c.CarState.ChargingPower);
+        _logger.LogDebug("Current controlled Power: {power}", currentControledPower);
+
+        var powerToControl = CalculatePowerToControl();
 
         if (!_settings.ControlledACarAtLastCycle)
         {
             //Wait for the car to reach charging Power
             _logger.LogDebug("No car was charging last charge cycle");
             await Task.Delay(TimeSpan.FromSeconds(25)).ConfigureAwait(false);
-            powerToControl = CalculatePowerToControl(relevantCars);
+            powerToControl = CalculatePowerToControl();
             _logger.LogDebug("Power to control: {powerToControl}", powerToControl);
             foreach (var relevantCar in relevantCars)
             {
@@ -120,19 +125,22 @@ public class ChargingService : IChargingService
 
         foreach (var relevantCar in relevantCars)
         {
-            var ampToControl = Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * (relevantCar.CarState.ActualPhases ?? 3))));
+            //ToDo: replace 230 with actual voltage on location
+            var ampToControl = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
             _logger.LogDebug("Amp to control: {amp}", ampToControl);
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
             powerToControl -= await ChangeCarAmp(relevantCar, ampToControl).ConfigureAwait(false);
         }
     }
 
-    private int CalculatePowerToControl(List<Car> relevantCars)
+    public int CalculateAmpByPowerAndCar(int powerToControl, Car car)
     {
-        _logger.LogTrace("{method}({param})", nameof(CalculatePowerToControl), relevantCars);
-        var currentControledPower = relevantCars
-            .Sum(c => c.CarState.ChargingPower);
-        _logger.LogDebug("Current controlled Power: {power}", currentControledPower);
+        return Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * (car.CarState.ActualPhases ?? 3))));
+    }
+
+    public int CalculatePowerToControl()
+    {
+        _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
@@ -286,13 +294,13 @@ public class ChargingService : IChargingService
                     }
                     await _teslaService.StartCharging(car.Id, ampToSet, car.CarState.State).ConfigureAwait(false);
                     ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
-                    UpdateEarliestTimesAfterSwitch(car.Id);
+                    SetEarliestTimesAfterSwitchToNull(car.Id);
                 }
                 else
                 {
                     await _teslaService.SetAmp(car.Id, ampToSet).ConfigureAwait(false);
                     ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
-                    UpdateEarliestTimesAfterSwitch(car.Id);
+                    SetEarliestTimesAfterSwitchToNull(car.Id);
                 }
 
             }
@@ -302,7 +310,7 @@ public class ChargingService : IChargingService
         else if (finalAmpsToSet < minAmpPerCar && car.CarState.ChargerActualCurrent > 0)
         {
             _logger.LogDebug("Charging should stop");
-            var earliestSwitchOff = EarliestSwitchOff(car.Id);
+            var earliestSwitchOff = SetEarliestSwitchOffToNowWhenNotAlreadySet(car.Id);
             //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
             if (car.CarState.ClimateOn == true || earliestSwitchOff > _dateTimeProvider.Now())
             {
@@ -321,35 +329,34 @@ public class ChargingService : IChargingService
                 _logger.LogDebug("Stop Charging");
                 await _teslaService.StopCharging(car.Id).ConfigureAwait(false);
                 ampChange -= car.CarState.ChargerActualCurrent ?? 0;
-                UpdateEarliestTimesAfterSwitch(car.Id);
+                SetEarliestTimesAfterSwitchToNull(car.Id);
             }
         }
         //Falls Laden beendet ist und beendet bleiben soll
         else if (finalAmpsToSet < minAmpPerCar)
         {
             _logger.LogDebug("Charging should stay stopped");
-            UpdateEarliestTimesAfterSwitch(car.Id);
+            SetEarliestTimesAfterSwitchToNull(car.Id);
         }
         //Falls nicht ladend, aber laden soll beginnen
         else if (finalAmpsToSet >= minAmpPerCar && (car.CarState.ChargerActualCurrent is 0 or null))
         {
             _logger.LogDebug("Charging should start");
-            var earliestSwitchOn = EarliestSwitchOn(car.Id);
 
-            if (earliestSwitchOn <= _dateTimeProvider.Now())
+            if (car.CarState.EarliestSwitchOn <= _dateTimeProvider.Now())
             {
                 _logger.LogDebug("Charging is starting");
                 var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
                 await _teslaService.StartCharging(car.Id, startAmp, car.CarState.State).ConfigureAwait(false);
                 ampChange += startAmp;
-                UpdateEarliestTimesAfterSwitch(car.Id);
+                SetEarliestTimesAfterSwitchToNull(car.Id);
             }
         }
         //Normal Ampere setzen
         else
         {
             _logger.LogDebug("Normal amp set");
-            UpdateEarliestTimesAfterSwitch(car.Id);
+            SetEarliestTimesAfterSwitchToNull(car.Id);
             var ampToSet = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
             if (ampToSet != car.CarState.ChargerRequestedCurrent)
             {
@@ -409,17 +416,17 @@ public class ChargingService : IChargingService
         }
     }
 
-    private void UpdateEarliestTimesAfterSwitch(int carId)
+    private void SetEarliestTimesAfterSwitchToNull(int carId)
     {
-        _logger.LogTrace("{method}({param1})", nameof(UpdateEarliestTimesAfterSwitch), carId);
+        _logger.LogTrace("{method}({param1})", nameof(SetEarliestTimesAfterSwitchToNull), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
         car.CarState.ShouldStopChargingSince = null;
         car.CarState.ShouldStartChargingSince = null;
     }
 
-    private DateTime? EarliestSwitchOff(int carId)
+    private DateTime? SetEarliestSwitchOffToNowWhenNotAlreadySet(int carId)
     {
-        _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOff), carId);
+        _logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOffToNowWhenNotAlreadySet), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
         if (car.CarState.ShouldStopChargingSince == null)
         {
@@ -434,20 +441,7 @@ public class ChargingService : IChargingService
         return earliestSwitchOff;
     }
 
-    private DateTime? EarliestSwitchOn(int carId)
-    {
-        _logger.LogTrace("{method}({param1})", nameof(EarliestSwitchOn), carId);
-        var car = _settings.Cars.First(c => c.Id == carId);
-        if (car.CarState.ShouldStartChargingSince == null)
-        {
-            car.CarState.ShouldStartChargingSince = _dateTimeProvider.Now();
-        }
 
-        var timespanUntilSwitchOn = _configurationWrapper.TimespanUntilSwitchOn();
-        var earliestSwitchOn = car.CarState.ShouldStartChargingSince + timespanUntilSwitchOn;
-        _logger.LogDebug("Should start charging since: {shoudStartChargingSince}", car.CarState.ShouldStartChargingSince);
-        _logger.LogDebug("Timespan until switch on: {timespanUntilSwitchOn}", timespanUntilSwitchOn);
-        _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", earliestSwitchOn);
-        return earliestSwitchOn;
-    }
+
+    
 }
