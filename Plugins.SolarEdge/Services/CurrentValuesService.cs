@@ -38,7 +38,7 @@ public class CurrentValuesService : ICurrentValuesService
         {
             value = -value;
         }
-        return (int) value;
+        return (int)value;
     }
 
     public async Task<int> GetInverterPower()
@@ -76,25 +76,15 @@ public class CurrentValuesService : ICurrentValuesService
         {
             return (int)(batteryPower * 1000);
         }
-        return (int) batteryPower;
+        return (int)batteryPower;
     }
 
     private async Task<CloudApiValue> GetLatestValue()
     {
-        var refreshIntervalInt = _configuration.GetValue<int?>("RefreshIntervalSeconds") ?? 
-                                 _configuration.GetValue<int>("RefreshIntervallSeconds");
-        var refreshInterval = TimeSpan.FromSeconds(refreshIntervalInt);
-        _logger.LogDebug("Refresh Interval is {refreshInterval}", refreshInterval);
-
-
-        if (_sharedValues.CloudApiValues.Count < 1
-            || _sharedValues.CloudApiValues.Last().Key < _dateTimeProvider.UtcNow() - refreshInterval)
-        {
-            _logger.LogDebug("Get new Values from SolarEdge API");
-            var jsonString = await GetCloudApiString().ConfigureAwait(false);
-            var cloudApiValue = GetCloudApiValueFromString(jsonString);
-            AddCloudApiValueToSharedValues(cloudApiValue);
-        }
+        _logger.LogDebug("Get new Values from SolarEdge API");
+        var jsonString = await GetCloudApiString().ConfigureAwait(false);
+        var cloudApiValue = GetCloudApiValueFromString(jsonString);
+        AddCloudApiValueToSharedValues(cloudApiValue);
 
         var latestValue = _sharedValues.CloudApiValues.Last().Value;
         return latestValue;
