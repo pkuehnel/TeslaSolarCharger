@@ -211,7 +211,7 @@ public class ChargingService : IChargingService
     /// <returns>Power difference</returns>
     private async Task<int> ChangeCarAmp(Car car, int ampToChange, DtoValue<int> maxAmpIncrease)
     {
-        _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), car.Id, ampToChange);
+        _logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(ChangeCarAmp), car.Id, ampToChange, maxAmpIncrease.Value);
         if (maxAmpIncrease.Value < ampToChange)
         {
             _logger.LogDebug("Reduce current increase from {ampToChange}A to {maxAmpIncrease}A due to limited combined charging current.",
@@ -262,8 +262,8 @@ public class ChargingService : IChargingService
                 car.CarConfiguration.ChargeMode, car.CarState.AutoFullSpeedCharge);
             if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar || maxAmpIncrease.Value < 0)
             {
-                var ampToSet = (maxAmpPerCar - car.CarState.ChargerRequestedCurrent) > maxAmpIncrease.Value ? maxAmpIncrease.Value : maxAmpPerCar;
-
+                var ampToSet = (maxAmpPerCar - car.CarState.ChargerRequestedCurrent) > maxAmpIncrease.Value ? ((car.CarState.ChargerActualCurrent ?? 0) + maxAmpIncrease.Value) : maxAmpPerCar;
+                _logger.LogDebug("Set current to {ampToSet} after considering max car Current {maxAmpPerCar} and maxAmpIncrease {maxAmpIncrease}", ampToSet, maxAmpPerCar, maxAmpIncrease.Value);
                 if (car.CarState.ChargerActualCurrent < 1)
                 {
                     //Do not start charging when battery level near charge limit
