@@ -90,6 +90,7 @@ public class BaseConfigurationBase
     public string? HomeBatteryPowerXmlAttributeValueName { get; set; }
     public int? HomeBatteryMinSoc { get; set; }
     public int? HomeBatteryChargingPower { get; set; }
+    public int? MaxCombinedCurrent { get; set; }
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 

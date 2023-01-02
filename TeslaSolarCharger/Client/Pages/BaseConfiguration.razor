@@ -22,23 +22,28 @@ else
     <EditForm Model="@_dtoBaseConfiguration" OnValidSubmit="@HandleValidSubmit">
         <hr />
         <div class="shadow p-3 mb-5 bg-white rounded">
+            <h3>General:</h3>
+            <label for="maxCombinedCurrent">Max combined current (Ampere)</label>
+            <InputNumber id="maxCombinedCurrent" @bind-Value="_dtoBaseConfiguration.MaxCombinedCurrent" class="form-control"/>
+            <small id="maxCombinedCurrentHelp" class="form-text text-muted">Set a value if you want to reduce the max combined used current of all cars. E.g. if you have two cars each set to max 16A but your garage can only handle 20A you can set 20A here. So if one car uses 16A the other car can only use 4A. Note: Power is distributed based on the set car priorities.</small>
+            <hr />
             <h3>TeslaMate:</h3>
             <div class="form-group">
                 <label for="carPriorities">Car Ids</label>
-                <InputText id="carPriorities" @bind-Value="_dtoBaseConfiguration.CarPriorities" placeholder="1|3|2" class="form-control" />
-                <small id="powerBufferHelp" class="form-text text-muted">Car Ids separated by '|'. Note: The order of the IDs is the order of power distribution.</small>
+                <InputText id="carPriorities" @bind-Value="_dtoBaseConfiguration.CarPriorities" placeholder="1|3|2" class="form-control"/>
+                <small id="carPrioritiesHelp" class="form-text text-muted">Car Ids separated by '|'. Note: The order of the IDs is the order of power distribution.</small>
             </div>
             <div class="form-group">
                 <label for="teslaMateDbUser">TeslaMate Database Username</label>
-                <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" placeholder="username" class="form-control" />
+                <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" placeholder="username" class="form-control"/>
             </div>
             <div class="form-group">
                 <label for="teslaMateDbPassword">TeslaMate Database Server Password</label>
-                <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" placeholder="secret" class="form-control" />
+                <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" placeholder="secret" class="form-control"/>
             </div>
             <div class="form-group">
                 <label for="geoFence">Relevant Geofence</label>
-                <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" placeholder="Home" class="form-control" />
+                <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" placeholder="Home" class="form-control"/>
                 <small id="geoFenceHelp" class="form-text text-muted">You have to add a geofence with the same name in TeslaMate</small>
             </div>
         </div>

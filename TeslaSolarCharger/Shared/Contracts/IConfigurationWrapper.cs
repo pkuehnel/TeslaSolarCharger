@@ -73,4 +73,10 @@ public interface IConfigurationWrapper
     string? SolarMqttPassword();
     string? HomeBatteryPowerInversionUrl();
     Dictionary<string, string> HomeBatteryPowerInversionHeaders();
+
+    /// <summary>
+    /// Get max combined current from baseConfiguration
+    /// </summary>
+    /// <returns>Configured max combined current. If no value is configured int.MaxValue is returned.</returns>
+    int MaxCombinedCurrent();
 }
