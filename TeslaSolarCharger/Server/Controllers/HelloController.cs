@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
@@ -16,6 +17,9 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public Task<bool> IsAlive() => Task.FromResult(true);
+
+        [HttpGet]
+        public Task<DtoValue<int>> NumberOfRelevantCars() => Task.FromResult(_coreService.NumberOfRelevantCars());
 
         [HttpGet]
         public Task<string?> ProductVersion()

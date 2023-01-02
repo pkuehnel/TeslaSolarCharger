@@ -7,4 +7,5 @@ public interface IChargingService
     Task SetNewChargingValues();
     int CalculateAmpByPowerAndCar(int powerToControl, Car car);
     int CalculatePowerToControl();
+    List<int> GetRelevantCarIds();
 }
