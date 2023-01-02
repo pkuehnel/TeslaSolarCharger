@@ -77,11 +77,6 @@ public class ChargingService : IChargingService
             return;
         }
 
-
-        var currentControledPower = relevantCars
-            .Sum(c => c.CarState.ChargingPower);
-        _logger.LogDebug("Current controlled Power: {power}", currentControledPower);
-
         var powerToControl = CalculatePowerToControl();
 
         _logger.LogDebug("At least one car is charging.");
@@ -94,6 +89,8 @@ public class ChargingService : IChargingService
             _logger.LogTrace("Reversing car order");
             relevantCars.Reverse();
         }
+
+        var maxUsableCurrent = _configurationWrapper.MaxCombinedCurrent();
 
         foreach (var relevantCar in relevantCars)
         {
