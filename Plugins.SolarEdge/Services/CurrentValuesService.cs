@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Plugins.SolarEdge.Contracts;
 using Plugins.SolarEdge.Dtos.CloudApi;
+using System.Net;
 using TeslaSolarCharger.Shared.Contracts;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
@@ -82,12 +83,35 @@ public class CurrentValuesService : ICurrentValuesService
     private async Task<CloudApiValue> GetLatestValue()
     {
         _logger.LogDebug("Get new Values from SolarEdge API");
-        var jsonString = await GetCloudApiString().ConfigureAwait(false);
+        var jsonString = string.Empty;
+        try
+        {
+            jsonString = await GetCloudApiString().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not get json string from solarEdge.");
+            return FakeLastValue();
+        }
+        if (string.IsNullOrEmpty(jsonString))
+        {
+            return FakeLastValue();
+        }
         var cloudApiValue = GetCloudApiValueFromString(jsonString);
         AddCloudApiValueToSharedValues(cloudApiValue);
 
         var latestValue = _sharedValues.CloudApiValues.Last().Value;
         return latestValue;
+    }
+
+    private CloudApiValue FakeLastValue()
+    {
+        _logger.LogTrace("{method}()", nameof(FakeLastValue));
+        var fakedValue = _sharedValues.CloudApiValues.Last().Value;
+        fakedValue.SiteCurrentPowerFlow.Grid.CurrentPower = 0;
+        fakedValue.SiteCurrentPowerFlow.Pv.CurrentPower = 0;
+        fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = 0;
+        return fakedValue;
     }
 
     private void AddCloudApiValueToSharedValues(CloudApiValue cloudApiValue)
@@ -97,13 +121,27 @@ public class CurrentValuesService : ICurrentValuesService
         _sharedValues.CloudApiValues.Add(currentDateTime, cloudApiValue);
     }
 
-    private async Task<string> GetCloudApiString()
+    private async Task<string?> GetCloudApiString()
     {
         _logger.LogTrace("{method}()", nameof(GetCloudApiString));
         using var httpClient = new HttpClient();
         var requestUrl = _configuration.GetValue<string>("CloudUrl");
         _logger.LogDebug("Request URL is {requestUrl}", requestUrl);
+        var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(16);
+        if (_sharedValues.LastTooManyRequests < _dateTimeProvider.Now() + solarEdgeTooManyRequestsResetTime)
+        {
+            _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError}", _sharedValues.LastTooManyRequests);
+            return null;
+        }
         var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+        {
+            _sharedValues.LastTooManyRequests = _dateTimeProvider.Now();
+        }
+        else
+        {
+            _sharedValues.LastTooManyRequests = null;
+        }
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
     }
