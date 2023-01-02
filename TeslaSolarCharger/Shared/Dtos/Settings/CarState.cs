@@ -6,7 +6,9 @@ public class CarState
 {
     public string? Name { get; set; }
     public DateTime? ShouldStartChargingSince { get; set; }
+    public DateTime? EarliestSwitchOn { get; set; }
     public DateTime? ShouldStopChargingSince { get; set; }
+    public DateTime? EarliestSwitchOff { get; set; }
     public int? SoC { get; set; }
     public int? SocLimit { get; set; }
     public string? Geofence { get; set; }
