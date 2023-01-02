@@ -41,7 +41,13 @@ public class ChargeTimeUpdateService : IChargeTimeUpdateService
         var ampToSet = _chargingService.CalculateAmpByPowerAndCar(powerToControl, car);
         if (car.CarState.IsHomeGeofence == true)
         {
-            ampToSet += car.CarState.ChargerActualCurrent ?? 0;
+            var actualCurrent = car.CarState.ChargerActualCurrent ?? 0;
+            //This is needed because sometimes actual current is higher than last set amp, leading to higher calculated amp to set, than actually needed
+            if (actualCurrent > car.CarState.LastSetAmp)
+            {
+                actualCurrent = car.CarState.LastSetAmp;
+            }
+            ampToSet += actualCurrent;
         }
         //Commented section not needed because should start should also be set if charging
         if (ampToSet >= car.CarConfiguration.MinimumAmpere/* && (car.CarState.ChargerActualCurrent is 0 or null)*/)
