@@ -24,5 +24,9 @@ namespace TeslaSolarCharger.Server.Controllers
         [HttpPut]
         public void UpdateBaseConfiguration([FromBody] DtoBaseConfiguration baseConfiguration) =>
             _service.UpdateBaseConfigurationAsync(baseConfiguration);
+
+        [HttpGet]
+        public void UpdateMaxCombinedCurrent(int? maxCombinedCurrent) =>
+            _service.UpdateMaxCombinedCurrent(maxCombinedCurrent);
     }
 }

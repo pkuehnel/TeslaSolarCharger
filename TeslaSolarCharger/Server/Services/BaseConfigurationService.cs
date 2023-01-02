@@ -32,4 +32,11 @@ public class BaseConfigurationService : IBaseConfigurationService
         await _solarMqttService.ConnectMqttClient().ConfigureAwait(false);
         await _jobManager.StartJobs().ConfigureAwait(false);
     }
+
+    public async Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent)
+    {
+        var baseConfiguration = await _configurationWrapper.GetBaseConfigurationAsync().ConfigureAwait(false);
+        baseConfiguration.MaxCombinedCurrent = maxCombinedCurrent;
+        await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
+    }
 }
