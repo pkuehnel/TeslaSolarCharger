@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
@@ -84,20 +85,24 @@ public class ChargingService : IChargingService
         
         _logger.LogDebug("Power to control: {power}", powerToControl);
 
-        if (powerToControl < 0)
+        var maxUsableCurrent = _configurationWrapper.MaxCombinedCurrent();
+        var currentlyUsedCurrent = relevantCars.Select(c => c.CarState.ChargerActualCurrent ?? 0).Sum();
+        var maxAmpIncrease = new DtoValue<int>(maxUsableCurrent - currentlyUsedCurrent);
+
+        if (powerToControl < 0 || maxAmpIncrease.Value < 0)
         {
             _logger.LogTrace("Reversing car order");
             relevantCars.Reverse();
         }
 
-        var maxUsableCurrent = _configurationWrapper.MaxCombinedCurrent();
+        
 
         foreach (var relevantCar in relevantCars)
         {
             var ampToControl = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
             _logger.LogDebug("Amp to control: {amp}", ampToControl);
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
-            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl).ConfigureAwait(false);
+            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
         }
     }
 
@@ -202,10 +207,17 @@ public class ChargingService : IChargingService
     /// </summary>
     /// <param name="car">car whose Ampere should be changed</param>
     /// <param name="ampToChange">Needed amp difference</param>
+    /// <param name="maxAmpIncrease">Max Amp increase (also relevant for full speed charges)</param>
     /// <returns>Power difference</returns>
-    private async Task<int> ChangeCarAmp(Car car, int ampToChange)
+    private async Task<int> ChangeCarAmp(Car car, int ampToChange, DtoValue<int> maxAmpIncrease)
     {
         _logger.LogTrace("{method}({param1}, {param2})", nameof(ChangeCarAmp), car.Id, ampToChange);
+        if (maxAmpIncrease.Value < ampToChange)
+        {
+            _logger.LogDebug("Reduce current increase from {ampToChange}A to {maxAmpIncrease}A due to limited combined charging current.",
+                ampToChange, maxAmpIncrease.Value);
+            ampToChange = maxAmpIncrease.Value;
+        }
         //This might happen if only climate is running or car nearly full which means full power is not needed.
         if (ampToChange > 0 && car.CarState.ChargerRequestedCurrent > car.CarState.ChargerActualCurrent && car.CarState.ChargerActualCurrent > 0)
         {
@@ -248,9 +260,9 @@ public class ChargingService : IChargingService
         {
             _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}",
                 car.CarConfiguration.ChargeMode, car.CarState.AutoFullSpeedCharge);
-            if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar)
+            if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar || maxAmpIncrease.Value < 0)
             {
-                var ampToSet = maxAmpPerCar;
+                var ampToSet = (maxAmpPerCar - car.CarState.ChargerRequestedCurrent) > maxAmpIncrease.Value ? maxAmpIncrease.Value : maxAmpPerCar;
 
                 if (car.CarState.ChargerActualCurrent < 1)
                 {
@@ -330,6 +342,7 @@ public class ChargingService : IChargingService
             }
         }
 
+        maxAmpIncrease.Value -= ampChange;
         return ampChange * (car.CarState.ChargerVoltage ?? 230) * (car.CarState.ActualPhases ?? 3);
     }
 
