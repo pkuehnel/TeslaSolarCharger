@@ -183,7 +183,7 @@ public class ChargingService : IChargingService
     }
 
 
-    internal List<int> GetRelevantCarIds()
+    public List<int> GetRelevantCarIds()
     {
         var relevantIds = _settings.Cars
             .Where(c =>
