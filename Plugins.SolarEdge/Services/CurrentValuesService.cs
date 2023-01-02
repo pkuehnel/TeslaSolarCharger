@@ -127,7 +127,15 @@ public class CurrentValuesService : ICurrentValuesService
         using var httpClient = new HttpClient();
         var requestUrl = _configuration.GetValue<string>("CloudUrl");
         _logger.LogDebug("Request URL is {requestUrl}", requestUrl);
-        var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(16);
+        var tooManyRequestsResetMinutesEnvironmentVariableName = "TooManyRequestsResetMinutes";
+        var solarEdgeTooManyRequestsResetMinutes = _configuration.GetValue<int>(tooManyRequestsResetMinutesEnvironmentVariableName);
+        if (solarEdgeTooManyRequestsResetMinutes == default)
+        {
+            var defaultResetMinutes = 16;
+            _logger.LogDebug("No environmentvariable {envVariableName} found, using default of {defaultValue}", tooManyRequestsResetMinutesEnvironmentVariableName, defaultResetMinutes);
+            solarEdgeTooManyRequestsResetMinutes = defaultResetMinutes;
+        }
+        var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(solarEdgeTooManyRequestsResetMinutes);
         if (_sharedValues.LastTooManyRequests < _dateTimeProvider.Now() + solarEdgeTooManyRequestsResetTime)
         {
             _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError}", _sharedValues.LastTooManyRequests);
