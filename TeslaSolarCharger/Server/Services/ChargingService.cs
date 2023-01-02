@@ -51,7 +51,7 @@ public class ChargingService : IChargingService
             _logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
         }
 
-        await LogErrorForCarsWithUnknownSocLimit(_settings.Cars).ConfigureAwait(false);
+        LogErrorForCarsWithUnknownSocLimit(_settings.Cars);
 
         var relevantCarIds = GetRelevantCarIds();
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
@@ -161,7 +161,7 @@ public class ChargingService : IChargingService
         return _settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)).ToList();
     }
 
-    private async Task LogErrorForCarsWithUnknownSocLimit(List<Car> cars)
+    private void LogErrorForCarsWithUnknownSocLimit(List<Car> cars)
     {
         foreach (var car in cars)
         {
@@ -173,7 +173,6 @@ public class ChargingService : IChargingService
                  car.CarState.State == CarStateEnum.Offline))
             {
                 _logger.LogWarning("Unknown charge limit of car {carId}.", car.Id);
-                await _telegramService.SendMessage($"Unknown charge limit of car {car.Id}.").ConfigureAwait(false);
             }
         }
     }
