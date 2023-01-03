@@ -177,7 +177,7 @@ public class CurrentValuesService : ICurrentValuesService
         }
         
 
-        _logger.LogTrace("Number of relevant cars could not be determined, use default value 1");
+        _logger.LogInformation("Number of relevant cars could not be determined, use default value 1");
         return 1;
     }
 
