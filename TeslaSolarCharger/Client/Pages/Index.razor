@@ -44,6 +44,13 @@ else
         }
         <div><i class="fa-solid fa-car" style="width: 25px;"></i>@_carsToDisplay.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
     </div>
+    @if (_carsToDisplay.Count < 1)
+    {
+        <p>
+            Note: If you started TeslaSolarCharger with wrong TeslaMate database credentials a restart of TeslaSolarCharger is needed to recognize the cars.<br/>
+            You also need to enable TeslaSolarCharger for at least one car in the <a href="/CarSettings">car settings page</a>.
+        </p>
+    }
     @foreach (var car in _carsToDisplay)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
