@@ -12,7 +12,7 @@ public class CarConfiguration
     private int _minimumAmpere;
     private int _usableEnergy;
     private bool? _shouldBeManaged;
-    private int? _socLimit;
+    private int _chargingPriority;
 
     public CarConfiguration()
     {
@@ -32,17 +32,6 @@ public class CarConfiguration
             UpdatedSincLastWrite = true;
         }
     }
-
-    public int? SocLimit
-    {
-        get => _socLimit;
-        set
-        {
-            _socLimit = value;
-            UpdatedSincLastWrite = true;
-        }
-    }
-
 
     public int MinimumSoC
     {
@@ -100,6 +89,16 @@ public class CarConfiguration
         set
         {
             _shouldBeManaged = value;
+            UpdatedSincLastWrite = true;
+        }
+    }
+
+    public int ChargingPriority
+    {
+        get => _chargingPriority;
+        set
+        {
+            _chargingPriority = value;
             UpdatedSincLastWrite = true;
         }
     }
