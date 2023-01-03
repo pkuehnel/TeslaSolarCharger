@@ -14,7 +14,6 @@ public interface IConfigurationWrapper
     string? CurrentPowerToGridJsonPattern();
     decimal CurrentPowerToGridCorrectionFactor();
     string TeslaMateApiBaseUrl();
-    List<int> CarPriorities();
     string GeoFence();
     TimeSpan TimespanUntilSwitchOn();
     TimeSpan TimespanUntilSwitchOff();

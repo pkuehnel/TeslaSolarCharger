@@ -354,13 +354,6 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().MaxCombinedCurrent ?? int.MaxValue;
     }
 
-    public List<int> CarPriorities()
-    {
-        var rawValue = GetBaseConfiguration().CarPriorities;
-        var value = rawValue.Split("|").Select(id => Convert.ToInt32(id)).ToList();
-        return value;
-    }
-
     public string GeoFence()
     {
         return GetBaseConfiguration().GeoFence;
