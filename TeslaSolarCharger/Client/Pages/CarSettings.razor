@@ -12,10 +12,8 @@
 }
 else
 {
-    @if (_carBasicConfigurations.Count < 1)
-    {
-        <p>No cars were found in the database. Please check if any car is available in TeslaMate.</p>
-    }
+    <p>Note: New cars are only detected after a restart of TeslaMate followed by a restart of TeslaSolarCharger.</p>
+
     @foreach (var carBasicConfiguration in _carBasicConfigurations)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
