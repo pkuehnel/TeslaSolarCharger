@@ -12,6 +12,10 @@
 }
 else
 {
+    @if (_carBasicConfigurations.Count < 1)
+    {
+        <p>Note: If you started TeslaSolarCharger with wrong TeslaMate Database Credentials a restart of TeslaSolarCharger is needed to recognize the cars.</p>
+    }
     @foreach (var carBasicConfiguration in _carBasicConfigurations)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
