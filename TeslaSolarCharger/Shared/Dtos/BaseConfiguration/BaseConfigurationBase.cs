@@ -35,8 +35,6 @@ public class BaseConfigurationBase
     [Required]
     [Range(1, int.MaxValue)]
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
-    [Required]
-    public string CarPriorities { get; set; } = "1";
     [Required] 
     public string GeoFence { get; set; } = "Home";
     [Required]
