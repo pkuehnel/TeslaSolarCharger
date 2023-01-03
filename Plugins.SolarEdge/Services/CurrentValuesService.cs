@@ -159,11 +159,13 @@ public class CurrentValuesService : ICurrentValuesService
 
     private async Task<int> GetNumberOfRelevantCars()
     {
+        _logger.LogTrace("{method}()", nameof(GetNumberOfRelevantCars));
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromSeconds(1);
         try
         {
-            var requestUrl = "http://teslsolarcharger/api/Hello/NumberOfRelevantCars";
+            var requestUrl = "http://teslasolarcharger/api/Hello/NumberOfRelevantCars";
+            _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
             var numberOfRelevantCars = await httpClient.GetFromJsonAsync<DtoValue<int>>(requestUrl).ConfigureAwait(false);
             if (numberOfRelevantCars != null)
             {
