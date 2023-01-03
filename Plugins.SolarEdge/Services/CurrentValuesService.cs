@@ -136,7 +136,7 @@ public class CurrentValuesService : ICurrentValuesService
         }
         var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(solarEdgeTooManyRequestsResetMinutes);
         var numberOfRelevantCars = await GetNumberOfRelevantCars().ConfigureAwait(false);
-        if ((_sharedValues.LastTooManyRequests < (_dateTimeProvider.Now() + solarEdgeTooManyRequestsResetTime)) || numberOfRelevantCars < 1)
+        if (_sharedValues.CloudApiValues.Count > 0 && ((_sharedValues.LastTooManyRequests < (_dateTimeProvider.Now() + solarEdgeTooManyRequestsResetTime)) || numberOfRelevantCars < 1))
         {
             _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError} and relevantCarCount is {relevantCarCount}", _sharedValues.LastTooManyRequests, numberOfRelevantCars);
             return null;
