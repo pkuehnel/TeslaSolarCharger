@@ -164,6 +164,7 @@ public class CurrentValuesService : ICurrentValuesService
         httpClient.Timeout = TimeSpan.FromSeconds(1);
         try
         {
+            //ToDo: Make Base URL configurable
             var requestUrl = "http://teslasolarcharger/api/Hello/NumberOfRelevantCars";
             _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
             var numberOfRelevantCars = await httpClient.GetFromJsonAsync<DtoValue<int>>(requestUrl).ConfigureAwait(false);
