@@ -112,6 +112,7 @@ public class ConfigJsonService : IConfigJsonService
                         MinimumAmpere = 1,
                         UsableEnergy = 75,
                         LatestTimeToReachSoC = new DateTime(2022, 1, 1),
+                        ShouldBeManaged = true,
                     },
                     CarState =
                     {
