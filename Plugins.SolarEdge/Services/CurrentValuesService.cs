@@ -4,6 +4,7 @@ using Plugins.SolarEdge.Contracts;
 using Plugins.SolarEdge.Dtos.CloudApi;
 using System.Net;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace Plugins.SolarEdge.Services;
@@ -124,9 +125,7 @@ public class CurrentValuesService : ICurrentValuesService
     private async Task<string?> GetCloudApiString()
     {
         _logger.LogTrace("{method}()", nameof(GetCloudApiString));
-        using var httpClient = new HttpClient();
-        var requestUrl = _configuration.GetValue<string>("CloudUrl");
-        _logger.LogDebug("Request URL is {requestUrl}", requestUrl);
+        
         var tooManyRequestsResetMinutesEnvironmentVariableName = "TooManyRequestsResetMinutes";
         var solarEdgeTooManyRequestsResetMinutes = _configuration.GetValue<int>(tooManyRequestsResetMinutesEnvironmentVariableName);
         if (solarEdgeTooManyRequestsResetMinutes == default)
@@ -136,11 +135,15 @@ public class CurrentValuesService : ICurrentValuesService
             solarEdgeTooManyRequestsResetMinutes = defaultResetMinutes;
         }
         var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(solarEdgeTooManyRequestsResetMinutes);
-        if (_sharedValues.LastTooManyRequests < _dateTimeProvider.Now() + solarEdgeTooManyRequestsResetTime)
+        var numberOfRelevantCars = await GetNumberOfRelevantCars().ConfigureAwait(false);
+        if ((_sharedValues.LastTooManyRequests < (_dateTimeProvider.Now() + solarEdgeTooManyRequestsResetTime)) || numberOfRelevantCars < 1)
         {
-            _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError}", _sharedValues.LastTooManyRequests);
+            _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError} and relevantCarCount is {relevantCarCount}", _sharedValues.LastTooManyRequests, numberOfRelevantCars);
             return null;
         }
+        var requestUrl = _configuration.GetValue<string>("CloudUrl");
+        _logger.LogDebug("Request URL is {requestUrl}", requestUrl);
+        using var httpClient = new HttpClient();
         var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
         {
@@ -152,6 +155,30 @@ public class CurrentValuesService : ICurrentValuesService
         }
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    }
+
+    private async Task<int> GetNumberOfRelevantCars()
+    {
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(1);
+        try
+        {
+            var requestUrl = "http://teslsolarcharger/api/Hello/NumberOfRelevantCars";
+            var numberOfRelevantCars = await httpClient.GetFromJsonAsync<DtoValue<int>>(requestUrl).ConfigureAwait(false);
+            if (numberOfRelevantCars != null)
+            {
+                return numberOfRelevantCars.Value;
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Could not access number of relevant cars, use 1");
+            return 1;
+        }
+        
+
+        _logger.LogInformation("Number of relevant cars could not be determined, use default value 1");
+        return 1;
     }
 
     internal CloudApiValue GetCloudApiValueFromString(string jsonString)
