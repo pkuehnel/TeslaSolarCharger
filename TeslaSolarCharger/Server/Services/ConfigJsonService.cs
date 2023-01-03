@@ -19,14 +19,17 @@ public class ConfigJsonService : IConfigJsonService
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
+    private readonly ITeslamateContext _teslamateContext;
 
     public ConfigJsonService(ILogger<ConfigJsonService> logger, ISettings settings,
-        IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext)
+        IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext,
+        ITeslamateContext teslamateContext)
     {
         _logger = logger;
         _settings = settings;
         _configurationWrapper = configurationWrapper;
         _teslaSolarChargerContext = teslaSolarChargerContext;
+        _teslamateContext = teslamateContext;
     }
 
     private bool CarConfigurationFileExists()
@@ -51,12 +54,18 @@ public class ConfigJsonService : IConfigJsonService
             }
         }
 
-        var carIds = _configurationWrapper.CarPriorities();
-        RemoveOldCars(cars, carIds);
+        try
+        {
+            var carIds = await _teslamateContext.Cars.Select(c => (int)c.Id).ToListAsync().ConfigureAwait(false);
+            RemoveOldCars(cars, carIds);
 
-        var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
-        AddNewCars(newCarIds, cars);
-
+            var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
+            AddNewCars(newCarIds, cars);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not get cars from TeslaMate database.");
+        }
         return cars;
     }
 

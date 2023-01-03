@@ -13,4 +13,6 @@ public class CarBasicConfiguration
     public int MinimumAmpere { get; set; }
     public int UsableEnergy { get; set; }
     public bool? ShouldBeManaged { get; set; }
+    public int ChargingPriority { get; set; }
+    public string VehicleIdentificationNumber { get; set; }
 }

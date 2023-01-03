@@ -75,10 +75,9 @@ public class IssueValidationService : IIssueValidationService
     {
         _logger.LogTrace("{method}()", nameof(GetDatabaseIssues));
         var issues = new List<Issue>();
-        List<short> carIds;
         try
         {
-            carIds = await _teslamateContext.Cars.Select(car => car.Id).ToListAsync().ConfigureAwait(false);
+            var carIds = await _teslamateContext.Cars.Select(car => car.Id).ToListAsync().ConfigureAwait(false);
         }
         catch (Exception)
         {
@@ -91,16 +90,6 @@ public class IssueValidationService : IIssueValidationService
         if (!geofenceNames.Any(g => g == configuredGeofence))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.GeofenceNotAvailable));
-        }
-
-        var configuredCarIds = _configurationWrapper.CarPriorities();
-
-        foreach (var configuredCarId in configuredCarIds)
-        {
-            if (!carIds.Any(i => i == configuredCarId))
-            {
-                issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarIdNotAvailable));
-            }
         }
 
         return issues;
