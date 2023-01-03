@@ -61,6 +61,7 @@ public class ConfigService : IConfigService
                 MinimumAmpere = car.CarConfiguration.MinimumAmpere,
                 UsableEnergy = car.CarConfiguration.UsableEnergy,
                 ShouldBeManaged = car.CarConfiguration.ShouldBeManaged,
+                ChargingPriority = car.CarConfiguration.ChargingPriority,
             };
             try
             {
@@ -86,5 +87,6 @@ public class ConfigService : IConfigService
         car.CarConfiguration.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
         car.CarConfiguration.UsableEnergy = carBasicConfiguration.UsableEnergy;
         car.CarConfiguration.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
+        car.CarConfiguration.ChargingPriority = carBasicConfiguration.ChargingPriority;
     }
 }
