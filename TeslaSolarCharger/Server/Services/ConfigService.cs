@@ -55,7 +55,6 @@ public class ConfigService : IConfigService
     {
         _logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
         var carSettings = new List<CarBasicConfiguration>();
-        await _configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
         foreach (var car in _settings.Cars)
         {
             var carBasicConfiguration = new CarBasicConfiguration(car.Id, car.CarState.Name)
