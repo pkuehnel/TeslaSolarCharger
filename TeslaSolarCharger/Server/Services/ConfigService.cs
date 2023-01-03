@@ -14,12 +14,15 @@ public class ConfigService : IConfigService
     private readonly ILogger<ConfigService> _logger;
     private readonly ISettings _settings;
     private readonly ITeslamateContext _teslamateContext;
+    private readonly IConfigJsonService _configJsonService;
 
-    public ConfigService(ILogger<ConfigService> logger, ISettings settings, ITeslamateContext teslamateContext)
+    public ConfigService(ILogger<ConfigService> logger, ISettings settings, ITeslamateContext teslamateContext,
+        IConfigJsonService configJsonService)
     {
         _logger = logger;
         _settings = settings;
         _teslamateContext = teslamateContext;
+        _configJsonService = configJsonService;
     }
 
     public ISettings GetSettings()
@@ -52,7 +55,7 @@ public class ConfigService : IConfigService
     {
         _logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
         var carSettings = new List<CarBasicConfiguration>();
-
+        await _configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
         foreach (var car in _settings.Cars)
         {
             var carBasicConfiguration = new CarBasicConfiguration(car.Id, car.CarState.Name)
