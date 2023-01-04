@@ -125,15 +125,7 @@ public class CurrentValuesService : ICurrentValuesService
     {
         _logger.LogTrace("{method}()", nameof(GetCloudApiString));
         
-        var tooManyRequestsResetMinutesEnvironmentVariableName = "TooManyRequestsResetMinutes";
-        var solarEdgeTooManyRequestsResetMinutes = _configuration.GetValue<int>(tooManyRequestsResetMinutesEnvironmentVariableName);
-        if (solarEdgeTooManyRequestsResetMinutes == default)
-        {
-            var defaultResetMinutes = 16;
-            _logger.LogDebug("No environmentvariable {envVariableName} found, using default of {defaultValue}", tooManyRequestsResetMinutesEnvironmentVariableName, defaultResetMinutes);
-            solarEdgeTooManyRequestsResetMinutes = defaultResetMinutes;
-        }
-        var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(solarEdgeTooManyRequestsResetMinutes);
+        var solarEdgeTooManyRequestsResetTime = GetSolarEdgeRequestResetTimeSpan();
         var numberOfRelevantCars = await GetNumberOfRelevantCars().ConfigureAwait(false);
         //Never call SolarEdge API if there was a TooManyRequests Status within the last request Reset time. This could result in errors after restarts
         if (_sharedValues.LastTooManyRequests > (_dateTimeProvider.UtcNow() - solarEdgeTooManyRequestsResetTime))
@@ -161,6 +153,23 @@ public class CurrentValuesService : ICurrentValuesService
         }
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    }
+
+    private TimeSpan GetSolarEdgeRequestResetTimeSpan()
+    {
+        var tooManyRequestsResetMinutesEnvironmentVariableName = "TooManyRequestsResetMinutes";
+        var solarEdgeTooManyRequestsResetMinutes =
+            _configuration.GetValue<int>(tooManyRequestsResetMinutesEnvironmentVariableName);
+        if (solarEdgeTooManyRequestsResetMinutes == default)
+        {
+            var defaultResetMinutes = 16;
+            _logger.LogDebug("No environmentvariable {envVariableName} found, using default of {defaultValue}",
+                tooManyRequestsResetMinutesEnvironmentVariableName, defaultResetMinutes);
+            solarEdgeTooManyRequestsResetMinutes = defaultResetMinutes;
+        }
+
+        var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(solarEdgeTooManyRequestsResetMinutes);
+        return solarEdgeTooManyRequestsResetTime;
     }
 
     private async Task<int> GetNumberOfRelevantCars()
