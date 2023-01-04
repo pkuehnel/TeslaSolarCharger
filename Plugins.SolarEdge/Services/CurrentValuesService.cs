@@ -110,7 +110,6 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(FakeLastValue));
         var fakedValue = _sharedValues.CloudApiValues.Last().Value;
         fakedValue.SiteCurrentPowerFlow.Grid.CurrentPower = 0;
-        fakedValue.SiteCurrentPowerFlow.Pv.CurrentPower = 0;
         fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = 0;
         return fakedValue;
     }
