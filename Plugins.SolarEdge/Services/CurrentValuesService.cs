@@ -165,9 +165,18 @@ public class CurrentValuesService : ICurrentValuesService
         try
         {
             //ToDo: Make Base URL configurable
-            var requestUrl = "http://teslasolarcharger/api/Hello/NumberOfRelevantCars";
+            var teslaSolarChargerHostEnvironmentVariableName = "TeslaSolarChargerHost";
+            var teslaSolarChargerHost = _configuration.GetValue<string>(teslaSolarChargerHostEnvironmentVariableName);
+            if (string.IsNullOrEmpty(teslaSolarChargerHost))
+            {
+                teslaSolarChargerHost = "teslasolarcharger";
+            }
+            var requestUrl = $"http://{teslaSolarChargerHost}/api/Hello/NumberOfRelevantCars";
             _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
-            var numberOfRelevantCars = await httpClient.GetFromJsonAsync<DtoValue<int>>(requestUrl).ConfigureAwait(false);
+            var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var numberOfRelevantCars = JsonConvert.DeserializeObject<DtoValue<int>>(responseContent);
             if (numberOfRelevantCars != null)
             {
                 return numberOfRelevantCars.Value;
