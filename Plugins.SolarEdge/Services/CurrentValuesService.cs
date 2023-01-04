@@ -84,7 +84,7 @@ public class CurrentValuesService : ICurrentValuesService
     private async Task<CloudApiValue> GetLatestValue()
     {
         _logger.LogDebug("Get new Values from SolarEdge API");
-        var jsonString = string.Empty;
+        string? jsonString;
         try
         {
             jsonString = await GetCloudApiString().ConfigureAwait(false);
@@ -136,9 +136,16 @@ public class CurrentValuesService : ICurrentValuesService
         }
         var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(solarEdgeTooManyRequestsResetMinutes);
         var numberOfRelevantCars = await GetNumberOfRelevantCars().ConfigureAwait(false);
-        if (_sharedValues.CloudApiValues.Count > 0 && ((_sharedValues.LastTooManyRequests < (_dateTimeProvider.Now() + solarEdgeTooManyRequestsResetTime)) || numberOfRelevantCars < 1))
+        //Never call SolarEdge API if there was a TooManyRequests Status within the last request Reset time. This could result in errors after restarts
+        if (_sharedValues.LastTooManyRequests > (_dateTimeProvider.UtcNow() - solarEdgeTooManyRequestsResetTime))
         {
-            _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError} and relevantCarCount is {relevantCarCount}", _sharedValues.LastTooManyRequests, numberOfRelevantCars);
+            _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError}", _sharedValues.LastTooManyRequests);
+            return null;
+        }
+        //If there are already values there and there is no relevant car, call API everytime reset minutes are over.
+        if (_sharedValues.CloudApiValues.Count > 0 && numberOfRelevantCars < 1 && _sharedValues.CloudApiValues.MaxBy(v => v.Key).Key > DateTime.UtcNow - solarEdgeTooManyRequestsResetTime)
+        {
+            _logger.LogDebug("Prevent calling SolarEdge API as relevantCarCount is {relevantCarCount}", numberOfRelevantCars);
             return null;
         }
         var requestUrl = _configuration.GetValue<string>("CloudUrl");
@@ -147,7 +154,7 @@ public class CurrentValuesService : ICurrentValuesService
         var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
         {
-            _sharedValues.LastTooManyRequests = _dateTimeProvider.Now();
+            _sharedValues.LastTooManyRequests = _dateTimeProvider.UtcNow();
         }
         else
         {
@@ -193,7 +200,7 @@ public class CurrentValuesService : ICurrentValuesService
         return 1;
     }
 
-    internal CloudApiValue GetCloudApiValueFromString(string jsonString)
+    internal CloudApiValue GetCloudApiValueFromString(string? jsonString)
     {
         _logger.LogTrace("{method}({param1}", nameof(GetCloudApiValueFromString), jsonString);
         return JsonConvert.DeserializeObject<CloudApiValue>(jsonString) ?? throw new InvalidOperationException("Can not deserialize CloudApiValue");
