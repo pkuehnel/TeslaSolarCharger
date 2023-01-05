@@ -1,4 +1,6 @@
-﻿using TeslaSolarCharger.Server.Contracts;
+﻿using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -11,11 +13,16 @@ public class ConfigService : IConfigService
 {
     private readonly ILogger<ConfigService> _logger;
     private readonly ISettings _settings;
+    private readonly ITeslamateContext _teslamateContext;
+    private readonly IConfigJsonService _configJsonService;
 
-    public ConfigService(ILogger<ConfigService> logger, ISettings settings)
+    public ConfigService(ILogger<ConfigService> logger, ISettings settings, ITeslamateContext teslamateContext,
+        IConfigJsonService configJsonService)
     {
         _logger = logger;
         _settings = settings;
+        _teslamateContext = teslamateContext;
+        _configJsonService = configJsonService;
     }
 
     public ISettings GetSettings()
@@ -37,27 +44,38 @@ public class ConfigService : IConfigService
     {
         _logger.LogTrace("{method}({param1}, {@param2})", nameof(UpdateCarConfiguration), carId, carConfiguration);
         var existingCar = _settings.Cars.First(c => c.Id == carId);
-        if (carConfiguration.MinimumSoC > existingCar.CarConfiguration.SocLimit)
+        if (carConfiguration.MinimumSoC > existingCar.CarState.SocLimit)
         {
             throw new InvalidOperationException("Can not set minimum soc lower than charge limit in Tesla App");
         }
         existingCar.CarConfiguration = carConfiguration;
     }
 
-    public List<CarBasicConfiguration> GetCarBasicConfigurations()
+    public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations()
     {
         _logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
         var carSettings = new List<CarBasicConfiguration>();
-
         foreach (var car in _settings.Cars)
         {
-            carSettings.Add(new CarBasicConfiguration(car.Id, car.CarState.Name)
+            var carBasicConfiguration = new CarBasicConfiguration(car.Id, car.CarState.Name)
             {
                 MaximumAmpere = car.CarConfiguration.MaximumAmpere,
                 MinimumAmpere = car.CarConfiguration.MinimumAmpere,
                 UsableEnergy = car.CarConfiguration.UsableEnergy,
                 ShouldBeManaged = car.CarConfiguration.ShouldBeManaged,
-            });
+                ChargingPriority = car.CarConfiguration.ChargingPriority,
+            };
+            try
+            {
+                carBasicConfiguration.VehicleIdentificationNumber =
+                    await _teslamateContext.Cars.Where(c => c.Id == car.Id).Select(c => c.Vin).FirstAsync().ConfigureAwait(false) ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not get VIN of car {carId}", car.Id);
+            }
+
+            carSettings.Add(carBasicConfiguration);
         }
 
         return carSettings;
@@ -71,5 +89,6 @@ public class ConfigService : IConfigService
         car.CarConfiguration.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
         car.CarConfiguration.UsableEnergy = carBasicConfiguration.UsableEnergy;
         car.CarConfiguration.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
+        car.CarConfiguration.ChargingPriority = carBasicConfiguration.ChargingPriority;
     }
 }

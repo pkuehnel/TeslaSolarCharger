@@ -7,6 +7,7 @@ namespace TeslaSolarCharger.Model.EntityFramework;
 public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 {
     public DbSet<ChargePrice> ChargePrices { get; set; } = null!;
+    public DbSet<CachedCarState> CachedCarStates { get; set; } = null!;
     public DbSet<HandledCharge> HandledCharges { get; set; } = null!;
     public DbSet<PowerDistribution> PowerDistributions { get; set; } = null!;
 

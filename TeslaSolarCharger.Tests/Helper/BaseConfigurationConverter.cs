@@ -33,8 +33,7 @@ public class BaseConfigurationConverter : TestBase
         var oldBaseConfig = JsonConvert.DeserializeObject<BaseConfigurationJsonV0_1>(baseConfigJsonString) ?? throw new InvalidOperationException();
 
         var newBaseConfig = converter.ConvertV0_1ToV1_0(oldBaseConfig);
-
-        Assert.Equal(oldBaseConfig.CarPriorities, newBaseConfig.CarPriorities);
+        
         Assert.Equal(oldBaseConfig.CurrentInverterPowerUrl, newBaseConfig.CurrentInverterPowerUrl);
         Assert.Equal(oldBaseConfig.UpdateIntervalSeconds, newBaseConfig.UpdateIntervalSeconds);
         Assert.Equal(oldBaseConfig.CurrentPowerToGridJsonPattern, newBaseConfig.CurrentPowerToGridJsonPattern);

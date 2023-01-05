@@ -345,11 +345,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return GetBaseConfiguration().TeslaMateApiBaseUrl;
     }
 
-    public List<int> CarPriorities()
+    /// <summary>
+    /// Get max combined current from baseConfiguration
+    /// </summary>
+    /// <returns>Configured max combined current. If no value is configured int.MaxValue is returned.</returns>
+    public int MaxCombinedCurrent()
     {
-        var rawValue = GetBaseConfiguration().CarPriorities;
-        var value = rawValue.Split("|").Select(id => Convert.ToInt32(id)).ToList();
-        return value;
+        return GetBaseConfiguration().MaxCombinedCurrent ?? int.MaxValue;
     }
 
     public string GeoFence()

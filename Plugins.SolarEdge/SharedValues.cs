@@ -9,4 +9,6 @@ public class SharedValues
         CloudApiValues = new Dictionary<DateTime, CloudApiValue>();
     }
     public Dictionary<DateTime, CloudApiValue> CloudApiValues { get; set; }
+
+    public DateTime? LastTooManyRequests = null;
 }

@@ -45,7 +45,7 @@ namespace TeslaSolarCharger.Server.Controllers
         /// Get basic Configuration of cars, which are not often changed
         /// </summary>
         [HttpGet]
-        public List<CarBasicConfiguration> GetCarBasicConfigurations() => _service.GetCarBasicConfigurations();
+        public Task<List<CarBasicConfiguration>> GetCarBasicConfigurations() => _service.GetCarBasicConfigurations();
 
         /// <summary>
         /// Update Car's configuration

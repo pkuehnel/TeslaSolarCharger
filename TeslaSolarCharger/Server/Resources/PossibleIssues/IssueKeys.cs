@@ -18,4 +18,5 @@ public class IssueKeys
     public string GeofenceNotAvailable = "GeofenceNotAvailable";
     public string CarIdNotAvailable = "CarIdNotAvailable";
     public string VersionNotUpToDate = "VersionNotUpToDate";
+    public string CorrectionFactorZero = "CorrectionFactorZero";
 }

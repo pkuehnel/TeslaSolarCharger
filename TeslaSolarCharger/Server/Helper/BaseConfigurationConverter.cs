@@ -40,7 +40,6 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
             TeslaMateApiBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl"),
             UpdateIntervalSeconds = _configuration.GetValue<int>("UpdateIntervalSeconds"),
             PvValueUpdateIntervalSeconds = _configuration.GetValue<int>("PvValueUpdateIntervalSeconds"),
-            CarPriorities = _configuration.GetValue<string>("CarPriorities"),
             GeoFence = _configuration.GetValue<string>("GeoFence"),
             MinutesUntilSwitchOn = _configuration.GetValue<int>("MinutesUntilSwitchOn") == 0 ? 5 : _configuration.GetValue<int>("MinutesUntilSwitchOn"),
             MinutesUntilSwitchOff = _configuration.GetValue<int>("MinutesUntilSwitchOff") == 0 ? 5 : _configuration.GetValue<int>("MinutesUntilSwitchOff"),

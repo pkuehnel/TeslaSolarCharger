@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Autofac;
 using TeslaSolarCharger.Server.Resources;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -141,11 +142,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
+                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
-                    SocLimit = 60,
                 },
             },
             new Car()
@@ -158,11 +159,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
+                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = true,
-                    SocLimit = 60,
                 },
             },
             new Car()
@@ -175,12 +176,11 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                    
+                    SocLimit = 60,
                 },
                 CarConfiguration = new CarConfiguration()
                 {
                     ShouldBeManaged = false,
-                    SocLimit = 60,
                 },
             },
         };
@@ -209,12 +209,9 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                },
-                CarConfiguration = new CarConfiguration()
-                {
-                    ShouldBeManaged = true,
                     SocLimit = 60,
                 },
+                CarConfiguration = new CarConfiguration() { ShouldBeManaged = true },
             },
             new Car()
             {
@@ -226,12 +223,9 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                },
-                CarConfiguration = new CarConfiguration()
-                {
-                    ShouldBeManaged = true,
                     SocLimit = 60,
                 },
+                CarConfiguration = new CarConfiguration() { ShouldBeManaged = true },
             },
             new Car()
             {
@@ -243,12 +237,9 @@ public class ChargingService : TestBase
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
-                },
-                CarConfiguration = new CarConfiguration()
-                {
-                    ShouldBeManaged = false,
                     SocLimit = 60,
                 },
+                CarConfiguration = new CarConfiguration() { ShouldBeManaged = false },
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
@@ -278,5 +269,101 @@ public class ChargingService : TestBase
             },
         };
         return car;
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(1)]
+    public void Calculates_Correct_Charge_MaxSpeed_Charge_Time(int numberOfPhases)
+    {
+        var car = new Car()
+        {
+            Id = 1,
+            CarState = new CarState()
+            {
+                PluggedIn = true,
+                SoC = 30,
+                ChargerPhases = numberOfPhases
+            },
+            CarConfiguration = new CarConfiguration()
+            {
+                MinimumSoC = 45,
+                UsableEnergy = 74,
+                MaximumAmpere = 16,
+            }
+        };
+
+
+        var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeUpdateService>();
+
+        chargingService.UpdateChargeTime(car);
+
+        var lowerMinutes = 60 * (3 / numberOfPhases);
+
+#pragma warning disable CS8629
+        Assert.InRange((DateTime)car.CarState.ReachingMinSocAtFullSpeedCharge, dateTime.AddMinutes(lowerMinutes), dateTime.AddMinutes(lowerMinutes + 1));
+#pragma warning restore CS8629
+    }
+
+    [Fact]
+    public void Handles_Plugged_Out_Car()
+    {
+        var car = new Car()
+        {
+            Id = 1,
+            CarState = new CarState()
+            {
+                PluggedIn = false,
+                SoC = 30,
+                ChargerPhases = 1
+            },
+            CarConfiguration = new CarConfiguration()
+            {
+                MinimumSoC = 45,
+                UsableEnergy = 74,
+                MaximumAmpere = 16,
+            }
+        };
+
+
+        var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeUpdateService>();
+
+        chargingService.UpdateChargeTime(car);
+
+        Assert.Null(car.CarState.ReachingMinSocAtFullSpeedCharge);
+    }
+
+    [Fact]
+    public void Handles_Reaced_Minimum_Soc()
+    {
+        var car = new Car()
+        {
+            Id = 1,
+            CarState = new CarState()
+            {
+                PluggedIn = true,
+                SoC = 30,
+                ChargerPhases = 1
+            },
+            CarConfiguration = new CarConfiguration()
+            {
+                MinimumSoC = 30,
+                UsableEnergy = 74,
+                MaximumAmpere = 16,
+            }
+        };
+
+
+        var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
+        Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeUpdateService>();
+
+        chargingService.UpdateChargeTime(car);
+
+        Assert.Equal(dateTime, car.CarState.ReachingMinSocAtFullSpeedCharge);
     }
 }

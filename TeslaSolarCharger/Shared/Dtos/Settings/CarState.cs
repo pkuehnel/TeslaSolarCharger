@@ -6,8 +6,11 @@ public class CarState
 {
     public string? Name { get; set; }
     public DateTime? ShouldStartChargingSince { get; set; }
+    public DateTime? EarliestSwitchOn { get; set; }
     public DateTime? ShouldStopChargingSince { get; set; }
+    public DateTime? EarliestSwitchOff { get; set; }
     public int? SoC { get; set; }
+    public int? SocLimit { get; set; }
     public string? Geofence { get; set; }
     public bool? IsHomeGeofence { get; set; }
     public TimeSpan? TimeUntilFullCharge { get; set; }
@@ -16,7 +19,7 @@ public class CarState
     public int LastSetAmp { get; set; }
     public int? ChargerPhases { get; set; }
 
-    public int? ActualPhases => ChargerPhases > 1 ? 3 : 1;
+    public int? ActualPhases => ChargerPhases is null or > 1 ? 3 : 1;
 
     public int? ChargerVoltage { get; set; }
     public int? ChargerActualCurrent { get; set; }

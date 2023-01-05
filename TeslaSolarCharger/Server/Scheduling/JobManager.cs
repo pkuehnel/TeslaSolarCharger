@@ -49,7 +49,7 @@ public class JobManager
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(10)).Build();
 
         var chargeTimeUpdateTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(30)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
 
         var pvValueJobIntervall = _configurationWrapper.PvValueJobUpdateIntervall();
         _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
