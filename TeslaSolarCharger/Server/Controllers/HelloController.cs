@@ -19,6 +19,9 @@ namespace TeslaSolarCharger.Server.Controllers
         public Task<bool> IsAlive() => Task.FromResult(true);
 
         [HttpGet]
+        public Task<DtoValue<bool>> IsSolarEdgeInstallation() => Task.FromResult(_coreService.IsSolarEdgeInstallation());
+
+        [HttpGet]
         public Task<DtoValue<int>> NumberOfRelevantCars() => Task.FromResult(_coreService.NumberOfRelevantCars());
 
         [HttpGet]

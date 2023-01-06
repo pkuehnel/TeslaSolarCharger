@@ -8,4 +8,5 @@ public interface ICoreService
     void LogVersion();
     DtoValue<int> NumberOfRelevantCars();
     DtoValue<int> HomeBatteryTargetChargingPower();
+    DtoValue<bool> IsSolarEdgeInstallation();
 }

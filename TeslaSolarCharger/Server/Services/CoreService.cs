@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -9,11 +10,13 @@ public class CoreService : ICoreService
 {
     private readonly ILogger<CoreService> _logger;
     private readonly IChargingService _chargingService;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
-    public CoreService(ILogger<CoreService> logger, IChargingService chargingService)
+    public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _chargingService = chargingService;
+        _configurationWrapper = configurationWrapper;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -34,6 +37,12 @@ public class CoreService : ICoreService
     {
         _logger.LogTrace("{method}()", nameof(HomeBatteryTargetChargingPower));
         return new DtoValue<int>(_chargingService.GetBatteryTargetChargingPower());
+    }
+
+    public DtoValue<bool> IsSolarEdgeInstallation()
+    {
+        var powerToGridUrl = _configurationWrapper.CurrentPowerToGridUrl();
+        return new DtoValue<bool>(!string.IsNullOrEmpty(powerToGridUrl) && powerToGridUrl.StartsWith("http://solaredgeplugin"));
     }
 
     public void LogVersion()
