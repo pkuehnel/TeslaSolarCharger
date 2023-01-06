@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autofac;
@@ -365,5 +365,29 @@ public class ChargingService : TestBase
         chargingService.UpdateChargeTime(car);
 
         Assert.Equal(dateTime, car.CarState.ReachingMinSocAtFullSpeedCharge);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 0, 0, 0, 0)]
+    [InlineData(null, null, null, null, 0, 0)]
+    [InlineData(null, null, null, null, 10, 10)]
+    [InlineData(null, null, null, null, -10, -10)]
+    [InlineData(10, 100, 20, 200, 0, -100)]
+    [InlineData(30, 100, 20, 200, 0, 100)]
+    [InlineData(10, 200, 20, 200, 0, 0)]
+    public void AddsCorrectChargingPowerBasedOnHomeBatteryState(int? homeBatterySoc, int? homeBatteryPower, int? homeBatteryMinSoc,
+        int? homeBatteryMinChargingPower, int overage, int calculatedOverage)
+    {
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryMinSoc()).Returns(homeBatteryMinSoc);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(homeBatteryMinChargingPower);
+        Mock.Mock<ISettings>().Setup(c => c.HomeBatterySoc).Returns(homeBatterySoc);
+        Mock.Mock<ISettings>().Setup(c => c.HomeBatteryPower).Returns(homeBatteryPower);
+
+
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
+
+        var newOverage = chargingService.AddHomeBatteryStateToPowerCalculation(overage);
+
+        Assert.Equal(calculatedOverage, newOverage);
     }
 }
