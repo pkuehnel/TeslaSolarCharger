@@ -129,6 +129,14 @@ public class ChargingService : IChargingService
         var overage = averagedOverage - buffer;
         _logger.LogDebug("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
 
+        overage = AddHomeBatteryStateToPowerCalculation(overage);
+
+        var powerToControl = overage;
+        return powerToControl;
+    }
+
+    internal int AddHomeBatteryStateToPowerCalculation(int overage)
+    {
         var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
         _logger.LogDebug("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
@@ -158,8 +166,7 @@ public class ChargingService : IChargingService
             }
         }
 
-        var powerToControl = overage;
-        return powerToControl;
+        return overage;
     }
 
     internal List<Car> GetIrrelevantCars(List<int> relevantCarIds)
