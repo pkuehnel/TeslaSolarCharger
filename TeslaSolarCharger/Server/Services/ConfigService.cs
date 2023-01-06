@@ -78,7 +78,7 @@ public class ConfigService : IConfigService
             carSettings.Add(carBasicConfiguration);
         }
 
-        return carSettings;
+        return carSettings.OrderBy(c => c.CarId).ToList();
     }
 
     public void UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)

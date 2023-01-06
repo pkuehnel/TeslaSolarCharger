@@ -204,6 +204,11 @@ public class ConfigJsonService : IConfigJsonService
                 car.CarConfiguration.MinimumAmpere = 1;
             }
 
+            if (car.CarConfiguration.ChargingPriority < 1)
+            {
+                car.CarConfiguration.ChargingPriority = 1;
+            }
+
             if (car.CarConfiguration.ShouldBeManaged == null)
             {
                 var defaultValue = true;

@@ -62,7 +62,9 @@ public class ChargingService : IChargingService
 
         var relevantCars = _settings.Cars
             .Where(c => relevantCarIds.Any(r => c.Id == r))
-            .OrderByDescending(c => c.CarConfiguration.ChargingPriority).ToList();
+            .OrderBy(c => c.CarConfiguration.ChargingPriority)
+            .ThenBy(c => c.Id)
+            .ToList();
 
         _logger.LogDebug("Relevant cars: {@relevantCars}", relevantCars);
         _logger.LogDebug("Irrelevant cars: {@irrlevantCars}", irrelevantCars);

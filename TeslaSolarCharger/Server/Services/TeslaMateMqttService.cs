@@ -174,7 +174,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 continue;
             }
 
-            var carState = JsonConvert.DeserializeObject<CarState>(cachedCarState.CarStateJson);
+            var carState = JsonConvert.DeserializeObject<CarState>(cachedCarState.CarStateJson ?? string.Empty);
             if (carState == null)
             {
                 _logger.LogWarning("Could not deserialized cached car state for car with id {carId}", car.Id);
