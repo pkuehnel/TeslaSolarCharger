@@ -8,4 +8,5 @@ public interface IChargingService
     int CalculateAmpByPowerAndCar(int powerToControl, Car car);
     int CalculatePowerToControl();
     List<int> GetRelevantCarIds();
+    int GetBatteryTargetChargingPower();
 }
