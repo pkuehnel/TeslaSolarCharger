@@ -371,7 +371,7 @@ else
         _settings.HomeBatteryPower = tmpSettings.HomeBatteryPower;
         foreach (var car in _carsToDisplay!)
         {
-            var tmpCar = _settings.Cars.First(c => c.Id == car.Id);
+            var tmpCar = tmpSettings.Cars.First(c => c.Id == car.Id);
             car.CarState = tmpCar.CarState;
         }
         this.StateHasChanged();
