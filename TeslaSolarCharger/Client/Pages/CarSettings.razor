@@ -8,7 +8,7 @@
 
 @if (_carBasicConfigurations == null)
 {
-    <p><em>Loading...</em></p>
+    <div class="spinner"></div>
 }
 else
 {
@@ -37,9 +37,9 @@ else
             <p>
                 <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="chargingPriority">Charging Priority:</label>
                 <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@carBasicConfiguration.ChargingPriority" type="number" id="chargingPriority" name="chargingPriority" min="0"
-                       @onchange="@(e => carBasicConfiguration.ChargingPriority = Int32.Parse(e.Value?.ToString() ?? "0"))">
+                       @onchange="@(e => carBasicConfiguration.ChargingPriority = Int32.Parse(e.Value?.ToString() ?? "1"))">
                 <br/>
-                <small id="chargingPriorityHelp" class="form-text text-muted">If there is not enough power for all cars the cars with higher priority get charged first. If multiple cars have the same priority the order will be random.</small>
+                <small id="chargingPriorityHelp" class="form-text text-muted">If there is not enough power for all cars the cars will be charged ordered by priority. Cars with the same priority are ordered by their ID.</small>
             </p>
             <p>
                 <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="usableEnergy">Use TeslaSolarCharger:</label>

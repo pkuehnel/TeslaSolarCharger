@@ -18,7 +18,7 @@ jobs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '7.0.x'
 
     - name: Calculate version
       uses: thefringeninja/action-minver@2.0.0-preview1

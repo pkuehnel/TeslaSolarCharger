@@ -2,6 +2,7 @@
 @using System.Globalization
 @using System.Timers
 @using TeslaSolarCharger.Shared
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Enums
@@ -12,12 +13,16 @@
 
 @if (_settings == null || _carsToDisplay == null)
 {
-    <p><em>Loading...</em></p>
+    <div class="spinner"></div>
 }
 else
 {
     <IssueValidation></IssueValidation>
     <div class="shadow p-3 mb-5 bg-white rounded">
+        @if (_isSolarEdgeInstallation == true)
+        {
+            <small id="chargingPriorityHelp" class="form-text text-muted">As you are using SolarEdge which is rate limited, these values might be delayed or grid power and batterypower might be displayed as zero or your configured Home Battery charging power (W). This is nothing to worry about, it is just a way to handle the rate limitation.</small>
+        }
         @if (_settings.InverterPower != null)
         {
             <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_settings.InverterPower W</div>
@@ -298,6 +303,7 @@ else
 
 @code {
     private Settings? _settings;
+    private bool? _isSolarEdgeInstallation;
     private List<Car>? _carsToDisplay;
     private Dictionary<int, DtoChargeSummary>? _chargeSummaries;
     private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
@@ -313,6 +319,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _settings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
+        _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
         _carsToDisplay = _settings!.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         foreach (var car in _settings!.Cars)
@@ -371,7 +378,7 @@ else
         _settings.HomeBatteryPower = tmpSettings.HomeBatteryPower;
         foreach (var car in _carsToDisplay!)
         {
-            var tmpCar = _settings.Cars.First(c => c.Id == car.Id);
+            var tmpCar = tmpSettings.Cars.First(c => c.Id == car.Id);
             car.CarState = tmpCar.CarState;
         }
         this.StateHasChanged();

@@ -84,7 +84,7 @@ public class CurrentValuesService : ICurrentValuesService
     private async Task<CloudApiValue> GetLatestValue()
     {
         _logger.LogDebug("Get new Values from SolarEdge API");
-        var jsonString = string.Empty;
+        string? jsonString;
         try
         {
             jsonString = await GetCloudApiString().ConfigureAwait(false);
@@ -92,11 +92,11 @@ public class CurrentValuesService : ICurrentValuesService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not get json string from solarEdge.");
-            return FakeLastValue();
+            return await FakeLastValue().ConfigureAwait(false);
         }
         if (string.IsNullOrEmpty(jsonString))
         {
-            return FakeLastValue();
+            return await FakeLastValue().ConfigureAwait(false);
         }
         var cloudApiValue = GetCloudApiValueFromString(jsonString);
         AddCloudApiValueToSharedValues(cloudApiValue);
@@ -105,14 +105,44 @@ public class CurrentValuesService : ICurrentValuesService
         return latestValue;
     }
 
-    private CloudApiValue FakeLastValue()
+    private async Task<CloudApiValue> FakeLastValue()
     {
         _logger.LogTrace("{method}()", nameof(FakeLastValue));
         var fakedValue = _sharedValues.CloudApiValues.Last().Value;
         fakedValue.SiteCurrentPowerFlow.Grid.CurrentPower = 0;
-        fakedValue.SiteCurrentPowerFlow.Pv.CurrentPower = 0;
-        fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = 0;
+        fakedValue.SiteCurrentPowerFlow.Storage.Status = "Charging";
+        var targetBatteryChargePower = await GetTargetBatteryPower().ConfigureAwait(false);
+        fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = targetBatteryChargePower / 1000.0;
         return fakedValue;
+    }
+
+    private async Task<int> GetTargetBatteryPower()
+    {
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(1);
+        var teslaSolarChargerHost = GetTeslaSolarChargerHost();
+        var requestUrl = $"http://{teslaSolarChargerHost}/api/Hello/HomeBatteryTargetChargingPower";
+        _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
+        var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var targetBatteryPower = JsonConvert.DeserializeObject<DtoValue<int>>(responseContent);
+        if (targetBatteryPower != null)
+        {
+            return targetBatteryPower.Value;
+        }
+        return 0;
+    }
+
+    private string GetTeslaSolarChargerHost()
+    {
+        var teslaSolarChargerHostEnvironmentVariableName = "TeslaSolarChargerHost";
+        var teslaSolarChargerHost = _configuration.GetValue<string>(teslaSolarChargerHostEnvironmentVariableName);
+        if (string.IsNullOrEmpty(teslaSolarChargerHost))
+        {
+            teslaSolarChargerHost = "teslasolarcharger";
+        }
+        return teslaSolarChargerHost;
     }
 
     private void AddCloudApiValueToSharedValues(CloudApiValue cloudApiValue)
@@ -126,19 +156,18 @@ public class CurrentValuesService : ICurrentValuesService
     {
         _logger.LogTrace("{method}()", nameof(GetCloudApiString));
         
-        var tooManyRequestsResetMinutesEnvironmentVariableName = "TooManyRequestsResetMinutes";
-        var solarEdgeTooManyRequestsResetMinutes = _configuration.GetValue<int>(tooManyRequestsResetMinutesEnvironmentVariableName);
-        if (solarEdgeTooManyRequestsResetMinutes == default)
-        {
-            var defaultResetMinutes = 16;
-            _logger.LogDebug("No environmentvariable {envVariableName} found, using default of {defaultValue}", tooManyRequestsResetMinutesEnvironmentVariableName, defaultResetMinutes);
-            solarEdgeTooManyRequestsResetMinutes = defaultResetMinutes;
-        }
-        var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(solarEdgeTooManyRequestsResetMinutes);
+        var solarEdgeTooManyRequestsResetTime = GetSolarEdgeRequestResetTimeSpan();
         var numberOfRelevantCars = await GetNumberOfRelevantCars().ConfigureAwait(false);
-        if ((_sharedValues.LastTooManyRequests < (_dateTimeProvider.Now() + solarEdgeTooManyRequestsResetTime)) || numberOfRelevantCars < 1)
+        //Never call SolarEdge API if there was a TooManyRequests Status within the last request Reset time. This could result in errors after restarts
+        if (_sharedValues.LastTooManyRequests > (_dateTimeProvider.UtcNow() - solarEdgeTooManyRequestsResetTime))
         {
-            _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError} and relevantCarCount is {relevantCarCount}", _sharedValues.LastTooManyRequests, numberOfRelevantCars);
+            _logger.LogDebug("Prevent calling SolarEdge API as last too many requests error is from {lastTooManyRequestError}", _sharedValues.LastTooManyRequests);
+            return null;
+        }
+        //If there are already values there and there is no relevant car, call API everytime reset minutes are over.
+        if (_sharedValues.CloudApiValues.Count > 0 && numberOfRelevantCars < 1 && _sharedValues.CloudApiValues.MaxBy(v => v.Key).Key > DateTime.UtcNow - solarEdgeTooManyRequestsResetTime)
+        {
+            _logger.LogDebug("Prevent calling SolarEdge API as relevantCarCount is {relevantCarCount}", numberOfRelevantCars);
             return null;
         }
         var requestUrl = _configuration.GetValue<string>("CloudUrl");
@@ -147,7 +176,7 @@ public class CurrentValuesService : ICurrentValuesService
         var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
         {
-            _sharedValues.LastTooManyRequests = _dateTimeProvider.Now();
+            _sharedValues.LastTooManyRequests = _dateTimeProvider.UtcNow();
         }
         else
         {
@@ -157,6 +186,23 @@ public class CurrentValuesService : ICurrentValuesService
         return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
     }
 
+    private TimeSpan GetSolarEdgeRequestResetTimeSpan()
+    {
+        var tooManyRequestsResetMinutesEnvironmentVariableName = "TooManyRequestsResetMinutes";
+        var solarEdgeTooManyRequestsResetMinutes =
+            _configuration.GetValue<int>(tooManyRequestsResetMinutesEnvironmentVariableName);
+        if (solarEdgeTooManyRequestsResetMinutes == default)
+        {
+            var defaultResetMinutes = 16;
+            _logger.LogDebug("No environmentvariable {envVariableName} found, using default of {defaultValue}",
+                tooManyRequestsResetMinutesEnvironmentVariableName, defaultResetMinutes);
+            solarEdgeTooManyRequestsResetMinutes = defaultResetMinutes;
+        }
+
+        var solarEdgeTooManyRequestsResetTime = TimeSpan.FromMinutes(solarEdgeTooManyRequestsResetMinutes);
+        return solarEdgeTooManyRequestsResetTime;
+    }
+
     private async Task<int> GetNumberOfRelevantCars()
     {
         _logger.LogTrace("{method}()", nameof(GetNumberOfRelevantCars));
@@ -164,10 +210,13 @@ public class CurrentValuesService : ICurrentValuesService
         httpClient.Timeout = TimeSpan.FromSeconds(1);
         try
         {
-            //ToDo: Make Base URL configurable
-            var requestUrl = "http://teslasolarcharger/api/Hello/NumberOfRelevantCars";
+            var teslaSolarChargerHost = GetTeslaSolarChargerHost();
+            var requestUrl = $"http://{teslaSolarChargerHost}/api/Hello/NumberOfRelevantCars";
             _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
-            var numberOfRelevantCars = await httpClient.GetFromJsonAsync<DtoValue<int>>(requestUrl).ConfigureAwait(false);
+            var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var numberOfRelevantCars = JsonConvert.DeserializeObject<DtoValue<int>>(responseContent);
             if (numberOfRelevantCars != null)
             {
                 return numberOfRelevantCars.Value;
@@ -184,7 +233,7 @@ public class CurrentValuesService : ICurrentValuesService
         return 1;
     }
 
-    internal CloudApiValue GetCloudApiValueFromString(string jsonString)
+    internal CloudApiValue GetCloudApiValueFromString(string? jsonString)
     {
         _logger.LogTrace("{method}({param1}", nameof(GetCloudApiValueFromString), jsonString);
         return JsonConvert.DeserializeObject<CloudApiValue>(jsonString) ?? throw new InvalidOperationException("Can not deserialize CloudApiValue");

@@ -15,7 +15,7 @@
 
 @if (_dtoBaseConfiguration == null)
 {
-    <p><em>Loading...</em></p>
+    <div class="spinner"></div>
 }
 else
 {
@@ -25,7 +25,7 @@ else
             <h3>General:</h3>
             <label for="maxCombinedCurrent">Max combined current (Ampere)</label>
             <InputNumber id="maxCombinedCurrent" @bind-Value="_dtoBaseConfiguration.MaxCombinedCurrent" class="form-control"/>
-            <small id="maxCombinedCurrentHelp" class="form-text text-muted">Set a value if you want to reduce the max combined used current of all cars. E.g. if you have two cars each set to max 16A but your garage can only handle 20A you can set 20A here. So if one car uses 16A the other car can only use 4A. Note: Power is distributed based on the set car priorities.</small>
+            <small id="maxCombinedCurrentHelp" class="form-text text-muted">Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.</small>
             <hr />
             <h3>TeslaMate:</h3>
             <div class="form-group">
