@@ -129,7 +129,7 @@ public class TeslamateApiService : ITeslaService
         {
             var responseContentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             _logger.LogError("Error while sending post to TeslaMate. Response: {response}", responseContentString);
-            await _telegramService.SendMessage($"Error while sending post to TeslaMate.\r\n RequestBody: {jsonString} \r\n Response: {responseContentString}").ConfigureAwait(false);
+            await _telegramService.SendMessage($"Error while sending post to TeslaMate.\r\n RequestUrl: {url} \r\n RequestBody: {jsonString} \r\n Response: {responseContentString}").ConfigureAwait(false);
         }
         response.EnsureSuccessStatusCode();
         return response;
