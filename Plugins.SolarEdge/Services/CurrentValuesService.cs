@@ -92,11 +92,11 @@ public class CurrentValuesService : ICurrentValuesService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not get json string from solarEdge.");
-            return FakeLastValue();
+            return await FakeLastValue().ConfigureAwait(false);
         }
         if (string.IsNullOrEmpty(jsonString))
         {
-            return FakeLastValue();
+            return await FakeLastValue().ConfigureAwait(false);
         }
         var cloudApiValue = GetCloudApiValueFromString(jsonString);
         AddCloudApiValueToSharedValues(cloudApiValue);
@@ -105,13 +105,44 @@ public class CurrentValuesService : ICurrentValuesService
         return latestValue;
     }
 
-    private CloudApiValue FakeLastValue()
+    private async Task<CloudApiValue> FakeLastValue()
     {
         _logger.LogTrace("{method}()", nameof(FakeLastValue));
         var fakedValue = _sharedValues.CloudApiValues.Last().Value;
         fakedValue.SiteCurrentPowerFlow.Grid.CurrentPower = 0;
-        fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = 0;
+        fakedValue.SiteCurrentPowerFlow.Storage.Status = "Charging";
+        var targetBatteryChargePower = await GetTargetBatteryPower().ConfigureAwait(false);
+        fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = targetBatteryChargePower / 1000.0;
         return fakedValue;
+    }
+
+    private async Task<int> GetTargetBatteryPower()
+    {
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(1);
+        var teslaSolarChargerHost = GetTeslaSolarChargerHost();
+        var requestUrl = $"http://{teslaSolarChargerHost}/api/Hello/HomeBatteryTargetChargingPower";
+        _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
+        var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var targetBatteryPower = JsonConvert.DeserializeObject<DtoValue<int>>(responseContent);
+        if (targetBatteryPower != null)
+        {
+            return targetBatteryPower.Value;
+        }
+        return 0;
+    }
+
+    private string GetTeslaSolarChargerHost()
+    {
+        var teslaSolarChargerHostEnvironmentVariableName = "TeslaSolarChargerHost";
+        var teslaSolarChargerHost = _configuration.GetValue<string>(teslaSolarChargerHostEnvironmentVariableName);
+        if (string.IsNullOrEmpty(teslaSolarChargerHost))
+        {
+            teslaSolarChargerHost = "teslasolarcharger";
+        }
+        return teslaSolarChargerHost;
     }
 
     private void AddCloudApiValueToSharedValues(CloudApiValue cloudApiValue)
@@ -179,13 +210,7 @@ public class CurrentValuesService : ICurrentValuesService
         httpClient.Timeout = TimeSpan.FromSeconds(1);
         try
         {
-            //ToDo: Make Base URL configurable
-            var teslaSolarChargerHostEnvironmentVariableName = "TeslaSolarChargerHost";
-            var teslaSolarChargerHost = _configuration.GetValue<string>(teslaSolarChargerHostEnvironmentVariableName);
-            if (string.IsNullOrEmpty(teslaSolarChargerHost))
-            {
-                teslaSolarChargerHost = "teslasolarcharger";
-            }
+            var teslaSolarChargerHost = GetTeslaSolarChargerHost();
             var requestUrl = $"http://{teslaSolarChargerHost}/api/Hello/NumberOfRelevantCars";
             _logger.LogTrace("RequestUrl: {requestUrl}", requestUrl);
             var response = await httpClient.GetAsync(requestUrl).ConfigureAwait(false);
