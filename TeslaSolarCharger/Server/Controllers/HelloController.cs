@@ -22,6 +22,9 @@ namespace TeslaSolarCharger.Server.Controllers
         public Task<DtoValue<int>> NumberOfRelevantCars() => Task.FromResult(_coreService.NumberOfRelevantCars());
 
         [HttpGet]
+        public Task<DtoValue<int>> HomeBatteryTargetChargingPower() => Task.FromResult(_coreService.HomeBatteryTargetChargingPower());
+
+        [HttpGet]
         public Task<string?> ProductVersion()
         {
             return _coreService.GetCurrentVersion();

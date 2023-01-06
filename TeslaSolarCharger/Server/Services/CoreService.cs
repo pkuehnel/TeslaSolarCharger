@@ -30,6 +30,12 @@ public class CoreService : ICoreService
         return new DtoValue<int>(_chargingService.GetRelevantCarIds().Count);
     }
 
+    public DtoValue<int> HomeBatteryTargetChargingPower()
+    {
+        _logger.LogTrace("{method}()", nameof(HomeBatteryTargetChargingPower));
+        return new DtoValue<int>(_chargingService.GetBatteryTargetChargingPower());
+    }
+
     public void LogVersion()
     {
         _logger.LogTrace("{method}()", nameof(LogVersion));

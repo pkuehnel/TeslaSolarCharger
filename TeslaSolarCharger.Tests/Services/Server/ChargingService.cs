@@ -376,7 +376,7 @@ public class ChargingService : TestBase
     [InlineData(30, 100, 20, 200, 0, 100)]
     [InlineData(10, 200, 20, 200, 0, 0)]
     public void AddsCorrectChargingPowerBasedOnHomeBatteryState(int? homeBatterySoc, int? homeBatteryPower, int? homeBatteryMinSoc,
-        int? homeBatteryMinChargingPower, int overage, int calculatedOverage)
+        int? homeBatteryMinChargingPower, int overage, int expectedOverage)
     {
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryMinSoc()).Returns(homeBatteryMinSoc);
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(homeBatteryMinChargingPower);
@@ -388,6 +388,29 @@ public class ChargingService : TestBase
 
         var newOverage = chargingService.AddHomeBatteryStateToPowerCalculation(overage);
 
-        Assert.Equal(calculatedOverage, newOverage);
+        Assert.Equal(expectedOverage, newOverage);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 0, 0)]
+    [InlineData(0, null, 1000, 0)]
+    [InlineData(10, 20, 1000, 1000)]
+    [InlineData(10, 20, null, 0)]
+    [InlineData(10, null, 1000, 0)]
+    [InlineData(20, 20, 1000, 0)]
+    [InlineData(30, 20, 1000, 0)]
+    public void GetsCorrectTargetBatteryChargingPower(int? actualHomeBatterySoc, int? homeBatteryMinSoc, int? homeBatteryMaxChargingPower,
+        int expectedTargetChargingPower)
+    {
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryMinSoc()).Returns(homeBatteryMinSoc);
+        Mock.Mock<IConfigurationWrapper>().Setup(c => c.HomeBatteryChargingPower()).Returns(homeBatteryMaxChargingPower);
+        Mock.Mock<ISettings>().Setup(c => c.HomeBatterySoc).Returns(actualHomeBatterySoc);
+
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
+
+        var targetChargingPower =
+            chargingService.GetBatteryTargetChargingPower();
+
+        Assert.Equal(expectedTargetChargingPower, targetChargingPower);
     }
 }

@@ -149,24 +149,25 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
             if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
             {
-                if (actualHomeBatterySoc < homeBatteryMinSoc)
-                {
-                    overage -= (int)homeBatteryMaxChargingPower - (int)actualHomeBatteryPower;
-
-                    _logger.LogDebug(
-                        "Overage after subtracting difference between max home battery charging power ({homeBatteryMaxChargingPower}) and actual home battery charging power ({actualHomeBatteryPower}): {overage}",
-                        homeBatteryMaxChargingPower, actualHomeBatteryPower, overage);
-                }
-                else
-                {
-                    overage += (int)actualHomeBatteryPower;
-                    _logger.LogDebug("Overage after adding home battery power ({actualHomeBatteryPower}): {overage}",
-                        actualHomeBatteryPower, overage);
-                }
+                var batteryMinChargingPower = GetBatteryTargetChargingPower();
+                overage -= batteryMinChargingPower - (int)actualHomeBatteryPower;
             }
         }
 
         return overage;
+    }
+
+    public int GetBatteryTargetChargingPower()
+    {
+        var actualHomeBatterySoc = _settings.HomeBatterySoc;
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        if (actualHomeBatterySoc < homeBatteryMinSoc)
+        {
+            return homeBatteryMaxChargingPower ?? 0;
+        }
+
+        return 0;
     }
 
     internal List<Car> GetIrrelevantCars(List<int> relevantCarIds)

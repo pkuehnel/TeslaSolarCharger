@@ -7,4 +7,5 @@ public interface ICoreService
     Task<string?> GetCurrentVersion();
     void LogVersion();
     DtoValue<int> NumberOfRelevantCars();
+    DtoValue<int> HomeBatteryTargetChargingPower();
 }
