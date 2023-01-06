@@ -10,7 +10,11 @@
 <button class="btn btn-primary" @onclick="NavigateToList">All Charge costs</button>
 <h3>ChargePriceDetail</h3>
 
-@if (ChargePrice != null)
+@if (ChargePrice == null)
+{
+    <div class="spinner"></div>
+}
+else
 {
     <EditForm Model="ChargePrice" OnValidSubmit="@SaveChargePrice">
         <DataAnnotationsValidator />
