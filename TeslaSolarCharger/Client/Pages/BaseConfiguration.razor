@@ -1,7 +1,6 @@
 ﻿@page "/BaseConfiguration"
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
-@using System.Web
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
 @using Majorsoft.Blazor.Components.Collapse
@@ -92,7 +91,7 @@ else
 
             @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
             {
-                <RestPvValueComponent RestValue="Grid Power"
+                <RestPvValueComponent Purpose="Grid Power"
                               SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource"
                               @bind-Url="_dtoBaseConfiguration.CurrentPowerToGridUrl"
                               @bind-Url:event="UrlChanged"
@@ -104,7 +103,7 @@ else
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.GridValueSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
             {
-                <NodePatternTypeComponent RestValue="Grid Power"
+                <NodePatternTypeComponent Purpose="Grid Power"
                                   @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.GridPowerNodePatternType"
                                   @bind-NodePatternType:event="NodePatternTypeChanged"
                                   @bind-JsonPattern="_dtoBaseConfiguration.CurrentPowerToGridJsonPattern"
@@ -161,7 +160,7 @@ else
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Rest or SolarValueSource.Modbus)
             {
-                <RestPvValueComponent RestValue="Home Battery SoC"
+                <RestPvValueComponent Purpose="Home Battery SoC"
                               SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource"
                               @bind-Url="_dtoBaseConfiguration.HomeBatterySocUrl"
                               @bind-Url:event="UrlChanged"
@@ -172,7 +171,7 @@ else
             }
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
             {
-                <NodePatternTypeComponent RestValue="Home Battery SoC"
+                <NodePatternTypeComponent Purpose="Home Battery SoC"
                                   @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatterySocNodePatternType"
                                   @bind-NodePatternType:event="NodePatternTypeChanged"
                                   @bind-JsonPattern="_dtoBaseConfiguration.HomeBatterySocJsonPattern"
@@ -221,7 +220,7 @@ else
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Rest or SolarValueSource.Modbus)
             {
-                <RestPvValueComponent RestValue="Home Battery Power"
+                <RestPvValueComponent Purpose="Home Battery Power"
                               SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource"
                               @bind-Url="_dtoBaseConfiguration.HomeBatteryPowerUrl"
                               @bind-Url:event="UrlChanged"
@@ -233,7 +232,7 @@ else
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
             {
-                <NodePatternTypeComponent RestValue="Home Battery Power"
+                <NodePatternTypeComponent Purpose="Home Battery Power"
                                   @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryPowerNodePatternType"
                                   @bind-NodePatternType:event="NodePatternTypeChanged"
                                   @bind-JsonPattern="_dtoBaseConfiguration.HomeBatteryPowerJsonPattern"
@@ -293,7 +292,7 @@ else
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
             {
-                <RestPvValueComponent RestValue="Inverter Power"
+                <RestPvValueComponent Purpose="Inverter Power"
                               SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource"
                               @bind-Url="_dtoBaseConfiguration.CurrentInverterPowerUrl"
                               @bind-Url:event="UrlChanged"
@@ -304,7 +303,7 @@ else
             }
             @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource is SolarValueSource.Mqtt or SolarValueSource.Rest)
             {
-                <NodePatternTypeComponent RestValue="Inverter Power"
+                <NodePatternTypeComponent Purpose="Inverter Power"
                                   @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.InverterPowerNodePatternType"
                                   @bind-NodePatternType:event="NodePatternTypeChanged"
                                   @bind-JsonPattern="_dtoBaseConfiguration.CurrentInverterPowerJsonPattern"
@@ -449,8 +448,9 @@ else
     private bool _showOverflow = false;
     private int _height = 0;
 
-    private async Task OnCollapsed(bool state)
+    private Task OnCollapsed(bool state)
     {
         _isCollapsed = state;
+        return Task.CompletedTask;
     }
 }

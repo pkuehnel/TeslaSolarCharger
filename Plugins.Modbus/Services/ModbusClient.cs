@@ -99,15 +99,15 @@ public class ModbusClient : ModbusTcpClient, IModbusClient
     {
         if (data.Length % 4 == 0)
         {
-            byte[] _temp = new byte[data.Length];
-            for (int i = 0; i < data.Length; i += 4)
+            var temp = new byte[data.Length];
+            for (var i = 0; i < data.Length; i += 4)
             {
-                _temp[i + 0] = data[i + 2];
-                _temp[i + 1] = data[i + 3];
-                _temp[i + 2] = data[i + 0];
-                _temp[i + 3] = data[i + 1];
+                temp[i + 0] = data[i + 2];
+                temp[i + 1] = data[i + 3];
+                temp[i + 2] = data[i + 0];
+                temp[i + 3] = data[i + 1];
             }
-            Buffer.BlockCopy(_temp, 0, data, 0, data.Length);
+            Buffer.BlockCopy(temp, 0, data, 0, data.Length);
         }
     }
 }

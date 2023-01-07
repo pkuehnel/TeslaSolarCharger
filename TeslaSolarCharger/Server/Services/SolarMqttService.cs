@@ -173,10 +173,10 @@ public class SolarMqttService : ISolarMqttService
             mqttServerPort = null;
             return null;
         }
-        var mqttServerAndPort = mqttServerIncludingPort?.Split(":");
-        var mqttServer = mqttServerAndPort?.FirstOrDefault();
+        var mqttServerAndPort = mqttServerIncludingPort.Split(":");
+        var mqttServer = mqttServerAndPort.FirstOrDefault();
         mqttServerPort = null;
-        if (mqttServerAndPort != null && mqttServerAndPort.Length > 1)
+        if (mqttServerAndPort.Length > 1)
         {
             mqttServerPort = Convert.ToInt32(mqttServerAndPort[1]);
         }

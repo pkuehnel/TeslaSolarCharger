@@ -1,5 +1,4 @@
 ﻿using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Contracts;
 using Xunit;
 using Xunit.Abstractions;
 

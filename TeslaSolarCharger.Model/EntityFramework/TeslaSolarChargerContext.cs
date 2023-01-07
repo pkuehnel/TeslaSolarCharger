@@ -11,6 +11,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<HandledCharge> HandledCharges { get; set; } = null!;
     public DbSet<PowerDistribution> PowerDistributions { get; set; } = null!;
 
+    // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
     public void RejectChanges()
@@ -32,11 +33,15 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     }
 
 
+#pragma warning disable CS8618
     public TeslaSolarChargerContext()
+#pragma warning restore CS8618
     {
     }
 
+#pragma warning disable CS8618
     public TeslaSolarChargerContext(DbContextOptions<TeslaSolarChargerContext> options)
+#pragma warning restore CS8618
         : base(options)
     {
     }
