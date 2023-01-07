@@ -7,5 +7,8 @@ public class ChargePrice
     public decimal SolarPrice { get; set; }
     public decimal GridPrice { get; set; }
 
+#pragma warning disable CS8618
+    // ReSharper disable once CollectionNeverUpdated.Global
     public List<HandledCharge> HandledCharges { get; set; }
+#pragma warning restore CS8618
 }

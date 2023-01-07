@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Shared.TimeProviding;
 using Xunit.Abstractions;
@@ -23,18 +22,14 @@ public class TestBase : IDisposable
 
     protected readonly AutoMock Mock;
 
-    protected readonly ITeslaSolarChargerContext _ctx;
-
-    private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
-
     protected LoggingLevelSwitch LogLevelSwitch { get; }
 
     protected TestBase(
         ITestOutputHelper outputHelper,
         LogEventLevel setupLogEventLevel = LogEventLevel.Warning,
+        // ReSharper disable once UnusedParameter.Local
         LogEventLevel defaultLogEventLevel = LogEventLevel.Debug)
     {
-
         var configDictionary = new Dictionary<string, string>
         {
             {"TeslaMateApiBaseUrl", "http://192.168.1.50:8097"},
@@ -45,7 +40,7 @@ public class TestBase : IDisposable
             {"CarConfigFilename", "carConfig.json"},
         };
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configDictionary)
+            .AddInMemoryCollection(configDictionary!)
             .Build()
             ;
         
@@ -56,15 +51,15 @@ public class TestBase : IDisposable
         });
 
         // In-memory database only exists while the connection is open
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        var connection = new SqliteConnection("DataSource=:memory:");
+        connection.Open();
 
         var (loggerFactory, logLevelSwitch) = GetOrCreateLoggerFactory(outputHelper, setupLogEventLevel);
         LogLevelSwitch = logLevelSwitch;
 
-        var options = new DbContextOptionsBuilder<TeslaSolarChargerContext>()
+        _ = new DbContextOptionsBuilder<TeslaSolarChargerContext>()
             .UseLoggerFactory(loggerFactory)
-            .UseSqlite(_connection)
+            .UseSqlite(connection)
             .EnableSensitiveDataLogging()
             .EnableDetailedErrors()
             .Options;

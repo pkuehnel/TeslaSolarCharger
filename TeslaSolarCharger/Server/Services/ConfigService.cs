@@ -14,15 +14,12 @@ public class ConfigService : IConfigService
     private readonly ILogger<ConfigService> _logger;
     private readonly ISettings _settings;
     private readonly ITeslamateContext _teslamateContext;
-    private readonly IConfigJsonService _configJsonService;
 
-    public ConfigService(ILogger<ConfigService> logger, ISettings settings, ITeslamateContext teslamateContext,
-        IConfigJsonService configJsonService)
+    public ConfigService(ILogger<ConfigService> logger, ISettings settings, ITeslamateContext teslamateContext)
     {
         _logger = logger;
         _settings = settings;
         _teslamateContext = teslamateContext;
-        _configJsonService = configJsonService;
     }
 
     public ISettings GetSettings()

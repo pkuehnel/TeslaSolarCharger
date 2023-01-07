@@ -233,7 +233,7 @@ public class CurrentValuesService : ICurrentValuesService
         return 1;
     }
 
-    internal CloudApiValue GetCloudApiValueFromString(string? jsonString)
+    internal CloudApiValue GetCloudApiValueFromString(string jsonString)
     {
         _logger.LogTrace("{method}({param1}", nameof(GetCloudApiValueFromString), jsonString);
         return JsonConvert.DeserializeObject<CloudApiValue>(jsonString) ?? throw new InvalidOperationException("Can not deserialize CloudApiValue");

@@ -13,8 +13,6 @@ namespace TeslaSolarCharger.Server.Services;
 public class IssueValidationService : IIssueValidationService
 {
     private readonly ILogger<IssueValidationService> _logger;
-    private readonly ITeslaService _teslaService;
-    private readonly IPvValueService _pvValueService;
     private readonly ISettings _settings;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly IPossibleIssues _possibleIssues;
@@ -23,15 +21,12 @@ public class IssueValidationService : IIssueValidationService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITeslamateContext _teslamateContext;
 
-    public IssueValidationService(ILogger<IssueValidationService> logger,
-        ITeslaService teslaService, IPvValueService pvValueService, ISettings settings,
+    public IssueValidationService(ILogger<IssueValidationService> logger, ISettings settings,
         ITeslaMateMqttService teslaMateMqttService, IPossibleIssues possibleIssues, IssueKeys issueKeys,
         GlobalConstants globalConstants, IConfigurationWrapper configurationWrapper,
         ITeslamateContext teslamateContext)
     {
         _logger = logger;
-        _teslaService = teslaService;
-        _pvValueService = pvValueService;
         _settings = settings;
         _teslaMateMqttService = teslaMateMqttService;
         _possibleIssues = possibleIssues;
@@ -77,6 +72,7 @@ public class IssueValidationService : IIssueValidationService
         var issues = new List<Issue>();
         try
         {
+            // ReSharper disable once UnusedVariable
             var carIds = await _teslamateContext.Cars.Select(car => car.Id).ToListAsync().ConfigureAwait(false);
         }
         catch (Exception)

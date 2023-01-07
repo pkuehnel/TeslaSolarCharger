@@ -1,5 +1,4 @@
 ﻿using System.Net.Http;
-using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;

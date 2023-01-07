@@ -9,5 +9,7 @@ public class PowerDistribution
     public float GridProportion { get; set; }
 
     public int HandledChargeId { get; set; }
+#pragma warning disable CS8618
     public HandledCharge HandledCharge { get; set; }
+#pragma warning restore CS8618
 }

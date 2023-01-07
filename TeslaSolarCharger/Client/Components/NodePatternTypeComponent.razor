@@ -14,33 +14,33 @@
 @if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Json)
 {
     <div class="form-group">
-        <label for="JsonPattern">@(RestValue) Json Pattern</label>
+        <label for="JsonPattern">@(Purpose) Json Pattern</label>
         <InputText id="JsonPattern" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
     </div>
 }
 @if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Xml)
 {
     <div class="form-group">
-        <label for="XmlPattern">@(RestValue) XML Pattern</label>
+        <label for="XmlPattern">@(Purpose) XML Pattern</label>
         <InputText id="XmlPattern" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
     </div>
     <div class="form-group">
-        <label for="XmlAttributeHeaderName">@(RestValue) XML Attribute Header Name</label>
+        <label for="XmlAttributeHeaderName">@(Purpose) XML Attribute Header Name</label>
         <InputText id="XmlAttributeHeaderName" @bind-Value="XmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
     </div>
     <div class="form-group">
-        <label for="XmlAttributeHeaderValue">@(RestValue) XML Attribute Header Value</label>
+        <label for="XmlAttributeHeaderValue">@(Purpose) XML Attribute Header Value</label>
         <InputText id="XmlAttributeHeaderValue" @bind-Value="XmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
     </div>
     <div class="form-group">
-        <label for="XmlAttributeValueName">@(RestValue) XML Attribute Header Value</label>
+        <label for="XmlAttributeValueName">@(Purpose) XML Attribute Header Value</label>
         <InputText id="XmlAttributeValueName" @bind-Value="XmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
     </div>
 }
 
 @code {
     [Parameter]
-    public string RestValue { get; set; }
+    public string Purpose { get; set; } = null!;
 
     [Parameter]
     public NodePatternType? NodePatternType

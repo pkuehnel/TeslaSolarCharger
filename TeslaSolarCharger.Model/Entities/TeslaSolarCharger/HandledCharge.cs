@@ -8,9 +8,12 @@ public class HandledCharge
     public decimal? UsedGridEnergy { get; set; }
     public decimal? UsedSolarEnergy { get; set; }
     public decimal? CalculatedPrice { get; set; }
+    // ReSharper disable once CollectionNeverUpdated.Global
     public List<PowerDistribution> PowerDistributions { get; set; } = new();
 
 
     public int ChargePriceId { get; set; }
+#pragma warning disable CS8618
     public ChargePrice ChargePrice { get; set; }
+#pragma warning restore CS8618
 }
