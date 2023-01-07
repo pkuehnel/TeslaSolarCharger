@@ -77,8 +77,7 @@ a, .btn-link {
 
 @media (min-width: 641px) {
     .spinner {
-        left: 55%;
-        position: absolute;
+        left: calc(50% - 40px + 250px / 2);
     }
 }
 
