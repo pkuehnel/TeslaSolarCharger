@@ -37,6 +37,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
         {
             CurrentPowerToGridUrl = _configuration.GetValue<string>("CurrentPowerToGridUrl"),
             CurrentInverterPowerUrl = _configuration.GetValue<string?>("CurrentInverterPowerUrl"),
+#pragma warning disable CS8601
             TeslaMateApiBaseUrl = _configuration.GetValue<string>("TeslaMateApiBaseUrl"),
             UpdateIntervalSeconds = _configuration.GetValue<int>("UpdateIntervalSeconds"),
             PvValueUpdateIntervalSeconds = _configuration.GetValue<int>("PvValueUpdateIntervalSeconds"),
@@ -64,6 +65,7 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
             CurrentInverterPowerXmlAttributeHeaderName = _configuration.GetValue<string?>("CurrentInverterPowerAttributeHeaderName"),
             CurrentInverterPowerXmlAttributeHeaderValue = _configuration.GetValue<string?>("CurrentInverterPowerAttributeHeaderValue"),
             CurrentInverterPowerXmlAttributeValueName = _configuration.GetValue<string?>("CurrentInverterPowerAttributeValueName"),
+#pragma warning restore CS8601
         };
 
         await _configurationWrapper.SaveBaseConfiguration(dtoBaseConfiguration).ConfigureAwait(false);

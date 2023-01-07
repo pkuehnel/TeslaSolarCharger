@@ -5,7 +5,7 @@
 
 
 <div class="form-group">
-    <label for="Url">@RestValue Url</label>
+    <label for="Url">@Purpose Url</label>
     <InputText id="Url" @bind-Value="Url" class="form-control" />
 </div>
 @if (SolarValueSource == SolarValueSource.Modbus)
@@ -48,7 +48,7 @@ else
 
 @code {
     [Parameter]
-    public string RestValue { get; set; }
+    public string Purpose { get; set; } = null!;
 
     [Parameter]
     public SolarValueSource SolarValueSource { get; set; }
@@ -85,7 +85,7 @@ else
     public EventCallback<bool> IsModbusUrlChanged { get; set; }
 
     [Parameter]
-    public Dictionary<string, string> Headers { get; set; }
+    public Dictionary<string, string> Headers { get; set; } = null!;
 
     [Parameter]
     public EventCallback<Dictionary<string, string>> HeadersChanged { get; set; }
@@ -95,7 +95,7 @@ else
     {
         var value = Headers[oldKey];
         Headers.Remove(oldKey);
-        Headers.Add(newKey, value ?? string.Empty);
+        Headers.Add(newKey, value);
         HeadersChanged.InvokeAsync(Headers);
     }
 

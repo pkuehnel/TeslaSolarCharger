@@ -129,7 +129,6 @@ public class ChargingService : TestBase
     [Fact]
     public void Gets_relevant_car_IDs()
     {
-        var geofence = "Home";
         var cars = new List<Car>()
         {
             new Car()
@@ -196,7 +195,6 @@ public class ChargingService : TestBase
     [Fact]
     public void Gets_irrelevant_cars()
     {
-        var geofence = "Home";
         var cars = new List<Car>()
         {
             new Car()

@@ -179,7 +179,7 @@
     [Parameter]
     public EventCallback<string> ModbusUrlChanged { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         if (string.IsNullOrWhiteSpace(ModbusUrl))
         {
@@ -240,6 +240,7 @@
                 SwapRegisters = Boolean.Parse(registerSwapString);
             }
         }
+        return Task.CompletedTask;
     }
 
     private async Task UpdateUrlFromModbusValues()

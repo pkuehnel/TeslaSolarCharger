@@ -4,7 +4,9 @@ namespace TeslaSolarCharger.Shared.Dtos;
 
 public class CarBasicConfiguration
 {
+#pragma warning disable CS8618
     public CarBasicConfiguration(int carId, string? carName)
+#pragma warning restore CS8618
     {
         CarId = carId;
         CarName = carName;

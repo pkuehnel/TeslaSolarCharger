@@ -1,9 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
-using Quartz.Util;
 using System.Globalization;
 using System.Xml;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;

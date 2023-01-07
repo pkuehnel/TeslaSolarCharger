@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Net;
-using TeslaSolarCharger.Server.Contracts;
+﻿using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
