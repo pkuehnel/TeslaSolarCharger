@@ -71,8 +71,14 @@ a, .btn-link {
     height: 80px;
     animation: spin 700ms linear infinite;
     top: 40%;
-    left: 55%;
-    position: absolute;
+    left: calc(50% - 40px) ;
+    position: fixed;
+}
+
+@media (min-width: 641px) {
+    .spinner {
+        left: calc(50% - 40px + 250px / 2);
+    }
 }
 
 @keyframes spin {
