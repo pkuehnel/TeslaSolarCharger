@@ -19,9 +19,13 @@ else
 {
     <IssueValidation></IssueValidation>
     <div class="shadow p-3 mb-5 bg-white rounded">
+        @if (_couldNotRefreshStates == true)
+        {
+            <small class="form-text text-muted">States could not be refreshed. Are you currently offline?</small>
+        }
         @if (_isSolarEdgeInstallation == true)
         {
-            <small id="chargingPriorityHelp" class="form-text text-muted">As you are using SolarEdge which is rate limited, these values might be delayed or grid power and batterypower might be displayed as zero or your configured Home Battery charging power (W). This is nothing to worry about, it is just a way to handle the rate limitation.</small>
+            <small class="form-text text-muted">As you are using SolarEdge which is rate limited, these values might be delayed or grid power and batterypower might be displayed as zero or your configured Home Battery charging power (W). This is nothing to worry about, it is just a way to handle the rate limitation.</small>
         }
         @if (_settings.InverterPower != null)
         {
@@ -304,6 +308,7 @@ else
 @code {
     private Settings? _settings;
     private bool? _isSolarEdgeInstallation;
+    private bool? _couldNotRefreshStates;
     private List<Car>? _carsToDisplay;
     private Dictionary<int, DtoChargeSummary>? _chargeSummaries;
     private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
@@ -371,15 +376,23 @@ else
 
     private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
-        var tmpSettings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
-        _settings!.InverterPower = tmpSettings!.InverterPower;
-        _settings.Overage = tmpSettings.Overage;
-        _settings!.HomeBatterySoc = tmpSettings.HomeBatterySoc;
-        _settings.HomeBatteryPower = tmpSettings.HomeBatteryPower;
-        foreach (var car in _carsToDisplay!)
+        try
         {
-            var tmpCar = tmpSettings.Cars.First(c => c.Id == car.Id);
-            car.CarState = tmpCar.CarState;
+            var tmpSettings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
+            _settings!.InverterPower = tmpSettings!.InverterPower;
+            _settings.Overage = tmpSettings.Overage;
+            _settings!.HomeBatterySoc = tmpSettings.HomeBatterySoc;
+            _settings.HomeBatteryPower = tmpSettings.HomeBatteryPower;
+            foreach (var car in _carsToDisplay!)
+            {
+                var tmpCar = tmpSettings.Cars.First(c => c.Id == car.Id);
+                car.CarState = tmpCar.CarState;
+            }
+            _couldNotRefreshStates = false;
+        }
+        catch (Exception)
+        {
+            _couldNotRefreshStates = true;
         }
         this.StateHasChanged();
     }
