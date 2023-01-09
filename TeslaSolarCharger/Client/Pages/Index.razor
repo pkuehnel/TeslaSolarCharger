@@ -4,6 +4,7 @@
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Enums
 @inject HttpClient HttpClient
@@ -12,11 +13,8 @@
 <PageTitle>Tesla Solar Charger</PageTitle>
 
 <BackendIssueValidation></BackendIssueValidation>
-@if (_settings == null || _carsToDisplay == null)
-{
-    <div class="spinner"></div>
-}
-else
+
+@if (_pvValues != null)
 {
     <div class="shadow p-3 mb-5 bg-white rounded">
         @if (_couldNotRefreshStates == true)
@@ -27,32 +25,45 @@ else
         {
             <small class="form-text text-muted">As you are using SolarEdge which is rate limited, these values might be delayed or grid power and batterypower might be displayed as zero or your configured Home Battery charging power (W). This is nothing to worry about, it is just a way to handle the rate limitation.</small>
         }
-        @if (_settings.InverterPower != null)
+        @if (_pvValues.InverterPower != null)
         {
-            <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_settings.InverterPower W</div>
+            <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_pvValues.InverterPower W</div>
         }
-        <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")">
+        <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
             <i class="fa-solid fa-bolt" style="width: 25px;"></i>
-            @if (_settings.Overage != null)
+            @if (_pvValues.GridPower != null)
             {
-                @Math.Abs((int)_settings.Overage)
+                @Math.Abs((int)_pvValues.GridPower)
             }
-            W</div>
-        @if (_settings.HomeBatterySoc != null)
+            W
+        </div>
+        @if (_pvValues.HomeBatterySoc != null)
         {
-            <div><i class="fa-solid fa-battery-full" style="width: 25px;"></i>@_settings.HomeBatterySoc %</div>
+            <div><i class="fa-solid fa-battery-full" style="width: 25px;"></i>@_pvValues.HomeBatterySoc %</div>
         }
-        @if (_settings.HomeBatteryPower != null)
+        @if (_pvValues.HomeBatteryPower != null)
         {
-            <div class="@(_settings.HomeBatteryPower < 0 ? "text-danger" : "text-success")"><i class="fa-solid fa-battery-full" style="width: 25px;"></i>
-                @if (_settings.HomeBatteryPower != null)
+            <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
+                <i class="fa-solid fa-battery-full" style="width: 25px;"></i>
+                @if (_pvValues.HomeBatteryPower != null)
                 {
-                    @Math.Abs((int)_settings.HomeBatteryPower)
+                    @Math.Abs((int)_pvValues.HomeBatteryPower)
                 }
-                W</div>
+                W
+            </div>
         }
-        <div><i class="fa-solid fa-car" style="width: 25px;"></i>@_carsToDisplay.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
+        <div><i class="fa-solid fa-car" style="width: 25px;"></i>@_pvValues.CarCombinedChargingPowerAtHome W</div>
     </div>
+}
+
+@if (_settings == null || _carsToDisplay == null)
+{
+    <div class="spinner"></div>
+}
+else
+{
+
+    
     @if (_carsToDisplay.Count < 1)
     {
         <p>
@@ -87,7 +98,7 @@ else
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-                           @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">
+               @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">
                 </p>
             }
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -95,12 +106,12 @@ else
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
                 </p>
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
             }
             @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
@@ -220,7 +231,7 @@ else
                         Full charge at
                     </td>
                     <td>
-                        @if(car.CarState.TimeUntilFullCharge > TimeSpan.Zero)
+                        @if (car.CarState.TimeUntilFullCharge > TimeSpan.Zero)
                         {
                             @((DateTime.Now + car.CarState.TimeUntilFullCharge).Value.ToString("HH:mm dd.MM"))
                         }
@@ -296,9 +307,9 @@ else
     }
     <form action="https://www.paypal.com/donate" method="post" target="_blank">
         <div style="text-align:center">
-            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ"/>
-            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button"/>
-            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1"/>
+            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
+            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
         </div>
     </form>
 }
@@ -307,6 +318,7 @@ else
 
 @code {
     private Settings? _settings;
+    private DtoPvValues? _pvValues;
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
     private List<Car>? _carsToDisplay;
@@ -324,6 +336,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _settings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
+        await UpdatePvValues().ConfigureAwait(false);
         _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
         _carsToDisplay = _settings!.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
@@ -339,6 +352,11 @@ else
         _timer.Interval = 5000;
         _timer.Elapsed += RefreshStates;
         _timer.Start();
+    }
+
+    private async Task UpdatePvValues()
+    {
+        _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
     }
 
     private async Task ChangeChargeMode(int carId)
@@ -378,6 +396,7 @@ else
     {
         try
         {
+            await UpdatePvValues().ConfigureAwait(false);
             var tmpSettings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
             _settings!.InverterPower = tmpSettings!.InverterPower;
             _settings.Overage = tmpSettings.Overage;
