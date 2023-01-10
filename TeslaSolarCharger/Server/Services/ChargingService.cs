@@ -272,7 +272,7 @@ public class ChargingService : IChargingService
         {
             _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}",
                 car.CarConfiguration.ChargeMode, car.CarState.AutoFullSpeedCharge);
-            if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar || maxAmpIncrease.Value < 0)
+            if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar || car.CarState.State != CarStateEnum.Charging || maxAmpIncrease.Value < 0)
             {
                 var ampToSet = (maxAmpPerCar - car.CarState.ChargerRequestedCurrent) > maxAmpIncrease.Value ? ((car.CarState.ChargerActualCurrent ?? 0) + maxAmpIncrease.Value) : maxAmpPerCar;
                 _logger.LogDebug("Set current to {ampToSet} after considering max car Current {maxAmpPerCar} and maxAmpIncrease {maxAmpIncrease}", ampToSet, maxAmpPerCar, maxAmpIncrease.Value);
