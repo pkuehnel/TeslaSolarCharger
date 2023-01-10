@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 
 namespace TeslaSolarCharger.Server.Controllers;
@@ -15,4 +16,13 @@ public class IndexController : ApiBaseController
 
     [HttpGet]
     public DtoPvValues GetPvValues() => _indexService.GetPvValues();
+
+    [HttpGet]
+    public Task<List<DtoCarBaseStates>> GetCarBaseValuesOfEnabledCars() => _indexService.GetCarBaseStatesOfEnabledCars();
+
+    [HttpGet]
+    public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars() => _indexService.GetCarBaseSettingsOfEnabledCars();
+
+    [HttpPost]
+    public void UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
 }

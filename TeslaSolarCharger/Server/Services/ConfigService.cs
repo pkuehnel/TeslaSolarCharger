@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -14,12 +15,14 @@ public class ConfigService : IConfigService
     private readonly ILogger<ConfigService> _logger;
     private readonly ISettings _settings;
     private readonly ITeslamateContext _teslamateContext;
+    private readonly IIndexService _indexService;
 
-    public ConfigService(ILogger<ConfigService> logger, ISettings settings, ITeslamateContext teslamateContext)
+    public ConfigService(ILogger<ConfigService> logger, ISettings settings, ITeslamateContext teslamateContext, IIndexService indexService)
     {
         _logger = logger;
         _settings = settings;
         _teslamateContext = teslamateContext;
+        _indexService = indexService;
     }
 
     public ISettings GetSettings()
@@ -65,7 +68,7 @@ public class ConfigService : IConfigService
             try
             {
                 carBasicConfiguration.VehicleIdentificationNumber =
-                    await _teslamateContext.Cars.Where(c => c.Id == car.Id).Select(c => c.Vin).FirstAsync().ConfigureAwait(false) ?? string.Empty;
+                    await _indexService.GetVinByCarId(car.Id).ConfigureAwait(false) ?? string.Empty;
             }
             catch (Exception ex)
             {

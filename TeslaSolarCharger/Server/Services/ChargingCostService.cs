@@ -317,7 +317,6 @@ public class ChargingCostService : IChargingCostService
     {
         var dtoChargeSummary = new DtoChargeSummary()
         {
-            CarId = carId,
             ChargeCost = handledCharges.Sum(h => h.CalculatedPrice ?? 0),
             ChargedGridEnergy = handledCharges.Sum(h => h.UsedGridEnergy ?? 0),
             ChargedSolarEnergy = handledCharges.Sum(h => h.UsedSolarEnergy ?? 0),

@@ -3,7 +3,7 @@
 @using System.Timers
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Dtos
-@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Enums
@@ -56,7 +56,7 @@
     </div>
 }
 
-@if (_settings == null || _carsToDisplay == null)
+@if (_carBaseStates == null || _carBaseSettings == null)
 {
     <div class="spinner"></div>
 }
@@ -64,59 +64,49 @@ else
 {
 
     
-    @if (_carsToDisplay.Count < 1)
+    @if (_carBaseStates.Count < 1)
     {
         <p>
             You need to enable TeslaSolarCharger for at least one car in the <a href="/CarSettings">car settings page</a>.
         </p>
     }
-    @foreach (var car in _carsToDisplay)
+    @foreach (var car in _carBaseStates)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
-            @if (car.CarState.Healthy != true)
+            <div><b>@(car.NameOrVin)</b>: @(car.StateOfCharge)% (@(car.StateOfChargeLimit)%) @car.HomeChargePower W</div>
+            @if (car.IsHealthy == false)
             {
                 <i class="fa-solid fa-circle-exclamation"></i>
             }
-            @if (_chargeSummaries != null)
-            {
-                if (_chargeSummaries.Any(c => c.Key == car.Id))
-                {
-                    <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedSolarEnergy.ToString("0.00") kWh</div>
-                    <div><i class="fa-solid fa-bolt" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedGridEnergy.ToString("0.00") kWh</div>
-                    <div><i class="fa-solid fa-coins" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargeCost.ToString("0.00")</div>
-                }
-                else
-                {
-                    <div>Chargeprices will show up nine minutes after the first charge with at least version 2.6.0</div>
-                }
+            <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh</div>
+            <div><i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh</div>
+            <div><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")</div>
 
-            }
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2">@car.CarConfiguration.ChargeMode.ToFriendlyString()</label> <button class="btn btn-primary col-6 col-sm-6 col-md-3 col-lg-2" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
-            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            <label class="col-5 col-sm-4 col-md-3 col-lg-2">@_carBaseSettings[car.CarId].ChargeMode.ToFriendlyString()</label> <button class="btn btn-primary col-6 col-sm-6 col-md-3 col-lg-2" @onclick="() => ChangeChargeMode(car.CarId)">@_chargemodeChangeButtonTexts[car.CarId]</button>
+            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvAndMinSoc || _carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
             {
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-               @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].MinimumStateOfCharge" type="number" id="minSoc" name="minSoc" min="0" max="100"
+               @onchange="@(e => _carBaseSettings[car.CarId].MinimumStateOfCharge = Int32.Parse(e.Value?.ToString() ?? "0"))">
                 </p>
             }
-            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
             {
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
                 </p>
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-               @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="time" name="time"
+               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
             }
-            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvAndMinSoc || _carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
             {
-                <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">@_saveButtonTexts[car.Id]</button></p>
+                <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
             }
         </div>
     }
@@ -322,7 +312,8 @@ else
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
     private List<Car>? _carsToDisplay;
-    private Dictionary<int, DtoChargeSummary>? _chargeSummaries;
+    private List<DtoCarBaseStates>? _carBaseStates;
+    private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
     private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
     private string _version = "";
@@ -336,6 +327,8 @@ else
     protected override async Task OnInitializedAsync()
     {
         _settings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
+        _carBaseSettings = await HttpClient.GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars").ConfigureAwait(false);
+        _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
         await UpdatePvValues().ConfigureAwait(false);
         _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
         _carsToDisplay = _settings!.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
@@ -345,9 +338,7 @@ else
             _chargemodeChangeButtonTexts.Add(car.Id, _chargeModeChangeButtonDefaultText);
             _saveButtonTexts.Add(car.Id, _saveButtonDefaultText);
         }
-
-        _chargeSummaries = await HttpClient.GetFromJsonAsync<Dictionary<int, DtoChargeSummary>>("api/ChargingCost/GetChargeSummaries").ConfigureAwait(false);
-
+        
         _timer = new Timer();
         _timer.Interval = 5000;
         _timer.Elapsed += RefreshStates;
@@ -377,10 +368,10 @@ else
         _chargemodeChangeButtonTexts[carId] = _chargeModeChangeButtonDefaultText;
     }
 
-    private async Task UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
+    private async Task UpdateCarSettings(DtoCarBaseSettings dtoCarBaseSettings)
     {
-        _saveButtonTexts[carId] = _buttonLoadingText;
-        var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration).ConfigureAwait(false);
+        _saveButtonTexts[dtoCarBaseSettings.CarId] = _buttonLoadingText;
+        var result = await HttpClient.PostAsJsonAsync("/api/Index/UpdateCarBaseSettings", dtoCarBaseSettings).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
             ToastService.ShowSuccess("Car Configuration updated");
@@ -389,7 +380,7 @@ else
         {
             ToastService.ShowError("Error updating car configuration");
         }
-        _saveButtonTexts[carId] = _saveButtonDefaultText;
+        _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
     }
 
     private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
