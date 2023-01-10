@@ -7,6 +7,7 @@
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Client.Components
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 
@@ -78,7 +79,8 @@ else
             {
                 <i class="fa-solid fa-circle-exclamation"></i>
             }
-            <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh</div>
+            
+            <TooltipComponent Text="Charged kWh from solar power"><div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh</div></TooltipComponent>
             <div><i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh</div>
             <div><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")</div>
 
