@@ -272,7 +272,7 @@ public class ChargingService : IChargingService
         {
             _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}",
                 car.CarConfiguration.ChargeMode, car.CarState.AutoFullSpeedCharge);
-            if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar || maxAmpIncrease.Value < 0)
+            if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar || car.CarState.State != CarStateEnum.Charging || maxAmpIncrease.Value < 0)
             {
                 var ampToSet = (maxAmpPerCar - car.CarState.ChargerRequestedCurrent) > maxAmpIncrease.Value ? ((car.CarState.ChargerActualCurrent ?? 0) + maxAmpIncrease.Value) : maxAmpPerCar;
                 _logger.LogDebug("Set current to {ampToSet} after considering max car Current {maxAmpPerCar} and maxAmpIncrease {maxAmpIncrease}", ampToSet, maxAmpPerCar, maxAmpIncrease.Value);
@@ -282,8 +282,10 @@ public class ChargingService : IChargingService
                     if (car.CarState.SoC >=
                         car.CarState.SocLimit - 2)
                     {
+                        _logger.LogDebug("Do not start charging for car {carId} as set SoC Limit in your Tesla app needs to be 3% higher than actual SoC", car.Id);
                         return 0;
                     }
+                    _logger.LogDebug("Charging schould start.");
                     await _teslaService.StartCharging(car.Id, ampToSet, car.CarState.State).ConfigureAwait(false);
                     ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
                 }
