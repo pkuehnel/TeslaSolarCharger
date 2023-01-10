@@ -82,7 +82,17 @@ else
             <div><i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh</div>
             <div><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")</div>
 
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2">@_carBaseSettings[car.CarId].ChargeMode.ToFriendlyString()</label> <button class="btn btn-primary col-6 col-sm-6 col-md-3 col-lg-2" @onclick="() => ChangeChargeMode(car.CarId)">@_chargemodeChangeButtonTexts[car.CarId]</button>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="chargeMode">ChargeMode:</label>
+                <InputSelect @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="chargeMode" name="chargeMode">
+
+                    @foreach (var value in Enum.GetValues<ChargeMode>())
+                    {
+                        <option value="@value">@value.ToFriendlyString()</option>
+                    }
+                </InputSelect>
+            </p>
+            
             @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvAndMinSoc || _carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
             {
                 <p>
