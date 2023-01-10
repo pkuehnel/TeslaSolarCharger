@@ -282,8 +282,10 @@ public class ChargingService : IChargingService
                     if (car.CarState.SoC >=
                         car.CarState.SocLimit - 2)
                     {
+                        _logger.LogDebug("Do not start charging for car {carId} as set SoC Limit in your Tesla app needs to be 3% higher than actual SoC", car.Id);
                         return 0;
                     }
+                    _logger.LogDebug("Charging schould start.");
                     await _teslaService.StartCharging(car.Id, ampToSet, car.CarState.State).ConfigureAwait(false);
                     ampChange += ampToSet - (car.CarState.ChargerActualCurrent ?? 0);
                 }
