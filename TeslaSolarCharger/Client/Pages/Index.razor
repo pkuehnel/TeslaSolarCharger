@@ -63,7 +63,7 @@
 else
 {
 
-    
+
     @if (_carBaseStates.Count < 1)
     {
         <p>
@@ -92,7 +92,7 @@ else
                     }
                 </InputSelect>
             </p>
-            
+
             @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvAndMinSoc || _carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
             {
                 <p>
@@ -114,10 +114,8 @@ else
                @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
             }
-            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvAndMinSoc || _carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
-            {
-                <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
-            }
+            <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
+
         </div>
     }
 
@@ -348,7 +346,7 @@ else
             _chargemodeChangeButtonTexts.Add(car.Id, _chargeModeChangeButtonDefaultText);
             _saveButtonTexts.Add(car.Id, _saveButtonDefaultText);
         }
-        
+
         _timer = new Timer();
         _timer.Interval = 5000;
         _timer.Elapsed += RefreshStates;
