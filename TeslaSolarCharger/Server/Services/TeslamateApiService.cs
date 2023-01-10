@@ -26,7 +26,11 @@ public class TeslamateApiService : ITeslaService
     public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
     {
         _logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(StartCharging), carId, startAmp, carState);
-
+        if (startAmp == 0)
+        {
+            _logger.LogDebug("Should start charging with 0 amp. Skipping charge start.");
+            return;
+        }
         if (carState == CarStateEnum.Offline ||
             carState == CarStateEnum.Asleep)
         {
