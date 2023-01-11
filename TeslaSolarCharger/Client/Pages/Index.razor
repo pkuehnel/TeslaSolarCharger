@@ -5,7 +5,6 @@
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
-@using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
@@ -97,14 +96,32 @@ else
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
             </div>
             <div>
+                @if (car.IsHealthy == false)
+                {
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarNotHealthy]">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </TooltipComponent>
+                }
+                @if (car.IsHome)
+                {
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarAtHome]">
+                        <i class="fa-solid fa-house"></i>
+                    </TooltipComponent>
+                }
+                @if (car.PluggedIn)
+                {
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarPluggedIn]">
+                        <i class="fa-solid fa-plug"></i>
+                    </TooltipComponent>
+                }
+
+            </div>
+            <div>
                 <i class="fa-solid fa-battery-full" style="width: 25px;"></i><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge)%</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit)% )</TooltipComponent>
             </div>
             <div>
             </div>
-            @if (car.IsHealthy == false)
-            {
-                <i class="fa-solid fa-circle-exclamation"></i>
-            }
+
             <div>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
                     <i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh
@@ -181,7 +198,6 @@ else
 
 
 @code {
-    private Settings? _settings;
     private DtoPvValues? _pvValues;
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
@@ -199,15 +215,14 @@ else
     protected override async Task OnInitializedAsync()
     {
         _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
-        _settings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
         await RefreshCarBaseStates().ConfigureAwait(false);
         _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
         await RefreshPvValues().ConfigureAwait(false);
         _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
-        foreach (var car in _settings!.Cars)
+        foreach (var carBaseState in _carBaseStates!)
         {
-            _saveButtonTexts.Add(car.Id, _saveButtonDefaultText);
+            _saveButtonTexts.Add(carBaseState.CarId, _saveButtonDefaultText);
         }
 
         _timer = new Timer();

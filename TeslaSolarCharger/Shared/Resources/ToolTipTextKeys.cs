@@ -15,6 +15,7 @@ public class ToolTipTextKeys
     public string CarChargedGridEnergy => "CarChargedGridEnergy";
     public string CarChargeCost => "CarChargeCost";
     public string CarAtHome => "CarAtHome";
+    public string CarNotHealthy => "CarNotHealthy";
     public string CarPluggedIn => "CarPluggedIn";
     public string CarChargeMode => "CarChargeMode";
 }

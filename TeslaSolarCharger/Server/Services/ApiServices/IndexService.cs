@@ -1,8 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Configuration;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -59,8 +57,8 @@ public class IndexService : IIndexService
                 StateOfCharge = enabledCar.CarState.SoC,
                 StateOfChargeLimit = enabledCar.CarState.SocLimit,
                 HomeChargePower = enabledCar.CarState.ChargingPowerAtHome,
-                PluggedInAtHome = enabledCar.CarState is { IsHomeGeofence: true, PluggedIn: true },
-                IsHome = enabledCar.CarState.PluggedIn == true,
+                PluggedIn = enabledCar.CarState.PluggedIn == true,
+                IsHome = enabledCar.CarState.IsHomeGeofence == true,
                 IsAutoFullSpeedCharging = enabledCar.CarState.AutoFullSpeedCharge,
             };
             if (string.IsNullOrEmpty(dtoCarBaseValues.NameOrVin))
@@ -116,7 +114,8 @@ public class IndexService : IIndexService
             { _toolTipTextKeys.CarChargedGridEnergy, "Total charged grid energy" },
             { _toolTipTextKeys.CarChargeCost, "Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed." },
             { _toolTipTextKeys.CarAtHome, "Your car is in your defined GeoFence" },
-            { _toolTipTextKeys.CarPluggedIn, "Your car is plugged in at home" },
+            { _toolTipTextKeys.CarNotHealthy, "Your car has no optimal internet connection or there is an issue with the Tesla API." },
+            { _toolTipTextKeys.CarPluggedIn, "Your car is plugged in" },
             { _toolTipTextKeys.CarChargeMode, "ChargeMode of your car\r\n" +
                                               $"{ChargeMode.MaxPower.ToFriendlyString()}: Your car will charge with the maximum available power.\r\n" +
                                               $"{ChargeMode.PvOnly.ToFriendlyString()}: Your car will charge with solar power only despite you configured a min SoC in combination with a date when this soc should be reached.\r\n" +

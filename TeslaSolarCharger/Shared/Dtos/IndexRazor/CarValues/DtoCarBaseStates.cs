@@ -1,5 +1,4 @@
 ﻿using TeslaSolarCharger.Shared.Dtos.ChargingCost;
-using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 
@@ -13,7 +12,7 @@ public class DtoCarBaseStates
 #pragma warning disable CS8618
     public DtoChargeSummary DtoChargeSummary { get; set; }
 #pragma warning restore CS8618
-    public bool PluggedInAtHome { get; set; }
+    public bool PluggedIn { get; set; }
     public bool IsHome { get; set; }
     public bool IsAutoFullSpeedCharging { get; set; }
     public bool? IsHealthy { get; set; }

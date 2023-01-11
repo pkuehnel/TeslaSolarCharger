@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Server.Contracts;
+﻿using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos;
@@ -14,14 +12,12 @@ public class ConfigService : IConfigService
 {
     private readonly ILogger<ConfigService> _logger;
     private readonly ISettings _settings;
-    private readonly ITeslamateContext _teslamateContext;
     private readonly IIndexService _indexService;
 
-    public ConfigService(ILogger<ConfigService> logger, ISettings settings, ITeslamateContext teslamateContext, IIndexService indexService)
+    public ConfigService(ILogger<ConfigService> logger, ISettings settings, IIndexService indexService)
     {
         _logger = logger;
         _settings = settings;
-        _teslamateContext = teslamateContext;
         _indexService = indexService;
     }
 
