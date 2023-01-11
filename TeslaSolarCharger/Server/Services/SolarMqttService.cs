@@ -67,7 +67,7 @@ public class SolarMqttService : ISolarMqttService
                 var jsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
                 var xmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
-                _setting.Overage = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+                _setting.Overage = _pvValueService.GetDoubleValueByString(value, jsonPattern, xmlPattern, correctionFactor);
                 if (_setting.Overage != null)
                 {
                     _pvValueService.AddOverageValueToInMemoryList((int)_setting.Overage);
@@ -78,21 +78,21 @@ public class SolarMqttService : ISolarMqttService
                 var jsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
                 var xmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor();
-                _setting.InverterPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+                _setting.InverterPower = _pvValueService.GetDoubleValueByString(value, jsonPattern, xmlPattern, correctionFactor);
             }
             else if (topic == _configurationWrapper.HomeBatterySocMqttTopic())
             {
                 var jsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
                 var xmlPattern = _configurationWrapper.HomeBatterySocXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.HomeBatterySocCorrectionFactor();
-                _setting.HomeBatterySoc = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+                _setting.HomeBatterySoc = _pvValueService.GetDoubleValueByString(value, jsonPattern, xmlPattern, correctionFactor);
             }
             else if (topic == _configurationWrapper.HomeBatteryPowerMqttTopic())
             {
                 var jsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
                 var xmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
-                _setting.HomeBatteryPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor);
+                _setting.HomeBatteryPower = _pvValueService.GetDoubleValueByString(value, jsonPattern, xmlPattern, correctionFactor);
             }
             else
             {

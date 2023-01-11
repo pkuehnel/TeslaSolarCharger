@@ -4,6 +4,6 @@ public interface IPvValueService
 {
     Task UpdatePvValues();
     int GetAveragedOverage();
-    int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor);
+    double? GetDoubleValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor);
     void AddOverageValueToInMemoryList(int overage);
 }

@@ -12,10 +12,10 @@ public class Settings : ISettings
     }
 
     public bool IsNewVersionAvailable { get; set; }
-    public int? InverterPower { get; set; }
-    public int? Overage { get; set; }
-    public int? HomeBatterySoc { get; set; }
-    public int? HomeBatteryPower { get; set; }
+    public double? InverterPower { get; set; }
+    public double? Overage { get; set; }
+    public double? HomeBatterySoc { get; set; }
+    public double? HomeBatteryPower { get; set; }
     public List<Issue> ActiveIssues { get; set; } = new();
     public bool ControlledACarAtLastCycle { get; set; }
 

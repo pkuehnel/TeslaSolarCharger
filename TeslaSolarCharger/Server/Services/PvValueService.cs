@@ -152,9 +152,9 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    private async Task<double?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern, double correctionFactor)
     {
-        int? intValue;
+        double? intValue;
         if (httpResponse == null)
         {
             _logger.LogError("HttpResponse is null, extraction of value is not possible");
@@ -171,7 +171,7 @@ public class PvValueService : IPvValueService
         }
         else
         {
-            intValue = await GetIntegerValue(httpResponse, jsonPattern, xmlPattern, correctionFactor).ConfigureAwait(false);
+            intValue = await GetDoubleValue(httpResponse, jsonPattern, xmlPattern, correctionFactor).ConfigureAwait(false);
         }
 
         return intValue;
@@ -279,20 +279,20 @@ public class PvValueService : IPvValueService
 
 
 
-    private async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    private async Task<double?> GetDoubleValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor)
     {
         _logger.LogTrace("{method}({httpResonse}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
-            nameof(GetIntegerValue), response, jsonPattern, xmlPattern, correctionFactor);
+            nameof(GetDoubleValue), response, jsonPattern, xmlPattern, correctionFactor);
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-        return GetIntegerValueByString(result, jsonPattern, xmlPattern, correctionFactor);
+        return GetDoubleValueByString(result, jsonPattern, xmlPattern, correctionFactor);
     }
 
-    public int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    public double? GetDoubleValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor)
     {
         _logger.LogTrace("{method}({valueString}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
-            nameof(GetIntegerValueByString), valueString, jsonPattern, xmlPattern, correctionFactor);
+            nameof(GetDoubleValueByString), valueString, jsonPattern, xmlPattern, correctionFactor);
         var pattern = "";
         var nodePatternType = _nodePatternTypeHelper.DecideNodePatternType(jsonPattern, xmlPattern);
 
@@ -307,7 +307,7 @@ public class PvValueService : IPvValueService
 
         var doubleValue = GetValueFromResult(pattern, valueString, nodePatternType, true);
 
-        return (int?)(doubleValue * correctionFactor);
+        return doubleValue * correctionFactor;
     }
 
     

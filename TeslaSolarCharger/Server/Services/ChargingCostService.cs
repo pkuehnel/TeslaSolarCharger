@@ -117,7 +117,7 @@ public class ChargingCostService : IChargingCostService
         }
     }
 
-    private async Task AddPowerDistribution(int carId, int? chargingPower, int? powerFromGrid)
+    private async Task AddPowerDistribution(int carId, int? chargingPower, double? powerFromGrid)
     {
         _logger.LogTrace("{method}({carId}, {chargingPower}, {powerFromGrid})",
             nameof(AddPowerDistribution), carId, chargingPower, powerFromGrid);

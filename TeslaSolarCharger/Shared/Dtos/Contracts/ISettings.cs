@@ -4,11 +4,11 @@ namespace TeslaSolarCharger.Shared.Dtos.Contracts;
 
 public interface ISettings
 {
-    int? InverterPower { get; set; }
-    int? Overage { get; set; }
+    double? InverterPower { get; set; }
+    double? Overage { get; set; }
     List<Car> Cars { get; set; }
-    int? HomeBatterySoc { get; set; }
-    int? HomeBatteryPower { get; set; }
+    double? HomeBatterySoc { get; set; }
+    double? HomeBatteryPower { get; set; }
     List<Issue> ActiveIssues { get; set; }
     bool ControlledACarAtLastCycle { get; set; }
     bool IsNewVersionAvailable { get; set; }
