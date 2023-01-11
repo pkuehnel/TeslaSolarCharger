@@ -1,14 +1,14 @@
 ﻿.tooltip-wrapper {
 position: relative;
 display: inline-block;
-border-bottom: 1px dotted black;
+border-bottom: 1px dotted gainsboro;
 cursor: help;
 }
 
 span {
 visibility: hidden;
 position: absolute;
-width: 120px;
+width: 200px;
 bottom: 100%;
 left: 50%;
 margin-left: -60px;

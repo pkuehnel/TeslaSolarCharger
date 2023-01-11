@@ -25,4 +25,7 @@ public class IndexController : ApiBaseController
 
     [HttpPost]
     public void UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
+
+    [HttpGet]
+    public Dictionary<string, string> GetToolTipTexts() => _indexService.GetToolTipTexts();
 }

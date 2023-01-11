@@ -24,6 +24,7 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Helper;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
 
@@ -88,6 +89,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
             .AddSingleton<IssueKeys>()
             .AddSingleton<GlobalConstants>()
+            .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
             ;
 }

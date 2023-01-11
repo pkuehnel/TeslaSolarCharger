@@ -10,4 +10,5 @@ public interface IIndexService
     Task<string?> GetVinByCarId(int carId);
     Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars();
     void UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings);
+    Dictionary<string, string> GetToolTipTexts();
 }
