@@ -1,0 +1,25 @@
+﻿.tooltip-wrapper {
+position: relative;
+display: inline-block;
+border-bottom: 1px dotted gainsboro;
+cursor: help;
+}
+
+span {
+visibility: hidden;
+position: absolute;
+width: 200px;
+bottom: 100%;
+left: 10%;
+margin-left: -20px;
+background-color: #363636;
+color: #fff;
+text-align: center;
+padding: 5px 0;
+border-radius: 6px;
+z-index: 1;
+}
+
+.tooltip-wrapper:hover span {
+visibility: visible;
+}

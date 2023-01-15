@@ -3,21 +3,22 @@
 @using System.Timers
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Dtos
-@using TeslaSolarCharger.Shared.Dtos.ChargingCost
-@using TeslaSolarCharger.Shared.Dtos.Settings
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Client.Components
+@using TeslaSolarCharger.Shared.Resources
+@using Majorsoft.Blazor.Components.Collapse
 @inject HttpClient HttpClient
 @inject IToastService ToastService
+@inject ToolTipTextKeys ToolTipTextKeys
 
 <PageTitle>Tesla Solar Charger</PageTitle>
 
-@if (_settings == null || _carsToDisplay == null)
+<BackendIssueValidation></BackendIssueValidation>
+
+@if (_pvValues != null)
 {
-    <div class="spinner"></div>
-}
-else
-{
-    <IssueValidation></IssueValidation>
     <div class="shadow p-3 mb-5 bg-white rounded">
         @if (_couldNotRefreshStates == true)
         {
@@ -27,265 +28,212 @@ else
         {
             <small class="form-text text-muted">As you are using SolarEdge which is rate limited, these values might be delayed or grid power and batterypower might be displayed as zero or your configured Home Battery charging power (W). This is nothing to worry about, it is just a way to handle the rate limitation.</small>
         }
-        @if (_settings.InverterPower != null)
+        @if (_pvValues.InverterPower != null)
         {
-            <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_settings.InverterPower W</div>
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.InverterPower]">
+                    <i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_pvValues.InverterPower W
+                </TooltipComponent>
+            </div>
         }
-        <div class="@(_settings.Overage > 0 ? "text-success" : "text-danger")">
-            <i class="fa-solid fa-bolt" style="width: 25px;"></i>
-            @if (_settings.Overage != null)
-            {
-                @Math.Abs((int)_settings.Overage)
-            }
-            W</div>
-        @if (_settings.HomeBatterySoc != null)
-        {
-            <div><i class="fa-solid fa-battery-full" style="width: 25px;"></i>@_settings.HomeBatterySoc %</div>
-        }
-        @if (_settings.HomeBatteryPower != null)
-        {
-            <div class="@(_settings.HomeBatteryPower < 0 ? "text-danger" : "text-success")"><i class="fa-solid fa-battery-full" style="width: 25px;"></i>
-                @if (_settings.HomeBatteryPower != null)
+        <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
+            <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
+                <i class="fa-solid fa-bolt" style="width: 25px;"></i>
+                @if (_pvValues.GridPower != null)
                 {
-                    @Math.Abs((int)_settings.HomeBatteryPower)
+                    @Math.Abs((int)_pvValues.GridPower)
                 }
-                W</div>
+                W
+            </TooltipComponent>
+        </div>
+        @if (_pvValues.HomeBatterySoc != null)
+        {
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
+                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i>@_pvValues.HomeBatterySoc %
+                </TooltipComponent>
+            </div>
         }
-        <div><i class="fa-solid fa-car" style="width: 25px;"></i>@_carsToDisplay.Sum(c => c.CarState.ChargingPowerAtHome) W</div>
+        @if (_pvValues.HomeBatteryPower != null)
+        {
+            <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
+                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i>
+                    @if (_pvValues.HomeBatteryPower != null)
+                    {
+                        @Math.Abs((int)_pvValues.HomeBatteryPower)
+                    }
+                    W
+                </TooltipComponent>
+            </div>
+        }
+        <div>
+            <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CombinedChargingPower]">
+                <i class="fa-solid fa-car" style="width: 25px;"></i>@_pvValues.CarCombinedChargingPowerAtHome W
+            </TooltipComponent>
+        </div>
     </div>
-    @if (_carsToDisplay.Count < 1)
+}
+
+@if (_carBaseStates == null || _carBaseSettings == null)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    @if (_carBaseStates.Count < 1)
     {
         <p>
             You need to enable TeslaSolarCharger for at least one car in the <a href="/CarSettings">car settings page</a>.
         </p>
     }
-    @foreach (var car in _carsToDisplay)
+    @foreach (var car in _carBaseStates)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <div><b>@(car.CarState.Name)</b>: @(car.CarState.SoC)% (@(car.CarState.SocLimit)%) @car.CarState.ChargingPowerAtHome W</div>
-            @if (car.CarState.Healthy != true)
-            {
-                <i class="fa-solid fa-circle-exclamation"></i>
-            }
-            @if (_chargeSummaries != null)
-            {
-                if (_chargeSummaries.Any(c => c.Key == car.Id))
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarName]">
+                    <b>@(car.NameOrVin)</b>
+                </TooltipComponent>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
+            </div>
+            <div>
+                @if (car.IsHealthy == false)
                 {
-                    <div><i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedSolarEnergy.ToString("0.00") kWh</div>
-                    <div><i class="fa-solid fa-bolt" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargedGridEnergy.ToString("0.00") kWh</div>
-                    <div><i class="fa-solid fa-coins" style="width: 25px;"></i> @_chargeSummaries[car.Id].ChargeCost.ToString("0.00")</div>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarNotHealthy]">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </TooltipComponent>
                 }
-                else
+                @if (car.IsHome)
                 {
-                    <div>Chargeprices will show up nine minutes after the first charge with at least version 2.6.0</div>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarAtHome]">
+                        <i class="fa-solid fa-house"></i>
+                    </TooltipComponent>
+                }
+                @if (car.PluggedIn)
+                {
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarPluggedIn]">
+                        <i class="fa-solid fa-plug"></i>
+                    </TooltipComponent>
                 }
 
-            }
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2">@car.CarConfiguration.ChargeMode.ToFriendlyString()</label> <button class="btn btn-primary col-6 col-sm-6 col-md-3 col-lg-2" @onclick="() => ChangeChargeMode(car.Id)">@_chargemodeChangeButtonTexts[car.Id]</button>
-            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            </div>
+            <div>
+                <i class="fa-solid fa-battery-full" style="width: 25px;"></i><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge)%</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit)% )</TooltipComponent>
+            </div>
+            <div>
+            </div>
+
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
+                    <i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh
+                </TooltipComponent>
+            </div>
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
+                    <i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh
+                </TooltipComponent>
+            </div>
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
+                    <i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")
+                </TooltipComponent>
+            </div>
+
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="chargeMode">
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeMode]">
+                        ChargeMode:
+                    </TooltipComponent>
+                </label>
+                <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="chargeMode" name="chargeMode">
+                    @foreach (var value in Enum.GetValues<ChargeMode>())
+                    {
+                        <option value="@value">@value.ToFriendlyString()</option>
+                    }
+                </InputSelect>
+            </p>
+
+            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvAndMinSoc || _carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
             {
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.MinimumSoC" type="number" id="minSoc" name="minSoc" min="0" max="100"
-                           @onchange="@(e => car.CarConfiguration.MinimumSoC = Int32.Parse(e.Value?.ToString() ?? "0"))">
+                    <input class="form-control" value="@_carBaseSettings[car.CarId].MinimumStateOfCharge" type="number" id="minSoc" name="minSoc" min="0" max="100"
+               @onchange="@(e => _carBaseSettings[car.CarId].MinimumStateOfCharge = Int32.Parse(e.Value?.ToString() ?? "0"))">
                 </p>
             }
-            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
+            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
             {
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(car.CarConfiguration.LatestTimeToReachSoC.Hour).AddMinutes(car.CarConfiguration.LatestTimeToReachSoC.Minute))">
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
                 </p>
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm")" type="time" id="time" name="time"
-                           @onchange="@(e => car.CarConfiguration.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="time" name="time"
+               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
             }
-            @if (car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc || car.CarConfiguration.ChargeMode == ChargeMode.PvOnly)
-            {
-                <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarConfiguration(car.Id, car.CarConfiguration)">@_saveButtonTexts[car.Id]</button></p>
-            }
+            <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
+            
+            <CollapsePanel CollapsedColor="@_collapsedColor"
+                   ExpandedColor="@_expandedColor"
+                   HoverColor="@_hoverColor"
+                   Disabled="@_isCollapseDisabled"
+                   Collapsed="@_collapsedCarDetails.Any(h => h == car.CarId)"
+                   ContentHeight="@_height"
+                   Animate="@_isAnimated"
+                   ShowContentOverflow="@_showOverflow"
+                   OnCollapseChanged="(state)=>OnCollapseChanged(state, car.CarId)">
+            <CollapsedHeaderContent>
+                <div class="w-100">
+                    <b>More car details:</b>
+                    <span class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></span>
+                </div>
+            </CollapsedHeaderContent>
+            <ExpandedHeaderContent>
+                <div class="w-100">
+                    <b>Collapse</b>
+                    <span class="fa fa-lg fa-chevron-circle-up" aria-hidden="true"></span>
+                </div>
+            </ExpandedHeaderContent>
+            <Content>
+                <div style="border: 1px solid gray; height: 100%;">
+                    <table>
+                        <tr>
+                            <th>
+                                Topic
+                            </th>
+                            <th>
+                                Value
+                            </th>
+                        </tr>
+                        @if (_carDetailStates.Any(c => c.Key == car.CarId))
+                        {
+                            @foreach (var carTopicValue in _carDetailStates[car.CarId])
+                            {
+                                <tr>
+                                    <td>
+                                        @carTopicValue.Topic
+                                    </td>
+                                    <td>
+                                        @carTopicValue.Value
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <div>Loading, may take about 5 seconds...</div>
+                        }
+                        
+                    </table>
+                </div>
+            </Content>
+        </CollapsePanel>
         </div>
     }
 
-    <h2>Details: </h2>
-
-    @foreach (var car in _carsToDisplay)
-    {
-        <p>
-            <table>
-                <tr>
-                    <th>
-                        Topic
-                    </th>
-                    <th>
-                        Value
-                    </th>
-                </tr>
-                <tr>
-                    <td>
-                        Id
-                    </td>
-                    <td>
-                        @car.Id
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Name
-                    </td>
-                    <td>
-                        @car.CarState.Name
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Actual Current
-                    </td>
-                    <td>
-                        @car.CarState.ChargerActualCurrent
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Requested Current
-                    </td>
-                    <td>
-                        @car.CarState.ChargerRequestedCurrent
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Pilot Current
-                    </td>
-                    <td>
-                        @car.CarState.ChargerPilotCurrent
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Charger phases (returned value from car)
-                    </td>
-                    <td>
-                        @car.CarState.ChargerPhases
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Actual Phases (assumed value based on charger phases)
-                    </td>
-                    <td>
-                        @car.CarState.ActualPhases
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        StateString
-                    </td>
-                    <td>
-                        @car.CarState.StateString
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        AutoFullspeedCharging
-                    </td>
-                    <td>
-                        @car.CarState.AutoFullSpeedCharge
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        LatestTimeToReachSoC
-                    </td>
-                    <td>
-                        @(car.CarConfiguration.LatestTimeToReachSoC.ToString("HH:mm dd.MM"))
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Full charge in
-                    </td>
-                    <td>
-                        @if (car.CarState.TimeUntilFullCharge > TimeSpan.Zero)
-                        {
-                            @((car.CarState.TimeUntilFullCharge?.Days > 0 ? $"{car.CarState.TimeUntilFullCharge?.Days}. " : "") + $"{car.CarState.TimeUntilFullCharge?.Hours:D2}:{car.CarState.TimeUntilFullCharge?.Minutes:D2}")
-                        }
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Full charge at
-                    </td>
-                    <td>
-                        @if(car.CarState.TimeUntilFullCharge > TimeSpan.Zero)
-                        {
-                            @((DateTime.Now + car.CarState.TimeUntilFullCharge).Value.ToString("HH:mm dd.MM"))
-                        }
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        SoC
-                    </td>
-                    <td>
-                        @car.CarState.SoC
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        SoC Limit
-                    </td>
-                    <td>
-                        @car.CarState.SocLimit
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Charge mode
-                    </td>
-                    <td>
-                        @car.CarConfiguration.ChargeMode.ToString()
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Geofence
-                    </td>
-                    <td>
-                        @car.CarState.Geofence
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Earliest Charge start
-                    </td>
-                    <td>
-                        @car.CarState.EarliestSwitchOn
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Earliest charge stop
-                    </td>
-                    <td>
-                        @car.CarState.EarliestSwitchOff
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        Car Healthy
-                    </td>
-                    <td>
-                        @car.CarState.Healthy
-                    </td>
-                </tr>
-            </table>
-        </p>
-
-    }
     @if (string.IsNullOrWhiteSpace(_version))
     {
         <p><em>Could not load version</em></p>
@@ -296,9 +244,9 @@ else
     }
     <form action="https://www.paypal.com/donate" method="post" target="_blank">
         <div style="text-align:center">
-            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ"/>
-            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button"/>
-            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1"/>
+            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
+            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
         </div>
     </form>
 }
@@ -306,34 +254,42 @@ else
 
 
 @code {
-    private Settings? _settings;
+    private DtoPvValues? _pvValues;
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
-    private List<Car>? _carsToDisplay;
-    private Dictionary<int, DtoChargeSummary>? _chargeSummaries;
-    private Dictionary<int, string> _chargemodeChangeButtonTexts = new Dictionary<int, string>();
-    private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
+    private List<DtoCarBaseStates>? _carBaseStates;
+    private Dictionary<int, List<DtoCarTopicValue>> _carDetailStates = new Dictionary<int, List<DtoCarTopicValue>>();
+    private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
+    private Dictionary<string, string>? _toolTipTexts;
+    private readonly Dictionary<int, string> _saveButtonTexts = new();
     private string _version = "";
+    private HashSet<int> _collapsedCarDetails = new HashSet<int>();
+    private string _collapsedColor = "LightGray";
+    private string _expandedColor = "LightGray";
+    private string _hoverColor = "LightGray";
+    private bool _isAnimated = true;
+    private bool _isCollapseDisabled = false;
+    private bool _showOverflow = false;
+    private int _height = 0;
 
     private Timer? _timer;
 
-    private readonly string _chargeModeChangeButtonDefaultText = "Change";
     private readonly string _saveButtonDefaultText = "Save";
     private readonly string _buttonLoadingText = "...";
 
     protected override async Task OnInitializedAsync()
     {
-        _settings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
+        _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
+        await RefreshCarBaseStates().ConfigureAwait(false);
+        _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
+        await RefreshPvValues().ConfigureAwait(false);
         _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
-        _carsToDisplay = _settings!.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
-        foreach (var car in _settings!.Cars)
+        foreach (var carBaseState in _carBaseStates!)
         {
-            _chargemodeChangeButtonTexts.Add(car.Id, _chargeModeChangeButtonDefaultText);
-            _saveButtonTexts.Add(car.Id, _saveButtonDefaultText);
+            _saveButtonTexts.Add(carBaseState.CarId, _saveButtonDefaultText);
+            _collapsedCarDetails.Add(carBaseState.CarId);
         }
-
-        _chargeSummaries = await HttpClient.GetFromJsonAsync<Dictionary<int, DtoChargeSummary>>("api/ChargingCost/GetChargeSummaries").ConfigureAwait(false);
 
         _timer = new Timer();
         _timer.Interval = 5000;
@@ -341,28 +297,22 @@ else
         _timer.Start();
     }
 
-    private async Task ChangeChargeMode(int carId)
+    private async Task RefreshCarBaseStates()
     {
-        _chargemodeChangeButtonTexts[carId] = _buttonLoadingText;
-        var updateBackend = HttpClient.PostAsync($"api/Config/ChangeChargeMode?carId={carId}", new StringContent(string.Empty));
-        var car = _settings?.Cars.First(c => c.Id == carId);
-        var result = await updateBackend.ConfigureAwait(false);
-        if (result.IsSuccessStatusCode)
-        {
-            ToastService.ShowSuccess("ChargeMode Changed");
-            car!.CarConfiguration.ChargeMode = car.CarConfiguration.ChargeMode.Next();
-        }
-        else
-        {
-            ToastService.ShowError("Error changing ChargeMode");
-        }
-        _chargemodeChangeButtonTexts[carId] = _chargeModeChangeButtonDefaultText;
+        _carBaseSettings = await HttpClient
+            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
+            .ConfigureAwait(false);
     }
 
-    private async Task UpdateCarConfiguration(int carId, CarConfiguration carConfiguration)
+    private async Task RefreshPvValues()
     {
-        _saveButtonTexts[carId] = _buttonLoadingText;
-        var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarConfiguration?carId={carId}", carConfiguration).ConfigureAwait(false);
+        _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
+    }
+
+    private async Task UpdateCarSettings(DtoCarBaseSettings dtoCarBaseSettings)
+    {
+        _saveButtonTexts[dtoCarBaseSettings.CarId] = _buttonLoadingText;
+        var result = await HttpClient.PostAsJsonAsync("/api/Index/UpdateCarBaseSettings", dtoCarBaseSettings).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
             ToastService.ShowSuccess("Car Configuration updated");
@@ -371,23 +321,56 @@ else
         {
             ToastService.ShowError("Error updating car configuration");
         }
-        _saveButtonTexts[carId] = _saveButtonDefaultText;
+        _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
+    }
+
+    private async Task UpdateAllVisableCarDetails()
+    {
+        if (_carBaseStates == null)
+        {
+            return;
+        }
+        var uncollapsedCarIds = new HashSet<int>();
+        foreach (var carId in _carBaseStates.Select(s => s.CarId))
+        {
+            if (!_collapsedCarDetails.Any(c => c == carId))
+            {
+                uncollapsedCarIds.Add(carId);
+            }
+        }
+        foreach (var carId in uncollapsedCarIds)
+        {
+            var carDetailStates = await HttpClient.GetFromJsonAsync<List<DtoCarTopicValue>>($"api/Index/CarDetails?carId={carId}").ConfigureAwait(false);
+            if (carDetailStates == default)
+            {
+                continue;
+            }
+            _carDetailStates[carId] = carDetailStates;
+        }
+            
+    }
+
+    private Task OnCollapseChanged(bool changedToCollapse, int carId)
+    {
+        if (changedToCollapse)
+        {
+            _collapsedCarDetails.Add(carId);
+        }
+        else
+        {
+            _collapsedCarDetails.Remove(carId);
+            _carDetailStates.Remove(carId);
+        }
+        return Task.CompletedTask;
     }
 
     private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
         try
         {
-            var tmpSettings = await HttpClient.GetFromJsonAsync<Settings>("api/Config/GetSettings").ConfigureAwait(false);
-            _settings!.InverterPower = tmpSettings!.InverterPower;
-            _settings.Overage = tmpSettings.Overage;
-            _settings!.HomeBatterySoc = tmpSettings.HomeBatterySoc;
-            _settings.HomeBatteryPower = tmpSettings.HomeBatteryPower;
-            foreach (var car in _carsToDisplay!)
-            {
-                var tmpCar = tmpSettings.Cars.First(c => c.Id == car.Id);
-                car.CarState = tmpCar.CarState;
-            }
+            await RefreshPvValues().ConfigureAwait(false);
+            await RefreshCarBaseStates().ConfigureAwait(false);
+            await UpdateAllVisableCarDetails().ConfigureAwait(false);
             _couldNotRefreshStates = false;
         }
         catch (Exception)

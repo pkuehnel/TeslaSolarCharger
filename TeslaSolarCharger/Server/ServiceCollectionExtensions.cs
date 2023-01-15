@@ -17,11 +17,14 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
+using TeslaSolarCharger.Server.Services.ApiServices;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Helper;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
 
@@ -86,5 +89,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
             .AddSingleton<IssueKeys>()
             .AddSingleton<GlobalConstants>()
+            .AddSingleton<ToolTipTextKeys>()
+            .AddTransient<IIndexService, IndexService>()
             ;
 }

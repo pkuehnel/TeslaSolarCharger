@@ -310,14 +310,13 @@ public class ChargingCostService : IChargingCostService
             .Where(h => h.CalculatedPrice != null && h.CarId == carId)
             .ToListAsync().ConfigureAwait(false);
 
-        return GetChargeSummary(carId, handledCharges);
+        return GetChargeSummary(handledCharges);
     }
 
-    private DtoChargeSummary GetChargeSummary(int carId, List<HandledCharge> handledCharges)
+    private DtoChargeSummary GetChargeSummary(List<HandledCharge> handledCharges)
     {
         var dtoChargeSummary = new DtoChargeSummary()
         {
-            CarId = carId,
             ChargeCost = handledCharges.Sum(h => h.CalculatedPrice ?? 0),
             ChargedGridEnergy = handledCharges.Sum(h => h.UsedGridEnergy ?? 0),
             ChargedSolarEnergy = handledCharges.Sum(h => h.UsedSolarEnergy ?? 0),
@@ -337,7 +336,7 @@ public class ChargingCostService : IChargingCostService
         foreach (var handledChargeGroup in handledChargeGroups)
         {
             var list = handledChargeGroup.ToList();
-            chargeSummaries.Add(handledChargeGroup.Key, GetChargeSummary(handledChargeGroup.Key, list));
+            chargeSummaries.Add(handledChargeGroup.Key, GetChargeSummary(list));
         }
 
         return chargeSummaries;

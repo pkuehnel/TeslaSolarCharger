@@ -1,0 +1,11 @@
+﻿<div class="tooltip-wrapper">
+    <span>@Text</span>
+    @ChildContent
+</div>
+
+@code {
+#pragma warning disable CS8618
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    [Parameter] public string Text { get; set; }
+#pragma warning restore CS8618
+}
