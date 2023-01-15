@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Text;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -131,11 +132,26 @@ public class IndexService : IIndexService
         {
             values.Add(new DtoCarTopicValue()
             {
-                Topic = property.Name,
+                Topic = AddSpacesBeforeCapitalLetters(property.Name),
                 Value = property.GetValue(carState, null)?.ToString(),
             });
         }
         return values;
+    }
+
+    string AddSpacesBeforeCapitalLetters(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return "";
+        var newText = new StringBuilder(text.Length * 2);
+        newText.Append(text[0]);
+        for (var i = 1; i < text.Length; i++)
+        {
+            if (char.IsUpper(text[i]) && text[i - 1] != ' ')
+                newText.Append(' ');
+            newText.Append(text[i]);
+        }
+        return newText.ToString();
     }
 
     private List<Car> GetEnabledCars()
