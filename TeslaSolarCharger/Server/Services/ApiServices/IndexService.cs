@@ -123,6 +123,21 @@ public class IndexService : IIndexService
         };
     }
 
+    public List<DtoCarTopicValue> GetCarDetails(int carId)
+    {
+        var values = new List<DtoCarTopicValue>();
+        var carState = _settings.Cars.First(c => c.Id == carId).CarState;
+        foreach (var property in carState.GetType().GetProperties())
+        {
+            values.Add(new DtoCarTopicValue()
+            {
+                Topic = property.Name,
+                Value = property.GetValue(carState, null)?.ToString(),
+            });
+        }
+        return values;
+    }
+
     private List<Car> GetEnabledCars()
     {
         _logger.LogTrace("{method}()", nameof(GetEnabledCars));

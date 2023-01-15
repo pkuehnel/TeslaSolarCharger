@@ -11,4 +11,5 @@ public interface IIndexService
     Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars();
     void UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings);
     Dictionary<string, string> GetToolTipTexts();
+    List<DtoCarTopicValue> GetCarDetails(int carId);
 }

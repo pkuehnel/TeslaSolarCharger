@@ -8,6 +8,7 @@
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
+@using Majorsoft.Blazor.Components.Collapse
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 @inject ToolTipTextKeys ToolTipTextKeys
@@ -174,7 +175,62 @@ else
                 </p>
             }
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
-
+            
+            <CollapsePanel CollapsedColor="@_collapsedColor"
+                   ExpandedColor="@_expandedColor"
+                   HoverColor="@_hoverColor"
+                   Disabled="@_isCollapseDisabled"
+                   Collapsed="@_collapsedCarDetails.Any(h => h == car.CarId)"
+                   ContentHeight="@_height"
+                   Animate="@_isAnimated"
+                   ShowContentOverflow="@_showOverflow"
+                   OnCollapseChanged="(state)=>OnCollapseChanged(state, car.CarId)">
+            <CollapsedHeaderContent>
+                <div class="w-100">
+                    <b>Expand</b>
+                    <span class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></span>
+                </div>
+            </CollapsedHeaderContent>
+            <ExpandedHeaderContent>
+                <div class="w-100">
+                    <b>Collapse</b>
+                    <span class="fa fa-lg fa-chevron-circle-up" aria-hidden="true"></span>
+                </div>
+            </ExpandedHeaderContent>
+            <Content>
+                <div style="border: 1px solid gray; height: 100%;">
+                    <table>
+                        <tr>
+                            <th>
+                                Topic
+                            </th>
+                            <th>
+                                Value
+                            </th>
+                        </tr>
+                        @if (_carDetailStates.Any(c => c.Key == car.CarId))
+                        {
+                            @foreach (var carTopicValue in _carDetailStates[car.CarId])
+                            {
+                                <tr>
+                                    <td>
+                                        @carTopicValue.Topic
+                                    </td>
+                                    <td>
+                                        @carTopicValue.Value
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <div>Loading, may take about 5 seconds...</div>
+                        }
+                        
+                    </table>
+                </div>
+            </Content>
+        </CollapsePanel>
         </div>
     }
 
@@ -202,10 +258,19 @@ else
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
     private List<DtoCarBaseStates>? _carBaseStates;
+    private Dictionary<int, List<DtoCarTopicValue>> _carDetailStates = new Dictionary<int, List<DtoCarTopicValue>>();
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
     private readonly Dictionary<int, string> _saveButtonTexts = new();
     private string _version = "";
+    private HashSet<int> _collapsedCarDetails = new HashSet<int>();
+    private string _collapsedColor = "LightGray";
+    private string _expandedColor = "LightGray";
+    private string _hoverColor = "LightGray";
+    private bool _isAnimated = true;
+    private bool _isCollapseDisabled = false;
+    private bool _showOverflow = false;
+    private int _height = 0;
 
     private Timer? _timer;
 
@@ -223,6 +288,7 @@ else
         foreach (var carBaseState in _carBaseStates!)
         {
             _saveButtonTexts.Add(carBaseState.CarId, _saveButtonDefaultText);
+            _collapsedCarDetails.Add(carBaseState.CarId);
         }
 
         _timer = new Timer();
@@ -258,12 +324,53 @@ else
         _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
     }
 
+    private async Task UpdateAllVisableCarDetails()
+    {
+        if (_carBaseStates == null)
+        {
+            return;
+        }
+        var uncollapsedCarIds = new HashSet<int>();
+        foreach (var carId in _carBaseStates.Select(s => s.CarId))
+        {
+            if (!_collapsedCarDetails.Any(c => c == carId))
+            {
+                uncollapsedCarIds.Add(carId);
+            }
+        }
+        foreach (var carId in uncollapsedCarIds)
+        {
+            var carDetailStates = await HttpClient.GetFromJsonAsync<List<DtoCarTopicValue>>($"api/Index/CarDetails?carId={carId}").ConfigureAwait(false);
+            if (carDetailStates == default)
+            {
+                continue;
+            }
+            _carDetailStates[carId] = carDetailStates;
+        }
+            
+    }
+
+    private Task OnCollapseChanged(bool changedToCollapse, int carId)
+    {
+        if (changedToCollapse)
+        {
+            _collapsedCarDetails.Add(carId);
+        }
+        else
+        {
+            _collapsedCarDetails.Remove(carId);
+            _carDetailStates.Remove(carId);
+        }
+        return Task.CompletedTask;
+    }
+
     private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
         try
         {
             await RefreshPvValues().ConfigureAwait(false);
             await RefreshCarBaseStates().ConfigureAwait(false);
+            await UpdateAllVisableCarDetails().ConfigureAwait(false);
             _couldNotRefreshStates = false;
         }
         catch (Exception)

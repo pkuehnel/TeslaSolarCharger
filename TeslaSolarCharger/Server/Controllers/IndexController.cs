@@ -23,6 +23,10 @@ public class IndexController : ApiBaseController
     [HttpGet]
     public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars() => _indexService.GetCarBaseSettingsOfEnabledCars();
 
+    [HttpGet]
+    public List<DtoCarTopicValue> CarDetails(int carId)
+        => _indexService.GetCarDetails(carId);
+
     [HttpPost]
     public void UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
 
