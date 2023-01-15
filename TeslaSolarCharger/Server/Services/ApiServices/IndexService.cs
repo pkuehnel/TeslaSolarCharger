@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Text;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -121,6 +122,36 @@ public class IndexService : IIndexService
                                               $"{ChargeMode.PvOnly.ToFriendlyString()}: Your car will charge with solar power only despite you configured a min SoC in combination with a date when this soc should be reached.\r\n" +
                                               $"{ChargeMode.PvAndMinSoc.ToFriendlyString()}: Your car will charge to the configured Min SoC with maximum available power, then it will continue to charge based on available solar power."},
         };
+    }
+
+    public List<DtoCarTopicValue> GetCarDetails(int carId)
+    {
+        var values = new List<DtoCarTopicValue>();
+        var carState = _settings.Cars.First(c => c.Id == carId).CarState;
+        foreach (var property in carState.GetType().GetProperties())
+        {
+            values.Add(new DtoCarTopicValue()
+            {
+                Topic = AddSpacesBeforeCapitalLetters(property.Name),
+                Value = property.GetValue(carState, null)?.ToString(),
+            });
+        }
+        return values;
+    }
+
+    string AddSpacesBeforeCapitalLetters(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return "";
+        var newText = new StringBuilder(text.Length * 2);
+        newText.Append(text[0]);
+        for (var i = 1; i < text.Length; i++)
+        {
+            if (char.IsUpper(text[i]) && text[i - 1] != ' ')
+                newText.Append(' ');
+            newText.Append(text[i]);
+        }
+        return newText.ToString();
     }
 
     private List<Car> GetEnabledCars()
