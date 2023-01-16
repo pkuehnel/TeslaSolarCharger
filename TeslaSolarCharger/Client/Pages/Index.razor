@@ -281,7 +281,9 @@ else
     {
         _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
         await RefreshCarBaseStates().ConfigureAwait(false);
-        _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
+        _carBaseSettings = await HttpClient
+            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
+            .ConfigureAwait(false);
         await RefreshPvValues().ConfigureAwait(false);
         _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
@@ -299,9 +301,7 @@ else
 
     private async Task RefreshCarBaseStates()
     {
-        _carBaseSettings = await HttpClient
-            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
-            .ConfigureAwait(false);
+        _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
     }
 
     private async Task RefreshPvValues()
