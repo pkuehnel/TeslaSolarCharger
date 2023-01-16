@@ -9,6 +9,7 @@
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
 @using Majorsoft.Blazor.Components.Collapse
+@using Newtonsoft.Json
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 @inject ToolTipTextKeys ToolTipTextKeys
@@ -16,7 +17,12 @@
 <PageTitle>Tesla Solar Charger</PageTitle>
 
 <BackendIssueValidation></BackendIssueValidation>
-
+@if (_serverTime != default)
+{
+    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTime]">
+        Current Server Time: @_serverTime?.ToString()
+    </TooltipComponent>
+}
 @if (_pvValues != null)
 {
     <div class="shadow p-3 mb-5 bg-white rounded">
@@ -271,6 +277,7 @@ else
     private bool _isCollapseDisabled = false;
     private bool _showOverflow = false;
     private int _height = 0;
+    private DateTime? _serverTime;
 
     private Timer? _timer;
 
@@ -280,12 +287,14 @@ else
     protected override async Task OnInitializedAsync()
     {
         _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
-        await RefreshCarBaseStates().ConfigureAwait(false);
         _carBaseSettings = await HttpClient
             .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
             .ConfigureAwait(false);
+        await RefreshCarBaseStates().ConfigureAwait(false);
         await RefreshPvValues().ConfigureAwait(false);
-        _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
+        await RefreshServerTime().ConfigureAwait(false);
+        var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
+        _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
         {
@@ -324,7 +333,7 @@ else
         _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
     }
 
-    private async Task UpdateAllVisableCarDetails()
+    private async Task RefreshAllVisableCarDetails()
     {
         if (_carBaseStates == null)
         {
@@ -350,6 +359,14 @@ else
             
     }
 
+    private async Task RefreshServerTime()
+    {
+        var result = await HttpClient.GetAsync("api/Hello/GetServerLocalTime").ConfigureAwait(false);
+        var resultString = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var dtoTimeValue = JsonConvert.DeserializeObject<DtoValue<DateTime>>(resultString);
+        _serverTime = dtoTimeValue?.Value;
+    }
+
     private Task OnCollapseChanged(bool changedToCollapse, int carId)
     {
         if (changedToCollapse)
@@ -370,7 +387,8 @@ else
         {
             await RefreshPvValues().ConfigureAwait(false);
             await RefreshCarBaseStates().ConfigureAwait(false);
-            await UpdateAllVisableCarDetails().ConfigureAwait(false);
+            await RefreshAllVisableCarDetails().ConfigureAwait(false);
+            await RefreshServerTime().ConfigureAwait(false);
             _couldNotRefreshStates = false;
         }
         catch (Exception)

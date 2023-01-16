@@ -18,4 +18,5 @@ public class ToolTipTextKeys
     public string CarNotHealthy => "CarNotHealthy";
     public string CarPluggedIn => "CarPluggedIn";
     public string CarChargeMode => "CarChargeMode";
+    public string ServerTime => "ServerTime";
 }
