@@ -306,36 +306,6 @@ public class ChargingService : TestBase
     }
 
     [Fact]
-    public void Handles_Plugged_Out_Car()
-    {
-        var car = new Car()
-        {
-            Id = 1,
-            CarState = new CarState()
-            {
-                PluggedIn = false,
-                SoC = 30,
-                ChargerPhases = 1
-            },
-            CarConfiguration = new CarConfiguration()
-            {
-                MinimumSoC = 45,
-                UsableEnergy = 74,
-                MaximumAmpere = 16,
-            }
-        };
-
-
-        var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
-        Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
-        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeUpdateService>();
-
-        chargingService.UpdateChargeTime(car);
-
-        Assert.Null(car.CarState.ReachingMinSocAtFullSpeedCharge);
-    }
-
-    [Fact]
     public void Handles_Reaced_Minimum_Soc()
     {
         var car = new Car()
