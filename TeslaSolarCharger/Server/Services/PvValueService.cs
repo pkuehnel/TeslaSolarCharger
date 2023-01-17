@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 using System.Globalization;
 using System.Xml;
 using TeslaSolarCharger.Server.Contracts;
@@ -179,7 +180,7 @@ public class PvValueService : IPvValueService
 
     private async Task<HttpResponseMessage> GetHttpResponse(HttpRequestMessage request)
     {
-        _logger.LogTrace("{method}({request}) [called by {callingMethod}]", nameof(GetHttpResponse), request, new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.Name);
+        _logger.LogTrace("{method}({request}) [called by {callingMethod}]", nameof(GetHttpResponse), request, new StackTrace().GetFrame(1)?.GetMethod()?.Name);
         using var httpClient = new HttpClient();
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         return response;
@@ -216,6 +217,10 @@ public class PvValueService : IPvValueService
         var weightedCount = _inMemoryValues.OverageValues.Count * (_inMemoryValues.OverageValues.Count + 1) / 2;
         if (weightedCount == 0)
         {
+            if (Debugger.IsAttached)
+            {
+                return 0;
+            }
             throw new InvalidOperationException("There are no power values available");
         }
         return (int)(weightedSum / weightedCount);

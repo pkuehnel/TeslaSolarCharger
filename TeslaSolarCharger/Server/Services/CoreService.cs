@@ -11,12 +11,15 @@ public class CoreService : ICoreService
     private readonly ILogger<CoreService> _logger;
     private readonly IChargingService _chargingService;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
-    public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper)
+    public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
+        IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _chargingService = chargingService;
         _configurationWrapper = configurationWrapper;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -43,6 +46,17 @@ public class CoreService : ICoreService
     {
         var powerToGridUrl = _configurationWrapper.CurrentPowerToGridUrl();
         return new DtoValue<bool>(!string.IsNullOrEmpty(powerToGridUrl) && powerToGridUrl.StartsWith("http://solaredgeplugin"));
+    }
+
+    public DateTime GetCurrentServerTime()
+    {
+        return _dateTimeProvider.Now();
+    }
+
+    public DtoValue<string> GetServerTimeZoneDisplayName()
+    {
+        var serverTimeZone = TimeZoneInfo.Local;
+        return new DtoValue<string>(serverTimeZone.DisplayName);
     }
 
     public void LogVersion()

@@ -233,15 +233,34 @@ else
         </CollapsePanel>
         </div>
     }
+    <div class="shadow p-3 mb-5 bg-white rounded">
+        @if (_serverTimeZoneDisplayName != default)
+        {
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTimeZone]">
+                    Server Timezone: @_serverTimeZoneDisplayName
+                </TooltipComponent>
+            </div>
+        }
+        @if (_serverTime != default)
+        {
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTime]">
+                    Current Server Time: @_serverTime?.ToString()
+                </TooltipComponent>
+            </div>
+        }
+        @if (string.IsNullOrWhiteSpace(_version))
+        {
+            <p><em>Could not load version</em></p>
+        }
+        else
+        {
+            <p><em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em></p>
+        }
+    </div>
 
-    @if (string.IsNullOrWhiteSpace(_version))
-    {
-        <p><em>Could not load version</em></p>
-    }
-    else
-    {
-        <p><em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em></p>
-    }
+    
     <form action="https://www.paypal.com/donate" method="post" target="_blank">
         <div style="text-align:center">
             <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
@@ -271,6 +290,8 @@ else
     private bool _isCollapseDisabled = false;
     private bool _showOverflow = false;
     private int _height = 0;
+    private DateTime? _serverTime;
+    private string? _serverTimeZoneDisplayName;
 
     private Timer? _timer;
 
@@ -280,12 +301,15 @@ else
     protected override async Task OnInitializedAsync()
     {
         _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
-        await RefreshCarBaseStates().ConfigureAwait(false);
         _carBaseSettings = await HttpClient
             .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
             .ConfigureAwait(false);
+        await RefreshCarBaseStates().ConfigureAwait(false);
         await RefreshPvValues().ConfigureAwait(false);
-        _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
+        await RefreshServerTime().ConfigureAwait(false);
+        await RefreshServerTimeZone().ConfigureAwait(false);
+        var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
+        _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
         {
@@ -324,7 +348,7 @@ else
         _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
     }
 
-    private async Task UpdateAllVisableCarDetails()
+    private async Task RefreshAllVisableCarDetails()
     {
         if (_carBaseStates == null)
         {
@@ -350,6 +374,18 @@ else
             
     }
 
+    private async Task RefreshServerTime()
+    {
+        var dtoTimeValue = await HttpClient.GetFromJsonAsync<DateTime>("api/Hello/GetServerLocalTime").ConfigureAwait(false);
+        _serverTime = dtoTimeValue;
+    }
+
+    private async Task RefreshServerTimeZone()
+    {
+        var dtoServerTimeZoneId = await HttpClient.GetFromJsonAsync<DtoValue<string>>("api/Hello/GetServerTimeZoneDisplayName").ConfigureAwait(false);
+        _serverTimeZoneDisplayName = dtoServerTimeZoneId?.Value;
+    }
+
     private Task OnCollapseChanged(bool changedToCollapse, int carId)
     {
         if (changedToCollapse)
@@ -370,7 +406,8 @@ else
         {
             await RefreshPvValues().ConfigureAwait(false);
             await RefreshCarBaseStates().ConfigureAwait(false);
-            await UpdateAllVisableCarDetails().ConfigureAwait(false);
+            await RefreshAllVisableCarDetails().ConfigureAwait(false);
+            await RefreshServerTime().ConfigureAwait(false);
             _couldNotRefreshStates = false;
         }
         catch (Exception)

@@ -121,6 +121,8 @@ public class IndexService : IIndexService
                                               $"{ChargeMode.MaxPower.ToFriendlyString()}: Your car will charge with the maximum available power.\r\n" +
                                               $"{ChargeMode.PvOnly.ToFriendlyString()}: Your car will charge with solar power only despite you configured a min SoC in combination with a date when this soc should be reached.\r\n" +
                                               $"{ChargeMode.PvAndMinSoc.ToFriendlyString()}: Your car will charge to the configured Min SoC with maximum available power, then it will continue to charge based on available solar power."},
+            { _toolTipTextKeys.ServerTime, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time." },
+            { _toolTipTextKeys.ServerTimeZone, "This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" },
         };
     }
 
