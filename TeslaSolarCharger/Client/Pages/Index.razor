@@ -234,11 +234,21 @@ else
         </div>
     }
     <div class="shadow p-3 mb-5 bg-white rounded">
+        @if (_serverTimeZoneDisplayName != default)
+        {
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTimeZone]">
+                    Server Timezone: @_serverTimeZoneDisplayName
+                </TooltipComponent>
+            </div>
+        }
         @if (_serverTime != default)
         {
-            <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTime]">
-                Current Server Time: @_serverTime?.ToString()
-            </TooltipComponent>
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTime]">
+                    Current Server Time: @_serverTime?.ToString()
+                </TooltipComponent>
+            </div>
         }
         @if (string.IsNullOrWhiteSpace(_version))
         {
@@ -281,6 +291,7 @@ else
     private bool _showOverflow = false;
     private int _height = 0;
     private DateTime? _serverTime;
+    private string? _serverTimeZoneDisplayName;
 
     private Timer? _timer;
 
@@ -296,6 +307,7 @@ else
         await RefreshCarBaseStates().ConfigureAwait(false);
         await RefreshPvValues().ConfigureAwait(false);
         await RefreshServerTime().ConfigureAwait(false);
+        await RefreshServerTimeZone().ConfigureAwait(false);
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
@@ -364,8 +376,14 @@ else
 
     private async Task RefreshServerTime()
     {
-        var dtoTimeValue = await HttpClient.GetFromJsonAsync<DtoValue<DateTime>>("api/Hello/GetServerLocalTime").ConfigureAwait(false);
-        _serverTime = dtoTimeValue?.Value;
+        var dtoTimeValue = await HttpClient.GetFromJsonAsync<DateTime>("api/Hello/GetServerLocalTime").ConfigureAwait(false);
+        _serverTime = dtoTimeValue;
+    }
+
+    private async Task RefreshServerTimeZone()
+    {
+        var dtoServerTimeZoneId = await HttpClient.GetFromJsonAsync<DtoValue<string>>("api/Hello/GetServerTimeZoneDisplayName").ConfigureAwait(false);
+        _serverTimeZoneDisplayName = dtoServerTimeZoneId?.Value;
     }
 
     private Task OnCollapseChanged(bool changedToCollapse, int carId)

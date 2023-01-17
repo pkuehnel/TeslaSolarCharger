@@ -18,9 +18,11 @@ namespace TeslaSolarCharger.Server.Controllers
         [HttpGet]
         public Task<bool> IsAlive() => Task.FromResult(true);
 
-        //ToDo: needs to be changed to DtoValue<DateTime>
         [HttpGet]
-        public Task<DtoValue<DateTime>> GetServerLocalTime() => Task.FromResult(_coreService.GetCurrentServerTime());
+        public Task<DateTime> GetServerLocalTime() => Task.FromResult(_coreService.GetCurrentServerTime());
+
+        [HttpGet]
+        public Task<DtoValue<string>> GetServerTimeZoneDisplayName() => Task.FromResult(_coreService.GetServerTimeZoneDisplayName());
 
         [HttpGet]
         public Task<DtoValue<bool>> IsSolarEdgeInstallation() => Task.FromResult(_coreService.IsSolarEdgeInstallation());

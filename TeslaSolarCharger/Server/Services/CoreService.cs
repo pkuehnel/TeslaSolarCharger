@@ -48,10 +48,15 @@ public class CoreService : ICoreService
         return new DtoValue<bool>(!string.IsNullOrEmpty(powerToGridUrl) && powerToGridUrl.StartsWith("http://solaredgeplugin"));
     }
 
-    public DtoValue<DateTime> GetCurrentServerTime()
+    public DateTime GetCurrentServerTime()
     {
+        return _dateTimeProvider.Now();
+    }
 
-        return new DtoValue<DateTime>(_dateTimeProvider.Now());
+    public DtoValue<string> GetServerTimeZoneDisplayName()
+    {
+        var serverTimeZone = TimeZoneInfo.Local;
+        return new DtoValue<string>(serverTimeZone.DisplayName);
     }
 
     public void LogVersion()
