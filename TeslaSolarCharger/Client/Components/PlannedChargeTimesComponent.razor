@@ -27,7 +27,10 @@
                         @chargingSlot.ChargeEnd.LocalDateTime.ToString("g")
                     </td>
                     <td>
-                        @chargingSlot.ChargeDuration.ToString(@"hh\:mm")
+                        @if (chargingSlot.ChargeDuration < TimeSpan.FromDays(1))
+                        {
+                            @chargingSlot.ChargeDuration.ToString(@"hh\:mm")
+                        }
                     </td>
                 </tr>
             }
