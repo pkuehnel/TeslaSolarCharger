@@ -1,0 +1,50 @@
+﻿@using TeslaSolarCharger.Shared.Dtos.Settings
+@inject HttpClient HttpClient
+
+@if (_chargingSlots is { Count: > 0 })
+{
+    <p>
+        Planned Charging Slots:
+        <table>
+            <tr>
+                <th>
+                    Start
+                </th>
+                <th>
+                    End
+                </th>
+                <th>
+                    Duration
+                </th>
+            </tr>
+            @foreach (var chargingSlot in _chargingSlots)
+            {
+                <tr>
+                    <td>
+                        @chargingSlot.ChargeStart.LocalDateTime.ToString("g")
+                    </td>
+                    <td>
+                        @chargingSlot.ChargeEnd.LocalDateTime.ToString("g")
+                    </td>
+                    <td>
+                        @chargingSlot.ChargeDuration.ToString(@"hh\:mm")
+                    </td>
+                </tr>
+            }
+        </table>
+    </p>
+
+}
+
+@code {
+    [Parameter]
+    public int CarId { get; set; }
+
+    private List<DtoChargingSlot>? _chargingSlots;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _chargingSlots = await HttpClient.GetFromJsonAsync<List<DtoChargingSlot>>($"api/Index/GetChargingSlots?carId={CarId}").ConfigureAwait(false);
+    }
+}

@@ -19,6 +19,7 @@ using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.ApiServices;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -43,6 +44,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<HandledChargeFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
+            .AddTransient<ChargeTimePlanningJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -91,5 +93,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<GlobalConstants>()
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
+            .AddTransient<IChargeTimePlanningService, ChargeTimePlanningService>()
             ;
 }

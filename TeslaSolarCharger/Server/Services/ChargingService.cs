@@ -113,7 +113,7 @@ public class ChargingService : IChargingService
     public int CalculateAmpByPowerAndCar(int powerToControl, Car car)
     {
         //ToDo: replace 230 with actual voltage on location
-        return Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * (car.CarState.ActualPhases ?? 3))));
+        return Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * car.CarState.ActualPhases)));
     }
 
     public int CalculatePowerToControl()
@@ -357,7 +357,7 @@ public class ChargingService : IChargingService
         }
 
         maxAmpIncrease.Value -= ampChange;
-        return ampChange * (car.CarState.ChargerVoltage ?? 230) * (car.CarState.ActualPhases ?? 3);
+        return ampChange * (car.CarState.ChargerVoltage ?? 230) * car.CarState.ActualPhases;
     }
 
     private async Task SendWarningOnChargerPilotReduced(Car car, int maxAmpPerCar)

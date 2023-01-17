@@ -13,4 +13,9 @@ public class DateTimeProvider : IDateTimeProvider
     {
         return DateTime.UtcNow;
     }
+
+    public DateTimeOffset DateTimeOffSetNow()
+    {
+        return DateTimeOffset.Now;
+    }
 }
