@@ -105,7 +105,7 @@ public class IndexService : IIndexService
             { _toolTipTextKeys.InverterPower, "Power your inverter currently delivers." },
             { _toolTipTextKeys.GridPower, "Power at your grid point. Green: Power feeding into grid; Red: Power consuming from grid" },
             { _toolTipTextKeys.HomeBatterySoC, "State of charge of your home battery." },
-            { _toolTipTextKeys.HomeBatteryPower, "Power of your car battery. Green: Battery is charging; Red: Battery is discharging" },
+            { _toolTipTextKeys.HomeBatteryPower, "Power of your home battery. Green: Battery is charging; Red: Battery is discharging" },
             { _toolTipTextKeys.CombinedChargingPower, "Power sum of all cars charging at home." },
             { _toolTipTextKeys.CarName, "Name configured in your car (or VIN if no name defined)." },
             { _toolTipTextKeys.CarSoc, "State of charge" },
