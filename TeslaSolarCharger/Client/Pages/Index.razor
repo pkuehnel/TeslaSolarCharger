@@ -9,7 +9,6 @@
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
 @using Majorsoft.Blazor.Components.Collapse
-@using Newtonsoft.Json
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 @inject ToolTipTextKeys ToolTipTextKeys
@@ -17,12 +16,7 @@
 <PageTitle>Tesla Solar Charger</PageTitle>
 
 <BackendIssueValidation></BackendIssueValidation>
-@if (_serverTime != default)
-{
-    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTime]">
-        Current Server Time: @_serverTime?.ToString()
-    </TooltipComponent>
-}
+
 @if (_pvValues != null)
 {
     <div class="shadow p-3 mb-5 bg-white rounded">
@@ -239,15 +233,24 @@ else
         </CollapsePanel>
         </div>
     }
+    <div class="shadow p-3 mb-5 bg-white rounded">
+        @if (_serverTime != default)
+        {
+            <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTime]">
+                Current Server Time: @_serverTime?.ToString()
+            </TooltipComponent>
+        }
+        @if (string.IsNullOrWhiteSpace(_version))
+        {
+            <p><em>Could not load version</em></p>
+        }
+        else
+        {
+            <p><em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em></p>
+        }
+    </div>
 
-    @if (string.IsNullOrWhiteSpace(_version))
-    {
-        <p><em>Could not load version</em></p>
-    }
-    else
-    {
-        <p><em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em></p>
-    }
+    
     <form action="https://www.paypal.com/donate" method="post" target="_blank">
         <div style="text-align:center">
             <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
@@ -361,9 +364,7 @@ else
 
     private async Task RefreshServerTime()
     {
-        var result = await HttpClient.GetAsync("api/Hello/GetServerLocalTime").ConfigureAwait(false);
-        var resultString = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-        var dtoTimeValue = JsonConvert.DeserializeObject<DtoValue<DateTime>>(resultString);
+        var dtoTimeValue = await HttpClient.GetFromJsonAsync<DtoValue<DateTime>>("api/Hello/GetServerLocalTime").ConfigureAwait(false);
         _serverTime = dtoTimeValue?.Value;
     }
 
