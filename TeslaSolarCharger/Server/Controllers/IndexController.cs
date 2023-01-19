@@ -35,5 +35,8 @@ public class IndexController : ApiBaseController
     public Dictionary<string, string> GetToolTipTexts() => _indexService.GetToolTipTexts();
 
     [HttpGet]
+    public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId) => _indexService.RecalculateAndGetChargingSlots(carId);
+
+    [HttpGet]
     public List<DtoChargingSlot> GetChargingSlots(int carId) => _indexService.GetChargingSlots(carId);
 }

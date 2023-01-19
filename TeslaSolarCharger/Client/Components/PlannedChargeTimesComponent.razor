@@ -1,4 +1,5 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos.Settings
+@using System.Timers
 @inject HttpClient HttpClient
 
 @if (_chargingSlots is { Count: > 0 })
@@ -51,9 +52,24 @@
 
     private List<DtoChargingSlot>? _chargingSlots;
 
+    private Timer? _timer;
+
+    
 
     protected override async Task OnInitializedAsync()
     {
+        _chargingSlots = await HttpClient.GetFromJsonAsync<List<DtoChargingSlot>>($"api/Index/RecalculateAndGetChargingSlots?carId={CarId}").ConfigureAwait(false);
+        
+        _timer = new Timer();
+        _timer.Interval = 60000;
+        _timer.Elapsed += RefreshChargingSlots;
+        _timer.Start();
+
+    }
+
+    private async void RefreshChargingSlots(object? sender, ElapsedEventArgs elapsedEventArgs)
+    {
         _chargingSlots = await HttpClient.GetFromJsonAsync<List<DtoChargingSlot>>($"api/Index/GetChargingSlots?carId={CarId}").ConfigureAwait(false);
+        StateHasChanged();
     }
 }

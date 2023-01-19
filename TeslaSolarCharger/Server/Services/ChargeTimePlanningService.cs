@@ -35,7 +35,7 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
         }
     }
 
-    internal void UpdatePlannedChargingSlots(Car car)
+    public void UpdatePlannedChargingSlots(Car car)
     {
         _logger.LogTrace("{method}({carId}", nameof(UpdatePlannedChargingSlots), car.Id);
         var dateTimeOffSetNow = _dateTimeProvider.DateTimeOffSetNow();

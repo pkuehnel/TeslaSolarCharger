@@ -152,11 +152,19 @@ public class IndexService : IIndexService
         return values;
     }
 
+    public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(RecalculateAndGetChargingSlots), carId);
+        var car = _settings.Cars.First(c => c.Id == carId);
+        _chargeTimePlanningService.UpdatePlannedChargingSlots(car);
+        return car.CarState.PlannedChargingSlots;
+    }
+
     public List<DtoChargingSlot> GetChargingSlots(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetChargingSlots), carId);
-        _chargeTimePlanningService.PlanChargeTimesForAllCars();
-        return _settings.Cars.First(c => c.Id == carId).CarState.PlannedChargingSlots;
+        var car = _settings.Cars.First(c => c.Id == carId);
+        return car.CarState.PlannedChargingSlots;
     }
 
     string AddSpacesBeforeCapitalLetters(string text)

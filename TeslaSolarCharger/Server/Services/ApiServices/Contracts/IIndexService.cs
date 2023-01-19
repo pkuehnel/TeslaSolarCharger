@@ -13,5 +13,6 @@ public interface IIndexService
     void UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings);
     Dictionary<string, string> GetToolTipTexts();
     List<DtoCarTopicValue> GetCarDetails(int carId);
+    List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId);
     List<DtoChargingSlot> GetChargingSlots(int carId);
 }
