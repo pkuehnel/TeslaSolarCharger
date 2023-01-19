@@ -47,8 +47,8 @@ public class ChargingService : TestBase
 
         car.CarState.ReachingMinSocAtFullSpeedCharge = currentTime + timeSpanToReachMinSoCAtFullSpeedCharge;
 
-        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car);
-        chargingService.DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
+        chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
+        chargingService.EnableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
 
 
         if (fullSpeedChargeMinutesAfterLatestTime > 0)
@@ -98,7 +98,7 @@ public class ChargingService : TestBase
 
         car.CarState.ReachingMinSocAtFullSpeedCharge = null;
 
-        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car);
+        chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
 
         Assert.Equal(autoFullSpeedCharge, car.CarState.AutoFullSpeedCharge);
     }
@@ -121,7 +121,7 @@ public class ChargingService : TestBase
 
         car.CarState.ReachingMinSocAtFullSpeedCharge = null;
 
-        chargingService.DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
+        chargingService.EnableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
 
         Assert.False(car.CarState.AutoFullSpeedCharge);
     }

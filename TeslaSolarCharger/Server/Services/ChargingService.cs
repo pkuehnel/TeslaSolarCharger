@@ -264,8 +264,8 @@ public class ChargingService : IChargingService
         }
         
 
-        EnableFullSpeedChargeIfMinimumSocNotReachable(car);
-        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
+        EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
+        EnableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (car.CarConfiguration.ChargeMode == ChargeMode.MaxPower || car.CarState.AutoFullSpeedCharge)
@@ -381,25 +381,30 @@ public class ChargingService : IChargingService
         }
     }
 
-    internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car car)
+    internal void EnableFullSpeedChargeIfWithinNonePlannedChargingSlot(Car car)
     {
-        if (car.CarState.ReachingMinSocAtFullSpeedCharge == null
-            || car.CarState.SoC >= car.CarConfiguration.MinimumSoC
-            || car.CarState.ReachingMinSocAtFullSpeedCharge < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)
-            && car.CarConfiguration.ChargeMode != ChargeMode.PvAndMinSoc)
+        var currentDate = _dateTimeProvider.DateTimeOffSetNow();
+        var plannedChargeSlotInCurrentTime = car.CarState.PlannedChargingSlots
+            .FirstOrDefault(c => c.ChargeStart <= currentDate && c.ChargeEnd > currentDate);
+        if (plannedChargeSlotInCurrentTime == default)
         {
             car.CarState.AutoFullSpeedCharge = false;
+            foreach (var plannedChargeSlot in car.CarState.PlannedChargingSlots)
+            {
+                plannedChargeSlot.IsActive = false;
+            }
         }
     }
 
-    internal void EnableFullSpeedChargeIfMinimumSocNotReachable(Car car)
+    internal void EnableFullSpeedChargeIfWithinPlannedChargingSlot(Car car)
     {
-        if (car.CarState.ReachingMinSocAtFullSpeedCharge > car.CarConfiguration.LatestTimeToReachSoC
-            && car.CarConfiguration.LatestTimeToReachSoC > _dateTimeProvider.Now()
-            || car.CarState.SoC < car.CarConfiguration.MinimumSoC
-            && car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
+        var currentDate = _dateTimeProvider.DateTimeOffSetNow();
+        var plannedChargeSlotInCurrentTime = car.CarState.PlannedChargingSlots
+            .FirstOrDefault(c => c.ChargeStart <= currentDate && c.ChargeEnd > currentDate);
+        if (plannedChargeSlotInCurrentTime != default)
         {
             car.CarState.AutoFullSpeedCharge = true;
+            plannedChargeSlotInCurrentTime.IsActive = true;
         }
     }
 

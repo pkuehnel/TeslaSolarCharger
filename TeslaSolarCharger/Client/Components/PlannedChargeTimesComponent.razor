@@ -8,6 +8,9 @@
         <table>
             <tr>
                 <th>
+                    Currently charge reason
+                </th>
+                <th>
                     Start
                 </th>
                 <th>
@@ -20,6 +23,9 @@
             @foreach (var chargingSlot in _chargingSlots)
             {
                 <tr>
+                    <td>
+                        @chargingSlot.IsActive
+                    </td>
                     <td>
                         @chargingSlot.ChargeStart.LocalDateTime.ToString("g")
                     </td>
