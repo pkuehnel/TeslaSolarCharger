@@ -265,7 +265,7 @@ public class ChargingService : IChargingService
         
 
         EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
-        EnableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
+        DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (car.CarConfiguration.ChargeMode == ChargeMode.MaxPower || car.CarState.AutoFullSpeedCharge)
@@ -381,7 +381,7 @@ public class ChargingService : IChargingService
         }
     }
 
-    internal void EnableFullSpeedChargeIfWithinNonePlannedChargingSlot(Car car)
+    internal void DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(Car car)
     {
         var currentDate = _dateTimeProvider.DateTimeOffSetNow();
         var plannedChargeSlotInCurrentTime = car.CarState.PlannedChargingSlots
