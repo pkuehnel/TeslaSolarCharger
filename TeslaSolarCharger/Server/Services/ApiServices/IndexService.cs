@@ -3,6 +3,7 @@ using System.Text;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
@@ -20,15 +21,17 @@ public class IndexService : IIndexService
     private readonly ITeslamateContext _teslamateContext;
     private readonly IChargingCostService _chargingCostService;
     private readonly ToolTipTextKeys _toolTipTextKeys;
+    private readonly IChargeTimePlanningService _chargeTimePlanningService;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
-        IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys)
+        IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys, IChargeTimePlanningService chargeTimePlanningService)
     {
         _logger = logger;
         _settings = settings;
         _teslamateContext = teslamateContext;
         _chargingCostService = chargingCostService;
         _toolTipTextKeys = toolTipTextKeys;
+        _chargeTimePlanningService = chargeTimePlanningService;
     }
 
     public DtoPvValues GetPvValues()
@@ -130,8 +133,16 @@ public class IndexService : IIndexService
     {
         var values = new List<DtoCarTopicValue>();
         var carState = _settings.Cars.First(c => c.Id == carId).CarState;
+        var propertiesToExclude = new List<string>()
+        {
+            nameof(Car.CarState.PlannedChargingSlots),
+        };
         foreach (var property in carState.GetType().GetProperties())
         {
+            if (propertiesToExclude.Any(p => property.Name.Equals(p)))
+            {
+                continue;
+            }
             values.Add(new DtoCarTopicValue()
             {
                 Topic = AddSpacesBeforeCapitalLetters(property.Name),
@@ -139,6 +150,21 @@ public class IndexService : IIndexService
             });
         }
         return values;
+    }
+
+    public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(RecalculateAndGetChargingSlots), carId);
+        var car = _settings.Cars.First(c => c.Id == carId);
+        _chargeTimePlanningService.UpdatePlannedChargingSlots(car);
+        return car.CarState.PlannedChargingSlots;
+    }
+
+    public List<DtoChargingSlot> GetChargingSlots(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(GetChargingSlots), carId);
+        var car = _settings.Cars.First(c => c.Id == carId);
+        return car.CarState.PlannedChargingSlots;
     }
 
     string AddSpacesBeforeCapitalLetters(string text)

@@ -78,7 +78,6 @@
 	<ItemGroup>
 		<Folder Include="Enums\" />
 		<Folder Include="MappingExtensions\" />
-		<Folder Include="Services\Contracts\" />
 	</ItemGroup>
 
 

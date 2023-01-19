@@ -21,63 +21,60 @@ public class ChargingService : TestBase
     {
     }
 
-    [Theory]
-    [InlineData(ChargeMode.PvAndMinSoc, -32, 10, false)]
-    [InlineData(ChargeMode.PvAndMinSoc, 2, -10, false)]
-    [InlineData(ChargeMode.PvOnly, -32, 10, false)]
-    [InlineData(ChargeMode.PvOnly, 2, -10, false)]
-    [InlineData(ChargeMode.PvAndMinSoc, -32, 10, true)]
-    [InlineData(ChargeMode.PvAndMinSoc, 2, -10, true)]
-    [InlineData(ChargeMode.PvOnly, -32, 10, true)]
-    [InlineData(ChargeMode.PvOnly, 2, -10, true)]
-    public void Does_autoenable_fullspeed_charge_if_needed(ChargeMode chargeMode, int fullSpeedChargeMinutesAfterLatestTime, int moreSocThanMinSoc, bool autofullSpeedCharge)
+    [Theory, MemberData(nameof(CalculateCorrectChargeTimesWithoutStockPricesData))]
+    public void Does_autoenable_fullspeed_charge_if_needed(DtoChargingSlot chargingSlot, bool shouldEnableFullSpeedCharge)
     {
+        Mock.Mock<IDateTimeProvider>()
+            .Setup(d => d.DateTimeOffSetNow())
+            .Returns(new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero));
+        var car = new Car()
+        {
+            CarState = new CarState()
+            {
+                PlannedChargingSlots = new List<DtoChargingSlot>() { chargingSlot },
+                AutoFullSpeedCharge = false,
+            }
+        };
+
         var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
-        var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
-            new NamedParameter("dateTime", new DateTime(2022, 4, 1, 14, 0, 0)));
-        var currentTime = currentTimeProvider.Now();
 
-        var timeSpanToLatestTimeToReachMinSoc = TimeSpan.FromMinutes(60);
-        var timeSpanToReachMinSoCAtFullSpeedCharge = timeSpanToLatestTimeToReachMinSoc.Add(TimeSpan.FromMinutes(fullSpeedChargeMinutesAfterLatestTime));
-
-        var minSoc = 50;
-
-        var car = CreateDemoCar(chargeMode, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc + moreSocThanMinSoc, minSoc, autofullSpeedCharge);
-
-
-        car.CarState.ReachingMinSocAtFullSpeedCharge = currentTime + timeSpanToReachMinSoCAtFullSpeedCharge;
-
-        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car);
-        chargingService.DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
-
-
-        if (fullSpeedChargeMinutesAfterLatestTime > 0)
-        {
-            Assert.True(car.CarState.AutoFullSpeedCharge);
-            return;
-        }
-
-        if (moreSocThanMinSoc >= 0)
-        {
-            Assert.False(car.CarState.AutoFullSpeedCharge);
-            return;
-        }
-
-        switch (chargeMode)
-        {
-            case ChargeMode.PvAndMinSoc:
-                Assert.True(car.CarState.AutoFullSpeedCharge);
-                break;
-
-            case ChargeMode.PvOnly:
-                Assert.False(car.CarState.AutoFullSpeedCharge);
-                break;
-
-            default:
-                throw new NotImplementedException("This test does not handle this charge mode");
-        }
-
+        chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
+        chargingService.DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
+        Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+        chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
+        Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
     }
+
+    [Theory, MemberData(nameof(CalculateCorrectChargeTimesWithoutStockPricesData))]
+    public void Does_autodisable_fullspeed_charge_if_needed(DtoChargingSlot chargingSlot, bool shouldEnableFullSpeedCharge)
+    {
+        Mock.Mock<IDateTimeProvider>()
+            .Setup(d => d.DateTimeOffSetNow())
+            .Returns(new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero));
+        var car = new Car()
+        {
+            CarState = new CarState()
+            {
+                PlannedChargingSlots = new List<DtoChargingSlot>() { chargingSlot },
+                AutoFullSpeedCharge = true,
+            }
+        };
+
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
+
+        chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
+        chargingService.DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
+        Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+        chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
+        Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+    }
+
+    public static readonly object[][] CalculateCorrectChargeTimesWithoutStockPricesData =
+    {
+        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero) }, true },
+        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 1, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero) }, false },
+        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 8, 0, 1, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 9, 0, 0, TimeSpan.Zero) }, false },
+    };
 
     [Theory]
     [InlineData(false)]
@@ -98,7 +95,7 @@ public class ChargingService : TestBase
 
         car.CarState.ReachingMinSocAtFullSpeedCharge = null;
 
-        chargingService.EnableFullSpeedChargeIfMinimumSocNotReachable(car);
+        chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
 
         Assert.Equal(autoFullSpeedCharge, car.CarState.AutoFullSpeedCharge);
     }
@@ -121,7 +118,7 @@ public class ChargingService : TestBase
 
         car.CarState.ReachingMinSocAtFullSpeedCharge = null;
 
-        chargingService.DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
+        chargingService.DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
 
         Assert.False(car.CarState.AutoFullSpeedCharge);
     }
@@ -303,36 +300,6 @@ public class ChargingService : TestBase
 #pragma warning disable CS8629
         Assert.InRange((DateTime)car.CarState.ReachingMinSocAtFullSpeedCharge, dateTime.AddMinutes(lowerMinutes), dateTime.AddMinutes(lowerMinutes + 1));
 #pragma warning restore CS8629
-    }
-
-    [Fact]
-    public void Handles_Plugged_Out_Car()
-    {
-        var car = new Car()
-        {
-            Id = 1,
-            CarState = new CarState()
-            {
-                PluggedIn = false,
-                SoC = 30,
-                ChargerPhases = 1
-            },
-            CarConfiguration = new CarConfiguration()
-            {
-                MinimumSoC = 45,
-                UsableEnergy = 74,
-                MaximumAmpere = 16,
-            }
-        };
-
-
-        var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
-        Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
-        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeUpdateService>();
-
-        chargingService.UpdateChargeTime(car);
-
-        Assert.Null(car.CarState.ReachingMinSocAtFullSpeedCharge);
     }
 
     [Fact]

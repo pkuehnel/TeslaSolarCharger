@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
@@ -32,4 +33,10 @@ public class IndexController : ApiBaseController
 
     [HttpGet]
     public Dictionary<string, string> GetToolTipTexts() => _indexService.GetToolTipTexts();
+
+    [HttpGet]
+    public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId) => _indexService.RecalculateAndGetChargingSlots(carId);
+
+    [HttpGet]
+    public List<DtoChargingSlot> GetChargingSlots(int carId) => _indexService.GetChargingSlots(carId);
 }
