@@ -51,6 +51,8 @@ public class ChargingCostService : IChargingCostService
         chargePrice.GridPrice = (decimal)dtoChargePrice.GridPrice!;
         chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice!;
         chargePrice.ValidSince = dtoChargePrice.ValidSince;
+        chargePrice.AddSpotPriceToGridPrice = dtoChargePrice.AddSpotPriceToGridPrice;
+        chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge?? 0) / 100;
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
         await UpdateHandledChargesPriceCalculation().ConfigureAwait(false);
@@ -254,6 +256,11 @@ public class ChargingCostService : IChargingCostService
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    public async Task<List<SpotPrice>> GetSpotPrices()
+    {
+        return await _teslaSolarChargerContext.SpotPrices.ToListAsync().ConfigureAwait(false);
+    }
+
     public async Task FinalizeHandledCharges()
     {
         _logger.LogTrace("{method}()", nameof(FinalizeHandledCharges));
@@ -348,7 +355,9 @@ public class ChargingCostService : IChargingCostService
         var mapper = _mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<ChargePrice, DtoChargePrice>()
-                .ForMember(d => d.Id, opt => opt.MapFrom(c => c.Id));
+                .ForMember(d => d.Id, opt => opt.MapFrom(c => c.Id))
+                .ForMember(d => d.SpotPriceSurcharge, opt => opt.MapFrom(c => c.SpotPriceCorrectionFactor * 100))
+                ;
         });
         var chargePrices = await _teslaSolarChargerContext.ChargePrices
             .Where(c => c.Id == id)

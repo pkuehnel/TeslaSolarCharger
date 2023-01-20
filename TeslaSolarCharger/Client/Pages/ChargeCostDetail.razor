@@ -36,6 +36,23 @@ else
             <label class="col-5 col-sm-4 col-md-3 col-lg-2">Grid Price</label>
             <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.GridPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="gridPrice" name="gridPrice" step=".0001">
         </div>
+        <div class="col-12 row">
+            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Use Spot Prices</label>
+            <input type="checkbox" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.AddSpotPriceToGridPrice" id="useSpotPrice" name="useSpotPrice">
+            <div>
+                <small id="UseSpotPriceHelp" class="form-text text-muted">Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)</small>
+            </div>
+        </div>
+        @if (ChargePrice.AddSpotPriceToGridPrice)
+        {
+            <div class="col-12 row">
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2">Spot Price Surcharge</label>
+                <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.SpotPriceSurcharge" placeholder="@(((decimal)1).ToString("0.0000"))" id="spotPriceCorrectionFactor" name="spotPriceCorrectionFactor" step=".01">%
+            </div>
+            <div>
+                <small id="spotPriceCorrectionFactorHelp" class="form-text text-muted">Surcharge to spot price by your electricity provider (e.g. aWATTar 3%)</small>
+            </div>
+        }
         <br/>
         <button type="submit" class="btn btn-primary">Submit</button>
     </EditForm>
