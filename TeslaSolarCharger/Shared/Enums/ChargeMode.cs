@@ -5,4 +5,5 @@ public enum ChargeMode
     MaxPower,
     PvOnly,
     PvAndMinSoc,
+    SpotPrice,
 }
