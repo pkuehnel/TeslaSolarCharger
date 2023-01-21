@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Awattar;
+using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -20,13 +21,11 @@ public class SpotPriceService : ISpotPriceService
     {
         _logger.LogTrace("{method}()", nameof(UpdateSpotPrices));
 
-        var latestKnownSpotPrice = await _teslaSolarChargerContext.SpotPrices
-            .OrderBy(s => s.StartDate)
-            .LastOrDefaultAsync().ConfigureAwait(false);
+        var latestKnownSpotPriceTime = await LatestKnownSpotPriceTime().ConfigureAwait(false);
         DateTimeOffset? getPricesFrom = null;
-        if (latestKnownSpotPrice != default)
+        if (latestKnownSpotPriceTime != default)
         {
-            getPricesFrom = latestKnownSpotPrice.EndDate;
+            getPricesFrom = latestKnownSpotPriceTime;
         }
 
         var awattarPrices = await GetAwattarPrices(getPricesFrom).ConfigureAwait(false);
@@ -44,6 +43,15 @@ public class SpotPriceService : ISpotPriceService
         }
         _teslaSolarChargerContext.SpotPrices.AddRange(newSpotPrices);
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public async Task<DateTimeOffset> LatestKnownSpotPriceTime()
+    {
+        var latestKnownSpotPriceTime = await _teslaSolarChargerContext.SpotPrices
+            .OrderBy(s => s.StartDate)
+            .Select(s => s.EndDate)
+            .LastOrDefaultAsync().ConfigureAwait(false);
+        return new DateTimeOffset(latestKnownSpotPriceTime, TimeSpan.Zero);
     }
 
     internal SpotPrice GenerateSpotPriceFromAwattarPrice(Datum value)

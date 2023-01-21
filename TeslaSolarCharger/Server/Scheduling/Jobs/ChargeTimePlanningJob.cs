@@ -17,6 +17,6 @@ public class ChargeTimePlanningJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await Task.Run(() => _service.PlanChargeTimesForAllCars()).ConfigureAwait(false);
+        await _service.PlanChargeTimesForAllCars().ConfigureAwait(false);
     }
 }

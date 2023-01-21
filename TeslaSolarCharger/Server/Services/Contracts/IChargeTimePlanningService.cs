@@ -4,6 +4,6 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IChargeTimePlanningService
 {
-    void PlanChargeTimesForAllCars();
-    void UpdatePlannedChargingSlots(Car car);
+    Task PlanChargeTimesForAllCars();
+    Task UpdatePlannedChargingSlots(Car car);
 }

@@ -1,6 +1,7 @@
 ﻿using Moq;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -17,9 +18,22 @@ public class ChargeTimePlanningService : TestBase
     }
 
     [Theory]
+    [InlineData(1.2, 1)]
+    [InlineData(1.0, 1)]
+    [InlineData(0.9, 0)]
+    [InlineData(27.7, 27)]
+    public void Gets_Correct_Full_Hours(double totalHours, int expectedValue)
+    {
+        var chargeTimePlanningService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimePlanningService>();
+        var result = chargeTimePlanningService.GetFullNeededHours(totalHours);
+
+        Assert.Equal(expectedValue, result);
+    }
+
+    [Theory]
     [InlineData(ChargeMode.PvAndMinSoc)]
     [InlineData(ChargeMode.PvOnly)]
-    public void Dont_Plan_Charging_If_Min_Soc_Reached(ChargeMode chargeMode)
+    public async Task Dont_Plan_Charging_If_Min_Soc_Reached(ChargeMode chargeMode)
     {
         var chargeDuration = TimeSpan.Zero;
 
@@ -40,13 +54,13 @@ public class ChargeTimePlanningService : TestBase
         };
 
         var chargeTimePlanningService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimePlanningService>();
-        var chargingSlots = chargeTimePlanningService.PlanChargingSlots(car, currentDate);
+        var chargingSlots = await chargeTimePlanningService.PlanChargingSlots(car, currentDate).ConfigureAwait(false);
 
         Assert.Empty(chargingSlots);
     }
 
     [Theory, MemberData(nameof(CalculateCorrectChargeTimesWithoutStockPricesData))]
-    public void Calculate_Correct_ChargeTimes_Without_Stock_Prices(ChargeMode chargeMode, DateTime latestTimeToReachSoc, DateTimeOffset currentDate, DateTimeOffset expectedStart)
+    public async Task Calculate_Correct_ChargeTimes_Without_Stock_Prices(ChargeMode chargeMode, DateTime latestTimeToReachSoc, DateTimeOffset currentDate, DateTimeOffset expectedStart)
     {
         var chargeDuration = TimeSpan.FromHours(1);
 
@@ -65,7 +79,7 @@ public class ChargeTimePlanningService : TestBase
         };
 
         var chargeTimePlanningService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimePlanningService>();
-        var chargingSlots = chargeTimePlanningService.PlanChargingSlots(car, currentDate);
+        var chargingSlots = await chargeTimePlanningService.PlanChargingSlots(car, currentDate).ConfigureAwait(false);
 
         Assert.Single(chargingSlots);
 

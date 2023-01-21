@@ -3,4 +3,5 @@
 public interface ISpotPriceService
 {
     Task UpdateSpotPrices();
+    Task<DateTimeOffset> LatestKnownSpotPriceTime();
 }
