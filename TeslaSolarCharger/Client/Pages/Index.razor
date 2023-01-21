@@ -9,9 +9,11 @@
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
 @using Majorsoft.Blazor.Components.Collapse
+@using TeslaSolarCharger.Shared.Contracts
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 @inject ToolTipTextKeys ToolTipTextKeys
+@inject IDateTimeProvider DateTimeProvider
 
 <PageTitle>Tesla Solar Charger</PageTitle>
 
@@ -153,7 +155,7 @@ else
                 </InputSelect>
             </p>
 
-            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvAndMinSoc || _carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
+            @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvAndMinSoc or ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
@@ -161,7 +163,7 @@ else
                @onchange="@(e => _carBaseSettings[car.CarId].MinimumStateOfCharge = Int32.Parse(e.Value?.ToString() ?? "0"))">
                 </p>
             }
-            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
+            @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
@@ -171,9 +173,15 @@ else
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="time" name="time"
-               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                           @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
+
             }
+            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.SpotPrice && _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date > DateTimeProvider.Now() && DateTimeProvider.Now().TimeOfDay < TimeSpan.FromHours(15))
+            {
+                <p>Note: Spot prices are published for the next day at 14:00 - 15:00. Charges won't be planned until @_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddDays(-1).AddHours(15).ToString(CultureInfo.CurrentCulture)</p>
+            }
+
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
             
             <PlannedChargeTimesComponent

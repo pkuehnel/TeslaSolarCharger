@@ -1,4 +1,7 @@
-﻿using TeslaSolarCharger.Server.Contracts;
+﻿using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -14,36 +17,41 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
     private readonly ISettings _settings;
     private readonly IChargeTimeUpdateService _chargeTimeUpdateService;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISpotPriceService _spotPriceService;
+    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
 
     public ChargeTimePlanningService(ILogger<ChargeTimePlanningService> logger, ISettings settings,
-        IChargeTimeUpdateService chargeTimeUpdateService, IDateTimeProvider dateTimeProvider)
+        IChargeTimeUpdateService chargeTimeUpdateService, IDateTimeProvider dateTimeProvider,
+        ISpotPriceService spotPriceService, ITeslaSolarChargerContext teslaSolarChargerContext)
     {
         _logger = logger;
         _settings = settings;
         _chargeTimeUpdateService = chargeTimeUpdateService;
         _dateTimeProvider = dateTimeProvider;
+        _spotPriceService = spotPriceService;
+        _teslaSolarChargerContext = teslaSolarChargerContext;
     }
 
 
-    public void PlanChargeTimesForAllCars()
+    public async Task PlanChargeTimesForAllCars()
     {
         _logger.LogTrace("{method}()", nameof(PlanChargeTimesForAllCars));
         var carsToPlan = _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
         foreach (var car in carsToPlan)
         {
-            UpdatePlannedChargingSlots(car);
+            await UpdatePlannedChargingSlots(car).ConfigureAwait(false);
         }
     }
 
-    public void UpdatePlannedChargingSlots(Car car)
+    public async Task UpdatePlannedChargingSlots(Car car)
     {
         _logger.LogTrace("{method}({carId}", nameof(UpdatePlannedChargingSlots), car.Id);
         var dateTimeOffSetNow = _dateTimeProvider.DateTimeOffSetNow();
 
-        var plannedChargingSlots = PlanChargingSlots(car, dateTimeOffSetNow);
-
-        
+        var plannedChargingSlots = await PlanChargingSlots(car, dateTimeOffSetNow).ConfigureAwait(false);
         ReplaceFirstChargingSlotStartTimeIfAlreadyActive(car, plannedChargingSlots, dateTimeOffSetNow);
+
+        //ToDo: if no new planned charging slot and one chargingslot is active, do not remove it if min soc is not reached.
         car.CarState.PlannedChargingSlots = plannedChargingSlots;
 
     }
@@ -69,7 +77,7 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
         }
     }
 
-    internal List<DtoChargingSlot> PlanChargingSlots(Car car, DateTimeOffset dateTimeOffSetNow)
+    internal async Task<List<DtoChargingSlot>> PlanChargingSlots(Car car, DateTimeOffset dateTimeOffSetNow)
     {
         _logger.LogTrace("{method}({carId}, {dateTimeOffset}", nameof(PlanChargingSlots), car.Id, dateTimeOffSetNow);
         var plannedChargingSlots = new List<DtoChargingSlot>();
@@ -113,11 +121,76 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
                     });
                     break;
 
+                case ChargeMode.SpotPrice:
+                    //ToDo: Plan hours that are cheaper than solar price
+                    plannedChargingSlots.AddRange(await GenerateSpotPriceChargingSlots(car, chargeDurationToMinSoc).ConfigureAwait(false));
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
-        return plannedChargingSlots;
+        return plannedChargingSlots.OrderBy(s => s.ChargeStart).ToList();
+    }
+
+    //ToDo: Add Unit Tests for this
+    internal async Task<IEnumerable<DtoChargingSlot>> GenerateSpotPriceChargingSlots(Car car, TimeSpan chargeDurationToMinSoc)
+    {
+        _logger.LogTrace("{method}({carId}, {chargeDurationToMinSoc}", nameof(GenerateSpotPriceChargingSlots), car.Id, chargeDurationToMinSoc);
+        var chargingSlots = new List<DtoChargingSlot>();
+        var latestTimeToReachSoc = new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, TimeZoneInfo.Local.BaseUtcOffset);
+        var chargePricesUntilLatestTimeToReachSocOrderedByPrice =
+            await ChargePricesUntilLatestTimeToReachSocOrderedByPrice(_dateTimeProvider.DateTimeOffSetNow(), latestTimeToReachSoc).ConfigureAwait(false);
+        if (await _spotPriceService.LatestKnownSpotPriceTime().ConfigureAwait(false) < latestTimeToReachSoc)
+        {
+            return chargingSlots;
+        }
+        
+        var hoursNeeded = chargeDurationToMinSoc.TotalHours;
+        var fullHoursNeeded = GetFullNeededHours(hoursNeeded);
+        var cheapestPrices = chargePricesUntilLatestTimeToReachSocOrderedByPrice.Take(fullHoursNeeded).ToList();
+        var chargingSlotsBeforeConcatenation = new List<DtoChargingSlot>();
+        foreach (var cheapestPrice in cheapestPrices)
+        {
+            var chargingSlot = GenerateChargingSlotBySpotPrice(cheapestPrice);
+            chargingSlotsBeforeConcatenation.Add(chargingSlot);
+        }
+        if (chargeDurationToMinSoc.Minutes > 0)
+        {
+            var lastChargingPriceToAdd = chargePricesUntilLatestTimeToReachSocOrderedByPrice.Skip(fullHoursNeeded).First();
+            var chargingSlot = GenerateChargingSlotBySpotPrice(lastChargingPriceToAdd);
+            chargingSlot.ChargeStart = chargingSlot.ChargeEnd.AddMinutes(-chargeDurationToMinSoc.Minutes);
+            chargingSlotsBeforeConcatenation.Add(chargingSlot);
+        }
+
+        //ToDo: Merge chargingSlots if startTime=endTime
+        chargingSlots = chargingSlotsBeforeConcatenation;
+        return chargingSlots;
+    }
+
+    private static DtoChargingSlot GenerateChargingSlotBySpotPrice(SpotPrice cheapestPrice)
+    {
+        var chargingSlot = new DtoChargingSlot()
+        {
+            ChargeStart = new DateTimeOffset(cheapestPrice.StartDate, TimeSpan.Zero),
+            ChargeEnd = new DateTimeOffset(cheapestPrice.EndDate, TimeSpan.Zero),
+        };
+        return chargingSlot;
+    }
+
+    internal int GetFullNeededHours(double hoursNeeded)
+    {
+        return (int)hoursNeeded;
+    }
+
+    private async Task<List<SpotPrice>> ChargePricesUntilLatestTimeToReachSocOrderedByPrice(DateTimeOffset dateTimeOffSetNow, DateTimeOffset latestTimeToReachSoc)
+    {
+        var spotPrices = await _teslaSolarChargerContext.SpotPrices
+            .Where(s => s.EndDate > dateTimeOffSetNow.UtcDateTime && s.StartDate < latestTimeToReachSoc.UtcDateTime)
+            .ToListAsync().ConfigureAwait(false);
+        //SqLite can not order decimal
+        var orderedSpotPrices = spotPrices.OrderBy(s => s.Price).ToList();
+        return orderedSpotPrices;
     }
 }

@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+﻿using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 
 namespace TeslaSolarCharger.Server.Contracts;
 
@@ -13,4 +14,5 @@ public interface IChargingCostService
     Task<DtoChargePrice> GetChargePriceById(int id);
     Task DeleteChargePriceById(int id);
     Task DeleteDuplicatedHandleCharges();
+    Task<List<SpotPrice>> GetSpotPrices();
 }

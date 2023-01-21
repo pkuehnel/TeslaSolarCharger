@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<ChargeTimePlanningJob>()
+            .AddTransient<SpotPriceJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -94,5 +95,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<IChargeTimePlanningService, ChargeTimePlanningService>()
+            .AddTransient<ISpotPriceService, SpotPriceService>()
             ;
 }
