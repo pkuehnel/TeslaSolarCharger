@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.Server.Services;
+﻿namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface ISpotPriceService
 {
