@@ -1,5 +1,6 @@
 ﻿using Moq;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TeslaSolarCharger.Server.Contracts;
@@ -57,6 +58,38 @@ public class ChargeTimePlanningService : TestBase
         var chargingSlots = await chargeTimePlanningService.PlanChargingSlots(car, currentDate).ConfigureAwait(false);
 
         Assert.Empty(chargingSlots);
+    }
+
+    [Fact]
+    public void DoesConcatenateChargingSlotsCorrectly()
+    {
+        var chargingSlots = new List<DtoChargingSlot>()
+        {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 10, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 12, 00, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 13, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 13, 30, 0, TimeSpan.Zero),
+            },
+        };
+
+        var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
+
+        var chargeTimePlanningService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimePlanningService>();
+        var concatenatedChargingSlots = chargeTimePlanningService.ConcatenateChargeTimes(chargingSlots);
+
+
+        Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
+        Assert.Equal(2, concatenatedChargingSlots.Count);
     }
 
     [Theory, MemberData(nameof(CalculateCorrectChargeTimesWithoutStockPricesData))]
