@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using TeslaSolarCharger.Server.Dtos.Awattar;
 using Xunit;
 using Xunit.Abstractions;

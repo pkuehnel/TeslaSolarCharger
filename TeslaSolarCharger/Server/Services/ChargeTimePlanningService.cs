@@ -164,9 +164,35 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
                 break;
             }
         }
+        chargingSlots = ConcatenateChargeTimes(chargingSlotsBeforeConcatenation);
+        return chargingSlots;
+    }
 
-        //ToDo: Merge chargingSlots if startTime=endTime
-        chargingSlots = chargingSlotsBeforeConcatenation;
+    internal List<DtoChargingSlot> ConcatenateChargeTimes(List<DtoChargingSlot> chargingSlotsBeforeConcatenation)
+    {
+        if (chargingSlotsBeforeConcatenation.Count < 2)
+        {
+            return chargingSlotsBeforeConcatenation;
+        }
+
+        chargingSlotsBeforeConcatenation = chargingSlotsBeforeConcatenation.OrderBy(s => s.ChargeStart).ToList();
+        var chargingSlots = new List<DtoChargingSlot>
+        {
+            chargingSlotsBeforeConcatenation[0],
+        };
+        for (var i = 1; i < chargingSlotsBeforeConcatenation.Count; i++)
+        {
+            var currentChargingSlot = chargingSlotsBeforeConcatenation[i];
+            var lastChargingSlot = chargingSlots.Last();
+            if (lastChargingSlot.ChargeEnd == currentChargingSlot.ChargeStart)
+            {
+                lastChargingSlot.ChargeEnd = currentChargingSlot.ChargeEnd;
+            }
+            else
+            {
+                chargingSlots.Add(currentChargingSlot);
+            }
+        }
         return chargingSlots;
     }
 
