@@ -146,22 +146,23 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
         {
             return chargingSlots;
         }
-        
-        var hoursNeeded = chargeDurationToMinSoc.TotalHours;
-        var fullHoursNeeded = GetFullNeededHours(hoursNeeded);
-        var cheapestPrices = chargePricesUntilLatestTimeToReachSocOrderedByPrice.Take(fullHoursNeeded).ToList();
+
+        var restTimeNeeded = chargeDurationToMinSoc;
         var chargingSlotsBeforeConcatenation = new List<DtoChargingSlot>();
-        foreach (var cheapestPrice in cheapestPrices)
+        var minDate = _dateTimeProvider.DateTimeOffSetNow();
+        foreach (var cheapestPrice in chargePricesUntilLatestTimeToReachSocOrderedByPrice)
         {
-            var chargingSlot = GenerateChargingSlotBySpotPrice(cheapestPrice);
+            var chargingSlot = GenerateChargingSlotBySpotPrice(cheapestPrice, minDate, latestTimeToReachSoc);
+            restTimeNeeded -= chargingSlot.ChargeDuration;
+            if (restTimeNeeded < TimeSpan.Zero)
+            {
+                chargingSlot.ChargeEnd = chargingSlot.ChargeEnd.Add(restTimeNeeded);
+            }
             chargingSlotsBeforeConcatenation.Add(chargingSlot);
-        }
-        if (chargeDurationToMinSoc.Minutes > 0)
-        {
-            var lastChargingPriceToAdd = chargePricesUntilLatestTimeToReachSocOrderedByPrice.Skip(fullHoursNeeded).First();
-            var chargingSlot = GenerateChargingSlotBySpotPrice(lastChargingPriceToAdd);
-            chargingSlot.ChargeStart = chargingSlot.ChargeEnd.AddMinutes(-chargeDurationToMinSoc.Minutes);
-            chargingSlotsBeforeConcatenation.Add(chargingSlot);
+            if (restTimeNeeded < TimeSpan.Zero)
+            {
+                break;
+            }
         }
 
         //ToDo: Merge chargingSlots if startTime=endTime
@@ -169,12 +170,22 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
         return chargingSlots;
     }
 
-    private static DtoChargingSlot GenerateChargingSlotBySpotPrice(SpotPrice cheapestPrice)
+    private static DtoChargingSlot GenerateChargingSlotBySpotPrice(SpotPrice cheapestPrice, DateTimeOffset minDate, DateTimeOffset maxDate)
     {
+        var startTime = new DateTimeOffset(cheapestPrice.StartDate, TimeSpan.Zero);
+        if (minDate > startTime)
+        {
+            startTime = minDate;
+        }
+        var endTime = new DateTimeOffset(cheapestPrice.EndDate, TimeSpan.Zero);
+        if (maxDate < endTime)
+        {
+            endTime = maxDate;
+        }
         var chargingSlot = new DtoChargingSlot()
         {
-            ChargeStart = new DateTimeOffset(cheapestPrice.StartDate, TimeSpan.Zero),
-            ChargeEnd = new DateTimeOffset(cheapestPrice.EndDate, TimeSpan.Zero),
+            ChargeStart = startTime,
+            ChargeEnd = endTime,
         };
         return chargingSlot;
     }
@@ -186,7 +197,7 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
 
     private async Task<List<SpotPrice>> ChargePricesUntilLatestTimeToReachSocOrderedByPrice(DateTimeOffset dateTimeOffSetNow, DateTimeOffset latestTimeToReachSoc)
     {
-        var spotPrices = await _teslaSolarChargerContext.SpotPrices
+        var spotPrices = await _teslaSolarChargerContext.SpotPrices.AsNoTracking()
             .Where(s => s.EndDate > dateTimeOffSetNow.UtcDateTime && s.StartDate < latestTimeToReachSoc.UtcDateTime)
             .ToListAsync().ConfigureAwait(false);
         //SqLite can not order decimal
