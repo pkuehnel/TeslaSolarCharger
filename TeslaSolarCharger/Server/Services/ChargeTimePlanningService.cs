@@ -159,6 +159,10 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
                 chargingSlot.ChargeEnd = chargingSlot.ChargeEnd.Add(restTimeNeeded);
             }
             chargingSlotsBeforeConcatenation.Add(chargingSlot);
+            if (restTimeNeeded < TimeSpan.Zero)
+            {
+                break;
+            }
         }
 
         //ToDo: Merge chargingSlots if startTime=endTime
