@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using TeslaSolarCharger.Server.Dtos.Awattar;
+using TeslaSolarCharger.Shared.Contracts;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -34,10 +35,16 @@ public class SpotPriceService : TestBase
     public void Generates_Awattar_Url_With_DateTimeOffset()
     {
         var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(1674511200);
+        var currentDate = new DateTimeOffset(2023, 3, 1, 10, 0, 0, TimeSpan.Zero);
+        Mock.Mock<IDateTimeProvider>()
+            .Setup(d => d.DateTimeOffSetNow())
+            .Returns(currentDate);
+
+        var endFutureMilliseconds = currentDate.AddHours(48).ToUnixTimeMilliseconds();
 
         var spotPriceService = Mock.Create<TeslaSolarCharger.Server.Services.SpotPriceService>();
         var url = spotPriceService.GenerateAwattarUrl(dateTimeOffset);
-        Assert.Equal("https://api.awattar.de/v1/marketdata?start=1674511200000&end=1674684000000", url);
+        Assert.Equal($"https://api.awattar.de/v1/marketdata?start=1674511200000&end={endFutureMilliseconds}", url);
     }
 
     [Fact]

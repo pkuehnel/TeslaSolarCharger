@@ -3,6 +3,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Awattar;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -10,11 +11,14 @@ public class SpotPriceService : ISpotPriceService
 {
     private readonly ILogger<SpotPriceService> _logger;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
-    public SpotPriceService(ILogger<SpotPriceService> logger, ITeslaSolarChargerContext teslaSolarChargerContext)
+    public SpotPriceService(ILogger<SpotPriceService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
+        IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task UpdateSpotPrices()
@@ -70,7 +74,8 @@ public class SpotPriceService : ISpotPriceService
         var url = "https://api.awattar.de/v1/marketdata";
         if (fromDate != null)
         {
-            url += $"?start={fromDate.Value.ToUnixTimeMilliseconds()}&end={fromDate.Value.AddHours(48).ToUnixTimeMilliseconds()}";
+            var toDate = _dateTimeProvider.DateTimeOffSetNow().AddHours(48);
+            url += $"?start={fromDate.Value.ToUnixTimeMilliseconds()}&end={toDate.ToUnixTimeMilliseconds()}";
         }
         return url;
     }
