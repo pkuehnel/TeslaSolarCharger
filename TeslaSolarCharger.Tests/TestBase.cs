@@ -91,7 +91,7 @@ public class TestBase : IDisposable
         var autoMock = AutoMock.GetLoose(cfg => cfg.RegisterInstance(new TeslaSolarChargerContext(options)).As<ITeslaSolarChargerContext>());
         _ctx = (TeslaSolarChargerContext) autoMock.Create<ITeslaSolarChargerContext>();
         _ctx.Database.EnsureCreated();
-        _ctx.InitContextData();
+        //_ctx.InitContextData();
         _ctx.SaveChanges();
     }
 
