@@ -318,6 +318,14 @@ public class ChargingCostService : IChargingCostService
             var usedEnergy = (chargingProcess.ChargeEnergyUsed ?? chargingProcess.ChargeEnergyAdded) ?? 0;
             openHandledCharge.UsedGridEnergy = usedEnergy * (decimal?)gridProportionAverage;
             openHandledCharge.UsedSolarEnergy = usedEnergy * (1 - (decimal?)gridProportionAverage);
+            var relevantPowerDistributions = await _teslaSolarChargerContext.PowerDistributions
+                .Where(p => p.HandledCharge == openHandledCharge)
+                .OrderBy(p => p.TimeStamp)
+                .ToListAsync().ConfigureAwait(false);
+            if (relevantPowerDistributions.Count > 0)
+            {
+                openHandledCharge.AverageSpotPrice = await CalculateAverageSpotPrice(relevantPowerDistributions).ConfigureAwait(false);
+            }
             var price = await _teslaSolarChargerContext.ChargePrices
                 .FirstOrDefaultAsync(p => p.Id == openHandledCharge.ChargePriceId)
                 .ConfigureAwait(false);
@@ -330,6 +338,59 @@ public class ChargingCostService : IChargingCostService
                 await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
             }
         }
+    }
+
+    private async Task<decimal?> CalculateAverageSpotPrice(List<PowerDistribution> relevantPowerDistributions)
+    {
+        var startTime = relevantPowerDistributions.First().TimeStamp;
+        var endTime = relevantPowerDistributions.Last().TimeStamp;
+        var spotPrices = await GetSpotPricesInTimeSpan(startTime, endTime).ConfigureAwait(false);
+
+        if (IsAnyPowerTimeStampWithoutSpotPrice(relevantPowerDistributions, spotPrices))
+        {
+            return null;
+        }
+
+        var usedWattHours = new List<float>();
+        foreach (var spotPrice in spotPrices)
+        {
+            var usedPowerWhileSpotPriceIsValid = relevantPowerDistributions
+                .Where(p => p.TimeStamp >= spotPrice.StartDate && p.TimeStamp < spotPrice.EndDate)
+                .Select(p => p.UsedWattHours ?? 0)
+                .Sum();
+            usedWattHours.Add(usedPowerWhileSpotPriceIsValid);
+        }
+
+        float averagePrice = 0;
+        for (var i = 0; i < usedWattHours.Count; i++)
+        {
+            averagePrice += usedWattHours[i] * (float) spotPrices[i].Price;
+        }
+        averagePrice /= usedWattHours.Sum();
+        return Convert.ToDecimal(averagePrice);
+    }
+
+    internal async Task<List<SpotPrice>> GetSpotPricesInTimeSpan(DateTime startTime, DateTime endTime)
+    {
+        var spotPrices = await _teslaSolarChargerContext.SpotPrices.AsNoTracking()
+            .Where(s => s.EndDate > startTime && s.StartDate < endTime)
+            .OrderBy(s => s.StartDate)
+            .ToListAsync().ConfigureAwait(false);
+        return spotPrices;
+    }
+
+    private bool IsAnyPowerTimeStampWithoutSpotPrice(List<PowerDistribution> relevantPowerDistributions, List<SpotPrice> spotPrices)
+    {
+        foreach (var timeStamp in relevantPowerDistributions.Select(p => p.TimeStamp))
+        {
+            if (!spotPrices.Any(s => s.StartDate <= timeStamp && s.EndDate > timeStamp))
+            {
+                _logger.LogWarning("No spotprice found at {timestamp}", timeStamp);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public async Task<DtoChargeSummary> GetChargeSummary(int carId)

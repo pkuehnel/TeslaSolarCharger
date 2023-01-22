@@ -88,8 +88,10 @@ public class TestBase : IDisposable
             .EnableSensitiveDataLogging()
             .EnableDetailedErrors()
             .Options;
-        var autoMock = AutoMock.GetLoose(cfg => cfg.RegisterInstance(new TeslaSolarChargerContext(options)).As<ITeslaSolarChargerContext>());
-        _ctx = (TeslaSolarChargerContext) autoMock.Create<ITeslaSolarChargerContext>();
+        //var autoMock = AutoMock.GetLoose(cfg => cfg.RegisterInstance(new TeslaSolarChargerContext(options)).As<ITeslaSolarChargerContext>());
+        //_ctx = (TeslaSolarChargerContext) autoMock.Create<ITeslaSolarChargerContext>();
+
+        _ctx = (TeslaSolarChargerContext)Mock.Provide<ITeslaSolarChargerContext>(new TeslaSolarChargerContext(options));
         _ctx.Database.EnsureCreated();
         //_ctx.InitContextData();
         _ctx.SaveChanges();

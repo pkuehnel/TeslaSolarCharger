@@ -8,6 +8,7 @@ public class HandledCharge
     public decimal? UsedGridEnergy { get; set; }
     public decimal? UsedSolarEnergy { get; set; }
     public decimal? CalculatedPrice { get; set; }
+    public decimal? AverageSpotPrice { get; set; }
     // ReSharper disable once CollectionNeverUpdated.Global
     public List<PowerDistribution> PowerDistributions { get; set; } = new();
 
