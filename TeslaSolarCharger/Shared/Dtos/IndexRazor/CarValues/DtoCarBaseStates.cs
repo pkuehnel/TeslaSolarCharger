@@ -16,4 +16,5 @@ public class DtoCarBaseStates
     public bool IsHome { get; set; }
     public bool IsAutoFullSpeedCharging { get; set; }
     public bool? IsHealthy { get; set; }
+    public bool ChargingNotPlannedDueToNoSpotPricesAvailable { get; set; }
 }

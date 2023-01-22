@@ -177,7 +177,7 @@ else
                 </p>
 
             }
-            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.SpotPrice && _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date > DateTimeProvider.Now() && DateTimeProvider.Now().TimeOfDay < TimeSpan.FromHours(15))
+            @if (car.ChargingNotPlannedDueToNoSpotPricesAvailable)
             {
                 <p>Note: Spot prices are published for the next day at 14:00 - 15:00. Charges won't be planned until @_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddDays(-1).AddHours(15).ToString(CultureInfo.CurrentCulture)</p>
             }

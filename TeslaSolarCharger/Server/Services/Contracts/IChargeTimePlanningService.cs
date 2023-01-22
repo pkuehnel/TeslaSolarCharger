@@ -6,4 +6,5 @@ public interface IChargeTimePlanningService
 {
     Task PlanChargeTimesForAllCars();
     Task UpdatePlannedChargingSlots(Car car);
+    Task<bool> IsLatestTimeToReachSocAfterLatestKnownChargePrice(int carId);
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -142,7 +143,7 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
         var latestTimeToReachSoc = new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, TimeZoneInfo.Local.BaseUtcOffset);
         var chargePricesUntilLatestTimeToReachSocOrderedByPrice =
             await ChargePricesUntilLatestTimeToReachSocOrderedByPrice(_dateTimeProvider.DateTimeOffSetNow(), latestTimeToReachSoc).ConfigureAwait(false);
-        if (await _spotPriceService.LatestKnownSpotPriceTime().ConfigureAwait(false) < latestTimeToReachSoc)
+        if (await IsLatestTimeToReachSocAfterLatestKnownChargePrice(car.Id).ConfigureAwait(false))
         {
             return chargingSlots;
         }
@@ -229,5 +230,11 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
         //SqLite can not order decimal
         var orderedSpotPrices = spotPrices.OrderBy(s => s.Price).ToList();
         return orderedSpotPrices;
+    }
+
+    public async Task<bool> IsLatestTimeToReachSocAfterLatestKnownChargePrice(int carId)
+    {
+        var latestTimeToReachSoC = new DateTimeOffset(_settings.Cars.First(c => c.Id == carId).CarConfiguration.LatestTimeToReachSoC, TimeZoneInfo.Local.BaseUtcOffset);
+        return await _spotPriceService.LatestKnownSpotPriceTime().ConfigureAwait(false) < latestTimeToReachSoC;
     }
 }
