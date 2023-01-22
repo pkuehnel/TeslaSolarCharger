@@ -7,6 +7,7 @@ public class PowerDistribution
     public int ChargingPower { get; set; }
     public int PowerFromGrid { get; set; }
     public float GridProportion { get; set; }
+    public float? UsedWattHours { get; set; }
 
     public int HandledChargeId { get; set; }
 #pragma warning disable CS8618
