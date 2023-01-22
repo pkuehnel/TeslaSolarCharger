@@ -70,6 +70,11 @@ public class IndexService : IIndexService
                 dtoCarBaseValues.NameOrVin = await GetVinByCarId(enabledCar.Id).ConfigureAwait(false);
             }
             dtoCarBaseValues.DtoChargeSummary = await _chargingCostService.GetChargeSummary(enabledCar.Id).ConfigureAwait(false);
+            if (enabledCar.CarConfiguration.ChargeMode == ChargeMode.SpotPrice)
+            {
+                dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
+                    await _chargeTimePlanningService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
+            }
 
             carBaseValues.Add(dtoCarBaseValues);
             
