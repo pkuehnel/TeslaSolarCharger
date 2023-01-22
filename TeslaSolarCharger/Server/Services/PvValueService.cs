@@ -217,11 +217,9 @@ public class PvValueService : IPvValueService
         var weightedCount = _inMemoryValues.OverageValues.Count * (_inMemoryValues.OverageValues.Count + 1) / 2;
         if (weightedCount == 0)
         {
-            if (Debugger.IsAttached)
-            {
-                return 0;
-            }
-            throw new InvalidOperationException("There are no power values available");
+            var powerDefaultValue = int.MinValue;
+            _logger.LogWarning("There are no power values available, use default value of {defaultValue}", powerDefaultValue);
+            return int.MinValue;
         }
         return (int)(weightedSum / weightedCount);
     }
