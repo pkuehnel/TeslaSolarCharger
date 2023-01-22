@@ -78,8 +78,8 @@ public class ChargingService : IChargingService
 
         if (_settings.Overage == null)
         {
-            _logger.LogWarning("Can not control power as overage is unknown");
-            return;
+            _logger.LogWarning("Can not control power as overage is unknown. Use int minValue");
+            _settings.Overage = int.MinValue;
         }
 
         var powerToControl = CalculatePowerToControl();
