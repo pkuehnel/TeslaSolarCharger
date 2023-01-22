@@ -340,7 +340,7 @@ public class ChargingCostService : IChargingCostService
         }
     }
 
-    private async Task<decimal?> CalculateAverageSpotPrice(List<PowerDistribution> relevantPowerDistributions)
+    internal async Task<decimal?> CalculateAverageSpotPrice(List<PowerDistribution> relevantPowerDistributions)
     {
         var startTime = relevantPowerDistributions.First().TimeStamp;
         var endTime = relevantPowerDistributions.Last().TimeStamp;
@@ -351,23 +351,36 @@ public class ChargingCostService : IChargingCostService
             return null;
         }
 
-        var usedWattHours = new List<float>();
-        foreach (var spotPrice in spotPrices)
-        {
-            var usedPowerWhileSpotPriceIsValid = relevantPowerDistributions
-                .Where(p => p.TimeStamp >= spotPrice.StartDate && p.TimeStamp < spotPrice.EndDate)
-                .Select(p => p.UsedWattHours ?? 0)
-                .Sum();
-            usedWattHours.Add(usedPowerWhileSpotPriceIsValid);
-        }
+        var usedGridWattHoursHourGroups = CalculateGridWattHours(relevantPowerDistributions);
 
         float averagePrice = 0;
-        for (var i = 0; i < usedWattHours.Count; i++)
+        foreach (var usedGridWattHour in usedGridWattHoursHourGroups)
         {
-            averagePrice += usedWattHours[i] * (float) spotPrices[i].Price;
+            var relavantPrice = spotPrices.First(s => s.StartDate == usedGridWattHour.Key);
+            var costsInThisHour = usedGridWattHour.Value * (float)relavantPrice.Price;
+            averagePrice += costsInThisHour;
         }
-        averagePrice /= usedWattHours.Sum();
+        averagePrice /= usedGridWattHoursHourGroups.Values.Sum();
         return Convert.ToDecimal(averagePrice);
+    }
+
+    private Dictionary<DateTime, float> CalculateGridWattHours(List<PowerDistribution> relevantPowerDistributions)
+    {
+        var usedGridWattHours = new Dictionary<DateTime, float>();
+
+        var hourGroups = relevantPowerDistributions
+            .GroupBy(x => new { x.TimeStamp.Date, x.TimeStamp.Hour })
+            .ToList();
+
+        foreach (var hourGroup in hourGroups)
+        {
+            var usedPowerWhileSpotPriceIsValid = hourGroup
+                .Select(p => p.UsedWattHours * p.GridProportion ?? 0)
+                .Sum();
+            usedGridWattHours.Add(hourGroup.Key.Date.AddHours(hourGroup.Key.Hour), usedPowerWhileSpotPriceIsValid);
+        }
+
+        return usedGridWattHours;
     }
 
     internal async Task<List<SpotPrice>> GetSpotPricesInTimeSpan(DateTime startTime, DateTime endTime)

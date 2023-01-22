@@ -6,7 +6,6 @@ using Autofac.Extras.Moq;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
@@ -14,7 +13,6 @@ using Serilog.Events;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Shared.TimeProviding;
-using TeslaSolarCharger.Tests.Data;
 using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests;
@@ -26,7 +24,6 @@ public class TestBase : IDisposable
     protected readonly AutoMock Mock;
 
     private readonly TeslaSolarChargerContext _ctx;
-    private readonly SqliteConnection _connection;
 
     protected ITeslaSolarChargerContext Context => _ctx;
 
@@ -73,10 +70,10 @@ public class TestBase : IDisposable
             .Options;
 
 
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        var connection1 = new SqliteConnection("DataSource=:memory:");
+        connection1.Open();
 
-        using (var command = _connection.CreateCommand())
+        using (var command = connection1.CreateCommand())
         {
             command.CommandText = "PRAGMA foreign_keys = OFF;";
             command.ExecuteNonQuery();
@@ -84,7 +81,7 @@ public class TestBase : IDisposable
 
         var options = new DbContextOptionsBuilder<TeslaSolarChargerContext>()
             .UseLoggerFactory(loggerFactory)
-            .UseSqlite(_connection)
+            .UseSqlite(connection1)
             .EnableSensitiveDataLogging()
             .EnableDetailedErrors()
             .Options;
