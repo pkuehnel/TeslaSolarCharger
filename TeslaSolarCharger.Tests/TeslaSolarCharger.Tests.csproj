@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <Folder Include="Helper\" />
+    <Folder Include="Data\" />
     <Folder Include="Services\SolarEdgePlugin\" />
   </ItemGroup>
 

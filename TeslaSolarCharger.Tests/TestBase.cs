@@ -6,12 +6,15 @@ using Autofac.Extras.Moq;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Shared.TimeProviding;
+using TeslaSolarCharger.Tests.Data;
 using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests;
@@ -21,6 +24,11 @@ public class TestBase : IDisposable
     private static readonly ConcurrentDictionary<ITestOutputHelper, (ILoggerFactory, LoggingLevelSwitch)> LoggerFactoryCache = new();
 
     protected readonly AutoMock Mock;
+
+    private readonly TeslaSolarChargerContext _ctx;
+    private readonly SqliteConnection _connection;
+
+    protected ITeslaSolarChargerContext Context => _ctx;
 
     protected LoggingLevelSwitch LogLevelSwitch { get; }
 
@@ -64,10 +72,27 @@ public class TestBase : IDisposable
             .EnableDetailedErrors()
             .Options;
 
-        //ToDo: Create demo database for tests
-        //_ctx = (TeslaSolarChargerContext)Mock
-        //    .Provide<ITeslaSolarChargerContext>(new TeslaSolarChargerContext(options));
-        //_ctx.Database.EnsureCreated();
+
+        _connection = new SqliteConnection("DataSource=:memory:");
+        _connection.Open();
+
+        using (var command = _connection.CreateCommand())
+        {
+            command.CommandText = "PRAGMA foreign_keys = OFF;";
+            command.ExecuteNonQuery();
+        }
+
+        var options = new DbContextOptionsBuilder<TeslaSolarChargerContext>()
+            .UseLoggerFactory(loggerFactory)
+            .UseSqlite(_connection)
+            .EnableSensitiveDataLogging()
+            .EnableDetailedErrors()
+            .Options;
+        var autoMock = AutoMock.GetLoose(cfg => cfg.RegisterInstance(new TeslaSolarChargerContext(options)).As<ITeslaSolarChargerContext>());
+        _ctx = (TeslaSolarChargerContext) autoMock.Create<ITeslaSolarChargerContext>();
+        _ctx.Database.EnsureCreated();
+        _ctx.InitContextData();
+        _ctx.SaveChanges();
     }
 
     private static (ILoggerFactory, LoggingLevelSwitch) GetOrCreateLoggerFactory(
