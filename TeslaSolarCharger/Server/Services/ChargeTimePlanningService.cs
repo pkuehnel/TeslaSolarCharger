@@ -170,6 +170,7 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
 
     internal List<DtoChargingSlot> ConcatenateChargeTimes(List<DtoChargingSlot> chargingSlotsBeforeConcatenation)
     {
+        _logger.LogTrace("{method}({@chargingSlotsBeforeConcatenation})", nameof(ConcatenateChargeTimes), chargingSlotsBeforeConcatenation);
         if (chargingSlotsBeforeConcatenation.Count < 2)
         {
             return chargingSlotsBeforeConcatenation;
