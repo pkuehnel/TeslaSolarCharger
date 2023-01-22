@@ -5,42 +5,46 @@
 @if (_chargingSlots is { Count: > 0 })
 {
     <p>
-        Planned Charging Slots:
-        <table>
-            <tr>
-                <th>
-                    Current charge reason
-                </th>
-                <th>
-                    Start
-                </th>
-                <th>
-                    End
-                </th>
-                <th>
-                    Duration
-                </th>
-            </tr>
-            @foreach (var chargingSlot in _chargingSlots)
-            {
+        <b>Planned Charging Slots:</b>
+        <table class="styled-table">
+            <thead>
                 <tr>
-                    <td>
-                        @chargingSlot.IsActive
-                    </td>
-                    <td>
-                        @chargingSlot.ChargeStart.LocalDateTime.ToString("g")
-                    </td>
-                    <td>
-                        @chargingSlot.ChargeEnd.LocalDateTime.ToString("g")
-                    </td>
-                    <td>
-                        @if (chargingSlot.ChargeDuration < TimeSpan.FromDays(1))
-                        {
-                            @chargingSlot.ChargeDuration.ToString(@"hh\:mm")
-                        }
-                    </td>
+                    <th>
+                        Current charge reason
+                    </th>
+                    <th>
+                        Start
+                    </th>
+                    <th>
+                        End
+                    </th>
+                    <th>
+                        Duration
+                    </th>
                 </tr>
-            }
+            </thead>
+            <tbody>
+                @foreach (var chargingSlot in _chargingSlots)
+                {
+                    <tr>
+                        <td>
+                            @chargingSlot.IsActive
+                        </td>
+                        <td>
+                            @chargingSlot.ChargeStart.LocalDateTime.ToString("g")
+                        </td>
+                        <td>
+                            @chargingSlot.ChargeEnd.LocalDateTime.ToString("g")
+                        </td>
+                        <td>
+                            @if (chargingSlot.ChargeDuration < TimeSpan.FromDays(1))
+                            {
+                                @chargingSlot.ChargeDuration.ToString(@"hh\:mm")
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
         </table>
     </p>
 
@@ -54,12 +58,12 @@
 
     private Timer? _timer;
 
-    
+
 
     protected override async Task OnInitializedAsync()
     {
         _chargingSlots = await HttpClient.GetFromJsonAsync<List<DtoChargingSlot>>($"api/Index/RecalculateAndGetChargingSlots?carId={CarId}").ConfigureAwait(false);
-        
+
         _timer = new Timer();
         _timer.Interval = 60000;
         _timer.Elapsed += RefreshChargingSlots;
