@@ -123,11 +123,17 @@ public class ChargingCostService : IChargingCostService
     {
         _logger.LogTrace("{method}({carId}, {chargingPower}, {powerFromGrid})",
             nameof(AddPowerDistribution), carId, chargingPower, powerFromGrid);
-        if (chargingPower == null || powerFromGrid == null)
+        if (chargingPower == null)
         {
             _logger.LogWarning("Can not handle as at least one parameter is null");
             return;
         }
+        if (powerFromGrid == null)
+        {
+            _logger.LogDebug("As no grid power is available assuming 100% power is coming from grid.");
+            powerFromGrid = chargingPower;
+        }
+
         var powerDistribution = new PowerDistribution()
         {
             ChargingPower = (int)chargingPower,
@@ -145,6 +151,7 @@ public class ChargingCostService : IChargingCostService
 
         _logger.LogDebug("latest open handled charge: {@latestOpenHandledCharge}, latest open charging process id: {id}",
             latestOpenHandledCharge, latestOpenChargingProcessId);
+        //if new charging process
         if (latestOpenHandledCharge == default
             || latestOpenHandledCharge.ChargingProcessId != latestOpenChargingProcessId)
         {
@@ -171,6 +178,20 @@ public class ChargingCostService : IChargingCostService
                 ChargingProcessId = latestOpenChargingProcessId,
                 ChargePriceId = currentChargePrice.Id,
             };
+        }
+        else
+        {
+            var lastPowerDistributionTimeStamp = _teslaSolarChargerContext.PowerDistributions
+                .Where(p => p.HandledCharge == latestOpenHandledCharge)
+                .OrderByDescending(p => p.TimeStamp)
+                .Select(p => p.TimeStamp)
+                .FirstOrDefault();
+            if (lastPowerDistributionTimeStamp != default)
+            {
+                var timespanSinceLastPowerDistribution = powerDistribution.TimeStamp - lastPowerDistributionTimeStamp;
+                powerDistribution.UsedWattHours = (float)(chargingPower * timespanSinceLastPowerDistribution.TotalHours);
+            }
+            
         }
 
         powerDistribution.HandledCharge = latestOpenHandledCharge;
