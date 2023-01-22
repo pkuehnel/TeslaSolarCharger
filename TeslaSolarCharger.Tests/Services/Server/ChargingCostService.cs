@@ -158,8 +158,8 @@ public class ChargingCostService : TestBase
             },
             new PowerDistribution()
             {
-                UsedWattHours = 6000,
-                GridProportion = (float)0.5,
+                UsedWattHours = 3000,
+                GridProportion = (float)1,
                 TimeStamp = new DateTime(2023, 1, 22, 19, 59, 59),
             },
         };
