@@ -334,7 +334,7 @@ public class ChargingCostService : IChargingCostService
                 //ToDo: add spotPrice if useSpotPrice is enabled
                 openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
                                                     price.SolarPrice * openHandledCharge.UsedSolarEnergy;
-                if (price.AddSpotPriceToGridPrice == true)
+                if (price.AddSpotPriceToGridPrice)
                 {
                     openHandledCharge.CalculatedPrice += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
                 }

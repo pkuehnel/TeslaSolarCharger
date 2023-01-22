@@ -159,7 +159,7 @@ public class ChargingCostService : TestBase
             new PowerDistribution()
             {
                 UsedWattHours = 3000,
-                GridProportion = (float)1,
+                GridProportion = 1,
                 TimeStamp = new DateTime(2023, 1, 22, 19, 59, 59),
             },
         };
