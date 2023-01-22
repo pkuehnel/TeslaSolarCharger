@@ -1,4 +1,4 @@
-﻿using AutoMapper.QueryableExtensions;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -331,8 +331,13 @@ public class ChargingCostService : IChargingCostService
                 .ConfigureAwait(false);
             if (price != default)
             {
+                //ToDo: add spotPrice if useSpotPrice is enabled
                 openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
                                                     price.SolarPrice * openHandledCharge.UsedSolarEnergy;
+                if (price.AddSpotPriceToGridPrice == true)
+                {
+                    openHandledCharge.CalculatedPrice += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
+                }
                 await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 chargingProcess.Cost = openHandledCharge.CalculatedPrice;
                 await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
