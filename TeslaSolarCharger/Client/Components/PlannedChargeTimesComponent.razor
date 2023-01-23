@@ -10,9 +10,6 @@
             <thead>
                 <tr>
                     <th>
-                        Current charge reason
-                    </th>
-                    <th>
                         Start
                     </th>
                     <th>
@@ -26,10 +23,7 @@
             <tbody>
                 @foreach (var chargingSlot in _chargingSlots)
                 {
-                    <tr>
-                        <td>
-                            @chargingSlot.IsActive
-                        </td>
+                    <tr class="@(chargingSlot.IsActive ? "active-row" : "")">
                         <td>
                             @chargingSlot.ChargeStart.LocalDateTime.ToString("g")
                         </td>
