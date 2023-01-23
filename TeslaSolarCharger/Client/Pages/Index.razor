@@ -319,9 +319,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
-        _carBaseSettings = await HttpClient
-            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
-            .ConfigureAwait(false);
+        await RefreshCarBaseSettings().ConfigureAwait(false);
         await RefreshCarBaseStates().ConfigureAwait(false);
         await RefreshPvValues().ConfigureAwait(false);
         await RefreshServerTime().ConfigureAwait(false);
@@ -346,6 +344,13 @@ else
         _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
     }
 
+    private async Task RefreshCarBaseSettings()
+    {
+        _carBaseSettings = await HttpClient
+            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
+            .ConfigureAwait(false);
+    }
+
     private async Task RefreshPvValues()
     {
         _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
@@ -363,6 +368,7 @@ else
         {
             ToastService.ShowError("Error updating car configuration");
         }
+        await RefreshCarBaseSettings().ConfigureAwait(false);
         _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
     }
 
