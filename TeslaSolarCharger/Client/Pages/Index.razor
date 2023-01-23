@@ -36,16 +36,16 @@
                 </TooltipComponent>
             </div>
         }
-        <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
-            <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
-                <i class="fa-solid fa-bolt" style="width: 25px;"></i>
-                @if (_pvValues.GridPower != null)
-                {
-                    @Math.Abs((int)_pvValues.GridPower)
-                }
-                W
-            </TooltipComponent>
-        </div>
+        @if (_pvValues.GridPower != null && _pvValues.GridPower != int.MinValue)
+        {
+            <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
+                    <i class="fa-solid fa-bolt" style="width: 25px;"></i>
+                    @Math.Abs((int)_pvValues.GridPower) W
+                </TooltipComponent>
+            </div>
+        }
+
         @if (_pvValues.HomeBatterySoc != null)
         {
             <div>
@@ -171,7 +171,7 @@ else
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="time" name="time"
-                           @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
 
             }
@@ -181,9 +181,8 @@ else
             }
 
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
-            
-            <PlannedChargeTimesComponent
-                CarId="@car.CarId"></PlannedChargeTimesComponent>
+
+            <PlannedChargeTimesComponent CarId="@car.CarId"></PlannedChargeTimesComponent>
 
             <CollapsePanel CollapsedColor="@_collapsedColor"
                    ExpandedColor="@_expandedColor"
@@ -194,52 +193,52 @@ else
                    Animate="@_isAnimated"
                    ShowContentOverflow="@_showOverflow"
                    OnCollapseChanged="(state)=>OnCollapseChanged(state, car.CarId)">
-            <CollapsedHeaderContent>
-                <div class="w-100">
-                    <b>More car details:</b>
-                    <span class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></span>
-                </div>
-            </CollapsedHeaderContent>
-            <ExpandedHeaderContent>
-                <div class="w-100">
-                    <b>Collapse</b>
-                    <span class="fa fa-lg fa-chevron-circle-up" aria-hidden="true"></span>
-                </div>
-            </ExpandedHeaderContent>
-            <Content>
-                <div style="border: 1px solid gray; height: 100%;">
-                    <table>
-                        <tr>
-                            <th>
-                                Topic
-                            </th>
-                            <th>
-                                Value
-                            </th>
-                        </tr>
-                        @if (_carDetailStates.Any(c => c.Key == car.CarId))
-                        {
-                            @foreach (var carTopicValue in _carDetailStates[car.CarId])
+                <CollapsedHeaderContent>
+                    <div class="w-100">
+                        <b>More car details:</b>
+                        <span class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></span>
+                    </div>
+                </CollapsedHeaderContent>
+                <ExpandedHeaderContent>
+                    <div class="w-100">
+                        <b>Collapse</b>
+                        <span class="fa fa-lg fa-chevron-circle-up" aria-hidden="true"></span>
+                    </div>
+                </ExpandedHeaderContent>
+                <Content>
+                    <div style="border: 1px solid gray; height: 100%;">
+                        <table>
+                            <tr>
+                                <th>
+                                    Topic
+                                </th>
+                                <th>
+                                    Value
+                                </th>
+                            </tr>
+                            @if (_carDetailStates.Any(c => c.Key == car.CarId))
                             {
-                                <tr>
-                                    <td>
-                                        @carTopicValue.Topic
-                                    </td>
-                                    <td>
-                                        @carTopicValue.Value
-                                    </td>
-                                </tr>
+                                @foreach (var carTopicValue in _carDetailStates[car.CarId])
+                                {
+                                    <tr>
+                                        <td>
+                                            @carTopicValue.Topic
+                                        </td>
+                                        <td>
+                                            @carTopicValue.Value
+                                        </td>
+                                    </tr>
+                                }
                             }
-                        }
-                        else
-                        {
-                            <div>Loading, may take about 5 seconds...</div>
-                        }
-                        
-                    </table>
-                </div>
-            </Content>
-        </CollapsePanel>
+                            else
+                            {
+                                <div>Loading, may take about 5 seconds...</div>
+                            }
+
+                        </table>
+                    </div>
+                </Content>
+            </CollapsePanel>
         </div>
     }
     <div class="shadow p-3 mb-5 bg-white rounded">
@@ -269,7 +268,7 @@ else
         }
     </div>
 
-    
+
     <form action="https://www.paypal.com/donate" method="post" target="_blank">
         <div style="text-align:center">
             <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
@@ -380,7 +379,7 @@ else
             }
             _carDetailStates[carId] = carDetailStates;
         }
-            
+
     }
 
     private async Task RefreshServerTime()
