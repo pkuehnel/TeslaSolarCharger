@@ -25,7 +25,7 @@ public static class Extensions
             case ChargeMode.PvAndMinSoc:
                 return "Min SoC + PV";
             case ChargeMode.SpotPrice:
-                return "Spot Price";
+                return "Spot Price + PV";
             default:
                 return chargeMode.ToString();
         }
