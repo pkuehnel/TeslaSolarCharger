@@ -163,11 +163,21 @@ else
             }
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
-                <p>
-                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
-                </p>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate" id="flexCheckDefault">
+                    <label class="form-check-label" for="flexCheckDefault">
+                        Charge everyday
+                    </label>
+                </div>
+                @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate)
+                {
+                    <p>
+
+                        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
+                        <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+                                    @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
+                    </p>
+                }
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="time" name="time"
@@ -309,9 +319,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
-        _carBaseSettings = await HttpClient
-            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
-            .ConfigureAwait(false);
+        await RefreshCarBaseSettings().ConfigureAwait(false);
         await RefreshCarBaseStates().ConfigureAwait(false);
         await RefreshPvValues().ConfigureAwait(false);
         await RefreshServerTime().ConfigureAwait(false);
@@ -336,6 +344,13 @@ else
         _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
     }
 
+    private async Task RefreshCarBaseSettings()
+    {
+        _carBaseSettings = await HttpClient
+            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
+            .ConfigureAwait(false);
+    }
+
     private async Task RefreshPvValues()
     {
         _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
@@ -353,6 +368,7 @@ else
         {
             ToastService.ShowError("Error updating car configuration");
         }
+        await RefreshCarBaseSettings().ConfigureAwait(false);
         _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
     }
 

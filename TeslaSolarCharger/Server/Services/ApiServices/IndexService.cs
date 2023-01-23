@@ -22,9 +22,11 @@ public class IndexService : IIndexService
     private readonly IChargingCostService _chargingCostService;
     private readonly ToolTipTextKeys _toolTipTextKeys;
     private readonly IChargeTimePlanningService _chargeTimePlanningService;
+    private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
-        IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys, IChargeTimePlanningService chargeTimePlanningService)
+        IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys, IChargeTimePlanningService chargeTimePlanningService,
+        ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService)
     {
         _logger = logger;
         _settings = settings;
@@ -32,6 +34,7 @@ public class IndexService : IIndexService
         _chargingCostService = chargingCostService;
         _toolTipTextKeys = toolTipTextKeys;
         _chargeTimePlanningService = chargeTimePlanningService;
+        _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
     }
 
     public DtoPvValues GetPvValues()
@@ -93,17 +96,20 @@ public class IndexService : IIndexService
             ChargeMode = enabledCar.CarConfiguration.ChargeMode,
             MinimumStateOfCharge = enabledCar.CarConfiguration.MinimumSoC,
             LatestTimeToReachStateOfCharge = enabledCar.CarConfiguration.LatestTimeToReachSoC,
+            IgnoreLatestTimeToReachSocDate = enabledCar.CarConfiguration.IgnoreLatestTimeToReachSocDate,
         });
     }
 
     public void UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
     {
-        var carConfiguration = _settings.Cars
-            .Where(c => c.Id == carBaseSettings.CarId)
-            .Select(c => c.CarConfiguration).First();
+        var car = _settings.Cars.First(c => c.Id == carBaseSettings.CarId);
+        var carConfiguration = car.CarConfiguration;
         carConfiguration.ChargeMode = carBaseSettings.ChargeMode;
         carConfiguration.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
+        carConfiguration.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
         carConfiguration.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
+        _latestTimeToReachSocUpdateService.UpdateAllCars();
+        _chargeTimePlanningService.UpdatePlannedChargingSlots(car);
     }
 
     public Dictionary<string, string> GetToolTipTexts()
