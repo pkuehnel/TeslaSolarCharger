@@ -46,6 +46,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<ChargeTimePlanningJob>()
             .AddTransient<SpotPriceJob>()
+            .AddTransient<LatestTimeToReachSocUpdateJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -96,5 +97,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<IChargeTimePlanningService, ChargeTimePlanningService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
+            .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             ;
 }

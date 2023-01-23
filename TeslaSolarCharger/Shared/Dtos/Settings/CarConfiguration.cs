@@ -13,6 +13,7 @@ public class CarConfiguration
     private int _usableEnergy;
     private bool? _shouldBeManaged;
     private int _chargingPriority;
+    private bool _ignoreLatestTimeToReachSocDate;
 
     public CarConfiguration()
     {
@@ -49,6 +50,16 @@ public class CarConfiguration
         set
         {
             _latestTimeToReachSoC = value;
+            UpdatedSincLastWrite = true;
+        }
+    }
+
+    public bool IgnoreLatestTimeToReachSocDate
+    {
+        get => _ignoreLatestTimeToReachSocDate;
+        set
+        {
+            _ignoreLatestTimeToReachSocDate = value;
             UpdatedSincLastWrite = true;
         }
     }
