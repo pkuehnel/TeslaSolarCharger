@@ -102,14 +102,14 @@ public class IndexService : IIndexService
 
     public void UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
     {
-        var carConfiguration = _settings.Cars
-            .Where(c => c.Id == carBaseSettings.CarId)
-            .Select(c => c.CarConfiguration).First();
+        var car = _settings.Cars.First(c => c.Id == carBaseSettings.CarId);
+        var carConfiguration = car.CarConfiguration;
         carConfiguration.ChargeMode = carBaseSettings.ChargeMode;
         carConfiguration.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
         carConfiguration.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
         carConfiguration.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
         _latestTimeToReachSocUpdateService.UpdateAllCars();
+        _chargeTimePlanningService.UpdatePlannedChargingSlots(car);
     }
 
     public Dictionary<string, string> GetToolTipTexts()
