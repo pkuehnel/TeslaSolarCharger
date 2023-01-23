@@ -22,8 +22,14 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
     public void UpdateAllCars()
     {
         _logger.LogTrace("{method}()", nameof(UpdateAllCars));
-        foreach (var carConfiguration in _settings.Cars.Select(c => c.CarConfiguration))
+        foreach (var car in _settings.Cars)
         {
+            if (car.CarState.ChargingPowerAtHome > 0)
+            {
+                _logger.LogInformation("Charge date is not updated as car {carId} is currently charging", car.Id);
+                continue;
+            }
+            var carConfiguration = car.CarConfiguration;
             UpdateCarConfiguration(carConfiguration);
         }
     }
