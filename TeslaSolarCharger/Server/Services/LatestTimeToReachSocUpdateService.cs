@@ -57,7 +57,11 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
 
         if (carConfiguration.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
         {
-            carConfiguration.LatestTimeToReachSoC = carConfiguration.LatestTimeToReachSoC.AddDays(1);
+            if (carConfiguration.LatestTimeToReachSoC.Date > dateTimeOffSetNow.ToLocalTime().Date)
+            {
+                return;
+            }
+            carConfiguration.LatestTimeToReachSoC = dateTimeOffSetNow.ToLocalTime().Date + carConfiguration.LatestTimeToReachSoC.TimeOfDay;
         }
     }
 }

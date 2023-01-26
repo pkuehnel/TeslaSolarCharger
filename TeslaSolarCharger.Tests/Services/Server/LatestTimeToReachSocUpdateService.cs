@@ -64,5 +64,12 @@ public class LatestTimeToReachSocUpdateService : TestBase
             new DateTime(2023,2,15, 14, 0, 0),
             new DateTime(2023, 2, 15, 14, 0, 0),
         },
+        new object[]
+        {
+            false,
+            new DateTime(2023,2,16, 17, 0, 0),
+            new DateTime(2023,2,17, 14, 0, 0),
+            new DateTime(2023, 2, 17, 14, 0, 0),
+        },
     };
 }
