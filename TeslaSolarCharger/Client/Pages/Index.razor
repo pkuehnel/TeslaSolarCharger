@@ -192,7 +192,7 @@ else
 
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
 
-            <PlannedChargeTimesComponent CarId="@car.CarId"></PlannedChargeTimesComponent>
+            <PlannedChargeTimesComponent ChargingSlots="@car.ChargingSlots"></PlannedChargeTimesComponent>
 
             <CollapsePanel CollapsedColor="@_collapsedColor"
                    ExpandedColor="@_expandedColor"
