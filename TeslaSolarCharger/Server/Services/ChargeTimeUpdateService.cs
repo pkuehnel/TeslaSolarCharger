@@ -37,11 +37,14 @@ public class ChargeTimeUpdateService : IChargeTimeUpdateService
 
     private void UpdateShouldStartStopChargingSince(Car car)
     {
+        _logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), car.Id);
         var powerToControl = _chargingService.CalculatePowerToControl();
         var ampToSet = _chargingService.CalculateAmpByPowerAndCar(powerToControl, car);
+        _logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
         if (car.CarState.IsHomeGeofence == true)
         {
             var actualCurrent = car.CarState.ChargerActualCurrent ?? 0;
+            _logger.LogTrace("Actual current: {actualCurrent}", actualCurrent);
             //This is needed because sometimes actual current is higher than last set amp, leading to higher calculated amp to set, than actually needed
             if (actualCurrent > car.CarState.LastSetAmp)
             {
