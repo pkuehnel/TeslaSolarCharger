@@ -18,5 +18,5 @@ public class DtoCarBaseStates
     public bool IsAutoFullSpeedCharging { get; set; }
     public bool? IsHealthy { get; set; }
     public bool ChargingNotPlannedDueToNoSpotPricesAvailable { get; set; }
-    public List<DtoChargingSlot> ChargingSlots { get; set; }
+    public List<DtoChargingSlot> ChargingSlots { get; set; } = new();
 }
