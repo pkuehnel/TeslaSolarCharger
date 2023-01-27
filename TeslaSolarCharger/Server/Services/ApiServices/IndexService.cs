@@ -67,6 +67,7 @@ public class IndexService : IIndexService
                 PluggedIn = enabledCar.CarState.PluggedIn == true,
                 IsHome = enabledCar.CarState.IsHomeGeofence == true,
                 IsAutoFullSpeedCharging = enabledCar.CarState.AutoFullSpeedCharge,
+                ChargingSlots = enabledCar.CarState.PlannedChargingSlots,
             };
             if (string.IsNullOrEmpty(dtoCarBaseValues.NameOrVin))
             {

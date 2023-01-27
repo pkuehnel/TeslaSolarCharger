@@ -2,7 +2,7 @@
 @using System.Timers
 @inject HttpClient HttpClient
 
-@if (_chargingSlots is { Count: > 0 })
+@if (ChargingSlots is { Count: > 0 })
 {
     <p>
         <b>Planned Charging Slots:</b>
@@ -21,7 +21,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var chargingSlot in _chargingSlots)
+                @foreach (var chargingSlot in ChargingSlots)
                 {
                     <tr class="@(chargingSlot.IsActive ? "active-row" : "")">
                         <td>
@@ -45,29 +45,6 @@
 }
 
 @code {
-    [Parameter]
-    public int CarId { get; set; }
-
-    private List<DtoChargingSlot>? _chargingSlots;
-
-    private Timer? _timer;
-
-
-
-    protected override async Task OnInitializedAsync()
-    {
-        _chargingSlots = await HttpClient.GetFromJsonAsync<List<DtoChargingSlot>>($"api/Index/RecalculateAndGetChargingSlots?carId={CarId}").ConfigureAwait(false);
-
-        _timer = new Timer();
-        _timer.Interval = 60000;
-        _timer.Elapsed += RefreshChargingSlots;
-        _timer.Start();
-
-    }
-
-    private async void RefreshChargingSlots(object? sender, ElapsedEventArgs elapsedEventArgs)
-    {
-        _chargingSlots = await HttpClient.GetFromJsonAsync<List<DtoChargingSlot>>($"api/Index/GetChargingSlots?carId={CarId}").ConfigureAwait(false);
-        StateHasChanged();
-    }
+    [Parameter] 
+    public List<DtoChargingSlot> ChargingSlots { get; set; }
 }
