@@ -69,13 +69,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        ChargePrice = new DtoChargePrice()
-        {
-            ValidSince = DateTimeProvider.Now(),
-        };
         if (ChargeCostId != null)
         {
             ChargePrice = await HttpClient.GetFromJsonAsync<DtoChargePrice>($"api/ChargingCost/GetChargePriceById?id={ChargeCostId}").ConfigureAwait(false);
+        }
+        else
+        {
+            ChargePrice = new DtoChargePrice()
+            {
+                ValidSince = DateTimeProvider.Now(),
+            };
         }
     }
 
