@@ -82,7 +82,7 @@ public class ChargingService : IChargingService
             return;
         }
 
-        var powerToControl = CalculatePowerToControl();
+        var powerToControl = await CalculatePowerToControl(_settings.ControlledACarAtLastCycle).ConfigureAwait(false);
 
         _logger.LogDebug("At least one car is charging.");
         _settings.ControlledACarAtLastCycle = true;
@@ -116,14 +116,18 @@ public class ChargingService : IChargingService
         return Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * car.CarState.ActualPhases)));
     }
 
-    public int CalculatePowerToControl()
+    public async Task<int> CalculatePowerToControl(bool calculateAverage)
     {
-        _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
+        _logger.LogTrace("{method}({calculateAverage})", nameof(CalculatePowerToControl), calculateAverage);
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-
-        var averagedOverage = _pvValueService.GetAveragedOverage();
+        var maxPvValuesAge = TimeSpan.FromSeconds(5);
+        if (!calculateAverage && (_settings.LastPvValueUpdate < _dateTimeProvider.DateTimeOffSetNow() - maxPvValuesAge))
+        {
+            await _pvValueService.UpdatePvValues().ConfigureAwait(false);
+        }
+        var averagedOverage = calculateAverage ? _pvValueService.GetAveragedOverage() : _settings.Overage ?? int.MinValue;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
         var overage = averagedOverage - buffer;

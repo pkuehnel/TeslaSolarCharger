@@ -18,6 +18,7 @@ public class Settings : ISettings
     public int? HomeBatteryPower { get; set; }
     public List<Issue> ActiveIssues { get; set; } = new();
     public bool ControlledACarAtLastCycle { get; set; }
+    public DateTimeOffset LastPvValueUpdate { get; set; }
 
     public List<Car> Cars
     {

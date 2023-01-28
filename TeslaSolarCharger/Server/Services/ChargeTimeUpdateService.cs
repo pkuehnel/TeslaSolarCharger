@@ -25,20 +25,20 @@ public class ChargeTimeUpdateService : IChargeTimeUpdateService
         _configurationWrapper = configurationWrapper;
     }
 
-    public void UpdateChargeTimes()
+    public async Task UpdateChargeTimes()
     {
         _logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
         foreach (var car in _settings.Cars)
         {
             UpdateChargeTime(car);
-            UpdateShouldStartStopChargingSince(car);
+            await UpdateShouldStartStopChargingSince(car).ConfigureAwait(false);
         }
     }
 
-    private void UpdateShouldStartStopChargingSince(Car car)
+    private async Task UpdateShouldStartStopChargingSince(Car car)
     {
         _logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), car.Id);
-        var powerToControl = _chargingService.CalculatePowerToControl();
+        var powerToControl = await _chargingService.CalculatePowerToControl(false).ConfigureAwait(false);
         var ampToSet = _chargingService.CalculateAmpByPowerAndCar(powerToControl, car);
         _logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
         if (car.CarState.IsHomeGeofence == true)

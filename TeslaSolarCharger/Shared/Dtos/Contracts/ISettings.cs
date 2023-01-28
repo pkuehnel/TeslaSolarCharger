@@ -12,4 +12,5 @@ public interface ISettings
     List<Issue> ActiveIssues { get; set; }
     bool ControlledACarAtLastCycle { get; set; }
     bool IsNewVersionAvailable { get; set; }
+    DateTimeOffset LastPvValueUpdate { get; set; }
 }
