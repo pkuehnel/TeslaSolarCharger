@@ -21,11 +21,13 @@ public class ChargingService : IChargingService
     private readonly IPvValueService _pvValueService;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly GlobalConstants _globalConstants;
+    private readonly IChargeTimeUpdateService _chargeTimeUpdateService;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants)
+        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants,
+        IChargeTimeUpdateService chargeTimeUpdateService)
     {
         _logger = logger;
         _settings = settings;
@@ -36,20 +38,20 @@ public class ChargingService : IChargingService
         _pvValueService = pvValueService;
         _teslaMateMqttService = teslaMateMqttService;
         _globalConstants = globalConstants;
+        _chargeTimeUpdateService = chargeTimeUpdateService;
     }
 
     public async Task SetNewChargingValues()
     {
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
+        await _chargeTimeUpdateService.UpdateChargeTimes().ConfigureAwait(false);
 
         _logger.LogDebug("Current overage is {overage} Watt.", _settings.Overage);
-
         if (_settings.Overage == null)
         {
             _logger.LogWarning("Can not control power as overage is unknown. Use int minValue");
             _settings.Overage = int.MinValue;
         }
-
         var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
@@ -58,7 +60,7 @@ public class ChargingService : IChargingService
             _logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
         }
 
-        LogErrorForCarsWithUnknownSocLimit(_settings.Cars);
+        LogErrorForCarsWithUnknownSocLimit(_settings.CarsToManage);
 
         var relevantCarIds = GetRelevantCarIds();
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);

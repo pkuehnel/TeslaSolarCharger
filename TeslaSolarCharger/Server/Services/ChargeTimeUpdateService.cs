@@ -28,7 +28,7 @@ public class ChargeTimeUpdateService : IChargeTimeUpdateService
     public async Task UpdateChargeTimes()
     {
         _logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
-        foreach (var car in _settings.Cars)
+        foreach (var car in _settings.CarsToManage)
         {
             UpdateChargeTime(car);
             await UpdateShouldStartStopChargingSince(car).ConfigureAwait(false);

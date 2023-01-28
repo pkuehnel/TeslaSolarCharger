@@ -7,6 +7,7 @@ public interface ISettings
     int? InverterPower { get; set; }
     int? Overage { get; set; }
     List<Car> Cars { get; set; }
+    List<Car> CarsToManage { get; }
     int? HomeBatterySoc { get; set; }
     int? HomeBatteryPower { get; set; }
     List<Issue> ActiveIssues { get; set; }
