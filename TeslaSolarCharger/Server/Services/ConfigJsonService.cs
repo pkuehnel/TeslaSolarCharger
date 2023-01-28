@@ -116,8 +116,6 @@ public class ConfigJsonService : IConfigJsonService
                 cars.Add(car);
             }
         }
-
-        await UpdateCarConfiguration().ConfigureAwait(false);
     }
 
     public async Task CacheCarStates()
