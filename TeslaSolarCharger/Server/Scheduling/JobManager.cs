@@ -32,7 +32,7 @@ public class JobManager
         _scheduler.JobFactory = _jobFactory;
 
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
-        var carStateCachingJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
+        var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().Build();
         var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
         var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();

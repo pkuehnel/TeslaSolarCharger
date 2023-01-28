@@ -4,12 +4,12 @@ using TeslaSolarCharger.Server.Contracts;
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
 [DisallowConcurrentExecution]
-public class ConfigJsonUpdateJob : IJob
+public class CarStateCachingJob : IJob
 {
-    private readonly ILogger<ConfigJsonUpdateJob> _logger;
+    private readonly ILogger<CarStateCachingJob> _logger;
     private readonly IConfigJsonService _service;
 
-    public ConfigJsonUpdateJob(ILogger<ConfigJsonUpdateJob> logger, IConfigJsonService service)
+    public CarStateCachingJob(ILogger<CarStateCachingJob> logger, IConfigJsonService service)
     {
         _logger = logger;
         _service = service;

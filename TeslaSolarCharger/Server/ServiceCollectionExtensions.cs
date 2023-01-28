@@ -37,7 +37,7 @@ public static class ServiceCollectionExtensions
         => services
             .AddSingleton<JobManager>()
             .AddTransient<ChargingValueJob>()
-            .AddTransient<ConfigJsonUpdateJob>()
+            .AddTransient<CarStateCachingJob>()
             .AddTransient<PowerDistributionAddJob>()
             .AddTransient<HandledChargeFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()
