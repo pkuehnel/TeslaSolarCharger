@@ -24,10 +24,12 @@ public class IndexService : IIndexService
     private readonly IChargeTimePlanningService _chargeTimePlanningService;
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
     private readonly IConfigJsonService _configJsonService;
+    private readonly IPvValueService _pvValueService;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
         IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys, IChargeTimePlanningService chargeTimePlanningService,
-        ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService)
+        ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
+        IPvValueService pvValueService)
     {
         _logger = logger;
         _settings = settings;
@@ -37,11 +39,13 @@ public class IndexService : IIndexService
         _chargeTimePlanningService = chargeTimePlanningService;
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
         _configJsonService = configJsonService;
+        _pvValueService = pvValueService;
     }
 
-    public DtoPvValues GetPvValues()
+    public async Task<DtoPvValues> GetPvValues()
     {
         _logger.LogTrace("{method}()", nameof(GetPvValues));
+        await _pvValueService.UpdatePvValues().ConfigureAwait(false);
         return new DtoPvValues()
         {
             GridPower = _settings.Overage,

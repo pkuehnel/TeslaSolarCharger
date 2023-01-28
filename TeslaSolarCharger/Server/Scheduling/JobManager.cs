@@ -33,7 +33,6 @@ public class JobManager
 
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
         var carStateCachingJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
-        var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
         var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
         var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
@@ -49,12 +48,6 @@ public class JobManager
 
         var carStateCachingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
-
-        var pvValueJobIntervall = _configurationWrapper.PvValueJobUpdateIntervall();
-        _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
-
-        var pvValueTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds)).Build();
 
         var powerDistributionAddTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(16)).Build();
@@ -81,7 +74,6 @@ public class JobManager
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
             {carStateCachingJob, new HashSet<ITrigger> {carStateCachingTrigger}},
-            {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
             {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},

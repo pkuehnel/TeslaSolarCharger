@@ -112,6 +112,7 @@ public class ChargingService : IChargingService
 
     private async Task UpdateChargingRelevantValues()
     {
+        await _pvValueService.UpdatePvValues().ConfigureAwait(false);
         await UpdateChargeTimes().ConfigureAwait(false);
     }
 

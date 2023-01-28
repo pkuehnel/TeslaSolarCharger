@@ -208,6 +208,9 @@ public class PvValueService : IPvValueService
     public int GetAveragedOverage()
     {
         _logger.LogTrace("{method}()", nameof(GetAveragedOverage));
+        return _settings.Overage ?? int.MinValue;
+
+        //not needed as only getting pv values when chargingservice requests it
         long weightedSum = 0;
         _logger.LogTrace("Build weighted average of {count} values", _inMemoryValues.OverageValues.Count);
         for (var i = 0; i < _inMemoryValues.OverageValues.Count; i++)
