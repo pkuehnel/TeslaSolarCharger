@@ -9,4 +9,5 @@ public interface IChargingService
     Task<int> CalculatePowerToControl(bool calculateAverage);
     List<int> GetRelevantCarIds();
     int GetBatteryTargetChargingPower();
+    TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(Car car);
 }

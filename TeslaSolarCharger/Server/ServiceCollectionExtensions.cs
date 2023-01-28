@@ -53,7 +53,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IConfigService, ConfigService>()
             .AddTransient<IConfigJsonService, ConfigJsonService>()
             .AddTransient<IDateTimeProvider, DateTimeProvider>()
-            .AddTransient<IChargeTimeUpdateService, ChargeTimeUpdateService>()
             .AddTransient<ITelegramService, TelegramService>()
             .AddTransient<ITeslaService, TeslamateApiService>()
             .AddSingleton<ISettings, Settings>()

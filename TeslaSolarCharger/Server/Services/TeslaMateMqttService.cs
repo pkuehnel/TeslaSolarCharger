@@ -18,6 +18,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
+    private readonly IConfigJsonService _configJsonService;
 
     // ReSharper disable once InconsistentNaming
     private const string TopicDisplayName = "display_name";
@@ -51,7 +52,8 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
     public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
-        ISettings settings, IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext)
+        ISettings settings, IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext,
+        IConfigJsonService configJsonService)
     {
         _logger = logger;
         _mqttClient = mqttClient;
@@ -59,6 +61,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         _settings = settings;
         _configurationWrapper = configurationWrapper;
         _teslaSolarChargerContext = teslaSolarChargerContext;
+        _configJsonService = configJsonService;
     }
 
     public async Task ConnectMqttClient()
@@ -225,6 +228,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                     {
                         _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarState.SocLimit);
                         car.CarConfiguration.MinimumSoC = (int)car.CarState.SocLimit;
+                        _configJsonService.UpdateCarConfiguration();
                     }
                 }
                 break;

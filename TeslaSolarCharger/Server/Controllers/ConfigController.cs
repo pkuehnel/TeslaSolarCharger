@@ -3,7 +3,6 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
@@ -23,14 +22,6 @@ namespace TeslaSolarCharger.Server.Controllers
         /// </summary>
         [HttpGet]
         public ISettings GetSettings() => _service.GetSettings();
-
-        /// <summary>
-        /// Change Chargemode of car
-        /// </summary>
-        /// <param name="carId">Car id whose chargemode should be changed</param>
-        /// <returns>Resulting chargemode after change</returns>
-        [HttpPost]
-        public ChargeMode ChangeChargeMode(int carId) => _service.ChangeChargeMode(carId);
 
         /// <summary>
         /// Update Car's configuration

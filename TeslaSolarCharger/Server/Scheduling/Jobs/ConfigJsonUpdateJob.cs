@@ -17,6 +17,6 @@ public class ConfigJsonUpdateJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await _service.UpdateConfigJson().ConfigureAwait(false);
+        await _service.CacheCarStates().ConfigureAwait(false);
     }
 }

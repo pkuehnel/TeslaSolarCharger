@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit;
@@ -15,30 +16,29 @@ public class ConfigJsonService : TestBase
     }
 
     [Fact]
-    public void Adds_every_new_car()
+    public async Task Adds_every_new_car()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
-        configJsonService.AddNewCars(newCarIds, cars);
+        await configJsonService.AddNewCars(newCarIds, cars).ConfigureAwait(false);
 
         Assert.Equal(newCarIds.Count, cars.Count);
     }
 
     [Fact]
-    public void Sets_correct_default_values_on_new_cars()
+    public async Task Sets_correct_default_values_on_new_cars()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
-        configJsonService.AddNewCars(newCarIds, cars);
+        await configJsonService.AddNewCars(newCarIds, cars).ConfigureAwait(false);
 
         foreach (var car in cars)
         {
             Assert.Equal(ChargeMode.PvAndMinSoc, car.CarConfiguration.ChargeMode);
-            Assert.True(car.CarConfiguration.UpdatedSincLastWrite);
             Assert.Equal(16, car.CarConfiguration.MaximumAmpere);
             Assert.Equal(1, car.CarConfiguration.MinimumAmpere);
             Assert.Equal(75, car.CarConfiguration.UsableEnergy);
@@ -48,13 +48,13 @@ public class ConfigJsonService : TestBase
     }
 
     [Fact]
-    public void Removes_old_cars()
+    public async Task Removes_old_cars()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
-        configJsonService.AddNewCars(newCarIds, cars);
+        await configJsonService.AddNewCars(newCarIds, cars).ConfigureAwait(false);
 
         configJsonService.RemoveOldCars(cars, new List<int>() { 1, 3 });
 

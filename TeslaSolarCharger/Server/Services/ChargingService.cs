@@ -21,13 +21,11 @@ public class ChargingService : IChargingService
     private readonly IPvValueService _pvValueService;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly GlobalConstants _globalConstants;
-    private readonly IChargeTimeUpdateService _chargeTimeUpdateService;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants,
-        IChargeTimeUpdateService chargeTimeUpdateService)
+        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants)
     {
         _logger = logger;
         _settings = settings;
@@ -38,15 +36,14 @@ public class ChargingService : IChargingService
         _pvValueService = pvValueService;
         _teslaMateMqttService = teslaMateMqttService;
         _globalConstants = globalConstants;
-        _chargeTimeUpdateService = chargeTimeUpdateService;
     }
 
     public async Task SetNewChargingValues()
     {
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
+        await UpdateChargingRelevantValues().ConfigureAwait(false);
 
 
-        await _chargeTimeUpdateService.UpdateChargeTimes().ConfigureAwait(false);
         _logger.LogDebug("Current overage is {overage} Watt.", _settings.Overage);
         if (_settings.Overage == null)
         {
@@ -111,6 +108,11 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
             powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
         }
+    }
+
+    private async Task UpdateChargingRelevantValues()
+    {
+        await UpdateChargeTimes().ConfigureAwait(false);
     }
 
     public int CalculateAmpByPowerAndCar(int powerToControl, Car car)
@@ -415,7 +417,97 @@ public class ChargingService : IChargingService
         }
     }
 
+    private async Task UpdateChargeTimes()
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
+        foreach (var car in _settings.CarsToManage)
+        {
+            UpdateChargeTime(car);
+            await UpdateShouldStartStopChargingSince(car).ConfigureAwait(false);
+        }
+    }
+
+    private async Task UpdateShouldStartStopChargingSince(Car car)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), car.Id);
+        var powerToControl = await CalculatePowerToControl(false).ConfigureAwait(false);
+        var ampToSet = CalculateAmpByPowerAndCar(powerToControl, car);
+        _logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
+        if (car.CarState.IsHomeGeofence == true)
+        {
+            var actualCurrent = car.CarState.ChargerActualCurrent ?? 0;
+            _logger.LogTrace("Actual current: {actualCurrent}", actualCurrent);
+            //This is needed because sometimes actual current is higher than last set amp, leading to higher calculated amp to set, than actually needed
+            if (actualCurrent > car.CarState.LastSetAmp)
+            {
+                actualCurrent = car.CarState.LastSetAmp;
+            }
+            ampToSet += actualCurrent;
+        }
+        //Commented section not needed because should start should also be set if charging
+        if (ampToSet >= car.CarConfiguration.MinimumAmpere/* && (car.CarState.ChargerActualCurrent is 0 or null)*/)
+        {
+            SetEarliestSwitchOnToNowWhenNotAlreadySet(car);
+        }
+        else
+        {
+            SetEarliestSwitchOffToNowWhenNotAlreadySet(car);
+        }
+    }
+
+    internal void SetEarliestSwitchOnToNowWhenNotAlreadySet(Car car)
+    {
+        _logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOnToNowWhenNotAlreadySet), car.Id);
+        if (car.CarState.ShouldStartChargingSince == null)
+        {
+            car.CarState.ShouldStartChargingSince = _dateTimeProvider.Now();
+            var timespanUntilSwitchOn = _configurationWrapper.TimespanUntilSwitchOn();
+            var earliestSwitchOn = car.CarState.ShouldStartChargingSince + timespanUntilSwitchOn;
+            car.CarState.EarliestSwitchOn = earliestSwitchOn;
+        }
+        car.CarState.EarliestSwitchOff = null;
+        car.CarState.ShouldStopChargingSince = null;
+        _logger.LogDebug("Should start charging since: {shoudStartChargingSince}", car.CarState.ShouldStartChargingSince);
+        _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", car.CarState.EarliestSwitchOn);
+    }
+
+    internal void SetEarliestSwitchOffToNowWhenNotAlreadySet(Car car)
+    {
+        _logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOffToNowWhenNotAlreadySet), car.Id);
+        if (car.CarState.ShouldStopChargingSince == null)
+        {
+            car.CarState.ShouldStopChargingSince = _dateTimeProvider.Now();
+            var timespanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
+            var earliestSwitchOff = car.CarState.ShouldStopChargingSince + timespanUntilSwitchOff;
+            car.CarState.EarliestSwitchOff = earliestSwitchOff;
+        }
+        car.CarState.EarliestSwitchOn = null;
+        car.CarState.ShouldStartChargingSince = null;
+        _logger.LogDebug("Should start charging since: {shoudStartChargingSince}", car.CarState.ShouldStartChargingSince);
+        _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", car.CarState.EarliestSwitchOff);
+    }
+
+    internal void UpdateChargeTime(Car car)
+    {
+        car.CarState.ReachingMinSocAtFullSpeedCharge = _dateTimeProvider.Now() + CalculateTimeToReachMinSocAtFullSpeedCharge(car);
+    }
+
+    public TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(Car car)
+    {
+        var socToCharge = (double)car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
+        if (socToCharge < 1)
+        {
+            return TimeSpan.Zero;
+        }
+
+        var energyToCharge = car.CarConfiguration.UsableEnergy * 1000 * (decimal)(socToCharge / 100.0);
+        var numberOfPhases = car.CarState.ActualPhases;
+        var maxChargingPower =
+            car.CarConfiguration.MaximumAmpere * numberOfPhases
+                                               //Use 230 instead of actual voltage because of 0 Volt if charging is stopped
+                                               * 230;
+        return TimeSpan.FromHours((double)(energyToCharge / maxChargingPower));
+    }
 
 
-    
 }

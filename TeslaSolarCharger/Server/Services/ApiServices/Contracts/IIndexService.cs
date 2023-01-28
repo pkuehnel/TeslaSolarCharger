@@ -10,7 +10,7 @@ public interface IIndexService
     Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars();
     Task<string?> GetVinByCarId(int carId);
     Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars();
-    void UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings);
+    Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings);
     Dictionary<string, string> GetToolTipTexts();
     List<DtoCarTopicValue> GetCarDetails(int carId);
     List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId);
