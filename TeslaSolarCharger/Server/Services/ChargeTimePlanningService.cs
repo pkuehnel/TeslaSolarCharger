@@ -15,18 +15,18 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
 {
     private readonly ILogger<ChargeTimePlanningService> _logger;
     private readonly ISettings _settings;
-    private readonly IChargeTimeUpdateService _chargeTimeUpdateService;
+    private readonly IChargingService _chargingService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISpotPriceService _spotPriceService;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
 
     public ChargeTimePlanningService(ILogger<ChargeTimePlanningService> logger, ISettings settings,
-        IChargeTimeUpdateService chargeTimeUpdateService, IDateTimeProvider dateTimeProvider,
+        IChargingService chargingService, IDateTimeProvider dateTimeProvider,
         ISpotPriceService spotPriceService, ITeslaSolarChargerContext teslaSolarChargerContext)
     {
         _logger = logger;
         _settings = settings;
-        _chargeTimeUpdateService = chargeTimeUpdateService;
+        _chargingService = chargingService;
         _dateTimeProvider = dateTimeProvider;
         _spotPriceService = spotPriceService;
         _teslaSolarChargerContext = teslaSolarChargerContext;
@@ -81,7 +81,7 @@ public class ChargeTimePlanningService : IChargeTimePlanningService
     {
         _logger.LogTrace("{method}({carId}, {dateTimeOffset}", nameof(PlanChargingSlots), car.Id, dateTimeOffSetNow);
         var plannedChargingSlots = new List<DtoChargingSlot>();
-        var chargeDurationToMinSoc = _chargeTimeUpdateService.CalculateTimeToReachMinSocAtFullSpeedCharge(car);
+        var chargeDurationToMinSoc = _chargingService.CalculateTimeToReachMinSocAtFullSpeedCharge(car);
         if (chargeDurationToMinSoc == TimeSpan.Zero && car.CarConfiguration.ChargeMode != ChargeMode.MaxPower)
         {
             //No charging is planned

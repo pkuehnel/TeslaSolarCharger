@@ -6,10 +6,10 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 [DisallowConcurrentExecution]
 public class PowerDistributionAddJob : IJob
 {
-    private readonly ILogger<ChargeTimeUpdateJob> _logger;
+    private readonly ILogger<PowerDistributionAddJob> _logger;
     private readonly IChargingCostService _service;
 
-    public PowerDistributionAddJob(ILogger<ChargeTimeUpdateJob> logger, IChargingCostService service)
+    public PowerDistributionAddJob(ILogger<PowerDistributionAddJob> logger, IChargingCostService service)
     {
         _logger = logger;
         _service = service;

@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Server.Services.Contracts;
+﻿using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -10,16 +11,18 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
     private readonly ILogger<LatestTimeToReachSocUpdateService> _logger;
     private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IConfigJsonService _configJsonService;
 
     public LatestTimeToReachSocUpdateService(ILogger<LatestTimeToReachSocUpdateService> logger, ISettings settings,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService)
     {
         _logger = logger;
         _settings = settings;
         _dateTimeProvider = dateTimeProvider;
+        _configJsonService = configJsonService;
     }
 
-    public void UpdateAllCars()
+    public async Task UpdateAllCars()
     {
         _logger.LogTrace("{method}()", nameof(UpdateAllCars));
         foreach (var car in _settings.Cars)
@@ -32,6 +35,7 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
             var carConfiguration = car.CarConfiguration;
             UpdateCarConfiguration(carConfiguration);
         }
+        await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
     }
 
     internal void UpdateCarConfiguration(CarConfiguration carConfiguration)

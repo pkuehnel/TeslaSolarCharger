@@ -38,7 +38,7 @@ public class ChargeTimePlanningService : TestBase
     {
         var chargeDuration = TimeSpan.Zero;
 
-        Mock.Mock<IChargeTimeUpdateService>()
+        Mock.Mock<IChargingService>()
             .Setup(c => c.CalculateTimeToReachMinSocAtFullSpeedCharge(It.IsAny<Car>()))
             .Returns(chargeDuration);
 
@@ -97,7 +97,7 @@ public class ChargeTimePlanningService : TestBase
     {
         var chargeDuration = TimeSpan.FromHours(1);
 
-        Mock.Mock<IChargeTimeUpdateService>()
+        Mock.Mock<IChargingService>()
             .Setup(c => c.CalculateTimeToReachMinSocAtFullSpeedCharge(It.IsAny<Car>()))
             .Returns(chargeDuration);
 

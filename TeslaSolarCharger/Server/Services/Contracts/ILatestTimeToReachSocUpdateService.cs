@@ -2,5 +2,5 @@
 
 public interface ILatestTimeToReachSocUpdateService
 {
-    void UpdateAllCars();
+    Task UpdateAllCars();
 }

@@ -32,8 +32,7 @@ public class JobManager
         _scheduler.JobFactory = _jobFactory;
 
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
-        var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
-        //var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
+        var carStateCachingJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
         var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
         var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
@@ -48,11 +47,8 @@ public class JobManager
         var chargingValueTrigger =
             TriggerBuilder.Create().WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)chargingValueJobUpdateIntervall.TotalSeconds)).Build();
 
-        var updateJsonTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(10)).Build();
-
-        //var chargeTimeUpdateTrigger = TriggerBuilder.Create()
-        //    .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
+        var carStateCachingTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
         var pvValueJobIntervall = _configurationWrapper.PvValueJobUpdateIntervall();
         _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
@@ -84,8 +80,7 @@ public class JobManager
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
-            {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
-            //{chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
+            {carStateCachingJob, new HashSet<ITrigger> {carStateCachingTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
             {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},

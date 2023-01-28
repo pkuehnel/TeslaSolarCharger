@@ -60,7 +60,7 @@ public class ConfigJsonService : IConfigJsonService
             RemoveOldCars(cars, carIds);
 
             var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
-            AddNewCars(newCarIds, cars);
+            await AddNewCars(newCarIds, cars).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -77,12 +77,6 @@ public class ConfigJsonService : IConfigJsonService
         {
             car.CarState.ShouldStopChargingSince = null;
             car.CarState.ShouldStartChargingSince = null;
-
-            var minDate = new DateTime(2022, 1, 1);
-            if (car.CarConfiguration.LatestTimeToReachSoC < minDate)
-            {
-                car.CarConfiguration.LatestTimeToReachSoC = minDate;
-            }
         }
 
 
@@ -95,7 +89,7 @@ public class ConfigJsonService : IConfigJsonService
         return fileContent;
     }
 
-    internal void AddNewCars(List<int> newCarIds, List<Car> cars)
+    internal async Task AddNewCars(List<int> newCarIds, List<Car> cars)
     {
         foreach (var carId in newCarIds)
         {
@@ -107,7 +101,6 @@ public class ConfigJsonService : IConfigJsonService
                     CarConfiguration =
                     {
                         ChargeMode = ChargeMode.PvAndMinSoc,
-                        UpdatedSincLastWrite = true,
                         MaximumAmpere = 16,
                         MinimumAmpere = 1,
                         UsableEnergy = 75,
@@ -123,43 +116,13 @@ public class ConfigJsonService : IConfigJsonService
                 cars.Add(car);
             }
         }
+
+        await UpdateCarConfiguration().ConfigureAwait(false);
     }
 
-    public async Task UpdateConfigJson()
+    public async Task CacheCarStates()
     {
-        _logger.LogTrace("{method}()", nameof(UpdateConfigJson));
-        var configFileLocation = _configurationWrapper.CarConfigFileFullName();
-        var minDate = new DateTime(2022, 1, 1);
-        if (_settings.Cars.Any(c => c.CarConfiguration.UpdatedSincLastWrite || c.CarConfiguration.LatestTimeToReachSoC < minDate))
-        {
-            foreach (var car in _settings.Cars.Where(car => car.CarConfiguration.LatestTimeToReachSoC < minDate))
-            {
-                car.CarConfiguration.LatestTimeToReachSoC = minDate;
-            }
-            _logger.LogDebug("Update configuration.json");
-            var fileInfo = new FileInfo(configFileLocation);
-            var configDirectoryFullName = fileInfo.Directory?.FullName;
-            if (!Directory.Exists(configDirectoryFullName))
-            {
-                _logger.LogDebug("Config directory {directoryname} does not exist.", configDirectoryFullName);
-                Directory.CreateDirectory(configDirectoryFullName ?? throw new InvalidOperationException());
-            }
-
-            var settings = new JsonSerializerSettings()
-            {
-                ContractResolver = new ConfigPropertyResolver()
-            };
-            _logger.LogDebug("Using {@cars} to create new json file", _settings.Cars);
-            var json = JsonConvert.SerializeObject(_settings.Cars, settings);
-            _logger.LogDebug("Created json to save as config file: {json}", json);
-            await File.WriteAllTextAsync(configFileLocation, json).ConfigureAwait(false);
-
-            foreach (var settingsCar in _settings.Cars)
-            {
-                settingsCar.CarConfiguration.UpdatedSincLastWrite = false;
-            }
-        }
-
+        _logger.LogTrace("{method}()", nameof(CacheCarStates));
         foreach (var car in _settings.Cars)
         {
             var cachedCarState = await _teslaSolarChargerContext.CachedCarStates
@@ -180,6 +143,30 @@ public class ConfigJsonService : IConfigJsonService
                 await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
             }
         }
+    }
+
+    public async Task UpdateCarConfiguration()
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateCarConfiguration));
+        var configFileLocation = _configurationWrapper.CarConfigFileFullName();
+
+        _logger.LogDebug("Update configuration.json");
+        var fileInfo = new FileInfo(configFileLocation);
+        var configDirectoryFullName = fileInfo.Directory?.FullName;
+        if (!Directory.Exists(configDirectoryFullName))
+        {
+            _logger.LogDebug("Config directory {directoryname} does not exist.", configDirectoryFullName);
+            Directory.CreateDirectory(configDirectoryFullName ?? throw new InvalidOperationException());
+        }
+
+        var settings = new JsonSerializerSettings()
+        {
+            ContractResolver = new ConfigPropertyResolver()
+        };
+        _logger.LogDebug("Using {@cars} to create new json file", _settings.Cars);
+        var json = JsonConvert.SerializeObject(_settings.Cars, settings);
+        _logger.LogDebug("Created json to save as config file: {json}", json);
+        await File.WriteAllTextAsync(configFileLocation, json).ConfigureAwait(false);
     }
 
     public async Task AddCarIdsToSettings()
@@ -216,6 +203,8 @@ public class ConfigJsonService : IConfigJsonService
                 car.CarConfiguration.ShouldBeManaged = defaultValue;
             }
         }
+
+        await UpdateCarConfiguration().ConfigureAwait(false);
         _logger.LogDebug("All unset car configurations set.");
     }
 

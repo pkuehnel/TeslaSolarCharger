@@ -16,6 +16,6 @@ public class LatestTimeToReachSocUpdateJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await Task.Run(() => _service.UpdateAllCars()).ConfigureAwait(false);
+        await _service.UpdateAllCars().ConfigureAwait(false);
     }
 }

@@ -23,10 +23,11 @@ public class IndexService : IIndexService
     private readonly ToolTipTextKeys _toolTipTextKeys;
     private readonly IChargeTimePlanningService _chargeTimePlanningService;
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
+    private readonly IConfigJsonService _configJsonService;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
         IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys, IChargeTimePlanningService chargeTimePlanningService,
-        ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService)
+        ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService)
     {
         _logger = logger;
         _settings = settings;
@@ -35,6 +36,7 @@ public class IndexService : IIndexService
         _toolTipTextKeys = toolTipTextKeys;
         _chargeTimePlanningService = chargeTimePlanningService;
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
+        _configJsonService = configJsonService;
     }
 
     public DtoPvValues GetPvValues()
@@ -101,7 +103,7 @@ public class IndexService : IIndexService
         });
     }
 
-    public void UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
+    public async Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
     {
         var car = _settings.Cars.First(c => c.Id == carBaseSettings.CarId);
         var carConfiguration = car.CarConfiguration;
@@ -109,8 +111,9 @@ public class IndexService : IIndexService
         carConfiguration.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
         carConfiguration.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
         carConfiguration.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
-        _latestTimeToReachSocUpdateService.UpdateAllCars();
-        _chargeTimePlanningService.UpdatePlannedChargingSlots(car);
+        await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
+        await _chargeTimePlanningService.UpdatePlannedChargingSlots(car).ConfigureAwait(false);
+        await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
     }
 
     public Dictionary<string, string> GetToolTipTexts()
