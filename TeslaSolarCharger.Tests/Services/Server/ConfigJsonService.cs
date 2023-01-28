@@ -17,25 +17,25 @@ public class ConfigJsonService : TestBase
 
 
     [Fact]
-    public async Task Adds_every_new_car()
+    public void Adds_every_new_car()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
-        await configJsonService.AddNewCars(newCarIds, cars).ConfigureAwait(false);
+        configJsonService.AddNewCars(newCarIds, cars);
 
         Assert.Equal(newCarIds.Count, cars.Count);
     }
 
     [Fact]
-    public async Task Sets_correct_default_values_on_new_cars()
+    public void Sets_correct_default_values_on_new_cars()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
-        await configJsonService.AddNewCars(newCarIds, cars).ConfigureAwait(false);
+        configJsonService.AddNewCars(newCarIds, cars);
 
         foreach (var car in cars)
         {
@@ -49,13 +49,13 @@ public class ConfigJsonService : TestBase
     }
 
     [Fact]
-    public async Task Removes_old_cars()
+    public void Removes_old_cars()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
         var cars = new List<Car>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
-        await configJsonService.AddNewCars(newCarIds, cars).ConfigureAwait(false);
+        configJsonService.AddNewCars(newCarIds, cars);
 
         configJsonService.RemoveOldCars(cars, new List<int>() { 1, 3 });
 

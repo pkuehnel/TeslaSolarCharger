@@ -60,7 +60,7 @@ public class ConfigJsonService : IConfigJsonService
             RemoveOldCars(cars, carIds);
 
             var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
-            await AddNewCars(newCarIds, cars).ConfigureAwait(false);
+            AddNewCars(newCarIds, cars);
         }
         catch (Exception ex)
         {
@@ -89,7 +89,7 @@ public class ConfigJsonService : IConfigJsonService
         return fileContent;
     }
 
-    internal async Task AddNewCars(List<int> newCarIds, List<Car> cars)
+    internal void AddNewCars(List<int> newCarIds, List<Car> cars)
     {
         foreach (var carId in newCarIds)
         {
