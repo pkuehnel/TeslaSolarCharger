@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Autofac;
+using Moq;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -21,7 +24,7 @@ public class ChargingService : TestBase
     {
     }
 
-    [Theory, MemberData(nameof(CalculateCorrectChargeTimesWithoutStockPricesData))]
+    [Theory, MemberData(nameof(AutoFullSpeedChargeData))]
     public void Does_autoenable_fullspeed_charge_if_needed(DtoChargingSlot chargingSlot, bool shouldEnableFullSpeedCharge)
     {
         Mock.Mock<IDateTimeProvider>()
@@ -45,7 +48,7 @@ public class ChargingService : TestBase
         Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
     }
 
-    [Theory, MemberData(nameof(CalculateCorrectChargeTimesWithoutStockPricesData))]
+    [Theory, MemberData(nameof(AutoFullSpeedChargeData))]
     public void Does_autodisable_fullspeed_charge_if_needed(DtoChargingSlot chargingSlot, bool shouldEnableFullSpeedCharge)
     {
         Mock.Mock<IDateTimeProvider>()
@@ -69,7 +72,7 @@ public class ChargingService : TestBase
         Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
     }
 
-    public static readonly object[][] CalculateCorrectChargeTimesWithoutStockPricesData =
+    public static readonly object[][] AutoFullSpeedChargeData =
     {
         new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero) }, true },
         new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 1, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero) }, false },
@@ -453,4 +456,114 @@ public class ChargingService : TestBase
         var maximum = expectedTimeSpan + maximumErrorTime;
         Assert.InRange(chargeDuration, minimum, maximum);
     }
+
+    [Theory]
+    [InlineData(ChargeMode.PvAndMinSoc)]
+    [InlineData(ChargeMode.PvOnly)]
+    public async Task Dont_Plan_Charging_If_Min_Soc_Reached(ChargeMode chargeMode)
+    {
+        var chargeDuration = TimeSpan.Zero;
+
+        Mock.Mock<IChargingService>()
+            .Setup(c => c.CalculateTimeToReachMinSocAtFullSpeedCharge(It.IsAny<Car>()))
+            .Returns(chargeDuration);
+
+        var currentDate = DateTimeOffset.Now;
+
+        var car = new Car
+        {
+            CarConfiguration = new CarConfiguration
+            {
+                ChargeMode = chargeMode,
+                LatestTimeToReachSoC = currentDate.LocalDateTime,
+            },
+            CarState = new CarState(),
+        };
+
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
+        var chargingSlots = await chargingService.PlanChargingSlots(car, currentDate).ConfigureAwait(false);
+
+        Assert.Empty(chargingSlots);
+    }
+
+    [Fact]
+    public void DoesConcatenateChargingSlotsCorrectly()
+    {
+        var chargingSlots = new List<DtoChargingSlot>()
+        {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 10, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 12, 00, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 13, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 13, 30, 0, TimeSpan.Zero),
+            },
+        };
+
+        var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
+
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
+        var concatenatedChargingSlots = chargingService.ConcatenateChargeTimes(chargingSlots);
+
+
+        Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
+        Assert.Equal(2, concatenatedChargingSlots.Count);
+    }
+
+    [Theory, MemberData(nameof(CalculateCorrectChargeTimesWithoutStockPricesData))]
+    public async Task Calculate_Correct_ChargeTimes_Without_Stock_Prices(ChargeMode chargeMode, DateTime latestTimeToReachSoc, DateTimeOffset currentDate, DateTimeOffset expectedStart)
+    {
+        var chargeDuration = TimeSpan.FromHours(1);
+
+        Mock.Mock<IChargingService>()
+            .Setup(c => c.CalculateTimeToReachMinSocAtFullSpeedCharge(It.IsAny<Car>()))
+            .Returns(chargeDuration);
+
+        var car = new Car
+        {
+            CarConfiguration = new CarConfiguration
+            {
+                ChargeMode = chargeMode,
+                LatestTimeToReachSoC = latestTimeToReachSoc,
+            },
+            CarState = new CarState(),
+        };
+
+        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
+        var chargingSlots = await chargingService.PlanChargingSlots(car, currentDate).ConfigureAwait(false);
+
+        Assert.Single(chargingSlots);
+
+        var plannedChargingSlot = chargingSlots.First();
+
+
+        var maximumErrorTime = TimeSpan.FromSeconds(1);
+        var minimumStartTime = expectedStart - maximumErrorTime;
+        var maximumStartTime = expectedStart + maximumErrorTime;
+        Assert.InRange(plannedChargingSlot.ChargeStart, minimumStartTime, maximumStartTime);
+        if (chargeMode == ChargeMode.MaxPower)
+        {
+            plannedChargingSlot.ChargeEnd = DateTimeOffset.MaxValue;
+        }
+        else
+        {
+            Assert.Equal(plannedChargingSlot.ChargeDuration, chargeDuration);
+        }
+        Assert.False(plannedChargingSlot.IsActive);
+    }
+
+    public static readonly object[][] CalculateCorrectChargeTimesWithoutStockPricesData =
+    {
+        new object[] { ChargeMode.MaxPower, new DateTime(2023, 2, 1, 0, 0, 0, DateTimeKind.Utc), new DateTimeOffset(2023, 2, 1, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2023, 2, 1, 0, 0, 0, TimeSpan.Zero) },
+        new object[] { ChargeMode.PvAndMinSoc, new DateTime(2023, 2, 1, 0, 0, 0, DateTimeKind.Utc), new DateTimeOffset(2023, 2, 1, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2023, 2, 1, 0, 0, 0, TimeSpan.Zero) },
+        new object[] { ChargeMode.PvOnly, new DateTime(2023, 2, 1, 3, 0, 0, DateTimeKind.Utc), new DateTimeOffset(2023, 2, 1, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2023, 2, 1, 2, 0, 0, TimeSpan.Zero) },
+    };
 }

@@ -10,4 +10,6 @@ public interface IChargingService
     List<int> GetRelevantCarIds();
     int GetBatteryTargetChargingPower();
     TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(Car car);
+    Task UpdatePlannedChargingSlots(Car car);
+    Task<bool> IsLatestTimeToReachSocAfterLatestKnownChargePrice(int carId);
 }

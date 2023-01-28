@@ -42,7 +42,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<HandledChargeFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
-            .AddTransient<ChargeTimePlanningJob>()
             .AddTransient<SpotPriceJob>()
             .AddTransient<LatestTimeToReachSocUpdateJob>()
             .AddTransient<JobFactory>()
@@ -92,7 +91,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<GlobalConstants>()
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
-            .AddTransient<IChargeTimePlanningService, ChargeTimePlanningService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             ;
