@@ -33,7 +33,6 @@ public class JobManager
 
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
         var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
-        //var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
         var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
         var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
@@ -50,9 +49,6 @@ public class JobManager
 
         var updateJsonTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(10)).Build();
-
-        //var chargeTimeUpdateTrigger = TriggerBuilder.Create()
-        //    .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
 
         var pvValueJobIntervall = _configurationWrapper.PvValueJobUpdateIntervall();
         _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
@@ -85,7 +81,6 @@ public class JobManager
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
             {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
-            //{chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
             {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},

@@ -44,8 +44,9 @@ public class ChargingService : IChargingService
     public async Task SetNewChargingValues()
     {
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
-        await _chargeTimeUpdateService.UpdateChargeTimes().ConfigureAwait(false);
 
+
+        await _chargeTimeUpdateService.UpdateChargeTimes().ConfigureAwait(false);
         _logger.LogDebug("Current overage is {overage} Watt.", _settings.Overage);
         if (_settings.Overage == null)
         {
