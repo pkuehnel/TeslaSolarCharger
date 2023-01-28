@@ -17,10 +17,11 @@ public class PvValueService : IPvValueService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITelegramService _telegramService;
     private readonly INodePatternTypeHelper _nodePatternTypeHelper;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
         IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper, ITelegramService telegramService,
-        INodePatternTypeHelper nodePatternTypeHelper)
+        INodePatternTypeHelper nodePatternTypeHelper, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _settings = settings;
@@ -28,12 +29,13 @@ public class PvValueService : IPvValueService
         _configurationWrapper = configurationWrapper;
         _telegramService = telegramService;
         _nodePatternTypeHelper = nodePatternTypeHelper;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task UpdatePvValues()
     {
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
-
+        _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
         HttpRequestMessage? gridRequest = default;
         HttpResponseMessage? gridHttpResponse = default;
