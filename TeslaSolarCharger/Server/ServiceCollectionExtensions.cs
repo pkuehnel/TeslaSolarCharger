@@ -38,7 +38,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton<JobManager>()
             .AddTransient<ChargingValueJob>()
             .AddTransient<ConfigJsonUpdateJob>()
-            .AddTransient<ChargeTimeUpdateJob>()
             .AddTransient<PvValueJob>()
             .AddTransient<PowerDistributionAddJob>()
             .AddTransient<HandledChargeFinalizingJob>()
