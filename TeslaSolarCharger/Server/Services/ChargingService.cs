@@ -28,12 +28,13 @@ public class ChargingService : IChargingService
     private readonly GlobalConstants _globalConstants;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly ISpotPriceService _spotPriceService;
+    private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
         ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants, ITeslaSolarChargerContext teslaSolarChargerContext,
-        ISpotPriceService spotPriceService)
+        ISpotPriceService spotPriceService, ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService)
     {
         _logger = logger;
         _settings = settings;
@@ -46,6 +47,7 @@ public class ChargingService : IChargingService
         _globalConstants = globalConstants;
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _spotPriceService = spotPriceService;
+        _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
     }
 
     public async Task SetNewChargingValues()
@@ -125,6 +127,7 @@ public class ChargingService : IChargingService
         await _pvValueService.UpdatePvValues().ConfigureAwait(false);
         await UpdateChargeTimes().ConfigureAwait(false);
         await PlanChargeTimesForAllCars().ConfigureAwait(false);
+        await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
     }
 
     public int CalculateAmpByPowerAndCar(int powerToControl, Car car)

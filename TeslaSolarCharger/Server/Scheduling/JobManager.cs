@@ -38,7 +38,6 @@ public class JobManager
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
         var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
-        var latestTimeToReachSocUpdateJob = JobBuilder.Create<LatestTimeToReachSocUpdateJob>().Build();
 
         var chargingValueJobUpdateIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
@@ -63,9 +62,6 @@ public class JobManager
         var spotPricePlanningTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(1)).Build();
 
-        var latestTimeToReachSocUpdateTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(1)).Build();
-
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
@@ -75,7 +71,6 @@ public class JobManager
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
-            {latestTimeToReachSocUpdateJob, new HashSet<ITrigger> {latestTimeToReachSocUpdateTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);
