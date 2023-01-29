@@ -4,6 +4,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -29,12 +30,14 @@ public class ChargingService : IChargingService
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly ISpotPriceService _spotPriceService;
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
+    private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
         ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants, ITeslaSolarChargerContext teslaSolarChargerContext,
-        ISpotPriceService spotPriceService, ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService)
+        ISpotPriceService spotPriceService, ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
+        IChargeTimeCalculationService chargeTimeCalculationService)
     {
         _logger = logger;
         _settings = settings;
@@ -48,6 +51,7 @@ public class ChargingService : IChargingService
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _spotPriceService = spotPriceService;
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
+        _chargeTimeCalculationService = chargeTimeCalculationService;
     }
 
     public async Task SetNewChargingValues()
@@ -437,7 +441,7 @@ public class ChargingService : IChargingService
         _logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
         foreach (var car in _settings.CarsToManage)
         {
-            UpdateChargeTime(car);
+            _chargeTimeCalculationService.UpdateChargeTime(car);
             await UpdateShouldStartStopChargingSince(car).ConfigureAwait(false);
         }
     }
@@ -502,28 +506,6 @@ public class ChargingService : IChargingService
         _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", car.CarState.EarliestSwitchOff);
     }
 
-    internal void UpdateChargeTime(Car car)
-    {
-        car.CarState.ReachingMinSocAtFullSpeedCharge = _dateTimeProvider.Now() + CalculateTimeToReachMinSocAtFullSpeedCharge(car);
-    }
-
-    public TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(Car car)
-    {
-        var socToCharge = (double)car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
-        if (socToCharge < 1)
-        {
-            return TimeSpan.Zero;
-        }
-
-        var energyToCharge = car.CarConfiguration.UsableEnergy * 1000 * (decimal)(socToCharge / 100.0);
-        var numberOfPhases = car.CarState.ActualPhases;
-        var maxChargingPower =
-            car.CarConfiguration.MaximumAmpere * numberOfPhases
-                                               //Use 230 instead of actual voltage because of 0 Volt if charging is stopped
-                                               * 230;
-        return TimeSpan.FromHours((double)(energyToCharge / maxChargingPower));
-    }
-
     public async Task PlanChargeTimesForAllCars()
     {
         _logger.LogTrace("{method}()", nameof(PlanChargeTimesForAllCars));
@@ -572,7 +554,7 @@ public class ChargingService : IChargingService
     {
         _logger.LogTrace("{method}({carId}, {dateTimeOffset}", nameof(PlanChargingSlots), car.Id, dateTimeOffSetNow);
         var plannedChargingSlots = new List<DtoChargingSlot>();
-        var chargeDurationToMinSoc = CalculateTimeToReachMinSocAtFullSpeedCharge(car);
+        var chargeDurationToMinSoc = _chargeTimeCalculationService.CalculateTimeToReachMinSocAtFullSpeedCharge(car);
         if (chargeDurationToMinSoc == TimeSpan.Zero && car.CarConfiguration.ChargeMode != ChargeMode.MaxPower)
         {
             //No charging is planned

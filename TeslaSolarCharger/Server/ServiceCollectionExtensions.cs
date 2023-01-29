@@ -92,5 +92,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
+            .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
             ;
 }

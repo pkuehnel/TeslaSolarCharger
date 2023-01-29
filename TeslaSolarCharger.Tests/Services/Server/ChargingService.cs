@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
 using Moq;
-using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -270,72 +270,6 @@ public class ChargingService : TestBase
     }
 
     [Theory]
-    [InlineData(3)]
-    [InlineData(1)]
-    public void Calculates_Correct_Charge_MaxSpeed_Charge_Time(int numberOfPhases)
-    {
-        var car = new Car()
-        {
-            Id = 1,
-            CarState = new CarState()
-            {
-                PluggedIn = true,
-                SoC = 30,
-                ChargerPhases = numberOfPhases
-            },
-            CarConfiguration = new CarConfiguration()
-            {
-                MinimumSoC = 45,
-                UsableEnergy = 74,
-                MaximumAmpere = 16,
-            }
-        };
-
-
-        var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
-        Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
-        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
-
-        chargingService.UpdateChargeTime(car);
-
-        var lowerMinutes = 60 * (3 / numberOfPhases);
-
-#pragma warning disable CS8629
-        Assert.InRange((DateTime)car.CarState.ReachingMinSocAtFullSpeedCharge, dateTime.AddMinutes(lowerMinutes), dateTime.AddMinutes(lowerMinutes + 1));
-#pragma warning restore CS8629
-    }
-
-    [Fact]
-    public void Handles_Reaced_Minimum_Soc()
-    {
-        var car = new Car()
-        {
-            Id = 1,
-            CarState = new CarState()
-            {
-                PluggedIn = true,
-                SoC = 30,
-                ChargerPhases = 1
-            },
-            CarConfiguration = new CarConfiguration()
-            {
-                MinimumSoC = 30,
-                UsableEnergy = 74,
-                MaximumAmpere = 16,
-            }
-        };
-
-
-        var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
-        Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
-        var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
-
-        chargingService.UpdateChargeTime(car);
-
-        Assert.Equal(dateTime, car.CarState.ReachingMinSocAtFullSpeedCharge);
-    }
-
-    [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(null, null, null, null, 0, 0)]
     [InlineData(null, null, null, null, 10, 10)]
@@ -423,48 +357,13 @@ public class ChargingService : TestBase
     }
 
     [Theory]
-    [InlineData(0, 30, 75, 3, 16, 0)]
-    [InlineData(31, 30, 100, 3, 16, 326)]
-    [InlineData(32, 30, 100, 3, 32, 326)]
-    [InlineData(32, 30, 50, 3, 16, 326)]
-    [InlineData(42, 40, 50, 3, 16, 326)]
-    [InlineData(42, 40, 50, 1, 16, 978)]
-    public void Calculates_Correct_Full_Speed_Charge_Durations(int minimumSoc, int? acutalSoc, int usableEnergy,
-        int chargerPhases, int maximumAmpere, double expectedTotalSeconds)
-    {
-        var car = new Car()
-        {
-            CarConfiguration = new CarConfiguration()
-            {
-                MinimumSoC = minimumSoc,
-                UsableEnergy = usableEnergy,
-                MaximumAmpere = maximumAmpere,
-            },
-            CarState = new CarState()
-            {
-                SoC = acutalSoc,
-                ChargerPhases = chargerPhases,
-            },
-        };
-
-        var chargeTimeUpdateService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
-        var chargeDuration = chargeTimeUpdateService.CalculateTimeToReachMinSocAtFullSpeedCharge(car);
-
-        var expectedTimeSpan = TimeSpan.FromSeconds(expectedTotalSeconds);
-        var maximumErrorTime = TimeSpan.FromSeconds(1);
-        var minimum = expectedTimeSpan - maximumErrorTime;
-        var maximum = expectedTimeSpan + maximumErrorTime;
-        Assert.InRange(chargeDuration, minimum, maximum);
-    }
-
-    [Theory]
     [InlineData(ChargeMode.PvAndMinSoc)]
     [InlineData(ChargeMode.PvOnly)]
     public async Task Dont_Plan_Charging_If_Min_Soc_Reached(ChargeMode chargeMode)
     {
         var chargeDuration = TimeSpan.Zero;
 
-        Mock.Mock<IChargingService>()
+        Mock.Mock<IChargeTimeCalculationService>()
             .Setup(c => c.CalculateTimeToReachMinSocAtFullSpeedCharge(It.IsAny<Car>()))
             .Returns(chargeDuration);
 
@@ -523,7 +422,7 @@ public class ChargingService : TestBase
     {
         var chargeDuration = TimeSpan.FromHours(1);
 
-        Mock.Mock<IChargingService>()
+        Mock.Mock<IChargeTimeCalculationService>()
             .Setup(c => c.CalculateTimeToReachMinSocAtFullSpeedCharge(It.IsAny<Car>()))
             .Returns(chargeDuration);
 
