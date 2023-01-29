@@ -369,6 +369,7 @@ else
             ToastService.ShowError("Error updating car configuration");
         }
         await RefreshCarBaseSettings().ConfigureAwait(false);
+        await RefreshCarBaseStates().ConfigureAwait(false);
         _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
     }
 
