@@ -133,6 +133,12 @@ public class PossibleIssues : IPossibleIssues
                     "Set the home batter SoC correction factor to a value different than 0."
                 )
             },
+            {
+                issueKeys.ServerTimeZoneDifferentFromClient, CreateIssue("Server time zone does not match client timezone",
+                    IssueType.Warning,
+                    "Update the TimeZone of the TeslaSolarChargerContainer in your docker-compose.yml."
+                )
+            },
         };
     }
 

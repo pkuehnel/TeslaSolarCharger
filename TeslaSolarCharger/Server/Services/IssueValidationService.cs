@@ -37,10 +37,11 @@ public class IssueValidationService : IIssueValidationService
         _teslamateContext = teslamateContext;
     }
 
-    public async Task<List<Issue>> RefreshIssues()
+    public async Task<List<Issue>> RefreshIssues(TimeSpan clientTimeZoneId)
     {
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
         var issueList = new List<Issue>();
+        issueList.AddRange(GetServerConfigurationIssues(clientTimeZoneId));
         if (Debugger.IsAttached)
         {
             return issueList;
@@ -57,7 +58,7 @@ public class IssueValidationService : IIssueValidationService
     public async Task<DtoValue<int>> ErrorCount()
     {
         _logger.LogTrace("{method}()", nameof(ErrorCount));
-        var issues = await RefreshIssues().ConfigureAwait(false);
+        var issues = await RefreshIssues(TimeZoneInfo.Local.BaseUtcOffset).ConfigureAwait(false);
         var errorIssues = issues.Where(i => i.IssueType == IssueType.Error).ToList();
         return new DtoValue<int>(errorIssues.Count);
     }
@@ -65,7 +66,7 @@ public class IssueValidationService : IIssueValidationService
     public async Task<DtoValue<int>> WarningCount()
     {
         _logger.LogTrace("{method}()", nameof(WarningCount));
-        var issues = await RefreshIssues().ConfigureAwait(false);
+        var issues = await RefreshIssues(TimeZoneInfo.Local.BaseUtcOffset).ConfigureAwait(false);
         var warningIssues = issues.Where(i => i.IssueType == IssueType.Warning).ToList();
         var warningCount = new DtoValue<int>(warningIssues.Count);
         return warningCount;
@@ -216,6 +217,18 @@ public class IssueValidationService : IIssueValidationService
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CorrectionFactorZero));
         }
+        return issues;
+    }
+
+    private List<Issue> GetServerConfigurationIssues(TimeSpan clientTimeUtcOffset)
+    {
+        var issues = new List<Issue>();
+        var serverTimeUtcOffset = TimeZoneInfo.Local.BaseUtcOffset;
+        if (clientTimeUtcOffset != serverTimeUtcOffset)
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.ServerTimeZoneDifferentFromClient));
+        }
+
         return issues;
     }
 }
