@@ -47,25 +47,22 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
         }
 
         var dateTimeOffSetNow = _dateTimeProvider.DateTimeOffSetNow();
-        if (carConfiguration.LatestTimeToReachSoC < dateTimeOffSetNow)
-        {
-            carConfiguration.LatestTimeToReachSoC = _dateTimeProvider.Now().Date.AddDays(-1) +
-                                                    carConfiguration.LatestTimeToReachSoC.TimeOfDay;
-        }
-
         if (carConfiguration.IgnoreLatestTimeToReachSocDate)
         {
-            carConfiguration.LatestTimeToReachSoC =
-                _dateTimeProvider.Now().Date + carConfiguration.LatestTimeToReachSoC.TimeOfDay;
-        }
-
-        if (carConfiguration.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
-        {
-            if (carConfiguration.LatestTimeToReachSoC.Date > dateTimeOffSetNow.ToLocalTime().Date)
+            var dateToSet = dateTimeOffSetNow.DateTime.Date;
+            if (carConfiguration.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
             {
-                return;
+                dateToSet = dateTimeOffSetNow.DateTime.AddDays(1).Date;
             }
-            carConfiguration.LatestTimeToReachSoC = dateTimeOffSetNow.ToLocalTime().Date + carConfiguration.LatestTimeToReachSoC.TimeOfDay;
+            carConfiguration.LatestTimeToReachSoC = dateToSet + carConfiguration.LatestTimeToReachSoC.TimeOfDay;
+        }
+        else
+        {
+            if (carConfiguration.LatestTimeToReachSoC < dateTimeOffSetNow)
+            {
+                carConfiguration.LatestTimeToReachSoC = _dateTimeProvider.Now().Date.AddDays(-1) +
+                                                        carConfiguration.LatestTimeToReachSoC.TimeOfDay;
+            }
         }
     }
 }
