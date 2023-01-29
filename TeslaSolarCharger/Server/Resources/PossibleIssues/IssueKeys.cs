@@ -19,4 +19,5 @@ public class IssueKeys
     public string CarIdNotAvailable = "CarIdNotAvailable";
     public string VersionNotUpToDate = "VersionNotUpToDate";
     public string CorrectionFactorZero = "CorrectionFactorZero";
+    public string ServerTimeZoneDifferentFromClient = "ServerTimeZoneDifferentFromClient";
 }

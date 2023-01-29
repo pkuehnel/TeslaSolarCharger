@@ -20,7 +20,7 @@ namespace TeslaSolarCharger.Server.Controllers
         /// </summary>
         /// <returns>List of current active issues</returns>
         [HttpGet]
-        public Task<List<Issue>> RefreshIssues() => _issueValidationService.RefreshIssues();
+        public Task<List<Issue>> RefreshIssues(TimeSpan utcTimeZoneOffset) => _issueValidationService.RefreshIssues(utcTimeZoneOffset);
 
         /// <summary>
         /// Get number of current active error issues.
