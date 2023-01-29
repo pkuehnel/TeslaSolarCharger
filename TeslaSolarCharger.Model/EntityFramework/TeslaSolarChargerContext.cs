@@ -33,7 +33,6 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         }
     }
 
-
 #pragma warning disable CS8618
     public TeslaSolarChargerContext()
 #pragma warning restore CS8618

@@ -19,7 +19,7 @@ public class IndexController : ApiBaseController
     public Task<DtoPvValues> GetPvValues() => _indexService.GetPvValues();
 
     [HttpGet]
-    public Task<List<DtoCarBaseStates>> GetCarBaseValuesOfEnabledCars() => _indexService.GetCarBaseStatesOfEnabledCars();
+    public Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars() => _indexService.GetCarBaseStatesOfEnabledCars();
 
     [HttpGet]
     public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars() => _indexService.GetCarBaseSettingsOfEnabledCars();
@@ -29,7 +29,7 @@ public class IndexController : ApiBaseController
         => _indexService.GetCarDetails(carId);
 
     [HttpPost]
-    public void UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
+    public Task UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
 
     [HttpGet]
     public Dictionary<string, string> GetToolTipTexts() => _indexService.GetToolTipTexts();

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
@@ -40,6 +41,10 @@ public class IssueValidationService : IIssueValidationService
     {
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
         var issueList = new List<Issue>();
+        if (Debugger.IsAttached)
+        {
+            return issueList;
+        }
         issueList.AddRange(GetMqttIssues());
         issueList.AddRange(PvValueIssues());
         issueList.AddRange(await GetTeslaMateApiIssues().ConfigureAwait(false));
