@@ -21,27 +21,31 @@ public class IndexService : IIndexService
     private readonly ITeslamateContext _teslamateContext;
     private readonly IChargingCostService _chargingCostService;
     private readonly ToolTipTextKeys _toolTipTextKeys;
-    private readonly IChargeTimePlanningService _chargeTimePlanningService;
+    private readonly IChargingService _chargingService;
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
     private readonly IConfigJsonService _configJsonService;
+    private readonly IPvValueService _pvValueService;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
-        IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys, IChargeTimePlanningService chargeTimePlanningService,
-        ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService)
+        IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys, IChargingService chargingService,
+        ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
+        IPvValueService pvValueService)
     {
         _logger = logger;
         _settings = settings;
         _teslamateContext = teslamateContext;
         _chargingCostService = chargingCostService;
         _toolTipTextKeys = toolTipTextKeys;
-        _chargeTimePlanningService = chargeTimePlanningService;
+        _chargingService = chargingService;
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
         _configJsonService = configJsonService;
+        _pvValueService = pvValueService;
     }
 
-    public DtoPvValues GetPvValues()
+    public async Task<DtoPvValues> GetPvValues()
     {
         _logger.LogTrace("{method}()", nameof(GetPvValues));
+        await _pvValueService.UpdatePvValues().ConfigureAwait(false);
         return new DtoPvValues()
         {
             GridPower = _settings.Overage,
@@ -79,7 +83,7 @@ public class IndexService : IIndexService
             if (enabledCar.CarConfiguration.ChargeMode == ChargeMode.SpotPrice)
             {
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
-                    await _chargeTimePlanningService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
+                    await _chargingService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
             }
 
             carBaseValues.Add(dtoCarBaseValues);
@@ -112,7 +116,7 @@ public class IndexService : IIndexService
         carConfiguration.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
         carConfiguration.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
         await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
-        await _chargeTimePlanningService.UpdatePlannedChargingSlots(car).ConfigureAwait(false);
+        await _chargingService.UpdatePlannedChargingSlots(car).ConfigureAwait(false);
         await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
     }
 
@@ -171,7 +175,7 @@ public class IndexService : IIndexService
     {
         _logger.LogTrace("{method}({carId})", nameof(RecalculateAndGetChargingSlots), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
-        _chargeTimePlanningService.UpdatePlannedChargingSlots(car);
+        _chargingService.UpdatePlannedChargingSlots(car);
         return car.CarState.PlannedChargingSlots;
     }
 

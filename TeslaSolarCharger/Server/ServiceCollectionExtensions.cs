@@ -37,15 +37,12 @@ public static class ServiceCollectionExtensions
         => services
             .AddSingleton<JobManager>()
             .AddTransient<ChargingValueJob>()
-            .AddTransient<ConfigJsonUpdateJob>()
-            .AddTransient<PvValueJob>()
+            .AddTransient<CarStateCachingJob>()
             .AddTransient<PowerDistributionAddJob>()
             .AddTransient<HandledChargeFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
-            .AddTransient<ChargeTimePlanningJob>()
             .AddTransient<SpotPriceJob>()
-            .AddTransient<LatestTimeToReachSocUpdateJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -93,8 +90,8 @@ public static class ServiceCollectionExtensions
             .AddSingleton<GlobalConstants>()
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
-            .AddTransient<IChargeTimePlanningService, ChargeTimePlanningService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
+            .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
             ;
 }
