@@ -335,13 +335,13 @@ else
 
         _timer = new Timer();
         _timer.Interval = 5000;
-        _timer.Elapsed += RefreshStates;
+        _timer.Elapsed += async (_, _) => await RefreshStates().ConfigureAwait(false);
         _timer.Start();
     }
 
     private async Task RefreshCarBaseStates()
     {
-        _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
+        _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseStatesOfEnabledCars").ConfigureAwait(false);
     }
 
     private async Task RefreshCarBaseSettings()
@@ -369,7 +369,9 @@ else
             ToastService.ShowError("Error updating car configuration");
         }
         await RefreshCarBaseSettings().ConfigureAwait(false);
+        await RefreshCarBaseStates().ConfigureAwait(false);
         _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
+        StateHasChanged();
     }
 
     private async Task RefreshAllVisableCarDetails()
@@ -424,7 +426,7 @@ else
         return Task.CompletedTask;
     }
 
-    private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
+    private async Task RefreshStates()
     {
         try
         {
