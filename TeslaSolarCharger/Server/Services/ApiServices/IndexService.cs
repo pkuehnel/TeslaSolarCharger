@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Text;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
@@ -23,13 +23,12 @@ public class IndexService : IIndexService
     private readonly ToolTipTextKeys _toolTipTextKeys;
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
     private readonly IConfigJsonService _configJsonService;
-    private readonly IPvValueService _pvValueService;
     private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
         IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys,
         ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
-        IPvValueService pvValueService, IChargeTimeCalculationService chargeTimeCalculationService)
+        IChargeTimeCalculationService chargeTimeCalculationService)
     {
         _logger = logger;
         _settings = settings;
@@ -38,14 +37,12 @@ public class IndexService : IIndexService
         _toolTipTextKeys = toolTipTextKeys;
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
         _configJsonService = configJsonService;
-        _pvValueService = pvValueService;
         _chargeTimeCalculationService = chargeTimeCalculationService;
     }
 
-    public async Task<DtoPvValues> GetPvValues()
+    public DtoPvValues GetPvValues()
     {
         _logger.LogTrace("{method}()", nameof(GetPvValues));
-        await _pvValueService.UpdatePvValues().ConfigureAwait(false);
         return new DtoPvValues()
         {
             GridPower = _settings.Overage,

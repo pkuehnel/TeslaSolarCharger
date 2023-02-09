@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MQTTnet;
 using MQTTnet.Adapter;
 using MQTTnet.Client;
@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<JobManager>()
             .AddTransient<ChargingValueJob>()
             .AddTransient<CarStateCachingJob>()
+            .AddTransient<PvValueJob>()
             .AddTransient<PowerDistributionAddJob>()
             .AddTransient<HandledChargeFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()

@@ -119,7 +119,6 @@ public class ChargingService : IChargingService
 
     private async Task UpdateChargingRelevantValues()
     {
-        await _pvValueService.UpdatePvValues().ConfigureAwait(false);
         await UpdateChargeTimes().ConfigureAwait(false);
         await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
         await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
@@ -137,11 +136,6 @@ public class ChargingService : IChargingService
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-        var maxPvValuesAge = TimeSpan.FromSeconds(5);
-        if (!calculateAverage && (_settings.LastPvValueUpdate < _dateTimeProvider.DateTimeOffSetNow() - maxPvValuesAge))
-        {
-            await _pvValueService.UpdatePvValues().ConfigureAwait(false);
-        }
         var averagedOverage = calculateAverage ? _pvValueService.GetAveragedOverage() : _settings.Overage ?? int.MinValue;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
