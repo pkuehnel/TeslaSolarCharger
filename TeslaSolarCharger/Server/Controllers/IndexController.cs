@@ -16,7 +16,7 @@ public class IndexController : ApiBaseController
     }
 
     [HttpGet]
-    public Task<DtoPvValues> GetPvValues() => _indexService.GetPvValues();
+    public DtoPvValues GetPvValues() => _indexService.GetPvValues();
 
     [HttpGet]
     public Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars() => _indexService.GetCarBaseStatesOfEnabledCars();

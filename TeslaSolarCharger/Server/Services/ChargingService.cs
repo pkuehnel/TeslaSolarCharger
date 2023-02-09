@@ -89,7 +89,7 @@ public class ChargingService : IChargingService
             return;
         }
 
-        var powerToControl = await CalculatePowerToControl(_settings.ControlledACarAtLastCycle).ConfigureAwait(false);
+        var powerToControl = CalculatePowerToControl(_settings.ControlledACarAtLastCycle);
 
         _logger.LogDebug("At least one car is charging.");
         _settings.ControlledACarAtLastCycle = true;
@@ -119,8 +119,7 @@ public class ChargingService : IChargingService
 
     private async Task UpdateChargingRelevantValues()
     {
-        await _pvValueService.UpdatePvValues().ConfigureAwait(false);
-        await UpdateChargeTimes().ConfigureAwait(false);
+        UpdateChargeTimes();
         await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
         await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
     }
@@ -131,17 +130,12 @@ public class ChargingService : IChargingService
         return Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * car.CarState.ActualPhases)));
     }
 
-    public async Task<int> CalculatePowerToControl(bool calculateAverage)
+    public int CalculatePowerToControl(bool calculateAverage)
     {
         _logger.LogTrace("{method}({calculateAverage})", nameof(CalculatePowerToControl), calculateAverage);
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-        var maxPvValuesAge = TimeSpan.FromSeconds(5);
-        if (!calculateAverage && (_settings.LastPvValueUpdate < _dateTimeProvider.DateTimeOffSetNow() - maxPvValuesAge))
-        {
-            await _pvValueService.UpdatePvValues().ConfigureAwait(false);
-        }
         var averagedOverage = calculateAverage ? _pvValueService.GetAveragedOverage() : _settings.Overage ?? int.MinValue;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
@@ -427,20 +421,20 @@ public class ChargingService : IChargingService
         }
     }
 
-    private async Task UpdateChargeTimes()
+    private void UpdateChargeTimes()
     {
         _logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
         foreach (var car in _settings.CarsToManage)
         {
             _chargeTimeCalculationService.UpdateChargeTime(car);
-            await UpdateShouldStartStopChargingSince(car).ConfigureAwait(false);
+            UpdateShouldStartStopChargingSince(car);
         }
     }
 
-    private async Task UpdateShouldStartStopChargingSince(Car car)
+    private void UpdateShouldStartStopChargingSince(Car car)
     {
         _logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), car.Id);
-        var powerToControl = await CalculatePowerToControl(false).ConfigureAwait(false);
+        var powerToControl = CalculatePowerToControl(false);
         var ampToSet = CalculateAmpByPowerAndCar(powerToControl, car);
         _logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
         if (car.CarState.IsHomeGeofence == true)
