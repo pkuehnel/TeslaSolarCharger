@@ -20,15 +20,17 @@ public class ChargeTimeCalculationService : TestBase
     }
 
     [Theory]
-    [InlineData(0, 30, 75, 3, 16, 0)]
-    [InlineData(31, 30, 100, 3, 16, 326)]
-    [InlineData(32, 30, 100, 3, 32, 326)]
-    [InlineData(32, 30, 50, 3, 16, 326)]
-    [InlineData(42, 40, 50, 3, 16, 326)]
-    [InlineData(42, 40, 50, 1, 16, 978)]
-    [InlineData(47, 40, 50000, 1, 15215, 3600)]
+    [InlineData(0, 30, 75, 3, 16, 0, null)]
+    [InlineData(31, 30, 100, 3, 16, 326, null)]
+    [InlineData(31, 30, 100, 3, 16, 0, 0)]
+    [InlineData(32, 30, 100, 3, 32, 326, null)]
+    [InlineData(32, 30, 50, 3, 16, 326, null)]
+    [InlineData(42, 40, 50, 3, 16, 326, null)]
+    [InlineData(42, 40, 50, 1, 16, 978, null)]
+    [InlineData(47, 40, 50000, 1, 15215, 3600, null)]
+    [InlineData(47, 40, 50000, 1, 15215, 3600, 0)]
     public void Calculates_Correct_Full_Speed_Charge_Durations(int minimumSoc, int? acutalSoc, int usableEnergy,
-        int chargerPhases, int maximumAmpere, double expectedTotalSeconds)
+        int chargerPhases, int maximumAmpere, double expectedTotalSeconds, int? chargerActualCurrent)
     {
         var car = new Car()
         {
@@ -42,6 +44,7 @@ public class ChargeTimeCalculationService : TestBase
             {
                 SoC = acutalSoc,
                 ChargerPhases = chargerPhases,
+                ChargerActualCurrent = chargerActualCurrent,
             },
         };
 

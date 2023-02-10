@@ -32,7 +32,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     {
         _logger.LogTrace("{method}({carId})", nameof(CalculateTimeToReachMinSocAtFullSpeedCharge), car.Id);
         var socToCharge = (double)car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
-        if (socToCharge < 1)
+        if (socToCharge < 1 || (socToCharge < 3 && (car.CarState.ChargerActualCurrent ?? 1) < 1))
         {
             return TimeSpan.Zero;
         }
