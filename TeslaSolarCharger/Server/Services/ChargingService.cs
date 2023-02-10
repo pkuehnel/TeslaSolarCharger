@@ -72,6 +72,10 @@ public class ChargingService : IChargingService
 
         var irrelevantCars = GetIrrelevantCars(relevantCarIds);
         _logger.LogDebug("Irrelevant car ids: {@ids}", irrelevantCars.Select(c => c.Id));
+        foreach (var irrelevantCar in irrelevantCars)
+        {
+            SetAllPlannedChargingSlotsToInactive(irrelevantCar);
+        }
 
         var relevantCars = _settings.Cars
             .Where(c => relevantCarIds.Any(r => c.Id == r))
@@ -114,6 +118,14 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Amp to control: {amp}", ampToControl);
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
             powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
+        }
+    }
+
+    private void SetAllPlannedChargingSlotsToInactive(Car car)
+    {
+        foreach (var plannedChargingSlot in car.CarState.PlannedChargingSlots)
+        {
+            plannedChargingSlot.IsActive = false;
         }
     }
 
