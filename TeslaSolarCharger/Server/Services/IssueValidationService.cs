@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -151,42 +152,34 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.GridPowerNotAvailable));
         }
 
-        var isInverterPowerConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.CurrentInverterPowerUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.CurrentInverterPowerMqttTopic()));
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration() ?? new FrontendConfiguration();
+        var isInverterPowerConfigured = frontendConfiguration.InverterValueSource != SolarValueSource.None;
         if (isInverterPowerConfigured && _settings.InverterPower == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.InverterPowerNotAvailable));
         }
 
-        var isHomeBatterySocGettingConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocMqttTopic()));
-        if (isHomeBatterySocGettingConfigured && _settings.HomeBatterySoc == null)
+        var isHomeBatteryConfigured = frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None;
+        if (isHomeBatteryConfigured && _settings.HomeBatterySoc == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotAvailable));
         }
-
-        if (isHomeBatterySocGettingConfigured && _settings.HomeBatterySoc != null && (_settings.HomeBatterySoc > 100 || _settings.HomeBatterySoc < 0))
+        if (isHomeBatteryConfigured && _settings.HomeBatterySoc is > 100 or < 0)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotPlausible));
         }
 
-        var isHomeBatteryPowerGettingConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerMqttTopic()));
-        if (isHomeBatteryPowerGettingConfigured && _settings.HomeBatteryPower == null)
+        if (isHomeBatteryConfigured && _settings.HomeBatteryPower == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryPowerNotAvailable));
         }
 
-        if (isHomeBatteryPowerGettingConfigured != isHomeBatterySocGettingConfigured)
-        {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryHalfConfigured));
-        }
-
-        if ((isHomeBatterySocGettingConfigured || isHomeBatteryPowerGettingConfigured) &&
-            (_configurationWrapper.HomeBatteryMinSoc() == null))
+        if (isHomeBatteryConfigured && (_configurationWrapper.HomeBatteryMinSoc() == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryMinimumSocNotConfigured));
         }
 
-        if ((isHomeBatterySocGettingConfigured || isHomeBatteryPowerGettingConfigured) &&
-            (_configurationWrapper.HomeBatteryChargingPower() == null))
+        if (isHomeBatteryConfigured && (_configurationWrapper.HomeBatteryChargingPower() == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryChargingPowerNotConfigured));
         }
