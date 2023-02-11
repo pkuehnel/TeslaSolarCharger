@@ -322,13 +322,13 @@ public class ChargingCostService : IChargingCostService
                 .Where(p => p.HandledCharge == openHandledCharge)
                 .OrderBy(p => p.TimeStamp)
                 .ToListAsync().ConfigureAwait(false);
-            if (relevantPowerDistributions.Count > 0)
-            {
-                openHandledCharge.AverageSpotPrice = await CalculateAverageSpotPrice(relevantPowerDistributions).ConfigureAwait(false);
-            }
             var price = await _teslaSolarChargerContext.ChargePrices
                 .FirstOrDefaultAsync(p => p.Id == openHandledCharge.ChargePriceId)
                 .ConfigureAwait(false);
+            if (relevantPowerDistributions.Count > 0)
+            {
+                openHandledCharge.AverageSpotPrice = await CalculateAverageSpotPrice(relevantPowerDistributions, price).ConfigureAwait(false);
+            }
             if (price != default)
             {
                 //ToDo: add spotPrice if useSpotPrice is enabled
@@ -345,7 +345,7 @@ public class ChargingCostService : IChargingCostService
         }
     }
 
-    internal async Task<decimal?> CalculateAverageSpotPrice(List<PowerDistribution> relevantPowerDistributions)
+    internal async Task<decimal?> CalculateAverageSpotPrice(List<PowerDistribution> relevantPowerDistributions, ChargePrice? chargePrice)
     {
         var startTime = relevantPowerDistributions.First().TimeStamp;
         var endTime = relevantPowerDistributions.Last().TimeStamp;
@@ -353,6 +353,7 @@ public class ChargingCostService : IChargingCostService
 
         if (IsAnyPowerTimeStampWithoutSpotPrice(relevantPowerDistributions, spotPrices))
         {
+            _logger.LogWarning("At least one powerdistribution has no related spot price. Do not use spotprices.");
             return null;
         }
 
@@ -362,7 +363,7 @@ public class ChargingCostService : IChargingCostService
         foreach (var usedGridWattHour in usedGridWattHoursHourGroups)
         {
             var relavantPrice = spotPrices.First(s => s.StartDate == usedGridWattHour.Key);
-            var costsInThisHour = usedGridWattHour.Value * (float)relavantPrice.Price;
+            var costsInThisHour = usedGridWattHour.Value * (float)relavantPrice.Price + usedGridWattHour.Value * (float)(relavantPrice.Price * chargePrice?.SpotPriceCorrectionFactor ?? 0);
             averagePrice += costsInThisHour;
         }
         averagePrice /= usedGridWattHoursHourGroups.Values.Sum();
