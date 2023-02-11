@@ -101,8 +101,13 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         _logger.LogTrace("{method}({carId}, {dateTimeOffset}", nameof(PlanChargingSlots), car.Id, dateTimeOffSetNow);
         var plannedChargingSlots = new List<DtoChargingSlot>();
         var chargeDurationToMinSoc = CalculateTimeToReachMinSocAtFullSpeedCharge(car);
+        var timeZoneOffset = TimeSpan.Zero;
+        if (car.CarConfiguration.LatestTimeToReachSoC.Kind != DateTimeKind.Utc)
+        {
+            timeZoneOffset = TimeZoneInfo.Local.BaseUtcOffset;
+        }
         var latestTimeToReachSoc =
-            new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, TimeZoneInfo.Local.BaseUtcOffset);
+            new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, timeZoneOffset);
         if (chargeDurationToMinSoc == TimeSpan.Zero && car.CarConfiguration.ChargeMode != ChargeMode.MaxPower)
         {
             //No charging is planned
