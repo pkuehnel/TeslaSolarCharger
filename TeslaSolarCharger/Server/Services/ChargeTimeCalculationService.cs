@@ -167,6 +167,17 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         _logger.LogTrace("{method}({carId}, {chargeDurationToMinSoc}", nameof(GenerateSpotPriceChargingSlots), car.Id, chargeDurationToMinSoc);
         var chargingSlots = new List<DtoChargingSlot>();
         var latestTimeToReachSoc = new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, TimeZoneInfo.Local.BaseUtcOffset);
+        var activeCharge = car.CarState.PlannedChargingSlots.FirstOrDefault(p => p.IsActive);
+        var activeChargeStartedBeforeLatestTimeToReachSoc = activeCharge != default && activeCharge.ChargeStart < latestTimeToReachSoc;
+
+        if ((chargeDurationToMinSoc > TimeSpan.Zero) && (latestTimeToReachSoc < (dateTimeOffSetNow + chargeDurationToMinSoc)) && activeChargeStartedBeforeLatestTimeToReachSoc)
+        {
+            chargingSlots.Add(new DtoChargingSlot()
+            {
+                ChargeStart = dateTimeOffSetNow, ChargeEnd = dateTimeOffSetNow + chargeDurationToMinSoc,
+            });
+            return chargingSlots;
+        }
         var chargePricesUntilLatestTimeToReachSocOrderedByPrice =
             await ChargePricesUntilLatestTimeToReachSocOrderedByPrice(dateTimeOffSetNow, latestTimeToReachSoc).ConfigureAwait(false);
         if (await IsLatestTimeToReachSocAfterLatestKnownChargePrice(car.Id).ConfigureAwait(false))
