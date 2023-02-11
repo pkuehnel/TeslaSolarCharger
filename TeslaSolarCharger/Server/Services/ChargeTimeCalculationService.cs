@@ -211,7 +211,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
             activeCharge != default && activeCharge.ChargeStart < latestTimeToReachSoc;
         return !((chargeDurationToMinSoc > TimeSpan.Zero)
                && (latestTimeToReachSoc < (dateTimeOffSetNow + chargeDurationToMinSoc))
-               && (activeChargeStartedBeforeLatestTimeToReachSoc || dateTimeOffSetNow < latestTimeToReachSoc));
+               && (activeChargeStartedBeforeLatestTimeToReachSoc || (dateTimeOffSetNow < latestTimeToReachSoc)));
     }
 
     internal List<DtoChargingSlot> ConcatenateChargeTimes(List<DtoChargingSlot> chargingSlotsBeforeConcatenation)
