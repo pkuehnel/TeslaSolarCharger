@@ -70,7 +70,11 @@ public class SolarMqttService : ISolarMqttService
                 var jsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
                 var xmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
-                _setting.Overage = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType);
+                var xmlAttributeHeaderName = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
+                var xmlAttributeHeaderValue = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
+                var xmlAttributeValueName = _configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
+                _setting.Overage = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType,
+                    xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
                 if (_setting.Overage != null)
                 {
                     _pvValueService.AddOverageValueToInMemoryList((int)_setting.Overage);
@@ -82,7 +86,11 @@ public class SolarMqttService : ISolarMqttService
                 var jsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
                 var xmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor();
-                _setting.InverterPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType);
+                var xmlAttributeHeaderName = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
+                var xmlAttributeHeaderValue = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
+                var xmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
+                _setting.InverterPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType,
+                xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
             }
             else if (topic == _configurationWrapper.HomeBatterySocMqttTopic() && frontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
             {
@@ -90,7 +98,11 @@ public class SolarMqttService : ISolarMqttService
                 var jsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
                 var xmlPattern = _configurationWrapper.HomeBatterySocXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.HomeBatterySocCorrectionFactor();
-                _setting.HomeBatterySoc = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType);
+                var xmlAttributeHeaderName = _configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
+                var xmlAttributeHeaderValue = _configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
+                var xmlAttributeValueName = _configurationWrapper.HomeBatterySocXmlAttributeValueName();
+                _setting.HomeBatterySoc = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType,
+                xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
             }
             else if (topic == _configurationWrapper.HomeBatteryPowerMqttTopic() && frontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
             {
@@ -98,7 +110,11 @@ public class SolarMqttService : ISolarMqttService
                 var jsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
                 var xmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
                 var correctionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
-                _setting.HomeBatteryPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType);
+                var xmlAttributeHeaderName = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
+                var xmlAttributeHeaderValue = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
+                var xmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
+                _setting.HomeBatteryPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType,
+                xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
             }
             else
             {

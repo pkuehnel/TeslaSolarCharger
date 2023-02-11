@@ -33,7 +33,7 @@ public class PvValueService : TestBase
     public void Can_Get_Integer_From_Plain_Result(string text)
     {
         var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
-        var intValue = pvValueService.GetValueFromResult("", text, NodePatternType.Direct, true);
+        var intValue = pvValueService.GetValueFromResult("", text, NodePatternType.Direct, null, null, null);
 
         Assert.Equal(384, intValue);
     }
@@ -47,7 +47,7 @@ public class PvValueService : TestBase
         var json = string.Format(
             "{{\"request\": {{\"method\": \"get\", \"key\": \"CO@13_3_0\"}}, \"code\": 0, \"type\": \"call\", \"data\": {{\"value\": {0}}}}}", text);
         var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
-        var intValue = pvValueService.GetValueFromResult("$.data.value", json, NodePatternType.Json, true);
+        var intValue = pvValueService.GetValueFromResult("$.data.value", json, NodePatternType.Json, null, null, null);
 
         Assert.Equal(384, intValue);
     }
@@ -60,7 +60,7 @@ public class PvValueService : TestBase
     {
         var json = $"{{\"value\": {text}}}";
         var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
-        var intValue = pvValueService.GetValueFromResult("$.value", json, NodePatternType.Json, true);
+        var intValue = pvValueService.GetValueFromResult("$.value", json, NodePatternType.Json, null, null, null);
 
         Assert.Equal(384, intValue);
     }
@@ -78,7 +78,7 @@ public class PvValueService : TestBase
         Mock.Mock<IConfigurationWrapper>().Setup(s => s.CurrentPowerToGridXmlAttributeHeaderValue()).Returns("GridPower");
         Mock.Mock<IConfigurationWrapper>().Setup(s => s.CurrentPowerToGridXmlAttributeValueName()).Returns("Value");
 
-        var intValue = pvValueService.GetValueFromResult("Device/Measurements/Measurement", xml, NodePatternType.Xml, true);
+        var intValue = pvValueService.GetValueFromResult("Device/Measurements/Measurement", xml, NodePatternType.Xml, "Type", "GridPower", "Value");
 
         Assert.Equal(384, intValue);
     }
@@ -96,7 +96,7 @@ public class PvValueService : TestBase
         Mock.Mock<IConfigurationWrapper>().Setup(s => s.CurrentInverterPowerXmlAttributeHeaderValue()).Returns("AC_Power");
         Mock.Mock<IConfigurationWrapper>().Setup(s => s.CurrentInverterPowerXmlAttributeValueName()).Returns("Value");
 
-        var intValue = pvValueService.GetValueFromResult("Device/Measurements/Measurement", xml, NodePatternType.Xml, false);
+        var intValue = pvValueService.GetValueFromResult("Device/Measurements/Measurement", xml, NodePatternType.Xml, "Type", "AC_Power", "Value");
 
         Assert.Equal(384, intValue);
     }
@@ -111,7 +111,7 @@ public class PvValueService : TestBase
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<Device Name=\"PIKO 4.6-2 MP plus\" Type=\"Inverter\" Platform=\"Net16\" HmiPlatform=\"HMI17\" NominalPower=\"4600\" UserPowerLimit=\"nan\" CountryPowerLimit=\"nan\" Serial=\"XXXXXXXXXXXXXXXXXXXX\" OEMSerial=\"XXXXXXXX\" BusAddress=\"1\" NetBiosName=\"XXXXXXXXXXXXXXX\" WebPortal=\"PIKO Solar Portal\" ManufacturerURL=\"kostal-solar-electric.com\" IpAddress=\"192.168.XXX.XXX\" DateTime=\"2022-06-08T19:33:25\" MilliSeconds=\"806\">\r\n  <Measurements>\r\n    <InverterPower>1000</InverterPower>\r\n    <GridPower>{0}</GridPower>\r\n  </Measurements>\r\n</Device>", text);
         var pvValueService = Mock.Create<TeslaSolarCharger.Server.Services.PvValueService>();
 
-        var intValue = pvValueService.GetValueFromResult("Device/Measurements/GridPower", xml, NodePatternType.Xml, false);
+        var intValue = pvValueService.GetValueFromResult("Device/Measurements/GridPower", xml, NodePatternType.Xml, null, null, null);
 
         Assert.Equal(384, intValue);
     }

@@ -48,7 +48,11 @@ public class PvValueService : IPvValueService
             var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
             var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
             var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
-            var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor, patternType).ConfigureAwait(false);
+            var xmlAttributeHeaderName = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
+            var xmlAttributeHeaderValue = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
+            var xmlAttributeValueName = _configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
+            var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor, patternType,
+                xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             _logger.LogTrace("Overage is {overage}", overage);
             _settings.Overage = overage;
             if (overage != null)
@@ -78,7 +82,11 @@ public class PvValueService : IPvValueService
             var inverterJsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
             var inverterXmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
             var inverterCorrectionFactor = (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor();
-            var inverterPower = await GetValueByHttpResponse(inverterHttpResponse, inverterJsonPattern, inverterXmlPattern, inverterCorrectionFactor, patternType).ConfigureAwait(false);
+            var xmlAttributeHeaderName = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
+            var xmlAttributeHeaderValue = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
+            var xmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
+            var inverterPower = await GetValueByHttpResponse(inverterHttpResponse, inverterJsonPattern, inverterXmlPattern, inverterCorrectionFactor,
+                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             _settings.InverterPower = inverterPower;
         }
 
@@ -106,7 +114,11 @@ public class PvValueService : IPvValueService
             var homeBatterySocJsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
             var homeBatterySocXmlPattern = _configurationWrapper.HomeBatterySocXmlPattern();
             var homeBatterySocCorrectionFactor = (double)_configurationWrapper.HomeBatterySocCorrectionFactor();
-            var homeBatterySoc = await GetValueByHttpResponse(homeBatterySocHttpResponse, homeBatterySocJsonPattern, homeBatterySocXmlPattern, homeBatterySocCorrectionFactor, patternType).ConfigureAwait(false);
+            var xmlAttributeHeaderName = _configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
+            var xmlAttributeHeaderValue = _configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
+            var xmlAttributeValueName = _configurationWrapper.HomeBatterySocXmlAttributeValueName();
+            var homeBatterySoc = await GetValueByHttpResponse(homeBatterySocHttpResponse, homeBatterySocJsonPattern, homeBatterySocXmlPattern, homeBatterySocCorrectionFactor,
+                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             _settings.HomeBatterySoc = homeBatterySoc;
         }
 
@@ -137,7 +149,11 @@ public class PvValueService : IPvValueService
             var homeBatteryPowerJsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
             var homeBatteryPowerXmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
             var homeBatteryPowerCorrectionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
-            var homeBatteryPower = await GetValueByHttpResponse(homeBatteryPowerHttpResponse, homeBatteryPowerJsonPattern, homeBatteryPowerXmlPattern, homeBatteryPowerCorrectionFactor, patternType).ConfigureAwait(false);
+            var xmlAttributeHeaderName = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
+            var xmlAttributeHeaderValue = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
+            var xmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
+            var homeBatteryPower = await GetValueByHttpResponse(homeBatteryPowerHttpResponse, homeBatteryPowerJsonPattern, homeBatteryPowerXmlPattern, homeBatteryPowerCorrectionFactor,
+                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             var homeBatteryPowerInversionRequestUrl = _configurationWrapper.HomeBatteryPowerInversionUrl();
             if (!string.IsNullOrEmpty(homeBatteryPowerInversionRequestUrl))
             {
@@ -146,7 +162,7 @@ public class PvValueService : IPvValueService
                 var homeBatteryPowerInversionRequest = GenerateHttpRequestMessage(homeBatteryPowerInversionRequestUrl, homeBatteryPowerInversionHeaders);
                 _logger.LogTrace("Request home battery power inversion.");
                 var homeBatteryPowerInversionHttpResponse = await GetHttpResponse(homeBatteryPowerInversionRequest).ConfigureAwait(false);
-                var shouldInvertHomeBatteryPowerInt = await GetValueByHttpResponse(homeBatteryPowerInversionHttpResponse, null, null, 1, NodePatternType.Direct).ConfigureAwait(false);
+                var shouldInvertHomeBatteryPowerInt = await GetValueByHttpResponse(homeBatteryPowerInversionHttpResponse, null, null, 1, NodePatternType.Direct, null, null, null).ConfigureAwait(false);
                 var shouldInvertHomeBatteryPower = Convert.ToBoolean(shouldInvertHomeBatteryPowerInt);
                 if (shouldInvertHomeBatteryPower)
                 {
@@ -159,7 +175,7 @@ public class PvValueService : IPvValueService
     }
 
     private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern,
-        double correctionFactor, NodePatternType nodePatternType)
+        double correctionFactor, NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
         int? intValue;
         if (httpResponse == null)
@@ -178,7 +194,7 @@ public class PvValueService : IPvValueService
         }
         else
         {
-            intValue = await GetIntegerValue(httpResponse, jsonPattern, xmlPattern, correctionFactor, nodePatternType).ConfigureAwait(false);
+            intValue = await GetIntegerValue(httpResponse, jsonPattern, xmlPattern, correctionFactor, nodePatternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
         }
 
         return intValue;
@@ -293,18 +309,18 @@ public class PvValueService : IPvValueService
 
 
     private async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor,
-        NodePatternType nodePatternType)
+        NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
         _logger.LogTrace("{method}({httpResonse}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
             nameof(GetIntegerValue), response, jsonPattern, xmlPattern, correctionFactor);
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-        return GetIntegerValueByString(result, jsonPattern, xmlPattern, correctionFactor, nodePatternType);
+        return GetIntegerValueByString(result, jsonPattern, xmlPattern, correctionFactor, nodePatternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
     }
 
     public int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor,
-        NodePatternType nodePatternType)
+        NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
         _logger.LogTrace("{method}({valueString}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
             nameof(GetIntegerValueByString), valueString, jsonPattern, xmlPattern, correctionFactor);
@@ -319,24 +335,14 @@ public class PvValueService : IPvValueService
             pattern = xmlPattern;
         }
 
-        var doubleValue = GetValueFromResult(pattern, valueString, nodePatternType, true);
+        var doubleValue = GetValueFromResult(pattern, valueString, nodePatternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
 
         return (int?)(doubleValue * correctionFactor);
     }
 
     
-    
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="pattern"></param>
-    /// <param name="result"></param>
-    /// <param name="patternType"></param>
-    /// <param name="isGridValue">true if grid meter value is requested, false if inverter value is requested</param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
-    /// <exception cref="ArgumentNullException"></exception>
-    internal double GetValueFromResult(string? pattern, string result, NodePatternType patternType, bool isGridValue)
+    internal double GetValueFromResult(string? pattern, string result, NodePatternType patternType,
+        string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
         switch (patternType)
         {
@@ -354,33 +360,18 @@ public class PvValueService : IPvValueService
                 {
                     case < 1:
                         throw new InvalidOperationException($"Could not find any nodes with pattern {pattern}");
+                    case 1:
+                        result = nodes[0]?.LastChild?.Value ?? "0";
+                        break;
                     case > 2:
-                        var xmlAttributeHeaderName = (isGridValue
-                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName()
-                            : _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName())
-                              ?? throw new InvalidOperationException("Could not get xmlAttributeHeaderName");
-
-                        var xmlAttributeHeaderValue = (isGridValue
-                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue()
-                            : _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue())
-                              ?? throw new InvalidOperationException("Could not get xmlAttributeHeaderValue");
-
-                        var xmlAttributeValueName = (isGridValue
-                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeValueName()
-                            : _configurationWrapper.CurrentInverterPowerXmlAttributeValueName())
-                              ?? throw new InvalidOperationException("Could not get xmlAttributeValueName");
-
                         for (var i = 0; i < nodes.Count; i++)
                         {
-                            if (nodes[i]?.Attributes?[xmlAttributeHeaderName]?.Value == xmlAttributeHeaderValue)
+                            if (nodes[i]?.Attributes?[xmlAttributeHeaderName ?? throw new ArgumentNullException(nameof(xmlAttributeHeaderName))]?.Value == xmlAttributeHeaderValue)
                             {
-                                result = nodes[i]?.Attributes?[xmlAttributeValueName]?.Value ?? "0";
+                                result = nodes[i]?.Attributes?[xmlAttributeValueName ?? throw new ArgumentNullException(nameof(xmlAttributeValueName))]?.Value ?? "0";
                                 break;
                             }
                         }
-                        break;
-                    case 1:
-                        result = nodes[0]?.LastChild?.Value ?? "0";
                         break;
                 }
                 break;
