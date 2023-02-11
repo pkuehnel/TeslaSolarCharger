@@ -101,35 +101,39 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         _logger.LogTrace("{method}({carId}, {dateTimeOffset}", nameof(PlanChargingSlots), car.Id, dateTimeOffSetNow);
         var plannedChargingSlots = new List<DtoChargingSlot>();
         var chargeDurationToMinSoc = CalculateTimeToReachMinSocAtFullSpeedCharge(car);
+        var latestTimeToReachSoc =
+            new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, TimeZoneInfo.Local.BaseUtcOffset);
         if (chargeDurationToMinSoc == TimeSpan.Zero && car.CarConfiguration.ChargeMode != ChargeMode.MaxPower)
         {
             //No charging is planned
         }
         else
         {
+            if (car.CarConfiguration.ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice
+                && !IsAbleToReachSocInTime(car, chargeDurationToMinSoc, dateTimeOffSetNow, latestTimeToReachSoc))
+            {
+                var plannedChargeSlot = GenerateChargingSlotFromNow(dateTimeOffSetNow, chargeDurationToMinSoc);
+                plannedChargingSlots.Add(plannedChargeSlot);
+                return plannedChargingSlots;
+            }
             switch (car.CarConfiguration.ChargeMode)
             {
                 case ChargeMode.PvAndMinSoc:
-                    var plannedChargeSlot = new DtoChargingSlot()
-                    {
-                        ChargeStart = dateTimeOffSetNow,
-                        ChargeEnd = dateTimeOffSetNow + chargeDurationToMinSoc,
-                    };
-
+                    var plannedChargeSlot = GenerateChargingSlotFromNow(dateTimeOffSetNow, chargeDurationToMinSoc);
                     plannedChargingSlots.Add(plannedChargeSlot);
                     break;
 
                 case ChargeMode.PvOnly:
-                    if (car.CarConfiguration.LatestTimeToReachSoC > dateTimeOffSetNow)
+                    var plannedChargingSlot = new DtoChargingSlot();
+                    if (latestTimeToReachSoc > dateTimeOffSetNow)
                     {
-                        var plannedChargingSlot = new DtoChargingSlot()
+                        plannedChargingSlot = new DtoChargingSlot()
                         {
-                            ChargeEnd = car.CarConfiguration.LatestTimeToReachSoC,
-                            ChargeStart = car.CarConfiguration.LatestTimeToReachSoC - chargeDurationToMinSoc,
+                            ChargeEnd = latestTimeToReachSoc,
+                            ChargeStart = latestTimeToReachSoc - chargeDurationToMinSoc,
                         };
-                        plannedChargingSlots.Add(plannedChargingSlot);
                     }
-
+                    plannedChargingSlots.Add(plannedChargingSlot);
                     break;
 
                 case ChargeMode.MaxPower:
@@ -142,7 +146,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
 
                 case ChargeMode.SpotPrice:
                     //ToDo: Plan hours that are cheaper than solar price
-                    var chargingSlots = await GenerateSpotPriceChargingSlots(car, chargeDurationToMinSoc).ConfigureAwait(false);
+                    var chargingSlots = await GenerateSpotPriceChargingSlots(car, chargeDurationToMinSoc, dateTimeOffSetNow, latestTimeToReachSoc).ConfigureAwait(false);
                     plannedChargingSlots.AddRange(chargingSlots);
                     break;
 
@@ -154,14 +158,25 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         return plannedChargingSlots.OrderBy(s => s.ChargeStart).ToList();
     }
 
+    private static DtoChargingSlot GenerateChargingSlotFromNow(DateTimeOffset dateTimeOffSetNow,
+        TimeSpan chargeDurationToMinSoc)
+    {
+        var plannedChargeSlot = new DtoChargingSlot()
+        {
+            ChargeStart = dateTimeOffSetNow,
+            ChargeEnd = dateTimeOffSetNow + chargeDurationToMinSoc,
+        };
+        return plannedChargeSlot;
+    }
+
     //ToDo: Add Unit Tests for this
-    internal async Task<List<DtoChargingSlot>> GenerateSpotPriceChargingSlots(Car car, TimeSpan chargeDurationToMinSoc)
+    internal async Task<List<DtoChargingSlot>> GenerateSpotPriceChargingSlots(Car car, TimeSpan chargeDurationToMinSoc,
+        DateTimeOffset dateTimeOffSetNow, DateTimeOffset latestTimeToReachSoc)
     {
         _logger.LogTrace("{method}({carId}, {chargeDurationToMinSoc}", nameof(GenerateSpotPriceChargingSlots), car.Id, chargeDurationToMinSoc);
         var chargingSlots = new List<DtoChargingSlot>();
-        var latestTimeToReachSoc = new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, TimeZoneInfo.Local.BaseUtcOffset);
         var chargePricesUntilLatestTimeToReachSocOrderedByPrice =
-            await ChargePricesUntilLatestTimeToReachSocOrderedByPrice(_dateTimeProvider.DateTimeOffSetNow(), latestTimeToReachSoc).ConfigureAwait(false);
+            await ChargePricesUntilLatestTimeToReachSocOrderedByPrice(dateTimeOffSetNow, latestTimeToReachSoc).ConfigureAwait(false);
         if (await IsLatestTimeToReachSocAfterLatestKnownChargePrice(car.Id).ConfigureAwait(false))
         {
             return chargingSlots;
@@ -169,7 +184,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
 
         var restTimeNeeded = chargeDurationToMinSoc;
         var chargingSlotsBeforeConcatenation = new List<DtoChargingSlot>();
-        var minDate = _dateTimeProvider.DateTimeOffSetNow();
+        var minDate = dateTimeOffSetNow;
         foreach (var cheapestPrice in chargePricesUntilLatestTimeToReachSocOrderedByPrice)
         {
             var chargingSlot = GenerateChargingSlotBySpotPrice(cheapestPrice, minDate, latestTimeToReachSoc);
@@ -186,6 +201,17 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         }
         chargingSlots = ConcatenateChargeTimes(chargingSlotsBeforeConcatenation);
         return chargingSlots;
+    }
+
+    private bool IsAbleToReachSocInTime(Car car, TimeSpan chargeDurationToMinSoc,
+        DateTimeOffset dateTimeOffSetNow, DateTimeOffset latestTimeToReachSoc)
+    {
+        var activeCharge = car.CarState.PlannedChargingSlots.FirstOrDefault(p => p.IsActive);
+        var activeChargeStartedBeforeLatestTimeToReachSoc =
+            activeCharge != default && activeCharge.ChargeStart < latestTimeToReachSoc;
+        return !((chargeDurationToMinSoc > TimeSpan.Zero)
+               && (latestTimeToReachSoc < (dateTimeOffSetNow + chargeDurationToMinSoc))
+               && (activeChargeStartedBeforeLatestTimeToReachSoc || (dateTimeOffSetNow < latestTimeToReachSoc)));
     }
 
     internal List<DtoChargingSlot> ConcatenateChargeTimes(List<DtoChargingSlot> chargingSlotsBeforeConcatenation)
