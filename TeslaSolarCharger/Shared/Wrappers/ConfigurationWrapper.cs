@@ -391,6 +391,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         return GetBaseConfiguration().TelegramChannelId;
     }
+    
+    public FrontendConfiguration? FrontendConfiguration()
+    {
+        return GetBaseConfiguration().FrontendConfiguration;
+    }
 
     internal T GetNotNullableConfigurationValue<T>(string environmentVariableName)
     {
