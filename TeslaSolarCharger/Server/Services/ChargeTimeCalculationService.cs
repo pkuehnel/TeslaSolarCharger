@@ -133,13 +133,6 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
                             ChargeStart = latestTimeToReachSoc - chargeDurationToMinSoc,
                         };
                     }
-
-                    if (plannedChargingSlot.ChargeStart < dateTimeOffSetNow)
-                    {
-                        var duration = plannedChargingSlot.ChargeDuration;
-                        plannedChargingSlot.ChargeStart = dateTimeOffSetNow;
-                        plannedChargingSlot.ChargeEnd = dateTimeOffSetNow + duration;
-                    }
                     plannedChargingSlots.Add(plannedChargingSlot);
                     break;
 
@@ -218,7 +211,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
             activeCharge != default && activeCharge.ChargeStart < latestTimeToReachSoc;
         return !((chargeDurationToMinSoc > TimeSpan.Zero)
                && (latestTimeToReachSoc < (dateTimeOffSetNow + chargeDurationToMinSoc))
-               && activeChargeStartedBeforeLatestTimeToReachSoc);
+               && (activeChargeStartedBeforeLatestTimeToReachSoc || dateTimeOffSetNow < latestTimeToReachSoc));
     }
 
     internal List<DtoChargingSlot> ConcatenateChargeTimes(List<DtoChargingSlot> chargingSlotsBeforeConcatenation)
