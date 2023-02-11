@@ -7,7 +7,7 @@ public class ChargePrice
     public decimal SolarPrice { get; set; }
     public decimal GridPrice { get; set; }
     public bool AddSpotPriceToGridPrice { get; set; }
-    public decimal SpotPriceCorrectionFactor { get; set; } = 1;
+    public decimal SpotPriceCorrectionFactor { get; set; }
 
 #pragma warning disable CS8618
     // ReSharper disable once CollectionNeverUpdated.Global
