@@ -163,9 +163,14 @@ public class ChargingCostService : TestBase
                 TimeStamp = new DateTime(2023, 1, 22, 19, 59, 59),
             },
         };
-        var averagePrice = await chargingCostService.CalculateAverageSpotPrice(powerDistributions).ConfigureAwait(false);
 
+        
+        var additionalChargePrice = new decimal(0.03);
+        var chargePrice = new ChargePrice() { SpotPriceCorrectionFactor = additionalChargePrice, };
 
-        Assert.Equal(new decimal(0.175), averagePrice);
+        var averagePrice = await chargingCostService.CalculateAverageSpotPrice(powerDistributions, chargePrice).ConfigureAwait(false);
+
+        var expectedValueWithoutAdditionalCosts = new decimal(0.175);
+        Assert.Equal(expectedValueWithoutAdditionalCosts + expectedValueWithoutAdditionalCosts * additionalChargePrice, averagePrice);
     }
 }
