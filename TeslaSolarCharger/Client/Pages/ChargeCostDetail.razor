@@ -33,7 +33,7 @@ else
             <input type="number" class="form-control" @bind="@ChargePrice.SolarPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="solarPrice" name="solarPrice" step=".0001">
         </div>
         <div class="form-group">
-            <label for="gridPrice">Grid Price</label>
+            <label for="gridPrice">@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")</label>
             <input type="number" class="form-control" @bind="@ChargePrice.GridPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="gridPrice" name="gridPrice" step=".0001">
         </div>
         <div class="form-check">
