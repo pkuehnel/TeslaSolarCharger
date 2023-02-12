@@ -136,10 +136,7 @@ public class IndexService : IIndexService
             { _toolTipTextKeys.CarAtHome, "Your car is in your defined GeoFence" },
             { _toolTipTextKeys.CarNotHealthy, "Your car has no optimal internet connection or there is an issue with the Tesla API." },
             { _toolTipTextKeys.CarPluggedIn, "Your car is plugged in" },
-            { _toolTipTextKeys.CarChargeMode, "ChargeMode of your car\r\n" +
-                                              $"{ChargeMode.MaxPower.ToFriendlyString()}: Your car will charge with the maximum available power.\r\n" +
-                                              $"{ChargeMode.PvOnly.ToFriendlyString()}: Your car will charge with solar power only despite you configured a min SoC in combination with a date when this soc should be reached.\r\n" +
-                                              $"{ChargeMode.PvAndMinSoc.ToFriendlyString()}: Your car will charge to the configured Min SoC with maximum available power, then it will continue to charge based on available solar power."},
+            { _toolTipTextKeys.CarChargeMode, "ChargeMode of your car. Click <a href=\"https://github.com/pkuehnel/TeslaSolarCharger#charge-modes\"  target=\"_blank\">here</a> for details."},
             { _toolTipTextKeys.ServerTime, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time." },
             { _toolTipTextKeys.ServerTimeZone, "This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" },
         };

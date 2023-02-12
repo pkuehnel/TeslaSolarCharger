@@ -142,7 +142,7 @@ else
             <p>
                 <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="chargeMode">
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeMode]">
-                        ChargeMode:
+                        ChargeMode: <a href="https://github.com/pkuehnel/TeslaSolarCharger#charge-modes" target="_blank"><i class="fa-solid fa-question" style="width: 25px;"></i></a>
                     </TooltipComponent>
                 </label>
                 <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="chargeMode" name="chargeMode">
@@ -166,7 +166,7 @@ else
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" @bind="_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate" id="flexCheckDefault">
                     <label class="form-check-label" for="flexCheckDefault">
-                        Charge everyday
+                        Charge every day
                     </label>
                 </div>
                 @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate)
