@@ -788,9 +788,10 @@ After setting everything up, you can use the software via `http://your-ip-addres
 
 Currently, there are three different charge modes available:
 
-1. **PV only**: Only solar energy is used to charge. You can set a SOC level which should be reached at a specific date and time. If solar power is not enough to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, you must specify `usable kWh` in the car settings section.
+1. **PV only**: Only solar energy is used to charge. You can set a SOC level that should be reached at the specified date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). If solar power is insufficient to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, specify `usable kWh` in the car settings section.
 1. **Maximum Power**: The car charges with the maximum available power
 1. **Min SoC + PV**: If plugged in, the car starts charging with maximum power until the set Min SoC is reached. After that, only PV Power is used to charge the car.
+1. **Spot Price + PV**: You can set a Min Soc, which should be reached at a specific date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). The charge times are then planned to charge at the cheapest possible time. This is especially useful if you have hourly electricity prices like with [Tibber](https://tibber.com/) or [aWATTar](https://www.awattar.de/). Note: The car will still charge based on Solar energy if available.
 
 ## Generate logfiles
 
