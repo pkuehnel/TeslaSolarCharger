@@ -49,10 +49,10 @@ else
         {
             <div class="form-group">
                 <label for="spotPriceCorrectionFactor">Additional costs to spotprice (%)</label>
-                <input type="number" class="form-control" @bind="@ChargePrice.SpotPriceSurcharge" placeholder="@(((decimal)1).ToString("0.0000"))" id="spotPriceCorrectionFactor" name="spotPriceCorrectionFactor" step=".01">
+                <input type="number" class="form-control" @bind="@ChargePrice.SpotPriceSurcharge" placeholder="@(((decimal)22).ToString("0.00"))" id="spotPriceCorrectionFactor" name="spotPriceCorrectionFactor" step=".01">
             </div>
             <div>
-                <small id="spotPriceCorrectionFactorHelp" class="form-text text-muted">Surcharge to spot price by your electricity provider (e.g. aWATTar 3%)</small>
+                <small id="spotPriceCorrectionFactorHelp" class="form-text text-muted">Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.</small>
             </div>
         }
         <br/>
