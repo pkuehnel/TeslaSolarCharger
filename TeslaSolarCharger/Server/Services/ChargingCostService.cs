@@ -52,7 +52,7 @@ public class ChargingCostService : IChargingCostService
         chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice!;
         chargePrice.ValidSince = dtoChargePrice.ValidSince;
         chargePrice.AddSpotPriceToGridPrice = dtoChargePrice.AddSpotPriceToGridPrice;
-        chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge?? 0) / 100;
+        chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge ?? 0) / 100;
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
         await UpdateHandledChargesPriceCalculation().ConfigureAwait(false);
@@ -191,7 +191,7 @@ public class ChargingCostService : IChargingCostService
                 var timespanSinceLastPowerDistribution = powerDistribution.TimeStamp - lastPowerDistributionTimeStamp;
                 powerDistribution.UsedWattHours = (float)(chargingPower * timespanSinceLastPowerDistribution.TotalHours);
             }
-            
+
         }
 
         powerDistribution.HandledCharge = latestOpenHandledCharge;
@@ -221,7 +221,7 @@ public class ChargingCostService : IChargingCostService
 
     private async Task CreateDefaultChargePrice()
     {
-        if (! await _teslaSolarChargerContext.ChargePrices
+        if (!await _teslaSolarChargerContext.ChargePrices
                 .AnyAsync().ConfigureAwait(false))
         {
             _logger.LogDebug("Add new charge price");
@@ -398,7 +398,13 @@ public class ChargingCostService : IChargingCostService
             var costsInThisHour = usedGridWattHour.Value * (float)relavantPrice.Price + usedGridWattHour.Value * (float)(relavantPrice.Price * chargePrice?.SpotPriceCorrectionFactor ?? 0);
             averagePrice += costsInThisHour;
         }
-        averagePrice /= usedGridWattHoursHourGroups.Values.Sum();
+
+        var usedGridWattHourSum = usedGridWattHoursHourGroups.Values.Sum();
+        if (usedGridWattHourSum <= 0)
+        {
+            return null;
+        }
+        averagePrice /= usedGridWattHourSum;
         return Convert.ToDecimal(averagePrice);
     }
 
