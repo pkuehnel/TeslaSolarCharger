@@ -282,6 +282,27 @@ public class ChargingCostService : IChargingCostService
         return await _teslaSolarChargerContext.SpotPrices.ToListAsync().ConfigureAwait(false);
     }
 
+    public async Task<List<DtoHandledCharge>> GetHandledCharges(int carId)
+    {
+        var mapper = _mapperConfigurationFactory.Create(cfg =>
+        {
+            //ToDo: Maybe possible null exceptions as not all members that are nullable in database are also nullable in dto
+            cfg.CreateMap<HandledCharge, DtoHandledCharge>()
+                .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.CalculatedPrice))
+                .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergy))
+                .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergy))
+                .ForMember(d => d.GridPrice, opt => opt.MapFrom(h => h.ChargePrice.GridPrice))
+                .ForMember(d => d.SolarPrice, opt => opt.MapFrom(h => h.ChargePrice.SolarPrice))
+                .ForMember(d => d.AverageSpotPrice, opt => opt.MapFrom(h => h.AverageSpotPrice))
+                ;
+        });
+        var handledCharges = await _teslaSolarChargerContext.HandledCharges
+            .Where(h => h.CarId == carId && h.CalculatedPrice != null)
+            .ProjectTo<DtoHandledCharge>(mapper)
+            .ToListAsync().ConfigureAwait(false);
+        return handledCharges;
+    }
+
     public async Task FinalizeHandledCharges()
     {
         _logger.LogTrace("{method}()", nameof(FinalizeHandledCharges));
