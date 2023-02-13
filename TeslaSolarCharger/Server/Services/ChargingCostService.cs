@@ -311,7 +311,7 @@ public class ChargingCostService : IChargingCostService
                 .FirstOrDefault(c => c.ChargingProcessId == dtoHandledCharge.ChargingProcessId)?
                 .StartDate.ToLocalTime();
         }
-        return handledCharges;
+        return handledCharges.OrderByDescending(d => d.StartTime).ToList();
     }
 
     public async Task FinalizeHandledCharges()
