@@ -1,0 +1,52 @@
+﻿@page "/HandledCharges/{carId:int}"
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@inject HttpClient HttpClient
+
+<h3>HandledChargesList</h3>
+
+@if (_handledCharges == null)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <table class="styled-table">
+        <thead>
+        <tr>
+            <th>Start time</th>
+            <th>Used Grid kWh</th>
+            <th>Used Solar kWh</th>
+            <th>Grid Price</th>
+            <th>Solar Price</th>
+            <th>Avg. Spot Price</th>
+        </tr>
+        </thead>
+        <tbody>
+            @foreach (var chargePrice in _handledCharges)
+        {
+            <tr>
+                <td>@chargePrice.StartTime</td>
+                <td>@chargePrice.CalculatedPrice.ToString("0.00")</td>
+                <td>@chargePrice.UsedGridEnergy.ToString("0.00")</td>
+                <td>@chargePrice.UsedSolarEnergy.ToString("0.00")</td>
+                <td>@chargePrice.GridPrice.ToString("0.00")</td>
+                <td>@chargePrice.SolarPrice.ToString("0.00")</td>
+                <td>@(chargePrice.AverageSpotPrice != null ? ((decimal)chargePrice.AverageSpotPrice).ToString("0.00") : "")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter]
+    public int CarId { get; set; }
+
+
+    private List<DtoHandledCharge>? _handledCharges;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}").ConfigureAwait(false);
+    }
+}

@@ -288,6 +288,7 @@ public class ChargingCostService : IChargingCostService
         {
             //ToDo: Maybe possible null exceptions as not all members that are nullable in database are also nullable in dto
             cfg.CreateMap<HandledCharge, DtoHandledCharge>()
+                .ForMember(d => d.ChargingProcessId, opt => opt.MapFrom(h => h.ChargingProcessId))
                 .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.CalculatedPrice))
                 .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergy))
                 .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergy))
@@ -300,6 +301,16 @@ public class ChargingCostService : IChargingCostService
             .Where(h => h.CarId == carId && h.CalculatedPrice != null)
             .ProjectTo<DtoHandledCharge>(mapper)
             .ToListAsync().ConfigureAwait(false);
+        var chargingProcesses = await _teslamateContext.ChargingProcesses
+            .Where(c => handledCharges.Select(h => h.ChargingProcessId).Contains(c.Id))
+            .Select(c => new { c.StartDate, ChargingProcessId = c.Id })
+            .ToListAsync().ConfigureAwait(false);
+        foreach (var dtoHandledCharge in handledCharges)
+        {
+            dtoHandledCharge.StartTime = chargingProcesses
+                .FirstOrDefault(c => c.ChargingProcessId == dtoHandledCharge.ChargingProcessId)?
+                .StartDate.ToLocalTime();
+        }
         return handledCharges;
     }
 
