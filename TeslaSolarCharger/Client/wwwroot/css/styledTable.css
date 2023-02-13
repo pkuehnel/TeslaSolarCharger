@@ -5,11 +5,11 @@
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
 }
 
-    .styled-table thead tr {
-        background-color: #3a0647;
-        color: #ffffff;
-        text-align: left;
-    }
+.styled-table thead tr {
+    background-color: #3a0647;
+    color: #ffffff;
+    text-align: left;
+}
 
 .styled-table th,
 .styled-table td {

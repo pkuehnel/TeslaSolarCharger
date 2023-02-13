@@ -4,7 +4,6 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;

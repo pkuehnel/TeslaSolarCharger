@@ -52,7 +52,7 @@ public class ChargingCostService : IChargingCostService
         chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice!;
         chargePrice.ValidSince = dtoChargePrice.ValidSince;
         chargePrice.AddSpotPriceToGridPrice = dtoChargePrice.AddSpotPriceToGridPrice;
-        chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge?? 0) / 100;
+        chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge ?? 0) / 100;
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
         await UpdateHandledChargesPriceCalculation().ConfigureAwait(false);
@@ -191,7 +191,7 @@ public class ChargingCostService : IChargingCostService
                 var timespanSinceLastPowerDistribution = powerDistribution.TimeStamp - lastPowerDistributionTimeStamp;
                 powerDistribution.UsedWattHours = (float)(chargingPower * timespanSinceLastPowerDistribution.TotalHours);
             }
-            
+
         }
 
         powerDistribution.HandledCharge = latestOpenHandledCharge;
@@ -221,7 +221,7 @@ public class ChargingCostService : IChargingCostService
 
     private async Task CreateDefaultChargePrice()
     {
-        if (! await _teslaSolarChargerContext.ChargePrices
+        if (!await _teslaSolarChargerContext.ChargePrices
                 .AnyAsync().ConfigureAwait(false))
         {
             _logger.LogDebug("Add new charge price");
@@ -280,6 +280,38 @@ public class ChargingCostService : IChargingCostService
     public async Task<List<SpotPrice>> GetSpotPrices()
     {
         return await _teslaSolarChargerContext.SpotPrices.ToListAsync().ConfigureAwait(false);
+    }
+
+    public async Task<List<DtoHandledCharge>> GetHandledCharges(int carId)
+    {
+        var mapper = _mapperConfigurationFactory.Create(cfg =>
+        {
+            //ToDo: Maybe possible null exceptions as not all members that are nullable in database are also nullable in dto
+            cfg.CreateMap<HandledCharge, DtoHandledCharge>()
+                .ForMember(d => d.ChargingProcessId, opt => opt.MapFrom(h => h.ChargingProcessId))
+                .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.CalculatedPrice))
+                .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergy))
+                .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergy))
+                .ForMember(d => d.GridPrice, opt => opt.MapFrom(h => h.ChargePrice.GridPrice))
+                .ForMember(d => d.SolarPrice, opt => opt.MapFrom(h => h.ChargePrice.SolarPrice))
+                .ForMember(d => d.AverageSpotPrice, opt => opt.MapFrom(h => h.AverageSpotPrice))
+                ;
+        });
+        var handledCharges = await _teslaSolarChargerContext.HandledCharges
+            .Where(h => h.CarId == carId && h.CalculatedPrice != null)
+            .ProjectTo<DtoHandledCharge>(mapper)
+            .ToListAsync().ConfigureAwait(false);
+        var chargingProcesses = await _teslamateContext.ChargingProcesses
+            .Where(c => handledCharges.Select(h => h.ChargingProcessId).Contains(c.Id))
+            .Select(c => new { c.StartDate, ChargingProcessId = c.Id })
+            .ToListAsync().ConfigureAwait(false);
+        foreach (var dtoHandledCharge in handledCharges)
+        {
+            dtoHandledCharge.StartTime = chargingProcesses
+                .FirstOrDefault(c => c.ChargingProcessId == dtoHandledCharge.ChargingProcessId)?
+                .StartDate.ToLocalTime();
+        }
+        return handledCharges.OrderByDescending(d => d.StartTime).ToList();
     }
 
     public async Task FinalizeHandledCharges()
@@ -366,7 +398,13 @@ public class ChargingCostService : IChargingCostService
             var costsInThisHour = usedGridWattHour.Value * (float)relavantPrice.Price + usedGridWattHour.Value * (float)(relavantPrice.Price * chargePrice?.SpotPriceCorrectionFactor ?? 0);
             averagePrice += costsInThisHour;
         }
-        averagePrice /= usedGridWattHoursHourGroups.Values.Sum();
+
+        var usedGridWattHourSum = usedGridWattHoursHourGroups.Values.Sum();
+        if (usedGridWattHourSum <= 0)
+        {
+            return null;
+        }
+        averagePrice /= usedGridWattHourSum;
         return Convert.ToDecimal(averagePrice);
     }
 

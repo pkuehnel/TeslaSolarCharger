@@ -135,7 +135,7 @@ else
             </div>
             <div>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
-                    <i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")
+                    <a href="HandledCharges/@car.CarId"><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")</a>
                 </TooltipComponent>
             </div>
 
