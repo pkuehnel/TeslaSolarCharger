@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MQTTnet;
 using MQTTnet.Adapter;
 using MQTTnet.Client;
@@ -19,6 +19,7 @@ using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.ApiServices;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -36,13 +37,13 @@ public static class ServiceCollectionExtensions
         => services
             .AddSingleton<JobManager>()
             .AddTransient<ChargingValueJob>()
-            .AddTransient<ConfigJsonUpdateJob>()
-            .AddTransient<ChargeTimeUpdateJob>()
+            .AddTransient<CarStateCachingJob>()
             .AddTransient<PvValueJob>()
             .AddTransient<PowerDistributionAddJob>()
             .AddTransient<HandledChargeFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
+            .AddTransient<SpotPriceJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -50,7 +51,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IConfigService, ConfigService>()
             .AddTransient<IConfigJsonService, ConfigJsonService>()
             .AddTransient<IDateTimeProvider, DateTimeProvider>()
-            .AddTransient<IChargeTimeUpdateService, ChargeTimeUpdateService>()
             .AddTransient<ITelegramService, TelegramService>()
             .AddTransient<ITeslaService, TeslamateApiService>()
             .AddSingleton<ISettings, Settings>()
@@ -91,5 +91,8 @@ public static class ServiceCollectionExtensions
             .AddSingleton<GlobalConstants>()
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
+            .AddTransient<ISpotPriceService, SpotPriceService>()
+            .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
+            .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
             ;
 }

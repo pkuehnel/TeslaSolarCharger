@@ -20,4 +20,15 @@ public class FakeDateTimeProvider : IDateTimeProvider
     {
         return _dateTime;
     }
+
+    public DateTimeOffset DateTimeOffSetNow()
+    {
+        var offset = TimeSpan.Zero;
+        if (_dateTime.Kind != DateTimeKind.Utc)
+        {
+            offset = TimeZoneInfo.Local.GetUtcOffset(_dateTime);
+        }
+
+        return new DateTimeOffset(_dateTime, offset);
+    }
 }

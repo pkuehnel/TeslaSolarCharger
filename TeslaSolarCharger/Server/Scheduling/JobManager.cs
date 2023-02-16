@@ -1,4 +1,4 @@
-﻿using Quartz;
+using Quartz;
 using Quartz.Spi;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Shared.Contracts;
@@ -32,24 +32,21 @@ public class JobManager
         _scheduler.JobFactory = _jobFactory;
 
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
-        var configJsonUpdateJob = JobBuilder.Create<ConfigJsonUpdateJob>().Build();
-        var chargeTimeUpdateJob = JobBuilder.Create<ChargeTimeUpdateJob>().Build();
+        var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
         var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
         var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
+        var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
 
         var chargingValueJobUpdateIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
         var chargingValueTrigger =
             TriggerBuilder.Create().WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)chargingValueJobUpdateIntervall.TotalSeconds)).Build();
 
-        var updateJsonTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(10)).Build();
-
-        var chargeTimeUpdateTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
+        var carStateCachingTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
         var pvValueJobIntervall = _configurationWrapper.PvValueJobUpdateIntervall();
         _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
@@ -69,16 +66,19 @@ public class JobManager
         var newVersionCheckTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(47)).Build();
 
+        var spotPricePlanningTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(1)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
-            {configJsonUpdateJob, new HashSet<ITrigger> {updateJsonTrigger}},
-            {chargeTimeUpdateJob, new HashSet<ITrigger> {chargeTimeUpdateTrigger}},
+            {carStateCachingJob, new HashSet<ITrigger> {carStateCachingTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
             {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
+            {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

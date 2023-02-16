@@ -9,4 +9,6 @@ public interface ICoreService
     DtoValue<int> NumberOfRelevantCars();
     DtoValue<int> HomeBatteryTargetChargingPower();
     DtoValue<bool> IsSolarEdgeInstallation();
+    DateTime GetCurrentServerTime();
+    DtoValue<string> GetServerTimeZoneDisplayName();
 }

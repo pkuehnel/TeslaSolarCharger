@@ -19,7 +19,7 @@ public class CarState
     public int LastSetAmp { get; set; }
     public int? ChargerPhases { get; set; }
 
-    public int? ActualPhases => ChargerPhases is null or > 1 ? 3 : 1;
+    public int ActualPhases => ChargerPhases is null or > 1 ? 3 : 1;
 
     public int? ChargerVoltage { get; set; }
     public int? ChargerActualCurrent { get; set; }
@@ -41,7 +41,7 @@ public class CarState
         }
     }
 
-    public int? ChargingPower
+    private int? ChargingPower
     {
         get
         {
@@ -73,4 +73,6 @@ public class CarState
     public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
+    public bool WasChargingLastCycle { get; set; }
+    public List<DtoChargingSlot> PlannedChargingSlots { get; set; } = new List<DtoChargingSlot>();
 }

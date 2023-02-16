@@ -23,19 +23,38 @@ else
             <label class="col-5 col-sm-4 col-md-3 col-lg-2">Id</label>
             <span class="col-6 col-sm-6 col-md-3 col-lg-2"> @ChargePrice.Id </span>
         </div>
-        <div class="col-12 row">
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Valid Since</label>
-            <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@ChargePrice.ValidSince.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+        <div class="form-group">
+            <label for="date">Valid Since</label>
+            <input class="form-control" value="@ChargePrice.ValidSince.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
                    @onchange="@(e => ChargePrice.ValidSince = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)))">
         </div>
-        <div class="col-12 row">
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Solar Price</label>
-            <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.SolarPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="solarPrice" name="solarPrice" step=".0001">
+        <div class="form-group">
+            <label for="solarPrice">Solar Price</label>
+            <input type="number" class="form-control" @bind="@ChargePrice.SolarPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="solarPrice" name="solarPrice" step=".0001">
         </div>
-        <div class="col-12 row">
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Grid Price</label>
-            <input type="number" class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ChargePrice.GridPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="gridPrice" name="gridPrice" step=".0001">
+        <div class="form-group">
+            <label for="gridPrice">@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")</label>
+            <input type="number" class="form-control" @bind="@ChargePrice.GridPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="gridPrice" name="gridPrice" step=".0001">
         </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" @bind="@ChargePrice.AddSpotPriceToGridPrice" id="useSpotPrice">
+            <label class="form-check-label" for="useSpotPrice">
+                Use Spot Prices
+            </label>
+            <div>
+                <small id="UseSpotPriceHelp" class="form-text text-muted">Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)</small>
+            </div>
+        </div>
+        @if (ChargePrice.AddSpotPriceToGridPrice)
+        {
+            <div class="form-group">
+                <label for="spotPriceCorrectionFactor">Additional costs to spotprice (%)</label>
+                <input type="number" class="form-control" @bind="@ChargePrice.SpotPriceSurcharge" placeholder="@(((decimal)22).ToString("0.00"))" id="spotPriceCorrectionFactor" name="spotPriceCorrectionFactor" step=".01">
+            </div>
+            <div>
+                <small id="spotPriceCorrectionFactorHelp" class="form-text text-muted">Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.</small>
+            </div>
+        }
         <br/>
         <button type="submit" class="btn btn-primary">Submit</button>
     </EditForm>
@@ -50,13 +69,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        ChargePrice = new DtoChargePrice()
-        {
-            ValidSince = DateTimeProvider.Now(),
-        };
         if (ChargeCostId != null)
         {
             ChargePrice = await HttpClient.GetFromJsonAsync<DtoChargePrice>($"api/ChargingCost/GetChargePriceById?id={ChargeCostId}").ConfigureAwait(false);
+        }
+        else
+        {
+            ChargePrice = new DtoChargePrice()
+            {
+                ValidSince = DateTimeProvider.Now(),
+            };
         }
     }
 

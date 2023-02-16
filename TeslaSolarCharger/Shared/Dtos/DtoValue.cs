@@ -11,5 +11,5 @@ public class DtoValue<T>
         Value = value;
     }
 
-    public T? Value;
+    public T? Value { get; set; }
 }

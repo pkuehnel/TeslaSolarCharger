@@ -14,5 +14,6 @@ public interface ITeslaSolarChargerContext
     ChangeTracker ChangeTracker { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken());
     DatabaseFacade Database { get; }
+    DbSet<SpotPrice> SpotPrices { get; set; }
     void RejectChanges();
 }

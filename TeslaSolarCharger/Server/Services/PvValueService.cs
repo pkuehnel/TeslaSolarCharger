@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 using System.Globalization;
 using System.Xml;
 using TeslaSolarCharger.Server.Contracts;
@@ -15,37 +16,43 @@ public class PvValueService : IPvValueService
     private readonly IInMemoryValues _inMemoryValues;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITelegramService _telegramService;
-    private readonly INodePatternTypeHelper _nodePatternTypeHelper;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
-        IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper, ITelegramService telegramService,
-        INodePatternTypeHelper nodePatternTypeHelper)
+        IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper,
+        ITelegramService telegramService,IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _settings = settings;
         _inMemoryValues = inMemoryValues;
         _configurationWrapper = configurationWrapper;
         _telegramService = telegramService;
-        _nodePatternTypeHelper = nodePatternTypeHelper;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task UpdatePvValues()
     {
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
-
+        _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         HttpRequestMessage? gridRequest = default;
         HttpResponseMessage? gridHttpResponse = default;
-        if (!string.IsNullOrWhiteSpace(gridRequestUrl))
+        if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is { GridValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
         {
             var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
             gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
             _logger.LogTrace("Request grid power.");
             gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
+            var patternType = frontendConfiguration.GridPowerNodePatternType ?? NodePatternType.Direct;
             var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
             var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
             var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
-            var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor).ConfigureAwait(false);
+            var xmlAttributeHeaderName = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
+            var xmlAttributeHeaderValue = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
+            var xmlAttributeValueName = _configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
+            var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor, patternType,
+                xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             _logger.LogTrace("Overage is {overage}", overage);
             _settings.Overage = overage;
             if (overage != null)
@@ -58,7 +65,7 @@ public class PvValueService : IPvValueService
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
         HttpRequestMessage? inverterRequest = default;
         HttpResponseMessage? inverterHttpResponse = default;
-        if (!string.IsNullOrWhiteSpace(inverterRequestUrl))
+        if (!string.IsNullOrWhiteSpace(inverterRequestUrl) && frontendConfiguration is { InverterValueSource: SolarValueSource.Modbus or SolarValueSource.Rest})
         {
             var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
             inverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
@@ -71,17 +78,22 @@ public class PvValueService : IPvValueService
                 _logger.LogTrace("Request inverter power.");
                 inverterHttpResponse = await GetHttpResponse(inverterRequest).ConfigureAwait(false);
             }
+            var patternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
             var inverterJsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
             var inverterXmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
             var inverterCorrectionFactor = (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor();
-            var inverterPower = await GetValueByHttpResponse(inverterHttpResponse, inverterJsonPattern, inverterXmlPattern, inverterCorrectionFactor).ConfigureAwait(false);
+            var xmlAttributeHeaderName = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
+            var xmlAttributeHeaderValue = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
+            var xmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
+            var inverterPower = await GetValueByHttpResponse(inverterHttpResponse, inverterJsonPattern, inverterXmlPattern, inverterCorrectionFactor,
+                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             _settings.InverterPower = inverterPower;
         }
 
         var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
         HttpRequestMessage? homeBatterySocRequest = default;
         HttpResponseMessage? homeBatterySocHttpResponse = default;
-        if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl))
+        if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl) && frontendConfiguration is { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
         {
             var homeBatterySocHeaders = _configurationWrapper.HomeBatterySocHeaders();
             homeBatterySocRequest = GenerateHttpRequestMessage(homeBatterySocRequestUrl, homeBatterySocHeaders);
@@ -98,15 +110,20 @@ public class PvValueService : IPvValueService
                 _logger.LogTrace("Request home battery soc.");
                 homeBatterySocHttpResponse = await GetHttpResponse(homeBatterySocRequest).ConfigureAwait(false);
             }
+            var patternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
             var homeBatterySocJsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
             var homeBatterySocXmlPattern = _configurationWrapper.HomeBatterySocXmlPattern();
             var homeBatterySocCorrectionFactor = (double)_configurationWrapper.HomeBatterySocCorrectionFactor();
-            var homeBatterySoc = await GetValueByHttpResponse(homeBatterySocHttpResponse, homeBatterySocJsonPattern, homeBatterySocXmlPattern, homeBatterySocCorrectionFactor).ConfigureAwait(false);
+            var xmlAttributeHeaderName = _configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
+            var xmlAttributeHeaderValue = _configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
+            var xmlAttributeValueName = _configurationWrapper.HomeBatterySocXmlAttributeValueName();
+            var homeBatterySoc = await GetValueByHttpResponse(homeBatterySocHttpResponse, homeBatterySocJsonPattern, homeBatterySocXmlPattern, homeBatterySocCorrectionFactor,
+                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             _settings.HomeBatterySoc = homeBatterySoc;
         }
 
         var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
-        if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl))
+        if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl) && frontendConfiguration is { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
         {
             var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
             var homeBatteryPowerRequest = GenerateHttpRequestMessage(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders);
@@ -128,10 +145,15 @@ public class PvValueService : IPvValueService
                 _logger.LogTrace("Request home battery power.");
                 homeBatteryPowerHttpResponse = await GetHttpResponse(homeBatteryPowerRequest).ConfigureAwait(false);
             }
+            var patternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
             var homeBatteryPowerJsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
             var homeBatteryPowerXmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
             var homeBatteryPowerCorrectionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
-            var homeBatteryPower = await GetValueByHttpResponse(homeBatteryPowerHttpResponse, homeBatteryPowerJsonPattern, homeBatteryPowerXmlPattern, homeBatteryPowerCorrectionFactor).ConfigureAwait(false);
+            var xmlAttributeHeaderName = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
+            var xmlAttributeHeaderValue = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
+            var xmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
+            var homeBatteryPower = await GetValueByHttpResponse(homeBatteryPowerHttpResponse, homeBatteryPowerJsonPattern, homeBatteryPowerXmlPattern, homeBatteryPowerCorrectionFactor,
+                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             var homeBatteryPowerInversionRequestUrl = _configurationWrapper.HomeBatteryPowerInversionUrl();
             if (!string.IsNullOrEmpty(homeBatteryPowerInversionRequestUrl))
             {
@@ -140,7 +162,7 @@ public class PvValueService : IPvValueService
                 var homeBatteryPowerInversionRequest = GenerateHttpRequestMessage(homeBatteryPowerInversionRequestUrl, homeBatteryPowerInversionHeaders);
                 _logger.LogTrace("Request home battery power inversion.");
                 var homeBatteryPowerInversionHttpResponse = await GetHttpResponse(homeBatteryPowerInversionRequest).ConfigureAwait(false);
-                var shouldInvertHomeBatteryPowerInt = await GetValueByHttpResponse(homeBatteryPowerInversionHttpResponse, null, null, 1).ConfigureAwait(false);
+                var shouldInvertHomeBatteryPowerInt = await GetValueByHttpResponse(homeBatteryPowerInversionHttpResponse, null, null, 1, NodePatternType.Direct, null, null, null).ConfigureAwait(false);
                 var shouldInvertHomeBatteryPower = Convert.ToBoolean(shouldInvertHomeBatteryPowerInt);
                 if (shouldInvertHomeBatteryPower)
                 {
@@ -152,7 +174,8 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern,
+        double correctionFactor, NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
         int? intValue;
         if (httpResponse == null)
@@ -171,7 +194,7 @@ public class PvValueService : IPvValueService
         }
         else
         {
-            intValue = await GetIntegerValue(httpResponse, jsonPattern, xmlPattern, correctionFactor).ConfigureAwait(false);
+            intValue = await GetIntegerValue(httpResponse, jsonPattern, xmlPattern, correctionFactor, nodePatternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
         }
 
         return intValue;
@@ -179,7 +202,7 @@ public class PvValueService : IPvValueService
 
     private async Task<HttpResponseMessage> GetHttpResponse(HttpRequestMessage request)
     {
-        _logger.LogTrace("{method}({request}) [called by {callingMethod}]", nameof(GetHttpResponse), request, new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.Name);
+        _logger.LogTrace("{method}({request}) [called by {callingMethod}]", nameof(GetHttpResponse), request, new StackTrace().GetFrame(1)?.GetMethod()?.Name);
         using var httpClient = new HttpClient();
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         return response;
@@ -206,6 +229,10 @@ public class PvValueService : IPvValueService
     {
         _logger.LogTrace("{method}()", nameof(GetAveragedOverage));
         long weightedSum = 0;
+        if (_settings.Overage == null)
+        {
+            return int.MinValue;
+        }
         _logger.LogTrace("Build weighted average of {count} values", _inMemoryValues.OverageValues.Count);
         for (var i = 0; i < _inMemoryValues.OverageValues.Count; i++)
         {
@@ -216,7 +243,9 @@ public class PvValueService : IPvValueService
         var weightedCount = _inMemoryValues.OverageValues.Count * (_inMemoryValues.OverageValues.Count + 1) / 2;
         if (weightedCount == 0)
         {
-            throw new InvalidOperationException("There are no power values available");
+            var powerDefaultValue = int.MinValue;
+            _logger.LogWarning("There are no power values available, use default value of {defaultValue}", powerDefaultValue);
+            return int.MinValue;
         }
         return (int)(weightedSum / weightedCount);
     }
@@ -279,22 +308,23 @@ public class PvValueService : IPvValueService
 
 
 
-    private async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    private async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor,
+        NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
         _logger.LogTrace("{method}({httpResonse}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
             nameof(GetIntegerValue), response, jsonPattern, xmlPattern, correctionFactor);
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-        return GetIntegerValueByString(result, jsonPattern, xmlPattern, correctionFactor);
+        return GetIntegerValueByString(result, jsonPattern, xmlPattern, correctionFactor, nodePatternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
     }
 
-    public int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor)
+    public int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor,
+        NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
         _logger.LogTrace("{method}({valueString}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
             nameof(GetIntegerValueByString), valueString, jsonPattern, xmlPattern, correctionFactor);
-        var pattern = "";
-        var nodePatternType = _nodePatternTypeHelper.DecideNodePatternType(jsonPattern, xmlPattern);
+        var pattern = string.Empty;
 
         if (nodePatternType == NodePatternType.Json)
         {
@@ -305,24 +335,14 @@ public class PvValueService : IPvValueService
             pattern = xmlPattern;
         }
 
-        var doubleValue = GetValueFromResult(pattern, valueString, nodePatternType, true);
+        var doubleValue = GetValueFromResult(pattern, valueString, nodePatternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
 
         return (int?)(doubleValue * correctionFactor);
     }
 
     
-    
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="pattern"></param>
-    /// <param name="result"></param>
-    /// <param name="patternType"></param>
-    /// <param name="isGridValue">true if grid meter value is requested, false if inverter value is requested</param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
-    /// <exception cref="ArgumentNullException"></exception>
-    internal double GetValueFromResult(string? pattern, string result, NodePatternType patternType, bool isGridValue)
+    internal double GetValueFromResult(string? pattern, string result, NodePatternType patternType,
+        string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
         switch (patternType)
         {
@@ -340,33 +360,18 @@ public class PvValueService : IPvValueService
                 {
                     case < 1:
                         throw new InvalidOperationException($"Could not find any nodes with pattern {pattern}");
+                    case 1:
+                        result = nodes[0]?.LastChild?.Value ?? "0";
+                        break;
                     case > 2:
-                        var xmlAttributeHeaderName = (isGridValue
-                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName()
-                            : _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName())
-                              ?? throw new InvalidOperationException("Could not get xmlAttributeHeaderName");
-
-                        var xmlAttributeHeaderValue = (isGridValue
-                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue()
-                            : _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue())
-                              ?? throw new InvalidOperationException("Could not get xmlAttributeHeaderValue");
-
-                        var xmlAttributeValueName = (isGridValue
-                            ? _configurationWrapper.CurrentPowerToGridXmlAttributeValueName()
-                            : _configurationWrapper.CurrentInverterPowerXmlAttributeValueName())
-                              ?? throw new InvalidOperationException("Could not get xmlAttributeValueName");
-
                         for (var i = 0; i < nodes.Count; i++)
                         {
-                            if (nodes[i]?.Attributes?[xmlAttributeHeaderName]?.Value == xmlAttributeHeaderValue)
+                            if (nodes[i]?.Attributes?[xmlAttributeHeaderName ?? throw new ArgumentNullException(nameof(xmlAttributeHeaderName))]?.Value == xmlAttributeHeaderValue)
                             {
-                                result = nodes[i]?.Attributes?[xmlAttributeValueName]?.Value ?? "0";
+                                result = nodes[i]?.Attributes?[xmlAttributeValueName ?? throw new ArgumentNullException(nameof(xmlAttributeValueName))]?.Value ?? "0";
                                 break;
                             }
                         }
-                        break;
-                    case 1:
-                        result = nodes[0]?.LastChild?.Value ?? "0";
                         break;
                 }
                 break;

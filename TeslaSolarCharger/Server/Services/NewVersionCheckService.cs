@@ -30,8 +30,7 @@ public class NewVersionCheckService : INewVersionCheckService
         {
             if (currentVersion.Contains("-"))
             {
-                _settings.IsNewVersionAvailable = false;
-                return;
+                currentVersion = currentVersion.Split("-").First();
             }
             var localVersion = Version.Parse(currentVersion);
             _logger.LogDebug("Local version is {localVersion}", localVersion);

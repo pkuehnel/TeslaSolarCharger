@@ -6,6 +6,8 @@ public class ChargePrice
     public DateTime ValidSince { get; set; }
     public decimal SolarPrice { get; set; }
     public decimal GridPrice { get; set; }
+    public bool AddSpotPriceToGridPrice { get; set; }
+    public decimal SpotPriceCorrectionFactor { get; set; }
 
 #pragma warning disable CS8618
     // ReSharper disable once CollectionNeverUpdated.Global

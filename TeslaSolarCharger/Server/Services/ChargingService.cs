@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -21,11 +23,14 @@ public class ChargingService : IChargingService
     private readonly IPvValueService _pvValueService;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly GlobalConstants _globalConstants;
+    private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
+    private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants)
+        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants, ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
+        IChargeTimeCalculationService chargeTimeCalculationService)
     {
         _logger = logger;
         _settings = settings;
@@ -36,14 +41,22 @@ public class ChargingService : IChargingService
         _pvValueService = pvValueService;
         _teslaMateMqttService = teslaMateMqttService;
         _globalConstants = globalConstants;
+        _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
+        _chargeTimeCalculationService = chargeTimeCalculationService;
     }
 
     public async Task SetNewChargingValues()
     {
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
+        await UpdateChargingRelevantValues().ConfigureAwait(false);
+
 
         _logger.LogDebug("Current overage is {overage} Watt.", _settings.Overage);
-
+        if (_settings.Overage == null)
+        {
+            _logger.LogWarning("Can not control power as overage is unknown. Use int minValue");
+            _settings.Overage = int.MinValue;
+        }
         var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
@@ -52,13 +65,17 @@ public class ChargingService : IChargingService
             _logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
         }
 
-        LogErrorForCarsWithUnknownSocLimit(_settings.Cars);
+        LogErrorForCarsWithUnknownSocLimit(_settings.CarsToManage);
 
         var relevantCarIds = GetRelevantCarIds();
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
 
         var irrelevantCars = GetIrrelevantCars(relevantCarIds);
         _logger.LogDebug("Irrelevant car ids: {@ids}", irrelevantCars.Select(c => c.Id));
+        foreach (var irrelevantCar in irrelevantCars)
+        {
+            SetAllPlannedChargingSlotsToInactive(irrelevantCar);
+        }
 
         var relevantCars = _settings.Cars
             .Where(c => relevantCarIds.Any(r => c.Id == r))
@@ -76,13 +93,7 @@ public class ChargingService : IChargingService
             return;
         }
 
-        if (_settings.Overage == null)
-        {
-            _logger.LogWarning("Can not control power as overage is unknown");
-            return;
-        }
-
-        var powerToControl = CalculatePowerToControl();
+        var powerToControl = CalculatePowerToControl(_settings.ControlledACarAtLastCycle);
 
         _logger.LogDebug("At least one car is charging.");
         _settings.ControlledACarAtLastCycle = true;
@@ -110,20 +121,34 @@ public class ChargingService : IChargingService
         }
     }
 
+    private void SetAllPlannedChargingSlotsToInactive(Car car)
+    {
+        foreach (var plannedChargingSlot in car.CarState.PlannedChargingSlots)
+        {
+            plannedChargingSlot.IsActive = false;
+        }
+    }
+
+    private async Task UpdateChargingRelevantValues()
+    {
+        UpdateChargeTimes();
+        await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
+        await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
+    }
+
     public int CalculateAmpByPowerAndCar(int powerToControl, Car car)
     {
         //ToDo: replace 230 with actual voltage on location
-        return Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * (car.CarState.ActualPhases ?? 3))));
+        return Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * car.CarState.ActualPhases)));
     }
 
-    public int CalculatePowerToControl()
+    public int CalculatePowerToControl(bool calculateAverage)
     {
-        _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
+        _logger.LogTrace("{method}({calculateAverage})", nameof(CalculatePowerToControl), calculateAverage);
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-
-        var averagedOverage = _pvValueService.GetAveragedOverage();
+        var averagedOverage = calculateAverage ? _pvValueService.GetAveragedOverage() : _settings.Overage ?? int.MinValue;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
         var overage = averagedOverage - buffer;
@@ -264,15 +289,15 @@ public class ChargingService : IChargingService
         }
         
 
-        EnableFullSpeedChargeIfMinimumSocNotReachable(car);
-        DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(car);
+        EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
+        DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
 
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (car.CarConfiguration.ChargeMode == ChargeMode.MaxPower || car.CarState.AutoFullSpeedCharge)
         {
             _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}",
                 car.CarConfiguration.ChargeMode, car.CarState.AutoFullSpeedCharge);
-            if (car.CarState.ChargerRequestedCurrent < maxAmpPerCar || car.CarState.State != CarStateEnum.Charging || maxAmpIncrease.Value < 0)
+            if (car.CarState.ChargerRequestedCurrent != maxAmpPerCar || car.CarState.State != CarStateEnum.Charging || maxAmpIncrease.Value < 0)
             {
                 var ampToSet = (maxAmpPerCar - car.CarState.ChargerRequestedCurrent) > maxAmpIncrease.Value ? ((car.CarState.ChargerActualCurrent ?? 0) + maxAmpIncrease.Value) : maxAmpPerCar;
                 _logger.LogDebug("Set current to {ampToSet} after considering max car Current {maxAmpPerCar} and maxAmpIncrease {maxAmpIncrease}", ampToSet, maxAmpPerCar, maxAmpIncrease.Value);
@@ -357,7 +382,7 @@ public class ChargingService : IChargingService
         }
 
         maxAmpIncrease.Value -= ampChange;
-        return ampChange * (car.CarState.ChargerVoltage ?? 230) * (car.CarState.ActualPhases ?? 3);
+        return ampChange * (car.CarState.ChargerVoltage ?? 230) * car.CarState.ActualPhases;
     }
 
     private async Task SendWarningOnChargerPilotReduced(Car car, int maxAmpPerCar)
@@ -381,29 +406,103 @@ public class ChargingService : IChargingService
         }
     }
 
-    internal void DisableFullSpeedChargeIfMinimumSocReachedOrMinimumSocReachable(Car car)
+    internal void DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(Car car)
     {
-        if (car.CarState.ReachingMinSocAtFullSpeedCharge == null
-            || car.CarState.SoC >= car.CarConfiguration.MinimumSoC
-            || car.CarState.ReachingMinSocAtFullSpeedCharge < car.CarConfiguration.LatestTimeToReachSoC.AddMinutes(-30)
-            && car.CarConfiguration.ChargeMode != ChargeMode.PvAndMinSoc)
+        var currentDate = _dateTimeProvider.DateTimeOffSetNow();
+        var plannedChargeSlotInCurrentTime = car.CarState.PlannedChargingSlots
+            .FirstOrDefault(c => c.ChargeStart <= currentDate && c.ChargeEnd > currentDate);
+        if (plannedChargeSlotInCurrentTime == default)
         {
             car.CarState.AutoFullSpeedCharge = false;
+            foreach (var plannedChargeSlot in car.CarState.PlannedChargingSlots)
+            {
+                plannedChargeSlot.IsActive = false;
+            }
         }
     }
 
-    internal void EnableFullSpeedChargeIfMinimumSocNotReachable(Car car)
+    internal void EnableFullSpeedChargeIfWithinPlannedChargingSlot(Car car)
     {
-        if (car.CarState.ReachingMinSocAtFullSpeedCharge > car.CarConfiguration.LatestTimeToReachSoC
-            && car.CarConfiguration.LatestTimeToReachSoC > _dateTimeProvider.Now()
-            || car.CarState.SoC < car.CarConfiguration.MinimumSoC
-            && car.CarConfiguration.ChargeMode == ChargeMode.PvAndMinSoc)
+        var currentDate = _dateTimeProvider.DateTimeOffSetNow();
+        var plannedChargeSlotInCurrentTime = car.CarState.PlannedChargingSlots
+            .FirstOrDefault(c => c.ChargeStart <= currentDate && c.ChargeEnd > currentDate);
+        if (plannedChargeSlotInCurrentTime != default)
         {
             car.CarState.AutoFullSpeedCharge = true;
+            plannedChargeSlotInCurrentTime.IsActive = true;
         }
     }
 
+    private void UpdateChargeTimes()
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
+        foreach (var car in _settings.CarsToManage)
+        {
+            _chargeTimeCalculationService.UpdateChargeTime(car);
+            UpdateShouldStartStopChargingSince(car);
+        }
+    }
 
+    private void UpdateShouldStartStopChargingSince(Car car)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), car.Id);
+        var powerToControl = CalculatePowerToControl(false);
+        var ampToSet = CalculateAmpByPowerAndCar(powerToControl, car);
+        _logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
+        if (car.CarState.IsHomeGeofence == true)
+        {
+            var actualCurrent = car.CarState.ChargerActualCurrent ?? 0;
+            _logger.LogTrace("Actual current: {actualCurrent}", actualCurrent);
+            //This is needed because sometimes actual current is higher than last set amp, leading to higher calculated amp to set, than actually needed
+            if (actualCurrent > car.CarState.LastSetAmp)
+            {
+                actualCurrent = car.CarState.LastSetAmp;
+            }
+            ampToSet += actualCurrent;
+        }
+        //Commented section not needed because should start should also be set if charging
+        if (ampToSet >= car.CarConfiguration.MinimumAmpere/* && (car.CarState.ChargerActualCurrent is 0 or null)*/)
+        {
+            SetEarliestSwitchOnToNowWhenNotAlreadySet(car);
+        }
+        else
+        {
+            SetEarliestSwitchOffToNowWhenNotAlreadySet(car);
+        }
+    }
+
+    internal void SetEarliestSwitchOnToNowWhenNotAlreadySet(Car car)
+    {
+        _logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOnToNowWhenNotAlreadySet), car.Id);
+        if (car.CarState.ShouldStartChargingSince == null)
+        {
+            car.CarState.ShouldStartChargingSince = _dateTimeProvider.Now();
+            var timespanUntilSwitchOn = _configurationWrapper.TimespanUntilSwitchOn();
+            var earliestSwitchOn = car.CarState.ShouldStartChargingSince + timespanUntilSwitchOn;
+            car.CarState.EarliestSwitchOn = earliestSwitchOn;
+        }
+        car.CarState.EarliestSwitchOff = null;
+        car.CarState.ShouldStopChargingSince = null;
+        _logger.LogDebug("Should start charging since: {shoudStartChargingSince}", car.CarState.ShouldStartChargingSince);
+        _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", car.CarState.EarliestSwitchOn);
+    }
+
+    internal void SetEarliestSwitchOffToNowWhenNotAlreadySet(Car car)
+    {
+        _logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOffToNowWhenNotAlreadySet), car.Id);
+        if (car.CarState.ShouldStopChargingSince == null)
+        {
+            car.CarState.ShouldStopChargingSince = _dateTimeProvider.Now();
+            var timespanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
+            var earliestSwitchOff = car.CarState.ShouldStopChargingSince + timespanUntilSwitchOff;
+            car.CarState.EarliestSwitchOff = earliestSwitchOff;
+        }
+        car.CarState.EarliestSwitchOn = null;
+        car.CarState.ShouldStartChargingSince = null;
+        _logger.LogDebug("Should start charging since: {shoudStartChargingSince}", car.CarState.ShouldStartChargingSince);
+        _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", car.CarState.EarliestSwitchOff);
+    }
 
     
+
 }

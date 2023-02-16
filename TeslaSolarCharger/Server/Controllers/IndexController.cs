@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
@@ -18,7 +19,7 @@ public class IndexController : ApiBaseController
     public DtoPvValues GetPvValues() => _indexService.GetPvValues();
 
     [HttpGet]
-    public Task<List<DtoCarBaseStates>> GetCarBaseValuesOfEnabledCars() => _indexService.GetCarBaseStatesOfEnabledCars();
+    public Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars() => _indexService.GetCarBaseStatesOfEnabledCars();
 
     [HttpGet]
     public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars() => _indexService.GetCarBaseSettingsOfEnabledCars();
@@ -28,8 +29,14 @@ public class IndexController : ApiBaseController
         => _indexService.GetCarDetails(carId);
 
     [HttpPost]
-    public void UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
+    public Task UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
 
     [HttpGet]
     public Dictionary<string, string> GetToolTipTexts() => _indexService.GetToolTipTexts();
+
+    [HttpGet]
+    public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId) => _indexService.RecalculateAndGetChargingSlots(carId);
+
+    [HttpGet]
+    public List<DtoChargingSlot> GetChargingSlots(int carId) => _indexService.GetChargingSlots(carId);
 }

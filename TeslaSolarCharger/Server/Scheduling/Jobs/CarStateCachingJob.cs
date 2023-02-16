@@ -4,12 +4,12 @@ using TeslaSolarCharger.Server.Contracts;
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
 [DisallowConcurrentExecution]
-public class ChargeTimeUpdateJob : IJob
+public class CarStateCachingJob : IJob
 {
-    private readonly ILogger<ChargeTimeUpdateJob> _logger;
-    private readonly IChargeTimeUpdateService _service;
+    private readonly ILogger<CarStateCachingJob> _logger;
+    private readonly IConfigJsonService _service;
 
-    public ChargeTimeUpdateJob(ILogger<ChargeTimeUpdateJob> logger, IChargeTimeUpdateService service)
+    public CarStateCachingJob(ILogger<CarStateCachingJob> logger, IConfigJsonService service)
     {
         _logger = logger;
         _service = service;
@@ -17,6 +17,6 @@ public class ChargeTimeUpdateJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await Task.Run(() => _service.UpdateChargeTimes()).ConfigureAwait(false);
+        await _service.CacheCarStates().ConfigureAwait(false);
     }
 }

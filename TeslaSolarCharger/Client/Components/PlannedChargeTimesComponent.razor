@@ -1,0 +1,50 @@
+﻿@using TeslaSolarCharger.Shared.Dtos.Settings
+@using System.Timers
+@inject HttpClient HttpClient
+
+@if (ChargingSlots is { Count: > 0 })
+{
+    <p>
+        <b>Planned Charging Slots:</b>
+        <table class="styled-table">
+            <thead>
+                <tr>
+                    <th>
+                        Start
+                    </th>
+                    <th>
+                        End
+                    </th>
+                    <th>
+                        Duration
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var chargingSlot in ChargingSlots)
+                {
+                    <tr class="@(chargingSlot.IsActive ? "active-row" : "")">
+                        <td>
+                            @chargingSlot.ChargeStart.LocalDateTime.ToString("g")
+                        </td>
+                        <td>
+                            @chargingSlot.ChargeEnd.LocalDateTime.ToString("g")
+                        </td>
+                        <td>
+                            @if (chargingSlot.ChargeDuration < TimeSpan.FromDays(1))
+                            {
+                                @chargingSlot.ChargeDuration.ToString(@"hh\:mm")
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </p>
+
+}
+
+@code {
+    [Parameter] 
+    public List<DtoChargingSlot>? ChargingSlots { get; set; }
+}

@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -36,10 +38,15 @@ public class IssueValidationService : IIssueValidationService
         _teslamateContext = teslamateContext;
     }
 
-    public async Task<List<Issue>> RefreshIssues()
+    public async Task<List<Issue>> RefreshIssues(TimeSpan clientTimeZoneId)
     {
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
         var issueList = new List<Issue>();
+        issueList.AddRange(GetServerConfigurationIssues(clientTimeZoneId));
+        if (Debugger.IsAttached)
+        {
+            return issueList;
+        }
         issueList.AddRange(GetMqttIssues());
         issueList.AddRange(PvValueIssues());
         issueList.AddRange(await GetTeslaMateApiIssues().ConfigureAwait(false));
@@ -52,7 +59,7 @@ public class IssueValidationService : IIssueValidationService
     public async Task<DtoValue<int>> ErrorCount()
     {
         _logger.LogTrace("{method}()", nameof(ErrorCount));
-        var issues = await RefreshIssues().ConfigureAwait(false);
+        var issues = await RefreshIssues(TimeZoneInfo.Local.BaseUtcOffset).ConfigureAwait(false);
         var errorIssues = issues.Where(i => i.IssueType == IssueType.Error).ToList();
         return new DtoValue<int>(errorIssues.Count);
     }
@@ -60,7 +67,7 @@ public class IssueValidationService : IIssueValidationService
     public async Task<DtoValue<int>> WarningCount()
     {
         _logger.LogTrace("{method}()", nameof(WarningCount));
-        var issues = await RefreshIssues().ConfigureAwait(false);
+        var issues = await RefreshIssues(TimeZoneInfo.Local.BaseUtcOffset).ConfigureAwait(false);
         var warningIssues = issues.Where(i => i.IssueType == IssueType.Warning).ToList();
         var warningCount = new DtoValue<int>(warningIssues.Count);
         return warningCount;
@@ -145,42 +152,34 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.GridPowerNotAvailable));
         }
 
-        var isInverterPowerConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.CurrentInverterPowerUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.CurrentInverterPowerMqttTopic()));
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration() ?? new FrontendConfiguration();
+        var isInverterPowerConfigured = frontendConfiguration.InverterValueSource != SolarValueSource.None;
         if (isInverterPowerConfigured && _settings.InverterPower == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.InverterPowerNotAvailable));
         }
 
-        var isHomeBatterySocGettingConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatterySocMqttTopic()));
-        if (isHomeBatterySocGettingConfigured && _settings.HomeBatterySoc == null)
+        var isHomeBatteryConfigured = frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None;
+        if (isHomeBatteryConfigured && _settings.HomeBatterySoc == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotAvailable));
         }
-
-        if (isHomeBatterySocGettingConfigured && _settings.HomeBatterySoc != null && (_settings.HomeBatterySoc > 100 || _settings.HomeBatterySoc < 0))
+        if (isHomeBatteryConfigured && _settings.HomeBatterySoc is > 100 or < 0)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotPlausible));
         }
 
-        var isHomeBatteryPowerGettingConfigured = !(string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerUrl()) && string.IsNullOrWhiteSpace(_configurationWrapper.HomeBatteryPowerMqttTopic()));
-        if (isHomeBatteryPowerGettingConfigured && _settings.HomeBatteryPower == null)
+        if (isHomeBatteryConfigured && _settings.HomeBatteryPower == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryPowerNotAvailable));
         }
 
-        if (isHomeBatteryPowerGettingConfigured != isHomeBatterySocGettingConfigured)
-        {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryHalfConfigured));
-        }
-
-        if ((isHomeBatterySocGettingConfigured || isHomeBatteryPowerGettingConfigured) &&
-            (_configurationWrapper.HomeBatteryMinSoc() == null))
+        if (isHomeBatteryConfigured && (_configurationWrapper.HomeBatteryMinSoc() == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryMinimumSocNotConfigured));
         }
 
-        if ((isHomeBatterySocGettingConfigured || isHomeBatteryPowerGettingConfigured) &&
-            (_configurationWrapper.HomeBatteryChargingPower() == null))
+        if (isHomeBatteryConfigured && (_configurationWrapper.HomeBatteryChargingPower() == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryChargingPowerNotConfigured));
         }
@@ -211,6 +210,18 @@ public class IssueValidationService : IIssueValidationService
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CorrectionFactorZero));
         }
+        return issues;
+    }
+
+    private List<Issue> GetServerConfigurationIssues(TimeSpan clientTimeUtcOffset)
+    {
+        var issues = new List<Issue>();
+        var serverTimeUtcOffset = TimeZoneInfo.Local.BaseUtcOffset;
+        if (clientTimeUtcOffset != serverTimeUtcOffset)
+        {
+            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.ServerTimeZoneDifferentFromClient));
+        }
+
         return issues;
     }
 }

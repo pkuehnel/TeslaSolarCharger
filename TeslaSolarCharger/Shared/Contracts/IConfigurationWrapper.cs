@@ -78,4 +78,6 @@ public interface IConfigurationWrapper
     /// </summary>
     /// <returns>Configured max combined current. If no value is configured int.MaxValue is returned.</returns>
     int MaxCombinedCurrent();
+
+    FrontendConfiguration? FrontendConfiguration();
 }

@@ -36,16 +36,16 @@
                 </TooltipComponent>
             </div>
         }
-        <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
-            <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
-                <i class="fa-solid fa-bolt" style="width: 25px;"></i>
-                @if (_pvValues.GridPower != null)
-                {
-                    @Math.Abs((int)_pvValues.GridPower)
-                }
-                W
-            </TooltipComponent>
-        </div>
+        @if (_pvValues.GridPower != null && _pvValues.GridPower != int.MinValue)
+        {
+            <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
+                    <i class="fa-solid fa-bolt" style="width: 25px;"></i>
+                    @Math.Abs((int)_pvValues.GridPower) W
+                </TooltipComponent>
+            </div>
+        }
+
         @if (_pvValues.HomeBatterySoc != null)
         {
             <div>
@@ -135,14 +135,14 @@ else
             </div>
             <div>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
-                    <i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")
+                    <a href="HandledCharges/@car.CarId"><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")</a>
                 </TooltipComponent>
             </div>
 
             <p>
                 <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="chargeMode">
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeMode]">
-                        ChargeMode:
+                        ChargeMode: <a href="https://github.com/pkuehnel/TeslaSolarCharger#charge-modes" target="_blank"><i class="fa-solid fa-question" style="width: 25px;"></i></a>
                     </TooltipComponent>
                 </label>
                 <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="chargeMode" name="chargeMode">
@@ -153,7 +153,7 @@ else
                 </InputSelect>
             </p>
 
-            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvAndMinSoc || _carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
+            @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvAndMinSoc or ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
@@ -161,21 +161,39 @@ else
                @onchange="@(e => _carBaseSettings[car.CarId].MinimumStateOfCharge = Int32.Parse(e.Value?.ToString() ?? "0"))">
                 </p>
             }
-            @if (_carBaseSettings[car.CarId].ChargeMode == ChargeMode.PvOnly)
+            @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
-                <p>
-                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
-                </p>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate" id="flexCheckDefault">
+                    <label class="form-check-label" for="flexCheckDefault">
+                        Charge every day
+                    </label>
+                </div>
+                @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate)
+                {
+                    <p>
+
+                        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
+                        <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+                                    @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
+                    </p>
+                }
                 <p>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="time" name="time"
                @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                 </p>
+
             }
+            @if (car.ChargingNotPlannedDueToNoSpotPricesAvailable)
+            {
+                <p>Note: Spot prices are published for the next day at 14:00 - 15:00. Charges won't be planned until @_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddDays(-1).AddHours(15).ToString(CultureInfo.CurrentCulture)</p>
+            }
+
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
-            
+
+            <PlannedChargeTimesComponent ChargingSlots="@car.ChargingSlots"></PlannedChargeTimesComponent>
+
             <CollapsePanel CollapsedColor="@_collapsedColor"
                    ExpandedColor="@_expandedColor"
                    HoverColor="@_hoverColor"
@@ -185,63 +203,82 @@ else
                    Animate="@_isAnimated"
                    ShowContentOverflow="@_showOverflow"
                    OnCollapseChanged="(state)=>OnCollapseChanged(state, car.CarId)">
-            <CollapsedHeaderContent>
-                <div class="w-100">
-                    <b>More car details:</b>
-                    <span class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></span>
-                </div>
-            </CollapsedHeaderContent>
-            <ExpandedHeaderContent>
-                <div class="w-100">
-                    <b>Collapse</b>
-                    <span class="fa fa-lg fa-chevron-circle-up" aria-hidden="true"></span>
-                </div>
-            </ExpandedHeaderContent>
-            <Content>
-                <div style="border: 1px solid gray; height: 100%;">
-                    <table>
-                        <tr>
-                            <th>
-                                Topic
-                            </th>
-                            <th>
-                                Value
-                            </th>
-                        </tr>
-                        @if (_carDetailStates.Any(c => c.Key == car.CarId))
-                        {
-                            @foreach (var carTopicValue in _carDetailStates[car.CarId])
+                <CollapsedHeaderContent>
+                    <div class="w-100">
+                        <b>More car details:</b>
+                        <span class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></span>
+                    </div>
+                </CollapsedHeaderContent>
+                <ExpandedHeaderContent>
+                    <div class="w-100">
+                        <b>Collapse</b>
+                        <span class="fa fa-lg fa-chevron-circle-up" aria-hidden="true"></span>
+                    </div>
+                </ExpandedHeaderContent>
+                <Content>
+                    <div style="border: 1px solid gray; height: 100%;">
+                        <table>
+                            <tr>
+                                <th>
+                                    Topic
+                                </th>
+                                <th>
+                                    Value
+                                </th>
+                            </tr>
+                            @if (_carDetailStates.Any(c => c.Key == car.CarId))
                             {
-                                <tr>
-                                    <td>
-                                        @carTopicValue.Topic
-                                    </td>
-                                    <td>
-                                        @carTopicValue.Value
-                                    </td>
-                                </tr>
+                                @foreach (var carTopicValue in _carDetailStates[car.CarId])
+                                {
+                                    <tr>
+                                        <td>
+                                            @carTopicValue.Topic
+                                        </td>
+                                        <td>
+                                            @carTopicValue.Value
+                                        </td>
+                                    </tr>
+                                }
                             }
-                        }
-                        else
-                        {
-                            <div>Loading, may take about 5 seconds...</div>
-                        }
-                        
-                    </table>
-                </div>
-            </Content>
-        </CollapsePanel>
+                            else
+                            {
+                                <div>Loading, may take about 5 seconds...</div>
+                            }
+
+                        </table>
+                    </div>
+                </Content>
+            </CollapsePanel>
         </div>
     }
+    <div class="shadow p-3 mb-5 bg-white rounded">
+        @if (_serverTimeZoneDisplayName != default)
+        {
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTimeZone]">
+                    Server Timezone: @_serverTimeZoneDisplayName
+                </TooltipComponent>
+            </div>
+        }
+        @if (_serverTime != default)
+        {
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTime]">
+                    Current Server Time: @_serverTime?.ToString()
+                </TooltipComponent>
+            </div>
+        }
+        @if (string.IsNullOrWhiteSpace(_version))
+        {
+            <p><em>Could not load version</em></p>
+        }
+        else
+        {
+            <p><em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em></p>
+        }
+    </div>
 
-    @if (string.IsNullOrWhiteSpace(_version))
-    {
-        <p><em>Could not load version</em></p>
-    }
-    else
-    {
-        <p><em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em></p>
-    }
+
     <form action="https://www.paypal.com/donate" method="post" target="_blank">
         <div style="text-align:center">
             <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
@@ -271,6 +308,8 @@ else
     private bool _isCollapseDisabled = false;
     private bool _showOverflow = false;
     private int _height = 0;
+    private DateTime? _serverTime;
+    private string? _serverTimeZoneDisplayName;
 
     private Timer? _timer;
 
@@ -280,12 +319,13 @@ else
     protected override async Task OnInitializedAsync()
     {
         _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
+        await RefreshCarBaseSettings().ConfigureAwait(false);
         await RefreshCarBaseStates().ConfigureAwait(false);
-        _carBaseSettings = await HttpClient
-            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
-            .ConfigureAwait(false);
         await RefreshPvValues().ConfigureAwait(false);
-        _isSolarEdgeInstallation = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false))?.Value;
+        await RefreshServerTime().ConfigureAwait(false);
+        await RefreshServerTimeZone().ConfigureAwait(false);
+        var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
+        _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
         {
@@ -295,13 +335,20 @@ else
 
         _timer = new Timer();
         _timer.Interval = 5000;
-        _timer.Elapsed += RefreshStates;
+        _timer.Elapsed += async (_, _) => await RefreshStates().ConfigureAwait(false);
         _timer.Start();
     }
 
     private async Task RefreshCarBaseStates()
     {
-        _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseValuesOfEnabledCars").ConfigureAwait(false);
+        _carBaseStates = await HttpClient.GetFromJsonAsync<List<DtoCarBaseStates>>("api/Index/GetCarBaseStatesOfEnabledCars").ConfigureAwait(false);
+    }
+
+    private async Task RefreshCarBaseSettings()
+    {
+        _carBaseSettings = await HttpClient
+            .GetFromJsonAsync<Dictionary<int, DtoCarBaseSettings>>("api/Index/GetCarBaseSettingsOfEnabledCars")
+            .ConfigureAwait(false);
     }
 
     private async Task RefreshPvValues()
@@ -321,10 +368,13 @@ else
         {
             ToastService.ShowError("Error updating car configuration");
         }
+        await RefreshCarBaseSettings().ConfigureAwait(false);
+        await RefreshCarBaseStates().ConfigureAwait(false);
         _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
+        StateHasChanged();
     }
 
-    private async Task UpdateAllVisableCarDetails()
+    private async Task RefreshAllVisableCarDetails()
     {
         if (_carBaseStates == null)
         {
@@ -347,7 +397,19 @@ else
             }
             _carDetailStates[carId] = carDetailStates;
         }
-            
+
+    }
+
+    private async Task RefreshServerTime()
+    {
+        var dtoTimeValue = await HttpClient.GetFromJsonAsync<DateTime>("api/Hello/GetServerLocalTime").ConfigureAwait(false);
+        _serverTime = dtoTimeValue;
+    }
+
+    private async Task RefreshServerTimeZone()
+    {
+        var dtoServerTimeZoneId = await HttpClient.GetFromJsonAsync<DtoValue<string>>("api/Hello/GetServerTimeZoneDisplayName").ConfigureAwait(false);
+        _serverTimeZoneDisplayName = dtoServerTimeZoneId?.Value;
     }
 
     private Task OnCollapseChanged(bool changedToCollapse, int carId)
@@ -364,19 +426,20 @@ else
         return Task.CompletedTask;
     }
 
-    private async void RefreshStates(object? sender, ElapsedEventArgs elapsedEventArgs)
+    private async Task RefreshStates()
     {
         try
         {
             await RefreshPvValues().ConfigureAwait(false);
             await RefreshCarBaseStates().ConfigureAwait(false);
-            await UpdateAllVisableCarDetails().ConfigureAwait(false);
+            await RefreshAllVisableCarDetails().ConfigureAwait(false);
+            await RefreshServerTime().ConfigureAwait(false);
             _couldNotRefreshStates = false;
         }
         catch (Exception)
         {
             _couldNotRefreshStates = true;
         }
-        this.StateHasChanged();
+        StateHasChanged();
     }
 }

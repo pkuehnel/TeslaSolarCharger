@@ -1,4 +1,5 @@
 ﻿using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 
@@ -16,4 +17,6 @@ public class DtoCarBaseStates
     public bool IsHome { get; set; }
     public bool IsAutoFullSpeedCharging { get; set; }
     public bool? IsHealthy { get; set; }
+    public bool ChargingNotPlannedDueToNoSpotPricesAvailable { get; set; }
+    public List<DtoChargingSlot> ChargingSlots { get; set; } = new();
 }

@@ -43,10 +43,16 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("AddSpotPriceToGridPrice")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("GridPrice")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("SolarPrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("SpotPriceCorrectionFactor")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("ValidSince")
@@ -62,6 +68,9 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("AverageSpotPrice")
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal?>("CalculatedPrice")
                         .HasColumnType("TEXT");
@@ -109,11 +118,34 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<DateTime>("TimeStamp")
                         .HasColumnType("TEXT");
 
+                    b.Property<float?>("UsedWattHours")
+                        .HasColumnType("REAL");
+
                     b.HasKey("Id");
 
                     b.HasIndex("HandledChargeId");
 
                     b.ToTable("PowerDistributions");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.SpotPrice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SpotPrices");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.HandledCharge", b =>

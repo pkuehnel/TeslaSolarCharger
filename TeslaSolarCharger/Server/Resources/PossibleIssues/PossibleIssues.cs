@@ -73,12 +73,6 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
-                issueKeys.HomeBatteryHalfConfigured, CreateIssue("Home battery is not configured completly",
-                    IssueType.Error,
-                    "Did you completly configure values for Home Battery SOC and Home Battery Power?"
-                )
-            },
-            {
                 issueKeys.TeslaMateApiNotAvailable, CreateIssue("Could not access TeslaMateApi",
                     IssueType.Error,
                     "Is the TeslaMateApi container running",
@@ -106,13 +100,13 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
-                issueKeys.HomeBatteryMinimumSocNotConfigured, CreateIssue("Although you did set settings for your home battery you did not set Home Battery Minimum Soc (%)",
+                issueKeys.HomeBatteryMinimumSocNotConfigured, CreateIssue("Home Battery Minimum Soc (%) is not set.",
                     IssueType.Error,
                     "Set the Home Battery Minimum Soc (%) in your Base Configuration"
                 )
             },
             {
-                issueKeys.HomeBatteryChargingPowerNotConfigured, CreateIssue("Although you did set settings for your home battery you did not set Home Battery charging power (W)",
+                issueKeys.HomeBatteryChargingPowerNotConfigured, CreateIssue("Home Battery charging power (W) is not set.",
                     IssueType.Error,
                     "Set the Home Battery charging power (W) in your Base Configuration"
                 )
@@ -131,6 +125,12 @@ public class PossibleIssues : IPossibleIssues
                     "Set the inverter power correction factor to a value different than 0.",
                     "Set the home battery power correction factor to a value different than 0.",
                     "Set the home batter SoC correction factor to a value different than 0."
+                )
+            },
+            {
+                issueKeys.ServerTimeZoneDifferentFromClient, CreateIssue("Server time zone does not match client timezone",
+                    IssueType.Warning,
+                    "Update the TimeZone of the TeslaSolarChargerContainer in your docker-compose.yml."
                 )
             },
         };

@@ -10,7 +10,6 @@ public class IssueKeys
     public string HomeBatterySocNotAvailable = "HomeBatterySocNotAvailable";
     public string HomeBatterySocNotPlausible = "HomeBatterySocNotPlausible";
     public string HomeBatteryPowerNotAvailable = "HomeBatteryPowerNotAvailable";
-    public string HomeBatteryHalfConfigured = "HomeBatteryHalfConfigured";
     public string HomeBatteryMinimumSocNotConfigured = "HomeBatteryMinimumSocNotConfigured";
     public string HomeBatteryChargingPowerNotConfigured = "HomeBatteryChargingPowerNotConfigured";
     public string TeslaMateApiNotAvailable = "TeslaMateApiNotAvailable";
@@ -19,4 +18,5 @@ public class IssueKeys
     public string CarIdNotAvailable = "CarIdNotAvailable";
     public string VersionNotUpToDate = "VersionNotUpToDate";
     public string CorrectionFactorZero = "CorrectionFactorZero";
+    public string ServerTimeZoneDifferentFromClient = "ServerTimeZoneDifferentFromClient";
 }

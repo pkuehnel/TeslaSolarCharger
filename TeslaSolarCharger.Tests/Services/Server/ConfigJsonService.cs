@@ -14,6 +14,7 @@ public class ConfigJsonService : TestBase
     {
     }
 
+
     [Fact]
     public void Adds_every_new_car()
     {
@@ -38,7 +39,6 @@ public class ConfigJsonService : TestBase
         foreach (var car in cars)
         {
             Assert.Equal(ChargeMode.PvAndMinSoc, car.CarConfiguration.ChargeMode);
-            Assert.True(car.CarConfiguration.UpdatedSincLastWrite);
             Assert.Equal(16, car.CarConfiguration.MaximumAmpere);
             Assert.Equal(1, car.CarConfiguration.MinimumAmpere);
             Assert.Equal(75, car.CarConfiguration.UsableEnergy);

@@ -10,4 +10,6 @@ public class DtoChargePrice
     public decimal? SolarPrice { get; set; }
     [Required]
     public decimal? GridPrice { get; set; }
+    public bool AddSpotPriceToGridPrice { get; set; }
+    public decimal? SpotPriceSurcharge { get; set; } = 19;
 }
