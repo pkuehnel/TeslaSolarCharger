@@ -36,7 +36,7 @@
                 </TooltipComponent>
             </div>
         }
-        @if (_pvValues.GridPower != null && _pvValues.GridPower != int.MinValue)
+        @if (_pvValues.GridPower != null)
         {
             <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">

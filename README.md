@@ -786,7 +786,7 @@ After setting everything up, you can use the software via `http://your-ip-addres
 
 ### Charge Modes
 
-Currently, there are three different charge modes available:
+Currently, there are four different charge modes available:
 
 1. **PV only**: Only solar energy is used to charge. You can set a SOC level that should be reached at the specified date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). If solar power is insufficient to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, specify `usable kWh` in the car settings section.
 1. **Maximum Power**: The car charges with the maximum available power

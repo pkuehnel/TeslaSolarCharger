@@ -31,7 +31,7 @@ public class CarDbUpdateService : ICarDbUpdateService
                     .OrderByDescending(p => p.Date)
                     .Select(c => c.BatteryLevel)
                     .FirstOrDefaultAsync().ConfigureAwait(false);
-                _logger.LogTrace("battery level for var {car} is {batteryLevel}", car.Id, batteryLevel);
+                _logger.LogTrace("Battery level for car {car} is {batteryLevel}", car.Id, batteryLevel);
                 car.CarState.SoC = batteryLevel;
             }
             catch (Exception exception)
