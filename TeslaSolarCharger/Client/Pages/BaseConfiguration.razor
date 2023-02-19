@@ -117,18 +117,21 @@ else
                                   @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeValueName"
                                   @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
             }
-            <div class="form-group">
-                <label for="CorrectionFactor">Correction Factor</label>
-                <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactorString" class="form-control" />
-                <div>
-                    <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+            @if (_dtoBaseConfiguration.FrontendConfiguration.GridValueSource != SolarValueSource.None)
+            {
+                <div class="form-group">
+                    <label for="CorrectionFactor">Correction Factor</label>
+                    <InputText id="CorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactorString" class="form-control" />
+                    <div>
+                        <small id="CorrectionFactorHelp" class="form-text text-muted">Use this to correct the returned value. E.g. if the returned value is 100 but should bei -1 insert -0.01</small>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="powerBuffer">Power Buffer (Watt)</label>
-                <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
-                <small id="powerBufferHelp" class="form-text text-muted">Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).</small>
-            </div>
+                <div class="form-group">
+                    <label for="powerBuffer">Power Buffer (Watt)</label>
+                    <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" class="form-control" />
+                    <small id="powerBufferHelp" class="form-text text-muted">Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).</small>
+                </div>
+            }
         </div>
         <div class="shadow p-3 mb-5 bg-white rounded">
             <h3>Home Battery:</h3>

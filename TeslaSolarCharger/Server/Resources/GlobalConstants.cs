@@ -2,5 +2,6 @@
 
 public class GlobalConstants
 {
-    public int MinSocLimit = 50;
+    public readonly int MinSocLimit = 50;
+    public readonly int DefaultOverage = -1000000;
 }
