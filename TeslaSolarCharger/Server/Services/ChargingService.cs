@@ -55,7 +55,6 @@ public class ChargingService : IChargingService
         if (_settings.Overage == null)
         {
             _logger.LogWarning("Can not control power as overage is unknown. Use int minValue");
-            _settings.Overage = int.MinValue + 10;
         }
         var geofence = _configurationWrapper.GeoFence();
         _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
@@ -93,7 +92,7 @@ public class ChargingService : IChargingService
             return;
         }
 
-        var powerToControl = CalculatePowerToControl(_settings.ControlledACarAtLastCycle);
+        var powerToControl = _settings.Overage == null ? 0: CalculatePowerToControl(_settings.ControlledACarAtLastCycle);
 
         _logger.LogDebug("At least one car is charging.");
         _settings.ControlledACarAtLastCycle = true;
