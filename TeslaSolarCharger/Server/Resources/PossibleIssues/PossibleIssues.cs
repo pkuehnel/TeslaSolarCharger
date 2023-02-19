@@ -40,6 +40,7 @@ public class PossibleIssues : IPossibleIssues
             {
                 issueKeys.GridPowerNotAvailable, CreateIssue("Grid Power is not available",
                     IssueType.Error,
+                    "If you do not use solar values set grid source to none.",
                     "Are all settings related to grid power (url, extraction patterns, headers,...) correct?",
                     "Are there any firewall related issues preventing reading the grid power value?"
                 )
