@@ -147,12 +147,13 @@ public class IssueValidationService : IIssueValidationService
     {
         _logger.LogTrace("{method}()", nameof(GetMqttIssues));
         var issues = new List<Issue>();
-        if (_settings.Overage == null)
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration() ?? new FrontendConfiguration();
+
+        var isGridPowerConfigured = frontendConfiguration.GridValueSource != SolarValueSource.None;
+        if (isGridPowerConfigured && _settings.Overage == null)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.GridPowerNotAvailable));
         }
-
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration() ?? new FrontendConfiguration();
         var isInverterPowerConfigured = frontendConfiguration.InverterValueSource != SolarValueSource.None;
         if (isInverterPowerConfigured && _settings.InverterPower == null)
         {
