@@ -147,7 +147,8 @@ public class ChargingService : IChargingService
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-        var averagedOverage = calculateAverage ? _pvValueService.GetAveragedOverage() : _settings.Overage ?? int.MinValue;
+        var averagedOverage =
+            calculateAverage ? _pvValueService.GetAveragedOverage() : (_settings.Overage ?? _globalConstants.DefaultOverage);
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
         var overage = averagedOverage - buffer;
