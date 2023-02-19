@@ -92,7 +92,7 @@ public class ChargingService : IChargingService
             return;
         }
 
-        var powerToControl = _settings.Overage == null ? 0: CalculatePowerToControl(_settings.ControlledACarAtLastCycle);
+        var powerToControl = _settings.Overage == null ? -100000 : CalculatePowerToControl(_settings.ControlledACarAtLastCycle);
 
         _logger.LogDebug("At least one car is charging.");
         _settings.ControlledACarAtLastCycle = true;
