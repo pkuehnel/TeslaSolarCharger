@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -12,14 +13,16 @@ public class TeslamateApiService : ITeslaService
     private readonly ILogger<TeslamateApiService> _logger;
     private readonly ITelegramService _telegramService;
     private readonly ISettings _settings;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly string _teslaMateBaseUrl;
 
     public TeslamateApiService(ILogger<TeslamateApiService> logger, ITelegramService telegramService, 
-        ISettings settings, IConfigurationWrapper configurationWrapper)
+        ISettings settings, IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _telegramService = telegramService;
         _settings = settings;
+        _dateTimeProvider = dateTimeProvider;
         _teslaMateBaseUrl = configurationWrapper.TeslaMateApiBaseUrl();
     }
 
@@ -31,18 +34,7 @@ public class TeslamateApiService : ITeslaService
             _logger.LogDebug("Should start charging with 0 amp. Skipping charge start.");
             return;
         }
-        if (carState == CarStateEnum.Offline ||
-            carState == CarStateEnum.Asleep)
-        {
-            _logger.LogInformation("Wakeup car before charging");
-            await WakeUpCar(carId).ConfigureAwait(false);
-        }
-
-        if (carState == CarStateEnum.Suspended)
-        {
-            _logger.LogInformation("Logging is suspended");
-            await ResumeLogging(carId).ConfigureAwait(false);
-        }
+        await WakeUpCarIfNeeded(carId, carState).ConfigureAwait(false);
 
         var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/charge_start";
 
@@ -51,6 +43,21 @@ public class TeslamateApiService : ITeslaService
         await SetAmp(carId, startAmp).ConfigureAwait(false);
 
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
+    }
+
+    private async Task WakeUpCarIfNeeded(int carId, CarStateEnum? carState)
+    {
+        switch (carState)
+        {
+            case CarStateEnum.Offline or CarStateEnum.Asleep:
+                _logger.LogInformation("Wakeup car.");
+                await WakeUpCar(carId).ConfigureAwait(false);
+                break;
+            case CarStateEnum.Suspended:
+                _logger.LogInformation("Resume logging as is suspended");
+                await ResumeLogging(carId).ConfigureAwait(false);
+                break;
+        }
     }
 
     public async Task StopCharging(int carId)
@@ -84,12 +91,12 @@ public class TeslamateApiService : ITeslaService
     {
         _logger.LogTrace("{method}({param1}, {param2})", nameof(SetAmp), carId, amps);
         var car = _settings.Cars.First(c => c.Id == carId);
+
+        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/set_charging_amps";
         var parameters = new Dictionary<string, string>()
         {
             {"charging_amps", amps.ToString()},
         };
-
-        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/set_charging_amps";
 
         HttpResponseMessage? result = null;
         if (car.CarState.ChargerRequestedCurrent != amps)
@@ -111,6 +118,75 @@ public class TeslamateApiService : ITeslaService
         {
             _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
         }
+    }
+
+    //ToDo: Create unit tests
+    public async Task SetScheduledCharging(int carId, DateTimeOffset chargingStartTime)
+    {
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(SetScheduledCharging), carId, chargingStartTime);
+        var car = _settings.Cars.First(c => c.Id == carId);
+        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/set_scheduled_charging";
+
+        if (IsChargingScheduleChangeNeeded(chargingStartTime, _dateTimeProvider.DateTimeOffSetNow(),car, out var parameters))
+        {
+            return;
+        }
+
+        await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
+        
+        var result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
+
+        _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
+    }
+
+    internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
+    {
+        parameters = new Dictionary<string, string>();
+        if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
+        {
+            _logger.LogDebug("Correct charging start time already set.");
+            return false;
+        }
+
+        if (chargingStartTime == null)
+        {
+            parameters = new Dictionary<string, string>()
+            {
+                { "enable", "false" },
+                { "time", 0.ToString() },
+            };
+            return true;
+        }
+
+        var localStartTime = chargingStartTime.Value.TimeOfDay;
+        var minutesFromMidNight = (int)localStartTime.TotalMinutes;
+        var timeUntilChargeStart = chargingStartTime.Value - currentDate;
+        var scheduledChargeShouldBeSet = true;
+
+        if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
+        {
+            _logger.LogDebug("Correct charging start time already set.");
+            return true;
+        }
+
+        if (timeUntilChargeStart <= TimeSpan.Zero || timeUntilChargeStart.TotalHours > 24)
+        {
+            _logger.LogDebug("Charge schedule should not be set.");
+            return false;
+        }
+
+        if (car.CarState.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
+        {
+            _logger.LogDebug("No charge schedule set and no charge schedule should be set.");
+            return true;
+        }
+
+        parameters = new Dictionary<string, string>()
+        {
+            { "enable", scheduledChargeShouldBeSet ? "true" : "false" },
+            { "time", minutesFromMidNight.ToString() },
+        };
+        return true;
     }
 
     private async Task ResumeLogging(int carId)
