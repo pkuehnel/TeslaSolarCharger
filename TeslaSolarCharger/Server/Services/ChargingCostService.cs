@@ -57,7 +57,7 @@ public class ChargingCostService : IChargingCostService
 
         await UpdateHandledChargesPriceCalculation().ConfigureAwait(false);
     }
-
+    // TODO: Diesen Kommentar löschen
     private async Task UpdateHandledChargesPriceCalculation()
     {
         var handledCharges = await _teslaSolarChargerContext.HandledCharges.ToListAsync().ConfigureAwait(false);
@@ -105,6 +105,8 @@ public class ChargingCostService : IChargingCostService
             .ToListAsync().ConfigureAwait(false);
         return chargePrices;
     }
+    // TODO: here is code that can be deleted: 2023-02-24 Freundorfer, Josef
+    // auf einmal ist es, mir zu blöd: es ist gerade noch komisch zu schreiben, aber es wird besser
 
     public async Task AddPowerDistributionForAllChargingCars()
     {
