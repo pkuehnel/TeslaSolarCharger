@@ -63,7 +63,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         foreach (var car in carsToPlan)
         {
             await UpdatePlannedChargingSlots(car).ConfigureAwait(false);
-            if (car.CarConfiguration.ShouldSetChargeStartTimes != true)
+            if (car.CarConfiguration.ShouldSetChargeStartTimes != true || car.CarState.IsHomeGeofence != true)
             {
                 continue;
             }
