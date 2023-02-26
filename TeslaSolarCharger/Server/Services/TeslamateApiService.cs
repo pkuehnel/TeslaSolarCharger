@@ -146,10 +146,12 @@ public class TeslamateApiService : ITeslaService
 
     internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
     {
+        _logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, car.Id, nameof(parameters));
         parameters = new Dictionary<string, string>();
         
         if (chargingStartTime != null)
         {
+            _logger.LogTrace("{chargingStartTime} is not null", nameof(chargingStartTime));
             var maximumTeslaChargeStartAccuracyMinutes = 15;
             var minutes = chargingStartTime.Value.Minute; // Aktuelle Minute des DateTimeOffset-Objekts
             
@@ -164,6 +166,7 @@ public class TeslamateApiService : ITeslaService
 
             var newNotRoundedDateTime = chargingStartTime.Value.AddHours(additionalHours);
             chargingStartTime = new DateTimeOffset(newNotRoundedDateTime.Year, newNotRoundedDateTime.Month, newNotRoundedDateTime.Day, newNotRoundedDateTime.Hour, roundedMinutes, 0, newNotRoundedDateTime.Offset);
+            _logger.LogDebug("Rounded charging Start time: {chargingStartTime}", chargingStartTime);
         }
         if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
         {
@@ -173,6 +176,7 @@ public class TeslamateApiService : ITeslaService
 
         if (chargingStartTime == null)
         {
+            _logger.LogDebug("Set chargingStartTime to null.");
             parameters = new Dictionary<string, string>()
             {
                 { "enable", "false" },
@@ -204,12 +208,13 @@ public class TeslamateApiService : ITeslaService
             _logger.LogDebug("No charge schedule set and no charge schedule should be set.");
             return true;
         }
-
+        _logger.LogDebug("Normal parameter set.");
         parameters = new Dictionary<string, string>()
         {
             { "enable", scheduledChargeShouldBeSet ? "true" : "false" },
             { "time", minutesFromMidNight.ToString() },
         };
+        _logger.LogTrace("{@parameters}", parameters);
         return true;
     }
 
