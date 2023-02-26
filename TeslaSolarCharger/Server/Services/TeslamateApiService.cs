@@ -132,8 +132,9 @@ public class TeslamateApiService : ITeslaService
         var car = _settings.Cars.First(c => c.Id == carId);
         var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/command/set_scheduled_charging";
 
-        if (IsChargingScheduleChangeNeeded(chargingStartTime, _dateTimeProvider.DateTimeOffSetNow(),car, out var parameters))
+        if (!IsChargingScheduleChangeNeeded(chargingStartTime, _dateTimeProvider.DateTimeOffSetNow(),car, out var parameters))
         {
+            _logger.LogDebug("No change in updating scheduled charging needed.");
             return;
         }
 
