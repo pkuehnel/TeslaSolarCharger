@@ -120,8 +120,13 @@ public class TeslamateApiService : ITeslaService
         }
     }
 
-    //ToDo: Create unit tests
-    public async Task SetScheduledCharging(int carId, DateTimeOffset chargingStartTime)
+    /// <summary>
+    /// Set charging start time in TeslaApp
+    /// </summary>
+    /// <param name="carId">TeslaMate car Id</param>
+    /// <param name="chargingStartTime">null if no charge should be planned, otherwise time when charge should start.</param>
+    /// <returns></returns>
+    public async Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
     {
         _logger.LogTrace("{method}({param1}, {param2})", nameof(SetScheduledCharging), carId, chargingStartTime);
         var car = _settings.Cars.First(c => c.Id == carId);
@@ -142,6 +147,24 @@ public class TeslamateApiService : ITeslaService
     internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
     {
         parameters = new Dictionary<string, string>();
+        
+        if (chargingStartTime != null)
+        {
+            var maximumTeslaChargeStartAccuracyMinutes = 15;
+            var minutes = chargingStartTime.Value.Minute; // Aktuelle Minute des DateTimeOffset-Objekts
+            
+            // Runden auf die nächste viertel Stunde
+            var roundedMinutes = (int)Math.Ceiling((double)minutes / maximumTeslaChargeStartAccuracyMinutes) * maximumTeslaChargeStartAccuracyMinutes;
+            var additionalHours = 0;
+            if (roundedMinutes == 60)
+            {
+                roundedMinutes = 0;
+                additionalHours = 1;
+            }
+
+            var newNotRoundedDateTime = chargingStartTime.Value.AddHours(additionalHours);
+            chargingStartTime = new DateTimeOffset(newNotRoundedDateTime.Year, newNotRoundedDateTime.Month, newNotRoundedDateTime.Day, newNotRoundedDateTime.Hour, roundedMinutes, 0, newNotRoundedDateTime.Offset);
+        }
         if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
         {
             _logger.LogDebug("Correct charging start time already set.");
@@ -169,9 +192,10 @@ public class TeslamateApiService : ITeslaService
             return true;
         }
 
+        //ToDo: maybe disable scheduled charge in this case.
         if (timeUntilChargeStart <= TimeSpan.Zero || timeUntilChargeStart.TotalHours > 24)
         {
-            _logger.LogDebug("Charge schedule should not be set.");
+            _logger.LogDebug("Charge schedule should not be changed, as time until charge start is higher than 24 hours or lower than zero.");
             return false;
         }
 

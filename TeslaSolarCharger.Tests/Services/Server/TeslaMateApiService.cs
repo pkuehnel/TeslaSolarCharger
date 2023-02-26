@@ -17,8 +17,8 @@ public class TeslaMateApiService : TestBase
 
     [Theory]
     [InlineData(18, null, null, false)]
-    [InlineData(18, null, 19, false)]
-    [InlineData(18, null, 17, true)]
+    [InlineData(18, null, 19, true)]
+    [InlineData(18, null, 17, false)]
     [InlineData(18, 17, null, true)]
     [InlineData(27, null, 3, false)]
     [InlineData(27, 4, 4, false)]
@@ -36,8 +36,10 @@ public class TeslaMateApiService : TestBase
         
         DateTimeOffset? setChargeStart = carSetHour == null ? null :
             new DateTimeOffset(2022, 2, 14, (int)carSetHour, 0, 0, TimeSpan.Zero);
+        var hourDifference = 1;
         DateTimeOffset? chargeStartToSet = carHourToSet == null ? null :
-            new DateTimeOffset(2022, 2, 14, (int)carHourToSet, 0, 0, TimeSpan.Zero);
+            //Minutes set to check if is rounding up to next 15 minutes
+            new DateTimeOffset(2022, 2, 13, (int)carHourToSet - hourDifference, 51, 0, TimeSpan.Zero);
 
         var car = new Car()
         {
@@ -66,7 +68,7 @@ public class TeslaMateApiService : TestBase
             else
             {
                 Assert.Equal("true", parameters["enable"]);
-                var localhour = chargeStartToSet!.Value.TimeOfDay.Hours;
+                var localhour = chargeStartToSet!.Value.TimeOfDay.Hours + hourDifference;
                 Assert.Equal((localhour * 60).ToString(), parameters["time"]);
             }
             

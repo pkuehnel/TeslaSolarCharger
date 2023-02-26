@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -17,15 +18,18 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     private readonly ISettings _settings;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly ISpotPriceService _spotPriceService;
+    private readonly ITeslaService _teslaService;
 
     public ChargeTimeCalculationService(ILogger<ChargeTimeCalculationService> logger, IDateTimeProvider dateTimeProvider,
-        ISettings settings, ITeslaSolarChargerContext teslaSolarChargerContext, ISpotPriceService spotPriceService)
+        ISettings settings, ITeslaSolarChargerContext teslaSolarChargerContext, ISpotPriceService spotPriceService,
+        ITeslaService teslaService)
     {
         _logger = logger;
         _dateTimeProvider = dateTimeProvider;
         _settings = settings;
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _spotPriceService = spotPriceService;
+        _teslaService = teslaService;
     }
 
     public TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(Car car)
@@ -59,6 +63,38 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         foreach (var car in carsToPlan)
         {
             await UpdatePlannedChargingSlots(car).ConfigureAwait(false);
+            if (car.CarConfiguration.ShouldSetChargeStartTimes != true)
+            {
+                continue;
+            }
+#pragma warning disable CS4014
+            SetChargeStartIfNeeded(car).ContinueWith(t =>
+                _logger.LogError(t.Exception, "Could not set planned charge start for car {carId}.", car.Id), TaskContinuationOptions.OnlyOnFaulted);
+#pragma warning restore CS4014
+        }
+    }
+
+    private async Task SetChargeStartIfNeeded(Car car)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(SetChargeStartIfNeeded), car.Id);
+        if (car.CarState.State == CarStateEnum.Charging)
+        {
+            _logger.LogTrace("Do not set charge start in TeslaApp as car is currently charging");
+            return;
+        }
+        try
+        {
+            var nextPlannedCharge = car.CarState.PlannedChargingSlots.MinBy(c => c.ChargeStart);
+            if (nextPlannedCharge == default)
+            {
+                await _teslaService.SetScheduledCharging(car.Id, null).ConfigureAwait(false);
+                return;
+            }
+            await _teslaService.SetScheduledCharging(car.Id, nextPlannedCharge.ChargeStart).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not set planned charge start for car {carId}.", car.Id);
         }
     }
 
@@ -284,5 +320,5 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         return await _spotPriceService.LatestKnownSpotPriceTime().ConfigureAwait(false) < latestTimeToReachSoC;
     }
 
- 
+
 }
