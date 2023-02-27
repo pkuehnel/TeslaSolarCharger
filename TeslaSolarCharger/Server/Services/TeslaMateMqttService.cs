@@ -356,6 +356,10 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 {
                     car.CarState.ScheduledChargingStartTime = DateTimeOffset.Parse(value.Value);
                 }
+                else
+                {
+                    car.CarState.ScheduledChargingStartTime = null;
+                }
                 break;
         }
     }
