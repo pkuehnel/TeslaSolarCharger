@@ -48,6 +48,8 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     private const string TopicChargeCurrentRequest = "charge_current_request";
     // ReSharper disable once InconsistentNaming
     private const string TopicChargeCurrentRequestMax = "charge_current_request_max";
+    // ReSharper disable once InconsistentNaming
+    private const string TopicScheduledChargingStartTime = "scheduled_charging_start_time";
 
     public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
@@ -160,6 +162,10 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             .WithTopicFilter(f =>
             {
                 f.WithTopic($"{topicPrefix}{TopicChargeCurrentRequestMax}");
+            })
+            .WithTopicFilter(f =>
+            {
+                f.WithTopic($"{topicPrefix}{TopicScheduledChargingStartTime}");
             })
             .Build();
 
@@ -343,6 +349,12 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.CarState.ChargerPilotCurrent = Convert.ToInt32(value.Value);
+                }
+                break;
+            case TopicScheduledChargingStartTime:
+                if (!string.IsNullOrWhiteSpace(value.Value))
+                {
+                    car.CarState.ScheduledChargingStartTime = DateTimeOffset.Parse(value.Value);
                 }
                 break;
         }

@@ -24,6 +24,7 @@ public class CarConfiguration
     public int UsableEnergy { get; set; }
 
     public bool? ShouldBeManaged { get; set; }
+    public bool? ShouldSetChargeStartTimes { get; set; }
 
     public int ChargingPriority { get; set; }
 }
