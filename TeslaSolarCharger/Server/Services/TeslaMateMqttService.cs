@@ -352,9 +352,14 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 }
                 break;
             case TopicScheduledChargingStartTime:
+                _logger.LogTrace("{topicName} changed to {value}", nameof(TopicScheduledChargingStartTime), value.Value);
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.CarState.ScheduledChargingStartTime = DateTimeOffset.Parse(value.Value);
+                }
+                else
+                {
+                    car.CarState.ScheduledChargingStartTime = null;
                 }
                 break;
         }
