@@ -135,7 +135,7 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocLimitNotReadable));
         }
 
-        if (_settings.Cars.Any(c => c.CarState.SoC == null))
+        if (_settings.Cars.Any(c => c.CarState.SoC == null && c.CarConfiguration.ShouldBeManaged == true))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocNotReadable));
         }
