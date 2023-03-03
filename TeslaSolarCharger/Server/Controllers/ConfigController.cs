@@ -3,12 +3,11 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
-    [Route("api/[controller]/[action]")]
-    [ApiController]
-    public class ConfigController : ControllerBase
+    public class ConfigController : ApiBaseController
     {
         private readonly IConfigService _service;
 

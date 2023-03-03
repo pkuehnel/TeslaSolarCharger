@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plugins.Modbus", "Plugins.M
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plugins.Solax", "Plugins.Solax\Plugins.Solax.csproj", "{6D946092-A27C-435C-81DA-510A4471277B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeslaSolarCharger.SharedBackend", "TeslaSolarCharger.SharedBackend\TeslaSolarCharger.SharedBackend.csproj", "{9958124C-3B96-4186-AFFA-1477C6582D84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,10 @@ Global
 		{6D946092-A27C-435C-81DA-510A4471277B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D946092-A27C-435C-81DA-510A4471277B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6D946092-A27C-435C-81DA-510A4471277B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9958124C-3B96-4186-AFFA-1477C6582D84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9958124C-3B96-4186-AFFA-1477C6582D84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9958124C-3B96-4186-AFFA-1477C6582D84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9958124C-3B96-4186-AFFA-1477C6582D84}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

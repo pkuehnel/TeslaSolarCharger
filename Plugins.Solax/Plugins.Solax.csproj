@@ -22,4 +22,8 @@
     <Folder Include="Services\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TeslaSolarCharger.SharedBackend\TeslaSolarCharger.SharedBackend.csproj" />
+  </ItemGroup>
+
 </Project>

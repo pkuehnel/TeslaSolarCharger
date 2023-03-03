@@ -1,6 +1,8 @@
-﻿namespace Plugins.Solax.Controllers;
+﻿using TeslaSolarCharger.SharedBackend.Abstracts;
 
-public class CurrentValuesController
+namespace Plugins.Solax.Controllers;
+
+public class CurrentValuesController : ApiBaseController
 {
     
 }

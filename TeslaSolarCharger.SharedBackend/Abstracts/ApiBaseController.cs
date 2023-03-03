@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace TeslaSolarCharger.Server.Controllers
+namespace TeslaSolarCharger.SharedBackend.Abstracts
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    public class ApiBaseController : ControllerBase
+    public abstract class ApiBaseController : ControllerBase
     {
     }
 }
