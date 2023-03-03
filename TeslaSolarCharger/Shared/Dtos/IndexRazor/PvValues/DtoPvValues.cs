@@ -7,5 +7,5 @@ public class DtoPvValues
     public int? HomeBatteryPower { get; set; }
     public int? HomeBatterySoc { get; set; }
     public int? CarCombinedChargingPowerAtHome { get; set; }
-    public DateTime LastUpdated { get; set; }
+    public DateTimeOffset? LastUpdated { get; set; }
 }
