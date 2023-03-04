@@ -22,7 +22,7 @@ public class SolaxApiService : ICurrentValuesService
     public async Task<DtoCurrentPvValues> GetCurrentPvValues()
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentPvValues));
-        var solarSystemBaseUrlName = "SolarSystemBaseUrl";
+        const string solarSystemBaseUrlName = "SolarSystemBaseUrl";
         var url = _configuration.GetValue<string>(solarSystemBaseUrlName);
         if (string.IsNullOrEmpty(url))
         {
