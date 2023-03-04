@@ -1,5 +1,6 @@
 ﻿namespace TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 
+//Attention: this also is implemented in TeslaSolarCharger.SharedBackend.Dtos. Can not be combined as this would result in UI needing all dependecies of SharedBackend project
 public class DtoPvValues
 {
     public int? InverterPower { get; set; }
