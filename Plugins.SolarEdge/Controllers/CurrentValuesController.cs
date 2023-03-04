@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Plugins.SolarEdge.Contracts;
+using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace Plugins.SolarEdge.Controllers;
 
-[Route("api/[controller]/[action]")]
-[ApiController]
-public class CurrentValuesController : ControllerBase
+public class CurrentValuesController : ApiBaseController
 {
     private readonly ICurrentValuesService _currentValuesService;
 

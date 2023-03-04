@@ -2,12 +2,11 @@
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
-    [Route("api/[controller]/[action]")]
-    [ApiController]
-    public class ChargingCostController : ControllerBase
+    public class ChargingCostController : ApiBaseController
     {
         private readonly IChargingCostService _chargingCostService;
 

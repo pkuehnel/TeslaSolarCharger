@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Plugins.Modbus.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace Plugins.Modbus.Controllers
 {
-    [Route("api/[controller]/[action]")]
-    [ApiController]
-    public class ModbusController : ControllerBase
+    public class ModbusController : ApiBaseController
     {
         private readonly IModbusService _modbusService;
 

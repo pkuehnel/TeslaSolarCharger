@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Plugins.SmaEnergymeter.Services;
+using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace Plugins.SmaEnergymeter.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class CurrentPowerController : ControllerBase
+    public class CurrentPowerController : ApiBaseController
     {
         private readonly CurrentPowerService _currentPowerService;
 

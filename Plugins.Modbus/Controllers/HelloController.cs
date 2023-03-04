@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace Plugins.Modbus.Controllers;
 
-[Route("api/[controller]/[action]")]
-[ApiController]
-public class HelloController : ControllerBase
+public class HelloController : ApiBaseController
 {
     [HttpGet]
     public Task<bool> IsAlive() => Task.FromResult(true);

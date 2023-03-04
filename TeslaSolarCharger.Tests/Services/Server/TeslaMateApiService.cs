@@ -1,8 +1,5 @@
-﻿using Autofac;
-using System;
-using System.Runtime.CompilerServices;
+﻿using System;
 using TeslaSolarCharger.Shared.Dtos.Settings;
-using TeslaSolarCharger.Shared.TimeProviding;
 using Xunit;
 using Xunit.Abstractions;
 
