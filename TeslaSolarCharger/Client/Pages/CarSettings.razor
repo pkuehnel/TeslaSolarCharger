@@ -42,11 +42,22 @@ else
                 <small id="chargingPriorityHelp" class="form-text text-muted">If there is not enough power for all cars the cars will be charged ordered by priority. Cars with the same priority are ordered by their ID.</small>
             </p>
             <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="usableEnergy">Use TeslaSolarCharger:</label>
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" checked="@carBasicConfiguration.ShouldBeManaged" type="checkbox" id="ShouldBeManaged" name="ShouldBeManaged" min="1" max="120"
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="ShouldBeManaged">Use TeslaSolarCharger:</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" checked="@carBasicConfiguration.ShouldBeManaged" type="checkbox" id="ShouldBeManaged" name="ShouldBeManaged"
                        @onchange="@(e => carBasicConfiguration.ShouldBeManaged = Boolean.Parse(e.Value?.ToString() ?? "true"))">
             </p>
+            <p>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="ShouldSetChargeStartTimes">Auto set charge start times:</label>
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" checked="@carBasicConfiguration.ShouldSetChargeStartTimes" type="checkbox" id="ShouldSetChargeStartTimes" name="ShouldSetChargeStartTimes"
+                       @onchange="@(e => carBasicConfiguration.ShouldSetChargeStartTimes = Boolean.Parse(e.Value?.ToString() ?? "true"))">
+            </p>
+            <small id="chargingPriorityHelp" class="form-text text-muted">
+                Enable this to use planned charges of your Tesla App. This ensures starting a planned charge even if the car can't be woken up via Tesla App.<br />
+                Note: This setting can mess up your planned departure preconditioning or your manually planned charge starts.
+            </small>
+            <br />
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarConfiguration(carBasicConfiguration.CarId, carBasicConfiguration)">@_saveButtonTexts[carBasicConfiguration.CarId]</button></p>
+            
         </div>
     }
 }

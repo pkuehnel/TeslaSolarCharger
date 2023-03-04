@@ -52,6 +52,7 @@ public class ConfigService : IConfigService
                 UsableEnergy = car.CarConfiguration.UsableEnergy,
                 ShouldBeManaged = car.CarConfiguration.ShouldBeManaged,
                 ChargingPriority = car.CarConfiguration.ChargingPriority,
+                ShouldSetChargeStartTimes = car.CarConfiguration.ShouldSetChargeStartTimes == true,
             };
             try
             {
@@ -78,6 +79,7 @@ public class ConfigService : IConfigService
         car.CarConfiguration.UsableEnergy = carBasicConfiguration.UsableEnergy;
         car.CarConfiguration.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         car.CarConfiguration.ChargingPriority = carBasicConfiguration.ChargingPriority;
+        car.CarConfiguration.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
         await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
     }
 }

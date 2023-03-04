@@ -49,7 +49,7 @@
 		<PackageReference Include="MQTTnet" Version="4.1.4.563" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.3" />
-		<PackageReference Include="Quartz" Version="3.6.0" />
+		<PackageReference Include="Quartz" Version="3.6.2" />
 		<PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
 		<PackageReference Include="Serilog.Settings.Configuration" Version="3.4.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
@@ -58,6 +58,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\TeslaSolarCharger.Model\TeslaSolarCharger.Model.csproj" />
+		<ProjectReference Include="..\..\TeslaSolarCharger.SharedBackend\TeslaSolarCharger.SharedBackend.csproj" />
 		<ProjectReference Include="..\Client\TeslaSolarCharger.Client.csproj" />
 		<ProjectReference Include="..\Shared\TeslaSolarCharger.Shared.csproj" />
 	</ItemGroup>
