@@ -157,14 +157,12 @@ jobs:
       uses: docker/setup-buildx-action@v1
 
     - name: DockerHub login
-      if: ${{ github.actor == 'pkuehnel' }}
       uses: docker/login-action@v1
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
 
     - name: Build and push SolaxPlugin
-      if: ${{ github.actor == 'pkuehnel' }}
       uses: docker/build-push-action@v2
       with:
         file: ./Plugins.Solax/Dockerfile
