@@ -57,8 +57,8 @@ public class SolaxApiService : ICurrentValuesService
         var uncalculatedGridPower = solaxDto.Data[_configuration.GetValue<int>("GridPowerIndex")];
         var switchPoint = _configuration.GetValue<int>("SolarSystemSwitchPoint");
         var maxPoint = _configuration.GetValue<int>("SolarSystemMaxPoint");
-        var actualBatteryPower = uncalculatedBatteryPower < switchPoint ? uncalculatedBatteryPower : maxPoint - uncalculatedBatteryPower;
-        var actualGridPower = uncalculatedGridPower < switchPoint ? uncalculatedGridPower : maxPoint - uncalculatedGridPower;
+        var actualBatteryPower = uncalculatedBatteryPower < switchPoint ? uncalculatedBatteryPower : uncalculatedBatteryPower - maxPoint;
+        var actualGridPower = uncalculatedGridPower < switchPoint ? uncalculatedGridPower : uncalculatedGridPower - maxPoint;
 
         var pv1Power = solaxDto.Data[_configuration.GetValue<int>("PvPower1Index")];
         var pv2Power = solaxDto.Data[_configuration.GetValue<int>("PvPower2Index")];
