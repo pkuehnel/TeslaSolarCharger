@@ -12,7 +12,7 @@ public interface IIndexService
     Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars();
     Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings);
     Dictionary<string, string> GetToolTipTexts();
-    List<DtoCarTopicValue> GetCarDetails(int carId);
+    DtoCarTopicValues GetCarDetails(int carId);
     List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId);
     List<DtoChargingSlot> GetChargingSlots(int carId);
 }
