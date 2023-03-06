@@ -154,6 +154,9 @@ public class IndexService : IIndexService
         var propertiesToExclude = new List<string>()
         {
             nameof(Car.CarState.PlannedChargingSlots),
+            nameof(Car.CarState.Name),
+            nameof(Car.CarState.SocLimit),
+            nameof(Car.CarState.SoC),
         };
         foreach (var property in carState.GetType().GetProperties())
         {
