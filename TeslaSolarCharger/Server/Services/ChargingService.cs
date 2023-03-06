@@ -66,6 +66,16 @@ public class ChargingService : IChargingService
 
         LogErrorForCarsWithUnknownSocLimit(_settings.CarsToManage);
 
+        //Set to maximum current so will charge on full speed on auto wakeup
+        foreach (var car in _settings.CarsToManage)
+        {
+            if (car.CarState is { IsHomeGeofence: true, PluggedIn: true, State: CarStateEnum.Online } 
+                && car.CarState.ChargerRequestedCurrent != car.CarConfiguration.MaximumAmpere)
+            {
+                await _teslaService.SetAmp(car.Id, car.CarConfiguration.MaximumAmpere).ConfigureAwait(false);
+            }
+        }
+
         var relevantCarIds = GetRelevantCarIds();
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
 
