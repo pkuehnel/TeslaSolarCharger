@@ -141,9 +141,15 @@ public class IndexService : IIndexService
         };
     }
 
-    public List<DtoCarTopicValue> GetCarDetails(int carId)
+    public DtoCarTopicValues GetCarDetails(int carId)
     {
-        var values = new List<DtoCarTopicValue>();
+        var nonDateValues = new List<DtoCarTopicValue>();
+        var dateValues = new List<DtoCarDateTopics>();
+        var dtoCarTopicValues = new DtoCarTopicValues()
+        {
+            NonDateValues = nonDateValues,
+            DateValues = dateValues,
+        };
         var carState = _settings.Cars.First(c => c.Id == carId).CarState;
         var propertiesToExclude = new List<string>()
         {
@@ -155,13 +161,34 @@ public class IndexService : IIndexService
             {
                 continue;
             }
-            values.Add(new DtoCarTopicValue()
+            if (property.PropertyType == typeof(DateTimeOffset?)
+                || property.PropertyType == typeof(DateTimeOffset))
             {
-                Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                Value = property.GetValue(carState, null)?.ToString(),
-            });
+                dtoCarTopicValues.DateValues.Add(new DtoCarDateTopics()
+                {
+                    Topic = AddSpacesBeforeCapitalLetters(property.Name),
+                    DateTime = ((DateTimeOffset?) property.GetValue(carState, null))?.LocalDateTime,
+                });
+            }
+            else if (property.PropertyType == typeof(DateTime?)
+                     || property.PropertyType == typeof(DateTime))
+            {
+                dtoCarTopicValues.DateValues.Add(new DtoCarDateTopics()
+                {
+                    Topic = AddSpacesBeforeCapitalLetters(property.Name),
+                    DateTime = (DateTime?) property.GetValue(carState, null),
+                });
+            }
+            else
+            {
+                nonDateValues.Add(new DtoCarTopicValue()
+                {
+                    Topic = AddSpacesBeforeCapitalLetters(property.Name),
+                    Value = property.GetValue(carState, null)?.ToString(),
+                });
+            }
         }
-        return values;
+        return dtoCarTopicValues;
     }
 
     public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId)
