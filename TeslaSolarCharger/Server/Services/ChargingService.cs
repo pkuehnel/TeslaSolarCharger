@@ -334,14 +334,14 @@ public class ChargingService : IChargingService
 
         }
         //Falls Laden beendet werden soll, aber noch ladend
-        else if (finalAmpsToSet < minAmpPerCar && car.CarState.ChargerActualCurrent > 0)
+        else if (finalAmpsToSet < minAmpPerCar && car.CarState.State == CarStateEnum.Charging)
         {
             _logger.LogDebug("Charging should stop");
-            //Falls Klima an (Laden nicht deaktivierbar), oder Ausschaltbefehl erst seit Kurzem
-            if (car.CarState.ClimateOn == true || car.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
+            //Falls Ausschaltbefehl erst seit Kurzem
+            if (car.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
             {
-                _logger.LogDebug("Can not stop charging: Climate on: {climateState}, earliest Switch Off: {earliestSwitchOff}",
-                    car.CarState.ClimateOn, car.CarState.EarliestSwitchOff);
+                _logger.LogDebug("Can not stop charging: earliest Switch Off: {earliestSwitchOff}",
+                    car.CarState.EarliestSwitchOff);
                 if (car.CarState.ChargerActualCurrent != minAmpPerCar)
                 {
                     await _teslaService.SetAmp(car.Id, minAmpPerCar).ConfigureAwait(false);
@@ -362,7 +362,7 @@ public class ChargingService : IChargingService
             _logger.LogDebug("Charging should stay stopped");
         }
         //Falls nicht ladend, aber laden soll beginnen
-        else if (finalAmpsToSet >= minAmpPerCar && (car.CarState.ChargerActualCurrent is 0 or null))
+        else if (finalAmpsToSet >= minAmpPerCar && (car.CarState.State != CarStateEnum.Charging))
         {
             _logger.LogDebug("Charging should start");
 
