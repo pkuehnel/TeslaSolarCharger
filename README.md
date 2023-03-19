@@ -622,9 +622,7 @@ volumes:
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersolaxplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
 [![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaxplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
 
-You can also use the Solax plugin. This is a general plugin, so don't be surprised if it does not work as expected right after starting up. Feel free to share your configurations [here](https://github.com/pkuehnel/TeslaSolarCharger/discussions/174) so I can add templates for future users.
-
-To use the plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: You have to specify your solar system's IP address and password.
+To use the Solax plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: You have to specify your solar system's IP address and password.
 
 ```yaml
   solaxplugin:
