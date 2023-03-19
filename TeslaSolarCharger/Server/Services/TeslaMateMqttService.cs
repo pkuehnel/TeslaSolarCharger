@@ -91,9 +91,11 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
                 "Reconnecting with new configuration").ConfigureAwait(false);
         }
-
-        LoadCachedCarStatesFromDatabase();
-
+        else
+        {
+            LoadCachedCarStatesFromDatabase();
+        }
+        
         try
         {
             await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None).ConfigureAwait(false);
@@ -189,6 +191,13 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 _logger.LogWarning("Could not deserialized cached car state for car with id {carId}", car.Id);
                 continue;
             }
+
+            carState.ShouldStopChargingSince = null;
+            carState.ShouldStartChargingSince = null;
+            carState.EarliestSwitchOff = null;
+            carState.EarliestSwitchOn = null;
+            carState.Geofence = null;
+            carState.IsHomeGeofence = null;
 
             car.CarState = carState;
         }

@@ -175,7 +175,7 @@ else
 
                         <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
                         <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-                                    @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
+               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
                     </p>
                 }
                 <p>
@@ -390,11 +390,25 @@ else
         }
         foreach (var carId in uncollapsedCarIds)
         {
-            var carDetailStates = await HttpClient.GetFromJsonAsync<List<DtoCarTopicValue>>($"api/Index/CarDetails?carId={carId}").ConfigureAwait(false);
-            if (carDetailStates == default)
+            var dtoCarTopicValues = await HttpClient.GetFromJsonAsync<DtoCarTopicValues>($"api/Index/CarDetails?carId={carId}").ConfigureAwait(false);
+            if (dtoCarTopicValues == default)
             {
                 continue;
             }
+
+            var carDetailStates = new List<DtoCarTopicValue>();
+
+            foreach (var dateValue in dtoCarTopicValues.DateValues)
+            {
+                var dtoCarTopicValue = new DtoCarTopicValue()
+                    {
+                        Topic = dateValue.Topic,
+                        Value = dateValue.DateTime?.ToString("g"),
+                    };
+                carDetailStates.Add(dtoCarTopicValue);
+            }
+            carDetailStates.AddRange(dtoCarTopicValues.NonDateValues);
+
             _carDetailStates[carId] = carDetailStates;
         }
 
@@ -412,7 +426,7 @@ else
         _serverTimeZoneDisplayName = dtoServerTimeZoneId?.Value;
     }
 
-    private Task OnCollapseChanged(bool changedToCollapse, int carId)
+    private async Task OnCollapseChanged(bool changedToCollapse, int carId)
     {
         if (changedToCollapse)
         {
@@ -423,7 +437,7 @@ else
             _collapsedCarDetails.Remove(carId);
             _carDetailStates.Remove(carId);
         }
-        return Task.CompletedTask;
+        await RefreshAllVisableCarDetails().ConfigureAwait(false);
     }
 
     private async Task RefreshStates()

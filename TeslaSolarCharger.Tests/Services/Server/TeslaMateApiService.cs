@@ -29,14 +29,16 @@ public class TeslaMateApiService : TestBase
             day++;
             currentDateHour -= 24;
         }
-        var currentDate = new DateTimeOffset(2022, 2, day, currentDateHour, 0, 0, TimeSpan.Zero);
+
+        var utcOffset = TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow);
+        var currentDate = new DateTimeOffset(2022, 2, day, currentDateHour, 0, 0, utcOffset);
         
         DateTimeOffset? setChargeStart = carSetHour == null ? null :
-            new DateTimeOffset(2022, 2, 14, (int)carSetHour, 0, 0, TimeSpan.Zero);
+            new DateTimeOffset(2022, 2, 14, (int)carSetHour, 0, 0, utcOffset);
         var hourDifference = 1;
         DateTimeOffset? chargeStartToSet = carHourToSet == null ? null :
             //Minutes set to check if is rounding up to next 15 minutes
-            new DateTimeOffset(2022, 2, 13, (int)carHourToSet - hourDifference, 51, 0, TimeSpan.Zero);
+            new DateTimeOffset(2022, 2, 13, (int)carHourToSet - hourDifference, 51, 0, utcOffset);
 
         var car = new Car()
         {
@@ -65,10 +67,27 @@ public class TeslaMateApiService : TestBase
             else
             {
                 Assert.Equal("true", parameters["enable"]);
-                var localhour = chargeStartToSet!.Value.TimeOfDay.Hours + hourDifference;
+                var localhour = chargeStartToSet!.Value.ToLocalTime().TimeOfDay.Hours + hourDifference;
                 Assert.Equal((localhour * 60).ToString(), parameters["time"]);
             }
             
         }
+    }
+
+    [Theory]
+    [InlineData(14, 15, 14, 15)]
+    [InlineData(14, 16, 14, 30)]
+    [InlineData(14, 0, 14, 0)]
+    [InlineData(14, 27, 14, 30)]
+    public void CanRoundToNextQuarterHour(int hour, int minute, int resultHour, int resultMinute)
+    {
+        var inputDateTimeOffset = new DateTimeOffset(2023, 3, 19, hour, minute, 0, TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow));
+        var localDate = inputDateTimeOffset.ToLocalTime();
+        var teslamateApiService = Mock.Create<TeslaSolarCharger.Server.Services.TeslamateApiService>();
+        var outputTime = teslamateApiService.RoundToNextQuarterHour(inputDateTimeOffset);
+        var localOutputDate = outputTime.ToLocalTime();
+
+        Assert.Equal(resultHour, outputTime.Hour);
+        Assert.Equal(resultMinute, outputTime.Minute);
     }
 }

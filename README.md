@@ -615,6 +615,160 @@ volumes:
   
 </details>
 
+
+##### Content using Solax plugin
+
+[![Docker version](https://img.shields.io/docker/v/pkuehnel/teslasolarchargersolaxplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
+[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersolaxplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
+[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaxplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
+
+To use the Solax plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: You have to specify your solar system's IP address and password.
+
+```yaml
+  solaxplugin:
+    image: pkuehnel/teslasolarchargersolaxplugin:latest
+    container_name: teslasolarcharger_solaxplugin
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    environment:
+      - SolarSystemBaseUrl=http://192.168.1.50 ##Change IP Address to your solar system
+      - SolarSystemPassword=AD5TSVGR51 ##Change this to the password of your solar system (wifi dongle serial number)
+    ports:
+      - 7194:80
+
+```
+
+You can also copy the complete content from here:
+<details>
+  <summary>Complete file using Solax plugin</summary>
+
+```yaml
+version: '3.3'
+
+services:
+  teslamate:
+    image: teslamate/teslamate:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 4000:4000
+    volumes:
+      - ./import:/opt/app/import
+    cap_drop:
+      - all
+
+  database:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=teslamate
+      - POSTGRES_PASSWORD=secret ##You can change your password here
+      - POSTGRES_DB=teslamate
+    volumes:
+      - teslamate-db:/var/lib/postgresql/data
+
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
+  teslamateapi:
+    image: tobiasehlert/teslamateapi:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    depends_on:
+      - database
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - TZ=Europe/Berlin ##You can change your Timezone here
+      - ENABLE_COMMANDS=true
+      - COMMANDS_ALL=true
+      - API_TOKEN_DISABLE=true
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+    #ports:
+    #  - 8080:8080
+
+  teslasolarcharger:
+    image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "100m"
+    restart: always
+    depends_on:
+      - teslamateapi
+    environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 7190:80
+    volumes:
+      - teslasolarcharger-configs:/app/configs
+  
+  solaxplugin:
+    image: pkuehnel/teslasolarchargersolaxplugin:latest
+    container_name: teslasolarcharger_solaxplugin
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    environment:
+      - SolarSystemBaseUrl=http://192.168.1.50 ##Change IP Address to your solar system
+      - SolarSystemPassword=AD5TSVGR51 ##Change this to the password of your solar system (wifi dongle serial number)
+    ports:
+      - 7194:80
+
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
+  teslasolarcharger-configs:
+```
+  
+</details>
+
 #### First startup of the application
 
 1. Move to your above created directory with your `docker-compose.yml`.
@@ -640,6 +794,16 @@ Depending on your used plugins, you have to paste one of the following URLs to t
   - Inverter Power: `http://solaredgeplugin/api/CurrentValues/GetInverterPower`
   - Home Battery SoC: `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
   - Home Battery Power: `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
+- Solax Plugin:
+  - Grid Power, InverterPower, HomeBatterySoc, Home Battery Power Url: `http://solaxplugin/api/CurrentValues/GetCurrentPvValues`
+  - Set Result types to json and use the following json patterns:
+    - Grid Power: `$.gridPower`
+    - Inverter Power: `$.inverterPower`
+    - Home Battery SoC: `$.homeBatterySoc`
+    - Home Battery Power: `$.homeBatteryPower`
+  - The result should look like this:
+  ![image](https://user-images.githubusercontent.com/35361981/226210694-18e1af38-25e8-43d8-a13d-6671f0d65fbc.png)
+
 
 ###### Using the Modbus plugin
 
