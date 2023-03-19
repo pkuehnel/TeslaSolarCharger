@@ -618,18 +618,18 @@ volumes:
 
 ##### Content using Solax plugin
 
-[![Docker version](https://img.shields.io/docker/v/pkuehnel/teslasolarchargermodbusplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
-[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargermodbusplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
-[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargermodbusplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
+[![Docker version](https://img.shields.io/docker/v/pkuehnel/teslasolarchargersolaxplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
+[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersolaxplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
+[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaxplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaxplugin)
 
-You can also use the Modbus plugin. This is a general plugin, so don't be surprised if it does not work as expected right after starting up. Feel free to share your configurations [here](https://github.com/pkuehnel/TeslaSolarCharger/discussions/174) so I can add templates for future users.
+You can also use the Solax plugin. This is a general plugin, so don't be surprised if it does not work as expected right after starting up. Feel free to share your configurations [here](https://github.com/pkuehnel/TeslaSolarCharger/discussions/174) so I can add templates for future users.
 
 To use the plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: As some inverters struggle with too many requests within a specific time, you can change the `RequestBlockMilliseconds` environment variable.
 
 ```yaml
-  modbusplugin:
-    image: pkuehnel/teslasolarchargermodbusplugin:latest
-    container_name: teslasolarcharger_modbusplugin
+  solaxplugin:
+    image: pkuehnel/teslasolarchargersolaxplugin:latest
+    container_name: teslasolarcharger_solaxplugin
     logging:
         driver: "json-file"
         options:
@@ -645,7 +645,7 @@ To use the plugin, just add these lines to the bottom of your `docker-compose.ym
 
 You can also copy the complete content from here:
 <details>
-  <summary>Complete file using Modbus plugin</summary>
+  <summary>Complete file using Solax plugin</summary>
 
 ```yaml
 version: '3.3'
@@ -745,9 +745,9 @@ services:
     volumes:
       - teslasolarcharger-configs:/app/configs
   
-  modbusplugin:
-    image: pkuehnel/teslasolarchargermodbusplugin:latest
-    container_name: teslasolarcharger_modbusplugin
+  solaxplugin:
+    image: pkuehnel/teslasolarchargersolaxplugin:latest
+    container_name: teslasolarcharger_solaxplugin
     logging:
         driver: "json-file"
         options:
