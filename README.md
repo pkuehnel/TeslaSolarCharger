@@ -615,6 +615,160 @@ volumes:
   
 </details>
 
+
+##### Content using Solax plugin
+
+[![Docker version](https://img.shields.io/docker/v/pkuehnel/teslasolarchargermodbusplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
+[![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargermodbusplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
+[![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargermodbusplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargermodbusplugin)
+
+You can also use the Modbus plugin. This is a general plugin, so don't be surprised if it does not work as expected right after starting up. Feel free to share your configurations [here](https://github.com/pkuehnel/TeslaSolarCharger/discussions/174) so I can add templates for future users.
+
+To use the plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: As some inverters struggle with too many requests within a specific time, you can change the `RequestBlockMilliseconds` environment variable.
+
+```yaml
+  modbusplugin:
+    image: pkuehnel/teslasolarchargermodbusplugin:latest
+    container_name: teslasolarcharger_modbusplugin
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    environment:
+      - RequestBlockMilliseconds=0
+    ports:
+      - 7191:80
+
+```
+
+You can also copy the complete content from here:
+<details>
+  <summary>Complete file using Modbus plugin</summary>
+
+```yaml
+version: '3.3'
+
+services:
+  teslamate:
+    image: teslamate/teslamate:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 4000:4000
+    volumes:
+      - ./import:/opt/app/import
+    cap_drop:
+      - all
+
+  database:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=teslamate
+      - POSTGRES_PASSWORD=secret ##You can change your password here
+      - POSTGRES_DB=teslamate
+    volumes:
+      - teslamate-db:/var/lib/postgresql/data
+
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
+  teslamateapi:
+    image: tobiasehlert/teslamateapi:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    depends_on:
+      - database
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - TZ=Europe/Berlin ##You can change your Timezone here
+      - ENABLE_COMMANDS=true
+      - COMMANDS_ALL=true
+      - API_TOKEN_DISABLE=true
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+    #ports:
+    #  - 8080:8080
+
+  teslasolarcharger:
+    image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "100m"
+    restart: always
+    depends_on:
+      - teslamateapi
+    environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 7190:80
+    volumes:
+      - teslasolarcharger-configs:/app/configs
+  
+  modbusplugin:
+    image: pkuehnel/teslasolarchargermodbusplugin:latest
+    container_name: teslasolarcharger_modbusplugin
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    environment:
+      - RequestBlockMilliseconds=0
+    ports:
+      - 7191:80
+
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
+  teslasolarcharger-configs:
+```
+  
+</details>
+
 #### First startup of the application
 
 1. Move to your above created directory with your `docker-compose.yml`.
