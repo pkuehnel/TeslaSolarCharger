@@ -190,6 +190,10 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 continue;
             }
 
+            carState.ShouldStopChargingSince = null;
+            carState.ShouldStartChargingSince = null;
+            carState.EarliestSwitchOff = null;
+            carState.EarliestSwitchOn = null;
             car.CarState = carState;
         }
     }

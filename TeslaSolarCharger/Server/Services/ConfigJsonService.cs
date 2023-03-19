@@ -76,7 +76,9 @@ public class ConfigJsonService : IConfigJsonService
         foreach (var car in cars)
         {
             car.CarState.ShouldStopChargingSince = null;
+            car.CarState.EarliestSwitchOff = null;
             car.CarState.ShouldStartChargingSince = null;
+            car.CarState.EarliestSwitchOn = null;
         }
 
 
