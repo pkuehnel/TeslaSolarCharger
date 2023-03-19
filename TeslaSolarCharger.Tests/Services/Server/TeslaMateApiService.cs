@@ -29,14 +29,16 @@ public class TeslaMateApiService : TestBase
             day++;
             currentDateHour -= 24;
         }
-        var currentDate = new DateTimeOffset(2022, 2, day, currentDateHour, 0, 0, TimeSpan.Zero);
+
+        var utcOffset = TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow);
+        var currentDate = new DateTimeOffset(2022, 2, day, currentDateHour, 0, 0, utcOffset);
         
         DateTimeOffset? setChargeStart = carSetHour == null ? null :
-            new DateTimeOffset(2022, 2, 14, (int)carSetHour, 0, 0, TimeSpan.Zero);
+            new DateTimeOffset(2022, 2, 14, (int)carSetHour, 0, 0, utcOffset);
         var hourDifference = 1;
         DateTimeOffset? chargeStartToSet = carHourToSet == null ? null :
             //Minutes set to check if is rounding up to next 15 minutes
-            new DateTimeOffset(2022, 2, 13, (int)carHourToSet - hourDifference, 51, 0, TimeSpan.Zero);
+            new DateTimeOffset(2022, 2, 13, (int)carHourToSet - hourDifference, 51, 0, utcOffset);
 
         var car = new Car()
         {
@@ -65,7 +67,7 @@ public class TeslaMateApiService : TestBase
             else
             {
                 Assert.Equal("true", parameters["enable"]);
-                var localhour = chargeStartToSet!.Value.TimeOfDay.Hours + hourDifference;
+                var localhour = chargeStartToSet!.Value.ToLocalTime().TimeOfDay.Hours + hourDifference;
                 Assert.Equal((localhour * 60).ToString(), parameters["time"]);
             }
             

@@ -502,15 +502,18 @@ public class ChargingService : IChargingService
         _logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOffToNowWhenNotAlreadySet), car.Id);
         if (car.CarState.ShouldStopChargingSince == null)
         {
-            car.CarState.ShouldStopChargingSince = _dateTimeProvider.Now();
+            var currentDate = _dateTimeProvider.Now();
+            _logger.LogTrace("Current date: {currentDate}", currentDate);
+            car.CarState.ShouldStopChargingSince = currentDate;
             var timespanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
+            _logger.LogTrace("TimeSpan until switch off: {timespanUntilSwitchOff}", timespanUntilSwitchOff);
             var earliestSwitchOff = car.CarState.ShouldStopChargingSince + timespanUntilSwitchOff;
             car.CarState.EarliestSwitchOff = earliestSwitchOff;
         }
         car.CarState.EarliestSwitchOn = null;
         car.CarState.ShouldStartChargingSince = null;
-        _logger.LogDebug("Should start charging since: {shoudStartChargingSince}", car.CarState.ShouldStartChargingSince);
-        _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", car.CarState.EarliestSwitchOff);
+        _logger.LogDebug("Should start charging since: {shoudStopChargingSince}", car.CarState.ShouldStopChargingSince);
+        _logger.LogDebug("Earliest switch off: {earliestSwitchOff}", car.CarState.EarliestSwitchOff);
     }
 
     
