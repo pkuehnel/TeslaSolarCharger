@@ -637,9 +637,10 @@ To use the plugin, just add these lines to the bottom of your `docker-compose.ym
             max-size: "10m"
     restart: always
     environment:
-      - RequestBlockMilliseconds=0
+      - SolarSystemBaseUrl=http://192.168.1.50 ##Change IP Address to your solar system
+      - SolarSystemPassword=AD5TSVGR51 ##Change this to the password of your solar system (wifi dongle serial number)
     ports:
-      - 7191:80
+      - 7194:80
 
 ```
 
@@ -755,9 +756,10 @@ services:
             max-size: "10m"
     restart: always
     environment:
-      - RequestBlockMilliseconds=0
+      - SolarSystemBaseUrl=http://192.168.1.50 ##Change IP Address to your solar system
+      - SolarSystemPassword=AD5TSVGR51 ##Change this to the password of your solar system (wifi dongle serial number)
     ports:
-      - 7191:80
+      - 7194:80
 
 volumes:
   teslamate-db:
@@ -794,6 +796,15 @@ Depending on your used plugins, you have to paste one of the following URLs to t
   - Inverter Power: `http://solaredgeplugin/api/CurrentValues/GetInverterPower`
   - Home Battery SoC: `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
   - Home Battery Power: `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
+- Solax Plugin:
+  - Grid Power, InverterPower, HomeBatterySoc, Home Battery Power Url: `http://solaxplugin/api/CurrentValues/GetCurrentPvValues`
+  - Set Result types to json and use the following json patterns:
+    - Grid Power: `$.gridPower`
+    - Inverter Power: `$.inverterPower`
+    - Home Battery SoC: `$.homeBatterySoc`
+    - Home Battery Power: `$.homeBatteryPower`
+  - The result should look like this:
+  
 
 ###### Using the Modbus plugin
 
