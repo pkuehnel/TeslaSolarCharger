@@ -804,7 +804,8 @@ Depending on your used plugins, you have to paste one of the following URLs to t
     - Home Battery SoC: `$.homeBatterySoc`
     - Home Battery Power: `$.homeBatteryPower`
   - The result should look like this:
-  
+  ![image](https://user-images.githubusercontent.com/35361981/226210694-18e1af38-25e8-43d8-a13d-6671f0d65fbc.png)
+
 
 ###### Using the Modbus plugin
 
