@@ -195,6 +195,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             carState.EarliestSwitchOff = null;
             carState.EarliestSwitchOn = null;
             carState.Geofence = null;
+            carState.IsHomeGeofence = null;
 
             car.CarState = carState;
         }

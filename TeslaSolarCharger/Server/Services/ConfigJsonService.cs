@@ -80,6 +80,7 @@ public class ConfigJsonService : IConfigJsonService
             car.CarState.ShouldStartChargingSince = null;
             car.CarState.EarliestSwitchOn = null;
             car.CarState.Geofence = null;
+            car.CarState.IsHomeGeofence = null;
         }
 
 
