@@ -91,9 +91,11 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
                 "Reconnecting with new configuration").ConfigureAwait(false);
         }
-
-        LoadCachedCarStatesFromDatabase();
-
+        else
+        {
+            LoadCachedCarStatesFromDatabase();
+        }
+        
         try
         {
             await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None).ConfigureAwait(false);
