@@ -150,7 +150,6 @@ public class TeslamateApiService : ITeslaService
     {
         _logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, car.Id, nameof(parameters));
         parameters = new Dictionary<string, string>();
-        
         if (chargingStartTime != null)
         {
             _logger.LogTrace("{chargingStartTime} is not null", nameof(chargingStartTime));
@@ -173,7 +172,7 @@ public class TeslamateApiService : ITeslaService
             return true;
         }
 
-        var localStartTime = chargingStartTime.Value.TimeOfDay;
+        var localStartTime = chargingStartTime.Value.ToLocalTime().TimeOfDay;
         var minutesFromMidNight = (int)localStartTime.TotalMinutes;
         var timeUntilChargeStart = chargingStartTime.Value - currentDate;
         var scheduledChargeShouldBeSet = true;
