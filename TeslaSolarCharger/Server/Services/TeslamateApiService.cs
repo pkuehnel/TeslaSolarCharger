@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -153,21 +154,7 @@ public class TeslamateApiService : ITeslaService
         if (chargingStartTime != null)
         {
             _logger.LogTrace("{chargingStartTime} is not null", nameof(chargingStartTime));
-            var maximumTeslaChargeStartAccuracyMinutes = 15;
-            var minutes = chargingStartTime.Value.Minute; // Aktuelle Minute des DateTimeOffset-Objekts
-            
-            // Runden auf die nächste viertel Stunde
-            var roundedMinutes = (int)Math.Ceiling((double)minutes / maximumTeslaChargeStartAccuracyMinutes) * maximumTeslaChargeStartAccuracyMinutes;
-            var additionalHours = 0;
-            if (roundedMinutes == 60)
-            {
-                roundedMinutes = 0;
-                additionalHours = 1;
-            }
-
-            var newNotRoundedDateTime = chargingStartTime.Value.AddHours(additionalHours);
-            chargingStartTime = new DateTimeOffset(newNotRoundedDateTime.Year, newNotRoundedDateTime.Month, newNotRoundedDateTime.Day, newNotRoundedDateTime.Hour, roundedMinutes, 0, newNotRoundedDateTime.Offset);
-            _logger.LogDebug("Rounded charging Start time: {chargingStartTime}", chargingStartTime);
+            chargingStartTime = RoundToNextQuarterHour(chargingStartTime.Value);
         }
         if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
         {
@@ -217,6 +204,28 @@ public class TeslamateApiService : ITeslaService
         };
         _logger.LogTrace("{@parameters}", parameters);
         return true;
+    }
+    
+    internal DateTimeOffset RoundToNextQuarterHour(DateTimeOffset chargingStartTime)
+    {
+        var maximumTeslaChargeStartAccuracyMinutes = 15;
+        var minutes = chargingStartTime.Minute; // Aktuelle Minute des DateTimeOffset-Objekts
+
+        // Runden auf die nächste viertel Stunde
+        var roundedMinutes = (int)Math.Ceiling((double)minutes / maximumTeslaChargeStartAccuracyMinutes) *
+                             maximumTeslaChargeStartAccuracyMinutes;
+        var additionalHours = 0;
+        if (roundedMinutes == 60)
+        {
+            roundedMinutes = 0;
+            additionalHours = 1;
+        }
+
+        var newNotRoundedDateTime = chargingStartTime.AddHours(additionalHours);
+        chargingStartTime = new DateTimeOffset(newNotRoundedDateTime.Year, newNotRoundedDateTime.Month,
+            newNotRoundedDateTime.Day, newNotRoundedDateTime.Hour, roundedMinutes, 0, newNotRoundedDateTime.Offset);
+        _logger.LogDebug("Rounded charging Start time: {chargingStartTime}", chargingStartTime);
+        return chargingStartTime;
     }
 
     private async Task ResumeLogging(int carId)
