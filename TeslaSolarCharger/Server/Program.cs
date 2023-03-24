@@ -45,6 +45,8 @@ await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false)
 var coreService = app.Services.GetRequiredService<ICoreService>();
 coreService.LogVersion();
 
+await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
+
 var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
 await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
