@@ -105,12 +105,6 @@ public class CoreService : ICoreService
         return resultFileName;
     }
 
-    private bool DatabaseAlreadyBackedUp()
-    {
-
-        throw new NotImplementedException();
-    }
-
     public void LogVersion()
     {
         _logger.LogTrace("{method}()", nameof(LogVersion));
