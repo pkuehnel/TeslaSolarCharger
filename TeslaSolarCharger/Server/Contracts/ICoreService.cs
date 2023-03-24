@@ -11,4 +11,5 @@ public interface ICoreService
     DtoValue<bool> IsSolarEdgeInstallation();
     DateTime GetCurrentServerTime();
     DtoValue<string> GetServerTimeZoneDisplayName();
+    Task BackupDatabaseIfNeeded();
 }
