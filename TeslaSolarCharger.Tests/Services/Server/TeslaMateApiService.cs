@@ -82,10 +82,8 @@ public class TeslaMateApiService : TestBase
     public void CanRoundToNextQuarterHour(int hour, int minute, int resultHour, int resultMinute)
     {
         var inputDateTimeOffset = new DateTimeOffset(2023, 3, 19, hour, minute, 0, TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow));
-        var localDate = inputDateTimeOffset.ToLocalTime();
         var teslamateApiService = Mock.Create<TeslaSolarCharger.Server.Services.TeslamateApiService>();
         var outputTime = teslamateApiService.RoundToNextQuarterHour(inputDateTimeOffset);
-        var localOutputDate = outputTime.ToLocalTime();
 
         Assert.Equal(resultHour, outputTime.Hour);
         Assert.Equal(resultMinute, outputTime.Minute);
