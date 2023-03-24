@@ -311,7 +311,7 @@ public class ChargingService : IChargingService
             {
                 var ampToSet = (maxAmpPerCar - car.CarState.ChargerRequestedCurrent) > maxAmpIncrease.Value ? ((car.CarState.ChargerActualCurrent ?? 0) + maxAmpIncrease.Value) : maxAmpPerCar;
                 _logger.LogDebug("Set current to {ampToSet} after considering max car Current {maxAmpPerCar} and maxAmpIncrease {maxAmpIncrease}", ampToSet, maxAmpPerCar, maxAmpIncrease.Value);
-                if (car.CarState.ChargerActualCurrent < 1)
+                if (car.CarState.State != CarStateEnum.Charging)
                 {
                     //Do not start charging when battery level near charge limit
                     if (car.CarState.SoC >=
