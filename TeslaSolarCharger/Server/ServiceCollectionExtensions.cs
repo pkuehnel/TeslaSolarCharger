@@ -28,6 +28,7 @@ using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
+using TeslaSolarCharger.SharedBackend;
 
 namespace TeslaSolarCharger.Server;
 
@@ -94,5 +95,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
+            .AddSharedBackendDependencies()
             ;
 }

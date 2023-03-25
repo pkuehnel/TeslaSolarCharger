@@ -1,11 +1,8 @@
 using MQTTnet;
 using MQTTnet.Client;
-using Newtonsoft.Json;
-using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -17,7 +14,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     private readonly MqttFactory _mqttFactory;
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
-    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly IConfigJsonService _configJsonService;
 
     // ReSharper disable once InconsistentNaming
@@ -54,7 +50,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
     public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
-        ISettings settings, IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext,
+        ISettings settings, IConfigurationWrapper configurationWrapper,
         IConfigJsonService configJsonService)
     {
         _logger = logger;
@@ -62,7 +58,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         _mqttFactory = mqttFactory;
         _settings = settings;
         _configurationWrapper = configurationWrapper;
-        _teslaSolarChargerContext = teslaSolarChargerContext;
         _configJsonService = configJsonService;
     }
 
@@ -90,10 +85,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         {
             await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
                 "Reconnecting with new configuration").ConfigureAwait(false);
-        }
-        else
-        {
-            LoadCachedCarStatesFromDatabase();
         }
         
         try
@@ -174,34 +165,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
     }
 
-    private void LoadCachedCarStatesFromDatabase()
-    {
-        foreach (var car in _settings.Cars)
-        {
-            var cachedCarState = _teslaSolarChargerContext.CachedCarStates.FirstOrDefault(c => c.CarId == car.Id);
-            if (cachedCarState == default)
-            {
-                _logger.LogWarning("No cached car state found for car with id {carId}", car.Id);
-                continue;
-            }
-
-            var carState = JsonConvert.DeserializeObject<CarState>(cachedCarState.CarStateJson ?? string.Empty);
-            if (carState == null)
-            {
-                _logger.LogWarning("Could not deserialized cached car state for car with id {carId}", car.Id);
-                continue;
-            }
-
-            carState.ShouldStopChargingSince = null;
-            carState.ShouldStartChargingSince = null;
-            carState.EarliestSwitchOff = null;
-            carState.EarliestSwitchOn = null;
-            carState.Geofence = null;
-            carState.IsHomeGeofence = null;
-
-            car.CarState = carState;
-        }
-    }
+    
 
     public async Task ConnectClientIfNotConnected()
     {
