@@ -60,8 +60,8 @@ var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
 
 var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
-
 await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
+await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
 var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
 await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
