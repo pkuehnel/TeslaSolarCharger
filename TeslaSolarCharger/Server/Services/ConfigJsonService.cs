@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -258,5 +259,29 @@ public class ConfigJsonService : IConfigJsonService
         {
             cars.RemoveAll(c => c.Id == carId);
         }
+    }
+
+    [SuppressMessage("ReSharper.DPA", "DPA0007: Large number of DB records", MessageId = "count: 1000")]
+    public async Task UpdateAverageGridVoltage()
+    {
+        var homeGeofence = _configurationWrapper.GeoFence();
+        var lowestWorldWideGridVoltage = 100;
+        var voltageBuffer = 15;
+        var lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
+        var chargerVoltages = await _teslamateContext
+            .Charges
+            .Where(c => c.ChargingProcess.Geofence != null
+                        && c.ChargingProcess.Geofence.Name == homeGeofence
+                        && c.ChargerVoltage > lowestGridVoltageToSearchFor)
+            .Select(c => c.ChargerVoltage)
+            .Take(1000)
+            .ToListAsync().ConfigureAwait(false);
+        if (chargerVoltages.Count > 10)
+        {
+            var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
+            _logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
+            _settings.AverageGridHomeGridVoltage = averageValue;
+        }
+
     }
 }

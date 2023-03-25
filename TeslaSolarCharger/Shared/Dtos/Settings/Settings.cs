@@ -18,6 +18,7 @@ public class Settings : ISettings
     public List<Issue> ActiveIssues { get; set; } = new();
     public bool ControlledACarAtLastCycle { get; set; }
     public DateTimeOffset LastPvValueUpdate { get; set; }
+    public int? AverageGridHomeGridVoltage { get; set; }
 
     public List<Car> Cars { get; set; }
 }

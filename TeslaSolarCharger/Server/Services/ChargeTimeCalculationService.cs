@@ -45,8 +45,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         var numberOfPhases = car.CarState.ActualPhases;
         var maxChargingPower =
             car.CarConfiguration.MaximumAmpere * numberOfPhases
-                                               //Use 230 instead of actual voltage because of 0 Volt if charging is stopped
-                                               * 230;
+                                               * (_settings.AverageGridHomeGridVoltage ?? 230);
         return TimeSpan.FromHours((double)(energyToCharge / maxChargingPower));
     }
 
