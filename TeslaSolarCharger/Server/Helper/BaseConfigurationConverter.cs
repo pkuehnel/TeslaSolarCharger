@@ -76,10 +76,9 @@ public class BaseConfigurationConverter : IBaseConfigurationConverter
         _logger.LogTrace("{method}()", nameof(ConvertBaseConfigToV1_0));
         var oldBaseConfigurationJson = await File.ReadAllTextAsync(_configurationWrapper.BaseConfigFileFullName()).ConfigureAwait(false);
         var version = GetVersionFromBaseConfigurationJsonString(oldBaseConfigurationJson);
-        oldBaseConfigurationJson = await File.ReadAllTextAsync(_configurationWrapper.BaseConfigFileFullName()).ConfigureAwait(false);
-        await File.WriteAllTextAsync($"{_configurationWrapper.BaseConfigFileFullName()}.{version}", oldBaseConfigurationJson).ConfigureAwait(false);
         if (version.Equals(new Version(0, 1)))
         {
+            await File.WriteAllTextAsync($"{_configurationWrapper.BaseConfigFileFullName()}.{version}", oldBaseConfigurationJson).ConfigureAwait(false);
             var oldBaseConfiguration =
                 JsonConvert.DeserializeObject<BaseConfigurationJsonV0_1>(oldBaseConfigurationJson) ?? throw new InvalidOperationException("Could not deserialize baseConfigJson V0_1");
             ConvertV0_1ToV1_0(oldBaseConfiguration);
