@@ -280,7 +280,7 @@ public class ConfigJsonService : IConfigJsonService
         {
             var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
             _logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
-            _settings.AverageGridHomeGridVoltage = averageValue;
+            _settings.AverageHomeGridVoltage = averageValue;
         }
 
     }

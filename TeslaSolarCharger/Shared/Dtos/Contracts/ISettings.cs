@@ -14,5 +14,5 @@ public interface ISettings
     bool ControlledACarAtLastCycle { get; set; }
     bool IsNewVersionAvailable { get; set; }
     DateTimeOffset LastPvValueUpdate { get; set; }
-    int? AverageGridHomeGridVoltage { get; set; }
+    int? AverageHomeGridVoltage { get; set; }
 }
