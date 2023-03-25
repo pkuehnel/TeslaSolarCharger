@@ -4,11 +4,11 @@ using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -20,16 +20,20 @@ public class ConfigJsonService : IConfigJsonService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly ITeslamateContext _teslamateContext;
+    private readonly IContstants _contstants;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public ConfigJsonService(ILogger<ConfigJsonService> logger, ISettings settings,
         IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext,
-        ITeslamateContext teslamateContext)
+        ITeslamateContext teslamateContext, IContstants contstants, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _settings = settings;
         _configurationWrapper = configurationWrapper;
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _teslamateContext = teslamateContext;
+        _contstants = contstants;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     private bool CarConfigurationFileExists()
@@ -41,7 +45,10 @@ public class ConfigJsonService : IConfigJsonService
     public async Task<List<Car>> GetCarsFromConfiguration()
     {
         var cars = new List<Car>();
-        if (CarConfigurationFileExists())
+        var databaseCarConfigurations = await _teslaSolarChargerContext.CachedCarStates
+            .Where(c => c.Key == _contstants.CarConfigurationKey)
+            .ToListAsync().ConfigureAwait(false);
+        if (databaseCarConfigurations.Count < 1 && CarConfigurationFileExists())
         {
             try
             {
@@ -51,6 +58,24 @@ public class ConfigJsonService : IConfigJsonService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Could not get car configurations, use default configuration");
+            }
+        }
+
+        if (databaseCarConfigurations.Count > 0)
+        {
+            foreach (var databaseCarConfiguration in databaseCarConfigurations)
+            {
+                var configuration = JsonConvert.DeserializeObject<CarConfiguration>(databaseCarConfiguration.CarStateJson ?? string.Empty);
+                if (configuration == default)
+                {
+                    continue;
+                }
+                cars.Add(new Car()
+                {
+                    Id = databaseCarConfiguration.CarId,
+                    CarConfiguration = configuration,
+                    CarState = new CarState(),
+                });
             }
         }
 
@@ -66,6 +91,8 @@ public class ConfigJsonService : IConfigJsonService
         {
             _logger.LogError(ex, "Could not get cars from TeslaMate database.");
         }
+        await AddCachedCarStatesToCars(cars).ConfigureAwait(false);
+
         return cars;
     }
 
@@ -73,17 +100,6 @@ public class ConfigJsonService : IConfigJsonService
     {
         _logger.LogTrace("{method}({param})", nameof(DeserializeCarsFromConfigurationString), fileContent);
         var cars = JsonConvert.DeserializeObject<List<Car>>(fileContent) ?? throw new InvalidOperationException("Could not deserialize file content");
-        foreach (var car in cars)
-        {
-            car.CarState.ShouldStopChargingSince = null;
-            car.CarState.EarliestSwitchOff = null;
-            car.CarState.ShouldStartChargingSince = null;
-            car.CarState.EarliestSwitchOn = null;
-            car.CarState.Geofence = null;
-            car.CarState.IsHomeGeofence = null;
-        }
-
-
         return cars;
     }
 
@@ -128,12 +144,13 @@ public class ConfigJsonService : IConfigJsonService
         foreach (var car in _settings.Cars)
         {
             var cachedCarState = await _teslaSolarChargerContext.CachedCarStates
-                .FirstOrDefaultAsync(c => c.CarId == car.Id).ConfigureAwait(false);
+                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _contstants.CarStateKey).ConfigureAwait(false);
             if (cachedCarState == null)
             {
                 cachedCarState = new CachedCarState()
                 {
                     CarId = car.Id,
+                    Key = _contstants.CarStateKey,
                 };
                 _teslaSolarChargerContext.CachedCarStates.Add(cachedCarState);
             }
@@ -141,34 +158,32 @@ public class ConfigJsonService : IConfigJsonService
             if (car.CarState.SocLimit != default)
             {
                 cachedCarState.CarStateJson = JsonConvert.SerializeObject(car.CarState);
-                cachedCarState.LastUpdated = DateTime.UtcNow;
-                await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+                cachedCarState.LastUpdated = _dateTimeProvider.UtcNow();
             }
         }
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task UpdateCarConfiguration()
     {
         _logger.LogTrace("{method}()", nameof(UpdateCarConfiguration));
-        var configFileLocation = _configurationWrapper.CarConfigFileFullName();
-
-        _logger.LogDebug("Update configuration.json");
-        var fileInfo = new FileInfo(configFileLocation);
-        var configDirectoryFullName = fileInfo.Directory?.FullName;
-        if (!Directory.Exists(configDirectoryFullName))
+        foreach (var car in _settings.Cars)
         {
-            _logger.LogDebug("Config directory {directoryname} does not exist.", configDirectoryFullName);
-            Directory.CreateDirectory(configDirectoryFullName ?? throw new InvalidOperationException());
+            var databaseConfig = await _teslaSolarChargerContext.CachedCarStates
+                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _contstants.CarConfigurationKey).ConfigureAwait(false);
+            if (databaseConfig == default)
+            {
+                databaseConfig = new CachedCarState()
+                {
+                    CarId = car.Id,
+                    Key = _contstants.CarConfigurationKey,
+                };
+                _teslaSolarChargerContext.CachedCarStates.Add(databaseConfig);
+            }
+            databaseConfig.CarStateJson = JsonConvert.SerializeObject(car.CarConfiguration);
+            databaseConfig.LastUpdated = _dateTimeProvider.UtcNow();
         }
-
-        var settings = new JsonSerializerSettings()
-        {
-            ContractResolver = new ConfigPropertyResolver()
-        };
-        _logger.LogDebug("Using {@cars} to create new json file", _settings.Cars);
-        var json = JsonConvert.SerializeObject(_settings.Cars, settings);
-        _logger.LogDebug("Created json to save as config file: {json}", json);
-        await File.WriteAllTextAsync(configFileLocation, json).ConfigureAwait(false);
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task AddCarIdsToSettings()
@@ -205,9 +220,32 @@ public class ConfigJsonService : IConfigJsonService
                 car.CarConfiguration.ShouldBeManaged = defaultValue;
             }
         }
-
         await UpdateCarConfiguration().ConfigureAwait(false);
+
         _logger.LogDebug("All unset car configurations set.");
+    }
+
+    private async Task AddCachedCarStatesToCars(List<Car> cars)
+    {
+        foreach (var car in cars)
+        {
+            var cachedCarState = await _teslaSolarChargerContext.CachedCarStates
+                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _contstants.CarStateKey).ConfigureAwait(false);
+            if (cachedCarState == default)
+            {
+                _logger.LogWarning("No cached car state found for car with id {carId}", car.Id);
+                continue;
+            }
+
+            var carState = JsonConvert.DeserializeObject<CarState>(cachedCarState.CarStateJson ?? string.Empty);
+            if (carState == null)
+            {
+                _logger.LogWarning("Could not deserialized cached car state for car with id {carId}", car.Id);
+                continue;
+            }
+
+            car.CarState = carState;
+        }
     }
 
     internal void RemoveOldCars(List<Car> cars, List<int> stillExistingCarIds)
