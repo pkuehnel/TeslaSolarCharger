@@ -21,10 +21,11 @@ public class ConfigJsonService : IConfigJsonService
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly ITeslamateContext _teslamateContext;
     private readonly IContstants _contstants;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public ConfigJsonService(ILogger<ConfigJsonService> logger, ISettings settings,
         IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext,
-        ITeslamateContext teslamateContext, IContstants contstants)
+        ITeslamateContext teslamateContext, IContstants contstants, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _settings = settings;
@@ -32,6 +33,7 @@ public class ConfigJsonService : IConfigJsonService
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _teslamateContext = teslamateContext;
         _contstants = contstants;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     private bool CarConfigurationFileExists()
@@ -156,7 +158,7 @@ public class ConfigJsonService : IConfigJsonService
             if (car.CarState.SocLimit != default)
             {
                 cachedCarState.CarStateJson = JsonConvert.SerializeObject(car.CarState);
-                cachedCarState.LastUpdated = DateTime.UtcNow;
+                cachedCarState.LastUpdated = _dateTimeProvider.UtcNow();
             }
         }
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -178,8 +180,8 @@ public class ConfigJsonService : IConfigJsonService
                 };
                 _teslaSolarChargerContext.CachedCarStates.Add(databaseConfig);
             }
-
             databaseConfig.CarStateJson = JsonConvert.SerializeObject(car.CarConfiguration);
+            databaseConfig.LastUpdated = _dateTimeProvider.UtcNow();
         }
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
