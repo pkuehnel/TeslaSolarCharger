@@ -266,9 +266,9 @@ public class ConfigJsonService : IConfigJsonService
     {
         _logger.LogTrace("{method}()", nameof(UpdateAverageGridVoltage));
         var homeGeofence = _configurationWrapper.GeoFence();
-        var lowestWorldWideGridVoltage = 100;
-        var voltageBuffer = 15;
-        var lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
+        const int lowestWorldWideGridVoltage = 100;
+        const int voltageBuffer = 15;
+        const int lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
         try
         {
             var chargerVoltages = await _teslamateContext
