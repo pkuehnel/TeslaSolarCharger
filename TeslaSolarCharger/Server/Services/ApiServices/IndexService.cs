@@ -4,12 +4,14 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.ApiServices;
 
@@ -23,11 +25,14 @@ public class IndexService : IIndexService
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
     private readonly IConfigJsonService _configJsonService;
     private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
+    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IConstants _constants;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
         IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys,
         ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
-        IChargeTimeCalculationService chargeTimeCalculationService)
+        IChargeTimeCalculationService chargeTimeCalculationService, IDateTimeProvider dateTimeProvider,
+        IConstants constants)
     {
         _logger = logger;
         _settings = settings;
@@ -37,6 +42,8 @@ public class IndexService : IIndexService
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
         _configJsonService = configJsonService;
         _chargeTimeCalculationService = chargeTimeCalculationService;
+        _dateTimeProvider = dateTimeProvider;
+        _constants = constants;
     }
 
     public DtoPvValues GetPvValues()
@@ -70,6 +77,7 @@ public class IndexService : IIndexService
                 IsHome = enabledCar.CarState.IsHomeGeofence == true,
                 IsAutoFullSpeedCharging = enabledCar.CarState.AutoFullSpeedCharge,
                 ChargingSlots = enabledCar.CarState.PlannedChargingSlots,
+                State = enabledCar.CarState.State,
             };
             if (string.IsNullOrEmpty(dtoCarBaseValues.NameOrVin))
             {
@@ -82,10 +90,57 @@ public class IndexService : IIndexService
                     await _chargeTimeCalculationService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
             }
 
+            dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
+
             carBaseValues.Add(dtoCarBaseValues);
             
         }
         return carBaseValues;
+    }
+
+    private List<Tuple<string, DateTimeOffset?>> GenerateChargeInformation(Car enabledCar)
+    {
+        _logger.LogTrace("{method}({carId}", nameof(GenerateChargeInformation), enabledCar.Id);
+        if (_settings.Overage == _constants.DefaultOverage)
+        {
+            return new List<Tuple<string, DateTimeOffset?>>();
+        }
+
+        if (enabledCar.CarState.IsHomeGeofence != true)
+        {
+            return new List<Tuple<string, DateTimeOffset?>>()
+            {
+                new("Car is at home.", null),
+            };
+        }
+
+        if (enabledCar.CarState.PluggedIn != true)
+        {
+            return new List<Tuple<string, DateTimeOffset?>>()
+            {
+                new("Car is plugged in.", null),
+            };
+        }
+
+        if (enabledCar.CarState.State != CarStateEnum.Charging
+            && enabledCar.CarState.EarliestSwitchOn != null)
+        {
+            return new List<Tuple<string, DateTimeOffset?>>()
+            {
+                new("Enough solar power until {0}", enabledCar.CarState.EarliestSwitchOn),
+            };
+        }
+
+        if (enabledCar.CarState.State != CarStateEnum.Charging
+            && enabledCar.CarState.EarliestSwitchOff != null)
+        {
+            return new List<Tuple<string, DateTimeOffset?>>()
+            {
+                new("Not Enough solar power until {0}", enabledCar.CarState.EarliestSwitchOn),
+            };
+        }
+
+        return new List<Tuple<string, DateTimeOffset?>>();
     }
 
     public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars()

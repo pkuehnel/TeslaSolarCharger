@@ -21,19 +21,19 @@ public class ConfigJsonService : IConfigJsonService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly ITeslamateContext _teslamateContext;
-    private readonly IContstants _contstants;
+    private readonly IConstants _constants;
     private readonly IDateTimeProvider _dateTimeProvider;
 
     public ConfigJsonService(ILogger<ConfigJsonService> logger, ISettings settings,
         IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext,
-        ITeslamateContext teslamateContext, IContstants contstants, IDateTimeProvider dateTimeProvider)
+        ITeslamateContext teslamateContext, IConstants constants, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _settings = settings;
         _configurationWrapper = configurationWrapper;
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _teslamateContext = teslamateContext;
-        _contstants = contstants;
+        _constants = constants;
         _dateTimeProvider = dateTimeProvider;
     }
 
@@ -47,7 +47,7 @@ public class ConfigJsonService : IConfigJsonService
     {
         var cars = new List<Car>();
         var databaseCarConfigurations = await _teslaSolarChargerContext.CachedCarStates
-            .Where(c => c.Key == _contstants.CarConfigurationKey)
+            .Where(c => c.Key == _constants.CarConfigurationKey)
             .ToListAsync().ConfigureAwait(false);
         if (databaseCarConfigurations.Count < 1 && CarConfigurationFileExists())
         {
@@ -145,13 +145,13 @@ public class ConfigJsonService : IConfigJsonService
         foreach (var car in _settings.Cars)
         {
             var cachedCarState = await _teslaSolarChargerContext.CachedCarStates
-                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _contstants.CarStateKey).ConfigureAwait(false);
+                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _constants.CarStateKey).ConfigureAwait(false);
             if (cachedCarState == null)
             {
                 cachedCarState = new CachedCarState()
                 {
                     CarId = car.Id,
-                    Key = _contstants.CarStateKey,
+                    Key = _constants.CarStateKey,
                 };
                 _teslaSolarChargerContext.CachedCarStates.Add(cachedCarState);
             }
@@ -171,13 +171,13 @@ public class ConfigJsonService : IConfigJsonService
         foreach (var car in _settings.Cars)
         {
             var databaseConfig = await _teslaSolarChargerContext.CachedCarStates
-                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _contstants.CarConfigurationKey).ConfigureAwait(false);
+                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _constants.CarConfigurationKey).ConfigureAwait(false);
             if (databaseConfig == default)
             {
                 databaseConfig = new CachedCarState()
                 {
                     CarId = car.Id,
-                    Key = _contstants.CarConfigurationKey,
+                    Key = _constants.CarConfigurationKey,
                 };
                 _teslaSolarChargerContext.CachedCarStates.Add(databaseConfig);
             }
@@ -231,7 +231,7 @@ public class ConfigJsonService : IConfigJsonService
         foreach (var car in cars)
         {
             var cachedCarState = await _teslaSolarChargerContext.CachedCarStates
-                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _contstants.CarStateKey).ConfigureAwait(false);
+                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _constants.CarStateKey).ConfigureAwait(false);
             if (cachedCarState == default)
             {
                 _logger.LogWarning("No cached car state found for car with id {carId}", car.Id);

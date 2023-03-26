@@ -7,6 +7,6 @@ namespace TeslaSolarCharger.SharedBackend;
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddSharedBackendDependencies(this IServiceCollection services)
-        => services.AddTransient<IContstants, Contstants>()
+        => services.AddTransient<IConstants, Constants>()
         ;
 }

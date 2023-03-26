@@ -191,6 +191,21 @@ else
             }
 
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
+            
+            @if (car.ChargeInformation.Count > 0)
+            {
+                <p>
+                    Charging will @(car.State == CarStateEnum.Charging ? "stop" : "start") charging when following conditions are met:<br/>
+                    <ul>
+                        @foreach (var chargeInfo in car.ChargeInformation)
+                        {
+                            <li>
+                                @(string.Format(chargeInfo.Item1, chargeInfo.Item2))
+                            </li>
+                        }
+                    </ul>
+                </p>
+            }
 
             <PlannedChargeTimesComponent ChargingSlots="@car.ChargingSlots"></PlannedChargeTimesComponent>
 
