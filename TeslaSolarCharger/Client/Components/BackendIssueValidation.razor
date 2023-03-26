@@ -1,7 +1,9 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
 @using System.Timers
+@using TeslaSolarCharger.Shared.Contracts
 @inject HttpClient HttpClient
+@inject IDateTimeProvider DateTimeProvider
 
 @if (_issues?.Count > 0)
 {
@@ -48,7 +50,7 @@
 
     private async Task UpdateIssues()
     {
-        var timeZoneOffset = TimeZoneInfo.Local.BaseUtcOffset;
+        var timeZoneOffset = TimeZoneInfo.Local.GetUtcOffset(DateTimeProvider.Now());
         _issues = await HttpClient.GetFromJsonAsync<List<Issue>>($"api/Issue/RefreshIssues?utcTimeZoneOffset={timeZoneOffset}").ConfigureAwait(false);
         this.StateHasChanged();
     }
