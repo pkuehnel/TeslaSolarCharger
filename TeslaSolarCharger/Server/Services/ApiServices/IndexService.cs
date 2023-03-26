@@ -143,7 +143,7 @@ public class IndexService : IIndexService
             };
         }
 
-        if (enabledCar.CarState.State != CarStateEnum.Charging
+        if (enabledCar.CarState.State == CarStateEnum.Charging
             && enabledCar.CarState.EarliestSwitchOff != null)
         {
             return new List<DtoChargeInformation>()
