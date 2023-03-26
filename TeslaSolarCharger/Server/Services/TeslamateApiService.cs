@@ -141,7 +141,11 @@ public class TeslamateApiService : ITeslaService
         await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
         
         var result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
-
+        //assume update was sucessfull as update is not working after mosquitto restart (or wrong cached State)
+        if (parameters["enable"] == "false")
+        {
+            car.CarState.ScheduledChargingStartTime = null;
+        }
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
     }
 
