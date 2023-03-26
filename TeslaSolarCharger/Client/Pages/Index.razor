@@ -192,6 +192,22 @@ else
 
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
 
+            @if (car.ChargeInformation.Count > 0)
+            {
+                <p>
+                    Car will @(car.State == CarStateEnum.Charging ? "stop" : "start") charging when following conditions are met:<br />
+                    <ul>
+                        @foreach (var chargeInfo in car.ChargeInformation)
+                        {
+                            @*Add one minute so displayed time is the latest time when switched.*@
+                            <li>
+                                @(string.Format(chargeInfo.InfoText, chargeInfo.TimeToDisplay?.ToLocalTime().DateTime.AddMinutes(1).ToString("g")))
+                            </li>
+                        }
+                    </ul>
+                </p>
+            }
+
             <PlannedChargeTimesComponent ChargingSlots="@car.ChargingSlots"></PlannedChargeTimesComponent>
 
             <CollapsePanel CollapsedColor="@_collapsedColor"

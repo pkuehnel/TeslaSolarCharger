@@ -79,6 +79,15 @@ else
     app.UseExceptionHandler("/Error");
 }
 
+if (configurationWrapper.AllowCors())
+{
+    app.UseCors(x => x
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .SetIsOriginAllowed(_ => true) // allow any origin
+        .AllowCredentials()); // allow credentials
+}
+
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 

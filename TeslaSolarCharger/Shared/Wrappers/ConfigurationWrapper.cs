@@ -65,6 +65,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return path;
     }
 
+    public bool AllowCors()
+    {
+        var environmentVariableName = "AllowCORS";
+        var value = _configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
         var minimum = TimeSpan.FromSeconds(20);
