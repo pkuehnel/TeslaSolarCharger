@@ -4,7 +4,6 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
@@ -25,13 +24,12 @@ public class IndexService : IIndexService
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
     private readonly IConfigJsonService _configJsonService;
     private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
-    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConstants _constants;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
         IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys,
         ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
-        IChargeTimeCalculationService chargeTimeCalculationService, IDateTimeProvider dateTimeProvider,
+        IChargeTimeCalculationService chargeTimeCalculationService,
         IConstants constants)
     {
         _logger = logger;
@@ -42,7 +40,6 @@ public class IndexService : IIndexService
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
         _configJsonService = configJsonService;
         _chargeTimeCalculationService = chargeTimeCalculationService;
-        _dateTimeProvider = dateTimeProvider;
         _constants = constants;
     }
 
