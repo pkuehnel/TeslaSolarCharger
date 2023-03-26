@@ -199,8 +199,9 @@ else
                     <ul>
                         @foreach (var chargeInfo in car.ChargeInformation)
                         {
+                            @*Add one minute so displayed time is the latest time when switched.*@
                             <li>
-                                @(string.Format(chargeInfo.InfoText, chargeInfo.TimeToDisplay?.ToLocalTime().DateTime))
+                                @(string.Format(chargeInfo.InfoText, chargeInfo.TimeToDisplay?.ToLocalTime().DateTime.AddMinutes(1).ToString("g")))
                             </li>
                         }
                     </ul>
