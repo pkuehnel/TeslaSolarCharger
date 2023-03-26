@@ -195,7 +195,7 @@ else
             @if (car.ChargeInformation.Count > 0)
             {
                 <p>
-                    Charging will @(car.State == CarStateEnum.Charging ? "stop" : "start") charging when following conditions are met:<br />
+                    Car will @(car.State == CarStateEnum.Charging ? "stop" : "start") charging when following conditions are met:<br />
                     <ul>
                         @foreach (var chargeInfo in car.ChargeInformation)
                         {
