@@ -55,8 +55,10 @@ public class CoreService : ICoreService
 
     public DtoValue<string> GetServerTimeZoneDisplayName()
     {
-        var serverTimeZone = TimeZoneInfo.Local;
-        return new DtoValue<string>(serverTimeZone.DisplayName);
+        var serverTimeZoneName = TimeZoneInfo.Local.IsDaylightSavingTime(_dateTimeProvider.Now())
+            ? TimeZoneInfo.Local.DaylightName
+            : TimeZoneInfo.Local.StandardName;
+        return new DtoValue<string>(serverTimeZoneName);
     }
 
     public async Task BackupDatabaseIfNeeded()
