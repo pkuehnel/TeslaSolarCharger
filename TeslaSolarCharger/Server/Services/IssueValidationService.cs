@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
@@ -22,11 +22,12 @@ public class IssueValidationService : IIssueValidationService
     private readonly GlobalConstants _globalConstants;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITeslamateContext _teslamateContext;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public IssueValidationService(ILogger<IssueValidationService> logger, ISettings settings,
         ITeslaMateMqttService teslaMateMqttService, IPossibleIssues possibleIssues, IssueKeys issueKeys,
         GlobalConstants globalConstants, IConfigurationWrapper configurationWrapper,
-        ITeslamateContext teslamateContext)
+        ITeslamateContext teslamateContext, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _settings = settings;
@@ -36,6 +37,7 @@ public class IssueValidationService : IIssueValidationService
         _globalConstants = globalConstants;
         _configurationWrapper = configurationWrapper;
         _teslamateContext = teslamateContext;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task<List<Issue>> RefreshIssues(TimeSpan clientTimeZoneId)
@@ -59,7 +61,7 @@ public class IssueValidationService : IIssueValidationService
     public async Task<DtoValue<int>> ErrorCount()
     {
         _logger.LogTrace("{method}()", nameof(ErrorCount));
-        var issues = await RefreshIssues(TimeZoneInfo.Local.BaseUtcOffset).ConfigureAwait(false);
+        var issues = await RefreshIssues(TimeZoneInfo.Local.GetUtcOffset(_dateTimeProvider.Now())).ConfigureAwait(false);
         var errorIssues = issues.Where(i => i.IssueType == IssueType.Error).ToList();
         return new DtoValue<int>(errorIssues.Count);
     }
@@ -67,7 +69,7 @@ public class IssueValidationService : IIssueValidationService
     public async Task<DtoValue<int>> WarningCount()
     {
         _logger.LogTrace("{method}()", nameof(WarningCount));
-        var issues = await RefreshIssues(TimeZoneInfo.Local.BaseUtcOffset).ConfigureAwait(false);
+        var issues = await RefreshIssues(TimeZoneInfo.Local.GetUtcOffset(_dateTimeProvider.Now())).ConfigureAwait(false);
         var warningIssues = issues.Where(i => i.IssueType == IssueType.Warning).ToList();
         var warningCount = new DtoValue<int>(warningIssues.Count);
         return warningCount;
@@ -217,7 +219,7 @@ public class IssueValidationService : IIssueValidationService
     private List<Issue> GetServerConfigurationIssues(TimeSpan clientTimeUtcOffset)
     {
         var issues = new List<Issue>();
-        var serverTimeUtcOffset = TimeZoneInfo.Local.BaseUtcOffset;
+        var serverTimeUtcOffset = TimeZoneInfo.Local.GetUtcOffset(_dateTimeProvider.Now());
         if (clientTimeUtcOffset != serverTimeUtcOffset)
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.ServerTimeZoneDifferentFromClient));
