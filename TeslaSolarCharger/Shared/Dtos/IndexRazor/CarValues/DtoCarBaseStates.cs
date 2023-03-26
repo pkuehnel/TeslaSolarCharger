@@ -19,7 +19,7 @@ public class DtoCarBaseStates
     public bool IsAutoFullSpeedCharging { get; set; }
     public bool? IsHealthy { get; set; }
     public bool ChargingNotPlannedDueToNoSpotPricesAvailable { get; set; }
-    public List<Tuple<string, DateTimeOffset?>> ChargeInformation { get; set; } = new();
+    public List<Tuple<string, DateTimeOffset>> ChargeInformation { get; set; } = new();
     public CarStateEnum? State { get; set; }
     public List<DtoChargingSlot> ChargingSlots { get; set; } = new();
 }
