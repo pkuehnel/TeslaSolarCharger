@@ -98,7 +98,7 @@ public class IndexService : IIndexService
     private List<DtoChargeInformation> GenerateChargeInformation(Car enabledCar)
     {
         _logger.LogTrace("{method}({carId}", nameof(GenerateChargeInformation), enabledCar.Id);
-        if (_settings.Overage == _constants.DefaultOverage)
+        if (_settings.Overage == _constants.DefaultOverage || enabledCar.CarState.PlannedChargingSlots.Any(c => c.IsActive))
         {
             return new List<DtoChargeInformation>();
         }
