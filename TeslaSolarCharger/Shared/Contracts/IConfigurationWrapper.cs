@@ -80,4 +80,5 @@ public interface IConfigurationWrapper
     int MaxCombinedCurrent();
 
     FrontendConfiguration? FrontendConfiguration();
+    bool AllowCors();
 }
