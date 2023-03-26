@@ -139,7 +139,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         var timeZoneOffset = TimeSpan.Zero;
         if (car.CarConfiguration.LatestTimeToReachSoC.Kind != DateTimeKind.Utc)
         {
-            timeZoneOffset = TimeZoneInfo.Local.BaseUtcOffset;
+            timeZoneOffset = TimeZoneInfo.Local.GetUtcOffset(car.CarConfiguration.LatestTimeToReachSoC);
         }
         var latestTimeToReachSoc =
             new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, timeZoneOffset);
@@ -315,7 +315,8 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
 
     public async Task<bool> IsLatestTimeToReachSocAfterLatestKnownChargePrice(int carId)
     {
-        var latestTimeToReachSoC = new DateTimeOffset(_settings.Cars.First(c => c.Id == carId).CarConfiguration.LatestTimeToReachSoC, TimeZoneInfo.Local.BaseUtcOffset);
+        var carConfigurationLatestTimeToReachSoC = _settings.Cars.First(c => c.Id == carId).CarConfiguration.LatestTimeToReachSoC;
+        var latestTimeToReachSoC = new DateTimeOffset(carConfigurationLatestTimeToReachSoC, TimeZoneInfo.Local.GetUtcOffset(carConfigurationLatestTimeToReachSoC));
         return await _spotPriceService.LatestKnownSpotPriceTime().ConfigureAwait(false) < latestTimeToReachSoC;
     }
 
