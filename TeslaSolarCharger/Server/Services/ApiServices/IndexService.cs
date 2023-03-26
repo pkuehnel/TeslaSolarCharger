@@ -98,49 +98,65 @@ public class IndexService : IIndexService
         return carBaseValues;
     }
 
-    private List<Tuple<string, DateTimeOffset>> GenerateChargeInformation(Car enabledCar)
+    private List<DtoChargeInformation> GenerateChargeInformation(Car enabledCar)
     {
         _logger.LogTrace("{method}({carId}", nameof(GenerateChargeInformation), enabledCar.Id);
         if (_settings.Overage == _constants.DefaultOverage)
         {
-            return new List<Tuple<string, DateTimeOffset>>();
+            return new List<DtoChargeInformation>();
         }
 
         if (enabledCar.CarState.IsHomeGeofence != true)
         {
-            return new List<Tuple<string, DateTimeOffset>>()
+            return new List<DtoChargeInformation>()
             {
-                new("Car is at home.", default),
+                new()
+                {
+                    InfoText = "Car is at home.",
+                    TimeToDisplay = default,
+                },
             };
         }
 
         if (enabledCar.CarState.PluggedIn != true)
         {
-            return new List<Tuple<string, DateTimeOffset>>()
+            return new List<DtoChargeInformation>()
             {
-                new("Car is plugged in.", default),
+                new()
+                {
+                    InfoText = "Car is plugged in.",
+                    TimeToDisplay = default,
+                },
             };
         }
 
         if (enabledCar.CarState.State != CarStateEnum.Charging
             && enabledCar.CarState.EarliestSwitchOn != null)
         {
-            return new List<Tuple<string, DateTimeOffset>>()
+            return new List<DtoChargeInformation>()
             {
-                new("Enough solar power until {0}", enabledCar.CarState.EarliestSwitchOn ?? default),
+                new()
+                {
+                    InfoText = "Enough solar power until {0}.",
+                    TimeToDisplay = enabledCar.CarState.EarliestSwitchOn ?? default,
+                },
             };
         }
 
         if (enabledCar.CarState.State != CarStateEnum.Charging
             && enabledCar.CarState.EarliestSwitchOff != null)
         {
-            return new List<Tuple<string, DateTimeOffset>>()
+            return new List<DtoChargeInformation>()
             {
-                new("Not Enough solar power until {0}", enabledCar.CarState.EarliestSwitchOff ?? default),
+                new()
+                {
+                    InfoText = "Not Enough solar power until {0}",
+                    TimeToDisplay = enabledCar.CarState.EarliestSwitchOff ?? default,
+                },
             };
         }
 
-        return new List<Tuple<string, DateTimeOffset>>();
+        return new List<DtoChargeInformation>();
     }
 
     public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars()
