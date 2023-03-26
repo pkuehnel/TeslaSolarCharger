@@ -136,7 +136,7 @@ public class IndexService : IIndexService
         {
             return new List<Tuple<string, DateTimeOffset?>>()
             {
-                new("Not Enough solar power until {0}", enabledCar.CarState.EarliestSwitchOn),
+                new("Not Enough solar power until {0}", enabledCar.CarState.EarliestSwitchOff),
             };
         }
 
