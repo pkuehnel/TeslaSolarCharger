@@ -200,7 +200,7 @@ else
                         @foreach (var chargeInfo in car.ChargeInformation)
                         {
                             <li>
-                                @(string.Format(chargeInfo.InfoText, chargeInfo.TimeToDisplay?.ToLocalTime()))
+                                @(string.Format(chargeInfo.InfoText, chargeInfo.TimeToDisplay?.ToLocalTime().DateTime))
                             </li>
                         }
                     </ul>
