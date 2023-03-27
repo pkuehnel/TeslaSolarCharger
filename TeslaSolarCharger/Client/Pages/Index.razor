@@ -9,6 +9,7 @@
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
 @using Majorsoft.Blazor.Components.Collapse
+@using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Dtos.Table
 @inject HttpClient HttpClient
 @inject IToastService ToastService
@@ -209,7 +210,14 @@ else
                 </p>
             }
 
-            <PlannedChargeTimesComponent ChargingSlots="@car.ChargingSlots"></PlannedChargeTimesComponent>
+            @if (car.ChargingSlots is { Count: > 0 })
+            {
+                <p>
+                    <b>Planned Charging Slots:</b>
+                    <TableComponent Content="GeneratePlannedChargingSlotsTableContent(car.ChargingSlots)"></TableComponent>
+                </p>
+
+            }
 
             <CollapsePanel CollapsedColor="@_collapsedColor"
                    ExpandedColor="@_expandedColor"
@@ -452,6 +460,38 @@ else
             _newCarDetailStates.Remove(carId);
         }
         await RefreshAllVisableCarDetails().ConfigureAwait(false);
+    }
+
+    private DtoTableContent GeneratePlannedChargingSlotsTableContent(List<DtoChargingSlot> chargingSlots)
+    {
+        var table = new DtoTableContent()
+            {
+                TableHeader = new DtoTableRow()
+                {
+                    Elements = new List<string?>()
+                {
+                    "Start",
+                    "End",
+                    "Duration",
+                },
+                },
+                TableData = new List<DtoTableRow>(),
+            };
+        foreach (var chargingSlot in chargingSlots)
+        {
+            table.TableData.Add(new DtoTableRow()
+                {
+                    Elements = new List<string?>()
+                {
+                    chargingSlot.ChargeStart.ToLocalTime().DateTime.ToString("g"),
+                    chargingSlot.ChargeEnd.ToLocalTime().DateTime.ToString("g"),
+                    chargingSlot.ChargeDuration < TimeSpan.FromDays(1) ? chargingSlot.ChargeDuration.ToString(@"hh\:mm") : string.Empty,
+                },
+                    IsActive = chargingSlot.IsActive,
+                });
+        }
+
+        return table;
     }
 
     private async Task RefreshStates()
