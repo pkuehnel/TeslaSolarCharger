@@ -1,0 +1,34 @@
+﻿@if (Headers != null && DataRows != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                @foreach (var header in Headers)
+                {
+                    <th scope="col">@header</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var dataRow in DataRows)
+            {
+                <tr>
+                    @foreach (var dataValue in dataRow)
+                    {
+                        <td>@dataValue</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+
+@code {
+    [Parameter]
+    public List<string>? Headers { get; set;}
+
+    [Parameter]
+    public List<List<string?>>? DataRows { get; set; }
+}

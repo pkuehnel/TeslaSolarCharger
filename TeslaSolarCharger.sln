@@ -19,9 +19,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeslaSolarCharger.Tests", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plugins.Modbus", "Plugins.Modbus\Plugins.Modbus.csproj", "{4693C8A8-B535-46AE-B42F-3CF8694334F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plugins.Solax", "Plugins.Solax\Plugins.Solax.csproj", "{6D946092-A27C-435C-81DA-510A4471277B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plugins.Solax", "Plugins.Solax\Plugins.Solax.csproj", "{6D946092-A27C-435C-81DA-510A4471277B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeslaSolarCharger.SharedBackend", "TeslaSolarCharger.SharedBackend\TeslaSolarCharger.SharedBackend.csproj", "{9958124C-3B96-4186-AFFA-1477C6582D84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeslaSolarCharger.SharedBackend", "TeslaSolarCharger.SharedBackend\TeslaSolarCharger.SharedBackend.csproj", "{9958124C-3B96-4186-AFFA-1477C6582D84}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

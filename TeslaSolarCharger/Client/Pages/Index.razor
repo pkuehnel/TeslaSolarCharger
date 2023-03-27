@@ -232,37 +232,11 @@ else
                     </div>
                 </ExpandedHeaderContent>
                 <Content>
-                    <div style="border: 1px solid gray; height: 100%;">
-                        <table>
-                            <tr>
-                                <th>
-                                    Topic
-                                </th>
-                                <th>
-                                    Value
-                                </th>
-                            </tr>
-                            @if (_carDetailStates.Any(c => c.Key == car.CarId))
-                            {
-                                @foreach (var carTopicValue in _carDetailStates[car.CarId])
-                                {
-                                    <tr>
-                                        <td>
-                                            @carTopicValue.Topic
-                                        </td>
-                                        <td>
-                                            @carTopicValue.Value
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <div>Loading, may take about 5 seconds...</div>
-                            }
-
-                        </table>
-                    </div>
+                    @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
+                    {
+                        <TableComponent Headers="@_carDetailHeaders"
+                                        DataRows="@_newCarDetailStates[car.CarId]"></TableComponent>
+                    }
                 </Content>
             </CollapsePanel>
         </div>
@@ -311,7 +285,7 @@ else
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
     private List<DtoCarBaseStates>? _carBaseStates;
-    private Dictionary<int, List<DtoCarTopicValue>> _carDetailStates = new Dictionary<int, List<DtoCarTopicValue>>();
+    private Dictionary<int, List<List<string?>>> _newCarDetailStates = new ();
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
     private readonly Dictionary<int, string> _saveButtonTexts = new();
@@ -326,6 +300,12 @@ else
     private int _height = 0;
     private DateTime? _serverTime;
     private string? _serverTimeZoneDisplayName;
+
+    private List<string> _carDetailHeaders = new List<string>()
+    {
+        "Topic",
+        "Value",
+    };
 
     private Timer? _timer;
 
@@ -412,20 +392,25 @@ else
                 continue;
             }
 
-            var carDetailStates = new List<DtoCarTopicValue>();
-
+            var dataRows = new List<List<string?>>();
             foreach (var dateValue in dtoCarTopicValues.DateValues)
             {
-                var dtoCarTopicValue = new DtoCarTopicValue()
-                    {
-                        Topic = dateValue.Topic,
-                        Value = dateValue.DateTime?.ToString("g"),
-                    };
-                carDetailStates.Add(dtoCarTopicValue);
+                dataRows.Add(new List<string?>()
+                {
+                    dateValue.Topic,
+                    dateValue.DateTime?.ToString("g"),
+                });
             }
-            carDetailStates.AddRange(dtoCarTopicValues.NonDateValues);
 
-            _carDetailStates[carId] = carDetailStates;
+            foreach (var nonDateValue in dtoCarTopicValues.NonDateValues)
+            {
+                dataRows.Add(new List<string?>()
+                {
+                    nonDateValue.Topic,
+                    nonDateValue.Value,
+                });
+            }
+            _newCarDetailStates[carId] = dataRows;
         }
 
     }
@@ -451,7 +436,7 @@ else
         else
         {
             _collapsedCarDetails.Remove(carId);
-            _carDetailStates.Remove(carId);
+            _newCarDetailStates.Remove(carId);
         }
         await RefreshAllVisableCarDetails().ConfigureAwait(false);
     }
