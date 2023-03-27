@@ -235,8 +235,8 @@ else
                 <Content>
                     @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
                     {
-                        <TableComponent Headers="@_carDetailHeaders"
-                            TableRows="@_newCarDetailStates[car.CarId]"></TableComponent>
+                        <TableComponent 
+                            Content="@_newCarDetailStates[car.CarId]"></TableComponent>
                     }
                 </Content>
             </CollapsePanel>
@@ -286,7 +286,7 @@ else
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
     private List<DtoCarBaseStates>? _carBaseStates;
-    private Dictionary<int, List<DtoTableRow>?> _newCarDetailStates = new();
+    private Dictionary<int, DtoTableContent> _newCarDetailStates = new();
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
     private readonly Dictionary<int, string> _saveButtonTexts = new();
@@ -301,12 +301,6 @@ else
     private int _height = 0;
     private DateTime? _serverTime;
     private string? _serverTimeZoneDisplayName;
-
-    private List<string> _carDetailHeaders = new List<string>()
-    {
-        "Topic",
-        "Value",
-    };
 
     private Timer? _timer;
 
@@ -417,7 +411,19 @@ else
                     },
                 });
             }
-            _newCarDetailStates[carId] = dataRows;
+            var tableContent = new DtoTableContent()
+            {
+                TableHeader = new DtoTableRow()
+                {
+                    Elements = new List<string?>()
+                    {
+                        "Topic",
+                        "Value",
+                    },
+                },
+                TableData = dataRows,
+            };
+            _newCarDetailStates[carId] = tableContent;
         }
 
     }

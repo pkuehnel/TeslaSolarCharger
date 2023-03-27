@@ -1,17 +1,17 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos.Table
-@if (Headers != null && TableRows != null)
+@if (Content != null)
 {
     <table class="table table-striped table-hover">
         <thead>
             <tr>
-                @foreach (var header in Headers)
+                @foreach (var header in Content.TableHeader.Elements)
                 {
                     <th scope="col">@header</th>
                 }
             </tr>
         </thead>
         <tbody>
-            @foreach (var dataRow in TableRows)
+            @foreach (var dataRow in Content.TableData)
             {
                 <tr@(dataRow.IsActive ? " class=\"table -active\"")>
                     @foreach (var dataValue in dataRow.Elements)
@@ -28,8 +28,5 @@
 
 @code {
     [Parameter]
-    public List<string>? Headers { get; set;}
-
-    [Parameter]
-    public List<DtoTableRow>? TableRows { get; set; }
+    public DtoTableContent? Content { get; set; }
 }
