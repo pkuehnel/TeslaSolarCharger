@@ -9,6 +9,7 @@
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
 @using Majorsoft.Blazor.Components.Collapse
+@using TeslaSolarCharger.Shared.Dtos.Table
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 @inject ToolTipTextKeys ToolTipTextKeys
@@ -235,7 +236,7 @@ else
                     @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
                     {
                         <TableComponent Headers="@_carDetailHeaders"
-                                        DataRows="@_newCarDetailStates[car.CarId]"></TableComponent>
+                            TableRows="@_newCarDetailStates[car.CarId]"></TableComponent>
                     }
                 </Content>
             </CollapsePanel>
@@ -285,7 +286,7 @@ else
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
     private List<DtoCarBaseStates>? _carBaseStates;
-    private Dictionary<int, List<List<string?>>> _newCarDetailStates = new ();
+    private Dictionary<int, List<DtoTableRow>?> _newCarDetailStates = new();
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
     private readonly Dictionary<int, string> _saveButtonTexts = new();
@@ -392,22 +393,28 @@ else
                 continue;
             }
 
-            var dataRows = new List<List<string?>>();
+            var dataRows = new List<DtoTableRow>();
             foreach (var dateValue in dtoCarTopicValues.DateValues)
             {
-                dataRows.Add(new List<string?>()
+                dataRows.Add(new DtoTableRow()
                 {
-                    dateValue.Topic,
-                    dateValue.DateTime?.ToString("g"),
+                    Elements = new List<string?>()
+                    {
+                        dateValue.Topic,
+                        dateValue.DateTime?.ToString("g"),
+                    },
                 });
             }
 
             foreach (var nonDateValue in dtoCarTopicValues.NonDateValues)
             {
-                dataRows.Add(new List<string?>()
+                dataRows.Add(new DtoTableRow()
                 {
-                    nonDateValue.Topic,
-                    nonDateValue.Value,
+                    Elements = new List<string?>()
+                    {
+                        nonDateValue.Topic,
+                        nonDateValue.Value,
+                    },
                 });
             }
             _newCarDetailStates[carId] = dataRows;
