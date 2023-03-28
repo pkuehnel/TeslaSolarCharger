@@ -84,7 +84,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         try
         {
             var nextPlannedCharge = car.CarState.PlannedChargingSlots.MinBy(c => c.ChargeStart);
-            if (nextPlannedCharge == default || nextPlannedCharge.IsActive)
+            if (nextPlannedCharge == default || nextPlannedCharge.ChargeStart <= _dateTimeProvider.DateTimeOffSetNow() || nextPlannedCharge.IsActive)
             {
                 await _teslaService.SetScheduledCharging(car.Id, null).ConfigureAwait(false);
                 return;
