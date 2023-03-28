@@ -37,6 +37,8 @@ if (environment == "Development")
 
 
 var app = builder.Build();
+
+
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
 await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
@@ -46,6 +48,12 @@ var coreService = app.Services.GetRequiredService<ICoreService>();
 coreService.LogVersion();
 
 await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
+
+var life = app.Services.GetRequiredService<IHostApplicationLifetime>();
+life.ApplicationStopped.Register(() =>
+{
+    coreService.KillAllServices().GetAwaiter().GetResult();
+});
 
 var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
 await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 
@@ -12,14 +13,21 @@ public class CoreService : ICoreService
     private readonly IChargingService _chargingService;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IConfigJsonService _configJsonService;
+    private readonly JobManager _jobManager;
+    private readonly ITeslaMateMqttService _teslaMateMqttService;
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
+        ITeslaMateMqttService teslaMateMqttService)
     {
         _logger = logger;
         _chargingService = chargingService;
         _configurationWrapper = configurationWrapper;
         _dateTimeProvider = dateTimeProvider;
+        _configJsonService = configJsonService;
+        _jobManager = jobManager;
+        _teslaMateMqttService = teslaMateMqttService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -111,5 +119,13 @@ public class CoreService : ICoreService
     {
         _logger.LogTrace("{method}()", nameof(LogVersion));
         _logger.LogInformation("Current version is {productVersion}", GetCurrentVersion().Result);
+    }
+
+    public async Task KillAllServices()
+    {
+        _logger.LogTrace("{method}()", nameof(KillAllServices));
+        await _jobManager.StopJobs().ConfigureAwait(false);
+        await _teslaMateMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
+        await _configJsonService.CacheCarStates().ConfigureAwait(false);
     }
 }

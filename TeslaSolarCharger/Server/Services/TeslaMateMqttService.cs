@@ -83,8 +83,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
 
         if (_mqttClient.IsConnected)
         {
-            await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
-                "Reconnecting with new configuration").ConfigureAwait(false);
+            await DisconnectClient("Reconnecting with new configuration").ConfigureAwait(false);
         }
         
         try
@@ -165,7 +164,16 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
     }
 
-    
+    public async Task DisconnectClient(string reason)
+    {
+        _logger.LogTrace("{method}({reason})", nameof(DisconnectClient), reason);
+        if (_mqttClient.IsConnected)
+        {
+            await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
+                reason).ConfigureAwait(false);
+        }
+    }
+
 
     public async Task ConnectClientIfNotConnected()
     {
