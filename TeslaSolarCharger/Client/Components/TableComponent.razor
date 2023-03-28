@@ -1,0 +1,32 @@
+﻿@using TeslaSolarCharger.Shared.Dtos.Table
+@if (Content != null)
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                @foreach (var header in Content.TableHeader.Elements)
+                {
+                    <th scope="col">@header</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var dataRow in Content.TableData)
+            {
+                <tr class="@(dataRow.IsActive ? "table-active" : "")">
+                    @foreach (var dataValue in dataRow.Elements)
+                    {
+                        <td>@dataValue</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+
+@code {
+    [Parameter]
+    public DtoTableContent? Content { get; set; }
+}
