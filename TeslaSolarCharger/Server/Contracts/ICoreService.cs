@@ -12,4 +12,5 @@ public interface ICoreService
     DateTime GetCurrentServerTime();
     DtoValue<string> GetServerTimeZoneDisplayName();
     Task BackupDatabaseIfNeeded();
+    Task KillAllServices();
 }

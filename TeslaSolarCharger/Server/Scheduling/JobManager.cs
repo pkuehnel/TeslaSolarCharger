@@ -88,6 +88,7 @@ public class JobManager
 
     public async Task StopJobs()
     {
+        _logger.LogTrace("{method}()", nameof(StopJobs));
         await _scheduler.Shutdown(true).ConfigureAwait(false);
     }
 }
