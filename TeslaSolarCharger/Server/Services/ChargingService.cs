@@ -1,12 +1,12 @@
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Contracts;
 using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
@@ -22,15 +22,15 @@ public class ChargingService : IChargingService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IPvValueService _pvValueService;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
-    private readonly GlobalConstants _globalConstants;
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
     private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
+    private readonly IConstants _constants;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        ITeslaMateMqttService teslaMateMqttService, GlobalConstants globalConstants, ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
-        IChargeTimeCalculationService chargeTimeCalculationService)
+        ITeslaMateMqttService teslaMateMqttService, ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
+        IChargeTimeCalculationService chargeTimeCalculationService, IConstants constants)
     {
         _logger = logger;
         _settings = settings;
@@ -40,9 +40,9 @@ public class ChargingService : IChargingService
         _configurationWrapper = configurationWrapper;
         _pvValueService = pvValueService;
         _teslaMateMqttService = teslaMateMqttService;
-        _globalConstants = globalConstants;
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
         _chargeTimeCalculationService = chargeTimeCalculationService;
+        _constants = constants;
     }
 
     public async Task SetNewChargingValues()
@@ -147,8 +147,7 @@ public class ChargingService : IChargingService
 
     public int CalculateAmpByPowerAndCar(int powerToControl, Car car)
     {
-        //ToDo: replace 230 with actual voltage on location
-        return Convert.ToInt32(Math.Floor(powerToControl / ((double)230 * car.CarState.ActualPhases)));
+        return Convert.ToInt32(Math.Floor(powerToControl / ((double)(_settings.AverageHomeGridVoltage ?? 230) * car.CarState.ActualPhases)));
     }
 
     public int CalculatePowerToControl(bool calculateAverage)
@@ -158,7 +157,7 @@ public class ChargingService : IChargingService
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
         var averagedOverage =
-            calculateAverage ? _pvValueService.GetAveragedOverage() : (_settings.Overage ?? _globalConstants.DefaultOverage);
+            calculateAverage ? _pvValueService.GetAveragedOverage() : (_settings.Overage ?? _constants.DefaultOverage);
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
         var overage = averagedOverage - buffer;
@@ -228,7 +227,7 @@ public class ChargingService : IChargingService
 
     private bool IsSocLimitUnknown(Car car)
     {
-        return car.CarState.SocLimit == null || car.CarState.SocLimit < _globalConstants.MinSocLimit;
+        return car.CarState.SocLimit == null || car.CarState.SocLimit < _constants.MinSocLimit;
     }
 
 
@@ -392,7 +391,7 @@ public class ChargingService : IChargingService
         }
 
         maxAmpIncrease.Value -= ampChange;
-        return ampChange * (car.CarState.ChargerVoltage ?? 230) * car.CarState.ActualPhases;
+        return ampChange * (car.CarState.ChargerVoltage ?? (_settings.AverageHomeGridVoltage ?? 230)) * car.CarState.ActualPhases;
     }
 
     private async Task SendWarningOnChargerPilotReduced(Car car, int maxAmpPerCar)

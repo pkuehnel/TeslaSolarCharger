@@ -9,6 +9,9 @@
 @using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
 @using Majorsoft.Blazor.Components.Collapse
+@using TeslaSolarCharger.Shared.Dtos.Settings
+@using TeslaSolarCharger.Shared.Dtos.Table
+@using System.Diagnostics
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 @inject ToolTipTextKeys ToolTipTextKeys
@@ -192,7 +195,30 @@ else
 
             <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
 
-            <PlannedChargeTimesComponent ChargingSlots="@car.ChargingSlots"></PlannedChargeTimesComponent>
+            @if (car.ChargeInformation.Count > 0)
+            {
+                <p>
+                    Car will @(car.State == CarStateEnum.Charging ? "stop" : "start") charging when following conditions are met:<br />
+                    <ul>
+                        @foreach (var chargeInfo in car.ChargeInformation)
+                        {
+                            @*Add one minute so displayed time is the latest time when switched.*@
+                            <li>
+                                @(string.Format(chargeInfo.InfoText, chargeInfo.TimeToDisplay?.ToLocalTime().DateTime.AddMinutes(1).ToString("g")))
+                            </li>
+                        }
+                    </ul>
+                </p>
+            }
+
+            @if (car.ChargingSlots is { Count: > 0 })
+            {
+                <p>
+                    <b>Planned Charging Slots:</b>
+                    <TableComponent Content="GeneratePlannedChargingSlotsTableContent(car.ChargingSlots)"></TableComponent>
+                </p>
+
+            }
 
             <CollapsePanel CollapsedColor="@_collapsedColor"
                    ExpandedColor="@_expandedColor"
@@ -216,37 +242,11 @@ else
                     </div>
                 </ExpandedHeaderContent>
                 <Content>
-                    <div style="border: 1px solid gray; height: 100%;">
-                        <table>
-                            <tr>
-                                <th>
-                                    Topic
-                                </th>
-                                <th>
-                                    Value
-                                </th>
-                            </tr>
-                            @if (_carDetailStates.Any(c => c.Key == car.CarId))
-                            {
-                                @foreach (var carTopicValue in _carDetailStates[car.CarId])
-                                {
-                                    <tr>
-                                        <td>
-                                            @carTopicValue.Topic
-                                        </td>
-                                        <td>
-                                            @carTopicValue.Value
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <div>Loading, may take about 5 seconds...</div>
-                            }
-
-                        </table>
-                    </div>
+                    @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
+                    {
+                        <TableComponent 
+                            Content="@_newCarDetailStates[car.CarId]"></TableComponent>
+                    }
                 </Content>
             </CollapsePanel>
         </div>
@@ -295,7 +295,7 @@ else
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
     private List<DtoCarBaseStates>? _carBaseStates;
-    private Dictionary<int, List<DtoCarTopicValue>> _carDetailStates = new Dictionary<int, List<DtoCarTopicValue>>();
+    private Dictionary<int, DtoTableContent> _newCarDetailStates = new();
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
     private readonly Dictionary<int, string> _saveButtonTexts = new();
@@ -334,7 +334,7 @@ else
         }
 
         _timer = new Timer();
-        _timer.Interval = 5000;
+        _timer.Interval = Debugger.IsAttached ? 60000 : 5000;
         _timer.Elapsed += async (_, _) => await RefreshStates().ConfigureAwait(false);
         _timer.Start();
     }
@@ -396,20 +396,43 @@ else
                 continue;
             }
 
-            var carDetailStates = new List<DtoCarTopicValue>();
-
+            var dataRows = new List<DtoTableRow>();
             foreach (var dateValue in dtoCarTopicValues.DateValues)
             {
-                var dtoCarTopicValue = new DtoCarTopicValue()
+                dataRows.Add(new DtoTableRow()
+                {
+                    Elements = new List<string?>()
                     {
-                        Topic = dateValue.Topic,
-                        Value = dateValue.DateTime?.ToString("g"),
-                    };
-                carDetailStates.Add(dtoCarTopicValue);
+                        dateValue.Topic,
+                        dateValue.DateTime?.ToString("g"),
+                    },
+                });
             }
-            carDetailStates.AddRange(dtoCarTopicValues.NonDateValues);
 
-            _carDetailStates[carId] = carDetailStates;
+            foreach (var nonDateValue in dtoCarTopicValues.NonDateValues)
+            {
+                dataRows.Add(new DtoTableRow()
+                {
+                    Elements = new List<string?>()
+                    {
+                        nonDateValue.Topic,
+                        nonDateValue.Value,
+                    },
+                });
+            }
+            var tableContent = new DtoTableContent()
+            {
+                TableHeader = new DtoTableRow()
+                {
+                    Elements = new List<string?>()
+                    {
+                        "Topic",
+                        "Value",
+                    },
+                },
+                TableData = dataRows,
+            };
+            _newCarDetailStates[carId] = tableContent;
         }
 
     }
@@ -435,9 +458,41 @@ else
         else
         {
             _collapsedCarDetails.Remove(carId);
-            _carDetailStates.Remove(carId);
+            _newCarDetailStates.Remove(carId);
         }
         await RefreshAllVisableCarDetails().ConfigureAwait(false);
+    }
+
+    private DtoTableContent GeneratePlannedChargingSlotsTableContent(List<DtoChargingSlot> chargingSlots)
+    {
+        var table = new DtoTableContent()
+            {
+                TableHeader = new DtoTableRow()
+                {
+                    Elements = new List<string?>()
+                {
+                    "Start",
+                    "End",
+                    "Duration",
+                },
+                },
+                TableData = new List<DtoTableRow>(),
+            };
+        foreach (var chargingSlot in chargingSlots)
+        {
+            table.TableData.Add(new DtoTableRow()
+                {
+                    Elements = new List<string?>()
+                {
+                    chargingSlot.ChargeStart.ToLocalTime().DateTime.ToString("g"),
+                    chargingSlot.ChargeEnd.ToLocalTime().DateTime.ToString("g"),
+                    chargingSlot.ChargeDuration < TimeSpan.FromDays(1) ? chargingSlot.ChargeDuration.ToString(@"hh\:mm") : string.Empty,
+                },
+                    IsActive = chargingSlot.IsActive,
+                });
+        }
+
+        return table;
     }
 
     private async Task RefreshStates()

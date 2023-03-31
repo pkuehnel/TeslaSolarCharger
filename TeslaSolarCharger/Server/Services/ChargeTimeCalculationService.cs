@@ -45,8 +45,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         var numberOfPhases = car.CarState.ActualPhases;
         var maxChargingPower =
             car.CarConfiguration.MaximumAmpere * numberOfPhases
-                                               //Use 230 instead of actual voltage because of 0 Volt if charging is stopped
-                                               * 230;
+                                               * (_settings.AverageHomeGridVoltage ?? 230);
         return TimeSpan.FromHours((double)(energyToCharge / maxChargingPower));
     }
 
@@ -85,7 +84,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         try
         {
             var nextPlannedCharge = car.CarState.PlannedChargingSlots.MinBy(c => c.ChargeStart);
-            if (nextPlannedCharge == default)
+            if (nextPlannedCharge == default || nextPlannedCharge.ChargeStart <= _dateTimeProvider.DateTimeOffSetNow() || nextPlannedCharge.IsActive)
             {
                 await _teslaService.SetScheduledCharging(car.Id, null).ConfigureAwait(false);
                 return;

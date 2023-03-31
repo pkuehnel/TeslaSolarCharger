@@ -2,13 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -19,24 +19,24 @@ public class IssueValidationService : IIssueValidationService
     private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly IPossibleIssues _possibleIssues;
     private readonly IssueKeys _issueKeys;
-    private readonly GlobalConstants _globalConstants;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITeslamateContext _teslamateContext;
+    private readonly IConstants _constants;
     private readonly IDateTimeProvider _dateTimeProvider;
 
     public IssueValidationService(ILogger<IssueValidationService> logger, ISettings settings,
         ITeslaMateMqttService teslaMateMqttService, IPossibleIssues possibleIssues, IssueKeys issueKeys,
-        GlobalConstants globalConstants, IConfigurationWrapper configurationWrapper,
-        ITeslamateContext teslamateContext, IDateTimeProvider dateTimeProvider)
+        IConfigurationWrapper configurationWrapper, ITeslamateContext teslamateContext,
+        IConstants constants, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _settings = settings;
         _teslaMateMqttService = teslaMateMqttService;
         _possibleIssues = possibleIssues;
         _issueKeys = issueKeys;
-        _globalConstants = globalConstants;
         _configurationWrapper = configurationWrapper;
         _teslamateContext = teslamateContext;
+        _constants = constants;
         _dateTimeProvider = dateTimeProvider;
     }
 
@@ -132,7 +132,7 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.MqttNotConnected));
         }
 
-        if (_settings.Cars.Any(c => (c.CarState.SocLimit == null || c.CarState.SocLimit < _globalConstants.MinSocLimit) && c.CarConfiguration.ShouldBeManaged == true))
+        if (_settings.Cars.Any(c => (c.CarState.SocLimit == null || c.CarState.SocLimit < _constants.MinSocLimit) && c.CarConfiguration.ShouldBeManaged == true))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocLimitNotReadable));
         }

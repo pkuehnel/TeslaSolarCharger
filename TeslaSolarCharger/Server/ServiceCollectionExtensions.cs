@@ -12,7 +12,6 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.MappingExtensions;
-using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
@@ -28,6 +27,7 @@ using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
+using TeslaSolarCharger.SharedBackend;
 
 namespace TeslaSolarCharger.Server;
 
@@ -88,11 +88,11 @@ public static class ServiceCollectionExtensions
             .AddTransient<INewVersionCheckService, NewVersionCheckService>()
             .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
             .AddSingleton<IssueKeys>()
-            .AddSingleton<GlobalConstants>()
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
+            .AddSharedBackendDependencies()
             ;
 }

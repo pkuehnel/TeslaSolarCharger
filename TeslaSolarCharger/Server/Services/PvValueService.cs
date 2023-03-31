@@ -3,10 +3,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Xml;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Resources;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -18,12 +18,12 @@ public class PvValueService : IPvValueService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITelegramService _telegramService;
     private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly GlobalConstants _globalConstants;
+    private readonly IConstants _constants;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
         IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper,
         ITelegramService telegramService,IDateTimeProvider dateTimeProvider,
-        GlobalConstants globalConstants)
+        IConstants constants)
     {
         _logger = logger;
         _settings = settings;
@@ -31,7 +31,7 @@ public class PvValueService : IPvValueService
         _configurationWrapper = configurationWrapper;
         _telegramService = telegramService;
         _dateTimeProvider = dateTimeProvider;
-        _globalConstants = globalConstants;
+        _constants = constants;
     }
 
     public async Task UpdatePvValues()
@@ -235,7 +235,7 @@ public class PvValueService : IPvValueService
         long weightedSum = 0;
         if (_settings.Overage == null)
         {
-            return _globalConstants.DefaultOverage;
+            return _constants.DefaultOverage;
         }
         _logger.LogTrace("Build weighted average of {count} values", _inMemoryValues.OverageValues.Count);
         for (var i = 0; i < _inMemoryValues.OverageValues.Count; i++)
@@ -247,8 +247,8 @@ public class PvValueService : IPvValueService
         var weightedCount = _inMemoryValues.OverageValues.Count * (_inMemoryValues.OverageValues.Count + 1) / 2;
         if (weightedCount == 0)
         {
-            _logger.LogWarning("There are no power values available, use default value of {defaultValue}", _globalConstants.DefaultOverage);
-            return _globalConstants.DefaultOverage;
+            _logger.LogWarning("There are no power values available, use default value of {defaultValue}", _constants.DefaultOverage);
+            return _constants.DefaultOverage;
         }
         return (int)(weightedSum / weightedCount);
     }

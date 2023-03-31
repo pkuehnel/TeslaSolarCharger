@@ -1,42 +1,19 @@
 ﻿@page "/HandledCharges/{carId:int}"
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Dtos.Table
+@using TeslaSolarCharger.Client.Components
 @inject HttpClient HttpClient
 
 <h3>HandledChargesList</h3>
 
-@if (_handledCharges == null)
+@if (_tableContent == null)
 {
     <div class="spinner"></div>
 }
 else
 {
-    <table class="styled-table">
-        <thead>
-        <tr>
-            <th>Start time</th>
-            <th>Charge Cost</th>
-            <th>Used Grid kWh</th>
-            <th>Used Solar kWh</th>
-            <th>Grid Price</th>
-            <th>Solar Price</th>
-            <th>Avg. Spot Price</th>
-        </tr>
-        </thead>
-        <tbody>
-            @foreach (var chargePrice in _handledCharges)
-        {
-            <tr>
-                <td>@chargePrice.StartTime</td>
-                <td>@chargePrice.CalculatedPrice.ToString("0.00")</td>
-                <td>@chargePrice.UsedGridEnergy.ToString("0.00")</td>
-                <td>@chargePrice.UsedSolarEnergy.ToString("0.00")</td>
-                <td>@chargePrice.GridPrice.ToString("0.00")</td>
-                <td>@chargePrice.SolarPrice.ToString("0.00")</td>
-                <td>@(chargePrice.AverageSpotPrice != null ? ((decimal)chargePrice.AverageSpotPrice).ToString("0.00") : "")</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <TableComponent 
+        Content="@_tableContent"></TableComponent>
 }
 
 @code {
@@ -44,10 +21,50 @@ else
     public int CarId { get; set; }
 
 
-    private List<DtoHandledCharge>? _handledCharges;
+    private DtoTableContent? _tableContent;
 
     protected override async Task OnInitializedAsync()
     {
-        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}").ConfigureAwait(false);
+        var handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
+        _tableContent = GeneratePlannedChargingSlotsTableContent(handledCharges);
+    }
+
+    private DtoTableContent GeneratePlannedChargingSlotsTableContent(List<DtoHandledCharge> handledCharges)
+    {
+        var table = new DtoTableContent()
+        {
+            TableHeader = new DtoTableRow()
+            {
+                Elements = new List<string?>()
+                {
+                    "Start time",
+                    "Charge Cost",
+                    "Used Grid kWh",
+                    "Used Solar kWh",
+                    "Grid Price",
+                    "Solar Price",
+                    "Avg. Spot Price",
+                },
+            },
+            TableData = new List<DtoTableRow>(),
+        };
+        foreach (var handledCharge in handledCharges)
+        {
+            table.TableData.Add(new DtoTableRow()
+            {
+                Elements = new List<string?>()
+                {
+                    handledCharge.StartTime?.ToString("g"),
+                    handledCharge.CalculatedPrice.ToString("0.00"),
+                    handledCharge.UsedGridEnergy.ToString("0.00"),
+                    handledCharge.UsedSolarEnergy.ToString("0.00"),
+                    handledCharge.GridPrice.ToString("0.00"),
+                    handledCharge.SolarPrice.ToString("0.00"),
+                    handledCharge.AverageSpotPrice != null ? ((decimal)handledCharge.AverageSpotPrice).ToString("0.00") : "",
+                },
+            });
+        }
+
+        return table;
     }
 }

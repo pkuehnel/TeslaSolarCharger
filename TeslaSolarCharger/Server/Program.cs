@@ -37,6 +37,8 @@ if (environment == "Development")
 
 
 var app = builder.Build();
+
+
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
 await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
@@ -46,6 +48,12 @@ var coreService = app.Services.GetRequiredService<ICoreService>();
 coreService.LogVersion();
 
 await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
+
+var life = app.Services.GetRequiredService<IHostApplicationLifetime>();
+life.ApplicationStopped.Register(() =>
+{
+    coreService.KillAllServices().GetAwaiter().GetResult();
+});
 
 var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
 await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
@@ -60,8 +68,8 @@ var telegramService = app.Services.GetRequiredService<ITelegramService>();
 await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
 
 var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
-
 await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
+await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
 var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
 await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
@@ -77,6 +85,15 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error");
+}
+
+if (configurationWrapper.AllowCors())
+{
+    app.UseCors(x => x
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .SetIsOriginAllowed(_ => true) // allow any origin
+        .AllowCredentials()); // allow credentials
 }
 
 app.UseBlazorFrameworkFiles();

@@ -74,6 +74,5 @@ public class CarState
     public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
-    public bool WasChargingLastCycle { get; set; }
     public List<DtoChargingSlot> PlannedChargingSlots { get; set; } = new List<DtoChargingSlot>();
 }
