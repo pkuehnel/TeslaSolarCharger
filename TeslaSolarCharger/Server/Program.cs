@@ -41,8 +41,8 @@ var app = builder.Build();
 
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
-//await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
-//await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
+await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
+await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
 
 var coreService = app.Services.GetRequiredService<ICoreService>();
 coreService.LogVersion();
@@ -56,7 +56,7 @@ life.ApplicationStopped.Register(() =>
 });
 
 var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
-//await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
 var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
 //await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
