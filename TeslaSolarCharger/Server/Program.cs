@@ -47,7 +47,7 @@ await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false)
 var coreService = app.Services.GetRequiredService<ICoreService>();
 coreService.LogVersion();
 
-//await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
+await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
 
 var life = app.Services.GetRequiredService<IHostApplicationLifetime>();
 life.ApplicationStopped.Register(() =>
