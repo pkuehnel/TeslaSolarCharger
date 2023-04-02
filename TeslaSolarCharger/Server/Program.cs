@@ -59,7 +59,7 @@ var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarCharge
 await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
 var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
-//await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
+await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
 
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
 //await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
