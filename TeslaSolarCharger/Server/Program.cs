@@ -76,7 +76,7 @@ var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
 await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
-//await jobManager.StartJobs().ConfigureAwait(false);
+await jobManager.StartJobs().ConfigureAwait(false);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
