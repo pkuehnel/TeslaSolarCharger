@@ -62,7 +62,7 @@ var chargingCostService = app.Services.GetRequiredService<IChargingCostService>(
 await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
 
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
-//await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
+await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
 //await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
