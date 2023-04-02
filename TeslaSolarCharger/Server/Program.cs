@@ -73,7 +73,7 @@ await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
 await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
 var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
-//await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
+await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
 
 var jobManager = app.Services.GetRequiredService<JobManager>();
 //await jobManager.StartJobs().ConfigureAwait(false);
