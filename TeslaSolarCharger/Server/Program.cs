@@ -65,7 +65,7 @@ var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper
 await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
 
 var telegramService = app.Services.GetRequiredService<ITelegramService>();
-//await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
+await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
 
 var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
 //await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
