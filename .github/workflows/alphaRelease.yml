@@ -52,7 +52,7 @@ jobs:
         file: ./TeslaSolarCharger/Server/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarcharger:restart-4
+        tags: pkuehnel/teslasolarcharger:restart-5
 
   SmaEnergymeterPlugin:
     name: Building SMAPlugin Image
