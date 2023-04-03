@@ -41,6 +41,7 @@ var app = builder.Build();
 
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogTrace("Logger created.");
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
 
 try
