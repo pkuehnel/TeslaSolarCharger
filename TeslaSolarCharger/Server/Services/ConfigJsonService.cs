@@ -183,8 +183,11 @@ public class ConfigJsonService : IConfigJsonService
             }
             databaseConfig.CarStateJson = JsonConvert.SerializeObject(car.CarConfiguration);
             databaseConfig.LastUpdated = _dateTimeProvider.UtcNow();
+            _logger.LogTrace("databaseConfig: {@databaseConfig}", databaseConfig);
         }
+        _logger.LogTrace("All database configs added to context");
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        _logger.LogTrace("Saved changes.");
     }
 
     public async Task AddCarIdsToSettings()
