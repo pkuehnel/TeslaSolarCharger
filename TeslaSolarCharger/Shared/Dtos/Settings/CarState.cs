@@ -28,6 +28,9 @@ public class CarState
     public int? ChargerRequestedCurrent { get; set; }
     public bool? PluggedIn { get; set; }
     public bool? ClimateOn { get; set; }
+    public double? Longitude { get; set; }
+    public double? Latitude { get; set; }
+    public bool? CalculatedIsHomeGeofence { get; set; }
 
     public int? ChargingPowerAtHome
     {
