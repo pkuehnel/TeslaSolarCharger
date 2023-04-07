@@ -12,7 +12,6 @@ public class CarState
     public DateTimeOffset? ScheduledChargingStartTime { get; set; }
     public int? SoC { get; set; }
     public int? SocLimit { get; set; }
-    public string? Geofence { get; set; }
     public bool? IsHomeGeofence { get; set; }
     public TimeSpan? TimeUntilFullCharge { get; set; }
     public DateTime? ReachingMinSocAtFullSpeedCharge { get; set; }
@@ -30,7 +29,6 @@ public class CarState
     public bool? ClimateOn { get; set; }
     public double? Longitude { get; set; }
     public double? Latitude { get; set; }
-    public bool? CalculatedIsHomeGeofence { get; set; }
 
     public int? ChargingPowerAtHome
     {

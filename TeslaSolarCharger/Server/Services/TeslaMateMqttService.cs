@@ -24,8 +24,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     // ReSharper disable once InconsistentNaming
     private const string TopicChargeLimit = "charge_limit_soc";
     // ReSharper disable once InconsistentNaming
-    private const string TopicGeofence = "geofence";
-    // ReSharper disable once InconsistentNaming
     private const string TopicChargerPhases = "charger_phases";
     // ReSharper disable once InconsistentNaming
     private const string TopicChargerVoltage = "charger_voltage";
@@ -115,10 +113,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             .WithTopicFilter(f =>
             {
                 f.WithTopic($"{topicPrefix}{TopicChargeLimit}");
-            })
-            .WithTopicFilter(f =>
-            {
-                f.WithTopic($"{topicPrefix}{TopicGeofence}");
             })
             .WithTopicFilter(f =>
             {
@@ -231,10 +225,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                         _configJsonService.UpdateCarConfiguration();
                     }
                 }
-                break;
-            case TopicGeofence:
-                car.CarState.Geofence = value.Value;
-                car.CarState.IsHomeGeofence = car.CarState.Geofence == _configurationWrapper.GeoFence();
                 break;
             case TopicChargerPhases:
                 if (!string.IsNullOrWhiteSpace(value.Value))
