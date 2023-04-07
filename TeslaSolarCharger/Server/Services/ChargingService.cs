@@ -172,6 +172,7 @@ public class ChargingService : IChargingService
                 (double)geofence.Longitude, (double)geofence.Latitude);
             _logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
             car.CarState.IsHomeGeofence = distance < geofence.Radius;
+            car.CarState.DistanceToHomeGeofence = (int)distance - geofence.Radius;
         }
     }
 
