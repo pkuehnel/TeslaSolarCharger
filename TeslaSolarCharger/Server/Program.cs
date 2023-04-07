@@ -40,42 +40,54 @@ var app = builder.Build();
 
 
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
-var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
-await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
-await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
-
-var coreService = app.Services.GetRequiredService<ICoreService>();
-coreService.LogVersion();
-
-await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
-
-var life = app.Services.GetRequiredService<IHostApplicationLifetime>();
-life.ApplicationStopped.Register(() =>
-{
-    coreService.KillAllServices().GetAwaiter().GetResult();
-});
-
-var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
-await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
-
-var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
-await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
-
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogTrace("Logger created.");
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
-await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
 
-var telegramService = app.Services.GetRequiredService<ITelegramService>();
-await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
+try
+{
 
-var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
-await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
-await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
-var carDbUpdateService = app.Services.GetRequiredService<ICarDbUpdateService>();
-await carDbUpdateService.UpdateMissingCarDataFromDatabase().ConfigureAwait(false);
+    var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
+    await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
+    await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
 
-var jobManager = app.Services.GetRequiredService<JobManager>();
-await jobManager.StartJobs().ConfigureAwait(false);
+    var coreService = app.Services.GetRequiredService<ICoreService>();
+    coreService.LogVersion();
+
+    await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
+
+    var life = app.Services.GetRequiredService<IHostApplicationLifetime>();
+    life.ApplicationStopped.Register(() =>
+    {
+        coreService.KillAllServices().GetAwaiter().GetResult();
+    });
+
+    var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
+    await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+
+    var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
+    await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
+
+    
+    await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
+
+    var telegramService = app.Services.GetRequiredService<ITelegramService>();
+    await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
+
+    var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
+    await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
+
+    await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
+
+    var jobManager = app.Services.GetRequiredService<JobManager>();
+    await jobManager.StartJobs().ConfigureAwait(false);
+}
+catch (Exception ex)
+{
+    logger.LogCritical(ex, "Crached on startup");
+    throw;
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
