@@ -6,4 +6,5 @@ public enum ChargeMode
     PvOnly,
     PvAndMinSoc,
     SpotPrice,
+    DoNothing,
 }

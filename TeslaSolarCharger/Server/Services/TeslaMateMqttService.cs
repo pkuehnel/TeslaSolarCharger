@@ -1,5 +1,6 @@
 using MQTTnet;
 using MQTTnet.Client;
+using System.Globalization;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -23,8 +24,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     // ReSharper disable once InconsistentNaming
     private const string TopicChargeLimit = "charge_limit_soc";
     // ReSharper disable once InconsistentNaming
-    private const string TopicGeofence = "geofence";
-    // ReSharper disable once InconsistentNaming
     private const string TopicChargerPhases = "charger_phases";
     // ReSharper disable once InconsistentNaming
     private const string TopicChargerVoltage = "charger_voltage";
@@ -46,10 +45,14 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     private const string TopicChargeCurrentRequestMax = "charge_current_request_max";
     // ReSharper disable once InconsistentNaming
     private const string TopicScheduledChargingStartTime = "scheduled_charging_start_time";
+    // ReSharper disable once InconsistentNaming
+    private const string TopicLongitude = "longitude";
+    // ReSharper disable once InconsistentNaming
+    private const string TopicLatitude = "latitude";
 
     public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
-    public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory, 
+    public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory,
         ISettings settings, IConfigurationWrapper configurationWrapper,
         IConfigJsonService configJsonService)
     {
@@ -85,7 +88,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         {
             await DisconnectClient("Reconnecting with new configuration").ConfigureAwait(false);
         }
-        
+
         try
         {
             await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None).ConfigureAwait(false);
@@ -110,10 +113,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             .WithTopicFilter(f =>
             {
                 f.WithTopic($"{topicPrefix}{TopicChargeLimit}");
-            })
-            .WithTopicFilter(f =>
-            {
-                f.WithTopic($"{topicPrefix}{TopicGeofence}");
             })
             .WithTopicFilter(f =>
             {
@@ -158,6 +157,14 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             .WithTopicFilter(f =>
             {
                 f.WithTopic($"{topicPrefix}{TopicScheduledChargingStartTime}");
+            })
+            .WithTopicFilter(f =>
+            {
+                f.WithTopic($"{topicPrefix}{TopicLongitude}");
+            })
+            .WithTopicFilter(f =>
+            {
+                f.WithTopic($"{topicPrefix}{TopicLatitude}");
             })
             .Build();
 
@@ -219,10 +226,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                     }
                 }
                 break;
-            case TopicGeofence:
-                car.CarState.Geofence = value.Value;
-                car.CarState.IsHomeGeofence = car.CarState.Geofence == _configurationWrapper.GeoFence();
-                break;
             case TopicChargerPhases:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
@@ -277,7 +280,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             case TopicTimeToFullCharge:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.TimeUntilFullCharge = TimeSpan.FromHours(Convert.ToDouble(value.Value));
+                    car.CarState.TimeUntilFullCharge = TimeSpan.FromHours(Convert.ToDouble(value.Value, CultureInfo.InvariantCulture));
                 }
                 else
                 {
@@ -341,6 +344,18 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 else
                 {
                     car.CarState.ScheduledChargingStartTime = null;
+                }
+                break;
+            case TopicLongitude:
+                if (!string.IsNullOrWhiteSpace(value.Value))
+                {
+                    car.CarState.Longitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
+                }
+                break;
+            case TopicLatitude:
+                if (!string.IsNullOrWhiteSpace(value.Value))
+                {
+                    car.CarState.Latitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
                 }
                 break;
         }

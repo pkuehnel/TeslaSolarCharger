@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -25,12 +27,14 @@ public class ChargingService : IChargingService
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
     private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
     private readonly IConstants _constants;
+    private readonly ITeslamateContext _teslamateContext;
 
     public ChargingService(ILogger<ChargingService> logger,
         ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
         ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
         ITeslaMateMqttService teslaMateMqttService, ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
-        IChargeTimeCalculationService chargeTimeCalculationService, IConstants constants)
+        IChargeTimeCalculationService chargeTimeCalculationService, IConstants constants,
+        ITeslamateContext teslamateContext)
     {
         _logger = logger;
         _settings = settings;
@@ -43,6 +47,7 @@ public class ChargingService : IChargingService
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
         _chargeTimeCalculationService = chargeTimeCalculationService;
         _constants = constants;
+        _teslamateContext = teslamateContext;
     }
 
     public async Task SetNewChargingValues()
@@ -69,8 +74,9 @@ public class ChargingService : IChargingService
         //Set to maximum current so will charge on full speed on auto wakeup
         foreach (var car in _settings.CarsToManage)
         {
-            if (car.CarState is { IsHomeGeofence: true, PluggedIn: true, State: CarStateEnum.Online } 
-                && car.CarState.ChargerRequestedCurrent != car.CarConfiguration.MaximumAmpere)
+            if (car.CarState is { IsHomeGeofence: true, State: CarStateEnum.Online } 
+                && car.CarState.ChargerRequestedCurrent != car.CarConfiguration.MaximumAmpere
+                && car.CarConfiguration.ChargeMode != ChargeMode.DoNothing)
             {
                 await _teslaService.SetAmp(car.Id, car.CarConfiguration.MaximumAmpere).ConfigureAwait(false);
             }
@@ -126,7 +132,10 @@ public class ChargingService : IChargingService
             var ampToControl = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
             _logger.LogDebug("Amp to control: {amp}", ampToControl);
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
-            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
+            if (relevantCar.CarConfiguration.ChargeMode != ChargeMode.DoNothing)
+            {
+                powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
+            }
         }
     }
 
@@ -141,8 +150,45 @@ public class ChargingService : IChargingService
     private async Task UpdateChargingRelevantValues()
     {
         UpdateChargeTimes();
+        await CalculateGeofences().ConfigureAwait(false);
         await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
         await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
+    }
+
+    private async Task CalculateGeofences()
+    {
+        _logger.LogTrace("{method}()", nameof(CalculateGeofences));
+        var geofence = await _teslamateContext.Geofences
+            .FirstOrDefaultAsync(g => g.Name == _configurationWrapper.GeoFence()).ConfigureAwait(false);
+        if (geofence == null)
+        {
+            _logger.LogError("Specified geofence does not exist.");
+            return;
+        }
+        foreach (var car in _settings.Cars)
+        {
+            if (car.CarState.Longitude == null || car.CarState.Latitude == null)
+            {
+                continue;
+            }
+
+            var distance = GetDistance(car.CarState.Longitude.Value, car.CarState.Latitude.Value,
+                (double)geofence.Longitude, (double)geofence.Latitude);
+            _logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
+            car.CarState.IsHomeGeofence = distance < geofence.Radius;
+            car.CarState.DistanceToHomeGeofence = (int)distance - geofence.Radius;
+        }
+    }
+
+    private double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
+    {
+        var d1 = latitude * (Math.PI / 180.0);
+        var num1 = longitude * (Math.PI / 180.0);
+        var d2 = otherLatitude * (Math.PI / 180.0);
+        var num2 = otherLongitude * (Math.PI / 180.0) - num1;
+        var d3 = Math.Pow(Math.Sin((d2 - d1) / 2.0), 2.0) + Math.Cos(d1) * Math.Cos(d2) * Math.Pow(Math.Sin(num2 / 2.0), 2.0);
+
+        return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
     }
 
     public int CalculateAmpByPowerAndCar(int powerToControl, Car car)
