@@ -74,8 +74,9 @@ public class ChargingService : IChargingService
         //Set to maximum current so will charge on full speed on auto wakeup
         foreach (var car in _settings.CarsToManage)
         {
-            if (car.CarState is { IsHomeGeofence: true, PluggedIn: true, State: CarStateEnum.Online } 
-                && car.CarState.ChargerRequestedCurrent != car.CarConfiguration.MaximumAmpere)
+            if (car.CarState is { IsHomeGeofence: true, State: CarStateEnum.Online } 
+                && car.CarState.ChargerRequestedCurrent != car.CarConfiguration.MaximumAmpere
+                && car.CarConfiguration.ChargeMode != ChargeMode.DoNothing)
             {
                 await _teslaService.SetAmp(car.Id, car.CarConfiguration.MaximumAmpere).ConfigureAwait(false);
             }
@@ -131,7 +132,10 @@ public class ChargingService : IChargingService
             var ampToControl = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
             _logger.LogDebug("Amp to control: {amp}", ampToControl);
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
-            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
+            if (relevantCar.CarConfiguration.ChargeMode != ChargeMode.DoNothing)
+            {
+                powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
+            }
         }
     }
 
