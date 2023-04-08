@@ -150,7 +150,6 @@ public class ChargingService : TestBase
                 Id = 2,
                 CarState = new CarState()
                 {
-                    Geofence = null,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
@@ -213,7 +212,6 @@ public class ChargingService : TestBase
                 Id = 2,
                 CarState = new CarState()
                 {
-                    Geofence = null,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
