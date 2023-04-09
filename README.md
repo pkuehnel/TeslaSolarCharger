@@ -790,10 +790,12 @@ Depending on your used plugins, you have to paste one of the following URLs to t
 
 - SMA Plugin: `http://<IP of your Docker host>:7192/api/CurrentPower/GetPower`
 - SolarEdge Plugin:
-  - Grid Power: `http://solaredgeplugin/api/CurrentValues/GetPowerToGrid`
-  - Inverter Power: `http://solaredgeplugin/api/CurrentValues/GetInverterPower`
-  - Home Battery SoC: `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
-  - Home Battery Power: `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
+  - Grid Power, InverterPower, HomeBatterySoc, Home Battery Power Url: `http://solaredgeplugin/api/CurrentValues/GetCurrentPvValues`
+  - Set Result types to json and use the following json patterns:
+    - Grid Power: `$.gridPower`
+    - Inverter Power: `$.inverterPower`
+    - Home Battery SoC: `$.homeBatterySoc`
+    - Home Battery Power: `$.homeBatteryPower`
 - Solax Plugin:
   - Grid Power, InverterPower, HomeBatterySoc, Home Battery Power Url: `http://solaxplugin/api/CurrentValues/GetCurrentPvValues`
   - Set Result types to json and use the following json patterns:
@@ -938,11 +940,6 @@ After setting everything up, your overview page should look like this:
 ![image](https://user-images.githubusercontent.com/35361981/183434947-16d13372-09ff-45a7-94a2-8d4043f39f18.png)
 
 **Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number, e.g. `-1.0`.
-
-If you use this feature in combination with the SolarEdge plugin, the URLs are:
-
-- `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
-- `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
 
 ## How to use
 
