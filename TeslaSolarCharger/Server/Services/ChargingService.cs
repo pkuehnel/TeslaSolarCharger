@@ -74,7 +74,7 @@ public class ChargingService : IChargingService
         //Set to maximum current so will charge on full speed on auto wakeup
         foreach (var car in _settings.CarsToManage)
         {
-            if (car.CarState is { IsHomeGeofence: true, State: CarStateEnum.Online } 
+            if (car.CarState is { IsHomeGeofence: true, State: CarStateEnum.Online }
                 && car.CarState.ChargerRequestedCurrent != car.CarConfiguration.MaximumAmpere
                 && car.CarConfiguration.ChargeMode != ChargeMode.DoNothing)
             {
@@ -112,7 +112,7 @@ public class ChargingService : IChargingService
 
         _logger.LogDebug("At least one car is charging.");
         _settings.ControlledACarAtLastCycle = true;
-        
+
         _logger.LogDebug("Power to control: {power}", powerToControl);
 
         var maxUsableCurrent = _configurationWrapper.MaxCombinedCurrent();
@@ -125,17 +125,14 @@ public class ChargingService : IChargingService
             relevantCars.Reverse();
         }
 
-        
+
 
         foreach (var relevantCar in relevantCars)
         {
             var ampToControl = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
             _logger.LogDebug("Amp to control: {amp}", ampToControl);
             _logger.LogDebug("Update Car amp for car {carname}", relevantCar.CarState.Name);
-            if (relevantCar.CarConfiguration.ChargeMode != ChargeMode.DoNothing)
-            {
-                powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
-            }
+            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
         }
     }
 
@@ -260,7 +257,7 @@ public class ChargingService : IChargingService
         foreach (var car in cars)
         {
             var unknownSocLimit = IsSocLimitUnknown(car);
-            if (unknownSocLimit && 
+            if (unknownSocLimit &&
                 (car.CarState.State == null ||
                  car.CarState.State == CarStateEnum.Unknown ||
                  car.CarState.State == CarStateEnum.Asleep ||
@@ -283,6 +280,7 @@ public class ChargingService : IChargingService
             .Where(c =>
                 c.CarState.IsHomeGeofence == true
                 && c.CarConfiguration.ShouldBeManaged == true
+                && c.CarConfiguration.ChargeMode != ChargeMode.DoNothing
                 //next line changed from == true to != false due to issue https://github.com/pkuehnel/TeslaSolarCharger/issues/365
                 && c.CarState.PluggedIn != false
                 && (c.CarState.ClimateOn == true ||
@@ -342,7 +340,7 @@ public class ChargingService : IChargingService
                 maxAmpPerCar = (int)car.CarState.ChargerPilotCurrent;
             }
         }
-        
+
 
         EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
         DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
@@ -561,6 +559,6 @@ public class ChargingService : IChargingService
         _logger.LogDebug("Earliest switch off: {earliestSwitchOff}", car.CarState.EarliestSwitchOff);
     }
 
-    
+
 
 }

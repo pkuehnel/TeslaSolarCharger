@@ -189,7 +189,9 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
                     var chargingSlots = await GenerateSpotPriceChargingSlots(car, chargeDurationToMinSoc, dateTimeOffSetNow, latestTimeToReachSoc).ConfigureAwait(false);
                     plannedChargingSlots.AddRange(chargingSlots);
                     break;
-
+                case ChargeMode.DoNothing:
+                    plannedChargingSlots = new List<DtoChargingSlot>();
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
