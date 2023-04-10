@@ -5,6 +5,7 @@ using Plugins.SolarEdge.Dtos.CloudApi;
 using System.Net;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.SharedBackend.Dtos;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace Plugins.SolarEdge.Services;
@@ -30,6 +31,11 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(GetCurrentPowerToGrid));
         var latestValue = await GetLatestValue().ConfigureAwait(false);
 
+        return GetGridPowerFromLatestValue(latestValue);
+    }
+
+    private static int GetGridPowerFromLatestValue(CloudApiValue latestValue)
+    {
         var value = latestValue.SiteCurrentPowerFlow.Grid.CurrentPower;
         if (latestValue.SiteCurrentPowerFlow.Unit == "kW")
         {
@@ -40,6 +46,7 @@ public class CurrentValuesService : ICurrentValuesService
         {
             value = -value;
         }
+
         return (int)value;
     }
 
@@ -48,6 +55,11 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(GetInverterPower));
         var latestValue = await GetLatestValue().ConfigureAwait(false);
 
+        return GetInverterPowerFromLatestValue(latestValue);
+    }
+
+    private static int GetInverterPowerFromLatestValue(CloudApiValue latestValue)
+    {
         if (latestValue.SiteCurrentPowerFlow.Unit == "kW")
         {
             return (int)(latestValue.SiteCurrentPowerFlow.Pv.CurrentPower * 1000);
@@ -61,6 +73,11 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(GetHomeBatterySoc));
         var latestValue = await GetLatestValue().ConfigureAwait(false);
 
+        return GetHomeBatterySocFromLatestValue(latestValue);
+    }
+
+    private static int GetHomeBatterySocFromLatestValue(CloudApiValue latestValue)
+    {
         return latestValue.SiteCurrentPowerFlow.Storage.ChargeLevel;
     }
 
@@ -68,6 +85,11 @@ public class CurrentValuesService : ICurrentValuesService
     {
         _logger.LogTrace("{method}()", nameof(GetHomeBatteryPower));
         var latestValue = await GetLatestValue().ConfigureAwait(false);
+        return GetHomeBatteryPowerFromLatestValue(latestValue);
+    }
+
+    private static int GetHomeBatteryPowerFromLatestValue(CloudApiValue latestValue)
+    {
         var batteryPower = latestValue.SiteCurrentPowerFlow.Storage.CurrentPower;
         if (string.Equals(latestValue.SiteCurrentPowerFlow.Storage.Status, "Discharging"))
         {
@@ -78,12 +100,28 @@ public class CurrentValuesService : ICurrentValuesService
         {
             return (int)(batteryPower * 1000);
         }
+
         return (int)batteryPower;
+    }
+
+    public async Task<DtoCurrentPvValues> GetCurrentPvValues()
+    {
+        _logger.LogTrace("{method}()", nameof(GetCurrentPvValues));
+        var latestValue = await GetLatestValue().ConfigureAwait(false);
+        var currentPvValues = new DtoCurrentPvValues()
+        {
+            GridPower = GetGridPowerFromLatestValue(latestValue),
+            InverterPower = GetInverterPowerFromLatestValue(latestValue),
+            HomeBatteryPower = GetHomeBatteryPowerFromLatestValue(latestValue),
+            HomeBatterySoc = GetHomeBatterySocFromLatestValue(latestValue),
+            LastUpdated = _sharedValues.CloudApiValues.OrderBy(c => c.Key).LastOrDefault().Key,
+        };
+        return currentPvValues;
     }
 
     private async Task<CloudApiValue> GetLatestValue()
     {
-        _logger.LogDebug("Get new Values from SolarEdge API");
+        _logger.LogTrace("{method}()", nameof(GetLatestValue));
         string? jsonString;
         try
         {

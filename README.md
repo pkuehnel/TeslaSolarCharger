@@ -311,7 +311,7 @@ volumes:
 [![Docker pulls new name](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 [![Docker pulls old name](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
 
-The SolarEdge Plugin uses the cloud API, which is limited to 300 calls per day. To stay within this limit, there is an environment variable that limits the refresh interval to 360 seconds. This results in a very low update frequency of your power values. That is why it is recommended to use the ModbusPlugin below.
+The SolarEdge Plugin uses the cloud API, which is limited to 300 which is reset after 15 minutes. When the limit is reached the solaredge API does not gather any new values. This results in TSC displaying 0 grid and home battery power until 15 minutes are over.
 
 To use the plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable
 
@@ -327,7 +327,6 @@ To use the plugin, just add these lines to the bottom of your `docker-compose.ym
     restart: always
     environment:
       - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf& ##Change your site ID and API Key here
-      - RefreshIntervalSeconds=360
     ports:
       - 7193:80
 
@@ -447,7 +446,6 @@ services:
     restart: always
     environment:
       - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf& ##Change your site ID and API Key here
-      - RefreshIntervalSeconds=360
     ports:
       - 7193:80
 
@@ -790,10 +788,12 @@ Depending on your used plugins, you have to paste one of the following URLs to t
 
 - SMA Plugin: `http://<IP of your Docker host>:7192/api/CurrentPower/GetPower`
 - SolarEdge Plugin:
-  - Grid Power: `http://solaredgeplugin/api/CurrentValues/GetPowerToGrid`
-  - Inverter Power: `http://solaredgeplugin/api/CurrentValues/GetInverterPower`
-  - Home Battery SoC: `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
-  - Home Battery Power: `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
+  - Grid Power, InverterPower, HomeBatterySoc, Home Battery Power Url: `http://solaredgeplugin/api/CurrentValues/GetCurrentPvValues`
+  - Set Result types to json and use the following json patterns:
+    - Grid Power: `$.gridPower`
+    - Inverter Power: `$.inverterPower`
+    - Home Battery SoC: `$.homeBatterySoc`
+    - Home Battery Power: `$.homeBatteryPower`
 - Solax Plugin:
   - Grid Power, InverterPower, HomeBatterySoc, Home Battery Power Url: `http://solaxplugin/api/CurrentValues/GetCurrentPvValues`
   - Set Result types to json and use the following json patterns:
@@ -939,11 +939,6 @@ After setting everything up, your overview page should look like this:
 
 **Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number, e.g. `-1.0`.
 
-If you use this feature in combination with the SolarEdge plugin, the URLs are:
-
-- `http://solaredgeplugin/api/CurrentValues/GetHomeBatterySoc`
-- `http://solaredgeplugin/api/CurrentValues/GetHomeBatteryPower`
-
 ## How to use
 
 After setting everything up, you can use the software via `http://your-ip-address:7190`.
@@ -956,7 +951,7 @@ Currently, there are four different charge modes available:
 1. **Maximum Power**: The car charges with the maximum available power
 1. **Min SoC + PV**: If plugged in, the car starts charging with maximum power until the set Min SoC is reached. After that, only PV Power is used to charge the car.
 1. **Spot Price + PV**: You can set a Min Soc, which should be reached at a specific date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). The charge times are then planned to charge at the cheapest possible time. This is especially useful if you have hourly electricity prices like with [Tibber](https://tibber.com/) or [aWATTar](https://www.awattar.de/). Note: The car will still charge based on Solar energy if available, and you need to enable `Use Spot Price` in the Charge Prices settings for correct charge price calculation.
-1. **Do Nothing**: TSC leaves this car as is and does not update the charging speed etc.
+1. **TSC Disabled**: TSC leaves this car as is and does not update the charging speed etc.
 
 ## Generate logfiles
 

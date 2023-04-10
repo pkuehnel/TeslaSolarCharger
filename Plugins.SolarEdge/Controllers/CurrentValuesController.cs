@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Plugins.SolarEdge.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
+using TeslaSolarCharger.SharedBackend.Dtos;
 
 namespace Plugins.SolarEdge.Controllers;
 
@@ -12,6 +13,9 @@ public class CurrentValuesController : ApiBaseController
     {
         _currentValuesService = currentValuesService;
     }
+
+    [HttpGet]
+    public Task<DtoCurrentPvValues> GetCurrentPvValues() => _currentValuesService.GetCurrentPvValues();
 
     [HttpGet]
     public Task<int> GetPowerToGrid()
