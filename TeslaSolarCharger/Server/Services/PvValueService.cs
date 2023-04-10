@@ -40,12 +40,16 @@ public class PvValueService : IPvValueService
         _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        HttpRequestMessage? gridRequest = default;
+        HttpRequestMessage? originGridRequest = default;
+        HttpRequestMessage? originInverterRequest = default;
+        HttpRequestMessage? originHomeBatterySocRequest = default;
+        HttpRequestMessage? originHatteryPowerRequest = default;
         HttpResponseMessage? gridHttpResponse = default;
         if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is { GridValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
         {
             var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
-            gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
+            var gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
+            originGridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
             _logger.LogTrace("Request grid power.");
             gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
             var patternType = frontendConfiguration.GridPowerNodePatternType ?? NodePatternType.Direct;
@@ -67,13 +71,13 @@ public class PvValueService : IPvValueService
 
 
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
-        HttpRequestMessage? inverterRequest = default;
         HttpResponseMessage? inverterHttpResponse = default;
         if (!string.IsNullOrWhiteSpace(inverterRequestUrl) && frontendConfiguration is { InverterValueSource: SolarValueSource.Modbus or SolarValueSource.Rest})
         {
             var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
-            inverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
-            if (IsSameRequest(gridRequest, inverterRequest))
+            var inverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
+            originInverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
+            if (IsSameRequest(originGridRequest, inverterRequest))
             {
                 inverterHttpResponse = gridHttpResponse;
             }
@@ -95,17 +99,17 @@ public class PvValueService : IPvValueService
         }
 
         var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
-        HttpRequestMessage? homeBatterySocRequest = default;
         HttpResponseMessage? homeBatterySocHttpResponse = default;
         if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl) && frontendConfiguration is { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
         {
             var homeBatterySocHeaders = _configurationWrapper.HomeBatterySocHeaders();
-            homeBatterySocRequest = GenerateHttpRequestMessage(homeBatterySocRequestUrl, homeBatterySocHeaders);
-            if (IsSameRequest(gridRequest, homeBatterySocRequest))
+            var homeBatterySocRequest = GenerateHttpRequestMessage(homeBatterySocRequestUrl, homeBatterySocHeaders);
+            originHomeBatterySocRequest = GenerateHttpRequestMessage(homeBatterySocRequestUrl, homeBatterySocHeaders);
+            if (IsSameRequest(originGridRequest, homeBatterySocRequest))
             {
                 homeBatterySocHttpResponse = gridHttpResponse;
             }
-            else if (inverterRequest != default && IsSameRequest(inverterRequest, homeBatterySocRequest))
+            else if (originInverterRequest != default && IsSameRequest(originInverterRequest, homeBatterySocRequest))
             {
                 homeBatterySocHttpResponse = inverterHttpResponse;
             }
@@ -132,15 +136,15 @@ public class PvValueService : IPvValueService
             var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
             var homeBatteryPowerRequest = GenerateHttpRequestMessage(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders);
             HttpResponseMessage? homeBatteryPowerHttpResponse;
-            if (IsSameRequest(gridRequest, homeBatteryPowerRequest))
+            if (IsSameRequest(originGridRequest, homeBatteryPowerRequest))
             {
                 homeBatteryPowerHttpResponse = gridHttpResponse;
             }
-            else if (inverterRequest != default && IsSameRequest(inverterRequest, homeBatteryPowerRequest))
+            else if (originInverterRequest != default && IsSameRequest(originInverterRequest, homeBatteryPowerRequest))
             {
                 homeBatteryPowerHttpResponse = inverterHttpResponse;
             }
-            else if (homeBatterySocRequest != default && IsSameRequest(homeBatterySocRequest, homeBatteryPowerRequest))
+            else if (originHomeBatterySocRequest != default && IsSameRequest(originHomeBatterySocRequest, homeBatteryPowerRequest))
             {
                 homeBatteryPowerHttpResponse = homeBatterySocHttpResponse;
             }
