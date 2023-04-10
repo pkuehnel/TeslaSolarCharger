@@ -327,7 +327,6 @@ To use the plugin, just add these lines to the bottom of your `docker-compose.ym
     restart: always
     environment:
       - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf& ##Change your site ID and API Key here
-      - RefreshIntervalSeconds=360
     ports:
       - 7193:80
 
@@ -447,7 +446,6 @@ services:
     restart: always
     environment:
       - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf& ##Change your site ID and API Key here
-      - RefreshIntervalSeconds=360
     ports:
       - 7193:80
 
