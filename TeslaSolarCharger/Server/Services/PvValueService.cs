@@ -269,22 +269,30 @@ public class PvValueService : IPvValueService
 
     internal bool IsSameRequest(HttpRequestMessage? httpRequestMessage1, HttpRequestMessage httpRequestMessage2)
     {
+        _logger.LogTrace("{method}({request1}, {request2})", nameof(IsSameRequest), httpRequestMessage1, httpRequestMessage2);
         if (httpRequestMessage1 == null)
         {
+            _logger.LogTrace("Not same request as first request is null.");
             return false;
         }
         if (httpRequestMessage1.Method != httpRequestMessage2.Method)
         {
+            _logger.LogDebug("not same request as request1 method is {request1} and request2 method is {request2}",
+                httpRequestMessage1.Method, httpRequestMessage2.Method);
             return false;
         }
 
         if (httpRequestMessage1.RequestUri != httpRequestMessage2.RequestUri)
         {
+            _logger.LogDebug("not same request as request1 Uri is {request1} and request2 Uri is {request2}",
+                httpRequestMessage1.RequestUri, httpRequestMessage2.RequestUri);
             return false;
         }
 
         if (httpRequestMessage1.Headers.Count() != httpRequestMessage2.Headers.Count())
         {
+            _logger.LogDebug("not same request as request1 header count is {request1} and request2 header count is {request2}",
+                httpRequestMessage1.Headers.Count(), httpRequestMessage2.Headers.Count());
             return false;
         }
 
