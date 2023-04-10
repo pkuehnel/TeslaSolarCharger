@@ -311,7 +311,7 @@ volumes:
 [![Docker pulls new name](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 [![Docker pulls old name](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsettersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/smartteslaampsettersolaredgeplugin)
 
-The SolarEdge Plugin uses the cloud API, which is limited to 300 calls per day. To stay within this limit, there is an environment variable that limits the refresh interval to 360 seconds. This results in a very low update frequency of your power values. That is why it is recommended to use the ModbusPlugin below.
+The SolarEdge Plugin uses the cloud API, which is limited to 300 which is reset after 15 minutes. When the limit is reached the solaredge API does not gather any new values. This results in TSC displaying 0 grid and home battery power until 15 minutes are over.
 
 To use the plugin, just add these lines to the bottom of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable
 
@@ -327,7 +327,6 @@ To use the plugin, just add these lines to the bottom of your `docker-compose.ym
     restart: always
     environment:
       - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf& ##Change your site ID and API Key here
-      - RefreshIntervalSeconds=360
     ports:
       - 7193:80
 
@@ -447,7 +446,6 @@ services:
     restart: always
     environment:
       - CloudUrl=https://monitoringapi.solaredge.com/site/1561056/currentPowerFlow.json?api_key=asdfasdfasdfasdfasdfasdf& ##Change your site ID and API Key here
-      - RefreshIntervalSeconds=360
     ports:
       - 7193:80
 
