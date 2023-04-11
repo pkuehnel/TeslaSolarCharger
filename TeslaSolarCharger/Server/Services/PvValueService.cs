@@ -43,7 +43,6 @@ public class PvValueService : IPvValueService
         HttpRequestMessage? originGridRequest = default;
         HttpRequestMessage? originInverterRequest = default;
         HttpRequestMessage? originHomeBatterySocRequest = default;
-        HttpRequestMessage? originHatteryPowerRequest = default;
         HttpResponseMessage? gridHttpResponse = default;
         if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is { GridValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
         {
