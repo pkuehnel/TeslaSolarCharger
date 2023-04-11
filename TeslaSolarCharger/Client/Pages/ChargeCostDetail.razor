@@ -31,13 +31,13 @@ else
         </div>
         <div class="input-group mb-3">
             <div class="form-floating flex-grow-1">
-                <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" placeholder="@(((decimal)0).ToString("0.0000"))"/>
+                <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" />
                 <label for="solarPrice">Solar Price</label>
             </div>
         </div>
         <div class="input-group mb-3">
             <div class="form-floating flex-grow-1">
-                <InputNumber id="solarPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" placeholder="0.0000" />
+                <InputNumber id="solarPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" />
                 <label for="solarPrice">@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")</label>
             </div>
         </div>

@@ -50,7 +50,7 @@ public class ConfigService : IConfigService
                 MaximumAmpere = car.CarConfiguration.MaximumAmpere,
                 MinimumAmpere = car.CarConfiguration.MinimumAmpere,
                 UsableEnergy = car.CarConfiguration.UsableEnergy,
-                ShouldBeManaged = car.CarConfiguration.ShouldBeManaged,
+                ShouldBeManaged = car.CarConfiguration.ShouldBeManaged != false,
                 ChargingPriority = car.CarConfiguration.ChargingPriority,
                 ShouldSetChargeStartTimes = car.CarConfiguration.ShouldSetChargeStartTimes == true,
             };
