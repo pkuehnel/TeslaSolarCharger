@@ -6,7 +6,9 @@
 [![Docker pulls old name](https://img.shields.io/docker/pulls/pkuehnel/smartteslaampsetter)](https://hub.docker.com/r/pkuehnel/smartteslaampsetter)
 [![](https://img.shields.io/badge/Donate-PayPal-ff69b4.svg)](https://www.paypal.com/donate/?hosted_button_id=S3CK8Q9KV3JUL)
 [![edgeRelease](https://github.com/pkuehnel/TeslaSolarCharger/actions/workflows/edgeRelease.yml/badge.svg)](https://github.com/pkuehnel/TeslaSolarCharger/actions/workflows/edgeRelease.yml)
-[![CodingTime(since 10th April 2023)](https://wakatime.com/badge/github/pkuehnel/TeslaSolarCharger.svg)](https://wakatime.com/badge/github/pkuehnel/TeslaSolarCharger)
+
+Time spent in project since 14<sup>th</sup> April 2023:<br />
+[![wakatime](https://wakatime.com/badge/github/pkuehnel/TeslaSolarCharger.svg)](https://wakatime.com/badge/github/pkuehnel/TeslaSolarCharger)
 
 
 TeslaSolarCharger is a service to set one or multiple Teslas' charging current using the datalogger **[TeslaMate](https://github.com/adriankumpf/teslamate)**.
