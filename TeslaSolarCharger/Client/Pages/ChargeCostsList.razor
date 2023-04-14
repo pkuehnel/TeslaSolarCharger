@@ -2,7 +2,7 @@
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
-<h3>Charge Prices</h3>
+<h1>Charge Prices</h1>
 
 <button class="btn btn-primary" @onclick="NavigateToNew">New</button>
 
@@ -12,14 +12,14 @@
 }
 else
 {
-    <table class="styled-table">
+    <table class="table table-hover">
         <thead>
         <tr>
-            <th>Id</th>
-            <th>Valid since</th>
-            <th>Solar price per kWh</th>
-            <th>Grid price per kWh</th>
-            <th>Delete</th>
+            <th scope="col">Id</th>
+            <th scope="col">Valid since</th>
+            <th scope="col">Solar price per kWh</th>
+            <th scope="col">Grid price per kWh</th>
+            <th scope="col">Delete</th>
         </tr>
         </thead>
         <tbody>

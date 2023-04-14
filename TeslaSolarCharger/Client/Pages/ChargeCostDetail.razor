@@ -1,14 +1,13 @@
 ﻿@page "/ChargePrice/detail/{chargeCostId:int}"
 @page "/ChargePrice/new"
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
-@using System.Globalization
 @using TeslaSolarCharger.Shared.Contracts
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject IDateTimeProvider DateTimeProvider
 
 <button class="btn btn-primary" @onclick="NavigateToList">All Charge costs</button>
-<h3>ChargePriceDetail</h3>
+<h1>ChargePriceDetail</h1>
 
 @if (ChargePrice == null)
 {
@@ -19,25 +18,30 @@ else
     <EditForm Model="ChargePrice" OnValidSubmit="@SaveChargePrice">
         <DataAnnotationsValidator />
         <ValidationSummary />
-        <div class="col-12 row">
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Id</label>
-            <span class="col-6 col-sm-6 col-md-3 col-lg-2"> @ChargePrice.Id </span>
+        <div class="mb-3 form-floating">
+            <input type="number" class="form-control" value="@ChargePrice.Id" readonly>
+            <label class="form-label">Id</label>
         </div>
-        <div class="form-group">
-            <label for="date">Valid Since</label>
-            <input class="form-control" value="@ChargePrice.ValidSince.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-                   @onchange="@(e => ChargePrice.ValidSince = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)))">
+        <div class="input-group mb-3">
+            <div class="form-floating flex-grow-1">
+                <InputDate id="date" @bind-Value="ChargePrice.ValidSince" class="form-control" />
+                <label for="date">Valid Since</label>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="solarPrice">Solar Price</label>
-            <input type="number" class="form-control" @bind="@ChargePrice.SolarPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="solarPrice" name="solarPrice" step=".0001">
+        <div class="input-group mb-3">
+            <div class="form-floating flex-grow-1">
+                <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" />
+                <label for="solarPrice">Solar Price</label>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="gridPrice">@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")</label>
-            <input type="number" class="form-control" @bind="@ChargePrice.GridPrice" placeholder="@(((decimal)0).ToString("0.0000"))" id="gridPrice" name="gridPrice" step=".0001">
+        <div class="input-group mb-3">
+            <div class="form-floating flex-grow-1">
+                <InputNumber id="solarPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" />
+                <label for="solarPrice">@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")</label>
+            </div>
         </div>
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" @bind="@ChargePrice.AddSpotPriceToGridPrice" id="useSpotPrice">
+        <div class="mb-3">
+            <InputCheckbox class="form-check-input" id="useSpotPrice" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
             <label class="form-check-label" for="useSpotPrice">
                 Use Spot Prices
             </label>
@@ -47,12 +51,17 @@ else
         </div>
         @if (ChargePrice.AddSpotPriceToGridPrice)
         {
-            <div class="form-group">
-                <label for="spotPriceCorrectionFactor">Additional costs to spotprice (%)</label>
-                <input type="number" class="form-control" @bind="@ChargePrice.SpotPriceSurcharge" placeholder="@(((decimal)22).ToString("0.00"))" id="spotPriceCorrectionFactor" name="spotPriceCorrectionFactor" step=".01">
-            </div>
-            <div>
-                <small id="spotPriceCorrectionFactorHelp" class="form-text text-muted">Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.</small>
+            <div class="mb-3">
+                <div class="input-group">
+                    <div class="form-floating flex-grow-1">
+                        <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" />
+                        <label for="chargePriceSurcharge">Additional costs to spotprice</label>
+                    </div>
+                    <span class="input-group-text">%</span>
+                </div>
+                <div col="12">
+                    <small id="spotPriceCorrectionFactorHelp" class="form-text text-muted">Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.</small>
+                </div>
             </div>
         }
         <br/>
@@ -78,6 +87,8 @@ else
             ChargePrice = new DtoChargePrice()
             {
                 ValidSince = DateTimeProvider.Now(),
+                GridPrice = new decimal(0.285),
+                SolarPrice = new decimal(0.12),
             };
         }
     }
