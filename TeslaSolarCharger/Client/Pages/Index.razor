@@ -21,7 +21,7 @@
 
 @if (_pvValues != null)
 {
-    <div class="shadow p-3 mb-5 bg-white rounded">
+    <div class="container shadow p-3 mb-5 bg-white rounded">
         @if (_couldNotRefreshStates == true)
         {
             <small class="form-text text-muted">States could not be refreshed. Are you currently offline?</small>
@@ -91,7 +91,7 @@ else
     }
     @foreach (var car in _carBaseStates)
     {
-        <div class="shadow p-3 mb-5 bg-white rounded">
+        <div class="container shadow p-3 mb-5 bg-white rounded">
             <div>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarName]">
                     <b>@(car.NameOrVin)</b>
