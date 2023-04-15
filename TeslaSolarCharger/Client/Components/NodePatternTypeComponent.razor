@@ -3,14 +3,20 @@
 @using TeslaSolarCharger.Shared.Enums
 
 
-<label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}nodePatternType")">Result Type:</label>
-<InputSelect @bind-Value="@NodePatternType" id="@($"{IdPrefix}nodePatternType")" name="nodePatternType">
+<InputComponent ValueId="@($"{IdPrefix}nodePatternType")"
+                LabelText="Result Type"
+                UnitText=""
+                HelpText="">
+    <InputFragment>
+        <InputSelect class="form-control" @bind-Value="@NodePatternType" id="@($"{IdPrefix}nodePatternType")">
 
-    @foreach (var value in Enum.GetValues<NodePatternType>())
-    {
-        <option value="@value">@value.ToFriendlyString()</option>
-    }
-</InputSelect>
+            @foreach (var value in Enum.GetValues<NodePatternType>())
+            {
+                <option value="@value">@value.ToFriendlyString()</option>
+            }
+        </InputSelect>
+    </InputFragment>
+</InputComponent>
 @if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Json)
 {
     <InputComponent ValueId="@($"{IdPrefix}JsonPattern")"
