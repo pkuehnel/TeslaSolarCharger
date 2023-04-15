@@ -157,11 +157,14 @@ else
 
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvAndMinSoc or ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
-                <div>
-                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"car{car.CarId}MinSoc")">Min SOC (%):</label>
-                    <input class="form-control" value="@_carBaseSettings[car.CarId].MinimumStateOfCharge" type="number" id="@($"car{car.CarId}MinSoc")" min="0" max="100"
-               @onchange="@(e => _carBaseSettings[car.CarId].MinimumStateOfCharge = Int32.Parse(e.Value?.ToString() ?? "0"))">
-                </div>
+                <InputComponent ValueId="@($"car{car.CarId}MinSoc")"
+                                LabelText="Min SOC"
+                                UnitText="%"
+                                HelpText="">
+                    <InputFragment>
+                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" " />
+                    </InputFragment>
+                </InputComponent>
             }
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
