@@ -24,7 +24,9 @@
     </div>
     @if (IsModbusUrl)
     {
-        <ModbusUrlCreationComponent @bind-ModbusUrl="Url"
+        <ModbusUrlCreationComponent 
+                            IdPrefix="IdPrefix"
+                            @bind-ModbusUrl="Url"
                             @bind-ModbusUrl:event="ModbusUrlChanged" />
     }
 }
