@@ -173,18 +173,17 @@ else
                 </div>
                 @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate)
                 {
-                    <p>
-
+                    <div>
                         <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")">Date:</label>
                         <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")"
                @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
-                    </p>
+                    </div>
                 }
-                <p>
+                <div>
                     <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")">Time:</label>
                     <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")"
                @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
-                </p>
+                </div>
 
             }
             @if (car.ChargingNotPlannedDueToNoSpotPricesAvailable)
