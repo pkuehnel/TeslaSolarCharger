@@ -18,31 +18,45 @@ else
     <EditForm Model="ChargePrice" OnValidSubmit="@SaveChargePrice">
         <DataAnnotationsValidator />
         <ValidationSummary />
-        <div class="mb-3 form-floating">
-            <input type="number" class="form-control" value="@ChargePrice.Id" readonly>
-            <label class="form-label">Id</label>
-        </div>
-        <div class="input-group mb-3">
-            <div class="form-floating flex-grow-1">
-                <InputDate id="date" @bind-Value="ChargePrice.ValidSince" class="form-control" />
-                <label for="date">Valid Since</label>
-            </div>
-        </div>
-        <div class="input-group mb-3">
-            <div class="form-floating flex-grow-1">
-                <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" />
-                <label for="solarPrice">Solar Price</label>
-            </div>
-        </div>
-        <div class="input-group mb-3">
-            <div class="form-floating flex-grow-1">
-                <InputNumber id="solarPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" />
-                <label for="solarPrice">@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")</label>
-            </div>
-        </div>
+        <InputComponent ValueId="chargePriceId"
+                        LabelText="ID"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputNumber id="chargePriceId" @bind-Value="ChargePrice.Id" class="form-control" placeholder=" " readonly />
+            </InputFragment>
+        </InputComponent>
+
+        <InputComponent ValueId="date"
+                        LabelText="Valid Since"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputDate id="date" @bind-Value="ChargePrice.ValidSince" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+
+        <InputComponent ValueId="solarPrice"
+                        LabelText="Solar Price"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+
+        <InputComponent ValueId="gridPrice"
+                        LabelText="@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputNumber id="gridPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+
         <div class="mb-3">
-            <InputCheckbox class="form-check-input" id="useSpotPrice" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
-            <label class="form-check-label" for="useSpotPrice">
+            <InputCheckbox class="form-check-input" id="useSpotPrice1" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
+            <label class="form-check-label" for="useSpotPrice1">
                 Use Spot Prices
             </label>
             <div>
@@ -51,18 +65,14 @@ else
         </div>
         @if (ChargePrice.AddSpotPriceToGridPrice)
         {
-            <div class="mb-3">
-                <div class="input-group">
-                    <div class="form-floating flex-grow-1">
-                        <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" />
-                        <label for="chargePriceSurcharge">Additional costs to spotprice</label>
-                    </div>
-                    <span class="input-group-text">%</span>
-                </div>
-                <div col="12">
-                    <small id="spotPriceCorrectionFactorHelp" class="form-text text-muted">Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.</small>
-                </div>
-            </div>
+            <InputComponent ValueId="chargePriceSurcharge"
+                    LabelText="Additional costs to spotprice"
+                    UnitText="%"
+                    HelpText="Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.">
+                <InputFragment>
+                    <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
         }
         <br/>
         <button type="submit" class="btn btn-primary">Submit</button>

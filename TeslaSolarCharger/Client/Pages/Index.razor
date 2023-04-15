@@ -6,7 +6,6 @@
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Enums
-@using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
 @using Majorsoft.Blazor.Components.Collapse
 @using TeslaSolarCharger.Shared.Dtos.Settings
@@ -142,50 +141,49 @@ else
                 </TooltipComponent>
             </div>
 
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="chargeMode">
+            <div>
+                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"car{car.CarId}ChargeMode")">
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeMode]">
                         ChargeMode: <a href="https://github.com/pkuehnel/TeslaSolarCharger#charge-modes" target="_blank"><i class="fa-solid fa-question" style="width: 25px;"></i></a>
                     </TooltipComponent>
                 </label>
-                <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="chargeMode" name="chargeMode">
+                <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="@($"car{car.CarId}ChargeMode")">
                     @foreach (var value in Enum.GetValues<ChargeMode>())
                     {
                         <option value="@value">@value.ToFriendlyString()</option>
                     }
                 </InputSelect>
-            </p>
+            </div>
 
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvAndMinSoc or ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
-                <p>
-                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
-                    <input class="form-control" value="@_carBaseSettings[car.CarId].MinimumStateOfCharge" type="number" id="minSoc" name="minSoc" min="0" max="100"
+                <div>
+                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"car{car.CarId}MinSoc")">Min SOC (%):</label>
+                    <input class="form-control" value="@_carBaseSettings[car.CarId].MinimumStateOfCharge" type="number" id="@($"car{car.CarId}MinSoc")" min="0" max="100"
                @onchange="@(e => _carBaseSettings[car.CarId].MinimumStateOfCharge = Int32.Parse(e.Value?.ToString() ?? "0"))">
-                </p>
+                </div>
             }
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" @bind="_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate" id="flexCheckDefault">
-                    <label class="form-check-label" for="flexCheckDefault">
+                    <input class="form-check-input" type="checkbox" @bind="_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate" id="@($"car{car.CarId}IgnoreLatestTimeToReachSocDate")">
+                    <label class="form-check-label" for="@($"car{car.CarId}IgnoreLatestTimeToReachSocDate")">
                         Charge every day
                     </label>
                 </div>
                 @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate)
                 {
-                    <p>
-
-                        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
-                        <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
+                    <div>
+                        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")">Date:</label>
+                        <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")"
                @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
-                    </p>
+                    </div>
                 }
-                <p>
-                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="time" name="time"
+                <div>
+                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")">Time:</label>
+                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")"
                @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
-                </p>
+                </div>
 
             }
             @if (car.ChargingNotPlannedDueToNoSpotPricesAvailable)
@@ -193,7 +191,7 @@ else
                 <p>Note: Spot prices are published for the next day at 14:00 - 15:00. Charges won't be planned until @_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddDays(-1).AddHours(15).ToString(CultureInfo.CurrentCulture)</p>
             }
 
-            <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
+            <p><button class="btn btn-primary col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
 
             @if (car.ChargeInformation.Count > 0)
             {

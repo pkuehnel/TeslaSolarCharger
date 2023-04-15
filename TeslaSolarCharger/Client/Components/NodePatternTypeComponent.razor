@@ -3,8 +3,8 @@
 @using TeslaSolarCharger.Shared.Enums
 
 
-<label class="col-5 col-sm-4 col-md-3 col-lg-2" for="nodePatternType">Result Type:</label>
-<InputSelect @bind-Value="@NodePatternType" id="nodePatternType" name="nodePatternType">
+<label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}nodePatternType")">Result Type:</label>
+<InputSelect @bind-Value="@NodePatternType" id="@($"{IdPrefix}nodePatternType")" name="nodePatternType">
 
     @foreach (var value in Enum.GetValues<NodePatternType>())
     {
@@ -13,34 +13,61 @@
 </InputSelect>
 @if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Json)
 {
-    <div class="form-group">
-        <label for="JsonPattern">@(Purpose) Json Pattern</label>
-        <InputText id="JsonPattern" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
-    </div>
+    <InputComponent ValueId="@($"{IdPrefix}JsonPattern")"
+                    LabelText="@($"{Purpose} Json Pattern")"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <InputText id="@($"{IdPrefix}JsonPattern")" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
+        </InputFragment>
+    </InputComponent>
 }
 @if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Xml)
 {
-    <div class="form-group">
-        <label for="XmlPattern">@(Purpose) XML Pattern</label>
-        <InputText id="XmlPattern" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label for="XmlAttributeHeaderName">@(Purpose) XML Attribute Header Name</label>
-        <InputText id="XmlAttributeHeaderName" @bind-Value="XmlAttributeHeaderName" placeholder="AttributeHeaderName" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label for="XmlAttributeHeaderValue">@(Purpose) XML Attribute Header Value</label>
-        <InputText id="XmlAttributeHeaderValue" @bind-Value="XmlAttributeHeaderValue" placeholder="AttributeHeaderValue" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label for="XmlAttributeValueName">@(Purpose) XML Attribute Header Value</label>
-        <InputText id="XmlAttributeValueName" @bind-Value="XmlAttributeValueName" placeholder="AttributeValueName" class="form-control" />
-    </div>
+    <InputComponent ValueId="@($"{IdPrefix}XmlPattern")"
+                    LabelText="@($"{Purpose} XML Pattern")"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <InputText id="@($"{IdPrefix}XmlPattern")" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
+        </InputFragment>
+    </InputComponent>
+
+    <InputComponent ValueId="@($"{IdPrefix}XmlAttributeHeaderName")"
+                    LabelText="@($"{Purpose} XML Attribute Header Name")"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <InputText id="@($"{IdPrefix}XmlAttributeHeaderName")" @bind-Value="XmlAttributeHeaderName" placeholder=" " class="form-control" />
+        </InputFragment>
+    </InputComponent>
+
+    <InputComponent ValueId="@($"{IdPrefix}XmlAttributeHeaderValue")"
+                LabelText="@($"{Purpose} XML Attribute Header Value")"
+                UnitText=""
+                HelpText="">
+        <InputFragment>
+            <InputText id="@($"{IdPrefix}XmlAttributeHeaderValue")" @bind-Value="XmlAttributeHeaderValue" placeholder=" " class="form-control" />
+        </InputFragment>
+    </InputComponent>
+
+    <InputComponent ValueId="@($"{IdPrefix}XmlAttributeValueName")"
+                LabelText="@($"{Purpose} XML Attribute Value Name")"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <InputText id="@($"{IdPrefix}XmlAttributeValueName")" @bind-Value="XmlAttributeValueName" placeholder=" " class="form-control" />
+        </InputFragment>
+    </InputComponent>
 }
 
 @code {
     [Parameter]
-    public string Purpose { get; set; } = null!;
+#pragma warning disable CS8618
+        public string Purpose { get; set; }
+#pragma warning restore CS8618
+
+    private string IdPrefix => Purpose.Replace(" ", "");
 
     [Parameter]
     public NodePatternType? NodePatternType

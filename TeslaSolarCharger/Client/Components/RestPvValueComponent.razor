@@ -4,51 +4,65 @@
 @inject INodePatternTypeHelper NodePatternTypeHelper
 
 
-<div class="form-group">
-    <label for="Url">@Purpose Url</label>
-    <InputText id="Url" @bind-Value="Url" class="form-control" />
-</div>
+<InputComponent ValueId="@($"{IdPrefix}Url")"
+                LabelText="@($"{Purpose} Url")"
+                UnitText=""
+                HelpText="">
+    <InputFragment>
+        <InputText id="@($"{IdPrefix}Url")" @bind-Value="Url" class="form-control" placeholder=" " />
+    </InputFragment>
+</InputComponent>
+
 @if (SolarValueSource == SolarValueSource.Modbus)
 {
-    <div class="form-group">
-        <InputCheckbox id="IsModbusUrl" @bind-Value="IsModbusUrl" class="form-check-input" />
-        <label for="IsModbusUrl">Use Modbus Url Creation Tool</label>
+    <div class="form-group mb-3">
+        <InputCheckbox id="@($"{IdPrefix}IsModbusUrl")" @bind-Value="IsModbusUrl" class="form-check-input" />
+        <label for="@($"{IdPrefix}IsModbusUrl")">Use Modbus Url Creation Tool</label>
         <div>
-            <small id="IsModbusUrlHelp" class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
+            <small class="form-text text-muted">Use this to configure URL for Modbus plugin.</small>
         </div>
     </div>
     @if (IsModbusUrl)
     {
-        <ModbusUrlCreationComponent @bind-ModbusUrl="Url"
-                                    @bind-ModbusUrl:event="ModbusUrlChanged" />
+        <ModbusUrlCreationComponent 
+                            IdPrefix="IdPrefix"
+                            @bind-ModbusUrl="Url"
+                            @bind-ModbusUrl:event="ModbusUrlChanged" />
     }
 }
 else
 {
-    if (Headers.Count > 0)
-    {
-        <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
-        <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
-    }
-    for (var i = 0; i < Headers.Count; i++)
-    {
-        var header = Headers.ElementAt(i);
-        <p>
-            <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="headerKey" name="headerKey"
-           @onchange="@(e => UpdateHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
-            <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="headerValue" name="headerValue"
-           @onchange="@(e => Headers[header.Key] = e.Value?.ToString() ?? string.Empty)">
-            <button type="button" class="btn btn-danger" @onclick="() => RemoveHeader(header.Key)">DEL</button>
-        </p>
-    }
-    <p><button type="button" class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="AddNewHeader">Add new header</button></p>
-    
+    <div class="mb-3">
+        @if (Headers.Count > 0)
+        {
+            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
+            <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
+        }
+        @for (var i = 0; i < Headers.Count; i++)
+        {
+            var header = Headers.ElementAt(i);
+            <div>
+                <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="@($"{IdPrefix}headerKey{i}")" name="headerKey"
+               @onchange="@(e => UpdateHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
+                <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="@($"{IdPrefix}headerValue{i}")" name="headerValue"
+               @onchange="@(e => Headers[header.Key] = e.Value?.ToString() ?? string.Empty)">
+                <button type="button" class="btn btn-danger" @onclick="() => RemoveHeader(header.Key)">DEL</button>
+            </div>
+        }
+    </div>
+
+    <div><button type="button" class="btn btn-secondary mb-3" @onclick="AddNewHeader">Add new header</button></div>
+
 }
 
 
 @code {
     [Parameter]
-    public string Purpose { get; set; } = null!;
+#pragma warning disable CS8618
+    public string Purpose { get; set; }
+#pragma warning restore CS8618
+
+    private string IdPrefix => Purpose.Replace(" ", "");
 
     [Parameter]
     public SolarValueSource SolarValueSource { get; set; }

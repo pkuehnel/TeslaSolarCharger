@@ -677,6 +677,17 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     private async Task UpdateJsonFile(string configFileLocation, string jsonFileContent)
     {
+        if (File.Exists(configFileLocation))
+        {
+            try
+            {
+                File.Copy(configFileLocation, configFileLocation + _dateTimeProvider.DateTimeOffSetNow().ToUnixTimeSeconds(), true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not backup baseConfig.json");
+            }
+        }
         await File.WriteAllTextAsync(configFileLocation, jsonFileContent).ConfigureAwait(false);
         var cache = MemoryCache.Default;
         cache.Remove(_baseConfigurationMemoryCacheName, CacheEntryRemovedReason.ChangeMonitorChanged);

@@ -1,60 +1,66 @@
 ﻿@using System.Web
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusUnitIdentifier">Unit Identifier:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ModbusUnitIdentifier" @bind:event="oninput" type="number" id="modbusUnitIdentifier" name="modbusUnitIdentifier">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="registerType">Register Type:</label>
-    <InputSelect @bind-Value="@RegisterType" id="registerType" name="registerType">
-          
-        @foreach (var value in Enum.GetValues<ModbusRegisterType>())
-        {
-            
-            <option value="@value">@value.ToFriendlyString()</option>
-        }
-    </InputSelect>
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="valueType">Value Type:</label>
-    <InputSelect @bind-Value="@ValueType" id="valueType" name="valueType">
 
-        @foreach (var value in Enum.GetValues<ModbusValueType>())
-        {
 
-            <option value="@value">@value.ToFriendlyString()</option>
-        }
-    </InputSelect>
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusStartingAddress">Register Address:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@StartingAddress" @bind:event="oninput" type="number" id="modbusStartingAddress" name="modbusStartingAddress">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusQuantity">Number of Registers:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Quantity" @bind:event="oninput" type="number" id="modbusQuantity" name="modbusQuantity">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusIpAddress">IP address:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@IpAddress" @bind:event="oninput" type="text" id="modbusIpAddress" name="modbusIpAddress">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusPort">Port:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Port" @bind:event="oninput" type="number" id="modbusPort" name="modbusPort">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="swapRegisters">Swap Register (bigEndian / littleEndian):</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@SwapRegisters" type="checkbox" id="swapRegisters" name="swapRegisters">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusConnectDelaySeconds">Connect Delay (seconds):</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="modbusConnectDelaySeconds" name="modbusConnectDelaySeconds">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusTimeoutSeconds">Read Timeout (seconds):</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@TimeoutSeconds" @bind:event="oninput" type="number" id="modbusTimeoutSeconds" name="modbusTimeoutSeconds">
-</p>
+<div class="mb-3">
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}ModbusUnitIdentifier")">Unit Identifier:</label>
+        <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ModbusUnitIdentifier" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusUnitIdentifier")" name="modbusUnitIdentifier">
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="registerType">Register Type:</label>
+        <InputSelect @bind-Value="@RegisterType" id="registerType" name="registerType">
+
+            @foreach (var value in Enum.GetValues<ModbusRegisterType>())
+            {
+
+                <option value="@value">@value.ToFriendlyString()</option>
+            }
+        </InputSelect>
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="valueType">Value Type:</label>
+        <InputSelect @bind-Value="@ValueType" id="valueType" name="valueType">
+
+            @foreach (var value in Enum.GetValues<ModbusValueType>())
+            {
+
+                <option value="@value">@value.ToFriendlyString()</option>
+            }
+        </InputSelect>
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}ModbusStartingAddress")">Register Address:</label>
+        <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@StartingAddress" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusStartingAddress")" name="modbusStartingAddress">
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}ModbusQuantity")">Number of Registers:</label>
+        <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Quantity" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusQuantity")" name="modbusQuantity">
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}ModbusIpAddress")">IP address:</label>
+        <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@IpAddress" @bind:event="oninput" type="text" id="@($"{IdPrefix}ModbusIpAddress")" name="modbusIpAddress">
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}ModbusPort")">Port:</label>
+        <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Port" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusPort")" name="modbusPort">
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}SwapRegisters")">Swap Register (bigEndian / littleEndian):</label>
+        <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@SwapRegisters" type="checkbox" id="@($"{IdPrefix}SwapRegisters")" name="swapRegisters">
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}ModbusConnectDelaySeconds")">Connect Delay (seconds):</label>
+        <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusConnectDelaySeconds")" name="modbusConnectDelaySeconds">
+    </div>
+    <div>
+        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"{IdPrefix}ModbusTimeoutSeconds")">Read Timeout (seconds):</label>
+        <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@TimeoutSeconds" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusTimeoutSeconds")" name="modbusTimeoutSeconds">
+    </div>
+    <hr/>
+</div>
+
 
 @code {
 
@@ -175,6 +181,12 @@
 
     [Parameter]
     public string? ModbusUrl { get; set; }
+
+    [Parameter]
+#pragma warning disable CS8618
+    public string IdPrefix { get; set; }
+#pragma warning restore CS8618
+
 
     [Parameter]
     public EventCallback<string> ModbusUrlChanged { get; set; }
