@@ -172,7 +172,7 @@ else
             }
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
-                <div class="form-check">
+                <div class="mb-3 form-check">
                     <input class="form-check-input" type="checkbox" @bind="_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate" id="@($"car{car.CarId}IgnoreLatestTimeToReachSocDate")">
                     <label class="form-check-label" for="@($"car{car.CarId}IgnoreLatestTimeToReachSocDate")">
                         Charge every day
