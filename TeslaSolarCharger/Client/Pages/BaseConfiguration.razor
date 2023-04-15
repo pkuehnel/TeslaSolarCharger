@@ -90,15 +90,22 @@ else
             </div>
         }
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <h3>Grid:</h3>
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="gridValueSource">Source:</label>
-            <InputSelect @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource" id="gridValueSource" name="gridValueSource">
+            <h3>Grid Power:</h3>
+            <InputComponent ValueId="gridValueSource"
+                            LabelText="Source"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputSelect class="form-select" @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource" id="gridValueSource">
 
-                @foreach (var value in Enum.GetValues<SolarValueSource>())
-                {
-                    <option value="@value">@value.ToFriendlyString()</option>
-                }
-            </InputSelect>
+                        @foreach (var value in Enum.GetValues<SolarValueSource>())
+                        {
+                            <option value="@value">@value.ToFriendlyString()</option>
+                        }
+                    </InputSelect>
+                </InputFragment>
+            </InputComponent>
+
             @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource == SolarValueSource.Mqtt)
             {
                 <InputComponent ValueId="gridMqttTopic"
@@ -160,14 +167,20 @@ else
         </div>
         <div class="shadow p-3 mb-5 bg-white rounded">
             <h3>Home Battery:</h3>
-            <label for="homeBatteryValueSource">Source:</label>
-            <InputSelect @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource" id="homeBatteryValueSource" name="homeBatteryValueSource">
+            <InputComponent ValueId="homeBatteryValueSource"
+                            LabelText="Source"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputSelect class="form-select" @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource" id="homeBatteryValueSource" name="homeBatteryValueSource">
 
-                @foreach (var value in Enum.GetValues<SolarValueSource>())
-                {
-                    <option value="@value">@value.ToFriendlyString()</option>
-                }
-            </InputSelect>
+                        @foreach (var value in Enum.GetValues<SolarValueSource>())
+                        {
+                            <option value="@value">@value.ToFriendlyString()</option>
+                        }
+                    </InputSelect>
+                </InputFragment>
+            </InputComponent>
 
             @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
             {
@@ -301,13 +314,20 @@ else
         </div>
         <div class="shadow p-3 mb-5 bg-white rounded">
             <h3>Inverter:</h3>
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="inverterValueSource">Source:</label>
-            <InputSelect @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.InverterValueSource" id="inverterValueSource" name="inverterValueSource">
-                @foreach (var value in Enum.GetValues<SolarValueSource>())
-                {
-                    <option value="@value">@value.ToFriendlyString()</option>
-                }
-            </InputSelect>
+            <InputComponent ValueId="inverterValueSource"
+                            LabelText="Source"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputSelect class="form-select" @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.InverterValueSource" id="inverterValueSource">
+                        @foreach (var value in Enum.GetValues<SolarValueSource>())
+                        {
+                            <option value="@value">@value.ToFriendlyString()</option>
+                        }
+                    </InputSelect>
+                </InputFragment>
+            </InputComponent>
+            
             @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource == SolarValueSource.Mqtt)
             {
                 <InputComponent ValueId="inverterPowerMqttTopic"

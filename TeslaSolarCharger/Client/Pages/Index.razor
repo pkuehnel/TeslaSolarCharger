@@ -142,17 +142,20 @@ else
             </div>
 
             <div>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="@($"car{car.CarId}ChargeMode")">
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeMode]">
-                        ChargeMode: <a href="https://github.com/pkuehnel/TeslaSolarCharger#charge-modes" target="_blank"><i class="fa-solid fa-question" style="width: 25px;"></i></a>
-                    </TooltipComponent>
-                </label>
-                <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="@($"car{car.CarId}ChargeMode")">
-                    @foreach (var value in Enum.GetValues<ChargeMode>())
-                    {
-                        <option value="@value">@value.ToFriendlyString()</option>
-                    }
-                </InputSelect>
+                <InputComponent ValueId="@($"car{car.CarId}ChargeMode")"
+                                LabelText="ChargeMode"
+                                UnitText=""
+                                HelpText="">
+                    <InputFragment>
+                        <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="@($"car{car.CarId}ChargeMode")">
+                            @foreach (var value in Enum.GetValues<ChargeMode>())
+                            {
+                                <option value="@value">@value.ToFriendlyString()</option>
+                            }
+                        </InputSelect>
+                    </InputFragment>
+                </InputComponent>
+                
             </div>
 
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvAndMinSoc or ChargeMode.PvOnly or ChargeMode.SpotPrice)
