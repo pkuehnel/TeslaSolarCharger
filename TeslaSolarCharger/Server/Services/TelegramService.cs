@@ -41,8 +41,17 @@ public class TelegramService : ITelegramService
 
         httpClient.Timeout = TimeSpan.FromSeconds(1);
 
-        var response = await httpClient.GetAsync(
-            requestUri).ConfigureAwait(false);
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.GetAsync(
+                requestUri).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not send Telegram message.");
+            return HttpStatusCode.GatewayTimeout;
+        }
 
         if (!response.IsSuccessStatusCode)
         {
