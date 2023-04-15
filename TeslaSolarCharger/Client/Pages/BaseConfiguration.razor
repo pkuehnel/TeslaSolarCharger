@@ -4,6 +4,7 @@
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
 @using Majorsoft.Blazor.Components.Collapse
+@using TeslaSolarCharger.Client.Enums
 @inject HttpClient HttpClient
 @inject IToastService ToastService
 
@@ -22,24 +23,40 @@ else
         <hr />
         <div class="shadow p-3 mb-5 bg-white rounded">
             <h3>General:</h3>
-            <label for="maxCombinedCurrent">Max combined current (Ampere)</label>
-            <InputNumber id="maxCombinedCurrent" @bind-Value="_dtoBaseConfiguration.MaxCombinedCurrent" class="form-control" />
-            <small id="maxCombinedCurrentHelp" class="form-text text-muted">Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.</small>
+            <InputComponent ValueId="maxCombinedCurrent"
+                            LabelText="Max combined current"
+                            UnitText="A"
+                            HelpText="Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.">
+                <InputFragment>
+                    <InputNumber id="maxCombinedCurrent" @bind-Value="_dtoBaseConfiguration.MaxCombinedCurrent" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
             <hr />
             <h3>TeslaMate:</h3>
-            <div class="form-group">
-                <label for="teslaMateDbUser">TeslaMate Database Username</label>
-                <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" placeholder="username" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label for="teslaMateDbPassword">TeslaMate Database Server Password</label>
-                <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" placeholder="secret" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label for="geoFence">Relevant Geofence</label>
-                <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" placeholder="Home" class="form-control" />
-                <small id="geoFenceHelp" class="form-text text-muted">You have to add a geofence with the same name in TeslaMate</small>
-            </div>
+            <InputComponent ValueId="teslaMateDbUser"
+                            LabelText="TeslaMate Database Username"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
+            <InputComponent ValueId="teslaMateDbPassword"
+                            LabelText="TeslaMate Database Server Password"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
+            <InputComponent ValueId="geoFence"
+                        LabelText="Home Geofence Name"
+                        UnitText=""
+                        HelpText="You have to add a geofence with the same name in TeslaMate at your home location.">
+                <InputFragment>
+                    <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
         </div>
         @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource == SolarValueSource.Mqtt
        || _dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource == SolarValueSource.Mqtt
@@ -48,27 +65,30 @@ else
         {
             <div class="shadow p-3 mb-5 bg-white rounded">
                 <h3>MQTT Server settings</h3>
-                <div class="form-group">
-                    <label for="solarMqttServer">Solar Mqtt-Server</label>
-                    <InputText id="solarMqttServer" @bind-Value="_dtoBaseConfiguration.SolarMqttServer" class="form-control" />
-                    <div>
-                        <small id="solarMqttServer" class="form-text text-muted">This is only needed if you get solar values via MQTT</small>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="solarMqttUserName">Solar Mqtt Username</label>
-                    <InputText id="solarMqttUserName" @bind-Value="_dtoBaseConfiguration.SolarMqttUserName" placeholder="username" class="form-control" />
-                    <div>
-                        <small id="solarMqttUserNameHelp" class="form-text text-muted">Leave this blank if your mqtt server does not need authentication</small>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="solarMqttPassword">Solar Mqtt Password</label>
-                    <InputText type="password" id="solarMqttPassword" @bind-Value="_dtoBaseConfiguration.SolarMqttPassword" placeholder="secret" class="form-control" />
-                    <div>
-                        <small id="solarMqttUserNameHelp" class="form-text text-muted">Leave this blank if your mqtt server does not need authentication</small>
-                    </div>
-                </div>
+                <InputComponent ValueId="solarMqttServer"
+                                LabelText="Solar Mqtt-Server"
+                                UnitText=""
+                                HelpText="This is only needed if you get solar values via MQTT">
+                    <InputFragment>
+                        <InputText id="solarMqttServer" @bind-Value="_dtoBaseConfiguration.SolarMqttServer" class="form-control" placeholder=" " />
+                    </InputFragment>
+                </InputComponent>
+                <InputComponent ValueId="solarMqttUserName"
+                                LabelText="Solar Mqtt Username"
+                                UnitText=""
+                                HelpText="Leave this blank if your mqtt server does not need authentication">
+                    <InputFragment>
+                        <InputText id="solarMqttUserName" @bind-Value="_dtoBaseConfiguration.SolarMqttUserName" class="form-control" placeholder=" " />
+                    </InputFragment>
+                </InputComponent>
+                <InputComponent ValueId="solarMqttPassword"
+                        LabelText="Solar Mqtt Password"
+                                UnitText=""
+                                HelpText="Leave this blank if your mqtt server does not need authentication">
+                    <InputFragment>
+                        <InputText type="password" id="solarMqttPassword" @bind-Value="_dtoBaseConfiguration.SolarMqttPassword" class="form-control" placeholder=" " />
+                    </InputFragment>
+                </InputComponent>
             </div>
         }
         <div class="shadow p-3 mb-5 bg-white rounded">

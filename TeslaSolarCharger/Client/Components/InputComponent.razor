@@ -1,0 +1,47 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using TeslaSolarCharger.Client.Enums
+<div class="mb-3">
+    <div class="input-group">
+        <div class="form-floating flex-grow-1">
+            @InputFragment
+            <label for="@ValueId">@LabelText</label>
+        </div>
+        @if (!string.IsNullOrEmpty(UnitText))
+        {
+            <span class="input-group-text">@UnitText</span>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(HelpText))
+    {
+        <div col="12">
+            <small class="form-text text-muted">@HelpText</small>
+        </div>
+    }
+    
+</div>
+
+@code {
+    [Parameter]
+    [Required]
+#pragma warning disable CS8618
+        public string ValueId { get; set; }
+#pragma warning restore CS8618
+    
+    [Parameter]
+    [Required]
+#pragma warning disable CS8618
+        public string LabelText { get; set; }
+#pragma warning restore CS8618
+
+    [Parameter]
+    public string? UnitText { get; set; }
+
+    [Parameter]
+    public string? HelpText { get; set; }
+
+    [Parameter]
+    [Required]
+#pragma warning disable CS8618
+        public RenderFragment InputFragment { get; set; }
+#pragma warning restore CS8618
+}
