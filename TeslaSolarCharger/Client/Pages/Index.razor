@@ -6,7 +6,6 @@
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Enums
-@using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Shared.Resources
 @using Majorsoft.Blazor.Components.Collapse
 @using TeslaSolarCharger.Shared.Dtos.Settings
@@ -93,99 +92,113 @@ else
     @foreach (var car in _carBaseStates)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <div>
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarName]">
-                    <b>@(car.NameOrVin)</b>
-                </TooltipComponent>
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
-            </div>
-            <div>
-                @if (car.IsHealthy == false)
-                {
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarNotHealthy]">
-                        <i class="fa-solid fa-circle-exclamation"></i>
+            <div class="mb-3">
+                <div>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarName]">
+                        <b>@(car.NameOrVin)</b>
                     </TooltipComponent>
-                }
-                @if (car.IsHome)
-                {
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarAtHome]">
-                        <i class="fa-solid fa-house"></i>
-                    </TooltipComponent>
-                }
-                @if (car.PluggedIn)
-                {
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarPluggedIn]">
-                        <i class="fa-solid fa-plug"></i>
-                    </TooltipComponent>
-                }
-
-            </div>
-            <div>
-                <i class="fa-solid fa-battery-full" style="width: 25px;"></i><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge)%</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit)% )</TooltipComponent>
-            </div>
-            <div>
-            </div>
-
-            <div>
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
-                    <i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh
-                </TooltipComponent>
-            </div>
-            <div>
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
-                    <i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh
-                </TooltipComponent>
-            </div>
-            <div>
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
-                    <a href="HandledCharges/@car.CarId"><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")</a>
-                </TooltipComponent>
-            </div>
-
-            <p>
-                <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="chargeMode">
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeMode]">
-                        ChargeMode: <a href="https://github.com/pkuehnel/TeslaSolarCharger#charge-modes" target="_blank"><i class="fa-solid fa-question" style="width: 25px;"></i></a>
-                    </TooltipComponent>
-                </label>
-                <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="chargeMode" name="chargeMode">
-                    @foreach (var value in Enum.GetValues<ChargeMode>())
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
+                </div>
+                <div>
+                    @if (car.IsHealthy == false)
                     {
-                        <option value="@value">@value.ToFriendlyString()</option>
+                        <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarNotHealthy]">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                        </TooltipComponent>
                     }
-                </InputSelect>
-            </p>
+                    @if (car.IsHome)
+                    {
+                        <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarAtHome]">
+                            <i class="fa-solid fa-house"></i>
+                        </TooltipComponent>
+                    }
+                    @if (car.PluggedIn)
+                    {
+                        <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarPluggedIn]">
+                            <i class="fa-solid fa-plug"></i>
+                        </TooltipComponent>
+                    }
+
+                </div>
+                <div>
+                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge)%</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit)% )</TooltipComponent>
+                </div>
+                <div>
+                </div>
+
+                <div>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
+                        <i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh
+                    </TooltipComponent>
+                </div>
+                <div>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
+                        <i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh
+                    </TooltipComponent>
+                </div>
+                <div>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
+                        <a href="HandledCharges/@car.CarId"><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")</a>
+                    </TooltipComponent>
+                </div>
+            </div>
+            <div>
+                <InputComponent ValueId="@($"car{car.CarId}ChargeMode")"
+                                LabelText="ChargeMode"
+                                UnitText=""
+                                HelpText="">
+                    <InputFragment>
+                        <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="@($"car{car.CarId}ChargeMode")">
+                            @foreach (var value in Enum.GetValues<ChargeMode>())
+                            {
+                                <option value="@value">@value.ToFriendlyString()</option>
+                            }
+                        </InputSelect>
+                    </InputFragment>
+                </InputComponent>
+
+            </div>
 
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvAndMinSoc or ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
-                <p>
-                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="minSoc">Min SOC (%):</label>
-                    <input class="form-control" value="@_carBaseSettings[car.CarId].MinimumStateOfCharge" type="number" id="minSoc" name="minSoc" min="0" max="100"
-               @onchange="@(e => _carBaseSettings[car.CarId].MinimumStateOfCharge = Int32.Parse(e.Value?.ToString() ?? "0"))">
-                </p>
+                <InputComponent ValueId="@($"car{car.CarId}MinSoc")"
+                                LabelText="Min SOC"
+                                UnitText="%"
+                                HelpText="">
+                    <InputFragment>
+                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" "/>
+                    </InputFragment>
+                </InputComponent>
             }
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" @bind="_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate" id="flexCheckDefault">
-                    <label class="form-check-label" for="flexCheckDefault">
+                <div class="mb-3 form-check">
+                    <input class="form-check-input" type="checkbox" @bind="_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate" id="@($"car{car.CarId}IgnoreLatestTimeToReachSocDate")">
+                    <label class="form-check-label" for="@($"car{car.CarId}IgnoreLatestTimeToReachSocDate")">
                         Charge every day
                     </label>
                 </div>
                 @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate)
                 {
-                    <p>
-
-                        <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="date">Date:</label>
-                        <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="date" name="date"
-               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
-                    </p>
+                    <InputComponent ValueId="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")"
+                                    LabelText="Date"
+                                    UnitText=""
+                                    HelpText="">
+                        <InputFragment>
+                            <input class="form-control" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")"
+                                   @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
+                        </InputFragment>
+                    </InputComponent>
                 }
-                <p>
-                    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="time">Time:</label>
-                    <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="time" name="time"
-               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
-                </p>
+                <InputComponent ValueId="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")"
+                                LabelText="Time"
+                                UnitText=""
+                                HelpText="">
+                    <InputFragment>
+                        <input class="form-control" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")"
+                               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                    </InputFragment>
+                </InputComponent>
 
             }
             @if (car.ChargingNotPlannedDueToNoSpotPricesAvailable)
@@ -193,12 +206,12 @@ else
                 <p>Note: Spot prices are published for the next day at 14:00 - 15:00. Charges won't be planned until @_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddDays(-1).AddHours(15).ToString(CultureInfo.CurrentCulture)</p>
             }
 
-            <p><button class="btn btn-success col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
+            <p><button class="btn btn-primary col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
 
             @if (car.ChargeInformation.Count > 0)
             {
                 <p>
-                    Car will @(car.State == CarStateEnum.Charging ? "stop" : "start") charging when following conditions are met:<br />
+                    Car will @(car.State == CarStateEnum.Charging ? "stop" : "start") charging when following conditions are met:<br/>
                     <ul>
                         @foreach (var chargeInfo in car.ChargeInformation)
                         {
@@ -221,14 +234,14 @@ else
             }
 
             <CollapsePanel CollapsedColor="@_collapsedColor"
-                   ExpandedColor="@_expandedColor"
-                   HoverColor="@_hoverColor"
-                   Disabled="@_isCollapseDisabled"
-                   Collapsed="@_collapsedCarDetails.Any(h => h == car.CarId)"
-                   ContentHeight="@_height"
-                   Animate="@_isAnimated"
-                   ShowContentOverflow="@_showOverflow"
-                   OnCollapseChanged="(state)=>OnCollapseChanged(state, car.CarId)">
+                           ExpandedColor="@_expandedColor"
+                           HoverColor="@_hoverColor"
+                           Disabled="@_isCollapseDisabled"
+                           Collapsed="@_collapsedCarDetails.Any(h => h == car.CarId)"
+                           ContentHeight="@_height"
+                           Animate="@_isAnimated"
+                           ShowContentOverflow="@_showOverflow"
+                           OnCollapseChanged="(state) => OnCollapseChanged(state, car.CarId)">
                 <CollapsedHeaderContent>
                     <div class="w-100">
                         <b>More car details:</b>
@@ -244,7 +257,7 @@ else
                 <Content>
                     @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
                     {
-                        <TableComponent 
+                        <TableComponent
                             Content="@_newCarDetailStates[car.CarId]"></TableComponent>
                     }
                 </Content>

@@ -1,60 +1,111 @@
 ﻿@using System.Web
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusUnitIdentifier">Unit Identifier:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ModbusUnitIdentifier" @bind:event="oninput" type="number" id="modbusUnitIdentifier" name="modbusUnitIdentifier">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="registerType">Register Type:</label>
-    <InputSelect @bind-Value="@RegisterType" id="registerType" name="registerType">
-          
-        @foreach (var value in Enum.GetValues<ModbusRegisterType>())
-        {
-            
-            <option value="@value">@value.ToFriendlyString()</option>
-        }
-    </InputSelect>
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="valueType">Value Type:</label>
-    <InputSelect @bind-Value="@ValueType" id="valueType" name="valueType">
 
-        @foreach (var value in Enum.GetValues<ModbusValueType>())
-        {
 
-            <option value="@value">@value.ToFriendlyString()</option>
-        }
-    </InputSelect>
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusStartingAddress">Register Address:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@StartingAddress" @bind:event="oninput" type="number" id="modbusStartingAddress" name="modbusStartingAddress">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusQuantity">Number of Registers:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Quantity" @bind:event="oninput" type="number" id="modbusQuantity" name="modbusQuantity">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusIpAddress">IP address:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@IpAddress" @bind:event="oninput" type="text" id="modbusIpAddress" name="modbusIpAddress">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusPort">Port:</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@Port" @bind:event="oninput" type="number" id="modbusPort" name="modbusPort">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="swapRegisters">Swap Register (bigEndian / littleEndian):</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@SwapRegisters" type="checkbox" id="swapRegisters" name="swapRegisters">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusConnectDelaySeconds">Connect Delay (seconds):</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="modbusConnectDelaySeconds" name="modbusConnectDelaySeconds">
-</p>
-<p>
-    <label class="col-5 col-sm-4 col-md-3 col-lg-2" for="modbusTimeoutSeconds">Read Timeout (seconds):</label>
-    <input class="col-6 col-sm-6 col-md-3 col-lg-2" @bind="@TimeoutSeconds" @bind:event="oninput" type="number" id="modbusTimeoutSeconds" name="modbusTimeoutSeconds">
-</p>
+<div class="mb-3">
+    <InputComponent ValueId="@($"{IdPrefix}ModbusUnitIdentifier")"
+                    LabelText="Unit Identifier"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <input class="form-control" @bind="@ModbusUnitIdentifier" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusUnitIdentifier")" placeholder=" ">
+        </InputFragment>
+    </InputComponent>
+    
+    <InputComponent ValueId="@($"{IdPrefix}RegisterType")"
+                    LabelText="Register Type"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <InputSelect class="form-control" @bind-Value="@RegisterType" id="@($"{IdPrefix}RegisterType")">
+                @foreach (var value in Enum.GetValues<ModbusRegisterType>())
+                {
+                    <option value="@value">@value.ToFriendlyString()</option>
+                }
+            </InputSelect>
+        </InputFragment>
+    </InputComponent>
+    
+    <InputComponent ValueId="@($"{IdPrefix}ValueType")"
+                    LabelText="Value Type"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <InputSelect class="form-control" @bind-Value="@ValueType" id="@($"{IdPrefix}ValueType")">
+
+                @foreach (var value in Enum.GetValues<ModbusValueType>())
+                {
+
+                    <option value="@value">@value.ToFriendlyString()</option>
+                }
+            </InputSelect>
+        </InputFragment>
+    </InputComponent>
+    
+    <InputComponent ValueId="@($"{IdPrefix}ModbusStartingAddress")"
+                    LabelText="Register Address"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <input class="form-control" @bind="@StartingAddress" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusUnitIdentifier")" placeholder=" ">
+        </InputFragment>
+    </InputComponent>
+    
+    <InputComponent ValueId="@($"{IdPrefix}ModbusQuantity")"
+                    LabelText="Number of Registers"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <input class="form-control" @bind="@Quantity" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusQuantity")" placeholder=" ">
+        </InputFragment>
+    </InputComponent>
+    
+    <InputComponent ValueId="@($"{IdPrefix}ModbusIpAddress")"
+                    LabelText="IP address"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <input class="form-control" @bind="@IpAddress" @bind:event="oninput" type="text" id="@($"{IdPrefix}ModbusIpAddress")" placeholder=" ">
+        </InputFragment>
+    </InputComponent>
+    
+    <InputComponent ValueId="@($"{IdPrefix}ModbusPort")"
+                    LabelText="Port"
+                    UnitText=""
+                    HelpText="">
+        <InputFragment>
+            <input class="form-control" @bind="@Port" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusPort")" placeholder=" ">
+        </InputFragment>
+    </InputComponent>
+    
+    <div class="mb-3 form-check">
+        <input class="form-check-input" @bind="@SwapRegisters" type="checkbox" id="@($"{IdPrefix}SwapRegisters")" >
+        <label class="form-check-label" for="@($"{IdPrefix}SwapRegisters")">
+            Swap Register (bigEndian / littleEndian):
+        </label>
+    </div>
+    
+    <InputComponent ValueId="@($"{IdPrefix}ModbusConnectDelaySeconds")"
+                    LabelText="Connect Delay"
+                    UnitText="s"
+                    HelpText="">
+        <InputFragment>
+            <input class="form-control" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusConnectDelaySeconds")" placeholder=" ">
+        </InputFragment>
+    </InputComponent>
+    
+    <InputComponent ValueId="@($"{IdPrefix}ModbusTimeoutSeconds")"
+                    LabelText="Read Timeout"
+                    UnitText="s"
+                    HelpText="">
+        <InputFragment>
+            <input class="form-control" @bind="@TimeoutSeconds" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusTimeoutSeconds")" placeholder=" ">
+        </InputFragment>
+    </InputComponent>
+    <hr/>
+</div>
+
 
 @code {
 
@@ -175,6 +226,12 @@
 
     [Parameter]
     public string? ModbusUrl { get; set; }
+
+    [Parameter]
+#pragma warning disable CS8618
+    public string IdPrefix { get; set; }
+#pragma warning restore CS8618
+
 
     [Parameter]
     public EventCallback<string> ModbusUrlChanged { get; set; }
