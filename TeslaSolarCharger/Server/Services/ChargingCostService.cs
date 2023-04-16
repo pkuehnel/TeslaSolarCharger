@@ -96,7 +96,7 @@ public class ChargingCostService : IChargingCostService
         var chargePrices = await _teslaSolarChargerContext.ChargePrices
             .ProjectTo<DtoChargePrice>(mapper)
             .ToListAsync().ConfigureAwait(false);
-        return chargePrices;
+        return chargePrices.OrderBy(p => p.ValidSince).ToList();
     }
 
     public async Task AddPowerDistributionForAllChargingCars()
