@@ -79,8 +79,10 @@ public class ChargingCostService : IChargingCostService
                 continue;
             }
 
-            await UpdateChargingProcessCosts(handledCharge, chargePrice, chargingProcess).ConfigureAwait(false);
+            UpdateChargingProcessCosts(handledCharge, chargePrice, chargingProcess);
         }
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task<List<DtoChargePrice>> GetChargePrices()
@@ -351,12 +353,14 @@ public class ChargingCostService : IChargingCostService
 
             if (price != default)
             {
-                await UpdateChargingProcessCosts(openHandledCharge, price, chargingProcess).ConfigureAwait(false);
+                UpdateChargingProcessCosts(openHandledCharge, price, chargingProcess);
             }
         }
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private async Task UpdateChargingProcessCosts(HandledCharge openHandledCharge, ChargePrice price,
+    private void UpdateChargingProcessCosts(HandledCharge openHandledCharge, ChargePrice price,
         ChargingProcess chargingProcess)
     {
         openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
@@ -365,10 +369,7 @@ public class ChargingCostService : IChargingCostService
         {
             openHandledCharge.CalculatedPrice += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
         }
-
-        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         chargingProcess.Cost = openHandledCharge.CalculatedPrice;
-        await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     internal async Task<decimal?> CalculateAverageSpotPrice(List<PowerDistribution> relevantPowerDistributions, ChargePrice? chargePrice)
