@@ -57,12 +57,10 @@ public class ChargingCostService : IChargingCostService
 
         await UpdateHandledChargesPriceCalculation().ConfigureAwait(false);
     }
-    // TODO: Diesen Kommentar löschen
+
     private async Task UpdateHandledChargesPriceCalculation()
     {
         var handledCharges = await _teslaSolarChargerContext.HandledCharges.ToListAsync().ConfigureAwait(false);
-        var chargePrices = await _teslaSolarChargerContext.ChargePrices.OrderBy(c => c.ValidSince).ToListAsync()
-            .ConfigureAwait(false);
         foreach (var handledCharge in handledCharges)
         {
 
@@ -81,10 +79,7 @@ public class ChargingCostService : IChargingCostService
                 }
 
                 _teslaSolarChargerContext.HandledCharges.Remove(handledCharge);
-                continue;
             }
-
-            handledCharge.ChargePrice = chargePrices.Last(c => c.ValidSince < chargingProcess.StartDate);
         }
 
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -178,7 +173,6 @@ public class ChargingCostService : IChargingCostService
             {
                 CarId = carId,
                 ChargingProcessId = latestOpenChargingProcessId,
-                ChargePriceId = currentChargePrice.Id,
             };
         }
         else
@@ -263,15 +257,6 @@ public class ChargingCostService : IChargingCostService
             var chargeDistributions = await _teslaSolarChargerContext.PowerDistributions
                 .Where(p => p.HandledChargeId == duplicate.Id)
                 .ToListAsync().ConfigureAwait(false);
-            if (duplicate.ChargePriceId > 1)
-            {
-                var chargePrice = await _teslaSolarChargerContext.ChargePrices
-                    .FirstOrDefaultAsync(c => c.Id == duplicate.ChargePriceId).ConfigureAwait(false);
-                if (chargePrice != default)
-                {
-                    _teslaSolarChargerContext.ChargePrices.Remove(chargePrice);
-                }
-            }
             _teslaSolarChargerContext.PowerDistributions.RemoveRange(chargeDistributions);
             _teslaSolarChargerContext.HandledCharges.Remove(duplicate);
         }
@@ -294,8 +279,6 @@ public class ChargingCostService : IChargingCostService
                 .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.CalculatedPrice))
                 .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergy))
                 .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergy))
-                .ForMember(d => d.GridPrice, opt => opt.MapFrom(h => h.ChargePrice.GridPrice))
-                .ForMember(d => d.SolarPrice, opt => opt.MapFrom(h => h.ChargePrice.SolarPrice))
                 .ForMember(d => d.AverageSpotPrice, opt => opt.MapFrom(h => h.AverageSpotPrice))
                 ;
         });
@@ -303,15 +286,21 @@ public class ChargingCostService : IChargingCostService
             .Where(h => h.CarId == carId && h.CalculatedPrice != null)
             .ProjectTo<DtoHandledCharge>(mapper)
             .ToListAsync().ConfigureAwait(false);
+
+        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy) < (decimal)0.1);
+
         var chargingProcesses = await _teslamateContext.ChargingProcesses
             .Where(c => handledCharges.Select(h => h.ChargingProcessId).Contains(c.Id))
             .Select(c => new { c.StartDate, ChargingProcessId = c.Id })
             .ToListAsync().ConfigureAwait(false);
+
         foreach (var dtoHandledCharge in handledCharges)
         {
-            dtoHandledCharge.StartTime = chargingProcesses
-                .FirstOrDefault(c => c.ChargingProcessId == dtoHandledCharge.ChargingProcessId)?
-                .StartDate.ToLocalTime();
+            var chargingProcess = chargingProcesses
+                .FirstOrDefault(c => c.ChargingProcessId == dtoHandledCharge.ChargingProcessId);
+            dtoHandledCharge.StartTime = chargingProcess?.StartDate.ToLocalTime();
+            dtoHandledCharge.PricePerKwh =
+                dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy);
         }
         return handledCharges.OrderByDescending(d => d.StartTime).ToList();
     }
@@ -357,7 +346,8 @@ public class ChargingCostService : IChargingCostService
                 .OrderBy(p => p.TimeStamp)
                 .ToListAsync().ConfigureAwait(false);
             var price = await _teslaSolarChargerContext.ChargePrices
-                .FirstOrDefaultAsync(p => p.Id == openHandledCharge.ChargePriceId)
+                .OrderByDescending(p => p.ValidSince)
+                .FirstOrDefaultAsync(p => p.ValidSince < chargingProcess.StartDate)
                 .ConfigureAwait(false);
             if (relevantPowerDistributions.Count > 0)
             {
