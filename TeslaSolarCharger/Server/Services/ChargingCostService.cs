@@ -1,6 +1,7 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.MappingExtensions;
@@ -61,30 +62,25 @@ public class ChargingCostService : IChargingCostService
     private async Task UpdateHandledChargesPriceCalculation()
     {
         var handledCharges = await _teslaSolarChargerContext.HandledCharges.ToListAsync().ConfigureAwait(false);
+        var chargingProcesses = await _teslamateContext.ChargingProcesses.ToListAsync().ConfigureAwait(false);
+        var chargePrices = await _teslaSolarChargerContext.ChargePrices.OrderByDescending(c => c.ValidSince).ToListAsync().ConfigureAwait(false);
         foreach (var handledCharge in handledCharges)
         {
-
-            var chargingProcess = await _teslamateContext.ChargingProcesses
-                .FirstOrDefaultAsync(c => c.Id == handledCharge.ChargingProcessId).ConfigureAwait(false);
+            var chargingProcess = chargingProcesses.FirstOrDefault(c => c.Id == handledCharge.ChargingProcessId);
             if (chargingProcess == default)
             {
-                _logger.LogWarning("No charging process with id {chargingPricessId} found",
-                    handledCharge.ChargingProcessId);
-                var powerDistributions = await _teslaSolarChargerContext.PowerDistributions
-                    .Where(p => p.HandledChargeId == handledCharge.Id)
-                    .ToListAsync().ConfigureAwait(false);
-                foreach (var powerDistribution in powerDistributions)
-                {
-                    _teslaSolarChargerContext.PowerDistributions.Remove(powerDistribution);
-                }
-
-                _teslaSolarChargerContext.HandledCharges.Remove(handledCharge);
+                _logger.LogWarning("Could not update charge costs for as chargingProcessId {chargingProcessId} was not found", handledCharge.ChargingProcessId);
+                continue;
             }
+            var chargePrice = chargePrices.FirstOrDefault(p => p.ValidSince < chargingProcess.StartDate);
+            if (chargePrice == default)
+            {
+                _logger.LogWarning("Could not update charge costs for as no chargeprice for {startDate} was found.", chargingProcess.StartDate);
+                continue;
+            }
+
+            await UpdateChargingProcessCosts(handledCharge, chargePrice, chargingProcess).ConfigureAwait(false);
         }
-
-        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-
-        await FinalizeHandledCharges(handledCharges).ConfigureAwait(false);
     }
 
     public async Task<List<DtoChargePrice>> GetChargePrices()
@@ -319,6 +315,8 @@ public class ChargingCostService : IChargingCostService
     {
         _logger.LogTrace("{method}({@handledCharges})",
             nameof(FinalizeHandledCharges), handledCharges);
+        var chargePrices = await _teslaSolarChargerContext.ChargePrices
+            .OrderByDescending(p => p.ValidSince).ToListAsync().ConfigureAwait(false);
         foreach (var openHandledCharge in handledCharges)
         {
             var chargingProcess = _teslamateContext.ChargingProcesses.FirstOrDefault(c =>
@@ -345,28 +343,34 @@ public class ChargingCostService : IChargingCostService
                 .Where(p => p.HandledCharge == openHandledCharge)
                 .OrderBy(p => p.TimeStamp)
                 .ToListAsync().ConfigureAwait(false);
-            var price = await _teslaSolarChargerContext.ChargePrices
-                .OrderByDescending(p => p.ValidSince)
-                .FirstOrDefaultAsync(p => p.ValidSince < chargingProcess.StartDate)
-                .ConfigureAwait(false);
+            var price = chargePrices
+                .FirstOrDefault(p => p.ValidSince < chargingProcess.StartDate);
             if (relevantPowerDistributions.Count > 0)
             {
                 openHandledCharge.AverageSpotPrice = await CalculateAverageSpotPrice(relevantPowerDistributions, price).ConfigureAwait(false);
             }
+            await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+
             if (price != default)
             {
-                //ToDo: add spotPrice if useSpotPrice is enabled
-                openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
-                                                    price.SolarPrice * openHandledCharge.UsedSolarEnergy;
-                if (price.AddSpotPriceToGridPrice)
-                {
-                    openHandledCharge.CalculatedPrice += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
-                }
-                await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-                chargingProcess.Cost = openHandledCharge.CalculatedPrice;
-                await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
+                await UpdateChargingProcessCosts(openHandledCharge, price, chargingProcess).ConfigureAwait(false);
             }
         }
+    }
+
+    private async Task UpdateChargingProcessCosts(HandledCharge openHandledCharge, ChargePrice price,
+        ChargingProcess chargingProcess)
+    {
+        openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
+                                            price.SolarPrice * openHandledCharge.UsedSolarEnergy;
+        if (price.AddSpotPriceToGridPrice)
+        {
+            openHandledCharge.CalculatedPrice += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
+        }
+
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        chargingProcess.Cost = openHandledCharge.CalculatedPrice;
+        await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     internal async Task<decimal?> CalculateAverageSpotPrice(List<PowerDistribution> relevantPowerDistributions, ChargePrice? chargePrice)
