@@ -153,7 +153,7 @@ public class IndexService : IIndexService
             });
         }
 
-        return new List<DtoChargeInformation>();
+        return result;
     }
 
     public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars()
