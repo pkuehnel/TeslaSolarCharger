@@ -823,10 +823,10 @@ An example URL with all values filled could look like this:
 http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
-You can test the result of the URL by pasting it into your browser and replacing `modbusplugin` with `ipOfYourDockerHost:7091`, e.g.:
+You can test the result of the URL by pasting it into your browser and replacing `modbusplugin` with `ipOfYourDockerHost:7191`, e.g.:
 
 ```text
-http://192.168.1.50:7091/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
+http://192.168.1.50:7191/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
 What the values mean:
@@ -840,7 +840,7 @@ What the values mean:
 - `connectDelaySeconds`: Delay before communication the first time (you should use 1)
 - `timeoutSeconds`: Timeout until returning an error if the inverter is not responding (you should use 10)
 
-For more convenience, you can go to `http://your-ip-address:7091/swagger`. There you can try your values with a user interface.
+For more convenience, you can go to `http://your-ip-address:7191/swagger`. There you can try your values with a user interface.
 
 ###### Using no plugin
 
