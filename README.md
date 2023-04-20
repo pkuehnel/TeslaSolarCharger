@@ -24,6 +24,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
   - [Car Priorities](#car-priorities)
   - [Power Buffer](#power-buffer)
   - [Home Battery](#home-battery)
+  - [Telegram integration](#telegram-integration)
 - [How to use](#how-to-use)
   - [Charge Modes](#charge-modes)
 - [Generate logfiles](#generate-logfiles)
@@ -939,6 +940,19 @@ To configure your home battery, you need to add the following settings:
 After setting everything up, your overview page should look like this:
 
 ![image](https://user-images.githubusercontent.com/35361981/183434947-16d13372-09ff-45a7-94a2-8d4043f39f18.png)
+
+### Telegram integration
+In this section you learn how to create the Telegram Bot Key and where you get the Telegram ChannelID from:
+
+- Create a bot by chatting with `BotFather`
+[Screenshot1]
+- Ask `BotFather` to reate a new bot with the `/newbot` command
+[Screenshot]
+- Copy the Bot token as Telegram Bot Key to your TSC
+[Screenshot2]
+- To get a chat ID, you have to chat with the `userinfobot`
+- Ask the bot for your `UserID` with the command `/start`
+- Copy the user ID as Telegram Channel ID to your TSC
 
 **Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number, e.g. `-1.0`.
 
