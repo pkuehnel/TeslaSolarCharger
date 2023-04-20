@@ -945,13 +945,15 @@ After setting everything up, your overview page should look like this:
 In this section you learn how to create the Telegram Bot Key and where you get the Telegram ChannelID from:
 
 - Create a bot by chatting with `BotFather`
-[Screenshot1]
-- Ask `BotFather` to reate a new bot with the `/newbot` command
-[Screenshot]
+![Botfather](https://user-images.githubusercontent.com/35361981/233465656-04d95488-b141-476e-8cd7-ff74f94139eb.jpg)
+- Ask `BotFather` to reate a new bot with the `/newbot` command and follow the instructions
+![newbot](https://user-images.githubusercontent.com/35361981/233465783-61c2a885-0837-4ba7-a21a-b88959faeee8.jpg)
 - Copy the Bot token as Telegram Bot Key to your TSC
-[Screenshot2]
+![BotToken](https://user-images.githubusercontent.com/35361981/233465968-577dab56-07f7-414f-a409-4bae1a178f95.jpg)
 - To get a chat ID, you have to chat with the `userinfobot`
+![userinfobot](https://user-images.githubusercontent.com/35361981/233466030-f36ad710-1cc2-4a1d-915f-a452999d61d4.jpg)
 - Ask the bot for your `UserID` with the command `/start`
+![UserIDVonBot](https://user-images.githubusercontent.com/35361981/233466139-a4f58396-a564-4d19-b15e-b6e349a08a16.jpg)
 - Copy the user ID as Telegram Channel ID to your TSC
 
 **Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number, e.g. `-1.0`.
