@@ -294,7 +294,7 @@ public class ChargingService : IChargingService
                 && c.CarState.PluggedIn != false
                 && (c.CarState.ClimateOn == true ||
                     c.CarState.ChargerActualCurrent > 0 ||
-                    c.CarState.SoC < c.CarState.SocLimit - 2))
+                    c.CarState.SoC < c.CarState.SocLimit - _constants.MinimumSocDifference))
             .Select(c => c.Id)
             .ToList();
 
@@ -367,7 +367,7 @@ public class ChargingService : IChargingService
                 {
                     //Do not start charging when battery level near charge limit
                     if (car.CarState.SoC >=
-                        car.CarState.SocLimit - 2)
+                        car.CarState.SocLimit - _constants.MinimumSocDifference)
                     {
                         _logger.LogDebug("Do not start charging for car {carId} as set SoC Limit in your Tesla app needs to be 3% higher than actual SoC", car.Id);
                         return 0;

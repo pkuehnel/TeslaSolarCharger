@@ -103,57 +103,57 @@ public class IndexService : IIndexService
             return new List<DtoChargeInformation>();
         }
 
+        var result = new List<DtoChargeInformation>();
+
         if (enabledCar.CarState.IsHomeGeofence != true)
         {
-            return new List<DtoChargeInformation>()
+            result.Add(new DtoChargeInformation()
             {
-                new()
-                {
-                    InfoText = "Car is at home.",
-                    TimeToDisplay = default,
-                },
-            };
+                InfoText = "Car is at home.",
+                TimeToDisplay = default,
+            });
         }
 
         if (enabledCar.CarState.PluggedIn != true)
         {
-            return new List<DtoChargeInformation>()
+            result.Add(new DtoChargeInformation()
             {
-                new()
-                {
-                    InfoText = "Car is plugged in.",
-                    TimeToDisplay = default,
-                },
-            };
+                InfoText = "Car is plugged in.",
+                TimeToDisplay = default,
+            });
         }
 
         if (enabledCar.CarState.State != CarStateEnum.Charging
             && enabledCar.CarState.EarliestSwitchOn != null)
         {
-            return new List<DtoChargeInformation>()
+            result.Add(new DtoChargeInformation()
             {
-                new()
-                {
-                    InfoText = "Enough solar power until {0}.",
-                    TimeToDisplay = enabledCar.CarState.EarliestSwitchOn ?? default,
-                },
-            };
+                InfoText = "Enough solar power until {0}.",
+                TimeToDisplay = enabledCar.CarState.EarliestSwitchOn ?? default,
+            });
         }
 
         if (enabledCar.CarState.State == CarStateEnum.Charging
             && enabledCar.CarState.EarliestSwitchOff != null)
         {
-            return new List<DtoChargeInformation>()
+            result.Add(new DtoChargeInformation()
             {
-                new()
-                {
-                    InfoText = "Not Enough solar power until {0}",
-                    TimeToDisplay = enabledCar.CarState.EarliestSwitchOff ?? default,
-                },
-            };
+                InfoText = "Not Enough solar power until {0}",
+                TimeToDisplay = enabledCar.CarState.EarliestSwitchOff ?? default,
+            });
         }
 
-        return new List<DtoChargeInformation>();
+        if (enabledCar.CarState.State != CarStateEnum.Charging
+            && (enabledCar.CarState.SocLimit - enabledCar.CarState.SoC) < _constants.MinimumSocDifference)
+        {
+            result.Add(new DtoChargeInformation()
+            {
+                InfoText = $"SoC Limit is at least {_constants.MinimumSocDifference}% higher than acutal SoC",
+                TimeToDisplay = default,
+            });
+        }
+
+        return result;
     }
 
     public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars()

@@ -7,6 +7,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Contracts;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -20,17 +21,17 @@ public class ChargeTimeCalculationService : TestBase
     }
 
     [Theory]
-    [InlineData(0, 30, 75, 3, 16, 0, null)]
-    [InlineData(31, 30, 100, 3, 16, 326, null)]
-    [InlineData(31, 30, 100, 3, 16, 0, 0)]
-    [InlineData(32, 30, 100, 3, 32, 326, null)]
-    [InlineData(32, 30, 50, 3, 16, 326, null)]
-    [InlineData(42, 40, 50, 3, 16, 326, null)]
-    [InlineData(42, 40, 50, 1, 16, 978, null)]
-    [InlineData(47, 40, 50000, 1, 15215, 3600, null)]
-    [InlineData(47, 40, 50000, 1, 15215, 3600, 0)]
+    [InlineData(0, 30, 75, 3, 16, 0, CarStateEnum.Charging)]
+    [InlineData(31, 30, 100, 3, 16, 326, CarStateEnum.Charging)]
+    [InlineData(31, 30, 100, 3, 16, 0, CarStateEnum.Asleep)]
+    [InlineData(32, 30, 100, 3, 32, 326, CarStateEnum.Asleep)]
+    [InlineData(32, 30, 50, 3, 16, 326, CarStateEnum.Asleep)]
+    [InlineData(42, 40, 50, 3, 16, 326, CarStateEnum.Asleep)]
+    [InlineData(42, 40, 50, 1, 16, 978, CarStateEnum.Asleep)]
+    [InlineData(47, 40, 50000, 1, 15215, 3600, CarStateEnum.Asleep)]
+    [InlineData(47, 40, 50000, 1, 15215, 3600, CarStateEnum.Charging)]
     public void Calculates_Correct_Full_Speed_Charge_Durations(int minimumSoc, int? acutalSoc, int usableEnergy,
-        int chargerPhases, int maximumAmpere, double expectedTotalSeconds, int? chargerActualCurrent)
+        int chargerPhases, int maximumAmpere, double expectedTotalSeconds, CarStateEnum carState)
     {
         var car = new Car()
         {
@@ -44,11 +45,12 @@ public class ChargeTimeCalculationService : TestBase
             {
                 SoC = acutalSoc,
                 ChargerPhases = chargerPhases,
-                ChargerActualCurrent = chargerActualCurrent,
+                State = carState,
             },
         };
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
+        Mock.Mock<IConstants>().Setup(c => c.MinimumSocDifference).Returns(2);
         var chargeDuration = chargeTimeCalculationService.CalculateTimeToReachMinSocAtFullSpeedCharge(car);
 
         var expectedTimeSpan = TimeSpan.FromSeconds(expectedTotalSeconds);
