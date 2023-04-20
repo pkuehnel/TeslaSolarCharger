@@ -57,7 +57,7 @@ public class ChargingService : IChargingService
 
 
         _logger.LogDebug("Current overage is {overage} Watt.", _settings.Overage);
-        if (_settings.Overage == null)
+        if (_settings.Overage == null && _settings.InverterPower == null)
         {
             _logger.LogWarning("Can not control power as overage is unknown. Use int minValue");
         }
@@ -202,6 +202,15 @@ public class ChargingService : IChargingService
         var averagedOverage =
             calculateAverage ? _pvValueService.GetAveragedOverage() : (_settings.Overage ?? _constants.DefaultOverage);
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
+
+        if (_configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None
+            && _configurationWrapper.FrontendConfiguration()?.InverterValueSource != SolarValueSource.None
+            && _settings.InverterPower != null)
+        {
+            var chargingAtHomeSum = _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum();
+            _logger.LogDebug("Using Inverter power {inverterPower} minus chargingPower at home {chargingPowerAtHome} as overage", _settings.InverterPower, chargingAtHomeSum);
+            averagedOverage = _settings.InverterPower - chargingAtHomeSum ?? 0;
+        }
 
         var overage = averagedOverage - buffer;
         _logger.LogDebug("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
