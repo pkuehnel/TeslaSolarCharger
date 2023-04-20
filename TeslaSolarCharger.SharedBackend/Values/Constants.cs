@@ -8,4 +8,5 @@ public class Constants : IConstants
     public string CarConfigurationKey => "CarConfiguration";
     public int MinSocLimit => 50;
     public int DefaultOverage => -1000000;
+    public int MinimumSocDifference => 2;
 }
