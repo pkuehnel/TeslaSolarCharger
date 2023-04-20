@@ -256,6 +256,11 @@ public class PvValueService : IPvValueService
         return (int)(weightedSum / weightedCount);
     }
 
+    public void ClearOverageValues()
+    {
+        _inMemoryValues.OverageValues.Clear();
+    }
+
     public void AddOverageValueToInMemoryList(int overage)
     {
         _logger.LogTrace("{method}({overage})", nameof(AddOverageValueToInMemoryList), overage);
