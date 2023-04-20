@@ -945,7 +945,7 @@ After setting everything up, your overview page should look like this:
 In this section you learn how to create the Telegram Bot Key and where you get the Telegram ChannelID from:
 
 - Create a bot by chatting with `BotFather`
-![Botfather](https://user-images.githubusercontent.com/35361981/233465656-04d95488-b141-476e-8cd7-ff74f94139eb.jpg)
+![Botfather](https://user-images.githubusercontent.com/35361981/233467207-918b7871-54dd-4ea0-bf9e-b828f2da3509.jpg)
 - Ask `BotFather` to reate a new bot with the `/newbot` command and follow the instructions
 ![newbot](https://user-images.githubusercontent.com/35361981/233465783-61c2a885-0837-4ba7-a21a-b88959faeee8.jpg)
 - Copy the Bot token as Telegram Bot Key to your TSC
