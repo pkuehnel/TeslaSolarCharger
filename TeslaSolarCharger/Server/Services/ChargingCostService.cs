@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -19,11 +20,12 @@ public class ChargingCostService : IChargingCostService
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISettings _settings;
     private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     public ChargingCostService(ILogger<ChargingCostService> logger,
         ITeslaSolarChargerContext teslaSolarChargerContext, ITeslamateContext teslamateContext,
         IDateTimeProvider dateTimeProvider, ISettings settings,
-        IMapperConfigurationFactory mapperConfigurationFactory)
+        IMapperConfigurationFactory mapperConfigurationFactory, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
@@ -31,6 +33,7 @@ public class ChargingCostService : IChargingCostService
         _dateTimeProvider = dateTimeProvider;
         _settings = settings;
         _mapperConfigurationFactory = mapperConfigurationFactory;
+        _configurationWrapper = configurationWrapper;
     }
 
     public async Task UpdateChargePrice(DtoChargePrice dtoChargePrice)
@@ -107,7 +110,16 @@ public class ChargingCostService : IChargingCostService
         {
             if (car.CarState.ChargingPowerAtHome > 0)
             {
-                await AddPowerDistribution(car.Id, car.CarState.ChargingPowerAtHome, -_settings.Overage).ConfigureAwait(false);
+                var powerFromGrid = -_settings.Overage;
+                if (_configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None
+                    && _configurationWrapper.FrontendConfiguration()?.InverterValueSource != SolarValueSource.None
+                    && _settings.InverterPower != null)
+                {
+                    powerFromGrid = _settings.InverterPower
+                                    - _configurationWrapper.PowerBuffer()
+                                    - _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum();
+                }
+                await AddPowerDistribution(car.Id, car.CarState.ChargingPowerAtHome, powerFromGrid).ConfigureAwait(false);
             }
         }
     }
