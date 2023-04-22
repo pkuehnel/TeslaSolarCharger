@@ -206,7 +206,22 @@ else
                 <p>Note: Spot prices are published for the next day at 14:00 - 15:00. Charges won't be planned until @_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddDays(-1).AddHours(15).ToString(CultureInfo.CurrentCulture)</p>
             }
 
-            <p><button class="btn btn-primary col-11 col-sm-10 col-md-6 col-lg-4" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">@_saveButtonTexts[car.CarId]</button></p>
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary" type="button" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">
+                    @if (_savingCarIds.Any(i => i == car.CarId))
+                    {
+                        <span>
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Loading...
+                        </span>
+                    }
+                    else
+                    {
+                        <span>Save</span>
+                    }
+                </button>
+            </div>
+            
 
             @if (car.ChargeInformation.Count > 0)
             {
@@ -311,7 +326,7 @@ else
     private Dictionary<int, DtoTableContent> _newCarDetailStates = new();
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
-    private readonly Dictionary<int, string> _saveButtonTexts = new();
+    private List<int> _savingCarIds = new();
     private string _version = "";
     private HashSet<int> _collapsedCarDetails = new HashSet<int>();
     private string _collapsedColor = "LightGray";
@@ -342,7 +357,6 @@ else
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
         {
-            _saveButtonTexts.Add(carBaseState.CarId, _saveButtonDefaultText);
             _collapsedCarDetails.Add(carBaseState.CarId);
         }
 
@@ -371,7 +385,7 @@ else
 
     private async Task UpdateCarSettings(DtoCarBaseSettings dtoCarBaseSettings)
     {
-        _saveButtonTexts[dtoCarBaseSettings.CarId] = _buttonLoadingText;
+        _savingCarIds.Add(dtoCarBaseSettings.CarId);
         var result = await HttpClient.PostAsJsonAsync("/api/Index/UpdateCarBaseSettings", dtoCarBaseSettings).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
@@ -383,7 +397,7 @@ else
         }
         await RefreshCarBaseSettings().ConfigureAwait(false);
         await RefreshCarBaseStates().ConfigureAwait(false);
-        _saveButtonTexts[dtoCarBaseSettings.CarId] = _saveButtonDefaultText;
+        _savingCarIds.RemoveAll(i => i == dtoCarBaseSettings.CarId);
         StateHasChanged();
     }
 
