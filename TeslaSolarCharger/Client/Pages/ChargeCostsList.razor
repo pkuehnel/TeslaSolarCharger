@@ -30,7 +30,19 @@ else
                 <td>@chargePrice.ValidSince</td>
                     <td>@(chargePrice.SolarPrice != null ? ((decimal)chargePrice.SolarPrice).ToString("0.00") : "")</td>
                     <td>@(chargePrice.GridPrice != null ? ((decimal)chargePrice.GridPrice).ToString("0.00") : "")</td>
-                <td><button class="btn btn-danger" @onclick="(_ => Delete(chargePrice.Id))"><span class="oi oi-trash" aria-hidden="true"></span></button></td>
+                <td>
+                    <button class="btn btn-danger" @onclick="(_ => Delete(chargePrice.Id))">
+                        @if (_deletingChargePriceIds.Any(i => i == chargePrice.Id))
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span class="sr-only">Loading...</span>
+                        }
+                        else
+                        {
+                            <span class="oi oi-trash" aria-hidden="true"></span>
+                        }
+                    </button>
+                </td>
             </tr>
         }
         </tbody>
@@ -39,6 +51,8 @@ else
 
 @code {
     private List<DtoChargePrice>? _chargePrices;
+
+    private readonly List<int> _deletingChargePriceIds = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,7 +66,13 @@ else
 
     async Task Delete(int? id)
     {
+        if (id == default)
+        {
+            return;
+        }
+        _deletingChargePriceIds.Add((int) id);
         await HttpClient.DeleteAsync($"api/ChargingCost/DeleteChargePriceById?id={id}").ConfigureAwait(false);
-        await OnInitializedAsync().ConfigureAwait(false);
+        _chargePrices?.RemoveAll(c => c.Id == id);
+        _deletingChargePriceIds.RemoveAll(i => i == id);
     }
 }
