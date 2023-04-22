@@ -206,7 +206,7 @@ else
                 <p>Note: Spot prices are published for the next day at 14:00 - 15:00. Charges won't be planned until @_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddDays(-1).AddHours(15).ToString(CultureInfo.CurrentCulture)</p>
             }
 
-            <div class="d-grid gap-2">
+            <div class="d-grid gap-2 mb-3">
                 <button class="btn btn-primary" type="button" @onclick="() => UpdateCarSettings(_carBaseSettings[car.CarId])">
                     @if (_savingCarIds.Any(i => i == car.CarId))
                     {
@@ -326,7 +326,7 @@ else
     private Dictionary<int, DtoTableContent> _newCarDetailStates = new();
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
-    private List<int> _savingCarIds = new();
+    private readonly List<int> _savingCarIds = new();
     private string _version = "";
     private HashSet<int> _collapsedCarDetails = new HashSet<int>();
     private string _collapsedColor = "LightGray";
@@ -340,9 +340,6 @@ else
     private string? _serverTimeZoneDisplayName;
 
     private Timer? _timer;
-
-    private readonly string _saveButtonDefaultText = "Save";
-    private readonly string _buttonLoadingText = "...";
 
     protected override async Task OnInitializedAsync()
     {

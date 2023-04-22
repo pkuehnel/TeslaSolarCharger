@@ -93,30 +93,37 @@ else
                     </small>
                 </div>
             </div>
-            <button class="btn btn-primary" @onclick="() => UpdateCarConfiguration(carBasicConfiguration.CarId, carBasicConfiguration)">@_saveButtonTexts[carBasicConfiguration.CarId]</button>
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary" type="button" @onclick="() => UpdateCarConfiguration(carBasicConfiguration.CarId, carBasicConfiguration)">
+                    @if (_savingCarIds.Any(i => i == carBasicConfiguration.CarId))
+                    {
+                        <span>
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Loading...
+                        </span>
+                    }
+                    else
+                    {
+                        <span>Save</span>
+                    }
+                </button>
+            </div>
         </div>
     }
 }
 
 @code {
     private List<CarBasicConfiguration>? _carBasicConfigurations;
-    private Dictionary<int, string> _saveButtonTexts = new Dictionary<int, string>();
-    private readonly string _saveButtonDefaultText = "Save";
-    private readonly string _buttonLoadingText = "...";
+    private readonly List<int> _savingCarIds = new();
 
     protected override async Task OnInitializedAsync()
     {
         _carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
-
-        foreach (var carBasicConfiguration in _carBasicConfigurations!)
-        {
-            _saveButtonTexts.Add(carBasicConfiguration.CarId, _saveButtonDefaultText);
-        }
     }
 
     private async Task UpdateCarConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
-        _saveButtonTexts[carId] = _buttonLoadingText;
+        _savingCarIds.Add(carId);
         var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarBasicConfiguration?carId={carId}", carBasicConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
@@ -126,6 +133,6 @@ else
         {
             ToastService.ShowError("Error updating car configuration");
         }
-        _saveButtonTexts[carId] = _saveButtonDefaultText;
+        _savingCarIds.RemoveAll(i => i == carId);
     }
 }

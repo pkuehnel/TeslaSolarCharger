@@ -52,7 +52,7 @@ else
 @code {
     private List<DtoChargePrice>? _chargePrices;
 
-    public List<int> _deletingChargePriceIds { get; } = new();
+    private readonly List<int> _deletingChargePriceIds = new();
 
     protected override async Task OnInitializedAsync()
     {
