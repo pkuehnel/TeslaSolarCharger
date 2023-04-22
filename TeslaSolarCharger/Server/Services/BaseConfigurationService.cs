@@ -63,4 +63,11 @@ public class BaseConfigurationService : IBaseConfigurationService
         baseConfiguration.MaxCombinedCurrent = maxCombinedCurrent;
         await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
     }
+
+    public async Task UpdatePowerBuffer(int powerBuffer)
+    {
+        var baseConfiguration = await _configurationWrapper.GetBaseConfigurationAsync().ConfigureAwait(false);
+        baseConfiguration.PowerBuffer = powerBuffer;
+        await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
+    }
 }
