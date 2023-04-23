@@ -11,18 +11,21 @@ public class JobManager
     private readonly IJobFactory _jobFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     private IScheduler _scheduler;
 
 
 #pragma warning disable CS8618
-    public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory, IConfigurationWrapper configurationWrapper)
+    public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory,
+        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider)
 #pragma warning restore CS8618
     {
         _logger = logger;
         _jobFactory = jobFactory;
         _schedulerFactory = schedulerFactory;
         _configurationWrapper = configurationWrapper;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task StartJobs()
@@ -40,19 +43,30 @@ public class JobManager
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
         var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
 
+        var currentDate = _dateTimeProvider.DateTimeOffSetNow();
+        var chargingTriggerStartTime = currentDate.AddSeconds(5);
+        var pvTriggerStartTime = currentDate.AddSeconds(3);
+
         var chargingValueJobUpdateIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
-        var chargingValueTrigger =
-            TriggerBuilder.Create().WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)chargingValueJobUpdateIntervall.TotalSeconds)).Build();
+        var chargingValueTrigger = TriggerBuilder.Create()
+            .StartAt(chargingTriggerStartTime)
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)chargingValueJobUpdateIntervall.TotalSeconds))
+            .Build();
 
-        var carStateCachingTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
         var pvValueJobIntervall = _configurationWrapper.PvValueJobUpdateIntervall();
         _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
 
         var pvValueTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds)).Build();
+            .StartAt(pvTriggerStartTime)
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds))
+            .Build();
+
+        
+
+        var carStateCachingTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
         var powerDistributionAddTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(16)).Build();

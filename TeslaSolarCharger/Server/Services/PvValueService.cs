@@ -94,6 +94,11 @@ public class PvValueService : IPvValueService
             var xmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
             var inverterPower = await GetValueByHttpResponse(inverterHttpResponse, inverterJsonPattern, inverterXmlPattern, inverterCorrectionFactor,
                 patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
+            if (inverterPower < 0)
+            {
+                _logger.LogWarning("Inverterpower is below 0: {inverterPower}, using -1 for further purposes", inverterPower);
+                inverterPower = -1;
+            }
             _settings.InverterPower = inverterPower;
         }
 
@@ -254,6 +259,11 @@ public class PvValueService : IPvValueService
             return _constants.DefaultOverage;
         }
         return (int)(weightedSum / weightedCount);
+    }
+
+    public void ClearOverageValues()
+    {
+        _inMemoryValues.OverageValues.Clear();
     }
 
     public void AddOverageValueToInMemoryList(int overage)

@@ -38,10 +38,9 @@ else
                 {
                     "Start time",
                     "Charge Cost",
+                    "Price per kWh",
                     "Used Grid kWh",
                     "Used Solar kWh",
-                    "Grid Price",
-                    "Solar Price",
                     "Avg. Spot Price",
                 },
             },
@@ -55,10 +54,9 @@ else
                 {
                     handledCharge.StartTime?.ToString("g"),
                     handledCharge.CalculatedPrice.ToString("0.00"),
+                    handledCharge.PricePerKwh.ToString("0.0000"),
                     handledCharge.UsedGridEnergy.ToString("0.00"),
                     handledCharge.UsedSolarEnergy.ToString("0.00"),
-                    handledCharge.GridPrice.ToString("0.00"),
-                    handledCharge.SolarPrice.ToString("0.00"),
                     handledCharge.AverageSpotPrice != null ? ((decimal)handledCharge.AverageSpotPrice).ToString("0.00") : "",
                 },
             });

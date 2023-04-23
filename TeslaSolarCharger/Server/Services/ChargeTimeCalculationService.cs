@@ -8,6 +8,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -19,10 +20,11 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly ISpotPriceService _spotPriceService;
     private readonly ITeslaService _teslaService;
+    private readonly IConstants _constants;
 
     public ChargeTimeCalculationService(ILogger<ChargeTimeCalculationService> logger, IDateTimeProvider dateTimeProvider,
         ISettings settings, ITeslaSolarChargerContext teslaSolarChargerContext, ISpotPriceService spotPriceService,
-        ITeslaService teslaService)
+        ITeslaService teslaService, IConstants constants)
     {
         _logger = logger;
         _dateTimeProvider = dateTimeProvider;
@@ -30,13 +32,14 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _spotPriceService = spotPriceService;
         _teslaService = teslaService;
+        _constants = constants;
     }
 
     public TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(Car car)
     {
         _logger.LogTrace("{method}({carId})", nameof(CalculateTimeToReachMinSocAtFullSpeedCharge), car.Id);
         var socToCharge = (double)car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
-        if (socToCharge < 1 || (socToCharge < 3 && (car.CarState.ChargerActualCurrent ?? 1) < 1))
+        if (socToCharge < 1 || (socToCharge < _constants.MinimumSocDifference && car.CarState.State != CarStateEnum.Charging))
         {
             return TimeSpan.Zero;
         }

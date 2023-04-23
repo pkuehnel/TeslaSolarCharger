@@ -75,7 +75,19 @@ else
             </InputComponent>
         }
         <br/>
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="submit" class="btn btn-primary">
+            @if (SubmitIsLoading)
+            {
+                <span>
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Loading...
+                </span>
+            }
+            else
+            {
+                <span>Save</span>
+            }
+        </button>
     </EditForm>
 }
 
@@ -85,6 +97,8 @@ else
     public int? ChargeCostId { get; set; }
 
     private DtoChargePrice? ChargePrice { get; set; }
+
+    private bool SubmitIsLoading { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -110,7 +124,9 @@ else
 
     private async Task SaveChargePrice()
     {
+        SubmitIsLoading = true;
         await HttpClient.PostAsJsonAsync("api/ChargingCost/UpdateChargePrice", ChargePrice).ConfigureAwait(false);
+        SubmitIsLoading = false;
         NavigateToList();
     }
 }

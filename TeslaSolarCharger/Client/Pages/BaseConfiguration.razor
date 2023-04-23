@@ -48,11 +48,20 @@ else
                 </InputFragment>
             </InputComponent>
             <InputComponent ValueId="geoFence"
-                        LabelText="Home Geofence Name"
-                        UnitText=""
-                        HelpText="You have to add a geofence with the same name in TeslaMate at your home location.">
+                            LabelText="Home Geofence Name"
+                            UnitText=""
+                            HelpText="You have to add a geofence with the same name in TeslaMate at your home location.">
                 <InputFragment>
                     <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
+            
+            <InputComponent ValueId="powerBuffer"
+                            LabelText="Power Buffer"
+                            UnitText="W"
+                            HelpText="Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid.">
+                <InputFragment>
+                    <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" placeholder=" " class="form-control" />
                 </InputFragment>
             </InputComponent>
         </div>
@@ -152,15 +161,6 @@ else
                                 HelpText="@_correctionFactorHelpText">
                     <InputFragment>
                         <InputNumber id="gridCorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactor" placeholder=" " class="form-control" />
-                    </InputFragment>
-                </InputComponent>
-
-                <InputComponent ValueId="powerBuffer"
-                        LabelText="Power Buffer"
-                        UnitText="W"
-                        HelpText="Set values higher than 0 to e.g. charge your home battery first, or lower than minimum adjustable power to charge your car first (e.g. 230V * 1A * 3 phases => -691W).">
-                    <InputFragment>
-                        <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" placeholder=" " class="form-control" />
                     </InputFragment>
                 </InputComponent>
             }
@@ -379,6 +379,7 @@ else
         </div>
         <div class="shadow p-3 mb-5 bg-white rounded">
             <h3>Telegram:</h3>
+            <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
             <InputComponent ValueId="telegramBotKey"
                             LabelText="Telegram Bot Key"
                             UnitText=""

@@ -11,10 +11,4 @@ public class HandledCharge
     public decimal? AverageSpotPrice { get; set; }
     // ReSharper disable once CollectionNeverUpdated.Global
     public List<PowerDistribution> PowerDistributions { get; set; } = new();
-
-
-    public int ChargePriceId { get; set; }
-#pragma warning disable CS8618
-    public ChargePrice ChargePrice { get; set; }
-#pragma warning restore CS8618
 }

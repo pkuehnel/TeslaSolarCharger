@@ -24,6 +24,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
   - [Car Priorities](#car-priorities)
   - [Power Buffer](#power-buffer)
   - [Home Battery](#home-battery)
+  - [Telegram integration](#telegram-integration)
 - [How to use](#how-to-use)
   - [Charge Modes](#charge-modes)
 - [Generate logfiles](#generate-logfiles)
@@ -823,10 +824,10 @@ An example URL with all values filled could look like this:
 http://modbusplugin/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
-You can test the result of the URL by pasting it into your browser and replacing `modbusplugin` with `ipOfYourDockerHost:7091`, e.g.:
+You can test the result of the URL by pasting it into your browser and replacing `modbusplugin` with `ipOfYourDockerHost:7191`, e.g.:
 
 ```text
-http://192.168.1.50:7091/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
+http://192.168.1.50:7191/api/Modbus/GetInt32Value?unitIdentifier=3&startingAddress=30775&quantity=2&ipAddress=192.168.1.28&port=502&factor=1&connectDelaySeconds=1&timeoutSeconds=10
 ```
 
 What the values mean:
@@ -840,7 +841,7 @@ What the values mean:
 - `connectDelaySeconds`: Delay before communication the first time (you should use 1)
 - `timeoutSeconds`: Timeout until returning an error if the inverter is not responding (you should use 10)
 
-For more convenience, you can go to `http://your-ip-address:7091/swagger`. There you can try your values with a user interface.
+For more convenience, you can go to `http://your-ip-address:7191/swagger`. There you can try your values with a user interface.
 
 ###### Using no plugin
 
@@ -939,6 +940,31 @@ To configure your home battery, you need to add the following settings:
 After setting everything up, your overview page should look like this:
 
 ![image](https://user-images.githubusercontent.com/35361981/183434947-16d13372-09ff-45a7-94a2-8d4043f39f18.png)
+
+### Telegram integration
+In this section you learn how to create the Telegram Bot Key and where you get the Telegram ChannelID from:
+
+- Create a bot by chatting with `BotFather`
+
+![Botfather](https://user-images.githubusercontent.com/35361981/233467207-918b7871-54dd-4ea0-bf9e-b828f2da3509.jpg)
+
+- Ask `BotFather` to reate a new bot with the `/newbot` command and follow the instructions
+
+![newbot](https://user-images.githubusercontent.com/35361981/233468050-b996475a-fe3a-4131-805e-0fe4c60ce603.jpg)
+
+- Copy the Bot token as Telegram Bot Key to your TSC
+
+![BotToken](https://user-images.githubusercontent.com/35361981/233468177-620b0c2f-d9fa-46de-9f87-2eb7b6562553.jpg)
+
+- To get a chat ID, you have to chat with the `userinfobot`
+
+![userinfobot](https://user-images.githubusercontent.com/35361981/233468260-41bada84-1ab1-4cb5-92bc-828ab65177b9.jpg)
+
+- Ask the bot for your `UserID` with the command `/start`
+
+![UserIDVonBot](https://user-images.githubusercontent.com/35361981/233468350-f56ac7b9-8609-4d4b-98e0-277f3b82f356.jpg)
+
+- Copy the user ID as Telegram Channel ID to your TSC
 
 **Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number, e.g. `-1.0`.
 

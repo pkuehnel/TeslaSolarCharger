@@ -6,4 +6,8 @@ public interface IConstants
     string CarConfigurationKey { get; }
     int MinSocLimit { get; }
     int DefaultOverage { get; }
+    /// <summary>
+    /// Soc Difference needs to be higher than this value
+    /// </summary>
+    int MinimumSocDifference { get; }
 }
