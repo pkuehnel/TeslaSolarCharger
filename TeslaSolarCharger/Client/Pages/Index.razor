@@ -37,6 +37,10 @@
                     <i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_pvValues.InverterPower W
                 </TooltipComponent>
             </div>
+            if (_pvValues.InverterPower < 0)
+            {
+                <small class="form-text text-muted">The inverter power is lower than 0. TSC always uses -1 for such values. To get the actual value coming from the inverter, check the TSC logs.</small>
+            }
         }
         @if (_pvValues.GridPower != null)
         {
