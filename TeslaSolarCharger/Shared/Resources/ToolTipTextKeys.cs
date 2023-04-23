@@ -20,4 +20,5 @@ public class ToolTipTextKeys
     public string CarChargeMode => "CarChargeMode";
     public string ServerTime => "ServerTime";
     public string ServerTimeZone => "ServerTimeZone";
+    public string PowerBuffer => "PowerBuffer";
 }

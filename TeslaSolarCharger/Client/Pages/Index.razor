@@ -69,6 +69,14 @@
                 </TooltipComponent>
             </div>
         }
+        @if (_pvValues.PowerBuffer != null)
+        {
+            <div>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.PowerBuffer]">
+                    <i class="fa-brands fa-buffer" style="width: 25px;"></i>@_pvValues.PowerBuffer W
+                </TooltipComponent>
+            </div>
+        }
         <div>
             <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CombinedChargingPower]">
                 <i class="fa-solid fa-car" style="width: 25px;"></i>@_pvValues.CarCombinedChargingPowerAtHome W

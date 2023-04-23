@@ -4,6 +4,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
@@ -25,12 +26,13 @@ public class IndexService : IIndexService
     private readonly IConfigJsonService _configJsonService;
     private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
     private readonly IConstants _constants;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
         IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys,
         ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
         IChargeTimeCalculationService chargeTimeCalculationService,
-        IConstants constants)
+        IConstants constants, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _settings = settings;
@@ -41,17 +43,26 @@ public class IndexService : IIndexService
         _configJsonService = configJsonService;
         _chargeTimeCalculationService = chargeTimeCalculationService;
         _constants = constants;
+        _configurationWrapper = configurationWrapper;
     }
 
     public DtoPvValues GetPvValues()
     {
         _logger.LogTrace("{method}()", nameof(GetPvValues));
+        int? powerBuffer = _configurationWrapper.PowerBuffer();
+        if (_configurationWrapper.FrontendConfiguration()?.InverterValueSource == SolarValueSource.None
+            && _configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None)
+        {
+            powerBuffer = null;
+        }
+
         return new DtoPvValues()
         {
             GridPower = _settings.Overage,
             InverterPower = _settings.InverterPower,
             HomeBatteryPower = _settings.HomeBatteryPower,
             HomeBatterySoc = _settings.HomeBatterySoc,
+            PowerBuffer = powerBuffer, 
             CarCombinedChargingPowerAtHome = _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum(),
         };
     }
@@ -206,6 +217,7 @@ public class IndexService : IIndexService
             { _toolTipTextKeys.CarChargeMode, "ChargeMode of your car. Click <a href=\"https://github.com/pkuehnel/TeslaSolarCharger#charge-modes\"  target=\"_blank\">here</a> for details."},
             { _toolTipTextKeys.ServerTime, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time." },
             { _toolTipTextKeys.ServerTimeZone, "This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" },
+            { _toolTipTextKeys.PowerBuffer, "Configured Power Buffer" },
         };
     }
 
