@@ -30,13 +30,13 @@ public class CurrentValuesController : ApiBaseController
     }
 
     [HttpGet]
-    public Task<int> GetHomeBatterySoc()
+    public Task<int?> GetHomeBatterySoc()
     {
         return _currentValuesService.GetHomeBatterySoc();
     }
 
     [HttpGet]
-    public Task<int> GetHomeBatteryPower()
+    public Task<int?> GetHomeBatteryPower()
     {
         return _currentValuesService.GetHomeBatteryPower();
     }
