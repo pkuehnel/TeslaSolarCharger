@@ -156,9 +156,12 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(FakeLastValue));
         var fakedValue = _sharedValues.CloudApiValues.Last().Value;
         fakedValue.SiteCurrentPowerFlow.Grid.CurrentPower = 0;
-        fakedValue.SiteCurrentPowerFlow.Storage.Status = "Charging";
-        var targetBatteryChargePower = await GetTargetBatteryPower().ConfigureAwait(false);
-        fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = targetBatteryChargePower / 1000.0;
+        if (fakedValue.SiteCurrentPowerFlow.Storage != null)
+        {
+            var targetBatteryChargePower = await GetTargetBatteryPower().ConfigureAwait(false);
+            fakedValue.SiteCurrentPowerFlow.Storage.Status = "Charging";
+            fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = targetBatteryChargePower / 1000.0;
+        }
         return fakedValue;
     }
 
