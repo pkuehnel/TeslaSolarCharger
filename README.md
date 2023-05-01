@@ -936,6 +936,8 @@ After setting everything up, your overview page should look like this:
 
 ![image](https://user-images.githubusercontent.com/35361981/183434947-16d13372-09ff-45a7-94a2-8d4043f39f18.png)
 
+**Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number, e.g. `-1.0`.
+
 ### Telegram integration
 In this section you learn how to create the Telegram Bot Key and where you get the Telegram ChannelID from:
 
@@ -961,7 +963,6 @@ In this section you learn how to create the Telegram Bot Key and where you get t
 
 - Copy the user ID as Telegram Channel ID to your TSC
 
-**Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Correction Factor` below your `HomeBatteryPower Url` setting and invert it to a negative number, e.g. `-1.0`.
 
 ## How to use
 
