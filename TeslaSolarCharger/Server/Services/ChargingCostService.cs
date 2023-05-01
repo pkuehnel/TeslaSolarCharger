@@ -115,8 +115,9 @@ public class ChargingCostService : IChargingCostService
                     && _configurationWrapper.FrontendConfiguration()?.InverterValueSource != SolarValueSource.None
                     && _settings.InverterPower != null)
                 {
+                    var powerBuffer = _configurationWrapper.PowerBuffer();
                     powerFromGrid = - _settings.InverterPower
-                                    + _configurationWrapper.PowerBuffer()
+                                    + powerBuffer > 0 ? powerBuffer : 0
                                     + _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum();
                 }
                 await AddPowerDistribution(car.Id, car.CarState.ChargingPowerAtHome, powerFromGrid).ConfigureAwait(false);
