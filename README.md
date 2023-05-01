@@ -21,7 +21,6 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
     - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
 - [Often used optional settings](#often-used-optional-settings)
-  - [Car Priorities](#car-priorities)
   - [Power Buffer](#power-buffer)
   - [Home Battery](#home-battery)
   - [Telegram integration](#telegram-integration)
@@ -919,10 +918,6 @@ Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverte
 ## Often used optional settings
 
 When you are at this point, your car connected to any charging cable in your set home area should start charging based on solar power. But there are a few additional settings that are maybe helpful for your environment:
-
-### Car Priorities
-
-If you have more than one car (or your car does not have ID 1), you can change this setting in the `Car Ids` form field separated by `|`. Note: The order of the IDs is the order of power distribution.
 
 ### Power Buffer
 
