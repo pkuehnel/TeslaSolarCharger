@@ -9,5 +9,5 @@ public class SiteCurrentPowerFlow
     public Grid Grid { get; set; }
     public Load Load { get; set; }
     public Pv Pv { get; set; }
-    public Storage Storage { get; set; }
+    public Storage? Storage { get; set; }
 }

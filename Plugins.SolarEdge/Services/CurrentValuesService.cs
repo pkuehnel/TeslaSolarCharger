@@ -68,7 +68,7 @@ public class CurrentValuesService : ICurrentValuesService
         return (int)latestValue.SiteCurrentPowerFlow.Pv.CurrentPower;
     }
 
-    public async Task<int> GetHomeBatterySoc()
+    public async Task<int?> GetHomeBatterySoc()
     {
         _logger.LogTrace("{method}()", nameof(GetHomeBatterySoc));
         var latestValue = await GetLatestValue().ConfigureAwait(false);
@@ -76,20 +76,28 @@ public class CurrentValuesService : ICurrentValuesService
         return GetHomeBatterySocFromLatestValue(latestValue);
     }
 
-    private static int GetHomeBatterySocFromLatestValue(CloudApiValue latestValue)
+    private static int? GetHomeBatterySocFromLatestValue(CloudApiValue latestValue)
     {
+        if (latestValue.SiteCurrentPowerFlow.Storage == null)
+        {
+            return null;
+        }
         return latestValue.SiteCurrentPowerFlow.Storage.ChargeLevel;
     }
 
-    public async Task<int> GetHomeBatteryPower()
+    public async Task<int?> GetHomeBatteryPower()
     {
         _logger.LogTrace("{method}()", nameof(GetHomeBatteryPower));
         var latestValue = await GetLatestValue().ConfigureAwait(false);
         return GetHomeBatteryPowerFromLatestValue(latestValue);
     }
 
-    private static int GetHomeBatteryPowerFromLatestValue(CloudApiValue latestValue)
+    private static int? GetHomeBatteryPowerFromLatestValue(CloudApiValue latestValue)
     {
+        if (latestValue.SiteCurrentPowerFlow.Storage == null)
+        {
+            return null;
+        }
         var batteryPower = latestValue.SiteCurrentPowerFlow.Storage.CurrentPower;
         if (string.Equals(latestValue.SiteCurrentPowerFlow.Storage.Status, "Discharging"))
         {
@@ -148,9 +156,12 @@ public class CurrentValuesService : ICurrentValuesService
         _logger.LogTrace("{method}()", nameof(FakeLastValue));
         var fakedValue = _sharedValues.CloudApiValues.Last().Value;
         fakedValue.SiteCurrentPowerFlow.Grid.CurrentPower = 0;
-        fakedValue.SiteCurrentPowerFlow.Storage.Status = "Charging";
-        var targetBatteryChargePower = await GetTargetBatteryPower().ConfigureAwait(false);
-        fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = targetBatteryChargePower / 1000.0;
+        if (fakedValue.SiteCurrentPowerFlow.Storage != null)
+        {
+            var targetBatteryChargePower = await GetTargetBatteryPower().ConfigureAwait(false);
+            fakedValue.SiteCurrentPowerFlow.Storage.Status = "Charging";
+            fakedValue.SiteCurrentPowerFlow.Storage.CurrentPower = targetBatteryChargePower / 1000.0;
+        }
         return fakedValue;
     }
 

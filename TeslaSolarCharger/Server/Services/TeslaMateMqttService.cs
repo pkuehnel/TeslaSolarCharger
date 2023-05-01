@@ -259,6 +259,12 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                         //ToDo: Set to average of requested and actual current
                         car.CarState.ChargerActualCurrent = car.CarState.LastSetAmp;
                     }
+
+                    if (car.CarState.ChargerActualCurrent > 0 && car.CarState.PluggedIn != true)
+                    {
+                        _logger.LogWarning("Car {carId} is not detected as plugged in but actual current > 0 => set plugged in to true", car.Id);
+                        car.CarState.PluggedIn = true;
+                    }
                 }
                 else
                 {
