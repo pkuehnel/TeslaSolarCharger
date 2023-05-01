@@ -128,7 +128,7 @@ public class SolarMqttService : ISolarMqttService
         {
             if (_mqttClient.IsConnected)
             {
-                await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
+                await _mqttClient.DisconnectAsync(MqttClientDisconnectOptionsReason.AdministrativeAction,
                     "Reconnecting with new configuration").ConfigureAwait(false);
             }
             await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None).ConfigureAwait(false);
