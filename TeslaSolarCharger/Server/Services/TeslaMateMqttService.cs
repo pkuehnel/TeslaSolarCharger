@@ -176,7 +176,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         _logger.LogTrace("{method}({reason})", nameof(DisconnectClient), reason);
         if (_mqttClient.IsConnected)
         {
-            await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
+            await _mqttClient.DisconnectAsync(MqttClientDisconnectOptionsReason.AdministrativeAction,
                 reason).ConfigureAwait(false);
         }
     }
