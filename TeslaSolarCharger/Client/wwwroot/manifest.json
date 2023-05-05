@@ -1,6 +1,6 @@
 {
   "name": "Smart Tesla Amp Setter",
-  "short_name": "SmartTelsaAmpSetter",
+  "short_name": "SmartTeslaAmpSetter",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
