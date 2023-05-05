@@ -27,12 +27,13 @@ public class IndexService : IIndexService
     private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
     private readonly IConstants _constants;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
         IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys,
         ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
         IChargeTimeCalculationService chargeTimeCalculationService,
-        IConstants constants, IConfigurationWrapper configurationWrapper)
+        IConstants constants, IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _settings = settings;
@@ -44,6 +45,7 @@ public class IndexService : IIndexService
         _chargeTimeCalculationService = chargeTimeCalculationService;
         _constants = constants;
         _configurationWrapper = configurationWrapper;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public DtoPvValues GetPvValues()
@@ -135,7 +137,8 @@ public class IndexService : IIndexService
         }
 
         if (enabledCar.CarState.State != CarStateEnum.Charging
-            && enabledCar.CarState.EarliestSwitchOn != null)
+            && enabledCar.CarState.EarliestSwitchOn != null
+            && enabledCar.CarState.EarliestSwitchOn > _dateTimeProvider.Now())
         {
             result.Add(new DtoChargeInformation()
             {
@@ -145,7 +148,8 @@ public class IndexService : IIndexService
         }
 
         if (enabledCar.CarState.State == CarStateEnum.Charging
-            && enabledCar.CarState.EarliestSwitchOff != null)
+            && enabledCar.CarState.EarliestSwitchOff != null
+            && enabledCar.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
         {
             result.Add(new DtoChargeInformation()
             {
