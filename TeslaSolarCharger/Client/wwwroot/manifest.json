@@ -1,6 +1,6 @@
 {
-  "name": "Smart Tesla Amp Setter",
-  "short_name": "SmartTelsaAmpSetter",
+  "name": "Tesla Solar Charger",
+  "short_name": "Tesla Solar Charger",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
