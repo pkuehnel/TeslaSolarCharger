@@ -49,6 +49,8 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     private const string TopicLongitude = "longitude";
     // ReSharper disable once InconsistentNaming
     private const string TopicLatitude = "latitude";
+    // ReSharper disable once InconsistentNaming
+    private const string TopicSpeed = "speed";
 
     public bool IsMqttClientConnected => _mqttClient.IsConnected;
 
@@ -87,6 +89,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         if (_mqttClient.IsConnected)
         {
             await DisconnectClient("Reconnecting with new configuration").ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
         }
 
         try
@@ -166,6 +169,10 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             {
                 f.WithTopic($"{topicPrefix}{TopicLatitude}");
             })
+            .WithTopicFilter(f =>
+            {
+                f.WithTopic($"{topicPrefix}{TopicSpeed}");
+            })
             .Build();
 
         await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
@@ -176,8 +183,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         _logger.LogTrace("{method}({reason})", nameof(DisconnectClient), reason);
         if (_mqttClient.IsConnected)
         {
-            await _mqttClient.DisconnectAsync(MqttClientDisconnectReason.AdministrativeAction,
-                reason).ConfigureAwait(false);
+            await _mqttClient.DisconnectAsync().ConfigureAwait(false);
         }
     }
 
@@ -362,6 +368,16 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.CarState.Latitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
+                }
+                break;
+            case TopicSpeed:
+                if (!string.IsNullOrWhiteSpace(value.Value))
+                {
+                    var speed = Convert.ToInt32(value.Value);
+                    if (speed > 0 && car.CarState.PluggedIn == true)
+                    {
+                        car.CarState.PluggedIn = false;
+                    }
                 }
                 break;
         }
