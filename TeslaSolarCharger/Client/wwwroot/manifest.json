@@ -1,6 +1,6 @@
 {
   "name": "Tesla Solar Charger",
-  "short_name": "Tesla Solar Charger",
+  "short_name": "TSC",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
