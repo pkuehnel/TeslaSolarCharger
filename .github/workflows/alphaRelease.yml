@@ -39,14 +39,14 @@ jobs:
 
     - name: DockerHub login
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
 
     - name: Build and push TeslaSolarCharger
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/build-push-action@v3.1.0
+      uses: docker/build-push-action@v4
       with:
         build-args: MINVERVERSIONOVERRIDE=${{ steps.version.outputs.version }}
         file: ./TeslaSolarCharger/Server/Dockerfile
@@ -71,14 +71,14 @@ jobs:
 
     - name: DockerHub login
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
 
     - name: Build and push SmaPlugin
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v4
       with:
         file: ./Plugins.SmaEnergymeter/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -102,14 +102,14 @@ jobs:
 
     - name: DockerHub login
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
 
     - name: Build and push SolarEdgePlugin
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v4
       with:
         file: ./Plugins.SolarEdge/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -133,14 +133,14 @@ jobs:
 
     - name: DockerHub login
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
 
     - name: Build and push ModbusPlugin
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v4
       with:
         file: ./Plugins.Modbus/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -164,14 +164,14 @@ jobs:
 
     - name: DockerHub login
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS}}
 
     - name: Build and push SolaxPlugin
       if: ${{ github.actor == 'pkuehnel' }}
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v4
       with:
         file: ./Plugins.Solax/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
