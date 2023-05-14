@@ -26,6 +26,12 @@ jobs:
       with:
         tag-prefix: v
         default-pre-release-phase: alpha
+
+    - name: Install minver CLI
+      run: dotnet tool install --tool-path ./minver minver-cli --version 4.3.0
+          
+    - name: Calculate version using minver CLI
+      run: ./minver/minver --default-pre-release-phase edge --tag-prefix v
          
     - name: Run unit tests
       run: dotnet test TeslaSolarCharger.Tests
