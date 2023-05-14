@@ -22,7 +22,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -31,24 +31,19 @@ jobs:
         with:
           dotnet-version: '7.0.x'
 
-      - name: Calculate version
-        uses: thefringeninja/action-minver@2.0.0-preview1
+      - name: Install minver CLI
+        run: dotnet tool install --tool-path ./minver minver-cli --version 4.3.0
+            
+      - name: Calculate version using minver CLI
         id: version
-        with:
-          tag-prefix: v
-          default-pre-release-phase: releaseCandidate
-
-      - name: Set Version environment variable
-        run: echo "MINVERVERSIONOVERRIDE=${{ steps.version.outputs.version }}" >> $GITHUB_ENV
-
-      - name: Echo environmentvariable
-        run: echo ${{ env.MINVERVERSIONOVERRIDE }}
+        run: |
+            echo "version=$(./minver/minver --default-pre-release-identifiers releaseCandidate --tag-prefix v)" >> "$GITHUB_ENV"
     
       - name: Run unit tests
         run: dotnet test TeslaSolarCharger.Tests
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
 
       - name: Build TeslaSolarCharger
         shell: bash
@@ -143,13 +138,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -159,29 +154,30 @@ jobs:
             type=semver,pattern={{version}}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
 
-      - name: Calculate version
-        uses: thefringeninja/action-minver@2.0.0-preview1
+      - name: Install minver CLI
+        run: dotnet tool install --tool-path ./minver minver-cli --version 4.3.0
+            
+      - name: Calculate version using minver CLI
         id: version
-        with:
-          tag-prefix: v
-          default-pre-release-phase: releaseCandidate
+        run: |
+            echo "version=$(./minver/minver --default-pre-release-identifiers releaseCandidate --tag-prefix v)" >> "$GITHUB_ENV"
       
       - name: Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       
       - name: DockerHub login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
       - name: Build and push TeslaSolarCharger
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
-          build-args: MINVERVERSIONOVERRIDE=${{ steps.version.outputs.version }}
+          build-args: MINVERVERSIONOVERRIDE=${{ env.version }}
           file: ./TeslaSolarCharger/Server/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
@@ -193,13 +189,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -209,29 +205,30 @@ jobs:
             type=semver,pattern={{version}}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
 
-      - name: Calculate version
-        uses: thefringeninja/action-minver@2.0.0-preview1
+      - name: Install minver CLI
+        run: dotnet tool install --tool-path ./minver minver-cli --version 4.3.0
+            
+      - name: Calculate version using minver CLI
         id: version
-        with:
-          tag-prefix: v
-          default-pre-release-phase: releaseCandidate
+        run: |
+            echo "version=$(./minver/minver --default-pre-release-identifiers releaseCandidate --tag-prefix v)" >> "$GITHUB_ENV"
       
       - name: Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       
       - name: DockerHub login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
       - name: Build and push SmartTeslaAmpSetter
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
-          build-args: MINVERVERSIONOVERRIDE=${{ steps.version.outputs.version }}
+          build-args: MINVERVERSIONOVERRIDE=${{ env.version }}
           file: ./TeslaSolarCharger/Server/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
@@ -243,11 +240,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -257,20 +254,20 @@ jobs:
             type=semver,pattern={{version}}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       
       - name: Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       
       - name: DockerHub login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
       - name: Build and push SmaPlugin
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./Plugins.SmaEnergymeter/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -283,11 +280,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -297,20 +294,20 @@ jobs:
             type=semver,pattern={{version}}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       
       - name: Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       
       - name: DockerHub login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
       - name: Build and push SmaPlugin
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./Plugins.SmaEnergymeter/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -323,11 +320,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -337,20 +334,20 @@ jobs:
             type=semver,pattern={{version}}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       
       - name: Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       
       - name: DockerHub login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
       - name: Build and push SolarEdgePlugin
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./Plugins.SolarEdge/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -363,11 +360,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -377,20 +374,20 @@ jobs:
             type=semver,pattern={{version}}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       
       - name: Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       
       - name: DockerHub login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
       - name: Build and push SolarEdgePlugin
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./Plugins.SolarEdge/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -403,11 +400,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -417,20 +414,20 @@ jobs:
             type=semver,pattern={{version}}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       
       - name: Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       
       - name: DockerHub login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
       - name: Build and push ModbusPlugin
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./Plugins.Modbus/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -443,11 +440,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -457,20 +454,20 @@ jobs:
             type=semver,pattern={{version}}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       
       - name: Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       
       - name: DockerHub login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS}}
           
       - name: Build and push SolaxPlugin
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./Plugins.Solax/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7

@@ -74,7 +74,7 @@
 #pragma warning restore CS8618
 
     private string IdPrefix => Purpose.Replace(" ", "");
-
+#pragma warning disable BL0007
     [Parameter]
     public NodePatternType? NodePatternType
     {
@@ -161,6 +161,7 @@
             XmlAttributeValueNameChanged.InvokeAsync(value);
         }
     }
+#pragma warning restore BL0007
 
     [Parameter]
     public EventCallback<string> XmlAttributeValueNameChanged { get; set; }
