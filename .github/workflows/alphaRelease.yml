@@ -20,13 +20,6 @@ jobs:
       with:
         dotnet-version: '7.0.x'
 
-    - name: Calculate version
-      uses: thefringeninja/action-minver@2.0.0-preview1
-      id: version
-      with:
-        tag-prefix: v
-        default-pre-release-phase: alpha
-
     - name: Install minver CLI
       run: dotnet tool install --tool-path ./minver minver-cli --version 4.3.0
           
