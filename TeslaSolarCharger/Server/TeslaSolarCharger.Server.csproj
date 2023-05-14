@@ -21,7 +21,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<MinVerDefaultPreReleasePhase>edge</MinVerDefaultPreReleasePhase>
+		<MinVerDefaultPreReleaseIdentifiers>edge</MinVerDefaultPreReleaseIdentifiers>
 	</PropertyGroup>
 
 	<!--<Target Name="MyTarget" AfterTargets="MinVer" >

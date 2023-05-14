@@ -25,12 +25,13 @@ jobs:
       with:
         dotnet-version: '7.0.x'
 
-    - name: Calculate version
-      uses: thefringeninja/action-minver@2.0.0-preview1
+    - name: Install minver CLI
+      run: dotnet tool install --tool-path ./minver minver-cli --version 4.3.0
+          
+    - name: Calculate version using minver CLI
       id: version
-      with:
-        tag-prefix: v
-        default-pre-release-phase: edge
+      run: |
+          echo "version=$(./minver/minver --default-pre-release-identifiers edge --tag-prefix v)" >> "$GITHUB_ENV"
     
     - name: Run unit tests
       run: dotnet test TeslaSolarCharger.Tests
