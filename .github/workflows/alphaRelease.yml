@@ -26,7 +26,7 @@ jobs:
     - name: Calculate version using minver CLI
       id: version
       run: |
-          echo "version=$(./minver/minver --default-pre-release-phase alpha --tag-prefix v)" >> "$GITHUB_ENV"
+          echo "version=$(./minver/minver --default-pre-release-identifiers alpha --tag-prefix v)" >> "$GITHUB_ENV"
          
     - name: Run unit tests
       run: dotnet test TeslaSolarCharger.Tests
