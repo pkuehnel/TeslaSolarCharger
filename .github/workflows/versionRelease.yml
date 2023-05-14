@@ -177,7 +177,7 @@ jobs:
       - name: Build and push TeslaSolarCharger
         uses: docker/build-push-action@v4
         with:
-          build-args: MINVERVERSIONOVERRIDE=${{ steps.version.outputs.version }}
+          build-args: MINVERVERSIONOVERRIDE=${{ env.version }}
           file: ./TeslaSolarCharger/Server/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
@@ -228,7 +228,7 @@ jobs:
       - name: Build and push SmartTeslaAmpSetter
         uses: docker/build-push-action@v4
         with:
-          build-args: MINVERVERSIONOVERRIDE=${{ steps.version.outputs.version }}
+          build-args: MINVERVERSIONOVERRIDE=${{ env.version }}
           file: ./TeslaSolarCharger/Server/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
