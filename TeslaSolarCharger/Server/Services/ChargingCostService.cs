@@ -117,7 +117,7 @@ public class ChargingCostService : IChargingCostService
                 {
                     var powerBuffer = _configurationWrapper.PowerBuffer();
                     powerFromGrid = - _settings.InverterPower
-                                    + powerBuffer > 0 ? powerBuffer : 0
+                                    + (powerBuffer > 0 ? powerBuffer : 0)
                                     + _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum();
                 }
                 await AddPowerDistribution(car.Id, car.CarState.ChargingPowerAtHome, powerFromGrid).ConfigureAwait(false);
