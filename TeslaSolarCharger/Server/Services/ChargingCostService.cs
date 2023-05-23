@@ -475,6 +475,7 @@ public class ChargingCostService : IChargingCostService
             ChargedGridEnergy = handledCharges.Sum(h => h.UsedGridEnergy ?? 0),
             ChargedSolarEnergy = handledCharges.Sum(h => h.UsedSolarEnergy ?? 0),
         };
+
         return dtoChargeSummary;
     }
 

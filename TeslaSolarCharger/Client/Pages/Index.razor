@@ -140,12 +140,12 @@ else
 
                 <div>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
-                        <i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh
+                        <i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.SolarPortionPercent.ToString("0.0") %)
                     </TooltipComponent>
                 </div>
                 <div>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
-                        <i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh
+                        <i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - car.DtoChargeSummary.SolarPortionPercent).ToString("0.0")) %)
                     </TooltipComponent>
                 </div>
                 <div>
