@@ -294,7 +294,7 @@ public class ChargingService : IChargingService
                 && c.CarState.PluggedIn != false
                 && (c.CarState.ClimateOn == true ||
                     c.CarState.ChargerActualCurrent > 0 ||
-                    c.CarState.SoC < c.CarState.SocLimit - _constants.MinimumSocDifference))
+                    c.CarState.SoC < (c.CarState.SocLimit - _constants.MinimumSocDifference)))
             .Select(c => c.Id)
             .ToList();
 

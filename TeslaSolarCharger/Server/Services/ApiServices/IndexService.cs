@@ -159,11 +159,11 @@ public class IndexService : IIndexService
         }
 
         if (enabledCar.CarState.State != CarStateEnum.Charging
-            && (enabledCar.CarState.SocLimit - enabledCar.CarState.SoC) < _constants.MinimumSocDifference)
+            && (enabledCar.CarState.SocLimit - enabledCar.CarState.SoC) < (_constants.MinimumSocDifference + 1))
         {
             result.Add(new DtoChargeInformation()
             {
-                InfoText = $"SoC Limit is at least {_constants.MinimumSocDifference}% higher than acutal SoC",
+                InfoText = $"SoC Limit is at least {_constants.MinimumSocDifference + 1}% higher than acutal SoC",
                 TimeToDisplay = default,
             });
         }
