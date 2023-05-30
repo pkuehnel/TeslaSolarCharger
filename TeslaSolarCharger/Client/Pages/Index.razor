@@ -150,7 +150,7 @@ else
                 </div>
                 <div>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
-                        <a href="HandledCharges/@car.CarId"><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00")</a>
+                        <a href="HandledCharges/@car.CarId"><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00") (@(car.DtoChargeSummary.AverageEnergyPrice.ToString("0.000")) per kWh)</a>
                     </TooltipComponent>
                 </div>
             </div>
