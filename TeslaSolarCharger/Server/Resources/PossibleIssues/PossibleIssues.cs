@@ -116,7 +116,7 @@ public class PossibleIssues : IPossibleIssues
                 issueKeys.VersionNotUpToDate, CreateIssue("Your installed version is not up to date.",
                     IssueType.Warning,
                     "<a href=\"https://github.com/pkuehnel/TeslaSolarCharger/releases\"  target=\"_blank\">Check release notes of latest versions</a>",
-                    "Update to latest version with <code>docker-compose pull</code> and <code>docker-compose up -d</code>."
+                    "Update to latest version with <code>docker compose pull</code> and <code>docker compose up -d</code>."
                 )
             },
             {
