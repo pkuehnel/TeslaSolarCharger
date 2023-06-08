@@ -12,6 +12,7 @@ public class Settings : ISettings
     public bool IsNewVersionAvailable { get; set; }
     public int? InverterPower { get; set; }
     public int? Overage { get; set; }
+    public int? PowerBuffer { get; set; }
     public List<Car> CarsToManage => Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
     public int? HomeBatterySoc { get; set; }
     public int? HomeBatteryPower { get; set; }
