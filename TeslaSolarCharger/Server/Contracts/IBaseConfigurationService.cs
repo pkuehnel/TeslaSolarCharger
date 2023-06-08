@@ -6,5 +6,5 @@ public interface IBaseConfigurationService
 {
     Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration);
     Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent);
-    Task UpdatePowerBuffer(int powerBuffer);
+    void UpdatePowerBuffer(int powerBuffer);
 }

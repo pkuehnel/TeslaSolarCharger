@@ -51,7 +51,7 @@ public class IndexService : IIndexService
     public DtoPvValues GetPvValues()
     {
         _logger.LogTrace("{method}()", nameof(GetPvValues));
-        int? powerBuffer = _configurationWrapper.PowerBuffer();
+        int? powerBuffer = _configurationWrapper.PowerBuffer(true);
         if (_configurationWrapper.FrontendConfiguration()?.InverterValueSource == SolarValueSource.None
             && _configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None)
         {

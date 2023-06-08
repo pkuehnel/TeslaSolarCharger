@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
@@ -17,15 +18,17 @@ public class ConfigurationWrapper : IConfigurationWrapper
     private readonly IConfiguration _configuration;
     private readonly INodePatternTypeHelper _nodePatternTypeHelper;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISettings _settings;
     private readonly string _baseConfigurationMemoryCacheName = "baseConfiguration";
 
     public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration, INodePatternTypeHelper nodePatternTypeHelper,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider, ISettings settings)
     {
         _logger = logger;
         _configuration = configuration;
         _nodePatternTypeHelper = nodePatternTypeHelper;
         _dateTimeProvider = dateTimeProvider;
+        _settings = settings;
     }
 
     public string CarConfigFileFullName()
@@ -384,8 +387,16 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
-    public int PowerBuffer()
+    public int PowerBuffer(bool getInMemoryValueIfAvailable)
     {
+        if (getInMemoryValueIfAvailable)
+        {
+            var settingsPowerBuffer = _settings.PowerBuffer;
+            if (settingsPowerBuffer != null)
+            {
+                return settingsPowerBuffer.Value;
+            }
+        }
         return GetBaseConfiguration().PowerBuffer;
     }
 
