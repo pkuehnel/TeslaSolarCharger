@@ -147,6 +147,16 @@ public class IndexService : IIndexService
             });
         }
 
+        if (enabledCar.CarState.State != CarStateEnum.Charging
+            && enabledCar.CarState.EarliestSwitchOn == null)
+        {
+            result.Add(new DtoChargeInformation()
+            {
+                InfoText = $"Enough solar power for at least {_configurationWrapper.TimespanUntilSwitchOn().TotalMinutes} minutes.",
+                TimeToDisplay = default,
+            });
+        }
+
         if (enabledCar.CarState.State == CarStateEnum.Charging
             && enabledCar.CarState.EarliestSwitchOff != null
             && enabledCar.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
