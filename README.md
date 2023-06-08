@@ -16,7 +16,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
 ## Table of Contents
 
 - [How to install](#how-to-install)
-  - [Docker-compose](#docker-compose)
+  - [Docker compose](#docker-compose)
   - [Setting up TeslaMate including TeslaSolarCharger](#Setting-up-TeslaMate-including-TeslaSolarCharger)
     - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
@@ -32,9 +32,27 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
 
 You can either install the software in a Docker container or download the binaries and deploy it on any server.
 
-### Docker-compose
+### Docker compose
 
-The easiest way to use TeslaSolarCharger is with Docker. Depending on your system, you have to [install Docker, including Docker-Compose](https://dev.to/rohansawant/installing-docker-and-docker-compose-on-the-raspberry-pi-in-5-simple-steps-3mgl), first.
+The easiest way to use TeslaSolarCharger is with Docker.
+
+Depending on your system, you have to install Docker first. To do this on a RaspberryPi (should be the same on normal Linux systems) you need to execute the following commands in your Terminal window:
+1. Install Docker
+```
+curl -sSL https://get.docker.com | sh
+```
+1. Add permissions to the `pi` user. If you have another username, update the command accordingly
+```
+sudo usermod -aG docker pi
+```
+1. Reboot your Raspberry Pi
+1. Test the Docker installation
+```
+docker run hello-world
+```
+If any issues occur try to identify them using [this more detailed instruction](https://www.simplilearn.com/tutorials/docker-tutorial/raspberry-pi-docker)
+
+If you are using a Windows host, install the Software from [here](https://docs.docker.com/desktop/install/windows-install/). Windows 11 is highly recommended. Select Linux Containers in the installation process.
 
 ### Setting up TeslaMate including TeslaSolarCharger
 
