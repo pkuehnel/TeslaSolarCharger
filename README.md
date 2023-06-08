@@ -36,7 +36,7 @@ You can either install the software in a Docker container or download the binari
 
 The easiest way to use TeslaSolarCharger is with Docker.
 
-Depending on your system, you have to install Docker first. To do this on a RaspberryPi (should be the same on normal Linux systems) you need to execute the following commands in your Terminal window:
+Depending on your system, you have to install Docker first. To do this on a RaspberryPi (should be the same on standard Linux systems), you need to execute the following commands in your Terminal window:
 1. Install Docker
 ```
 curl -sSL https://get.docker.com | sh
@@ -50,7 +50,7 @@ sudo usermod -aG docker pi
 ```
 docker run hello-world
 ```
-If any issues occur try to identify them using [this more detailed instruction](https://www.simplilearn.com/tutorials/docker-tutorial/raspberry-pi-docker)
+If any issues occur, try to identify them using [this more detailed instruction](https://www.simplilearn.com/tutorials/docker-tutorial/raspberry-pi-docker)
 
 If you are using a Windows host, install the Software from [here](https://docs.docker.com/desktop/install/windows-install/). Windows 11 is highly recommended. Select Linux Containers in the installation process.
 
