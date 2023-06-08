@@ -53,6 +53,7 @@ public class BaseConfigurationService : IBaseConfigurationService
         {
             _settings.InverterPower = null;
         }
+        _settings.PowerBuffer = null;
 
         await _jobManager.StartJobs().ConfigureAwait(false);
     }
