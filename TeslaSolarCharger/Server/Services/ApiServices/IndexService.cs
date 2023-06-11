@@ -51,7 +51,7 @@ public class IndexService : IIndexService
     public DtoPvValues GetPvValues()
     {
         _logger.LogTrace("{method}()", nameof(GetPvValues));
-        int? powerBuffer = _configurationWrapper.PowerBuffer();
+        int? powerBuffer = _configurationWrapper.PowerBuffer(true);
         if (_configurationWrapper.FrontendConfiguration()?.InverterValueSource == SolarValueSource.None
             && _configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None)
         {
@@ -144,6 +144,16 @@ public class IndexService : IIndexService
             {
                 InfoText = "Enough solar power until {0}.",
                 TimeToDisplay = enabledCar.CarState.EarliestSwitchOn ?? default,
+            });
+        }
+
+        if (enabledCar.CarState.State != CarStateEnum.Charging
+            && enabledCar.CarState.EarliestSwitchOn == null)
+        {
+            result.Add(new DtoChargeInformation()
+            {
+                InfoText = $"Enough solar power for at least {_configurationWrapper.TimespanUntilSwitchOn().TotalMinutes} minutes.",
+                TimeToDisplay = default,
             });
         }
 

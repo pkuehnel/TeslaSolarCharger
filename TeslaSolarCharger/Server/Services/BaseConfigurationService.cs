@@ -53,6 +53,7 @@ public class BaseConfigurationService : IBaseConfigurationService
         {
             _settings.InverterPower = null;
         }
+        _settings.PowerBuffer = null;
 
         await _jobManager.StartJobs().ConfigureAwait(false);
     }
@@ -64,10 +65,8 @@ public class BaseConfigurationService : IBaseConfigurationService
         await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
     }
 
-    public async Task UpdatePowerBuffer(int powerBuffer)
+    public void UpdatePowerBuffer(int powerBuffer)
     {
-        var baseConfiguration = await _configurationWrapper.GetBaseConfigurationAsync().ConfigureAwait(false);
-        baseConfiguration.PowerBuffer = powerBuffer;
-        await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
+        _settings.PowerBuffer = powerBuffer;
     }
 }

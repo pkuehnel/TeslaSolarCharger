@@ -21,4 +21,19 @@ public class DtoChargeSummary
             return 100;
         }
     }
+
+    [JsonIgnore]
+    public decimal AverageEnergyPrice
+    {
+        get
+        {
+            var chargeSum = ChargedSolarEnergy + ChargedGridEnergy;
+            if (chargeSum > 0)
+            {
+                return (ChargeCost / chargeSum);
+            }
+
+            return 0;
+        }
+    }
 }
