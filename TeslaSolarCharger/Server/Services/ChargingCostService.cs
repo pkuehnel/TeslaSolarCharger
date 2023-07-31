@@ -201,7 +201,7 @@ public class ChargingCostService : IChargingCostService
 
         powerDistribution.HandledCharge = latestOpenHandledCharge;
         powerDistribution.GridProportion = (float)(powerFromGrid / (float)chargingPower);
-        _logger.LogTrace("Calculated grod proportion: {proportion}", powerDistribution.GridProportion);
+        _logger.LogTrace("Calculated grid proportion: {proportion}", powerDistribution.GridProportion);
         if (powerDistribution.GridProportion < 0)
         {
             powerDistribution.GridProportion = 0;
