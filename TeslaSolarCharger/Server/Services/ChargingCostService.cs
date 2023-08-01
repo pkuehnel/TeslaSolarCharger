@@ -106,6 +106,8 @@ public class ChargingCostService : IChargingCostService
     {
         _logger.LogTrace("{method}()", nameof(AddPowerDistributionForAllChargingCars));
         await CreateDefaultChargePrice().ConfigureAwait(false);
+        await CheckForToHighChargingProcessIds().ConfigureAwait(false);
+
         foreach (var car in _settings.Cars)
         {
             if (car.CarState.ChargingPowerAtHome > 0)
@@ -146,6 +148,7 @@ public class ChargingCostService : IChargingCostService
             PowerFromGrid = (int)powerFromGrid,
             TimeStamp = _dateTimeProvider.UtcNow(),
         };
+
         var latestOpenHandledCharge = await _teslaSolarChargerContext.HandledCharges
             .OrderByDescending(h => h.ChargingProcessId)
             .FirstOrDefaultAsync(h => h.CarId == carId && h.CalculatedPrice == null).ConfigureAwait(false);
@@ -212,6 +215,27 @@ public class ChargingCostService : IChargingCostService
         }
         _teslaSolarChargerContext.PowerDistributions.Add(powerDistribution);
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private async Task CheckForToHighChargingProcessIds()
+    {
+        _logger.LogTrace("{method}()", nameof(CheckForToHighChargingProcessIds));
+        var highestTeslaMateChargingProcessId = await _teslamateContext.ChargingProcesses
+            .OrderByDescending(c => c.Id).Select(c => c.Id).FirstOrDefaultAsync().ConfigureAwait(false);
+
+        var toHighHandledCharges = await _teslaSolarChargerContext.HandledCharges
+            .Where(hc => hc.ChargingProcessId > highestTeslaMateChargingProcessId)
+            .ToListAsync().ConfigureAwait(false);
+
+        foreach (var highHandledCharge in toHighHandledCharges)
+        {
+            if (highHandledCharge.ChargingProcessId > 0)
+            {
+                highHandledCharge.ChargingProcessId = -highHandledCharge.ChargingProcessId;
+            }
+        }
+
+        await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private async Task<ChargePrice?> GetRelevantChargePrice(DateTime relevantDateTime)
