@@ -229,9 +229,13 @@ public class ChargingCostService : IChargingCostService
 
         foreach (var highHandledCharge in toHighHandledCharges)
         {
+            _logger.LogWarning(
+                "The handled charge with ID {handledChargeId} has a chargingprocess ID of {chargingProcessId}, which is higher than the highes charging process ID in TeslaMate {maxChargingProcessId}.",
+                highHandledCharge.Id, highHandledCharge.ChargingProcessId, highestTeslaMateChargingProcessId);
             if (highHandledCharge.ChargingProcessId > 0)
             {
                 highHandledCharge.ChargingProcessId = -highHandledCharge.ChargingProcessId;
+                _logger.LogDebug("Charging process Id was set to {newChargingProcessId}", highHandledCharge.ChargingProcessId);
             }
         }
 
