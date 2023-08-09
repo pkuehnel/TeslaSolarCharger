@@ -50,7 +50,7 @@ public class CarState
         {
             float? currentToUse;
             //Next lines because of wrong actual current on currents below 5A
-            if (ChargerRequestedCurrent < 5 && ChargerActualCurrent == ChargerRequestedCurrent + 1)
+            if ((ChargerRequestedCurrent < 5) && (ChargerActualCurrent == (ChargerRequestedCurrent + 1)))
             {
                 currentToUse = (float?)(ChargerActualCurrent + ChargerRequestedCurrent) / 2;
             }
@@ -59,15 +59,6 @@ public class CarState
                 currentToUse = ChargerActualCurrent;
             }
             var power = (int?)(currentToUse * ChargerVoltage * ActualPhases);
-            return power;
-        }
-    }
-
-    public int? SetChargingPower
-    {
-        get
-        {
-            var power = ChargerRequestedCurrent * ChargerVoltage * ActualPhases;
             return power;
         }
     }
