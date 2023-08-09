@@ -30,7 +30,13 @@ namespace TeslaSolarCharger.Server.Controllers
         public Task<DtoValue<int>> NumberOfRelevantCars() => Task.FromResult(_coreService.NumberOfRelevantCars());
 
         [HttpGet]
-        public Task<DtoValue<int>> HomeBatteryTargetChargingPower() => Task.FromResult(_coreService.HomeBatteryTargetChargingPower());
+        public Task<DtoValue<int>> HomeBatteryTargetChargingPower() => Task.FromResult(_coreService.HomeBatteryTargetChargingPower());[HttpGet]
+        
+        [HttpGet]
+        public async Task StopJobs() => await _coreService.StopJobs().ConfigureAwait(false);
+        
+        [HttpGet]
+        public async Task DisconnectMqttServices() => await _coreService.DisconnectMqttServices().ConfigureAwait(false);
 
         [HttpGet]
         public Task<string?> ProductVersion()

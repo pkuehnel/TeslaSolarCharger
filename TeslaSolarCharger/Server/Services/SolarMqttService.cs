@@ -173,6 +173,15 @@ public class SolarMqttService : ISolarMqttService
         return mqttTopicFilterBuilder.Build();
     }
 
+    public async Task DisconnectClient(string reason)
+    {
+        _logger.LogTrace("{method}({reason})", nameof(DisconnectClient), reason);
+        if (_mqttClient.IsConnected)
+        {
+            await _mqttClient.DisconnectAsync().ConfigureAwait(false);
+        }
+    }
+
     public async Task ConnectClientIfNotConnected()
     {
         _logger.LogTrace("{method}()", nameof(ConnectClientIfNotConnected));
