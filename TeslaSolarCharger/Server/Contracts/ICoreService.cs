@@ -13,4 +13,6 @@ public interface ICoreService
     DtoValue<string> GetServerTimeZoneDisplayName();
     Task BackupDatabaseIfNeeded();
     Task KillAllServices();
+    Task StopJobs();
+    Task DisconnectMqttServices();
 }
