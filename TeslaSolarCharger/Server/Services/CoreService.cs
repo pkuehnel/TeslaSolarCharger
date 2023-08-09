@@ -16,10 +16,11 @@ public class CoreService : ICoreService
     private readonly IConfigJsonService _configJsonService;
     private readonly JobManager _jobManager;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
+    private readonly ISolarMqttService _solarMqttService;
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
-        ITeslaMateMqttService teslaMateMqttService)
+        ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService)
     {
         _logger = logger;
         _chargingService = chargingService;
@@ -28,6 +29,7 @@ public class CoreService : ICoreService
         _configJsonService = configJsonService;
         _jobManager = jobManager;
         _teslaMateMqttService = teslaMateMqttService;
+        _solarMqttService = solarMqttService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -124,8 +126,21 @@ public class CoreService : ICoreService
     public async Task KillAllServices()
     {
         _logger.LogTrace("{method}()", nameof(KillAllServices));
-        await _jobManager.StopJobs().ConfigureAwait(false);
-        await _teslaMateMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
+        await StopJobs().ConfigureAwait(false);
+        await DisconnectMqttServices().ConfigureAwait(false);
         await _configJsonService.CacheCarStates().ConfigureAwait(false);
+    }
+
+    public async Task StopJobs()
+    {
+        _logger.LogTrace("{method}()", nameof(StopJobs));
+        await _jobManager.StopJobs().ConfigureAwait(false);
+    }
+
+    public async Task DisconnectMqttServices()
+    {
+        _logger.LogTrace("{method}()", nameof(DisconnectMqttServices));
+        await _teslaMateMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
+        await _solarMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
     }
 }

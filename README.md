@@ -89,7 +89,7 @@ services:
       - all
 
   database:
-    image: postgres:13
+    image: postgres:15
     restart: always
     environment:
       - POSTGRES_USER=teslamate
@@ -157,7 +157,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -226,7 +226,7 @@ services:
       - all
 
   database:
-    image: postgres:13
+    image: postgres:15
     restart: always
     environment:
       - POSTGRES_USER=teslamate
@@ -294,7 +294,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -380,7 +380,7 @@ services:
       - all
 
   database:
-    image: postgres:13
+    image: postgres:15
     restart: always
     environment:
       - POSTGRES_USER=teslamate
@@ -449,7 +449,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -535,7 +535,7 @@ services:
       - all
 
   database:
-    image: postgres:13
+    image: postgres:15
     restart: always
     environment:
       - POSTGRES_USER=teslamate
@@ -603,7 +603,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -688,7 +688,7 @@ services:
       - all
 
   database:
-    image: postgres:13
+    image: postgres:15
     restart: always
     environment:
       - POSTGRES_USER=teslamate
@@ -756,7 +756,7 @@ services:
     depends_on:
       - teslamateapi
     environment:
-#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker-compose up -d for more detailed logs
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
       - TZ=Europe/Berlin ##You can change your Timezone here
     ports:
       - 7190:80
@@ -791,7 +791,7 @@ volumes:
 #### First startup of the application
 
 1. Move to your above created directory with your `docker-compose.yml`.
-1. Start all containers using the command `docker-compose up -d`.
+1. Start all containers using the command `docker compose up -d`.
 1. Use a third-party app to create a new Tesla Token [[Android](https://play.google.com/store/apps/details?id=net.leveugle.teslatokens&hl=en_US&gl=US)] [[iOS](https://apps.apple.com/us/app/tesla-token/id1411393432)]
 1. Open your browser, go to `http://your-ip-address:4000` and paste your token and refresh token into the form.
 1. Go to `Geo-Fences` and add a Geo-Fence called `Home` at the location you want TeslaSolarCharger to be active.

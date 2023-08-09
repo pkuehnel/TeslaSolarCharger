@@ -106,6 +106,8 @@ public class ChargingCostService : IChargingCostService
     {
         _logger.LogTrace("{method}()", nameof(AddPowerDistributionForAllChargingCars));
         await CreateDefaultChargePrice().ConfigureAwait(false);
+        await CheckForToHighChargingProcessIds().ConfigureAwait(false);
+
         foreach (var car in _settings.Cars)
         {
             if (car.CarState.ChargingPowerAtHome > 0)
@@ -146,6 +148,7 @@ public class ChargingCostService : IChargingCostService
             PowerFromGrid = (int)powerFromGrid,
             TimeStamp = _dateTimeProvider.UtcNow(),
         };
+
         var latestOpenHandledCharge = await _teslaSolarChargerContext.HandledCharges
             .OrderByDescending(h => h.ChargingProcessId)
             .FirstOrDefaultAsync(h => h.CarId == carId && h.CalculatedPrice == null).ConfigureAwait(false);
@@ -201,7 +204,7 @@ public class ChargingCostService : IChargingCostService
 
         powerDistribution.HandledCharge = latestOpenHandledCharge;
         powerDistribution.GridProportion = (float)(powerFromGrid / (float)chargingPower);
-        _logger.LogTrace("Calculated grod proportion: {proportion}", powerDistribution.GridProportion);
+        _logger.LogTrace("Calculated grid proportion: {proportion}", powerDistribution.GridProportion);
         if (powerDistribution.GridProportion < 0)
         {
             powerDistribution.GridProportion = 0;
@@ -212,6 +215,31 @@ public class ChargingCostService : IChargingCostService
         }
         _teslaSolarChargerContext.PowerDistributions.Add(powerDistribution);
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private async Task CheckForToHighChargingProcessIds()
+    {
+        _logger.LogTrace("{method}()", nameof(CheckForToHighChargingProcessIds));
+        var highestTeslaMateChargingProcessId = await _teslamateContext.ChargingProcesses
+            .OrderByDescending(c => c.Id).Select(c => c.Id).FirstOrDefaultAsync().ConfigureAwait(false);
+
+        var toHighHandledCharges = await _teslaSolarChargerContext.HandledCharges
+            .Where(hc => hc.ChargingProcessId > highestTeslaMateChargingProcessId)
+            .ToListAsync().ConfigureAwait(false);
+
+        foreach (var highHandledCharge in toHighHandledCharges)
+        {
+            _logger.LogWarning(
+                "The handled charge with ID {handledChargeId} has a chargingprocess ID of {chargingProcessId}, which is higher than the highes charging process ID in TeslaMate {maxChargingProcessId}.",
+                highHandledCharge.Id, highHandledCharge.ChargingProcessId, highestTeslaMateChargingProcessId);
+            if (highHandledCharge.ChargingProcessId > 0)
+            {
+                highHandledCharge.ChargingProcessId = -highHandledCharge.ChargingProcessId;
+                _logger.LogDebug("Charging process Id was set to {newChargingProcessId}", highHandledCharge.ChargingProcessId);
+            }
+        }
+
+        await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private async Task<ChargePrice?> GetRelevantChargePrice(DateTime relevantDateTime)
