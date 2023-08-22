@@ -276,6 +276,7 @@ public class ConfigJsonService : IConfigJsonService
                 .Where(c => c.ChargingProcess.Geofence != null
                             && c.ChargingProcess.Geofence.Name == homeGeofence
                             && c.ChargerVoltage > lowestGridVoltageToSearchFor)
+                .OrderByDescending(c => c.Id)
                 .Select(c => c.ChargerVoltage)
                 .Take(1000)
                 .ToListAsync().ConfigureAwait(false);
