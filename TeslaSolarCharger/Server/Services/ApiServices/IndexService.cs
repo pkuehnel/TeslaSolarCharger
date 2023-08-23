@@ -136,7 +136,7 @@ public class IndexService : IIndexService
             });
         }
 
-        if (enabledCar.CarState.State != CarStateEnum.Charging
+        if ((!(enabledCar.CarState.ChargingPowerAtHome > 0))
             && enabledCar.CarState.EarliestSwitchOn != null
             && enabledCar.CarState.EarliestSwitchOn > _dateTimeProvider.Now())
         {
@@ -147,7 +147,7 @@ public class IndexService : IIndexService
             });
         }
 
-        if (enabledCar.CarState.State != CarStateEnum.Charging
+        if ((!(enabledCar.CarState.ChargingPowerAtHome > 0))
             && enabledCar.CarState.EarliestSwitchOn == null)
         {
             result.Add(new DtoChargeInformation()
@@ -157,7 +157,7 @@ public class IndexService : IIndexService
             });
         }
 
-        if (enabledCar.CarState.State == CarStateEnum.Charging
+        if (enabledCar.CarState.ChargingPowerAtHome > 0
             && enabledCar.CarState.EarliestSwitchOff != null
             && enabledCar.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
         {
@@ -168,7 +168,7 @@ public class IndexService : IIndexService
             });
         }
 
-        if (enabledCar.CarState.State != CarStateEnum.Charging
+        if ((!(enabledCar.CarState.ChargingPowerAtHome > 0))
             && (enabledCar.CarState.SocLimit - enabledCar.CarState.SoC) < (_constants.MinimumSocDifference + 1))
         {
             result.Add(new DtoChargeInformation()
