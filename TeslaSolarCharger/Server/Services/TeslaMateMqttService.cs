@@ -16,6 +16,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     private readonly ISettings _settings;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IConfigJsonService _configJsonService;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     // ReSharper disable once InconsistentNaming
     private const string TopicDisplayName = "display_name";
@@ -56,7 +57,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
 
     public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory,
         ISettings settings, IConfigurationWrapper configurationWrapper,
-        IConfigJsonService configJsonService)
+        IConfigJsonService configJsonService, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _mqttClient = mqttClient;
@@ -64,6 +65,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         _settings = settings;
         _configurationWrapper = configurationWrapper;
         _configJsonService = configJsonService;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task ConnectMqttClient()
@@ -351,7 +353,16 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 _logger.LogTrace("{topicName} changed to {value}", nameof(TopicScheduledChargingStartTime), value.Value);
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.ScheduledChargingStartTime = DateTimeOffset.Parse(value.Value);
+                    var parsedScheduledChargingStartTime = DateTimeOffset.Parse(value.Value);
+                    if (parsedScheduledChargingStartTime < _dateTimeProvider.DateTimeOffSetNow().AddDays(-14))
+                    {
+                        _logger.LogWarning("TeslaMate set scheduled charging start time to {teslaMateValue}. As this is in the past, it will be ignored.", parsedScheduledChargingStartTime);
+                        car.CarState.ScheduledChargingStartTime = null;
+                    }
+                    else
+                    {
+                        car.CarState.ScheduledChargingStartTime = parsedScheduledChargingStartTime;
+                    }
                 }
                 else
                 {
