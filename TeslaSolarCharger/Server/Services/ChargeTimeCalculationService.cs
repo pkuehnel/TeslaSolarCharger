@@ -183,7 +183,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
                     plannedChargingSlots.Add(new DtoChargingSlot()
                     {
                         ChargeStart = dateTimeOffSetNow,
-                        ChargeEnd = DateTimeOffset.MaxValue,
+                        ChargeEnd = dateTimeOffSetNow.AddDays(1),
                     });
                     break;
 
