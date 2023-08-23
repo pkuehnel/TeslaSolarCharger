@@ -238,7 +238,7 @@ else
             @if (car.ChargeInformation.Count > 0)
             {
                 <p>
-                    Car will @((car.HomeChargePower > 0) ? "stop" : "start") charging when following conditions are met:<br/>
+                    Car will @(car.HomeChargePower > 0 ? "stop" : "start") charging when following conditions are met:<br/>
                     <ul>
                         @foreach (var chargeInfo in car.ChargeInformation)
                         {
