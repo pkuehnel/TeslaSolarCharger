@@ -14,6 +14,12 @@ public class CurrentPowerService
     public int GetCurrentPower()
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentPower));
-        return _sharedValues.Overage;
+        return _sharedValues.OverageW;
+    }
+
+    public SharedValues GetAllValues()
+    {
+        _logger.LogTrace("{method}()", nameof(GetAllValues));
+        return _sharedValues;
     }
 }

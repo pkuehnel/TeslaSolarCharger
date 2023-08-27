@@ -55,21 +55,37 @@ public class EnergyMeterService
             var relevantValues = byteArray.Skip(28).Take(byteArray.Length - 27).ToArray();
             var obisValues = ConvertArrayToObisDictionary(relevantValues);
 
-            var currentSupply =
-                Convert.ToDecimal(obisValues.First(v => v.Id == 1 && v.ValueType == ValueMode.Average).Value / 10.0);
             var currentOverage =
                 Convert.ToDecimal(obisValues.First(v => v.Id == 2 && v.ValueType == ValueMode.Average).Value / 10.0);
+            var currentSupply =
+                Convert.ToDecimal(obisValues.First(v => v.Id == 1 && v.ValueType == ValueMode.Average).Value / 10.0);
+            
 
-            _logger.LogTrace("current supply: {currentSupply}", currentSupply);
-            _logger.LogTrace("current overage: {currentOverage}", currentOverage);
+            var totalEnergyToGrid = Convert.ToDecimal(obisValues.First(v => v.Id == 2 && v.ValueType == ValueMode.Counter).Value / 3600.0);
+            var totalEnergyFromGrid = Convert.ToDecimal(obisValues.First(v => v.Id == 1 && v.ValueType == ValueMode.Counter).Value / 3600.0);
+
+            _sharedValues.PowerFromGridW = (int) currentSupply;
+            _sharedValues.PowerToGridW = (int) currentOverage;
+
+            _sharedValues.TotalEnergyToGridWh = totalEnergyToGrid;
+            _sharedValues.TotalEnergyFromGridWh = totalEnergyFromGrid;
+
+            _sharedValues.LastValuesFrom = DateTime.UtcNow;
+
+            _logger.LogTrace("current overage: {currentOverage} W", currentOverage);
+            _logger.LogTrace("current supply: {currentSupply} W", currentSupply);
+
+            _logger.LogTrace("Total energy to grid: {totalEnergyToGrid} W", totalEnergyToGrid);
+            _logger.LogTrace("Total energy from grid: {totalEnergyFromGrid} W", totalEnergyFromGrid);
+           
             
             if (currentSupply > 0)
             {
-                _sharedValues.Overage = (int)-currentSupply;
+                _sharedValues.OverageW = (int)-currentSupply;
             }
             else
             {
-                _sharedValues.Overage = (int)currentOverage;
+                _sharedValues.OverageW = (int)currentOverage;
             }
         }
     }
