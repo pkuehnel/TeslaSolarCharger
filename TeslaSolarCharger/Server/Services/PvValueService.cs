@@ -37,7 +37,7 @@ public class PvValueService : IPvValueService
     public async Task UpdatePvValues()
     {
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
-        _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
+        
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         HttpRequestMessage? originGridRequest = default;
@@ -184,6 +184,7 @@ public class PvValueService : IPvValueService
 
             _settings.HomeBatteryPower = homeBatteryPower;
         }
+        _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
     }
 
     private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern,
