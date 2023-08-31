@@ -214,7 +214,9 @@ public class CurrentValuesService : ICurrentValuesService
             return null;
         }
         //If there are already values there and there is no relevant car, call API everytime reset minutes are over.
-        if (_sharedValues.CloudApiValues.Count > 0 && numberOfRelevantCars < 1 && (_sharedValues.CloudApiValues.MaxBy(v => v.Key).Key > (DateTime.UtcNow - solarEdgeTooManyRequestsResetTime)))
+        if ((_sharedValues.CloudApiValues.Count > 0)
+            && numberOfRelevantCars < 1
+            && (_sharedValues.CloudApiValues.MaxBy(v => v.Key).Key > (DateTime.UtcNow - solarEdgeTooManyRequestsResetTime)))
         {
             _logger.LogDebug("Prevent calling SolarEdge API as relevantCarCount is {relevantCarCount}", numberOfRelevantCars);
             return null;
