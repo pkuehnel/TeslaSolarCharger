@@ -18,5 +18,11 @@ namespace Plugins.SmaEnergymeter.Controllers
         {
             return _currentPowerService.GetCurrentPower();
         }
+
+        [HttpGet]
+        public SharedValues GetAllValues()
+        {
+            return _currentPowerService.GetAllValues();
+        }
     }
 }

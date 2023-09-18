@@ -1,5 +1,4 @@
-﻿using Autofac;
-using System;
+﻿using System;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.TimeProviding;
@@ -24,13 +23,10 @@ public class LatestTimeToReachSocUpdateService : TestBase
             LatestTimeToReachSoC = configuredDate,
         };
 
-        var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
-            new NamedParameter("dateTime", currentDate));
-        Mock.Provide<IDateTimeProvider>(currentTimeProvider);
-
-        var latestTimeToReachSocUpdateService = Mock.Create<TeslaSolarCharger.Server.Services.LatestTimeToReachSocUpdateService>();
+        _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(currentDate));
+        var latestTimeToReachSocUpdateService = _fake.Resolve<TeslaSolarCharger.Server.Services.LatestTimeToReachSocUpdateService>();
         latestTimeToReachSocUpdateService.UpdateCarConfiguration(carConfiguration);
-
+        
         Assert.Equal(expectedDate, carConfiguration.LatestTimeToReachSoC);
     }
 
