@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Autofac;
+using Autofac.Extras.FakeItEasy;
 using Autofac.Extras.Moq;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,8 @@ using Serilog.Core;
 using Serilog.Events;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
+using TeslaSolarCharger.Server.MappingExtensions;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
 using Xunit.Abstractions;
 
@@ -24,6 +27,7 @@ public class TestBase : IDisposable
     protected readonly AutoMock Mock;
 
     private readonly TeslaSolarChargerContext _ctx;
+    protected readonly AutoFake _fake;
 
     protected ITeslaSolarChargerContext Context => _ctx;
 
@@ -44,16 +48,28 @@ public class TestBase : IDisposable
             {"ConfigFileLocation", "configs"},
             {"CarConfigFilename", "carConfig.json"},
         };
+
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configDictionary!)
-            .Build()
+                .AddInMemoryCollection(configDictionary!)
+                .Build()
             ;
-        
-        Mock = AutoMock.GetLoose(cfg =>
-        {
-            cfg.RegisterType(typeof(FakeDateTimeProvider));
-            cfg.RegisterInstance(configuration).As<IConfiguration>();
-        });
+
+        var currentFakeTime = new DateTime(2023, 2, 2, 8, 0, 0);
+
+        _fake = new AutoFake();
+        _fake.Provide<IMapperConfigurationFactory, MapperConfigurationFactory>();
+        _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(currentFakeTime));
+        _fake.Provide<IConfiguration>(configuration);
+
+        Mock = AutoMock.GetLoose(
+            b =>
+            {
+                b.Register((_, _) => Context);
+                b.Register((_, _) => _fake.Resolve<IMapperConfigurationFactory>());
+                b.Register((_, _) => _fake.Resolve<IConfiguration>());
+                b.RegisterType<FakeDateTimeProvider>();
+                //b.Register((_, _) => _fake.Resolve<IDateTimeProvider>());
+            });
 
         // In-memory database only exists while the connection is open
         var connection = new SqliteConnection("DataSource=:memory:");
@@ -88,7 +104,7 @@ public class TestBase : IDisposable
         //var autoMock = AutoMock.GetLoose(cfg => cfg.RegisterInstance(new TeslaSolarChargerContext(options)).As<ITeslaSolarChargerContext>());
         //_ctx = (TeslaSolarChargerContext) autoMock.Create<ITeslaSolarChargerContext>();
 
-        _ctx = (TeslaSolarChargerContext)Mock.Provide<ITeslaSolarChargerContext>(new TeslaSolarChargerContext(options));
+        _ctx = _fake.Provide(new TeslaSolarChargerContext(options));
         _ctx.Database.EnsureCreated();
         //_ctx.InitContextData();
         _ctx.SaveChanges();
