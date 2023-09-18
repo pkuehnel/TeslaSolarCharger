@@ -150,7 +150,8 @@ public class ChargeTimeCalculationService : TestBase
         };
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
-        var chargingSlots = await chargeTimeCalculationService.PlanChargingSlots(car, currentDate).ConfigureAwait(false);
+        // ReSharper disable once UseConfigureAwaitFalse
+        var chargingSlots = await chargeTimeCalculationService.PlanChargingSlots(car, currentDate);
 
         Assert.Empty(chargingSlots);
     }
@@ -210,7 +211,8 @@ public class ChargeTimeCalculationService : TestBase
         };
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
-        var chargingSlots = await chargeTimeCalculationService.PlanChargingSlots(car, currentDate).ConfigureAwait(false);
+        // ReSharper disable once UseConfigureAwaitFalse
+        var chargingSlots = await chargeTimeCalculationService.PlanChargingSlots(car, currentDate);
 
         Assert.Single(chargingSlots);
 

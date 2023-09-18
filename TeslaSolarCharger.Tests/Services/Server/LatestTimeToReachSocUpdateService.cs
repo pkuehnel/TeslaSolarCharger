@@ -1,6 +1,4 @@
-﻿using Autofac;
-using FakeItEasy;
-using System;
+﻿using System;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.TimeProviding;
