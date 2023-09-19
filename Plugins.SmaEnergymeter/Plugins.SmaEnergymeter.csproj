@@ -18,7 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Dtos\" />
     <Folder Include="Enums\" />
     <Folder Include="Services\" />
   </ItemGroup>
