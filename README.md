@@ -808,6 +808,7 @@ To let the TeslaSolarCharger know how much power there is to charge the car, you
 Depending on your used plugins, you have to paste one of the following URLs to the `Grid Power Url` field:
 
 - SMA Plugin: `http://<IP of your Docker host>:7192/api/CurrentPower/GetPower`
+Note: If you have more than one EnergyMeter/Home Manager 2.0 in your network you need to add the serial number of the correct device. A grid URL would look like this then: `http://<IP of your Docker host>:7192/api/CurrentPower/GetPower?serialNumber=3001231234`
 - SolarEdge Plugin:
   - Grid Power, InverterPower, HomeBatterySoc, Home Battery Power Url: `http://solaredgeplugin/api/CurrentValues/GetCurrentPvValues`
   - Set Result types to json and use the following json patterns:

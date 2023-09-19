@@ -52,7 +52,11 @@ public class EnergyMeterService
                 continue;
             }
 
+            var serialNumber = Convert.ToUInt32(ConvertByteArray(byteArray, 20, 4));
+            _logger.LogTrace("Serial number of energymeter is {serialNumber}", serialNumber);
+
             var relevantValues = byteArray.Skip(28).Take(byteArray.Length - 27).ToArray();
+
             var obisValues = ConvertArrayToObisDictionary(relevantValues);
 
             var currentOverage =
@@ -64,13 +68,19 @@ public class EnergyMeterService
             var totalEnergyToGrid = Convert.ToDecimal(obisValues.First(v => v.Id == 2 && v.ValueType == ValueMode.Counter).Value / 3600.0);
             var totalEnergyFromGrid = Convert.ToDecimal(obisValues.First(v => v.Id == 1 && v.ValueType == ValueMode.Counter).Value / 3600.0);
 
-            _sharedValues.PowerFromGridW = (int) currentSupply;
-            _sharedValues.PowerToGridW = (int) currentOverage;
+            if (!_sharedValues.EnergyMeterValues.TryGetValue(serialNumber, out var energyMeterValue))
+            {
+                energyMeterValue = new DtoEnergyMeterValue();
+                _sharedValues.EnergyMeterValues.Add(serialNumber, energyMeterValue);
+            }
 
-            _sharedValues.TotalEnergyToGridWh = totalEnergyToGrid;
-            _sharedValues.TotalEnergyFromGridWh = totalEnergyFromGrid;
+            energyMeterValue.PowerFromGridW = (int) currentSupply;
+            energyMeterValue.PowerToGridW = (int) currentOverage;
 
-            _sharedValues.LastValuesFrom = DateTime.UtcNow;
+            energyMeterValue.TotalEnergyToGridWh = totalEnergyToGrid;
+            energyMeterValue.TotalEnergyFromGridWh = totalEnergyFromGrid;
+
+            energyMeterValue.LastValuesFrom = DateTime.UtcNow;
 
             _logger.LogTrace("current overage: {currentOverage} W", currentOverage);
             _logger.LogTrace("current supply: {currentSupply} W", currentSupply);
@@ -81,11 +91,11 @@ public class EnergyMeterService
             
             if (currentSupply > 0)
             {
-                _sharedValues.OverageW = (int)-currentSupply;
+                energyMeterValue.OverageW = (int)-currentSupply;
             }
             else
             {
-                _sharedValues.OverageW = (int)currentOverage;
+                energyMeterValue.OverageW = (int)currentOverage;
             }
         }
     }
@@ -139,5 +149,14 @@ public class EnergyMeterService
 
 
         return obisValues;
+    }
+
+    private ulong ConvertByteArray(byte[] source, int start, int length)
+    {
+        var tmp = new byte[length];
+        Buffer.BlockCopy(source, start, tmp, 0, length);
+        var s = BitConverter.ToString(tmp).Replace("-", "");
+        var n = Convert.ToUInt64(s, 16);
+        return n;
     }
 }

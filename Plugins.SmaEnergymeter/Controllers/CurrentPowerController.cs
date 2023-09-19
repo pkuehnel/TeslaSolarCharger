@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Plugins.SmaEnergymeter.Dtos;
 using Plugins.SmaEnergymeter.Services;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -14,15 +15,15 @@ namespace Plugins.SmaEnergymeter.Controllers
         }
 
         [HttpGet]
-        public int GetPower()
+        public int GetPower(uint? serialNumber = null)
         {
-            return _currentPowerService.GetCurrentPower();
+            return _currentPowerService.GetCurrentPower(serialNumber);
         }
 
         [HttpGet]
-        public SharedValues GetAllValues()
+        public DtoEnergyMeterValue GetAllValues(uint? serialNumber = null)
         {
-            return _currentPowerService.GetAllValues();
+            return _currentPowerService.GetAllValues(serialNumber);
         }
     }
 }
