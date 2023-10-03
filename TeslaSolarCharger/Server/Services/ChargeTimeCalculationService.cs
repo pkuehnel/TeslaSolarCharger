@@ -39,6 +39,14 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     {
         _logger.LogTrace("{method}({carId})", nameof(CalculateTimeToReachMinSocAtFullSpeedCharge), car.Id);
         var socToCharge = (double)car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
+        const int needsBalancingSocLimit = 100;
+        //This is needed to let the car charge to actually 100% including balancing
+        if (socToCharge < 1 && car.CarState.State == CarStateEnum.Charging && car.CarConfiguration.MinimumSoC == needsBalancingSocLimit)
+        {
+            _logger.LogDebug("Continue to charge car as Minimum soc is {balancingSoc}%", needsBalancingSocLimit);
+            const int balancingTime = 30;
+            return TimeSpan.FromMinutes(balancingTime);
+        }
         if (socToCharge < 1 || (socToCharge < _constants.MinimumSocDifference && car.CarState.State != CarStateEnum.Charging))
         {
             return TimeSpan.Zero;
