@@ -34,7 +34,9 @@
         {
             <div>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.InverterPower]">
-                    <i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_pvValues.InverterPower W
+                    <span class="material-symbols-outlined">
+                        solar_power
+                    </span> @_pvValues.InverterPower W
                 </TooltipComponent>
             </div>
             if (_pvValues.InverterPower < 0)
@@ -46,7 +48,9 @@
         {
             <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
-                    <i class="fa-solid fa-bolt" style="width: 25px;"></i>
+                    <span class="material-symbols-outlined">
+                        bolt
+                    </span>
                     @Math.Abs((int)_pvValues.GridPower) W
                 </TooltipComponent>
             </div>
@@ -56,7 +60,9 @@
         {
             <div>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
-                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i>@_pvValues.HomeBatterySoc %
+                    <span class="material-symbols-outlined">
+                        battery_full
+                    </span>@_pvValues.HomeBatterySoc %
                 </TooltipComponent>
             </div>
         }
@@ -64,7 +70,9 @@
         {
             <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
-                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i>
+                    <span class="material-symbols-outlined">
+                        battery_full
+                    </span>
                     @if (_pvValues.HomeBatteryPower != null)
                     {
                         @Math.Abs((int)_pvValues.HomeBatteryPower)
@@ -77,13 +85,17 @@
         {
             <div>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.PowerBuffer]">
-                    <i class="fa-brands fa-buffer" style="width: 25px;"></i>@_pvValues.PowerBuffer W
+                    <span class="material-symbols-outlined">
+                        instant_mix
+                    </span >@_pvValues.PowerBuffer W
                 </TooltipComponent>
             </div>
         }
         <div>
             <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CombinedChargingPower]">
-                <i class="fa-solid fa-car" style="width: 25px;"></i>@_pvValues.CarCombinedChargingPowerAtHome W
+                <span class="material-symbols-outlined">
+                    ev_station
+                </span> @_pvValues.CarCombinedChargingPowerAtHome W
             </TooltipComponent>
         </div>
     </div>
@@ -115,42 +127,56 @@ else
                     @if (car.IsHealthy == false)
                     {
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarNotHealthy]">
-                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span class="material-symbols-outlined">
+                                error
+                            </span>
                         </TooltipComponent>
                     }
                     @if (car.IsHome)
                     {
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarAtHome]">
-                            <i class="fa-solid fa-house"></i>
+                            <span class="material-symbols-outlined">
+                                home
+                            </span>
                         </TooltipComponent>
                     }
                     @if (car.PluggedIn)
                     {
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarPluggedIn]">
-                            <i class="fa-solid fa-plug"></i>
+                            <span class="material-symbols-outlined">
+                                power
+                            </span>
                         </TooltipComponent>
                     }
 
                 </div>
                 <div>
-                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge) %</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit) %)</TooltipComponent>
+                    <span class="material-symbols-outlined">
+                        bolt
+                    </span><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge) %</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit) %)</TooltipComponent>
                 </div>
                 <div>
                 </div>
 
                 <div>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
-                        <i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.SolarPortionPercent.ToString("0.0") %)
+                        <span class="material-symbols-outlined">
+                            solar_power
+                        </span> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.SolarPortionPercent.ToString("0.0") %)
                     </TooltipComponent>
                 </div>
                 <div>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
-                        <i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - car.DtoChargeSummary.SolarPortionPercent).ToString("0.0")) %)
+                        <span class="material-symbols-outlined">
+                            bolt
+                        </span> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - car.DtoChargeSummary.SolarPortionPercent).ToString("0.0")) %)
                     </TooltipComponent>
                 </div>
                 <div>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
-                        <a href="HandledCharges/@car.CarId"><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00") (@(car.DtoChargeSummary.AverageEnergyPrice.ToString("0.000")) per kWh)</a>
+                        <a href="HandledCharges/@car.CarId"><span class="material-symbols-outlined">
+                            attach_money
+                        </span> @car.DtoChargeSummary.ChargeCost.ToString("0.00") (@(car.DtoChargeSummary.AverageEnergyPrice.ToString("0.000")) per kWh)</a>
                     </TooltipComponent>
                 </div>
             </div>
