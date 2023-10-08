@@ -25,7 +25,7 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
     public async Task UpdateAllCars()
     {
         _logger.LogTrace("{method}()", nameof(UpdateAllCars));
-        foreach (var car in _settings.Cars)
+        foreach (var car in _settings.CarsToManage)
         {
             if (car.CarState.ChargingPowerAtHome > 0)
             {
@@ -41,10 +41,6 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
     internal void UpdateCarConfiguration(CarConfiguration carConfiguration)
     {
         _logger.LogTrace("{method}({@param})", nameof(UpdateCarConfiguration), carConfiguration);
-        if (carConfiguration.ShouldBeManaged != true)
-        {
-            return;
-        }
 
         var dateTimeOffSetNow = _dateTimeProvider.DateTimeOffSetNow();
         if (carConfiguration.IgnoreLatestTimeToReachSocDate)

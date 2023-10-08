@@ -108,7 +108,7 @@ public class ChargingCostService : IChargingCostService
         await CreateDefaultChargePrice().ConfigureAwait(false);
         await CheckForToHighChargingProcessIds().ConfigureAwait(false);
 
-        foreach (var car in _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true))
+        foreach (var car in _settings.CarsToManage)
         {
             if (car.CarState.ChargingPowerAtHome > 0)
             {
@@ -120,7 +120,7 @@ public class ChargingCostService : IChargingCostService
                     var powerBuffer = _configurationWrapper.PowerBuffer(true);
                     powerFromGrid = - _settings.InverterPower
                                     + (powerBuffer > 0 ? powerBuffer : 0)
-                                    + _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum();
+                                    + _settings.CarsToManage.Select(c => c.CarState.ChargingPowerAtHome).Sum();
                 }
                 await AddPowerDistribution(car.Id, car.CarState.ChargingPowerAtHome, powerFromGrid).ConfigureAwait(false);
             }
