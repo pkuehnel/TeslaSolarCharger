@@ -65,7 +65,7 @@ public class IndexService : IIndexService
             HomeBatteryPower = _settings.HomeBatteryPower,
             HomeBatterySoc = _settings.HomeBatterySoc,
             PowerBuffer = powerBuffer, 
-            CarCombinedChargingPowerAtHome = _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum(),
+            CarCombinedChargingPowerAtHome = _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).Select(c => c.CarState.ChargingPowerAtHome).Sum(),
             LastUpdated = _settings.LastPvValueUpdate,
         };
     }
