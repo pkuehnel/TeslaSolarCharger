@@ -108,7 +108,7 @@ public class ChargingCostService : IChargingCostService
         await CreateDefaultChargePrice().ConfigureAwait(false);
         await CheckForToHighChargingProcessIds().ConfigureAwait(false);
 
-        foreach (var car in _settings.Cars)
+        foreach (var car in _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true))
         {
             if (car.CarState.ChargingPowerAtHome > 0)
             {
