@@ -532,8 +532,7 @@ else
 
     private async Task RefreshApiRequestCount()
     {
-        var currentCount = (await HttpClient.GetFromJsonAsync<DtoValue<int>>("api/Hello/TeslaApiRequestsSinceStartup").ConfigureAwait(false)).Value;
-        _apiRequestCount = currentCount;
+        _apiRequestCount = (await HttpClient.GetFromJsonAsync<DtoValue<int>>("api/Hello/TeslaApiRequestsSinceStartup").ConfigureAwait(false))?.Value;
     }
 
     private async Task RefreshServerTimeZone()
