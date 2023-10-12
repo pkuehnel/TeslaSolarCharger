@@ -16,4 +16,5 @@ public interface ISettings
     bool IsNewVersionAvailable { get; set; }
     DateTimeOffset LastPvValueUpdate { get; set; }
     int? AverageHomeGridVoltage { get; set; }
+    int TeslaApiRequestCounter { get; set; }
 }

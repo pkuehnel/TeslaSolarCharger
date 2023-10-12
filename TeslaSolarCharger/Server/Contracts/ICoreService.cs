@@ -15,4 +15,6 @@ public interface ICoreService
     Task KillAllServices();
     Task StopJobs();
     Task DisconnectMqttServices();
+    DtoValue<int> TeslaApiRequestsSinceStartup();
+    DtoValue<bool> ShouldDisplayApiRequestCounter();
 }

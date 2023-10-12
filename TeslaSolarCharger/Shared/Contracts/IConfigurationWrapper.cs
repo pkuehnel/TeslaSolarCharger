@@ -81,4 +81,5 @@ public interface IConfigurationWrapper
 
     FrontendConfiguration? FrontendConfiguration();
     bool AllowCors();
+    bool ShouldDisplayApiRequestCounter();
 }

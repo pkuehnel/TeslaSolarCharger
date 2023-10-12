@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -17,10 +18,11 @@ public class CoreService : ICoreService
     private readonly JobManager _jobManager;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly ISolarMqttService _solarMqttService;
+    private readonly ISettings _settings;
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
-        ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService)
+        ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService, ISettings settings)
     {
         _logger = logger;
         _chargingService = chargingService;
@@ -30,6 +32,7 @@ public class CoreService : ICoreService
         _jobManager = jobManager;
         _teslaMateMqttService = teslaMateMqttService;
         _solarMqttService = solarMqttService;
+        _settings = settings;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -142,5 +145,17 @@ public class CoreService : ICoreService
         _logger.LogTrace("{method}()", nameof(DisconnectMqttServices));
         await _teslaMateMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
         await _solarMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
+    }
+
+    public DtoValue<int> TeslaApiRequestsSinceStartup()
+    {
+        _logger.LogTrace("{method}()", nameof(TeslaApiRequestsSinceStartup));
+        return new DtoValue<int>(_settings.TeslaApiRequestCounter);
+    }
+
+    public DtoValue<bool> ShouldDisplayApiRequestCounter()
+    {
+        _logger.LogTrace("{method}()", nameof(TeslaApiRequestsSinceStartup));
+        return new DtoValue<bool>(_configurationWrapper.ShouldDisplayApiRequestCounter());
     }
 }
