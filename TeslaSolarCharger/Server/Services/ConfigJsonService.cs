@@ -146,6 +146,11 @@ public class ConfigJsonService : IConfigJsonService
         {
             var cachedCarState = await _teslaSolarChargerContext.CachedCarStates
                 .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _constants.CarStateKey).ConfigureAwait(false);
+            if ((car.CarConfiguration.ShouldBeManaged != true) && (cachedCarState != default))
+            {
+                _teslaSolarChargerContext.CachedCarStates.Remove(cachedCarState);
+                continue;
+            }
             if (cachedCarState == null)
             {
                 cachedCarState = new CachedCarState()

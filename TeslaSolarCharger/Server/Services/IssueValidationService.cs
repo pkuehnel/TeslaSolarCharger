@@ -132,12 +132,12 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.MqttNotConnected));
         }
 
-        if (_settings.Cars.Any(c => (c.CarState.SocLimit == null || c.CarState.SocLimit < _constants.MinSocLimit) && c.CarConfiguration.ShouldBeManaged == true))
+        if (_settings.CarsToManage.Any(c => (c.CarState.SocLimit == null || c.CarState.SocLimit < _constants.MinSocLimit)))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocLimitNotReadable));
         }
 
-        if (_settings.Cars.Any(c => c.CarState.SoC == null && c.CarConfiguration.ShouldBeManaged == true))
+        if (_settings.CarsToManage.Any(c => c.CarState.SoC == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocNotReadable));
         }

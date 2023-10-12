@@ -69,7 +69,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     public async Task PlanChargeTimesForAllCars()
     {
         _logger.LogTrace("{method}()", nameof(PlanChargeTimesForAllCars));
-        var carsToPlan = _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
+        var carsToPlan = _settings.CarsToManage.ToList();
         foreach (var car in carsToPlan)
         {
             await UpdatePlannedChargingSlots(car).ConfigureAwait(false);
