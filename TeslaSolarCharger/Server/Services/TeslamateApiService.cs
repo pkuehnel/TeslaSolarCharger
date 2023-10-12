@@ -244,6 +244,7 @@ public class TeslamateApiService : ITeslaService
         _logger.LogTrace("{method}({param1}, {param2})", nameof(SendPostToTeslaMate), url, parameters);
         var jsonString = JsonConvert.SerializeObject(parameters);
         var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
+        _settings.TeslaApiRequestCounter++;
         using var httpClient = new HttpClient();
         var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)

@@ -20,6 +20,7 @@ public class Settings : ISettings
     public bool ControlledACarAtLastCycle { get; set; }
     public DateTimeOffset LastPvValueUpdate { get; set; }
     public int? AverageHomeGridVoltage { get; set; }
+    public int TeslaApiRequestCounter { get; set; } = 0;
 
     public List<Car> Cars { get; set; }
 }
