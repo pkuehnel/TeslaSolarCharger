@@ -39,6 +39,14 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     {
         _logger.LogTrace("{method}({carId})", nameof(CalculateTimeToReachMinSocAtFullSpeedCharge), car.Id);
         var socToCharge = (double)car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
+        const int needsBalancingSocLimit = 100;
+        var balancingTime = TimeSpan.FromMinutes(30);
+        //This is needed to let the car charge to actually 100% including balancing
+        if (socToCharge < 1 && car.CarState.State == CarStateEnum.Charging && car.CarConfiguration.MinimumSoC == needsBalancingSocLimit)
+        {
+            _logger.LogDebug("Continue to charge car as Minimum soc is {balancingSoc}%", needsBalancingSocLimit);
+            return balancingTime;
+        }
         if (socToCharge < 1 || (socToCharge < _constants.MinimumSocDifference && car.CarState.State != CarStateEnum.Charging))
         {
             return TimeSpan.Zero;
@@ -49,7 +57,12 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         var maxChargingPower =
             car.CarConfiguration.MaximumAmpere * numberOfPhases
                                                * (_settings.AverageHomeGridVoltage ?? 230);
-        return TimeSpan.FromHours((double)(energyToCharge / maxChargingPower));
+        var chargeTime = TimeSpan.FromHours((double)(energyToCharge / maxChargingPower));
+        if (car.CarConfiguration.MinimumSoC == needsBalancingSocLimit)
+        {
+            chargeTime += balancingTime;
+        }
+        return chargeTime;
     }
 
     public void UpdateChargeTime(Car car)
@@ -61,7 +74,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     public async Task PlanChargeTimesForAllCars()
     {
         _logger.LogTrace("{method}()", nameof(PlanChargeTimesForAllCars));
-        var carsToPlan = _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
+        var carsToPlan = _settings.CarsToManage.ToList();
         foreach (var car in carsToPlan)
         {
             await UpdatePlannedChargingSlots(car).ConfigureAwait(false);

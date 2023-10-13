@@ -207,7 +207,7 @@ public class ChargingService : IChargingService
             && _configurationWrapper.FrontendConfiguration()?.InverterValueSource != SolarValueSource.None
             && _settings.InverterPower != null)
         {
-            var chargingAtHomeSum = _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum();
+            var chargingAtHomeSum = _settings.CarsToManage.Select(c => c.CarState.ChargingPowerAtHome).Sum();
             _logger.LogDebug("Using Inverter power {inverterPower} minus chargingPower at home {chargingPowerAtHome} as overage", _settings.InverterPower, chargingAtHomeSum);
             averagedOverage = _settings.InverterPower - chargingAtHomeSum ?? 0;
         }

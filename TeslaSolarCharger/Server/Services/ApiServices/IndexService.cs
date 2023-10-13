@@ -65,7 +65,7 @@ public class IndexService : IIndexService
             HomeBatteryPower = _settings.HomeBatteryPower,
             HomeBatterySoc = _settings.HomeBatterySoc,
             PowerBuffer = powerBuffer, 
-            CarCombinedChargingPowerAtHome = _settings.Cars.Select(c => c.CarState.ChargingPowerAtHome).Sum(),
+            CarCombinedChargingPowerAtHome = _settings.CarsToManage.Select(c => c.CarState.ChargingPowerAtHome).Sum(),
             LastUpdated = _settings.LastPvValueUpdate,
         };
     }
@@ -322,7 +322,7 @@ public class IndexService : IIndexService
     private List<Car> GetEnabledCars()
     {
         _logger.LogTrace("{method}()", nameof(GetEnabledCars));
-        return _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
+        return _settings.CarsToManage;
     }
 
     

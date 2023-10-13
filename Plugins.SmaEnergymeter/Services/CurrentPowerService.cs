@@ -1,4 +1,6 @@
-﻿namespace Plugins.SmaEnergymeter.Services;
+﻿using Plugins.SmaEnergymeter.Dtos;
+
+namespace Plugins.SmaEnergymeter.Services;
 
 public class CurrentPowerService
 {
@@ -11,15 +13,27 @@ public class CurrentPowerService
         _sharedValues = sharedValues;
     }
 
-    public int GetCurrentPower()
+    public int GetCurrentPower(uint? serialNumber)
     {
         _logger.LogTrace("{method}()", nameof(GetCurrentPower));
-        return _sharedValues.OverageW;
+        var energyMeterValue = GetEnergyMeterValue(serialNumber);
+        return energyMeterValue.OverageW;
     }
 
-    public SharedValues GetAllValues()
+    
+
+    public DtoEnergyMeterValue GetAllValues(uint? serialNumber)
     {
         _logger.LogTrace("{method}()", nameof(GetAllValues));
-        return _sharedValues;
+        var energyMeterValue = GetEnergyMeterValue(serialNumber);
+        return energyMeterValue;
+    }
+
+    private DtoEnergyMeterValue GetEnergyMeterValue(uint? serialNumber)
+    {
+        var energyMeterValue = serialNumber.HasValue
+            ? _sharedValues.EnergyMeterValues[serialNumber.Value]
+            : _sharedValues.EnergyMeterValues.Last().Value;
+        return energyMeterValue;
     }
 }

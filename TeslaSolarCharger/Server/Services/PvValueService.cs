@@ -182,6 +182,14 @@ public class PvValueService : IPvValueService
                 }
             }
 
+            const int maxPlausibleHomeBatteryPower = 999999;
+            const int minPlausibleHomeBatteryPower = -999999;
+            if (homeBatteryPower is > maxPlausibleHomeBatteryPower or < minPlausibleHomeBatteryPower)
+            {
+                _logger.LogInformation("The extracted home battery power {homeBatteryPower} was set to zero as is not plausible", homeBatteryPower);
+                homeBatteryPower = 0;
+            }
+
             _settings.HomeBatteryPower = homeBatteryPower;
         }
         _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();

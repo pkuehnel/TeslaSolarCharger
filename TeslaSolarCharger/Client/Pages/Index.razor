@@ -32,9 +32,12 @@
         }
         @if (_pvValues.InverterPower != null)
         {
-            <div>
+            <div class="d-flex align-items-center mb-1">
+                <span class="material-symbols-outlined me-1">
+                    solar_power
+                </span>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.InverterPower]">
-                    <i class="fa-solid fa-solar-panel" style="width: 25px;"></i>@_pvValues.InverterPower W
+                    @_pvValues.InverterPower W
                 </TooltipComponent>
             </div>
             if (_pvValues.InverterPower < 0)
@@ -45,47 +48,70 @@
         @if (_pvValues.GridPower != null)
         {
             <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
-                    <i class="fa-solid fa-bolt" style="width: 25px;"></i>
-                    @Math.Abs((int)_pvValues.GridPower) W
-                </TooltipComponent>
+                <div class="d-flex align-items-center mb-1">
+                    <span class="material-symbols-outlined me-1">
+                        bolt
+                    </span>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
+                        @Math.Abs((int)_pvValues.GridPower) W
+                    </TooltipComponent>
+                </div>
             </div>
         }
 
         @if (_pvValues.HomeBatterySoc != null)
         {
-            <div>
+            <div class="d-flex align-items-center mb-1">
+                <span class="material-symbols-outlined me-1">
+                    battery_full
+                </span>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
-                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i>@_pvValues.HomeBatterySoc %
+                    @_pvValues.HomeBatterySoc %
                 </TooltipComponent>
             </div>
         }
         @if (_pvValues.HomeBatteryPower != null)
         {
             <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
-                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i>
-                    @if (_pvValues.HomeBatteryPower != null)
-                    {
-                        @Math.Abs((int)_pvValues.HomeBatteryPower)
-                    }
-                    W
-                </TooltipComponent>
+                <div class="d-flex align-items-center mb-1">
+                    <span class="material-symbols-outlined me-1">
+                        battery_full
+                    </span>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
+                        @if (_pvValues.HomeBatteryPower != null)
+                        {
+                            @Math.Abs((int)_pvValues.HomeBatteryPower)
+                        }
+                        W
+                    </TooltipComponent>
+                </div>
             </div>
         }
         @if (_pvValues.PowerBuffer != null)
         {
-            <div>
+            <div class="d-flex align-items-center mb-1">
+                <span class="material-symbols-outlined me-1">
+                    instant_mix
+                </span>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.PowerBuffer]">
-                    <i class="fa-brands fa-buffer" style="width: 25px;"></i>@_pvValues.PowerBuffer W
+                    @_pvValues.PowerBuffer W
                 </TooltipComponent>
             </div>
         }
-        <div>
+        <div class="d-flex align-items-center mb-1">
+            <span class="material-symbols-outlined me-1">
+                ev_station
+            </span>
             <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CombinedChargingPower]">
-                <i class="fa-solid fa-car" style="width: 25px;"></i>@_pvValues.CarCombinedChargingPowerAtHome W
+                @_pvValues.CarCombinedChargingPowerAtHome W
             </TooltipComponent>
         </div>
+        @if (_shouldDisplayApiRequestCounter == true)
+        {
+            <div class="d-flex align-items-center mb-1">
+                Tesla API requests since last startup: @_apiRequestCount
+            </div>
+        }
     </div>
 }
 
@@ -115,42 +141,59 @@ else
                     @if (car.IsHealthy == false)
                     {
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarNotHealthy]">
-                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span class="material-symbols-outlined me-1">
+                                error
+                            </span>
                         </TooltipComponent>
                     }
                     @if (car.IsHome)
                     {
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarAtHome]">
-                            <i class="fa-solid fa-house"></i>
+                            <span class="material-symbols-outlined me-1">
+                                home
+                            </span>
                         </TooltipComponent>
                     }
                     @if (car.PluggedIn)
                     {
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarPluggedIn]">
-                            <i class="fa-solid fa-plug"></i>
+                            <span class="material-symbols-outlined me-1">
+                                power
+                            </span>
                         </TooltipComponent>
                     }
 
                 </div>
-                <div>
-                    <i class="fa-solid fa-battery-full" style="width: 25px;"></i><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge) %</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit) %)</TooltipComponent>
+                <div class="d-flex align-items-center mb-1">
+                    <span class="material-symbols-outlined me-1">
+                        bolt
+                    </span><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge) %</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit) %)</TooltipComponent>
                 </div>
                 <div>
                 </div>
 
-                <div>
+                <div class="d-flex align-items-center mb-1">
+                    <span class="material-symbols-outlined me-1">
+                        solar_power
+                    </span>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
-                        <i class="fa-solid fa-solar-panel" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.SolarPortionPercent.ToString("0.0") %)
+                        @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.SolarPortionPercent.ToString("0.0") %)
                     </TooltipComponent>
                 </div>
-                <div>
+                <div class="d-flex align-items-center mb-1">
+                    <span class="material-symbols-outlined me-1">
+                        bolt
+                    </span>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
-                        <i class="fa-solid fa-bolt" style="width: 25px;"></i> @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - car.DtoChargeSummary.SolarPortionPercent).ToString("0.0")) %)
+                        @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - car.DtoChargeSummary.SolarPortionPercent).ToString("0.0")) %)
                     </TooltipComponent>
                 </div>
-                <div>
+                <div class="d-flex align-items-center mb-1">
+                    <span class="material-symbols-outlined">
+                        attach_money
+                    </span>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
-                        <a href="HandledCharges/@car.CarId"><i class="fa-solid fa-coins" style="width: 25px;"></i> @car.DtoChargeSummary.ChargeCost.ToString("0.00") (@(car.DtoChargeSummary.AverageEnergyPrice.ToString("0.000")) per kWh)</a>
+                        <a href="HandledCharges/@car.CarId">@car.DtoChargeSummary.ChargeCost.ToString("0.00") (@(car.DtoChargeSummary.AverageEnergyPrice.ToString("0.000")) per kWh)</a>
                     </TooltipComponent>
                 </div>
             </div>
@@ -178,7 +221,7 @@ else
                                 UnitText="%"
                                 HelpText="">
                     <InputFragment>
-                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" "/>
+                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
             }
@@ -198,7 +241,7 @@ else
                                     HelpText="">
                         <InputFragment>
                             <input class="form-control" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")"
-                                   @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
+                            @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
                         </InputFragment>
                     </InputComponent>
                 }
@@ -208,7 +251,7 @@ else
                                 HelpText="">
                     <InputFragment>
                         <input class="form-control" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")"
-                               @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
+                        @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                     </InputFragment>
                 </InputComponent>
 
@@ -233,12 +276,12 @@ else
                     }
                 </button>
             </div>
-            
+
 
             @if (car.ChargeInformation.Count > 0)
             {
                 <p>
-                    Car will @((car.State == CarStateEnum.Charging && car.IsHome) ? "stop" : "start") charging when following conditions are met:<br/>
+                    Car will @((car.State == CarStateEnum.Charging && car.IsHome) ? "stop" : "start") charging when following conditions are met:<br />
                     <ul>
                         @foreach (var chargeInfo in car.ChargeInformation)
                         {
@@ -284,8 +327,7 @@ else
                 <Content>
                     @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
                     {
-                        <TableComponent
-                            Content="@_newCarDetailStates[car.CarId]"></TableComponent>
+                        <TableComponent Content="@_newCarDetailStates[car.CarId]"></TableComponent>
                     }
                 </Content>
             </CollapsePanel>
@@ -350,6 +392,8 @@ else
     private int _height = 0;
     private DateTime? _serverTime;
     private string? _serverTimeZoneDisplayName;
+    private bool? _shouldDisplayApiRequestCounter;
+    private int? _apiRequestCount;
 
     private Timer? _timer;
 
@@ -361,6 +405,8 @@ else
         await RefreshPvValues().ConfigureAwait(false);
         await RefreshServerTime().ConfigureAwait(false);
         await RefreshServerTimeZone().ConfigureAwait(false);
+        await CheckIfApiRequestCounterShouldBeDisplayed().ConfigureAwait(false);
+        await RefreshApiRequestCount().ConfigureAwait(false);
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
@@ -373,6 +419,11 @@ else
         _timer.Interval = Debugger.IsAttached ? 60000 : 5000;
         _timer.Elapsed += async (_, _) => await RefreshStates().ConfigureAwait(false);
         _timer.Start();
+    }
+
+    private async Task CheckIfApiRequestCounterShouldBeDisplayed()
+    {
+        _shouldDisplayApiRequestCounter = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/ShouldDisplayApiRequestCounter").ConfigureAwait(false))?.Value;
     }
 
     private async Task RefreshCarBaseStates()
@@ -436,38 +487,38 @@ else
             foreach (var dateValue in dtoCarTopicValues.DateValues)
             {
                 dataRows.Add(new DtoTableRow()
-                {
-                    Elements = new List<string?>()
+                    {
+                        Elements = new List<string?>()
                     {
                         dateValue.Topic,
                         dateValue.DateTime?.ToString("g"),
                     },
-                });
+                    });
             }
 
             foreach (var nonDateValue in dtoCarTopicValues.NonDateValues)
             {
                 dataRows.Add(new DtoTableRow()
-                {
-                    Elements = new List<string?>()
+                    {
+                        Elements = new List<string?>()
                     {
                         nonDateValue.Topic,
                         nonDateValue.Value,
                     },
-                });
+                    });
             }
             var tableContent = new DtoTableContent()
-            {
-                TableHeader = new DtoTableRow()
                 {
-                    Elements = new List<string?>()
+                    TableHeader = new DtoTableRow()
+                    {
+                        Elements = new List<string?>()
                     {
                         "Topic",
                         "Value",
                     },
-                },
-                TableData = dataRows,
-            };
+                    },
+                    TableData = dataRows,
+                };
             _newCarDetailStates[carId] = tableContent;
         }
 
@@ -477,6 +528,11 @@ else
     {
         var dtoTimeValue = await HttpClient.GetFromJsonAsync<DateTime>("api/Hello/GetServerLocalTime").ConfigureAwait(false);
         _serverTime = dtoTimeValue;
+    }
+
+    private async Task RefreshApiRequestCount()
+    {
+        _apiRequestCount = (await HttpClient.GetFromJsonAsync<DtoValue<int>>("api/Hello/TeslaApiRequestsSinceStartup").ConfigureAwait(false))?.Value;
     }
 
     private async Task RefreshServerTimeZone()
@@ -539,6 +595,10 @@ else
             await RefreshCarBaseStates().ConfigureAwait(false);
             await RefreshAllVisableCarDetails().ConfigureAwait(false);
             await RefreshServerTime().ConfigureAwait(false);
+            if (_shouldDisplayApiRequestCounter == true)
+            {
+                await RefreshApiRequestCount().ConfigureAwait(false);
+            }
             _couldNotRefreshStates = false;
         }
         catch (Exception)
