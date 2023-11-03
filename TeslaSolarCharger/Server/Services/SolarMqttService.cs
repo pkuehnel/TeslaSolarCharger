@@ -80,7 +80,7 @@ public class SolarMqttService : ISolarMqttService
                     _pvValueService.AddOverageValueToInMemoryList((int)_setting.Overage);
                 }
             }
-            else if (topic == _configurationWrapper.CurrentInverterPowerMqttTopic() && frontendConfiguration.InverterValueSource == SolarValueSource.Mqtt)
+            if (topic == _configurationWrapper.CurrentInverterPowerMqttTopic() && frontendConfiguration.InverterValueSource == SolarValueSource.Mqtt)
             {
                 var patternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
                 var jsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
@@ -92,7 +92,7 @@ public class SolarMqttService : ISolarMqttService
                 _setting.InverterPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType,
                 xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
             }
-            else if (topic == _configurationWrapper.HomeBatterySocMqttTopic() && frontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
+            if (topic == _configurationWrapper.HomeBatterySocMqttTopic() && frontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
             {
                 var patternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
                 var jsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
@@ -104,7 +104,7 @@ public class SolarMqttService : ISolarMqttService
                 _setting.HomeBatterySoc = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType,
                 xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
             }
-            else if (topic == _configurationWrapper.HomeBatteryPowerMqttTopic() && frontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
+            if (topic == _configurationWrapper.HomeBatteryPowerMqttTopic() && frontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
             {
                 var patternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
                 var jsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
@@ -115,10 +115,6 @@ public class SolarMqttService : ISolarMqttService
                 var xmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
                 _setting.HomeBatteryPower = _pvValueService.GetIntegerValueByString(value, jsonPattern, xmlPattern, correctionFactor, patternType,
                 xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName);
-            }
-            else
-            {
-                _logger.LogWarning("Received value does not match a topic");
             }
             
             return Task.CompletedTask;
