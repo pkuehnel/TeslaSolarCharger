@@ -60,4 +60,9 @@ public class AwattarService : IPriceDataService
         [JsonPropertyName("data")]
         public List<AwattarPrice> Results { get; set; }
     }
+
+    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
+    {
+        throw new NotImplementedException();
+    }
 }

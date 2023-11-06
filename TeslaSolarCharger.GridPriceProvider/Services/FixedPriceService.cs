@@ -1,34 +1,38 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using TeslaSolarCharger.GridPriceProvider.Data;
-using TeslaSolarCharger.GridPriceProvider.Data.Options;
 using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
-using TimeZoneConverter;
 
 namespace TeslaSolarCharger.GridPriceProvider.Services;
 
-public class FixedPriceService : IPriceDataService
+public class FixedPriceService : IFixedPriceService
 {
-    private readonly List<FixedPrice> _fixedPrices;
+    private readonly ILogger<FixedPriceService> _logger;
 
-    public FixedPriceService(
-        IOptions<FixedPriceOptions> options
-        )
+    public FixedPriceService(ILogger<FixedPriceService> logger)
     {
-        _fixedPrices = GetFixedPrices(options.Value);
-        if (!TZConvert.TryGetTimeZoneInfo(options.Value.TimeZone, out _timeZone))
-        {
-            throw new ArgumentException(nameof(options.Value.TimeZone), $"Invalid TimeZone {options.Value.TimeZone}");
-        }
+        _logger = logger;
     }
 
-    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to)
+    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
     {
+        _logger.LogTrace("{method}({from}, {to}, {fixedPriceStrings}", nameof(GetPriceData), from, to, configString);
+        if (string.IsNullOrWhiteSpace(configString))
+        {
+            throw new ArgumentNullException(nameof(configString));
+        }
+        var fixedPricesStrings = JsonConvert.DeserializeObject<List<string>>(configString);
+        if (fixedPricesStrings == null)
+        {
+            throw new ArgumentNullException(nameof(fixedPricesStrings));
+        }
         var prices = new List<Price>();
         var started = false;
         var dayIndex = -1;
         int fpIndex = 0;
         var maxIterations = 100; // fail-safe against infinite loop
+        var _fixedPrices = GetFixedPrices(fixedPricesStrings);
         for (var i = 0; i <= maxIterations; i++)
         {
             var fixedPrice = _fixedPrices[fpIndex];
@@ -36,8 +40,8 @@ public class FixedPriceService : IPriceDataService
             var validTo = DateTime.SpecifyKind(from.Date.AddDays(dayIndex).AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute), DateTimeKind.Utc);
             var price = new Price
             {
-                ValidFrom = validFrom.Add(-_timeZone.GetUtcOffset(validFrom)),
-                ValidTo = validTo.Add(-_timeZone.GetUtcOffset(validTo)),
+                ValidFrom = validFrom.Add(-TimeZoneInfo.Local.GetUtcOffset(validFrom)),
+                ValidTo = validTo.Add(-TimeZoneInfo.Local.GetUtcOffset(validTo)),
                 Value = fixedPrice.Value
             };
             if (price.ValidFrom < to && price.ValidTo > from)
@@ -74,15 +78,14 @@ public class FixedPriceService : IPriceDataService
     }
 
     private static readonly Regex FixedPriceRegex = new Regex("(\\d\\d):(\\d\\d)-(\\d\\d):(\\d\\d)=(.+)");
-    private readonly TimeZoneInfo _timeZone;
 
-    private List<FixedPrice> GetFixedPrices(FixedPriceOptions options)
+    private List<FixedPrice> GetFixedPrices(List<string> fixedPricesString)
     {
         var fixedPrices = new List<FixedPrice>();
         var totalHours = 0M;
         FixedPrice lastFixedPrice = null;
 
-        foreach (var price in options.Prices.OrderBy(x => x))
+        foreach (var price in fixedPricesString.OrderBy(x => x))
         {
             var match = FixedPriceRegex.Match(price);
             if (!match.Success) { throw new ArgumentException(nameof(price), $"Failed to parse fixed price: {price}"); }

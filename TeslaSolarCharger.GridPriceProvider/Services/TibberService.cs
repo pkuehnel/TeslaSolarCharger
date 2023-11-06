@@ -175,4 +175,9 @@ query PriceData($after: String, $first: Int) {
         public decimal Total { get; set; }
         public DateTimeOffset StartsAt { get; set; }
     }
+
+    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
+    {
+        throw new NotImplementedException();
+    }
 }

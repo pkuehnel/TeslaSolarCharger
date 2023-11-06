@@ -21,12 +21,12 @@ public class CoreService : ICoreService
     private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly ISolarMqttService _solarMqttService;
     private readonly ISettings _settings;
-    private readonly IPriceDataService _priceDataService;
+    private readonly IFixedPriceService _fixedPriceService;
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
         ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService, ISettings settings,
-        IPriceDataService priceDataService)
+        IFixedPriceService fixedPriceService)
     {
         _logger = logger;
         _chargingService = chargingService;
@@ -37,7 +37,7 @@ public class CoreService : ICoreService
         _teslaMateMqttService = teslaMateMqttService;
         _solarMqttService = solarMqttService;
         _settings = settings;
-        _priceDataService = priceDataService;
+        _fixedPriceService = fixedPriceService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -167,6 +167,6 @@ public class CoreService : ICoreService
     public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to)
     {
         _logger.LogTrace("{method}({from}, {to})", nameof(GetPriceData), from, to);
-        return _priceDataService.GetPriceData(from, to);
+        return _fixedPriceService.GetPriceData(from, to, null);
     }
 }

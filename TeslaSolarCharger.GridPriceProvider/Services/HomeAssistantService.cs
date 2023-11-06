@@ -62,4 +62,9 @@ public class HomeAssistantService : IPriceDataService
         [JsonPropertyName("last_updated")]
         public DateTimeOffset LastUpdated { get; set; }
     }
+
+    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
+    {
+        throw new NotImplementedException();
+    }
 }

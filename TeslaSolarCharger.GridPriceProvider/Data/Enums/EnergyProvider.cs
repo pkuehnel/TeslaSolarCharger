@@ -8,4 +8,5 @@ public enum EnergyProvider
     Awattar,
     Energinet,
     HomeAssistant,
+    OldTeslaSolarChargerConfig,
 }

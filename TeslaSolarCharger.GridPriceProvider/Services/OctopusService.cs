@@ -77,4 +77,9 @@ public class OctopusService : IPriceDataService
         [JsonPropertyName("results")]
         public List<AgilePrice> Results { get; set; }
     }
+
+    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -1,5 +1,7 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.GridPriceProvider.Data.Enums;
+using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -21,11 +23,13 @@ public class ChargingCostService : IChargingCostService
     private readonly ISettings _settings;
     private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly IFixedPriceService _fixedPriceService;
 
     public ChargingCostService(ILogger<ChargingCostService> logger,
         ITeslaSolarChargerContext teslaSolarChargerContext, ITeslamateContext teslamateContext,
         IDateTimeProvider dateTimeProvider, ISettings settings,
-        IMapperConfigurationFactory mapperConfigurationFactory, IConfigurationWrapper configurationWrapper)
+        IMapperConfigurationFactory mapperConfigurationFactory, IConfigurationWrapper configurationWrapper,
+        IFixedPriceService fixedPriceService)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
@@ -34,6 +38,7 @@ public class ChargingCostService : IChargingCostService
         _settings = settings;
         _mapperConfigurationFactory = mapperConfigurationFactory;
         _configurationWrapper = configurationWrapper;
+        _fixedPriceService = fixedPriceService;
     }
 
     public async Task UpdateChargePrice(DtoChargePrice dtoChargePrice)
@@ -82,7 +87,7 @@ public class ChargingCostService : IChargingCostService
                 continue;
             }
 
-            UpdateChargingProcessCosts(handledCharge, chargePrice, chargingProcess);
+            await UpdateChargingProcessCosts(handledCharge, chargePrice, chargingProcess).ConfigureAwait(false);
         }
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
@@ -394,22 +399,48 @@ public class ChargingCostService : IChargingCostService
 
             if (price != default)
             {
-                UpdateChargingProcessCosts(openHandledCharge, price, chargingProcess);
+                await UpdateChargingProcessCosts(openHandledCharge, price, chargingProcess).ConfigureAwait(false);
             }
         }
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         await _teslamateContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private void UpdateChargingProcessCosts(HandledCharge openHandledCharge, ChargePrice price,
+    private async Task UpdateChargingProcessCosts(HandledCharge openHandledCharge, ChargePrice price,
         ChargingProcess chargingProcess)
     {
-        openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
-                                            price.SolarPrice * openHandledCharge.UsedSolarEnergy;
-        if (price.AddSpotPriceToGridPrice)
+        if (chargingProcess.EndDate == null)
         {
-            openHandledCharge.CalculatedPrice += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
+            _logger.LogWarning("Charging process {id} has no end date. Can not calculate costs.", chargingProcess.Id);
+            return;
         }
+        switch (price.EnergyProvider)
+        {
+            case EnergyProvider.Octopus:
+                break;
+            case EnergyProvider.Tibber:
+                break;
+            case EnergyProvider.FixedPrice:
+                var prices = await _fixedPriceService.GetPriceData(chargingProcess.StartDate, chargingProcess.EndDate.Value, price.EnergyProviderConfiguration).ConfigureAwait(false);
+                break;
+            case EnergyProvider.Awattar:
+                break;
+            case EnergyProvider.Energinet:
+                break;
+            case EnergyProvider.HomeAssistant:
+                break;
+            case EnergyProvider.OldTeslaSolarChargerConfig:
+                openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
+                                                    price.SolarPrice * openHandledCharge.UsedSolarEnergy;
+                if (price.AddSpotPriceToGridPrice)
+                {
+                    openHandledCharge.CalculatedPrice += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
+                }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        
         chargingProcess.Cost = openHandledCharge.CalculatedPrice;
     }
 
