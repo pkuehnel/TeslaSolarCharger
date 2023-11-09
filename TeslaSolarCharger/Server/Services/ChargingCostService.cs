@@ -1,11 +1,13 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.GridPriceProvider.Data.Enums;
 using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
@@ -388,6 +390,7 @@ public class ChargingCostService : IChargingCostService
             var relevantPowerDistributions = await _teslaSolarChargerContext.PowerDistributions
                 .Where(p => p.HandledCharge == openHandledCharge)
                 .OrderBy(p => p.TimeStamp)
+                .AsNoTracking()
                 .ToListAsync().ConfigureAwait(false);
             var price = chargePrices
                 .FirstOrDefault(p => p.ValidSince < chargingProcess.StartDate);
@@ -414,6 +417,13 @@ public class ChargingCostService : IChargingCostService
             _logger.LogWarning("Charging process {id} has no end date. Can not calculate costs.", chargingProcess.Id);
             return;
         }
+
+        var relevantPowerDistributions = await _teslaSolarChargerContext.PowerDistributions
+            .Where(p => p.HandledCharge == openHandledCharge)
+            .OrderBy(p => p.TimeStamp)
+            .AsNoTracking()
+            .ToListAsync().ConfigureAwait(false);
+
         switch (price.EnergyProvider)
         {
             case EnergyProvider.Octopus:
@@ -422,6 +432,7 @@ public class ChargingCostService : IChargingCostService
                 break;
             case EnergyProvider.FixedPrice:
                 var prices = await _fixedPriceService.GetPriceData(chargingProcess.StartDate, chargingProcess.EndDate.Value, price.EnergyProviderConfiguration).ConfigureAwait(false);
+                openHandledCharge.CalculatedPrice = GetTotalChargeCosts(relevantPowerDistributions, prices.ToList());
                 break;
             case EnergyProvider.Awattar:
                 break;
@@ -442,6 +453,50 @@ public class ChargingCostService : IChargingCostService
         }
         
         chargingProcess.Cost = openHandledCharge.CalculatedPrice;
+    }
+
+    private decimal? GetTotalChargeCosts(List<PowerDistribution> relevantPowerDistributions, List<Price> prices)
+    {
+        try
+        {
+            var priceGroups = GroupDistributionsByPrice(prices, relevantPowerDistributions);
+            decimal totalCost = 0;
+            foreach (var priceGroup in priceGroups)
+            {
+                var usedEnergyWhilePriceGroupsWasActive = priceGroup.Value
+                    .Select(p => p.UsedWattHours * p.GridProportion ?? 0)
+                    .Sum();
+                totalCost += (decimal)(usedEnergyWhilePriceGroupsWasActive * (float)priceGroup.Key.Value);
+            }
+
+            return totalCost;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error while calculating chargeCosts for HandledCharge {handledChargeId}", relevantPowerDistributions.FirstOrDefault()?.HandledChargeId);
+            return null;
+        }
+        
+    }
+
+    private Dictionary<Price, List<PowerDistribution>> GroupDistributionsByPrice(List<Price> prices, List<PowerDistribution> distributions)
+    {
+        var groupedByPrice = new Dictionary<Price, List<PowerDistribution>>();
+
+        foreach (var price in prices)
+        {
+            var relevantDistributions = distributions
+                .Where(d => d.TimeStamp >= price.ValidFrom.UtcDateTime &&
+                            d.TimeStamp <= price.ValidTo.UtcDateTime)
+                .ToList();
+
+            if (relevantDistributions.Any())
+            {
+                groupedByPrice.Add(price, relevantDistributions);
+            }
+        }
+
+        return groupedByPrice;
     }
 
     internal async Task<decimal?> CalculateAverageSpotPrice(List<PowerDistribution> relevantPowerDistributions, ChargePrice? chargePrice)
