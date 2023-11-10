@@ -424,38 +424,44 @@ public class ChargingCostService : IChargingCostService
             .AsNoTracking()
             .ToListAsync().ConfigureAwait(false);
 
+        List<Price> prices;
+        decimal? gridCost = null;
+
         switch (price.EnergyProvider)
         {
             case EnergyProvider.Octopus:
+                throw new NotImplementedException();
                 break;
             case EnergyProvider.Tibber:
                 break;
             case EnergyProvider.FixedPrice:
-                var prices = await _fixedPriceService.GetPriceData(chargingProcess.StartDate, chargingProcess.EndDate.Value, price.EnergyProviderConfiguration).ConfigureAwait(false);
-                openHandledCharge.CalculatedPrice = GetTotalChargeCosts(relevantPowerDistributions, prices.ToList());
+                prices = (await _fixedPriceService.GetPriceData(chargingProcess.StartDate, chargingProcess.EndDate.Value, price.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
+                gridCost = GetGridChargeCosts(relevantPowerDistributions, prices);
                 break;
             case EnergyProvider.Awattar:
+                throw new NotImplementedException();
                 break;
             case EnergyProvider.Energinet:
+                throw new NotImplementedException();
                 break;
             case EnergyProvider.HomeAssistant:
+                throw new NotImplementedException();
                 break;
             case EnergyProvider.OldTeslaSolarChargerConfig:
-                openHandledCharge.CalculatedPrice = price.GridPrice * openHandledCharge.UsedGridEnergy +
-                                                    price.SolarPrice * openHandledCharge.UsedSolarEnergy;
+                gridCost = price.GridPrice * openHandledCharge.UsedGridEnergy;
                 if (price.AddSpotPriceToGridPrice)
                 {
-                    openHandledCharge.CalculatedPrice += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
+                    gridCost += openHandledCharge.AverageSpotPrice * openHandledCharge.UsedGridEnergy;
                 }
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
-        
+        openHandledCharge.CalculatedPrice = gridCost + price.SolarPrice * openHandledCharge.UsedSolarEnergy;
         chargingProcess.Cost = openHandledCharge.CalculatedPrice;
     }
 
-    private decimal? GetTotalChargeCosts(List<PowerDistribution> relevantPowerDistributions, List<Price> prices)
+    internal decimal? GetGridChargeCosts(List<PowerDistribution> relevantPowerDistributions, List<Price> prices)
     {
         try
         {
@@ -466,7 +472,8 @@ public class ChargingCostService : IChargingCostService
                 var usedEnergyWhilePriceGroupsWasActive = priceGroup.Value
                     .Select(p => p.UsedWattHours * p.GridProportion ?? 0)
                     .Sum();
-                totalCost += (decimal)(usedEnergyWhilePriceGroupsWasActive * (float)priceGroup.Key.Value);
+                var usedkWh = usedEnergyWhilePriceGroupsWasActive / 1000;
+                totalCost += (decimal)(usedkWh * (float)priceGroup.Key.Value);
             }
 
             return totalCost;
