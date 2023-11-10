@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
 
 namespace TeslaSolarCharger.GridPriceProvider.Services;
 
@@ -32,10 +33,10 @@ public class FixedPriceService : IFixedPriceService
         var dayIndex = -1;
         int fpIndex = 0;
         var maxIterations = 100; // fail-safe against infinite loop
-        var _fixedPrices = GetFixedPrices(fixedPricesStrings);
+        var fixedPrices = ParseConfigString(configString);
         for (var i = 0; i <= maxIterations; i++)
         {
-            var fixedPrice = _fixedPrices[fpIndex];
+            var fixedPrice = fixedPrices[fpIndex];
             var validFrom = DateTime.SpecifyKind(from.Date.AddDays(dayIndex).AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute), DateTimeKind.Utc);
             var validTo = DateTime.SpecifyKind(from.Date.AddDays(dayIndex).AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute), DateTimeKind.Utc);
             var price = new Price
@@ -54,7 +55,7 @@ public class FixedPriceService : IFixedPriceService
                 break;
             }
             fpIndex++;
-            if (fpIndex >= _fixedPrices.Count)
+            if (fpIndex >= fixedPrices.Count)
             {
                 fpIndex = 0;
                 dayIndex++;
@@ -66,15 +67,6 @@ public class FixedPriceService : IFixedPriceService
         }
 
         return Task.FromResult(prices.AsEnumerable());
-    }
-
-    private class FixedPrice
-    {
-        public int FromHour { get; set; }
-        public int FromMinute { get; set; }
-        public int ToHour { get; set; }
-        public int ToMinute { get; set; }
-        public decimal Value { get; set; }
     }
 
     private static readonly Regex FixedPriceRegex = new Regex("(\\d\\d):(\\d\\d)-(\\d\\d):(\\d\\d)=(.+)");
@@ -124,6 +116,22 @@ public class FixedPriceService : IFixedPriceService
         if (totalHours != 24)
         {
             throw new ArgumentException(nameof(totalHours), $"Total hours do not equal 24, currently {totalHours}");
+        }
+        return fixedPrices;
+    }
+
+    public string GenerateConfigString(List<FixedPrice> prices)
+    {
+        var json = JsonConvert.SerializeObject(prices);
+        return json;
+    }
+
+    public List<FixedPrice> ParseConfigString(string configString)
+    {
+        var fixedPrices = JsonConvert.DeserializeObject<List<FixedPrice>>(configString);
+        if (fixedPrices == null)
+        {
+            throw new ArgumentNullException(nameof(fixedPrices));
         }
         return fixedPrices;
     }

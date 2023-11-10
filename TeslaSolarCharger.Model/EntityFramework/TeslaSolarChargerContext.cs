@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TeslaSolarCharger.GridPriceProvider.Data.Enums;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Model.EntityFramework;
 

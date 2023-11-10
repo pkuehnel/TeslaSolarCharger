@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.GridPriceProvider.Data.Enums;
+﻿namespace TeslaSolarCharger.Shared.Enums;
 
 public enum EnergyProvider
 {

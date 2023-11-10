@@ -1,7 +1,6 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.GridPriceProvider.Data;
-using TeslaSolarCharger.GridPriceProvider.Data.Enums;
 using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaMate;
@@ -11,6 +10,7 @@ using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -62,8 +62,29 @@ public class ChargingCostService : IChargingCostService
         chargePrice.GridPrice = (decimal)dtoChargePrice.GridPrice!;
         chargePrice.SolarPrice = (decimal)dtoChargePrice.SolarPrice!;
         chargePrice.ValidSince = dtoChargePrice.ValidSince;
+        chargePrice.EnergyProvider = dtoChargePrice.EnergyProvider;
         chargePrice.AddSpotPriceToGridPrice = dtoChargePrice.AddSpotPriceToGridPrice;
         chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge ?? 0) / 100;
+        switch (dtoChargePrice.EnergyProvider)
+        {
+            case EnergyProvider.Octopus:
+                break;
+            case EnergyProvider.Tibber:
+                break;
+            case EnergyProvider.FixedPrice:
+                chargePrice.EnergyProviderConfiguration = _fixedPriceService.GenerateConfigString(dtoChargePrice.FixedPrices ?? throw new InvalidOperationException());
+                break;
+            case EnergyProvider.Awattar:
+                break;
+            case EnergyProvider.Energinet:
+                break;
+            case EnergyProvider.HomeAssistant:
+                break;
+            case EnergyProvider.OldTeslaSolarChargerConfig:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
         await UpdateHandledChargesPriceCalculation().ConfigureAwait(false);
@@ -624,14 +645,36 @@ public class ChargingCostService : IChargingCostService
         var mapper = _mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<ChargePrice, DtoChargePrice>()
-                .ForMember(d => d.Id, opt => opt.MapFrom(c => c.Id))
                 .ForMember(d => d.SpotPriceSurcharge, opt => opt.MapFrom(c => c.SpotPriceCorrectionFactor * 100))
+                .ForMember(d => d.FixedPrices, opt => opt.Ignore())
                 ;
         });
         var chargePrices = await _teslaSolarChargerContext.ChargePrices
             .Where(c => c.Id == id)
             .ProjectTo<DtoChargePrice>(mapper)
             .FirstAsync().ConfigureAwait(false);
+        switch (chargePrices.EnergyProvider)
+        {
+            case EnergyProvider.Octopus:
+                break;
+            case EnergyProvider.Tibber:
+                break;
+            case EnergyProvider.FixedPrice:
+                chargePrices.FixedPrices = chargePrices.EnergyProviderConfiguration != null ? _fixedPriceService.ParseConfigString(chargePrices.EnergyProviderConfiguration) : new List<FixedPrice>();
+                break;
+            case EnergyProvider.Awattar:
+                break;
+            case EnergyProvider.Energinet:
+                break;
+            case EnergyProvider.HomeAssistant:
+                break;
+            case EnergyProvider.OldTeslaSolarChargerConfig:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+
         return chargePrices;
     }
 

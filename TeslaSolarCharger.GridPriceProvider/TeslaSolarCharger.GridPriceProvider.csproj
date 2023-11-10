@@ -21,4 +21,8 @@
     <PackageReference Include="TimeZoneConverter" Version="6.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TeslaSolarCharger\Shared\TeslaSolarCharger.Shared.csproj" />
+  </ItemGroup>
+
 </Project>
