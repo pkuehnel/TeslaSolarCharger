@@ -1,10 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
 
+[assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.GridPriceProvider.Services;
 
 public class FixedPriceService : IFixedPriceService
@@ -23,51 +25,109 @@ public class FixedPriceService : IFixedPriceService
         {
             throw new ArgumentNullException(nameof(configString));
         }
-        var fixedPricesStrings = JsonConvert.DeserializeObject<List<string>>(configString);
-        if (fixedPricesStrings == null)
-        {
-            throw new ArgumentNullException(nameof(fixedPricesStrings));
-        }
-        var prices = new List<Price>();
-        var started = false;
-        var dayIndex = -1;
-        int fpIndex = 0;
-        var maxIterations = 100; // fail-safe against infinite loop
+        
         var fixedPrices = ParseConfigString(configString);
-        for (var i = 0; i <= maxIterations; i++)
-        {
-            var fixedPrice = fixedPrices[fpIndex];
-            var validFrom = DateTime.SpecifyKind(from.Date.AddDays(dayIndex).AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute), DateTimeKind.Utc);
-            var validTo = DateTime.SpecifyKind(from.Date.AddDays(dayIndex).AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute), DateTimeKind.Utc);
-            var price = new Price
-            {
-                ValidFrom = validFrom.Add(-TimeZoneInfo.Local.GetUtcOffset(validFrom)),
-                ValidTo = validTo.Add(-TimeZoneInfo.Local.GetUtcOffset(validTo)),
-                Value = fixedPrice.Value
-            };
-            if (price.ValidFrom < to && price.ValidTo > from)
-            {
-                prices.Add(price);
-                started = true;
-            }
-            else if (started)
-            {
-                break;
-            }
-            fpIndex++;
-            if (fpIndex >= fixedPrices.Count)
-            {
-                fpIndex = 0;
-                dayIndex++;
-            }
-            if (i == maxIterations)
-            {
-                throw new Exception("Infinite loop detected within FixedPrice provider");
-            }
-        }
+        var prices = GeneratePricesBasedOnFixedPrices(from, to, fixedPrices);
+        
 
         return Task.FromResult(prices.AsEnumerable());
     }
+
+    internal List<Price> GeneratePricesBasedOnFixedPrices(DateTimeOffset from, DateTimeOffset to, List<FixedPrice> fixedPrices)
+    {
+        var result = new List<Price>();
+        var midnightseparatedFixedPrices = SplitFixedPricesAtMidnight(fixedPrices);
+        foreach (var fixedPrice in midnightseparatedFixedPrices)
+        {
+            // Check each day in the range
+            for (var day = from.Date; day <= to.Date; day = day.AddDays(1))
+            {
+                // If ValidOnDays is null, the price is considered valid every day
+                if (fixedPrice.ValidOnDays == null || fixedPrice.ValidOnDays.Contains(day.DayOfWeek))
+                {
+                    DateTimeOffset validFrom;
+                    DateTimeOffset validTo;
+                    if (fixedPrice.FromHour < fixedPrice.ToHour || (fixedPrice.FromHour == fixedPrice.ToHour && fixedPrice.FromMinute < fixedPrice.ToMinute))
+                    {
+                        validFrom = new DateTimeOffset(day.AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute));
+                        validTo = new DateTimeOffset(day.AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute));
+                    }
+                    else
+                    {
+                        validFrom = new DateTimeOffset(day.AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute));
+                        validTo = new DateTimeOffset(day.AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute));
+                    }
+                    
+
+                    // Add a new price if there is any time overlap
+                    if (validFrom < validTo)
+                    {
+                        result.Add(new Price
+                        {
+                            Value = fixedPrice.Value,
+                            ValidFrom = validFrom,
+                            ValidTo = validTo,
+                        });
+                    }
+                    else
+                    {
+                        result.Add(new Price
+                        {
+                            Value = fixedPrice.Value,
+                            ValidFrom = validTo,
+                            ValidTo = validFrom,
+                        });
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    internal List<FixedPrice> SplitFixedPricesAtMidnight(List<FixedPrice> originalPrices)
+    {
+        var splitPrices = new List<FixedPrice>();
+
+        foreach (var price in originalPrices)
+        {
+            // If the 'To' time is on or after midnight (next day), and 'From' time is before midnight (same day)
+            if (price.ToHour < price.FromHour || (price.ToHour == price.FromHour && price.ToMinute < price.FromMinute))
+            {
+                // Create a new FixedPrice for the period before midnight
+                var priceBeforeMidnight = new FixedPrice
+                {
+                    FromHour = price.FromHour,
+                    FromMinute = price.FromMinute,
+                    ToHour = 0, // Set to last hour of the day
+                    ToMinute = 0, // Set to last minute of the day
+                    Value = price.Value,
+                    ValidOnDays = price.ValidOnDays,
+                };
+
+                // Create a new FixedPrice for the period after midnight
+                var priceAfterMidnight = new FixedPrice
+                {
+                    FromHour = 0,
+                    FromMinute = 0,
+                    ToHour = price.ToHour,
+                    ToMinute = price.ToMinute,
+                    Value = price.Value,
+                    ValidOnDays = price.ValidOnDays,
+                };
+
+                splitPrices.Add(priceBeforeMidnight);
+                splitPrices.Add(priceAfterMidnight);
+            }
+            else
+            {
+                // If the price does not span over midnight, just add it to the list
+                splitPrices.Add(price);
+            }
+        }
+
+        return splitPrices;
+    }
+
 
     public string GenerateConfigString(List<FixedPrice> prices)
     {
