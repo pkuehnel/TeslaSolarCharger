@@ -39,14 +39,16 @@ public class FixedPriceService : IFixedPriceService
         var midnightseparatedFixedPrices = SplitFixedPricesAtMidnight(fixedPrices);
         foreach (var fixedPrice in midnightseparatedFixedPrices)
         {
+            var fromLocal = from.ToLocalTime();
+            var toLocal = to.ToLocalTime();
             // Check each day in the range
-            for (var day = from.Date; day <= to.Date; day = day.AddDays(1))
+            for (var day = fromLocal.Date; day <= toLocal.Date; day = day.AddDays(1))
             {
                 // If ValidOnDays is null, the price is considered valid every day
                 if (fixedPrice.ValidOnDays == null || fixedPrice.ValidOnDays.Contains(day.DayOfWeek))
                 {
-                    var validFrom = new DateTimeOffset(day.AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute));
-                    var validTo = new DateTimeOffset(day.AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute));
+                    var validFrom = new DateTimeOffset(day.AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute)).ToUniversalTime();
+                    var validTo = new DateTimeOffset(day.AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute)).ToUniversalTime();
 
                     if (validTo.TimeOfDay == TimeSpan.Zero)
                     {
