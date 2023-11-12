@@ -245,4 +245,75 @@ public class ChargingCostService : TestBase
         var expectedValueWithoutAdditionalCosts = new decimal(1.4);
         Assert.Equal(expectedValueWithoutAdditionalCosts, averagePrice);
     }
+
+    [Fact]
+    public void Calculates_Correct_FixedPrice_Cost_With_default_value()
+    {
+        var prices = new List<Price>()
+        {
+            //Instead of out commented prices, the default value should be used
+            new Price()
+            {
+                ValidFrom  = new DateTimeOffset(2023, 1, 22, 17, 0, 0, TimeSpan.Zero),
+                ValidTo  = new DateTimeOffset(2023, 1, 22, 18, 0, 0, TimeSpan.Zero),
+                Value = new decimal(0.11),
+            },
+            new Price()
+            {
+                ValidFrom  = new DateTimeOffset(2023, 1, 22, 18, 0, 0, TimeSpan.Zero),
+                ValidTo  = new DateTimeOffset(2023, 1, 22, 19, 0, 0, TimeSpan.Zero),
+                Value = new decimal(0.10),
+            },
+            //new Price()
+            //{
+            //    ValidFrom  = new DateTimeOffset(2023, 1, 22, 19, 0, 0, TimeSpan.Zero),
+            //    ValidTo  = new DateTimeOffset(2023, 1, 22, 20, 0, 0, TimeSpan.Zero),
+            //    Value = new decimal(0.30),
+            //},
+            new Price()
+            {
+                ValidFrom  = new DateTimeOffset(2023, 1, 22, 20, 0, 0, TimeSpan.Zero),
+                ValidTo  = new DateTimeOffset(2023, 1, 22, 21, 0, 0, TimeSpan.Zero),
+                Value = new decimal(0.11),
+            },
+            new Price()
+            {
+                ValidFrom  = new DateTimeOffset(2023, 1, 22, 21, 0, 0, TimeSpan.Zero),
+                ValidTo  = new DateTimeOffset(2023, 1, 22, 22, 0, 0, TimeSpan.Zero),
+                Value = new decimal(0.11),
+            },
+        };
+
+
+
+        var powerDistributions = new List<PowerDistribution>()
+        {
+            new PowerDistribution()
+            {
+                UsedWattHours = 0,
+                GridProportion = (float)0.5,
+                TimeStamp = new DateTime(2023, 1, 22, 18, 1, 0),
+            },
+            new PowerDistribution()
+            {
+                UsedWattHours = 10000,
+                GridProportion = (float)0.5,
+                TimeStamp = new DateTime(2023, 1, 22, 18, 59, 59),
+            },
+            new PowerDistribution()
+            {
+                UsedWattHours = 3000,
+                GridProportion = 1,
+                TimeStamp = new DateTime(2023, 1, 22, 19, 59, 59),
+            },
+        };
+
+
+        var chargingCostService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingCostService>();
+
+        var averagePrice = chargingCostService.GetGridChargeCosts(powerDistributions, prices, 0.3m);
+
+        var expectedValueWithoutAdditionalCosts = new decimal(1.4);
+        Assert.Equal(expectedValueWithoutAdditionalCosts, averagePrice);
+    }
 }
