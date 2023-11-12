@@ -25,10 +25,10 @@ public class FixedPriceService : IFixedPriceService
         {
             throw new ArgumentNullException(nameof(configString));
         }
-        
+
         var fixedPrices = ParseConfigString(configString);
         var prices = GeneratePricesBasedOnFixedPrices(from, to, fixedPrices);
-        
+
 
         return Task.FromResult(prices.AsEnumerable());
     }
@@ -45,39 +45,20 @@ public class FixedPriceService : IFixedPriceService
                 // If ValidOnDays is null, the price is considered valid every day
                 if (fixedPrice.ValidOnDays == null || fixedPrice.ValidOnDays.Contains(day.DayOfWeek))
                 {
-                    DateTimeOffset validFrom;
-                    DateTimeOffset validTo;
-                    if (fixedPrice.FromHour < fixedPrice.ToHour || (fixedPrice.FromHour == fixedPrice.ToHour && fixedPrice.FromMinute < fixedPrice.ToMinute))
-                    {
-                        validFrom = new DateTimeOffset(day.AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute));
-                        validTo = new DateTimeOffset(day.AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute));
-                    }
-                    else
-                    {
-                        validFrom = new DateTimeOffset(day.AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute));
-                        validTo = new DateTimeOffset(day.AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute));
-                    }
-                    
+                    var validFrom = new DateTimeOffset(day.AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute));
+                    var validTo = new DateTimeOffset(day.AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute));
 
-                    // Add a new price if there is any time overlap
-                    if (validFrom < validTo)
+                    if (validTo.TimeOfDay == TimeSpan.Zero)
                     {
-                        result.Add(new Price
-                        {
-                            Value = fixedPrice.Value,
-                            ValidFrom = validFrom,
-                            ValidTo = validTo,
-                        });
+                        validTo = validTo.AddDays(1);
                     }
-                    else
+
+                    result.Add(new Price
                     {
-                        result.Add(new Price
-                        {
-                            Value = fixedPrice.Value,
-                            ValidFrom = validTo,
-                            ValidTo = validFrom,
-                        });
-                    }
+                        Value = fixedPrice.Value,
+                        ValidFrom = validFrom,
+                        ValidTo = validTo,
+                    });
                 }
             }
         }

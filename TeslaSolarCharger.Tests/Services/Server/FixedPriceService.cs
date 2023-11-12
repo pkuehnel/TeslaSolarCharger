@@ -67,7 +67,7 @@ public class FixedPriceService : TestBase
             },
         };
         var fixedPriceService = Mock.Create<GridPriceProvider.Services.FixedPriceService>();
-        var prices = fixedPriceService.GeneratePricesBasedOnFixedPrices(new DateTimeOffset(2023, 1, 21, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2023, 1, 29, 0, 0, 0, TimeSpan.Zero), fixedPrices);
+        var prices = fixedPriceService.GeneratePricesBasedOnFixedPrices(new DateTimeOffset(2023, 1, 21, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2023, 1, 22, 23, 59, 59, TimeSpan.Zero), fixedPrices);
     }
 
     [Fact]
