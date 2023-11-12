@@ -9,7 +9,7 @@ public class ChargePrice
     public EnergyProvider EnergyProvider { get; set; }
     public string? EnergyProviderConfiguration { get; set; }
     public decimal SolarPrice { get; set; }
-    public decimal? GridPrice { get; set; }
+    public decimal GridPrice { get; set; }
     public bool AddSpotPriceToGridPrice { get; set; }
     public decimal SpotPriceCorrectionFactor { get; set; }
 }

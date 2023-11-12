@@ -457,7 +457,7 @@ public class ChargingCostService : IChargingCostService
                 break;
             case EnergyProvider.FixedPrice:
                 prices = (await _fixedPriceService.GetPriceData(chargingProcess.StartDate, chargingProcess.EndDate.Value, price.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
-                gridCost = GetGridChargeCosts(relevantPowerDistributions, prices);
+                gridCost = GetGridChargeCosts(relevantPowerDistributions, prices, price.GridPrice);
                 break;
             case EnergyProvider.Awattar:
                 throw new NotImplementedException();
@@ -482,11 +482,11 @@ public class ChargingCostService : IChargingCostService
         chargingProcess.Cost = openHandledCharge.CalculatedPrice;
     }
 
-    internal decimal? GetGridChargeCosts(List<PowerDistribution> relevantPowerDistributions, List<Price> prices)
+    internal decimal? GetGridChargeCosts(List<PowerDistribution> relevantPowerDistributions, List<Price> prices, decimal priceGridPrice)
     {
         try
         {
-            var priceGroups = GroupDistributionsByPrice(prices, relevantPowerDistributions);
+            var priceGroups = GroupDistributionsByPrice(prices, relevantPowerDistributions, priceGridPrice);
             decimal totalCost = 0;
             foreach (var priceGroup in priceGroups)
             {
@@ -507,7 +507,8 @@ public class ChargingCostService : IChargingCostService
         
     }
 
-    private Dictionary<Price, List<PowerDistribution>> GroupDistributionsByPrice(List<Price> prices, List<PowerDistribution> distributions)
+    private Dictionary<Price, List<PowerDistribution>> GroupDistributionsByPrice(List<Price> prices, List<PowerDistribution> distributions,
+        decimal priceGridPrice)
     {
         var groupedByPrice = new Dictionary<Price, List<PowerDistribution>>();
 
@@ -518,10 +519,22 @@ public class ChargingCostService : IChargingCostService
                             d.TimeStamp <= price.ValidTo.UtcDateTime)
                 .ToList();
 
-            if (relevantDistributions.Any())
-            {
-                groupedByPrice.Add(price, relevantDistributions);
-            }
+            groupedByPrice.Add(price, relevantDistributions);
+            distributions.RemoveAll(relevantDistributions.Contains);
+        }
+
+        if (distributions.Any())
+        {
+            var oldestDistribution = distributions.OrderBy(d => d.TimeStamp).First().TimeStamp;
+            var newestDistribution = distributions.OrderByDescending(d => d.TimeStamp).First().TimeStamp;
+            groupedByPrice.Add(
+                new Price()
+                {
+                    ValidFrom = new DateTimeOffset(oldestDistribution, TimeSpan.Zero),
+                    ValidTo = new DateTimeOffset(newestDistribution, TimeSpan.Zero),
+                    Value = priceGridPrice,
+                },
+                distributions.ToList());
         }
 
         return groupedByPrice;

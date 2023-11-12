@@ -240,7 +240,7 @@ public class ChargingCostService : TestBase
 
         var chargingCostService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingCostService>();
 
-        var averagePrice = chargingCostService.GetGridChargeCosts(powerDistributions, prices);
+        var averagePrice = chargingCostService.GetGridChargeCosts(powerDistributions, prices, 0.1m);
 
         var expectedValueWithoutAdditionalCosts = new decimal(1.4);
         Assert.Equal(expectedValueWithoutAdditionalCosts, averagePrice);
