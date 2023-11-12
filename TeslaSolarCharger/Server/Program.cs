@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using TeslaSolarCharger.GridPriceProvider;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
@@ -8,6 +9,8 @@ using TeslaSolarCharger.Shared.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//To get valus from configuration before dependency injection is set up
+var configurationManager = builder.Configuration;
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
@@ -19,7 +22,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddMyDependencies();
-
+builder.Services.AddGridPriceProvider();
 
 builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration));

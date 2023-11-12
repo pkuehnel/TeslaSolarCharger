@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
+using TeslaSolarCharger.GridPriceProvider.Data;
+using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Shared.Contracts;
@@ -19,10 +21,12 @@ public class CoreService : ICoreService
     private readonly ITeslaMateMqttService _teslaMateMqttService;
     private readonly ISolarMqttService _solarMqttService;
     private readonly ISettings _settings;
+    private readonly IFixedPriceService _fixedPriceService;
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
-        ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService, ISettings settings)
+        ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService, ISettings settings,
+        IFixedPriceService fixedPriceService)
     {
         _logger = logger;
         _chargingService = chargingService;
@@ -33,6 +37,7 @@ public class CoreService : ICoreService
         _teslaMateMqttService = teslaMateMqttService;
         _solarMqttService = solarMqttService;
         _settings = settings;
+        _fixedPriceService = fixedPriceService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -157,5 +162,11 @@ public class CoreService : ICoreService
     {
         _logger.LogTrace("{method}()", nameof(TeslaApiRequestsSinceStartup));
         return new DtoValue<bool>(_configurationWrapper.ShouldDisplayApiRequestCounter());
+    }
+
+    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to)
+    {
+        _logger.LogTrace("{method}({from}, {to})", nameof(GetPriceData), from, to);
+        return _fixedPriceService.GetPriceData(from, to, null);
     }
 }

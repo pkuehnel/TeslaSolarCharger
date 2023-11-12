@@ -2,6 +2,8 @@
 @page "/ChargePrice/new"
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
+@using TeslaSolarCharger.Shared.Enums
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject IDateTimeProvider DateTimeProvider
@@ -44,6 +46,18 @@ else
                 <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
+        
+        <InputComponent ValueId="energyProvider"
+                        LabelText="Energy Provider"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputSelect id="energyProvider" Value="ChargePrice.EnergyProvider" ValueExpression="() => ChargePrice.EnergyProvider" ValueChanged="@((EnergyProvider e) => EnergyProviderChanged(e))" class="form-control">
+                    <option value="@EnergyProvider.FixedPrice">Time based prices</option>
+                    <option value="@EnergyProvider.OldTeslaSolarChargerConfig">Fixed Price or Spot price</option>
+                </InputSelect>
+            </InputFragment>
+        </InputComponent>
 
         <InputComponent ValueId="gridPrice"
                         LabelText="@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")"
@@ -54,26 +68,62 @@ else
             </InputFragment>
         </InputComponent>
 
-        <div class="mb-3">
-            <InputCheckbox class="form-check-input" id="useSpotPrice1" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
-            <label class="form-check-label" for="useSpotPrice1">
-                Use Spot Prices
-            </label>
-            <div>
-                <small id="UseSpotPriceHelp" class="form-text text-muted">Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)</small>
-            </div>
-        </div>
-        @if (ChargePrice.AddSpotPriceToGridPrice)
+        @if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice && ChargePrice.FixedPrices != null)
         {
-            <InputComponent ValueId="chargePriceSurcharge"
-                    LabelText="Additional costs to spotprice"
-                    UnitText="%"
-                    HelpText="Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.">
-                <InputFragment>
-                    <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
+            <div>You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used.</div>
+            @foreach (var fixedPrice in ChargePrice.FixedPrices)
+            {
+                <div class="row mt-3">
+                    <div class="col-auto">
+                        <FixedPriceComponent FixedPrice="fixedPrice"></FixedPriceComponent>
+                    </div>
+                    
+                </div>
+                <div class="row mt-3">
+                    <div class="col-auto">
+                        <InputComponent ValueId="price"
+                                        LabelText="Price"
+                                        UnitText=""
+                                        HelpText="">
+                            <InputFragment>
+                                <InputNumber id="price" @bind-Value="fixedPrice.Value" class="form-control" placeholder=" " />
+                            </InputFragment>
+                        </InputComponent>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-danger m-2" @onclick="_ => DeleteFixedPrice(fixedPrice)"><span class="oi oi-trash" aria-hidden="true"></span></button>
+                    </div>
+                </div>
+                
+                <hr/>
+            }
+            <button type="button" class="btn btn-primary m-2" @onclick="AddFixedPrice">Add time based price</button>
         }
+        
+        @if (ChargePrice.EnergyProvider == EnergyProvider.OldTeslaSolarChargerConfig)
+        {
+            <div class="mb-3">
+                <InputCheckbox class="form-check-input" id="useSpotPrice1" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
+                <label class="form-check-label" for="useSpotPrice1">
+                    Use Spot Prices
+                </label>
+                <div>
+                    <small id="UseSpotPriceHelp" class="form-text text-muted">Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)</small>
+                </div>
+            </div>
+            @if (ChargePrice.AddSpotPriceToGridPrice)
+            {
+                <InputComponent ValueId="chargePriceSurcharge"
+                                LabelText="Additional costs to spotprice"
+                                UnitText="%"
+                                HelpText="Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.">
+                    <InputFragment>
+                        <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" placeholder=" " />
+                    </InputFragment>
+                </InputComponent>
+            }
+        }
+        
         <br/>
         <button type="submit" class="btn btn-primary">
             @if (SubmitIsLoading)
@@ -129,4 +179,36 @@ else
         SubmitIsLoading = false;
         NavigateToList();
     }
+
+    private void EnergyProviderChanged(EnergyProvider energyProvider)
+    {
+        if(ChargePrice == null)
+        {
+            return;
+        }
+        ChargePrice.EnergyProvider = energyProvider;
+        ChargePrice.FixedPrices = energyProvider == EnergyProvider.FixedPrice ? new List<FixedPrice>() : null;
+    }
+
+    private void AddFixedPrice()
+    {
+        if(ChargePrice?.FixedPrices == null)
+        {
+            return;
+        }
+        ChargePrice.FixedPrices.Add(new FixedPrice()
+        {
+            ValidOnDays = new List<DayOfWeek>(),
+        });
+    }
+
+    private void DeleteFixedPrice(FixedPrice fixedPrice)
+    {
+        if(ChargePrice?.FixedPrices == null)
+        {
+            return;
+        }
+        ChargePrice.FixedPrices.Remove(fixedPrice);
+    }
+
 }
