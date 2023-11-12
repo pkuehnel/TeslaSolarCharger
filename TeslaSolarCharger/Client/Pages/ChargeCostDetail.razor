@@ -46,7 +46,7 @@ else
                 <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
-
+        
         <InputComponent ValueId="energyProvider"
                         LabelText="Energy Provider"
                         UnitText=""
@@ -59,8 +59,18 @@ else
             </InputFragment>
         </InputComponent>
 
+        <InputComponent ValueId="gridPrice"
+                        LabelText="@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputNumber id="gridPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+
         @if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice && ChargePrice.FixedPrices != null)
         {
+            <div>You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used.</div>
             @foreach (var fixedPrice in ChargePrice.FixedPrices)
             {
                 <div class="row mt-3">
@@ -92,15 +102,6 @@ else
         
         @if (ChargePrice.EnergyProvider == EnergyProvider.OldTeslaSolarChargerConfig)
         {
-            <InputComponent ValueId="gridPrice"
-                            LabelText="@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")"
-                            UnitText=""
-                            HelpText="">
-                <InputFragment>
-                    <InputNumber id="gridPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
-
             <div class="mb-3">
                 <InputCheckbox class="form-check-input" id="useSpotPrice1" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
                 <label class="form-check-label" for="useSpotPrice1">
