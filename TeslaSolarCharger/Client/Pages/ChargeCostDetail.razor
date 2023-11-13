@@ -53,8 +53,8 @@ else
                         HelpText="">
             <InputFragment>
                 <InputSelect id="energyProvider" Value="ChargePrice.EnergyProvider" ValueExpression="() => ChargePrice.EnergyProvider" ValueChanged="@((EnergyProvider e) => EnergyProviderChanged(e))" class="form-control">
-                    <option value="@EnergyProvider.FixedPrice">Time based prices</option>
                     <option value="@EnergyProvider.OldTeslaSolarChargerConfig">Fixed Price or Spot price</option>
+                    <option value="@EnergyProvider.FixedPrice">Time based prices</option>
                 </InputSelect>
             </InputFragment>
         </InputComponent>
@@ -163,6 +163,7 @@ else
                 ValidSince = DateTimeProvider.Now(),
                 GridPrice = new decimal(0.285),
                 SolarPrice = new decimal(0.12),
+                EnergyProvider = EnergyProvider.OldTeslaSolarChargerConfig,
             };
         }
     }
