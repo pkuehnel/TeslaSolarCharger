@@ -1,6 +1,8 @@
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -224,9 +226,22 @@ public class PvValueService : IPvValueService
     private async Task<HttpResponseMessage> GetHttpResponse(HttpRequestMessage request)
     {
         _logger.LogTrace("{method}({request}) [called by {callingMethod}]", nameof(GetHttpResponse), request, new StackTrace().GetFrame(1)?.GetMethod()?.Name);
-        using var httpClient = new HttpClient();
+        var httpClientHandler = new HttpClientHandler();
+
+        if (_configurationWrapper.ShouldIgnoreSslErrors())
+        {
+            _logger.LogWarning("PV Value SSL errors are ignored.");
+            httpClientHandler.ServerCertificateCustomValidationCallback = MyRemoteCertificateValidationCallback;
+        }
+
+        using var httpClient = new HttpClient(httpClientHandler);
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         return response;
+    }
+
+    private bool MyRemoteCertificateValidationCallback(HttpRequestMessage requestMessage, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors sslErrors)
+    {
+        return true; // Ignoriere alle Zertifikatfehler
     }
 
     private static HttpRequestMessage GenerateHttpRequestMessage(string? gridRequestUrl, Dictionary<string, string> requestHeaders)

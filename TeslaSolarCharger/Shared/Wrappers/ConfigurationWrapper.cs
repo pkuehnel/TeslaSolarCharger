@@ -583,6 +583,14 @@ public class ConfigurationWrapper : IConfigurationWrapper
                 dtoBaseConfiguration.HomeBatterySocXmlPattern);
     }
 
+    public bool ShouldIgnoreSslErrors()
+    {
+        _logger.LogTrace("{method}()", nameof(ShouldIgnoreSslErrors));
+        var environmentVariableName = "IgnoreSslErrors";
+        var value = _configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public async Task TryAutoFillUrls()
     {
         var dtoBaseConfiguration = await GetBaseConfigurationAsync().ConfigureAwait(false);
