@@ -394,6 +394,7 @@ public class PvValueService : IPvValueService
     {
         switch (patternType)
         {
+            //allow JSON values to be null, as this is needed by SMA inverters: https://tff-forum.de/t/teslasolarcharger-laden-nach-pv-ueberschuss-mit-beliebiger-wallbox/170369/2728?u=mane123
             case NodePatternType.Json:
                 _logger.LogTrace("Extract overage value from json {result} with {pattern}", result, pattern);
                 result = (JObject.Parse(result).SelectToken(pattern ?? throw new ArgumentNullException(nameof(pattern))) ??
