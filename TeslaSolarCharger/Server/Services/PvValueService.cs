@@ -397,7 +397,7 @@ public class PvValueService : IPvValueService
             case NodePatternType.Json:
                 _logger.LogTrace("Extract overage value from json {result} with {pattern}", result, pattern);
                 result = (JObject.Parse(result).SelectToken(pattern ?? throw new ArgumentNullException(nameof(pattern))) ??
-                          throw new InvalidOperationException("Could not find token by pattern")).Value<string>() ?? throw new InvalidOperationException("Extracted Json Value is null");
+                          throw new InvalidOperationException("Could not find token by pattern")).Value<string>() ?? "0";
                 break;
             case NodePatternType.Xml:
                 _logger.LogTrace("Extract overage value from xml {result} with {pattern}", result, pattern);
