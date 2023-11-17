@@ -241,7 +241,9 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 }
                 else
                 {
-                    car.CarState.ChargerPhases = null;
+                    //This is needed as TeslaMate sometime sends empty values during charger being connected.
+                    _logger.LogDebug($"{nameof(TopicChargerPhases)} is {value.Value}. Do not overwrite charger phases.");
+                    //car.CarState.ChargerPhases = null;
                 }
                 break;
             case TopicChargerVoltage:

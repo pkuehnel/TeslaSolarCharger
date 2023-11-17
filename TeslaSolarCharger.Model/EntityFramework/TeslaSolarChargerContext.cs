@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Model.EntityFramework;
 
@@ -31,6 +32,15 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
                     break;
             }
         }
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<ChargePrice>()
+            .Property(c => c.EnergyProvider)
+            .HasDefaultValue(EnergyProvider.OldTeslaSolarChargerConfig);
     }
 
 #pragma warning disable CS8618

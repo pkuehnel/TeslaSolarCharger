@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
@@ -49,5 +50,8 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public Task<DtoValue<bool>> ShouldDisplayApiRequestCounter() => Task.FromResult(_coreService.ShouldDisplayApiRequestCounter());
+
+        [HttpGet]
+        public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to) => _coreService.GetPriceData(from, to);
     }
 }

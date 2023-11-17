@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos;
+﻿using TeslaSolarCharger.GridPriceProvider.Data;
+using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Contracts;
 
@@ -17,4 +18,5 @@ public interface ICoreService
     Task DisconnectMqttServices();
     DtoValue<int> TeslaApiRequestsSinceStartup();
     DtoValue<bool> ShouldDisplayApiRequestCounter();
+    Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to);
 }
