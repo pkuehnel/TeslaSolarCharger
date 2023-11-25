@@ -31,5 +31,12 @@ namespace TeslaSolarCharger.Server.Controllers
         [HttpGet]
         public void UpdatePowerBuffer(int powerBuffer) =>
             _service.UpdatePowerBuffer(powerBuffer);
+
+        [HttpGet]
+        public async Task<FileContentResult> DownloadBackup()
+        {
+            var bytes = await _service.DownloadBackup().ConfigureAwait(false);
+            return File(bytes, "application/zip", "TSCBackup.zip");
+        }
     }
 }
