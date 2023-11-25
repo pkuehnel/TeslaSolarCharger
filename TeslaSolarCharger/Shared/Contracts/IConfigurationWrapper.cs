@@ -83,4 +83,7 @@ public interface IConfigurationWrapper
     bool AllowCors();
     bool ShouldDisplayApiRequestCounter();
     bool ShouldIgnoreSslErrors();
+    string BackupCopyDestinationDirectory();
+    string GetSqliteFileNameWithoutPath();
+    string BackupZipDirectory();
 }
