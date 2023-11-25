@@ -43,7 +43,10 @@ public class IssueValidationService : IIssueValidationService
     public async Task<List<Issue>> RefreshIssues(TimeSpan clientTimeZoneId)
     {
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
-        var issueList = new List<Issue>();
+        var issueList = new List<Issue>
+        {
+            _possibleIssues.GetIssueByKey(_issueKeys.NewTeslaApi),
+        };
         issueList.AddRange(GetServerConfigurationIssues(clientTimeZoneId));
         if (Debugger.IsAttached)
         {

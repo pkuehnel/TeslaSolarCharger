@@ -40,13 +40,37 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return Path.Combine(configFileDirectory, value);
     }
 
-    public string SqliteFileFullName()
+    public string BackupCopyDestinationDirectory()
     {
         var configFileDirectory = ConfigFileDirectory();
-        var environmentVariableName = "SqliteFileName";
+        var environmentVariableName = "BackupCopyDestinationDirectory";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
         _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return Path.Combine(configFileDirectory, value);
+    }
+
+    public string BackupZipDirectory()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "BackupZipDirectory";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
+    public string SqliteFileFullName()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var value = GetSqliteFileNameWithoutPath();
+        return Path.Combine(configFileDirectory, value);
+    }
+
+    public string GetSqliteFileNameWithoutPath()
+    {
+        var environmentVariableName = "SqliteFileName";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
     }
 
     public string BaseConfigFileFullName()
