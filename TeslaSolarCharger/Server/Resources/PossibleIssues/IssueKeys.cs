@@ -19,4 +19,5 @@ public class IssueKeys
     public string VersionNotUpToDate = "VersionNotUpToDate";
     public string CorrectionFactorZero = "CorrectionFactorZero";
     public string ServerTimeZoneDifferentFromClient = "ServerTimeZoneDifferentFromClient";
+    public string NewTeslaApi = "NewTeslaApi";
 }

@@ -134,6 +134,13 @@ public class PossibleIssues : IPossibleIssues
                     "Update the TimeZone of the TeslaSolarChargerContainer in your docker-compose.yml."
                 )
             },
+            {
+                issueKeys.NewTeslaApi, CreateIssue("New cars are currently not supported",
+                    IssueType.Information,
+                    "If there are any updates on this topic, I will post them <a href=\"https://github.com/pkuehnel/TeslaSolarCharger/issues/988\"  target=\"_blank\">here</a>.",
+                    "Sorry for this information beeing not removable - it will be possible in a future update."
+                )
+            },
         };
     }
 
