@@ -99,6 +99,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
+    public string FleetApiClientId()
+    {
+        var environmentVariableName = "FleetApiClientId";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        return value;
+    }
+
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
         var minimum = TimeSpan.FromSeconds(20);
