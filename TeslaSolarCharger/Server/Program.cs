@@ -21,7 +21,8 @@ builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddMyDependencies();
+var useFleetApi = configurationManager.GetValue<bool>("UseFleetApi");
+builder.Services.AddMyDependencies(useFleetApi);
 builder.Services.AddGridPriceProvider();
 
 builder.Host.UseSerilog((context, configuration) => configuration

@@ -33,8 +33,9 @@ namespace TeslaSolarCharger.Server;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddMyDependencies(this IServiceCollection services)
-        => services
+    public static IServiceCollection AddMyDependencies(this IServiceCollection services, bool useFleetApi)
+    {
+        services
             .AddSingleton<JobManager>()
             .AddTransient<ChargingValueJob>()
             .AddTransient<CarStateCachingJob>()
@@ -52,7 +53,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IConfigJsonService, ConfigJsonService>()
             .AddTransient<IDateTimeProvider, DateTimeProvider>()
             .AddTransient<ITelegramService, TelegramService>()
-            .AddTransient<ITeslaService, TeslamateApiService>()
             .AddSingleton<ISettings, Settings>()
             .AddSingleton<IInMemoryValues, InMemoryValues>()
             .AddSingleton<IConfigurationWrapper, ConfigurationWrapper>()
@@ -93,6 +93,16 @@ public static class ServiceCollectionExtensions
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
-            .AddSharedBackendDependencies()
-            ;
+            .AddSharedBackendDependencies();
+        if (useFleetApi)
+        {
+            services.AddTransient<ITeslaService, TeslaFleetApiService>();
+        }
+        else
+        {
+            services.AddTransient<ITeslaService, TeslamateApiService>();
+        }
+
+        return services;
+    }
 }
