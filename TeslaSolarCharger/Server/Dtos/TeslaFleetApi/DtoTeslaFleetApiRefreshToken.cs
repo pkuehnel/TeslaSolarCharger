@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json;
 
-namespace TeslaSolarCharger.Server.Dtos;
+namespace TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 
-public class DtoTeslaFleetApiToken
+public class DtoTeslaFleetApiRefreshToken
 {
     [JsonProperty("access_token")]
     public string AccessToken { get; set; }
@@ -15,7 +15,4 @@ public class DtoTeslaFleetApiToken
 
     [JsonProperty("expires_in")]
     public int ExpiresIn { get; set; }
-
-    [JsonProperty("token_type")]
-    public string TokenType { get; set; }
 }

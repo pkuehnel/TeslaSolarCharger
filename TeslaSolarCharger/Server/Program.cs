@@ -14,7 +14,7 @@ var configurationManager = builder.Configuration;
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddRazorPages();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

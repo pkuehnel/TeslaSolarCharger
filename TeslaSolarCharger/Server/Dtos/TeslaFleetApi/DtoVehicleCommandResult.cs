@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.Server.Dtos;
+﻿namespace TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 
 public class DtoVehicleCommandResult
 {

@@ -2,14 +2,18 @@
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class TeslaFleetApiService : ITeslaService
+public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
 {
     private readonly ILogger<TeslaFleetApiService> _logger;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
@@ -72,14 +76,20 @@ public class TeslaFleetApiService : ITeslaService
     {
         var accessToken = await GetAccessTokenAsync().ConfigureAwait(false);
         using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
         var content = new StringContent(contentData, System.Text.Encoding.UTF8, "application/json");
-        var requestUri = $"https://fleet-api.prd.eu.vn.cloud.tesla.com/api/1/vehicles/{id}/{commandName}";
+        var regionCode = accessToken.Region switch
+        {
+            TeslaFleetApiRegion.Emea => "eu",
+            TeslaFleetApiRegion.NorthAmerica => "na",
+            _ => throw new NotImplementedException($"Region {accessToken.Region} is not implemented."),
+        };
+        var requestUri = $"https://fleet-api.prd.{regionCode}.vn.cloud.tesla.com/api/1/vehicles/{id}/{commandName}";
         var response = await httpClient.PostAsync(requestUri, content).ConfigureAwait(false);
         return await response.Content.ReadFromJsonAsync<DtoVehicleCommandResult>().ConfigureAwait(false);
     }
 
-    private async Task<string> GetAccessTokenAsync()
+    private async Task<TeslaToken> GetAccessTokenAsync()
     {
         _logger.LogTrace("{method}()", nameof(GetAccessTokenAsync));
         var token = await _teslaSolarChargerContext.TeslaTokens
@@ -88,6 +98,7 @@ public class TeslaFleetApiService : ITeslaService
         var minimumTokenLifeTime = TimeSpan.FromMinutes(5);
         if (token.ExpiresAtUtc < (_dateTimeProvider.UtcNow() + minimumTokenLifeTime))
         {
+            _logger.LogInformation("Token is expired. Getting new token.");
             using var httpClient = new HttpClient();
             var tokenUrl = "https://auth.tesla.com/oauth2/v3/token";
             var requestData = new Dictionary<string, string>
@@ -100,23 +111,30 @@ public class TeslaFleetApiService : ITeslaService
             encodedContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
             var response = await httpClient.PostAsync(tokenUrl, encodedContent).ConfigureAwait(false);
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var newToken = JsonConvert.DeserializeObject<DtoTeslaFleetApiToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
+            var newToken = JsonConvert.DeserializeObject<DtoTeslaFleetApiRefreshToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
             token.AccessToken = newToken.AccessToken;
             token.RefreshToken = newToken.RefreshToken;
             token.IdToken = newToken.IdToken;
             token.ExpiresAtUtc = _dateTimeProvider.UtcNow().AddSeconds(newToken.ExpiresIn);
             await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            _logger.LogInformation("New Token saved to database.");
         }
-        return token.AccessToken;
+        return token;
     }
 
-    //Just to look up code, not used.
-    //private async Task GetAllAccountVehicles(DtoTeslaToken token)
-    //{
-    //    using var httpClient = new HttpClient();
-    //    var request = new HttpRequestMessage(HttpMethod.Get, $"https://fleet-api.prd.eu.vn.cloud.tesla.com/api/1/vehicles");
-    //    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
-    //    var vehicleResponse = await httpClient.SendAsync(request).ConfigureAwait(false);
-    //    var responseString = await vehicleResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-    //}
+    public async Task AddNewTokenAsync(DtoTeslaFleetApiRefreshToken token, TeslaFleetApiRegion region)
+    {
+        var currentTokens = await _teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
+        _teslaSolarChargerContext.TeslaTokens.RemoveRange(currentTokens);
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        _teslaSolarChargerContext.TeslaTokens.Add(new TeslaToken
+        {
+            AccessToken = token.AccessToken,
+            RefreshToken = token.RefreshToken,
+            IdToken = token.IdToken,
+            ExpiresAtUtc = _dateTimeProvider.UtcNow().AddSeconds(token.ExpiresIn),
+            Region = region,
+        });
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
 }

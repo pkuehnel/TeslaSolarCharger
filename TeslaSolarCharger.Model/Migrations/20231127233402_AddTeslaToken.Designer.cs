@@ -11,7 +11,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    [Migration("20231127185708_AddTeslaToken")]
+    [Migration("20231127233402_AddTeslaToken")]
     partial class AddTeslaToken
     {
         /// <inheritdoc />
@@ -179,13 +179,8 @@ namespace TeslaSolarCharger.Model.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TokenType")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<int>("Region")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 

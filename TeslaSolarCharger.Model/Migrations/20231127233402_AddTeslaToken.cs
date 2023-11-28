@@ -21,8 +21,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     RefreshToken = table.Column<string>(type: "TEXT", nullable: false),
                     IdToken = table.Column<string>(type: "TEXT", nullable: false),
                     ExpiresAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    State = table.Column<string>(type: "TEXT", nullable: false),
-                    TokenType = table.Column<string>(type: "TEXT", nullable: false)
+                    Region = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {

@@ -176,13 +176,8 @@ namespace TeslaSolarCharger.Model.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TokenType")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<int>("Region")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 

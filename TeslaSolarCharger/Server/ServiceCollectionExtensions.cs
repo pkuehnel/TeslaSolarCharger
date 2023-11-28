@@ -93,6 +93,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
+            .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {
