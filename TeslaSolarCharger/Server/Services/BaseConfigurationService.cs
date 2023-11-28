@@ -99,9 +99,7 @@ public class BaseConfigurationService : IBaseConfigurationService
 
             //Backup config files
             var baseConfigFileFullName = _configurationWrapper.BaseConfigFileFullName();
-            var carConfigFileFullName = _configurationWrapper.CarConfigFileFullName();
             File.Copy(baseConfigFileFullName, Path.Combine(backupCopyDestinationDirectory, Path.GetFileName(baseConfigFileFullName)), true);
-            File.Copy(carConfigFileFullName, Path.Combine(backupCopyDestinationDirectory, Path.GetFileName(carConfigFileFullName)), true);
 
 
             var backupFileName = "TSC-Backup.zip";
