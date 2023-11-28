@@ -86,4 +86,5 @@ public interface IConfigurationWrapper
     string BackupCopyDestinationDirectory();
     string GetSqliteFileNameWithoutPath();
     string BackupZipDirectory();
+    string FleetApiClientId();
 }
