@@ -74,6 +74,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
 
     private async Task<DtoVehicleCommandResult?> SendCommandToTeslaApi(long id, string commandName, string contentData = "{}")
     {
+        _logger.LogTrace("{method}({id}, {commandName}, {contentData})", nameof(SendCommandToTeslaApi), id, commandName, contentData);
         var accessToken = await GetAccessTokenAsync().ConfigureAwait(false);
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
@@ -86,6 +87,8 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         };
         var requestUri = $"https://fleet-api.prd.{regionCode}.vn.cloud.tesla.com/api/1/vehicles/{id}/{commandName}";
         var response = await httpClient.PostAsync(requestUri, content).ConfigureAwait(false);
+        var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        _logger.LogDebug("Response: {responseString}", responseString);
         return await response.Content.ReadFromJsonAsync<DtoVehicleCommandResult>().ConfigureAwait(false);
     }
 
