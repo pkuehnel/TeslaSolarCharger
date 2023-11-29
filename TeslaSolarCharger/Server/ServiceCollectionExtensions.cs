@@ -94,6 +94,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
+            .AddTransient<ITeslamateApiService, TeslamateApiService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

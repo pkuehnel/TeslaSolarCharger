@@ -7,6 +7,7 @@ using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -20,6 +21,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ITeslamateContext _teslamateContext;
     private readonly IConfigurationWrapper _configurationWrapper;
+    private readonly ITeslamateApiService _teslamateApiService;
 
     private readonly string _chargeStartComand = "command/charge_start";
     private readonly string _chargeStopComand = "command/charge_stop";
@@ -27,18 +29,27 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
     private readonly string _wakeUpComand = "wake_up";
 
     public TeslaFleetApiService(ILogger<TeslaFleetApiService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
-        IDateTimeProvider dateTimeProvider, ITeslamateContext teslamateContext, IConfigurationWrapper configurationWrapper)
+        IDateTimeProvider dateTimeProvider, ITeslamateContext teslamateContext, IConfigurationWrapper configurationWrapper,
+        ITeslamateApiService teslamateApiService)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _dateTimeProvider = dateTimeProvider;
         _teslamateContext = teslamateContext;
         _configurationWrapper = configurationWrapper;
+        _teslamateApiService = teslamateApiService;
     }
 
     public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
     {
         _logger.LogTrace("{method}({carId}, {startAmp}, {carState})", nameof(StartCharging), carId, startAmp, carState);
+        if (startAmp == 0)
+        {
+            _logger.LogDebug("Should start charging with 0 amp. Skipping charge start.");
+            return;
+        }
+        await WakeUpCarIfNeeded(carId, carState).ConfigureAwait(false);
+
         var id = await _teslamateContext.Cars.Where(c => c.Id == carId).Select(c => c.Eid).FirstAsync().ConfigureAwait(false);
         var result = await SendCommandToTeslaApi(id, _chargeStartComand).ConfigureAwait(false);
     }
@@ -49,6 +60,9 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         _logger.LogTrace("{method}({carId})", nameof(WakeUpCar), carId);
         var id = await _teslamateContext.Cars.Where(c => c.Id == carId).Select(c => c.Eid).FirstAsync().ConfigureAwait(false);
         var result = await SendCommandToTeslaApi(id, _wakeUpComand).ConfigureAwait(false);
+        await _teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
+
+        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
     }
 
     public async Task StopCharging(int carId)
@@ -70,6 +84,21 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
     {
         _logger.LogError("This is currently not supported with Fleet API");
         return Task.CompletedTask;
+    }
+
+    private async Task WakeUpCarIfNeeded(int carId, CarStateEnum? carState)
+    {
+        switch (carState)
+        {
+            case CarStateEnum.Offline or CarStateEnum.Asleep:
+                _logger.LogInformation("Wakeup car.");
+                await WakeUpCar(carId).ConfigureAwait(false);
+                break;
+            case CarStateEnum.Suspended:
+                _logger.LogInformation("Resume logging as is suspended");
+                await _teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
+                break;
+        }
     }
 
     private async Task<DtoVehicleCommandResult?> SendCommandToTeslaApi(long id, string commandName, string contentData = "{}")
