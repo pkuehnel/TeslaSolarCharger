@@ -53,5 +53,8 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to) => _coreService.GetPriceData(from, to);
+
+        [HttpGet]
+        public Task<string> GetInstallationId() => _coreService.GetInstallationId();
     }
 }

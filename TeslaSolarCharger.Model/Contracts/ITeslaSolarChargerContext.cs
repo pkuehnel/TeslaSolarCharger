@@ -16,5 +16,6 @@ public interface ITeslaSolarChargerContext
     DatabaseFacade Database { get; }
     DbSet<SpotPrice> SpotPrices { get; set; }
     DbSet<TeslaToken> TeslaTokens { get; set; }
+    DbSet<TscConfiguration> TscConfigurations { get; set; }
     void RejectChanges();
 }
