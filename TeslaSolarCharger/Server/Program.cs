@@ -5,6 +5,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -69,6 +70,10 @@ try
 
     var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
     await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+
+    var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
+    var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+    logger.LogTrace("Installation Id: {installationId}", installationId);
 
     var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
     await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);

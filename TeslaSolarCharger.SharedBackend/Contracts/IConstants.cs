@@ -10,4 +10,6 @@ public interface IConstants
     /// Soc Difference needs to be higher than this value
     /// </summary>
     int MinimumSocDifference { get; }
+
+    string InstallationIdKey { get; }
 }
