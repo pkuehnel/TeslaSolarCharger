@@ -175,29 +175,7 @@ public class CoreService : ICoreService
         return _fixedPriceService.GetPriceData(from, to, null);
     }
 
-    public async Task PostInstallationInformation(string reason)
-    {
-        try
-        {
-            var url = _configurationWrapper.BackendApiBaseUrl() + "Tsc/NotifyInstallation";
-            var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-            var currentVersion = await GetCurrentVersion().ConfigureAwait(false);
-            var installationInformation = new DtoInstallationInformation
-            {
-                InstallationId = installationId.ToString(),
-                Version = currentVersion ?? "unknown",
-                InfoReason = reason,
-            };
-            using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(10);
-            var response = await httpClient.PostAsJsonAsync(url, installationInformation).ConfigureAwait(false);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Could not post installation information");
-        }
-
-    }
+    
 
     public async Task<string> GetInstallationId()
     {
