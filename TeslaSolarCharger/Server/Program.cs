@@ -59,6 +59,7 @@ try
 
     var coreService = app.Services.GetRequiredService<ICoreService>();
     coreService.LogVersion();
+    await coreService.PostInstallationInformation("Startup").ConfigureAwait(false);
 
     await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
 
