@@ -60,7 +60,7 @@ else
                         break;
                 }
                 <div>
-                    <button class="btn btn-primary" @onclick="GenerateFleetApiToken">Generate Token</button>
+                    <button class="btn btn-primary" disabled="@_tokenGenerationButtonDisabled" type="button" @onclick="GenerateFleetApiToken">Generate Token</button>
                 </div>
                 <hr />
             }
@@ -566,6 +566,8 @@ else
 
     private FleetApiTokenState? _fleetApiTokenState;
 
+    private bool _tokenGenerationButtonDisabled;
+
     protected override async Task OnInitializedAsync()
     {
         _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
@@ -591,6 +593,7 @@ else
 
     private async Task GenerateFleetApiToken()
     {
+        _tokenGenerationButtonDisabled = true;
         var locale = CultureInfo.CurrentCulture.ToString();
         var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={locale}").ConfigureAwait(false);
         if (url?.Value != null)

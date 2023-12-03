@@ -2,7 +2,7 @@
 
 namespace TeslaSolarCharger.Server.Dtos.TscBackend;
 
-public class TeslaTscDeliveryToken
+public class DtoTeslaTscDeliveryToken
 {
     public string AccessToken { get; set; }
     public string RefreshToken { get; set; }

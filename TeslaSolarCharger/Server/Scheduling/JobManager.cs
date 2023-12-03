@@ -42,6 +42,7 @@ public class JobManager
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
         var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
+        var fleetApiTokenRefreshJob = JobBuilder.Create<FleetApiTokenRefreshJob>().Build();
 
         var currentDate = _dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -63,8 +64,6 @@ public class JobManager
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds))
             .Build();
 
-        
-
         var carStateCachingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
@@ -83,6 +82,9 @@ public class JobManager
         var spotPricePlanningTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(1)).Build();
 
+        var fleetApiTokenRefreshTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
@@ -93,6 +95,7 @@ public class JobManager
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
+            {fleetApiTokenRefreshJob, new HashSet<ITrigger> {fleetApiTokenRefreshTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);
