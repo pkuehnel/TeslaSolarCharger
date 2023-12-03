@@ -2,6 +2,6 @@
 
 public class DtoVehicleCommandResult
 {
-    bool Result { get; set; }
-    string Reason { get; set; }
+    public bool Result { get; set; }
+    public string Reason { get; set; }
 }

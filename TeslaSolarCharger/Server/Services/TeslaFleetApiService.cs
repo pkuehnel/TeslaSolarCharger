@@ -28,6 +28,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
     private readonly ITeslamateApiService _teslamateApiService;
     private readonly IConstants _constants;
     private readonly ITscConfigurationService _tscConfigurationService;
+    private readonly IBackendApiService _backendApiService;
 
     private readonly string _chargeStartComand = "command/charge_start";
     private readonly string _chargeStopComand = "command/charge_stop";
@@ -36,7 +37,8 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
 
     public TeslaFleetApiService(ILogger<TeslaFleetApiService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
         IDateTimeProvider dateTimeProvider, ITeslamateContext teslamateContext, IConfigurationWrapper configurationWrapper,
-        ITeslamateApiService teslamateApiService, IConstants constants, ITscConfigurationService tscConfigurationService)
+        ITeslamateApiService teslamateApiService, IConstants constants, ITscConfigurationService tscConfigurationService,
+        IBackendApiService backendApiService)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
@@ -46,6 +48,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         _teslamateApiService = teslamateApiService;
         _constants = constants;
         _tscConfigurationService = tscConfigurationService;
+        _backendApiService = backendApiService;
     }
 
     public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
@@ -125,7 +128,18 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         var requestUri = $"https://fleet-api.prd.{regionCode}.vn.cloud.tesla.com/api/1/vehicles/{id}/{commandName}";
         var response = await httpClient.PostAsync(requestUri, content).ConfigureAwait(false);
         var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            await _backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                $"Sending command to Tesla API resulted in non succes status code: {commandName}, {contentData}. Response string: {responseString}").ConfigureAwait(false);
+        }
         _logger.LogDebug("Response: {responseString}", responseString);
+        var result = JsonConvert.DeserializeObject<DtoVehicleCommandResult>(responseString);
+        if (result?.Result == false)
+        {
+            await _backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                $"Result of command request is false: {commandName}, {contentData}. Response string: {responseString}").ConfigureAwait(false);
+        }
         return await response.Content.ReadFromJsonAsync<DtoVehicleCommandResult>().ConfigureAwait(false);
     }
 
@@ -159,6 +173,12 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             var url = _configurationWrapper.BackendApiBaseUrl() + $"Tsc/DeliverAuthToken?installationId={installationId}";
             var response = await httpClient.GetAsync(url).ConfigureAwait(false);
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                await _backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                    $"Getting token from TscBackend. Response string: {responseString}").ConfigureAwait(false);
+            }
+            response.EnsureSuccessStatusCode();
             var newToken = JsonConvert.DeserializeObject<DtoTeslaTscDeliveryToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
             await AddNewTokenAsync(newToken).ConfigureAwait(false);
         }
@@ -227,6 +247,11 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             encodedContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
             var response = await httpClient.PostAsync(tokenUrl, encodedContent).ConfigureAwait(false);
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                await _backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                    $"Refreshing token did result in non success status code. Response string: {responseString}").ConfigureAwait(false);
+            }
             response.EnsureSuccessStatusCode();
             var newToken = JsonConvert.DeserializeObject<DtoTeslaFleetApiRefreshToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
             token.AccessToken = newToken.AccessToken;

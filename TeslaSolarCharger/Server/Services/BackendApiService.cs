@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
@@ -70,5 +72,64 @@ public class BackendApiService : IBackendApiService
         var url =
             $"https://auth.tesla.com/oauth2/v3/authorize?&client_id={Uri.EscapeDataString(oAuthInformation.ClientId)}&locale={Uri.EscapeDataString(locale)}&prompt={Uri.EscapeDataString(oAuthInformation.Prompt)}&redirect_uri={Uri.EscapeDataString(oAuthInformation.RedirectUri)}&response_type={Uri.EscapeDataString(oAuthInformation.ResponseType)}&scope={Uri.EscapeDataString(oAuthInformation.Scope)}&state={Uri.EscapeDataString(oAuthInformation.State)}";
         return url;
+    }
+
+    public async Task PostInstallationInformation(string reason)
+    {
+        try
+        {
+            var url = _configurationWrapper.BackendApiBaseUrl() + "Tsc/NotifyInstallation";
+            var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+            var currentVersion = await GetCurrentVersion().ConfigureAwait(false);
+            var installationInformation = new DtoInstallationInformation
+            {
+                InstallationId = installationId.ToString(),
+                Version = currentVersion ?? "unknown",
+                InfoReason = reason,
+            };
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
+            var response = await httpClient.PostAsJsonAsync(url, installationInformation).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Could not post installation information");
+        }
+
+    }
+
+    public async Task PostErrorInformation(string source, string methodName, string message, string? stackTrace = null)
+    {
+        try
+        {
+            var url = _configurationWrapper.BackendApiBaseUrl() + "Tsc/NotifyError";
+            var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+            var currentVersion = await GetCurrentVersion().ConfigureAwait(false);
+            var errorInformation = new DtoErrorInformation()
+            {
+                InstallationId = installationId.ToString(),
+                Source = source,
+                MethodName = methodName,
+                Message = message,
+                Version = currentVersion ?? "unknown",
+                StackTrace = stackTrace,
+            };
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
+            var response = await httpClient.PostAsJsonAsync(url, errorInformation).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Could not post error information");
+        }
+
+    }
+
+    public Task<string?> GetCurrentVersion()
+    {
+        _logger.LogTrace("{method}()", nameof(GetCurrentVersion));
+        var assembly = Assembly.GetExecutingAssembly();
+        var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+        return Task.FromResult(fileVersionInfo.ProductVersion);
     }
 }
