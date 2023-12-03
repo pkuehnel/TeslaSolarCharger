@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -9,10 +10,12 @@ namespace TeslaSolarCharger.Server.Controllers
     public class HelloController : ApiBaseController
     {
         private readonly ICoreService _coreService;
+        private readonly ITscConfigurationService _tscConfigurationService;
 
-        public HelloController(ICoreService coreService)
+        public HelloController(ICoreService coreService, ITscConfigurationService tscConfigurationService)
         {
             _coreService = coreService;
+            _tscConfigurationService = tscConfigurationService;
         }
 
         [HttpGet]

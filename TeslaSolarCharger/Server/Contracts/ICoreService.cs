@@ -19,5 +19,6 @@ public interface ICoreService
     DtoValue<int> TeslaApiRequestsSinceStartup();
     DtoValue<bool> ShouldDisplayApiRequestCounter();
     Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to);
+    Task PostInstallationInformation(string reason);
     Task<string> GetInstallationId();
 }
