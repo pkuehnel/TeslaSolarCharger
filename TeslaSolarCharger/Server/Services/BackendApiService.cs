@@ -34,6 +34,9 @@ public class BackendApiService : IBackendApiService
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale)
     {
         _logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
+        var currentTokens = await _teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
+        _teslaSolarChargerContext.TeslaTokens.RemoveRange(currentTokens);
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var backendApiBaseUrl = _configurationWrapper.BackendApiBaseUrl();
         using var httpClient = new HttpClient();

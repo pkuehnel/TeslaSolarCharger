@@ -146,6 +146,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             case FleetApiTokenState.Expired:
                 break;
             case FleetApiTokenState.UpToDate:
+                _logger.LogDebug("Token is up to date.");
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -226,6 +227,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             encodedContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
             var response = await httpClient.PostAsync(tokenUrl, encodedContent).ConfigureAwait(false);
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
             var newToken = JsonConvert.DeserializeObject<DtoTeslaFleetApiRefreshToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
             token.AccessToken = newToken.AccessToken;
             token.RefreshToken = newToken.RefreshToken;
