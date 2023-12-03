@@ -1,9 +1,12 @@
 ﻿@page "/BaseConfiguration"
+@using System.Globalization
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
 @using Majorsoft.Blazor.Components.Collapse
+@using TeslaSolarCharger.Shared.Dtos
 @inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
 @inject IToastService ToastService
 
 
@@ -30,6 +33,37 @@ else
                 </InputFragment>
             </InputComponent>
             <hr />
+            @if (_fleetApiTokenState != FleetApiTokenState.NotNeeded)
+            {
+                <h3>Tesla Fleet API:</h3>
+                @switch (_fleetApiTokenState)
+                {
+                    case FleetApiTokenState.NotRequested:
+                        <div>
+                            You have to generate a token in order to use the Tesla Fleet API.
+                        </div>
+                        break;
+                    case FleetApiTokenState.NotReceived:
+                        <div>
+                            You already have requested a token but did not receive it yet. It can take up to five minutes to receive the token. If the token did not arrive within five minutes please try again:
+                        </div>
+                        break;
+                    case FleetApiTokenState.Expired:
+                        <div>
+                            Your token has expired. This could happen if you changed your Tesla password or did not use TeslaSolarCharger for too long. Please generate a new token:
+                        </div>
+                        break;
+                    case FleetApiTokenState.UpToDate:
+                        <div>
+                            Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:
+                        </div>
+                        break;
+                }
+                <div>
+                    <button class="btn btn-primary" disabled="@_tokenGenerationButtonDisabled" type="button" @onclick="GenerateFleetApiToken">Generate Token</button>
+                </div>
+                <hr />
+            }
             <h3>TeslaMate:</h3>
             <InputComponent ValueId="teslaMateDbUser"
                             LabelText="TeslaMate Database Username"
@@ -459,17 +493,19 @@ else
                     </InputComponent>
                     <hr/>
 
-                    <InputComponent ValueId="teslaMateApiBaseUrl"
-                                LabelText="Teslamate API Base Url"
-                                UnitText=""
-                                HelpText="You can use the name of the container and the default port even though you changed the external port.">
-                        <InputFragment>
-                            <InputText id="teslaMateApiBaseUrl" @bind-Value="_dtoBaseConfiguration.TeslaMateApiBaseUrl" placeholder=" " class="form-control"/>
-                        </InputFragment>
-                    </InputComponent>
-                    <hr/>
-
-
+                    @if (_fleetApiTokenState == FleetApiTokenState.NotNeeded)
+                    {
+                        <InputComponent ValueId="teslaMateApiBaseUrl"
+                                        LabelText="Teslamate API Base Url"
+                                        UnitText=""
+                                        HelpText="You can use the name of the container and the default port even though you changed the external port.">
+                            <InputFragment>
+                                <InputText id="teslaMateApiBaseUrl" @bind-Value="_dtoBaseConfiguration.TeslaMateApiBaseUrl" placeholder=" " class="form-control"/>
+                            </InputFragment>
+                        </InputComponent>
+                        <hr/>
+                    }
+                    
                     <InputComponent ValueId="teslaMateDbServer"
                                     LabelText="TeslaMate Database Server Name"
                                     UnitText=""
@@ -528,9 +564,18 @@ else
 @code {
     private DtoBaseConfiguration? _dtoBaseConfiguration;
 
+    private FleetApiTokenState? _fleetApiTokenState;
+
+    private bool _tokenGenerationButtonDisabled;
+
     protected override async Task OnInitializedAsync()
     {
         _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
+        var value = await HttpClient.GetFromJsonAsync<DtoValue<FleetApiTokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
+        if (value != null)
+        {
+            _fleetApiTokenState = value.Value;
+        }
     }
 
     private async Task HandleValidSubmit()
@@ -543,6 +588,17 @@ else
         else
         {
             ToastService.ShowError("Error updating base configuration");
+        }
+    }
+
+    private async Task GenerateFleetApiToken()
+    {
+        _tokenGenerationButtonDisabled = true;
+        var locale = CultureInfo.CurrentCulture.ToString();
+        var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={locale}").ConfigureAwait(false);
+        if (url?.Value != null)
+        {
+            NavigationManager.NavigateTo(url.Value);
         }
     }
 

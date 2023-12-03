@@ -12,4 +12,5 @@ public interface IConstants
     int MinimumSocDifference { get; }
 
     string InstallationIdKey { get; }
+    string FleetApiTokenRequested { get; }
 }

@@ -11,4 +11,5 @@ public class Constants : IConstants
     public int MinimumSocDifference => 2;
 
     public string InstallationIdKey => "InstallationId";
+    public string FleetApiTokenRequested => "FleetApiTokenRequested";
 }

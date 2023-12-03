@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()
+            .AddTransient<FleetApiTokenRefreshJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -96,6 +97,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
             .AddTransient<ITeslamateApiService, TeslamateApiService>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
+            .AddTransient<IBackendApiService, BackendApiService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos;
-using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
+using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -53,7 +51,7 @@ namespace TeslaSolarCharger.Server.Controllers
             _service.UpdateCarBasicConfiguration(carId, carBasicConfiguration);
 
         [HttpPost]
-        public Task AddTeslaFleetApiToken([FromBody]DtoTeslaFleetApiRefreshToken token, TeslaFleetApiRegion region) =>
-            _teslaFleetApiService.AddNewTokenAsync(token, region);
+        public Task AddTeslaFleetApiToken([FromBody] DtoTeslaTscDeliveryToken token) =>
+            _teslaFleetApiService.AddNewTokenAsync(token);
     }
 }
