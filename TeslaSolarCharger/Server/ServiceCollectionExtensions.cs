@@ -96,6 +96,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
             .AddTransient<ITeslamateApiService, TeslamateApiService>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
+            .AddTransient<IBackendApiService, BackendApiService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

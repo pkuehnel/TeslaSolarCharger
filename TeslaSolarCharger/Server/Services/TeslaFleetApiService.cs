@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Globalization;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -10,7 +11,9 @@ using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -22,6 +25,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
     private readonly ITeslamateContext _teslamateContext;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly ITeslamateApiService _teslamateApiService;
+    private readonly IConstants _constants;
 
     private readonly string _chargeStartComand = "command/charge_start";
     private readonly string _chargeStopComand = "command/charge_stop";
@@ -30,7 +34,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
 
     public TeslaFleetApiService(ILogger<TeslaFleetApiService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
         IDateTimeProvider dateTimeProvider, ITeslamateContext teslamateContext, IConfigurationWrapper configurationWrapper,
-        ITeslamateApiService teslamateApiService)
+        ITeslamateApiService teslamateApiService, IConstants constants)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
@@ -38,6 +42,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         _teslamateContext = teslamateContext;
         _configurationWrapper = configurationWrapper;
         _teslamateApiService = teslamateApiService;
+        _constants = constants;
     }
 
     public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
@@ -121,6 +126,46 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         return await response.Content.ReadFromJsonAsync<DtoVehicleCommandResult>().ConfigureAwait(false);
     }
 
+    public async Task AddNewTokenAsync(DtoTeslaFleetApiRefreshToken token, TeslaFleetApiRegion region)
+    {
+        var currentTokens = await _teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
+        _teslaSolarChargerContext.TeslaTokens.RemoveRange(currentTokens);
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        _teslaSolarChargerContext.TeslaTokens.Add(new TeslaToken
+        {
+            AccessToken = token.AccessToken,
+            RefreshToken = token.RefreshToken,
+            IdToken = token.IdToken,
+            ExpiresAtUtc = _dateTimeProvider.UtcNow().AddSeconds(token.ExpiresIn),
+            Region = region,
+        });
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public async Task<DtoValue<FleetApiTokenState>> GetFleetApiTokenState()
+    {
+        if (!_configurationWrapper.UseFleetApi())
+        {
+            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotNeeded);
+        }
+        var token = await _teslaSolarChargerContext.TeslaTokens.FirstOrDefaultAsync().ConfigureAwait(false);
+        if (token != null)
+        {
+            return new DtoValue<FleetApiTokenState>(token.ExpiresAtUtc < _dateTimeProvider.UtcNow() ? FleetApiTokenState.Expired : FleetApiTokenState.UpToDate);
+        }
+        var tokenRequestedDateString = await _teslaSolarChargerContext.TscConfigurations
+            .Where(c => c.Key == _constants.FleetApiTokenRequested)
+            .Select(c => c.Value)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (tokenRequestedDateString == null)
+        {
+            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotRequested);
+        }
+        var tokenRequestedDate = DateTime.Parse(tokenRequestedDateString, null, DateTimeStyles.RoundtripKind);
+        //ToDo: return not requested if request is older than x -> Currently not nown as not known how old a code can be to create a token out of it.
+        return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotReceived);
+    }
+
     private async Task<TeslaToken> GetAccessTokenAsync()
     {
         _logger.LogTrace("{method}()", nameof(GetAccessTokenAsync));
@@ -154,19 +199,4 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         return token;
     }
 
-    public async Task AddNewTokenAsync(DtoTeslaFleetApiRefreshToken token, TeslaFleetApiRegion region)
-    {
-        var currentTokens = await _teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
-        _teslaSolarChargerContext.TeslaTokens.RemoveRange(currentTokens);
-        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        _teslaSolarChargerContext.TeslaTokens.Add(new TeslaToken
-        {
-            AccessToken = token.AccessToken,
-            RefreshToken = token.RefreshToken,
-            IdToken = token.IdToken,
-            ExpiresAtUtc = _dateTimeProvider.UtcNow().AddSeconds(token.ExpiresIn),
-            Region = region,
-        });
-        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-    }
 }

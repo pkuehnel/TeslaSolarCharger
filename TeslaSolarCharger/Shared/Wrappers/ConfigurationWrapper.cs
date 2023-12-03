@@ -99,6 +99,20 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
+    public bool UseFleetApi()
+    {
+        var environmentVariableName = "UseFleetApi";
+        var value = _configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
+    public string BackendApiBaseUrl()
+    {
+        var environmentVariableName = "BackendApiBaseUrl";
+        var value = _configuration.GetValue<string>(environmentVariableName);
+        return value;
+    }
+
     public string FleetApiClientId()
     {
         var environmentVariableName = "FleetApiClientId";
