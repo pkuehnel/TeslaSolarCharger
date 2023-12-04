@@ -235,13 +235,15 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
                 $"Sending command to Tesla API resulted in non succes status code: {response.StatusCode} : Command name:{commandName}, Content data:{contentData}. Response string: {responseString}").ConfigureAwait(false);
         }
         _logger.LogDebug("Response: {responseString}", responseString);
-        var result = JsonConvert.DeserializeObject<DtoVehicleCommandResult>(responseString);
+        var root = JsonConvert.DeserializeObject<VehicleCommandResponse>(responseString);
+        var result = root?.Response;
         if (result?.Result == false)
         {
             await _backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                 $"Result of command request is false: {commandName}, {contentData}. Response string: {responseString}").ConfigureAwait(false);
         }
-        return await response.Content.ReadFromJsonAsync<DtoVehicleCommandResult>().ConfigureAwait(false);
+
+        return result ?? null;
     }
 
     public async Task RefreshTokenAsync()
