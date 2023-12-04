@@ -221,7 +221,11 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotRequested);
         }
         var tokenRequestedDate = DateTime.Parse(tokenRequestedDateString, null, DateTimeStyles.RoundtripKind);
-        //ToDo: return not requested if request is older than x -> Currently not nown as not known how old a code can be to create a token out of it.
+        var currentDate = _dateTimeProvider.UtcNow();
+        if (tokenRequestedDate < currentDate.AddMinutes(-5))
+        {
+            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.TokenRequestExpired);
+        }
         return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotReceived);
     }
 
