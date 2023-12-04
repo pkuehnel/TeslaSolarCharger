@@ -155,6 +155,9 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             case FleetApiTokenState.NotRequested:
                 _logger.LogDebug("No token has been requested, yet.");
                 return;
+            case FleetApiTokenState.TokenRequestExpired:
+                _logger.LogError("Your toke request has expired, create a new one.");
+                return;
             case FleetApiTokenState.NotReceived:
                 break;
             case FleetApiTokenState.Expired:
