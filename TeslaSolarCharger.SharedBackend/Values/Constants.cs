@@ -12,4 +12,5 @@ public class Constants : IConstants
 
     public string InstallationIdKey => "InstallationId";
     public string FleetApiTokenRequested => "FleetApiTokenRequested";
+    public string TokenRefreshUnauthorized => "TokenRefreshUnauthorized";
 }

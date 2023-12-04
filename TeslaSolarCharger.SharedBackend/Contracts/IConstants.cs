@@ -13,4 +13,5 @@ public interface IConstants
 
     string InstallationIdKey { get; }
     string FleetApiTokenRequested { get; }
+    string TokenRefreshUnauthorized { get; }
 }

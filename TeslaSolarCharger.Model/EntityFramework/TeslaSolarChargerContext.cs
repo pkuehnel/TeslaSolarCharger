@@ -43,6 +43,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<ChargePrice>()
             .Property(c => c.EnergyProvider)
             .HasDefaultValue(EnergyProvider.OldTeslaSolarChargerConfig);
+
+        modelBuilder.Entity<TscConfiguration>()
+            .HasIndex(c => c.Key)
+            .IsUnique();
     }
 
 #pragma warning disable CS8618
