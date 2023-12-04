@@ -131,7 +131,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         if (!response.IsSuccessStatusCode)
         {
             await _backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                $"Sending command to Tesla API resulted in non succes status code: {commandName}, {contentData}. Response string: {responseString}").ConfigureAwait(false);
+                $"Sending command to Tesla API resulted in non succes status code: {response.StatusCode} : Command name:{commandName}, Content data:{contentData}. Response string: {responseString}").ConfigureAwait(false);
         }
         _logger.LogDebug("Response: {responseString}", responseString);
         var result = JsonConvert.DeserializeObject<DtoVehicleCommandResult>(responseString);
@@ -176,7 +176,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             if (!response.IsSuccessStatusCode)
             {
                 await _backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                    $"Getting token from TscBackend. Response string: {responseString}").ConfigureAwait(false);
+                    $"Getting token from TscBackend. Response status code: {response.StatusCode} Response string: {responseString}").ConfigureAwait(false);
             }
             response.EnsureSuccessStatusCode();
             var newToken = JsonConvert.DeserializeObject<DtoTeslaTscDeliveryToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
@@ -250,7 +250,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             if (!response.IsSuccessStatusCode)
             {
                 await _backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                    $"Refreshing token did result in non success status code. Response string: {responseString}").ConfigureAwait(false);
+                    $"Refreshing token did result in non success status code. Response status code: {response.StatusCode} Response string: {responseString}").ConfigureAwait(false);
             }
             response.EnsureSuccessStatusCode();
             var newToken = JsonConvert.DeserializeObject<DtoTeslaFleetApiRefreshToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
