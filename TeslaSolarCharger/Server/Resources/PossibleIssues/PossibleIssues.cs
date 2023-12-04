@@ -135,10 +135,36 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
-                issueKeys.NewTeslaApi, CreateIssue("New cars are currently not supported",
+                issueKeys.NewTeslaApiNotUsed, CreateIssue("New cars need a new Tesla API. As this is in a very early beta state I highly recommend not using it if your car supports the old API!",
                     IssueType.Information,
-                    "If there are any updates on this topic, I will post them <a href=\"https://github.com/pkuehnel/TeslaSolarCharger/issues/988\"  target=\"_blank\">here</a>.",
-                    "Sorry for this information beeing not removable - it will be possible in a future update."
+                    "To use the new API add <code>UseFleetApi=true</code> as environment variable in your <code>docker-compose.yml</code>",
+                    "Sorry for this information beeing not removable - as switching to the new API in January 2024 as default you won't see this information from then on."
+                )
+            },
+            {
+                issueKeys.FleetApiTokenNotRequested, CreateIssue("You did not request a Tesla Token, yet.",
+                    IssueType.Error,
+                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
+                )
+            },
+            {
+                issueKeys.FleetApiTokenNotReceived, CreateIssue("The Tesla token was not received, yet.",
+                    IssueType.Error,
+                    "Getting the Token can take up to five minutes after submitting your password.",
+                    "If waiting five minutes does not help, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
+                )
+            },
+            {
+                issueKeys.FleetApiTokenRequestExpired, CreateIssue("The Tesla token could not be received.",
+                    IssueType.Error,
+                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+                    "If this issue keeps occuring, feel free to open an issue <a href=\"https://github.com/pkuehnel/TeslaSolarCharger/issues\" target=\"_blank\">on Github</a> including the last 5 chars of your installation ID (bottom of the page). Do NOT include the whole ID."
+                )
+            },
+            {
+                issueKeys.FleetApiTokenExpired, CreateIssue("Your Tesla token has expired, this can occur when you changed your password or did not use the TeslaSolarCharger for too long..",
+                    IssueType.Error,
+                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
                 )
             },
         };

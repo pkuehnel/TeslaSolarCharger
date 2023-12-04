@@ -4,6 +4,7 @@ public enum FleetApiTokenState
 {
     NotNeeded,
     NotRequested,
+    TokenRequestExpired,
     NotReceived,
     Expired,
     UpToDate,

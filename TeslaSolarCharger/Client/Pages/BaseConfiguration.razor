@@ -48,6 +48,11 @@ else
                             You already have requested a token but did not receive it yet. It can take up to five minutes to receive the token. If the token did not arrive within five minutes please try again:
                         </div>
                         break;
+                    case FleetApiTokenState.TokenRequestExpired:
+                        <div>
+                            Your token request has expired. Please generate a new token:
+                        </div>
+                        break;
                     case FleetApiTokenState.Expired:
                         <div>
                             Your token has expired. This could happen if you changed your Tesla password or did not use TeslaSolarCharger for too long. Please generate a new token:
