@@ -13,6 +13,8 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 
@@ -29,16 +31,18 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
     private readonly IConstants _constants;
     private readonly ITscConfigurationService _tscConfigurationService;
     private readonly IBackendApiService _backendApiService;
+    private readonly ISettings _settings;
 
     private readonly string _chargeStartComand = "command/charge_start";
     private readonly string _chargeStopComand = "command/charge_stop";
     private readonly string _setChargingAmps = "command/set_charging_amps";
+    private readonly string _setScheduledCharging = "command/set_scheduled_charging";
     private readonly string _wakeUpComand = "wake_up";
 
     public TeslaFleetApiService(ILogger<TeslaFleetApiService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
         IDateTimeProvider dateTimeProvider, ITeslamateContext teslamateContext, IConfigurationWrapper configurationWrapper,
         ITeslamateApiService teslamateApiService, IConstants constants, ITscConfigurationService tscConfigurationService,
-        IBackendApiService backendApiService)
+        IBackendApiService backendApiService, ISettings settings)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
@@ -49,6 +53,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         _constants = constants;
         _tscConfigurationService = tscConfigurationService;
         _backendApiService = backendApiService;
+        _settings = settings;
     }
 
     public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
@@ -91,10 +96,106 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         var result = await SendCommandToTeslaApi(id, _setChargingAmps, commandData).ConfigureAwait(false);
     }
 
-    public Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
+    public async Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
     {
-        _logger.LogError("This is currently not supported with Fleet API");
-        return Task.CompletedTask;
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(SetScheduledCharging), carId, chargingStartTime);
+        var id = await _teslamateContext.Cars.Where(c => c.Id == carId).Select(c => c.Eid).FirstAsync().ConfigureAwait(false);
+        var car = _settings.Cars.First(c => c.Id == carId);
+        if (!IsChargingScheduleChangeNeeded(chargingStartTime, _dateTimeProvider.DateTimeOffSetNow(), car, out var parameters))
+        {
+            _logger.LogDebug("No change in updating scheduled charging needed.");
+            return;
+        }
+
+        await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
+
+        var result = await SendCommandToTeslaApi(id, _setScheduledCharging, JsonConvert.SerializeObject(parameters)).ConfigureAwait(false);
+        //assume update was sucessfull as update is not working after mosquitto restart (or wrong cached State)
+        if (parameters["enable"] == "false")
+        {
+            car.CarState.ScheduledChargingStartTime = null;
+        }
+    }
+
+    internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
+    {
+        _logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, car.Id, nameof(parameters));
+        parameters = new Dictionary<string, string>();
+        if (chargingStartTime != null)
+        {
+            _logger.LogTrace("{chargingStartTime} is not null", nameof(chargingStartTime));
+            chargingStartTime = RoundToNextQuarterHour(chargingStartTime.Value);
+        }
+        if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
+        {
+            _logger.LogDebug("Correct charging start time already set.");
+            return false;
+        }
+
+        if (chargingStartTime == null)
+        {
+            _logger.LogDebug("Set chargingStartTime to null.");
+            parameters = new Dictionary<string, string>()
+            {
+                { "enable", "false" },
+                { "time", 0.ToString() },
+            };
+            return true;
+        }
+
+        var localStartTime = chargingStartTime.Value.ToLocalTime().TimeOfDay;
+        var minutesFromMidNight = (int)localStartTime.TotalMinutes;
+        var timeUntilChargeStart = chargingStartTime.Value - currentDate;
+        var scheduledChargeShouldBeSet = true;
+
+        if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
+        {
+            _logger.LogDebug("Correct charging start time already set.");
+            return true;
+        }
+
+        //ToDo: maybe disable scheduled charge in this case.
+        if (timeUntilChargeStart <= TimeSpan.Zero || timeUntilChargeStart.TotalHours > 24)
+        {
+            _logger.LogDebug("Charge schedule should not be changed, as time until charge start is higher than 24 hours or lower than zero.");
+            return false;
+        }
+
+        if (car.CarState.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
+        {
+            _logger.LogDebug("No charge schedule set and no charge schedule should be set.");
+            return true;
+        }
+        _logger.LogDebug("Normal parameter set.");
+        parameters = new Dictionary<string, string>()
+        {
+            { "enable", scheduledChargeShouldBeSet ? "true" : "false" },
+            { "time", minutesFromMidNight.ToString() },
+        };
+        _logger.LogTrace("{@parameters}", parameters);
+        return true;
+    }
+
+    internal DateTimeOffset RoundToNextQuarterHour(DateTimeOffset chargingStartTime)
+    {
+        var maximumTeslaChargeStartAccuracyMinutes = 15;
+        var minutes = chargingStartTime.Minute; // Aktuelle Minute des DateTimeOffset-Objekts
+
+        // Runden auf die nächste viertel Stunde
+        var roundedMinutes = (int)Math.Ceiling((double)minutes / maximumTeslaChargeStartAccuracyMinutes) *
+                             maximumTeslaChargeStartAccuracyMinutes;
+        var additionalHours = 0;
+        if (roundedMinutes == 60)
+        {
+            roundedMinutes = 0;
+            additionalHours = 1;
+        }
+
+        var newNotRoundedDateTime = chargingStartTime.AddHours(additionalHours);
+        chargingStartTime = new DateTimeOffset(newNotRoundedDateTime.Year, newNotRoundedDateTime.Month,
+            newNotRoundedDateTime.Day, newNotRoundedDateTime.Hour, roundedMinutes, 0, newNotRoundedDateTime.Offset);
+        _logger.LogDebug("Rounded charging Start time: {chargingStartTime}", chargingStartTime);
+        return chargingStartTime;
     }
 
     private async Task WakeUpCarIfNeeded(int carId, CarStateEnum? carState)
