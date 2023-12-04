@@ -38,6 +38,10 @@ public class BackendApiService : IBackendApiService
         _logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
         var currentTokens = await _teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
         _teslaSolarChargerContext.TeslaTokens.RemoveRange(currentTokens);
+        var isTokenUnauthorizedConfigEntries = await _teslaSolarChargerContext.TscConfigurations
+            .Where(c => c.Key == _constants.TokenRefreshUnauthorized)
+            .ToListAsync().ConfigureAwait(false);
+        _teslaSolarChargerContext.TscConfigurations.RemoveRange(isTokenUnauthorizedConfigEntries);
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var backendApiBaseUrl = _configurationWrapper.BackendApiBaseUrl();

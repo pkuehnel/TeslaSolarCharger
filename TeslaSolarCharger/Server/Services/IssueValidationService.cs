@@ -75,6 +75,9 @@ public class IssueValidationService : IIssueValidationService
                 case FleetApiTokenState.TokenRequestExpired:
                     issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenRequestExpired));
                     break;
+                case FleetApiTokenState.TokenUnauthorized:
+                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenUnauthorized));
+                    break;
                 case FleetApiTokenState.NotReceived:
                     issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenNotReceived));
                     break;

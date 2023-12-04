@@ -40,7 +40,7 @@ else
                 {
                     case FleetApiTokenState.NotRequested:
                         <div>
-                            You have to generate a token in order to use the Tesla Fleet API.
+                            You have to generate a token in order to use the Tesla Fleet API. Important: You have to allow access to all scopes.
                         </div>
                         break;
                     case FleetApiTokenState.NotReceived:
@@ -51,6 +51,11 @@ else
                     case FleetApiTokenState.TokenRequestExpired:
                         <div>
                             Your token request has expired. Please generate a new token:
+                        </div>
+                        break;
+                    case FleetApiTokenState.TokenUnauthorized:
+                        <div>
+                            Your token is unauthorized, Please generate a new token and allow access to all scopes. If you did not allow all scopes, you need to remove Tesla Solar Charger from your <a href="https://accounts.tesla.com/account-settings/security?tab=tpty-apps" target="_blank">third party apps</a> as you won't get asked again for the scopes. After removing the app you need to wait 24 hours before requesting a new token as all future token requests lead to unauthorized. This seems to be a bug with Tesla's API at the moment.
                         </div>
                         break;
                     case FleetApiTokenState.Expired:
