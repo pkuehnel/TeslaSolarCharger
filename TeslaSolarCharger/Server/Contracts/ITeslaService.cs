@@ -9,4 +9,5 @@ public interface ITeslaService
     Task StopCharging(int carId);
     Task SetAmp(int carId, int amps);
     Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime);
+    Task SetChargeLimit(int carId, int limitSoC);
 }

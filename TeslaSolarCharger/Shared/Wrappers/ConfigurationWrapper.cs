@@ -113,6 +113,12 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
+    public bool IsDevelopmentEnvironment()
+    {
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        return environment == "Development";
+    }
+
     public string FleetApiClientId()
     {
         var environmentVariableName = "FleetApiClientId";

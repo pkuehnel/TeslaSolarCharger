@@ -150,6 +150,11 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
     }
 
+    public Task SetChargeLimit(int carId, int limitSoC)
+    {
+        throw new NotImplementedException();
+    }
+
     internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
     {
         _logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, car.Id, nameof(parameters));

@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System.Globalization;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
@@ -17,6 +18,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
+using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -37,6 +39,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
     private readonly string _chargeStopComand = "command/charge_stop";
     private readonly string _setChargingAmps = "command/set_charging_amps";
     private readonly string _setScheduledCharging = "command/set_scheduled_charging";
+    private readonly string _setSocLimit = "command/set_charge_limit";
     private readonly string _wakeUpComand = "wake_up";
 
     public TeslaFleetApiService(ILogger<TeslaFleetApiService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
@@ -115,6 +118,19 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         {
             car.CarState.ScheduledChargingStartTime = null;
         }
+    }
+
+    public async Task SetChargeLimit(int carId, int limitSoC)
+    {
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(SetChargeLimit), carId, limitSoC);
+        var id = await _teslamateContext.Cars.Where(c => c.Id == carId).Select(c => c.Eid).FirstAsync().ConfigureAwait(false);
+        var car = _settings.Cars.First(c => c.Id == carId);
+        await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
+        var parameters = new Dictionary<string, string>()
+        {
+            { "percent", limitSoC.ToString() },
+        };
+        await SendCommandToTeslaApi(id, _setSocLimit, JsonConvert.SerializeObject(parameters)).ConfigureAwait(false);
     }
 
     internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
@@ -235,7 +251,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
                 $"Sending command to Tesla API resulted in non succes status code: {response.StatusCode} : Command name:{commandName}, Content data:{contentData}. Response string: {responseString}").ConfigureAwait(false);
         }
         _logger.LogDebug("Response: {responseString}", responseString);
-        var root = JsonConvert.DeserializeObject<VehicleCommandResponse>(responseString);
+        var root = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<DtoVehicleCommandResult>>(responseString);
         var result = root?.Response;
         if (result?.Result == false)
         {
@@ -259,10 +275,11 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
                 _logger.LogDebug("No token has been requested, yet.");
                 return;
             case FleetApiTokenState.TokenRequestExpired:
-                _logger.LogError("Your toke request has expired, create a new one.");
+                _logger.LogError("Your token request has expired, create a new one.");
                 return;
             case FleetApiTokenState.TokenUnauthorized:
-                break;
+                _logger.LogError("Your refresh token is unauthorized, create a new token.");
+                return;
             case FleetApiTokenState.NotReceived:
                 break;
             case FleetApiTokenState.Expired:
@@ -303,7 +320,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             AccessToken = token.AccessToken,
             RefreshToken = token.RefreshToken,
             IdToken = token.IdToken,
-            ExpiresAtUtc = _dateTimeProvider.UtcNow().AddMinutes(2),
+            ExpiresAtUtc = _dateTimeProvider.UtcNow().AddSeconds(token.ExpiresIn),
             Region = token.Region,
         });
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -385,6 +402,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
                     _teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
                     {
                         Key = _constants.TokenRefreshUnauthorized,
+                        Value = responseString,
                     });
                     await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
