@@ -5,6 +5,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,14 +15,15 @@ var configurationManager = builder.Configuration;
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddRazorPages();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddMyDependencies();
+var useFleetApi = configurationManager.GetValue<bool>("UseFleetApi");
+builder.Services.AddMyDependencies(useFleetApi);
 builder.Services.AddGridPriceProvider();
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -58,6 +60,9 @@ try
     var coreService = app.Services.GetRequiredService<ICoreService>();
     coreService.LogVersion();
 
+    var backendApiService = app.Services.GetRequiredService<IBackendApiService>();
+    await backendApiService.PostInstallationInformation("Startup").ConfigureAwait(false);
+
     await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
 
     var life = app.Services.GetRequiredService<IHostApplicationLifetime>();
@@ -68,6 +73,10 @@ try
 
     var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
     await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+
+    var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
+    var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+    logger.LogTrace("Installation Id: {installationId}", installationId);
 
     var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
     await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);

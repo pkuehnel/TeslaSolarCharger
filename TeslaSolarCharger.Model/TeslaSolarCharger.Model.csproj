@@ -24,4 +24,8 @@
     <ProjectReference Include="..\TeslaSolarCharger\Shared\TeslaSolarCharger.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Enums\" />
+  </ItemGroup>
+
 </Project>

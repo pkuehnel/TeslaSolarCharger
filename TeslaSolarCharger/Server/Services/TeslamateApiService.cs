@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -8,7 +9,7 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class TeslamateApiService : ITeslaService
+public class TeslamateApiService : ITeslaService, ITeslamateApiService
 {
     private readonly ILogger<TeslamateApiService> _logger;
     private readonly ITelegramService _telegramService;
@@ -149,6 +150,11 @@ public class TeslamateApiService : ITeslaService
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
     }
 
+    public Task SetChargeLimit(int carId, int limitSoC)
+    {
+        throw new NotImplementedException();
+    }
+
     internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
     {
         _logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, car.Id, nameof(parameters));
@@ -230,7 +236,7 @@ public class TeslamateApiService : ITeslaService
         return chargingStartTime;
     }
 
-    private async Task ResumeLogging(int carId)
+    public async Task ResumeLogging(int carId)
     {
         _logger.LogTrace("{method}({param1})", nameof(ResumeLogging), carId);
         var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/logging/resume";

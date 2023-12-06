@@ -2,8 +2,11 @@
 using System.Reflection;
 using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -22,11 +25,12 @@ public class CoreService : ICoreService
     private readonly ISolarMqttService _solarMqttService;
     private readonly ISettings _settings;
     private readonly IFixedPriceService _fixedPriceService;
+    private readonly ITscConfigurationService _tscConfigurationService;
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
         ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService, ISettings settings,
-        IFixedPriceService fixedPriceService)
+        IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService)
     {
         _logger = logger;
         _chargingService = chargingService;
@@ -38,6 +42,7 @@ public class CoreService : ICoreService
         _solarMqttService = solarMqttService;
         _settings = settings;
         _fixedPriceService = fixedPriceService;
+        _tscConfigurationService = tscConfigurationService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -168,5 +173,13 @@ public class CoreService : ICoreService
     {
         _logger.LogTrace("{method}({from}, {to})", nameof(GetPriceData), from, to);
         return _fixedPriceService.GetPriceData(from, to, null);
+    }
+
+    
+
+    public async Task<string> GetInstallationId()
+    {
+        var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+        return installationId.ToString();
     }
 }

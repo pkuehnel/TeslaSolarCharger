@@ -3,6 +3,7 @@ using System.Diagnostics;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
@@ -23,11 +24,12 @@ public class IssueValidationService : IIssueValidationService
     private readonly ITeslamateContext _teslamateContext;
     private readonly IConstants _constants;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ITeslaFleetApiService _teslaFleetApiService;
 
     public IssueValidationService(ILogger<IssueValidationService> logger, ISettings settings,
         ITeslaMateMqttService teslaMateMqttService, IPossibleIssues possibleIssues, IssueKeys issueKeys,
         IConfigurationWrapper configurationWrapper, ITeslamateContext teslamateContext,
-        IConstants constants, IDateTimeProvider dateTimeProvider)
+        IConstants constants, IDateTimeProvider dateTimeProvider, ITeslaFleetApiService teslaFleetApiService)
     {
         _logger = logger;
         _settings = settings;
@@ -38,23 +40,59 @@ public class IssueValidationService : IIssueValidationService
         _teslamateContext = teslamateContext;
         _constants = constants;
         _dateTimeProvider = dateTimeProvider;
+        _teslaFleetApiService = teslaFleetApiService;
     }
 
     public async Task<List<Issue>> RefreshIssues(TimeSpan clientTimeZoneId)
     {
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
-        var issueList = new List<Issue>
+        var issueList = new List<Issue>();
+        if (!_configurationWrapper.UseFleetApi())
         {
-            _possibleIssues.GetIssueByKey(_issueKeys.NewTeslaApi),
-        };
+            issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.NewTeslaApiNotUsed));
+        }
         issueList.AddRange(GetServerConfigurationIssues(clientTimeZoneId));
         if (Debugger.IsAttached)
         {
-            return issueList;
+            //return issueList;
         }
         issueList.AddRange(GetMqttIssues());
         issueList.AddRange(PvValueIssues());
-        issueList.AddRange(await GetTeslaMateApiIssues().ConfigureAwait(false));
+        if (!_configurationWrapper.UseFleetApi())
+        {
+            issueList.AddRange(await GetTeslaMateApiIssues().ConfigureAwait(false));
+        }
+        else
+        {
+            var tokenState = (await _teslaFleetApiService.GetFleetApiTokenState().ConfigureAwait(false)).Value;
+            switch (tokenState)
+            {
+                case FleetApiTokenState.NotNeeded:
+                    break;
+                case FleetApiTokenState.NotRequested:
+                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenNotRequested));
+                    break;
+                case FleetApiTokenState.TokenRequestExpired:
+                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenRequestExpired));
+                    break;
+                case FleetApiTokenState.TokenUnauthorized:
+                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenUnauthorized));
+                    break;
+                case FleetApiTokenState.MissingScopes:
+                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenMissingScopes));
+                    break;
+                case FleetApiTokenState.NotReceived:
+                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenNotReceived));
+                    break;
+                case FleetApiTokenState.Expired:
+                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenExpired));
+                    break;
+                case FleetApiTokenState.UpToDate:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
         issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
         issueList.AddRange(SofwareIssues());
         issueList.AddRange(ConfigurationIssues());

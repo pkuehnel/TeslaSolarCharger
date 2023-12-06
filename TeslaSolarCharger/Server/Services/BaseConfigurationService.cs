@@ -1,8 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
-using Microsoft.Net.Http.Headers;
+﻿using Microsoft.Data.Sqlite;
 using System.IO.Compression;
-using System.Net;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
@@ -10,7 +7,6 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
-using MediaTypeHeaderValue = System.Net.Http.Headers.MediaTypeHeaderValue;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -103,9 +99,7 @@ public class BaseConfigurationService : IBaseConfigurationService
 
             //Backup config files
             var baseConfigFileFullName = _configurationWrapper.BaseConfigFileFullName();
-            var carConfigFileFullName = _configurationWrapper.CarConfigFileFullName();
             File.Copy(baseConfigFileFullName, Path.Combine(backupCopyDestinationDirectory, Path.GetFileName(baseConfigFileFullName)), true);
-            File.Copy(carConfigFileFullName, Path.Combine(backupCopyDestinationDirectory, Path.GetFileName(carConfigFileFullName)), true);
 
 
             var backupFileName = "TSC-Backup.zip";

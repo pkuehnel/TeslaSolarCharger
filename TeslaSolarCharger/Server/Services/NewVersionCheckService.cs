@@ -1,4 +1,7 @@
 ﻿using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Dtos.TscBackend;
+using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -8,23 +11,28 @@ public class NewVersionCheckService : INewVersionCheckService
     private readonly ILogger<NewVersionCheckService> _logger;
     private readonly ICoreService _coreService;
     private readonly ISettings _settings;
+    private readonly IBackendApiService _backendApiService;
 
-    public NewVersionCheckService(ILogger<NewVersionCheckService> logger, ICoreService coreService, ISettings settings)
+    public NewVersionCheckService(ILogger<NewVersionCheckService> logger, ICoreService coreService, ISettings settings,
+        IBackendApiService backendApiService)
     {
         _logger = logger;
         _coreService = coreService;
         _settings = settings;
+        _backendApiService = backendApiService;
     }
 
     public async Task CheckForNewVersion()
     {
         _logger.LogTrace("{method}()", nameof(CheckForNewVersion));
         var currentVersion = await _coreService.GetCurrentVersion().ConfigureAwait(false);
+        await _backendApiService.PostInstallationInformation("CheckForNewVersion").ConfigureAwait(false);
         if (string.IsNullOrEmpty(currentVersion))
         {
             _settings.IsNewVersionAvailable = false;
             return;
         }
+        
 
         try
         {

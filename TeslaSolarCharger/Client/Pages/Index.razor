@@ -358,6 +358,12 @@ else
         {
             <p><em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em></p>
         }
+        <div>
+            <b>Installation ID</b>: @_installationId
+        </div>
+        <div>
+            <b>Language settings</b>: @CultureInfo.CurrentCulture
+        </div>
     </div>
 
 
@@ -394,6 +400,7 @@ else
     private string? _serverTimeZoneDisplayName;
     private bool? _shouldDisplayApiRequestCounter;
     private int? _apiRequestCount;
+    private string _installationId = "";
 
     private Timer? _timer;
 
@@ -410,6 +417,7 @@ else
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
+        _installationId = await HttpClient.GetStringAsync("api/Hello/GetInstallationId").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
         {
             _collapsedCarDetails.Add(carBaseState.CarId);

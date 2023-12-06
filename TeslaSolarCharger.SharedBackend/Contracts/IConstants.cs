@@ -10,4 +10,9 @@ public interface IConstants
     /// Soc Difference needs to be higher than this value
     /// </summary>
     int MinimumSocDifference { get; }
+
+    string InstallationIdKey { get; }
+    string FleetApiTokenRequested { get; }
+    string TokenRefreshUnauthorized { get; }
+    string TokenMissingScopes { get; }
 }

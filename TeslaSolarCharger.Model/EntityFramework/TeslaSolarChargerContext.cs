@@ -12,6 +12,8 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<HandledCharge> HandledCharges { get; set; } = null!;
     public DbSet<PowerDistribution> PowerDistributions { get; set; } = null!;
     public DbSet<SpotPrice> SpotPrices { get; set; } = null!;
+    public DbSet<TeslaToken> TeslaTokens { get; set; } = null!;
+    public DbSet<TscConfiguration> TscConfigurations { get; set; } = null!;
 
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
@@ -41,6 +43,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<ChargePrice>()
             .Property(c => c.EnergyProvider)
             .HasDefaultValue(EnergyProvider.OldTeslaSolarChargerConfig);
+
+        modelBuilder.Entity<TscConfiguration>()
+            .HasIndex(c => c.Key)
+            .IsUnique();
     }
 
 #pragma warning disable CS8618
