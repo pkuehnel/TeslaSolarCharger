@@ -1,8 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Globalization;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
@@ -17,6 +18,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
+using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -37,6 +39,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
     private readonly string _chargeStopComand = "command/charge_stop";
     private readonly string _setChargingAmps = "command/set_charging_amps";
     private readonly string _setScheduledCharging = "command/set_scheduled_charging";
+    private readonly string _setSocLimit = "command/set_charge_limit";
     private readonly string _wakeUpComand = "wake_up";
 
     public TeslaFleetApiService(ILogger<TeslaFleetApiService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
@@ -115,6 +118,19 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         {
             car.CarState.ScheduledChargingStartTime = null;
         }
+    }
+
+    public async Task SetChargeLimit(int carId, int limitSoC)
+    {
+        _logger.LogTrace("{method}({param1}, {param2})", nameof(SetChargeLimit), carId, limitSoC);
+        var id = await _teslamateContext.Cars.Where(c => c.Id == carId).Select(c => c.Eid).FirstAsync().ConfigureAwait(false);
+        var car = _settings.Cars.First(c => c.Id == carId);
+        await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
+        var parameters = new Dictionary<string, string>()
+        {
+            { "percent", limitSoC.ToString() },
+        };
+        await SendCommandToTeslaApi(id, _setSocLimit, JsonConvert.SerializeObject(parameters)).ConfigureAwait(false);
     }
 
     internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)

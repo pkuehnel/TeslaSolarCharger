@@ -89,4 +89,5 @@ public interface IConfigurationWrapper
     string FleetApiClientId();
     bool UseFleetApi();
     string BackendApiBaseUrl();
+    bool IsDevelopmentEnvironment();
 }
