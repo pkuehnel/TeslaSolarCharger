@@ -385,6 +385,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
                     _teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
                     {
                         Key = _constants.TokenRefreshUnauthorized,
+                        Value = responseString,
                     });
                     await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
