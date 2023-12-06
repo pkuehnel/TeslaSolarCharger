@@ -10,9 +10,3 @@ public class DtoVehicleCommandResult
     [JsonProperty("result")]
     public bool Result { get; set; }
 }
-
-public class VehicleCommandResponse
-{
-    [JsonProperty("response")]
-    public DtoVehicleCommandResult Response { get; set; }
-}

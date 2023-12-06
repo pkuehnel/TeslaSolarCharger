@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Globalization;
 using System.Net.Http.Headers;
@@ -251,7 +251,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
                 $"Sending command to Tesla API resulted in non succes status code: {response.StatusCode} : Command name:{commandName}, Content data:{contentData}. Response string: {responseString}").ConfigureAwait(false);
         }
         _logger.LogDebug("Response: {responseString}", responseString);
-        var root = JsonConvert.DeserializeObject<VehicleCommandResponse>(responseString);
+        var root = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<DtoVehicleCommandResult>>(responseString);
         var result = root?.Response;
         if (result?.Result == false)
         {
@@ -275,10 +275,11 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
                 _logger.LogDebug("No token has been requested, yet.");
                 return;
             case FleetApiTokenState.TokenRequestExpired:
-                _logger.LogError("Your toke request has expired, create a new one.");
+                _logger.LogError("Your token request has expired, create a new one.");
                 return;
             case FleetApiTokenState.TokenUnauthorized:
-                break;
+                _logger.LogError("Your refresh token is unauthorized, create a new token.");
+                return;
             case FleetApiTokenState.NotReceived:
                 break;
             case FleetApiTokenState.Expired:
@@ -319,7 +320,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             AccessToken = token.AccessToken,
             RefreshToken = token.RefreshToken,
             IdToken = token.IdToken,
-            ExpiresAtUtc = _dateTimeProvider.UtcNow().AddMinutes(2),
+            ExpiresAtUtc = _dateTimeProvider.UtcNow().AddSeconds(token.ExpiresIn),
             Region = token.Region,
         });
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
