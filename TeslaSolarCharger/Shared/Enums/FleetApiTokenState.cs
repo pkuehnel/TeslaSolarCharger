@@ -6,6 +6,7 @@ public enum FleetApiTokenState
     NotRequested,
     TokenRequestExpired,
     TokenUnauthorized,
+    MissingScopes,
     NotReceived,
     Expired,
     UpToDate,

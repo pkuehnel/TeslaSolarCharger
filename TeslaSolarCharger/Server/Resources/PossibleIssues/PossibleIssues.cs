@@ -148,10 +148,16 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
-                issueKeys.FleetApiTokenUnauthorized, CreateIssue("Your Tesla token is unauthorized, this could be due to a changed Tesla account password, or you did not select all scopes when granting the Tesla Solar Charger access.",
+                issueKeys.FleetApiTokenUnauthorized, CreateIssue("Your Tesla token is unauthorized, this could be due to a changed Tesla account password, or your you disabled mobile access in your car.",
                     IssueType.Error,
                     "Open the <a href=\"/BaseConfiguration\">Base Configuration</a>, request a new token and select all available scopes.",
-                    "If you did not allow all scopes, you need to remove Tesla Solar Charger from your <a href=\"https://accounts.tesla.com/account-settings/security?tab=tpty-apps\" target=\"_blank\">third party apps</a> as you won't get asked again for the scopes. After removing the app you need to wait 24 hours before requesting a new token as all future token requests lead to unauthorized. This seems to be a bug with Tesla's API at the moment."
+                    "Enable mobile access in your car."
+                )
+            },
+            {
+                issueKeys.FleetApiTokenMissingScopes, CreateIssue("Your Tesla token has missing scopes.",
+                    IssueType.Error,
+                    "Remove Tesla Solar Charger from your <a href=\"https://accounts.tesla.com/account-settings/security?tab=tpty-apps\" target=\"_blank\">third party apps</a> as you won't get asked again for the scopes. After that request a new token in the <a href=\"/BaseConfiguration\">Base Configuration</a> and select all available scopes."
                 )
             },
             {

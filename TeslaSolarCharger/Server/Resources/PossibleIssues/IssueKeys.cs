@@ -22,6 +22,7 @@ public class IssueKeys
     public string NewTeslaApiNotUsed => "NewTeslaApiNotUsed";
     public string FleetApiTokenNotRequested => "FleetApiTokenNotRequested";
     public string FleetApiTokenUnauthorized => "FleetApiTokenUnauthorized";
+    public string FleetApiTokenMissingScopes => "FleetApiTokenMissingScopes";
     public string FleetApiTokenRequestExpired => "FleetApiTokenRequestExpired";
     public string FleetApiTokenNotReceived => "FleetApiTokenNotReceived";
     public string FleetApiTokenExpired => "FleetApiTokenExpired";
