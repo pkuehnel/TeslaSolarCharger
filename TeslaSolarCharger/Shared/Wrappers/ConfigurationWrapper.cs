@@ -92,6 +92,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return path;
     }
 
+    public string GetAwattarBaseUrl()
+    {
+        var environmentVariableName = "AwattarBaseUrl";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        return value;
+    }
+
     public bool AllowCors()
     {
         var environmentVariableName = "AllowCORS";

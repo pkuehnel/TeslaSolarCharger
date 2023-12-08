@@ -39,6 +39,9 @@ public class SpotPriceService : TestBase
         Mock.Mock<IDateTimeProvider>()
             .Setup(d => d.DateTimeOffSetNow())
             .Returns(currentDate);
+        Mock.Mock<IConfigurationWrapper>()
+            .Setup(c => c.GetAwattarBaseUrl())
+            .Returns("https://api.awattar.de/v1/marketdata");
 
         var endFutureMilliseconds = currentDate.AddHours(48).ToUnixTimeMilliseconds();
 
