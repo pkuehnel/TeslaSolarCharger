@@ -54,6 +54,9 @@ public class SpotPriceService : TestBase
     public void Generates_Awattar_Url_WithOut_DateTimeOffset()
     {
         var spotPriceService = Mock.Create<TeslaSolarCharger.Server.Services.SpotPriceService>();
+        Mock.Mock<IConfigurationWrapper>()
+            .Setup(c => c.GetAwattarBaseUrl())
+            .Returns("https://api.awattar.de/v1/marketdata");
         var url = spotPriceService.GenerateAwattarUrl(null);
         Assert.Equal("https://api.awattar.de/v1/marketdata", url);
     }
