@@ -12,13 +12,15 @@ public class SpotPriceService : ISpotPriceService
     private readonly ILogger<SpotPriceService> _logger;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IConfigurationWrapper _configurationWrapper;
 
     public SpotPriceService(ILogger<SpotPriceService> logger, ITeslaSolarChargerContext teslaSolarChargerContext,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider, IConfigurationWrapper configurationWrapper)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _dateTimeProvider = dateTimeProvider;
+        _configurationWrapper = configurationWrapper;
     }
 
     public async Task UpdateSpotPrices()
@@ -71,7 +73,8 @@ public class SpotPriceService : ISpotPriceService
 
     internal string GenerateAwattarUrl(DateTimeOffset? fromDate)
     {
-        var url = "https://api.awattar.de/v1/marketdata";
+        var url = _configurationWrapper.GetAwattarBaseUrl();
+        //var url = "https://api.awattar.de/v1/marketdata";
         if (fromDate != null)
         {
             var toDate = _dateTimeProvider.DateTimeOffSetNow().AddHours(48);

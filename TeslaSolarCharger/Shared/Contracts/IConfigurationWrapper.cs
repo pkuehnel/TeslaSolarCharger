@@ -90,4 +90,5 @@ public interface IConfigurationWrapper
     bool UseFleetApi();
     string BackendApiBaseUrl();
     bool IsDevelopmentEnvironment();
+    string GetAwattarBaseUrl();
 }

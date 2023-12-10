@@ -71,6 +71,8 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
         await WakeUpCarIfNeeded(carId, carState).ConfigureAwait(false);
 
         var id = await _teslamateContext.Cars.Where(c => c.Id == carId).Select(c => c.Eid).FirstAsync().ConfigureAwait(false);
+        await SetAmp(carId, startAmp).ConfigureAwait(false);
+
         var result = await SendCommandToTeslaApi(id, _chargeStartComand).ConfigureAwait(false);
     }
 
