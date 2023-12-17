@@ -4,11 +4,9 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -16,7 +14,6 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
@@ -246,6 +243,7 @@ public class TeslaFleetApiService : ITeslaService, ITeslaFleetApiService
             _ => throw new NotImplementedException($"Region {accessToken.Region} is not implemented."),
         };
         var requestUri = $"https://fleet-api.prd.{regionCode}.vn.cloud.tesla.com/api/1/vehicles/{id}/{commandName}";
+        _settings.TeslaApiRequestCounter++;
         var response = await httpClient.PostAsync(requestUri, content).ConfigureAwait(false);
         var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
