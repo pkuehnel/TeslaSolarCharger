@@ -4,7 +4,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 80
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-bullseye-slim-amd64 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim-amd64 AS build
 WORKDIR /src
 COPY ["Plugins.Solax/Plugins.Solax.csproj", "Plugins.Solax/"]
 RUN dotnet restore "Plugins.Solax/Plugins.Solax.csproj"

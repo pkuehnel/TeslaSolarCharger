@@ -5,7 +5,7 @@ WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-bullseye-slim-amd64 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim-amd64 AS build
 WORKDIR /src
 COPY ["Plugins.Modbus/Plugins.Modbus.csproj", "Plugins.Modbus/"]
 RUN dotnet restore "Plugins.Modbus/Plugins.Modbus.csproj"
