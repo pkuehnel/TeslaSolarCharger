@@ -5,7 +5,7 @@ ARG MINVERVERSIONOVERRIDE
 WORKDIR /app
 EXPOSE 80
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-bullseye-slim-amd64 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim-amd64 AS build
 ARG MINVERVERSIONOVERRIDE
 WORKDIR /src
 COPY ["TeslaSolarCharger/Server/TeslaSolarCharger.Server.csproj", "TeslaSolarCharger/Server/"]
