@@ -23,5 +23,6 @@ RUN dotnet publish "TeslaSolarCharger.Server.csproj" -c Release -o /app/publish
 FROM base AS final
 ARG MINVERVERSIONOVERRIDE
 WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:80
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "TeslaSolarCharger.Server.dll"]
