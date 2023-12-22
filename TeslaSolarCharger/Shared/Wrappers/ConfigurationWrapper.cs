@@ -120,6 +120,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return value;
     }
 
+    public bool UseFleetApiProxy()
+    {
+        var environmentVariableName = "UseFleetApiProxy";
+        var value = _configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public string BackendApiBaseUrl()
     {
         var environmentVariableName = "BackendApiBaseUrl";

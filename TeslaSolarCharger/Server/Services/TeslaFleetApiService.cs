@@ -17,6 +17,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.Dtos;
+using static System.Net.WebRequestMethods;
 using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -285,10 +286,15 @@ public class TeslaFleetApiService(
 
     private string GetFleetApiBaseUrl(TeslaFleetApiRegion region, bool useProxyBaseUrl)
     {
-        if (useProxyBaseUrl)
+        if (useProxyBaseUrl && configurationWrapper.UseFleetApiProxy())
         {
             var configUrl = configurationWrapper.GetFleetApiBaseUrl();
             return configUrl ?? throw new KeyNotFoundException("Could not get Tesla HTTP proxy address");
+        }
+
+        if (region == TeslaFleetApiRegion.China)
+        {
+            return "https://fleet-api.prd.cn.vn.cloud.tesla.cn";
         }
         var regionCode = region switch
         {

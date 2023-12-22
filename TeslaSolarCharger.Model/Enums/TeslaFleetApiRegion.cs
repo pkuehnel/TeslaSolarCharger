@@ -4,4 +4,5 @@ public enum TeslaFleetApiRegion
 {
     Emea,
     NorthAmerica,
+    China,
 }
