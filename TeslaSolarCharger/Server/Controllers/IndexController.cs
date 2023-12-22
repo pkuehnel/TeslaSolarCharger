@@ -40,4 +40,7 @@ public class IndexController : ApiBaseController
 
     [HttpGet]
     public List<DtoChargingSlot> GetChargingSlots(int carId) => _indexService.GetChargingSlots(carId);
+
+    [HttpPost]
+    public Task ResetVehicleNotPaired() => _indexService.ResetVehicleNotPaired();
 }
