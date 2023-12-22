@@ -15,4 +15,5 @@ public interface IIndexService
     DtoCarTopicValues GetCarDetails(int carId);
     List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId);
     List<DtoChargingSlot> GetChargingSlots(int carId);
+    Task ResetVehicleNotPaired();
 }

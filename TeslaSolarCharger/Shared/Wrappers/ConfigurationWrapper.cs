@@ -92,6 +92,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
         return path;
     }
 
+    public string? GetFleetApiBaseUrl()
+    {
+        var environmentVariableName = "TeslaFleetApiBaseUrl";
+        var value = _configuration.GetValue<string?>(environmentVariableName);
+        return value;
+    }
+
     public string GetAwattarBaseUrl()
     {
         var environmentVariableName = "AwattarBaseUrl";
@@ -109,6 +116,13 @@ public class ConfigurationWrapper : IConfigurationWrapper
     public bool UseFleetApi()
     {
         var environmentVariableName = "UseFleetApi";
+        var value = _configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
+    public bool UseFleetApiProxy()
+    {
+        var environmentVariableName = "UseFleetApiProxy";
         var value = _configuration.GetValue<bool>(environmentVariableName);
         return value;
     }

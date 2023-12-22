@@ -28,12 +28,14 @@ public class IndexService : IIndexService
     private readonly IConstants _constants;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
 
     public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
         IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys,
         ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
         IChargeTimeCalculationService chargeTimeCalculationService,
-        IConstants constants, IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider)
+        IConstants constants, IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider,
+        ITeslaSolarChargerContext teslaSolarChargerContext)
     {
         _logger = logger;
         _settings = settings;
@@ -46,6 +48,7 @@ public class IndexService : IIndexService
         _constants = constants;
         _configurationWrapper = configurationWrapper;
         _dateTimeProvider = dateTimeProvider;
+        _teslaSolarChargerContext = teslaSolarChargerContext;
     }
 
     public DtoPvValues GetPvValues()
@@ -99,6 +102,17 @@ public class IndexService : IIndexService
             {
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
                     await _chargeTimeCalculationService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
+            }
+
+            if (_configurationWrapper.UseFleetApi())
+            {
+                var vin = await _teslamateContext.Cars.Where(c => c.Id == enabledCar.Id).Select(c => c.Vin).FirstOrDefaultAsync().ConfigureAwait(false);
+                var key = string.Format(_constants.VehicleNotPaired, vin);
+                if (!string.IsNullOrEmpty(vin) &&
+                    (await _teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == key).ConfigureAwait(false)))
+                {
+                    dtoCarBaseValues.VehicleNotPaired = true;
+                }
             }
 
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
@@ -302,6 +316,16 @@ public class IndexService : IIndexService
         _logger.LogTrace("{method}({carId})", nameof(GetChargingSlots), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
         return car.CarState.PlannedChargingSlots;
+    }
+
+    public async Task ResetVehicleNotPaired()
+    {
+        var key = string.Format(_constants.VehicleNotPaired, string.Empty);
+        var configs = await _teslaSolarChargerContext.TscConfigurations
+            .Where(c => c.Key.StartsWith(key))
+            .ToListAsync().ConfigureAwait(false);
+        _teslaSolarChargerContext.TscConfigurations.RemoveRange(configs);
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     string AddSpacesBeforeCapitalLetters(string text)
