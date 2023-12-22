@@ -46,4 +46,9 @@ public class FleetApiController : ApiBaseController
         }
         return _teslaService.SetChargeLimit(carId, percent);
     }
+
+    [HttpGet]
+    public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => _fleetApiService.TestFleetApiAccess(carId);
+    [HttpGet]
+    public DtoValue<bool> IsFleetApiEnabled() => _fleetApiService.IsFleetApiEnabled();
 }

@@ -60,6 +60,11 @@ public class TeslaFleetApiService(
         RequestUrl = "command/set_charge_limit",
         NeedsProxy = true,
     };
+    private DtoFleetApiRequest OpenChargePortDoorRequest => new()
+    {
+        RequestUrl = "command/charge_port_door_open",
+        NeedsProxy = true,
+    };
     private DtoFleetApiRequest WakeUpRequest => new()
     {
         RequestUrl = "wake_up",
@@ -90,7 +95,7 @@ public class TeslaFleetApiService(
         var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(vin, WakeUpRequest).ConfigureAwait(false);
         await teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
 
-        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(true);
     }
 
     public async Task StopCharging(int carId)
@@ -140,6 +145,41 @@ public class TeslaFleetApiService(
             { "percent", limitSoC },
         };
         await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargeLimitRequest, JsonConvert.SerializeObject(parameters)).ConfigureAwait(false);
+    }
+
+    public async Task<DtoValue<bool>> TestFleetApiAccess(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(TestFleetApiAccess), carId);
+        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var car = settings.Cars.First(c => c.Id == carId);
+        try
+        {
+            await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
+            var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, OpenChargePortDoorRequest).ConfigureAwait(false);
+            var successResult = result?.Response?.Result == true;
+            return new DtoValue<bool>(successResult);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Testing fleet api access was not successfull");
+            return new DtoValue<bool>(false);
+        }
+        
+        
+    }
+
+    public DtoValue<bool> IsFleetApiEnabled()
+    {
+        logger.LogTrace("{method}", nameof(IsFleetApiEnabled));
+        var isEnabled = configurationWrapper.UseFleetApi();
+        return new DtoValue<bool>(isEnabled);
+    }
+
+    public async Task OpenChargePortDoor(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(OpenChargePortDoor), carId);
+        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, OpenChargePortDoorRequest).ConfigureAwait(false);
     }
 
     private async Task<string> GetVinByCarId(int carId)

@@ -155,6 +155,42 @@ else
                     </TooltipComponent>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
                 </div>
+                @if (_usingFleetApi == true)
+                {
+                    <div class="d-flex align-items-center">
+                        <div class="p-2">
+                            <button class="btn btn-primary" @onclick="_ => TestFleetApiAccess(car.CarId)">
+                                @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span class="sr-only">Testing...</span>
+                                }
+                                else
+                                {
+                                    <span>Test Fleet API access</span>
+                                }
+                            </button>
+                        </div>
+                        <div class="p-2 flex-grow-1">
+                            @if (_isFleetApiWorkingForCar.Any(d => d.Key == car.CarId))
+                            {
+                                @if (_isFleetApiWorkingForCar[car.CarId] == true)
+                                {
+                                    <div class="alert alert-success" role="alert">
+                                        API access is working
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger" role="alert">
+                                        API access is not working. Note: For the test the car needs to be awake.
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                    
+                }
                 @if (car.VehicleNotPaired)
                 {
                     <div class="alert alert-danger" role="alert">
@@ -426,6 +462,9 @@ else
     private bool? _shouldDisplayApiRequestCounter;
     private int? _apiRequestCount;
     private string _installationId = "";
+    private bool? _usingFleetApi;
+    private Dictionary<int, bool?> _isFleetApiWorkingForCar = new();
+    private readonly HashSet<int> _testingFleetApiCarIds = new();
 
     private Timer? _timer;
 
@@ -441,6 +480,8 @@ else
         await RefreshApiRequestCount().ConfigureAwait(false);
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
+        var usingFleetApi = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/FleetApi/IsFleetApiEnabled").ConfigureAwait(false);
+        _usingFleetApi = usingFleetApi?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         _installationId = await HttpClient.GetStringAsync("api/Hello/GetInstallationId").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
@@ -645,6 +686,17 @@ else
     {
         var response = await HttpClient.PostAsync("api/Index/ResetVehicleNotPaired", null).ConfigureAwait(false);
         NavigationManager.NavigateTo("https://tesla.com/_ak/www.teslasolarcharger.de");
+    }
+
+    private async Task TestFleetApiAccess(int carId)
+    {
+        _testingFleetApiCarIds.Add(carId);
+        var response = await HttpClient.GetFromJsonAsync<DtoValue<bool>>($"api/FleetApi/TestFleetApiAccess?carId={carId}").ConfigureAwait(false);
+        if (response != default)
+        {
+            _isFleetApiWorkingForCar[carId] = response.Value;
+        }
+        _testingFleetApiCarIds.Remove(carId);
     }
 
 }
