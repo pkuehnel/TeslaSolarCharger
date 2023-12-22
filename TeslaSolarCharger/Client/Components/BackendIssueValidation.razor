@@ -11,12 +11,12 @@
         <h3>Issues:</h3>
         @foreach (var issue in _issues)
         {
-            <div style="background-color: @(issue.IssueType switch
-                                          {
-                                              IssueType.Error => "red",
-                                              IssueType.Warning => "yellow",
-                                              _ => "white",
-                                              })">
+            <div class="alert alert-@(issue.IssueType switch
+                                    {
+                                        IssueType.Error => "danger",
+                                        IssueType.Warning => "warning",
+                                        _ => "info",
+                                    })" role="alert">
                 <div>@issue.IssueMessage</div>
                 @if (issue.PossibleSolutions.Length > 0)
                 {
