@@ -293,6 +293,13 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
             {
                 lastChargingSlot.ChargeEnd = currentChargingSlot.ChargeEnd;
             }
+            // fix #652: if a slot is less than one hour long - and the next one starts in the hour after - merge the two by subtracting the first slot's duration from the start of the second block
+            else if ((currentChargingSlot.ChargeStart - lastChargingSlot.ChargeEnd).Hours == 0)
+            {
+                lastChargingSlot.ChargeStart = currentChargingSlot.ChargeStart.AddSeconds(
+                    (-3600 * lastChargingSlot.ChargeDuration.Hours) - (60 * lastChargingSlot.ChargeDuration.Minutes) - lastChargingSlot.ChargeDuration.Seconds);
+                lastChargingSlot.ChargeEnd = currentChargingSlot.ChargeEnd;
+            }
             else
             {
                 chargingSlots.Add(currentChargingSlot);
