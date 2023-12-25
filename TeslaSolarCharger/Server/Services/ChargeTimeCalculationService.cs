@@ -245,7 +245,25 @@ public class ChargeTimeCalculationService(
             }
         }
         
-        chargingSlots = ConcatenateChargeTimes(chargingSlotsBeforeConcatenation);
+        chargingSlots = ReduceNumberOfSpotPricedChargingSessions(chargingSlotsBeforeConcatenation);
+        return chargingSlots;
+    }
+
+    /// <summary>
+    /// Reduces the number of charging session by shifting chargingsessions with less than 1 hour duration to the next charging session if needed.
+    /// Note: This method should only be used if there charge prices within one hour are constant
+    /// </summary>
+    internal List<DtoChargingSlot> ReduceNumberOfSpotPricedChargingSessions(List<DtoChargingSlot> chargingSlotsBeforeConcatenation)
+    {
+        var chargingSlots = ConcatenateChargeTimes(chargingSlotsBeforeConcatenation);
+        if (chargingSlots.Count < 2)
+        {
+            return chargingSlots;
+        }
+        var reducedChargingSessionChargingSlots = new List<DtoChargingSlot>
+        {
+            chargingSlots.First(),
+        };
         for (var i = 1; i < chargingSlots.Count; i++)
         {
             var lastChargingSlot = chargingSlots[i - 1];
@@ -255,10 +273,15 @@ public class ChargeTimeCalculationService(
                 && (lastChargingSlot.ChargeEnd - currenChargingSlot.ChargeStart).TotalHours < 1)
             {
                 lastChargingSlot.ChargeStart = currenChargingSlot.ChargeStart - lastChargingSlot.ChargeDuration;
-                lastChargingSlot.ChargeEnd = currenChargingSlot.ChargeStart;
+                lastChargingSlot.ChargeEnd = currenChargingSlot.ChargeEnd;
+            }
+            else
+            {
+                reducedChargingSessionChargingSlots.Add(currenChargingSlot);
             }
         }
-        return chargingSlots;
+
+        return reducedChargingSessionChargingSlots;
     }
 
     private bool IsAbleToReachSocInTime(Car car, TimeSpan chargeDurationToMinSoc,
