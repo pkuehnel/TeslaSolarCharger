@@ -244,7 +244,20 @@ public class ChargeTimeCalculationService(
                 break;
             }
         }
+        
         chargingSlots = ConcatenateChargeTimes(chargingSlotsBeforeConcatenation);
+        for (var i = 1; i < chargingSlots.Count; i++)
+        {
+            var lastChargingSlot = chargingSlots[i - 1];
+            var currenChargingSlot = chargingSlots[i];
+            //Only move charging slots shorter than one hour as otherwise chargetime more hours ago could be reduced and shifted to more expensive hours
+            if (lastChargingSlot.ChargeDuration < TimeSpan.FromHours(1)
+                && (lastChargingSlot.ChargeEnd - currenChargingSlot.ChargeStart).TotalHours < 1)
+            {
+                lastChargingSlot.ChargeStart = currenChargingSlot.ChargeStart - lastChargingSlot.ChargeDuration;
+                lastChargingSlot.ChargeEnd = currenChargingSlot.ChargeStart;
+            }
+        }
         return chargingSlots;
     }
 
@@ -278,13 +291,6 @@ public class ChargeTimeCalculationService(
             var lastChargingSlot = chargingSlots.Last();
             if (lastChargingSlot.ChargeEnd == currentChargingSlot.ChargeStart)
             {
-                lastChargingSlot.ChargeEnd = currentChargingSlot.ChargeEnd;
-            }
-            // fix #652: if a slot is less than one hour long - and the next one starts in the hour after - merge the two by subtracting the first slot's duration from the start of the second block
-            else if ((currentChargingSlot.ChargeStart - lastChargingSlot.ChargeEnd).Hours == 0)
-            {
-                lastChargingSlot.ChargeStart = currentChargingSlot.ChargeStart.AddSeconds(
-                    (-3600 * lastChargingSlot.ChargeDuration.Hours) - (60 * lastChargingSlot.ChargeDuration.Minutes) - lastChargingSlot.ChargeDuration.Seconds);
                 lastChargingSlot.ChargeEnd = currentChargingSlot.ChargeEnd;
             }
             else
