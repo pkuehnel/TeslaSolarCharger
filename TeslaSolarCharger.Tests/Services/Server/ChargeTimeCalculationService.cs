@@ -230,7 +230,7 @@ public class ChargeTimeCalculationService : TestBase
         var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
-        var concatenatedChargingSlots = chargeTimeCalculationService.ConcatenateChargeTimes(chargingSlots);
+        var concatenatedChargingSlots = chargeTimeCalculationService.ReduceNumberOfSpotPricedChargingSessions(chargingSlots);
 
 
         Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
@@ -289,11 +289,13 @@ public class ChargeTimeCalculationService : TestBase
         var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
-        var concatenatedChargingSlots = chargeTimeCalculationService.ConcatenateChargeTimes(chargingSlots);
+        var concatenatedChargingSlots = chargeTimeCalculationService.ReduceNumberOfSpotPricedChargingSessions(chargingSlots);
 
 
-        Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
-        Assert.Single(concatenatedChargingSlots);
+        Assert.Equal(combinedChargingTimeBeforeConcatenation,
+            concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum(),
+            0.001);
+        Assert.Equal(2, concatenatedChargingSlots.Count);
     }
 
     [Fact]
@@ -316,7 +318,7 @@ public class ChargeTimeCalculationService : TestBase
         var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
-        var concatenatedChargingSlots = chargeTimeCalculationService.ConcatenateChargeTimes(chargingSlots);
+        var concatenatedChargingSlots = chargeTimeCalculationService.ReduceNumberOfSpotPricedChargingSessions(chargingSlots);
 
 
         Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
@@ -343,7 +345,7 @@ public class ChargeTimeCalculationService : TestBase
         var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
-        var concatenatedChargingSlots = chargeTimeCalculationService.ConcatenateChargeTimes(chargingSlots);
+        var concatenatedChargingSlots = chargeTimeCalculationService.ReduceNumberOfSpotPricedChargingSessions(chargingSlots);
 
 
         Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
