@@ -7,7 +7,7 @@
 @using TeslaSolarCharger.Shared.Dtos
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
-@inject IToastService ToastService
+@inject ISnackbar Snackbar
 
 
 <PageTitle>Base Configuration</PageTitle>
@@ -598,11 +598,11 @@ else
         var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
-            ToastService.ShowSuccess("Base Configuration updated");
+            Snackbar.Add("Base Configuration updated", Severity.Success);
         }
         else
         {
-            ToastService.ShowError("Error updating base configuration");
+            Snackbar.Add("Error updating base configuration", Severity.Error);
         }
     }
 
