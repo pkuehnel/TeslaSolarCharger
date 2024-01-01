@@ -1,7 +1,7 @@
 ﻿@page "/CarSettings"
 @using TeslaSolarCharger.Shared.Dtos
 @inject HttpClient HttpClient
-@inject IToastService ToastService
+@inject ISnackbar Snackbar
 
 <PageTitle>Car Settings</PageTitle>
 <h1>CarSettings</h1>
@@ -127,11 +127,11 @@ else
         var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarBasicConfiguration?carId={carId}", carBasicConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
-            ToastService.ShowSuccess("Car Configuration updated");
+            Snackbar.Add("Car Configuration updated", Severity.Success);
         }
         else
         {
-            ToastService.ShowError("Error updating car configuration");
+            Snackbar.Add("Error updating car configuration", Severity.Error);
         }
         _savingCarIds.RemoveAll(i => i == carId);
     }
