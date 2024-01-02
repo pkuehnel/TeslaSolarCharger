@@ -49,6 +49,15 @@ public class ConfigurationWrapper(
         return Path.Combine(configFileDirectory, value);
     }
 
+    public string AutoBackupsZipDirectory()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "AutoBackupZipDirectory";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
     public string RestoreTempDirectory()
     {
         var configFileDirectory = ConfigFileDirectory();

@@ -10,4 +10,5 @@ public interface IBaseConfigurationService
     void UpdatePowerBuffer(int powerBuffer);
     Task<byte[]> DownloadBackup(string backupFileNameSuffix, string? backupZipDestinationDirectory);
     Task RestoreBackup(IFormFile file);
+    Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory);
 }

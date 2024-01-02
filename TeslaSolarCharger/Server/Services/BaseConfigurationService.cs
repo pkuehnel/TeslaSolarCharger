@@ -8,6 +8,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -21,10 +22,12 @@ public class BaseConfigurationService : IBaseConfigurationService
     private readonly ISettings _settings;
     private readonly IPvValueService _pvValueService;
     private readonly IDbConnectionStringHelper _dbConnectionStringHelper;
+    private readonly IConstants _constants;
 
     public BaseConfigurationService(ILogger<BaseConfigurationService> logger, IConfigurationWrapper configurationWrapper,
         JobManager jobManager, ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService,
-        ISettings settings, IPvValueService pvValueService, IDbConnectionStringHelper dbConnectionStringHelper)
+        ISettings settings, IPvValueService pvValueService, IDbConnectionStringHelper dbConnectionStringHelper,
+        IConstants constants)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -34,6 +37,7 @@ public class BaseConfigurationService : IBaseConfigurationService
         _settings = settings;
         _pvValueService = pvValueService;
         _dbConnectionStringHelper = dbConnectionStringHelper;
+        _constants = constants;
     }
 
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
@@ -83,7 +87,7 @@ public class BaseConfigurationService : IBaseConfigurationService
         return bytes;
     }
 
-    private async Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory)
+    public async Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory)
     {
         try
         {
@@ -105,7 +109,7 @@ public class BaseConfigurationService : IBaseConfigurationService
             File.Copy(baseConfigFileFullName, Path.Combine(backupCopyDestinationDirectory, Path.GetFileName(baseConfigFileFullName)), true);
 
 
-            var backupFileName = "TSC-Backup.zip" + backupFileNameSuffix;
+            var backupFileName = _constants.BackupZipBaseFileName + backupFileNameSuffix;
             var backupZipDirectory = backupZipDestinationDirectory ?? _configurationWrapper.BackupZipDirectory();
             if (Directory.Exists(backupZipDirectory))
             {
