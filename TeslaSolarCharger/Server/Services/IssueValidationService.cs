@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Net.Sockets;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
@@ -47,6 +48,13 @@ public class IssueValidationService : IIssueValidationService
     {
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
         var issueList = new List<Issue>();
+        if (_settings.CrashedOnStartup)
+        {
+            var crashedOnStartupIssue = _possibleIssues.GetIssueByKey(_issueKeys.CrashedOnStartup);
+            crashedOnStartupIssue.PossibleSolutions.Add($"Exeption Message: <code>{_settings.StartupCrashMessage}</code>");
+            issueList.Add(crashedOnStartupIssue);
+            return issueList;
+        }
         if (!_configurationWrapper.UseFleetApi())
         {
             issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.NewTeslaApiNotUsed));

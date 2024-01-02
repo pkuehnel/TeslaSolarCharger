@@ -7,6 +7,7 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,8 +97,10 @@ try
 }
 catch (Exception ex)
 {
-    logger.LogCritical(ex, "Crached on startup");
-    throw;
+    logger.LogCritical(ex, "Crashed on startup");
+    var settings = app.Services.GetRequiredService<ISettings>();
+    settings.CrashedOnStartup = true;
+    settings.StartupCrashMessage = ex.Message;
 }
 
 // Configure the HTTP request pipeline.

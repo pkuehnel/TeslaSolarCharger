@@ -22,5 +22,8 @@ public class Settings : ISettings
     public int? AverageHomeGridVoltage { get; set; }
     public int TeslaApiRequestCounter { get; set; } = 0;
 
+    public bool CrashedOnStartup { get; set; }
+    public string? StartupCrashMessage { get; set; }
+
     public List<Car> Cars { get; set; }
 }
