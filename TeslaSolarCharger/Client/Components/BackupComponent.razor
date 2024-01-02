@@ -1,0 +1,139 @@
+﻿@page "/backupAndRestore"
+@using System.Net.Http.Headers
+
+@inject IJSRuntime JsRuntime
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
+
+<h1>Backup and Restore</h1>
+<div>During the backup or restore process all TSC actions will be stopped and started again after the Backup</div>
+
+<h2>Backup</h2>
+
+<MudButton Disabled="@(_processingBackup || _processingRestore)" OnClick="StartBackup" Variant="Variant.Filled" Color="Color.Primary">
+    @if (_processingBackup)
+    {
+        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+        <MudText Class="ms-2">Processing</MudText>
+    }
+    else
+    {
+        <MudText>Start Backup</MudText>
+    }
+</MudButton>
+
+<hr />
+<h2>Restore</h2>
+
+<div class="mb-2">
+    <MudFileUpload T="IBrowserFile" FilesChanged="SelectFile" Accept=".zip" MaximumFileCount="1">
+        <ButtonTemplate Context="fileUploadContext">
+            <MudButton HtmlTag="label"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.AttachFile"
+                       for="@fileUploadContext">
+                Select Backup File
+            </MudButton>
+        </ButtonTemplate>
+    </MudFileUpload>
+</div>
+
+@if (_file != default)
+{
+    <div class="mb-2">
+        @_file.Name <code>@((_file.Size * 0.000001).ToString("0.00")) MB</code>
+    </div>
+}
+
+<MudButton Disabled="@(_processingBackup || _processingRestore || _file == default)" OnClick="StartRestore" Variant="Variant.Filled" Color="Color.Primary">
+    @if (_processingRestore)
+    {
+        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+        <MudText Class="ms-2">Processing</MudText>
+    }
+    else
+    {
+        <MudText>Start restore</MudText>
+    }
+</MudButton>
+
+
+@code {
+    private bool _processingBackup;
+    private bool _processingRestore;
+    private readonly long _maxFileSize = 1024 * 1024 * 1024; // 1024 MB
+
+    private IBrowserFile? _file;
+
+
+    private async Task StartBackup()
+    {
+        _processingBackup = true;
+        StateHasChanged();
+        var fileName = "TSCBackup.zip";
+        var url = "api/BaseConfiguration/DownloadBackup";
+        // ReSharper disable once UseConfigureAwaitFalse
+        await JsRuntime.InvokeVoidAsync("triggerFileDownload", fileName, url);
+        _processingBackup = false;
+        StateHasChanged();
+    }
+
+    private void SelectFile(IBrowserFile file)
+    {
+        if (file.Size > _maxFileSize)
+        {
+            Snackbar.Add($"{file.Name} is greater than {_maxFileSize / 1024 / 1024} and won't be uploaded."
+                , Severity.Error);
+        }
+        _file = file;
+    }
+
+    private async Task StartRestore()
+    {
+        _processingRestore = true;
+        var upload = false;
+        if (_file == default)
+        {
+            Snackbar.Add("No file selected", Severity.Error);
+            return;
+        }
+        using var content = new MultipartFormDataContent();
+        try
+        {
+            var fileContent = new StreamContent(_file.OpenReadStream(_maxFileSize));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("multipart/form-data");
+            content.Add(
+                content: fileContent,
+                name: "\"file\"",
+                fileName: _file.Name);
+            upload = true;
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Error while uploading file: {e.Message}", Severity.Error);
+            _processingRestore = false;
+            return;
+        }
+
+        if (!upload)
+        {
+            _processingRestore = false;
+            return;
+        }
+
+        // ReSharper disable once UseConfigureAwaitFalse
+        var response = await HttpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Restore complete", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
+        }
+
+        _processingRestore = false;
+    }
+
+}

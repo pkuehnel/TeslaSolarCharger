@@ -93,4 +93,6 @@ public interface IConfigurationWrapper
     string GetAwattarBaseUrl();
     string? GetFleetApiBaseUrl();
     bool UseFleetApiProxy();
+    string RestoreTempDirectory();
+    string ConfigFileDirectory();
 }

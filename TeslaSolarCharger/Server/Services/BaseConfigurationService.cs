@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
+using System.IO;
 using System.IO.Compression;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
@@ -82,11 +83,7 @@ public class BaseConfigurationService : IBaseConfigurationService
             await _jobManager.StopJobs().ConfigureAwait(false);
             
             var backupCopyDestinationDirectory = _configurationWrapper.BackupCopyDestinationDirectory();
-            if (Directory.Exists(backupCopyDestinationDirectory))
-            {
-                Directory.Delete(backupCopyDestinationDirectory, true);
-            }
-            Directory.CreateDirectory(backupCopyDestinationDirectory);
+            CreateEmptyDirectory(backupCopyDestinationDirectory);
 
             //Backup Sqlite database
             using (var source = new SqliteConnection(_dbConnectionStringHelper.GetTeslaSolarChargerDbPath()))
@@ -127,4 +124,73 @@ public class BaseConfigurationService : IBaseConfigurationService
 
 
     }
+    
+
+    public async Task RestoreBackup(IFormFile file)
+    {
+        _logger.LogTrace("{method}({file})", nameof(RestoreBackup), file.FileName);
+        try
+        {
+            await _jobManager.StopJobs().ConfigureAwait(false);
+
+            var restoreTempDirectory = _configurationWrapper.RestoreTempDirectory();
+            CreateEmptyDirectory(restoreTempDirectory);
+            var restoreFileName = "TSC-Restore.zip";
+            var path = Path.Combine(restoreTempDirectory, restoreFileName);
+            await using FileStream fs = new(path, FileMode.Create);
+            await file.CopyToAsync(fs).ConfigureAwait(false);
+            fs.Close();
+            var extractedFilesDirectory = Path.Combine(restoreTempDirectory, "RestoredFiles");
+            CreateEmptyDirectory(extractedFilesDirectory);
+            ZipFile.ExtractToDirectory(path, extractedFilesDirectory);
+            var configFileDirectoryPath = _configurationWrapper.ConfigFileDirectory();
+            var directoryInfo = new DirectoryInfo(configFileDirectoryPath);
+            foreach (var fileInfo in directoryInfo.GetFiles())
+            {
+                fileInfo.Delete();
+            }
+            CopyFiles(extractedFilesDirectory, configFileDirectoryPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Couldn't restore backup");
+            throw;
+        }
+        finally
+        {
+            await _jobManager.StartJobs().ConfigureAwait(false);
+        }
+    }
+
+    private static void CreateEmptyDirectory(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, true);
+        }
+
+        Directory.CreateDirectory(path);
+    }
+
+    public void CopyFiles(string sourceDir, string targetDir)
+    {
+        // Create the target directory if it doesn't already exist
+        Directory.CreateDirectory(targetDir);
+
+        // Get the files in the source directory
+        var files = Directory.GetFiles(sourceDir);
+
+        foreach (var file in files)
+        {
+            // Extract the file name
+            var fileName = Path.GetFileName(file);
+
+            // Combine the target directory with the file name
+            var targetFilePath = Path.Combine(targetDir, fileName);
+
+            // Copy the file
+            File.Copy(file, targetFilePath, true); // true to overwrite if the file already exists
+        }
+    }
+
 }
