@@ -59,6 +59,10 @@ try
     var coreService = app.Services.GetRequiredService<ICoreService>();
     coreService.LogVersion();
 
+    //Do nothing before these lines as database is created here.
+    var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
+    await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+
     var backendApiService = app.Services.GetRequiredService<IBackendApiService>();
     await backendApiService.PostInstallationInformation("Startup").ConfigureAwait(false);
 
@@ -69,9 +73,6 @@ try
     {
         coreService.KillAllServices().GetAwaiter().GetResult();
     });
-
-    var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
-    await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
     var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
     var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
