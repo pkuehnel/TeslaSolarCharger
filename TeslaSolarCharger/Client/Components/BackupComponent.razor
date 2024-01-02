@@ -9,6 +9,9 @@
 <div>During the backup or restore process all TSC actions will be stopped and started again after the Backup</div>
 
 <h2>Backup</h2>
+<div class="alert alert-warning" role="alert">
+    Note: The backup contains private information like password for your database, possibly access codes to your solar system, latest known location of your car(s),... Do not share the backup in public.
+</div>
 
 <MudButton Disabled="@(_processingBackup || _processingRestore)" OnClick="StartBackup" Variant="Variant.Filled" Color="Color.Primary">
     @if (_processingBackup)
