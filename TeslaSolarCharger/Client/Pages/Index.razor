@@ -7,12 +7,11 @@
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Resources
-@using Majorsoft.Blazor.Components.Collapse
 @using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Dtos.Table
 @using System.Diagnostics
 @inject HttpClient HttpClient
-@inject IToastService ToastService
+@inject ISnackbar Snackbar
 @inject ToolTipTextKeys ToolTipTextKeys
 @inject NavigationManager NavigationManager
 
@@ -363,35 +362,15 @@ else
                 </p>
 
             }
-
-            <CollapsePanel CollapsedColor="@_collapsedColor"
-                           ExpandedColor="@_expandedColor"
-                           HoverColor="@_hoverColor"
-                           Disabled="@_isCollapseDisabled"
-                           Collapsed="@_collapsedCarDetails.Any(h => h == car.CarId)"
-                           ContentHeight="@_height"
-                           Animate="@_isAnimated"
-                           ShowContentOverflow="@_showOverflow"
-                           OnCollapseChanged="(state) => OnCollapseChanged(state, car.CarId)">
-                <CollapsedHeaderContent>
-                    <div class="w-100">
-                        <b>More car details:</b>
-                        <span class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></span>
-                    </div>
-                </CollapsedHeaderContent>
-                <ExpandedHeaderContent>
-                    <div class="w-100">
-                        <b>Collapse</b>
-                        <span class="fa fa-lg fa-chevron-circle-up" aria-hidden="true"></span>
-                    </div>
-                </ExpandedHeaderContent>
-                <Content>
+            
+            <MudExpansionPanels>
+                <MudExpansionPanel Text="More car details:" IsExpandedChanged="(state) => OnCollapseChanged(state, car.CarId)">
                     @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
                     {
                         <TableComponent Content="@_newCarDetailStates[car.CarId]"></TableComponent>
                     }
-                </Content>
-            </CollapsePanel>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
         </div>
     }
     <div class="shadow p-3 mb-5 bg-white rounded">
@@ -523,11 +502,11 @@ else
         var result = await HttpClient.PostAsJsonAsync("/api/Index/UpdateCarBaseSettings", dtoCarBaseSettings).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
-            ToastService.ShowSuccess("Car Configuration updated");
+            Snackbar.Add("Car Configuration updated", Severity.Success);
         }
         else
         {
-            ToastService.ShowError("Error updating car configuration");
+            Snackbar.Add("Error updating car configuration", Severity.Error);
         }
         await RefreshCarBaseSettings().ConfigureAwait(false);
         await RefreshCarBaseStates().ConfigureAwait(false);
@@ -615,16 +594,16 @@ else
         _serverTimeZoneDisplayName = dtoServerTimeZoneId?.Value;
     }
 
-    private async Task OnCollapseChanged(bool changedToCollapse, int carId)
+    private async Task OnCollapseChanged(bool changedToExpanded, int carId)
     {
-        if (changedToCollapse)
-        {
-            _collapsedCarDetails.Add(carId);
-        }
-        else
+        if (changedToExpanded)
         {
             _collapsedCarDetails.Remove(carId);
             _newCarDetailStates.Remove(carId);
+        }
+        else
+        {
+            _collapsedCarDetails.Add(carId);
         }
         await RefreshAllVisableCarDetails().ConfigureAwait(false);
     }
