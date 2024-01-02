@@ -3,6 +3,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
@@ -42,5 +43,5 @@ public class IndexController : ApiBaseController
     public List<DtoChargingSlot> GetChargingSlots(int carId) => _indexService.GetChargingSlots(carId);
 
     [HttpPost]
-    public Task ResetVehicleNotPaired() => _indexService.ResetVehicleNotPaired();
+    public Task UpdateCarFleetApiState(int carId, TeslaCarFleetApiState fleetApiState) => _indexService.UpdateCarFleetApiState(carId, fleetApiState);
 }

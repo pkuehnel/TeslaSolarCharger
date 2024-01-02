@@ -103,17 +103,9 @@ public class IndexService : IIndexService
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
                     await _chargeTimeCalculationService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
             }
-
-            if (_configurationWrapper.UseFleetApi())
-            {
-                var vin = await _teslamateContext.Cars.Where(c => c.Id == enabledCar.Id).Select(c => c.Vin).FirstOrDefaultAsync().ConfigureAwait(false);
-                var key = string.Format(_constants.VehicleNotPaired, vin);
-                if (!string.IsNullOrEmpty(vin) &&
-                    (await _teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == key).ConfigureAwait(false)))
-                {
-                    dtoCarBaseValues.VehicleNotPaired = true;
-                }
-            }
+            var vin = await _teslamateContext.Cars.Where(c => c.Id == enabledCar.Id).Select(c => c.Vin).FirstOrDefaultAsync().ConfigureAwait(false);
+            dtoCarBaseValues.FleetApiState =
+                await _teslaSolarChargerContext.Cars.Where(c => c.TeslaMateCarId == enabledCar.Id).Select(c => c.TeslaFleetApiState).SingleAsync().ConfigureAwait(false);
 
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
 
@@ -318,13 +310,11 @@ public class IndexService : IIndexService
         return car.CarState.PlannedChargingSlots;
     }
 
-    public async Task ResetVehicleNotPaired()
+    public async Task UpdateCarFleetApiState(int carId, TeslaCarFleetApiState fleetApiState)
     {
-        var key = string.Format(_constants.VehicleNotPaired, string.Empty);
-        var configs = await _teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key.StartsWith(key))
-            .ToListAsync().ConfigureAwait(false);
-        _teslaSolarChargerContext.TscConfigurations.RemoveRange(configs);
+        _logger.LogTrace("{method}({carId}, {fleetApiState})", nameof(UpdateCarFleetApiState), carId, fleetApiState);
+        var car = _teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == carId);
+        car.TeslaFleetApiState = fleetApiState;
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 

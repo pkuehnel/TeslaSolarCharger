@@ -89,6 +89,7 @@ try
 
     var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
     await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
+    await configJsonService.AddCarsToTscDatabase().ConfigureAwait(false);
 
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 

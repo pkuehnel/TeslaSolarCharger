@@ -154,49 +154,50 @@ else
                     </TooltipComponent>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
                 </div>
-                @if (_usingFleetApi == true)
+
+                @if (_usingFleetApi == true && _usingFleetApiProxy == true)
                 {
-                    <div class="d-flex align-items-center">
-                        <div class="p-2">
-                            <button class="btn btn-primary" @onclick="_ => TestFleetApiAccess(car.CarId)">
-                                @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
-                                {
-                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                    <span class="sr-only">Testing...</span>
-                                }
-                                else
-                                {
-                                    <span>Test Fleet API access</span>
-                                }
-                            </button>
-                        </div>
-                        <div class="p-2 flex-grow-1">
-                            @if (_isFleetApiWorkingForCar.Any(d => d.Key == car.CarId))
-                            {
-                                @if (_isFleetApiWorkingForCar[car.CarId] == true)
-                                {
-                                    <div class="alert alert-success" role="alert">
-                                        API access is working
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-danger" role="alert">
-                                        API access is not working. Note: For the test the car needs to be awake.
-                                    </div>
-                                }
-                            }
-                        </div>
-                    </div>
+                    @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span class="sr-only">Testing Fleet API access...</span>
+                    }
                     
-                }
-                @if (car.VehicleNotPaired)
-                {
-                    <div class="alert alert-danger" role="alert">
-                        TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="OpenRegisterPublicKeyPage">here</button> to register the car. <br/>
-                        Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
+                    <div class="p-2 flex-grow-1">
+                        @if (_isFleetApiWorkingForCar.Any(d => d.Key == car.CarId))
+                        {
+                            @if (_isFleetApiWorkingForCar[car.CarId] == true)
+                            {
+                                <div class="alert alert-success" role="alert">
+                                    API access is working
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-danger" role="alert">
+                                    API access is not working. Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>.
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            @if (car.FleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
+                            {
+                                <div class="alert alert-danger" role="alert">
+                                    TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button> to register the car. <br/>
+                                    Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
+                                </div>
+                            }
+                            @if (car.FleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
+                            {
+                                <div class="alert alert-danger" role="alert">
+                                    You registerd the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
+                                </div>
+                            }
+                        }
                     </div>
                 }
+                
                 <div>
                     @if (car.IsHealthy == false)
                     {
@@ -429,19 +430,13 @@ else
     private readonly List<int> _savingCarIds = new();
     private string _version = "";
     private HashSet<int> _collapsedCarDetails = new HashSet<int>();
-    private string _collapsedColor = "LightGray";
-    private string _expandedColor = "LightGray";
-    private string _hoverColor = "LightGray";
-    private bool _isAnimated = true;
-    private bool _isCollapseDisabled = false;
-    private bool _showOverflow = false;
-    private int _height = 0;
     private DateTime? _serverTime;
     private string? _serverTimeZoneDisplayName;
     private bool? _shouldDisplayApiRequestCounter;
     private int? _apiRequestCount;
     private string _installationId = "";
     private bool? _usingFleetApi;
+    private bool? _usingFleetApiProxy;
     private Dictionary<int, bool?> _isFleetApiWorkingForCar = new();
     private readonly HashSet<int> _testingFleetApiCarIds = new();
 
@@ -461,6 +456,8 @@ else
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         var usingFleetApi = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/FleetApi/IsFleetApiEnabled").ConfigureAwait(false);
         _usingFleetApi = usingFleetApi?.Value;
+        var usingFleetApiProxy = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/FleetApi/IsFleetApiProxyEnabled").ConfigureAwait(false);
+        _usingFleetApiProxy = usingFleetApiProxy?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         _installationId = await HttpClient.GetStringAsync("api/Hello/GetInstallationId").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
@@ -661,9 +658,9 @@ else
         StateHasChanged();
     }
 
-    private async Task OpenRegisterPublicKeyPage()
+    private async Task OpenRegisterPublicKeyPage(int carId)
     {
-        var response = await HttpClient.PostAsync("api/Index/ResetVehicleNotPaired", null).ConfigureAwait(false);
+        var response = await HttpClient.PostAsync($"api/Index/UpdateCarFleetApiState?carId={carId}&fleetApiState={TeslaCarFleetApiState.OpenedLinkButNotTested}", null).ConfigureAwait(false);
         NavigationManager.NavigateTo("https://tesla.com/_ak/www.teslasolarcharger.de");
     }
 
