@@ -102,6 +102,10 @@ catch (Exception ex)
     var settings = app.Services.GetRequiredService<ISettings>();
     settings.CrashedOnStartup = true;
     settings.StartupCrashMessage = ex.Message;
+    var backendApiService = app.Services.GetRequiredService<IBackendApiService>();
+    await backendApiService.PostErrorInformation(nameof(Program), "Startup",
+            $"Exception Message: {ex.Message} StackTrace: {ex.StackTrace}")
+        .ConfigureAwait(false);
 }
 
 // Configure the HTTP request pipeline.
