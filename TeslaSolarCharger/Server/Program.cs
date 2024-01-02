@@ -51,8 +51,6 @@ var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper
 
 try
 {
-
-
     var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
     await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
     await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);

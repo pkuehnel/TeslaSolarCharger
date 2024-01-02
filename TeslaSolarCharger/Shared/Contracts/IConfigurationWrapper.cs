@@ -95,4 +95,5 @@ public interface IConfigurationWrapper
     bool UseFleetApiProxy();
     string RestoreTempDirectory();
     string ConfigFileDirectory();
+    string AutoBackupsZipDirectory();
 }
