@@ -76,12 +76,18 @@ public class BaseConfigurationService : IBaseConfigurationService
         _settings.PowerBuffer = powerBuffer;
     }
 
-    public async Task<byte[]> DownloadBackup()
+    public async Task<byte[]> DownloadBackup(string backupFileNameSuffix, string? backupZipDestinationDirectory)
+    {
+        var destinationArchiveFileName = await CreateLocalBackupZipFile(backupFileNameSuffix, backupZipDestinationDirectory).ConfigureAwait(false);
+        var bytes = await File.ReadAllBytesAsync(destinationArchiveFileName).ConfigureAwait(false);
+        return bytes;
+    }
+
+    private async Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory)
     {
         try
         {
             await _jobManager.StopJobs().ConfigureAwait(false);
-            
             var backupCopyDestinationDirectory = _configurationWrapper.BackupCopyDestinationDirectory();
             CreateEmptyDirectory(backupCopyDestinationDirectory);
 
@@ -99,32 +105,28 @@ public class BaseConfigurationService : IBaseConfigurationService
             File.Copy(baseConfigFileFullName, Path.Combine(backupCopyDestinationDirectory, Path.GetFileName(baseConfigFileFullName)), true);
 
 
-            var backupFileName = "TSC-Backup.zip";
-            var backupZipDirectory = _configurationWrapper.BackupZipDirectory();
-            if(Directory.Exists(backupZipDirectory))
+            var backupFileName = "TSC-Backup.zip" + backupFileNameSuffix;
+            var backupZipDirectory = backupZipDestinationDirectory ?? _configurationWrapper.BackupZipDirectory();
+            if (Directory.Exists(backupZipDirectory))
             {
                 Directory.Delete(backupZipDirectory, true);
             }
             Directory.CreateDirectory(backupZipDirectory);
             var destinationArchiveFileName = Path.Combine(backupZipDirectory, backupFileName);
             ZipFile.CreateFromDirectory(backupCopyDestinationDirectory, destinationArchiveFileName);
-            var bytes = await File.ReadAllBytesAsync(destinationArchiveFileName).ConfigureAwait(false);
-            return bytes;
+            return destinationArchiveFileName;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Couldn't download backup");
+            _logger.LogError(ex, "Couldn't create backup zip file");
             throw;
         }
         finally
         {
             await _jobManager.StartJobs().ConfigureAwait(false);
         }
-        
-
-
     }
-    
+
 
     public async Task RestoreBackup(IFormFile file)
     {
