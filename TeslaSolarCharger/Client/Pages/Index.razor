@@ -24,8 +24,8 @@
         <div class="alert alert-info" role="alert">
             Merry Christmas! &#127876; &#127877; &#127873;
         </div>
-
     }
+
     if (_serverTime.Value is { Day: 31, Month: 12, Hour: > 15 } or { Day: 1, Month: 1 })
     {
         <div class="alert alert-info" role="alert">
@@ -144,6 +144,7 @@ else
             You need to enable TeslaSolarCharger for at least one car in the <a href="/CarSettings">car settings page</a>.
         </p>
     }
+
     @foreach (var car in _carBaseStates)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
@@ -159,10 +160,12 @@ else
                 {
                     @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
                     {
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        <span class="sr-only">Testing Fleet API access...</span>
+                        <div>
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span class="sr-only">Testing Fleet API access... While testing, the car's chargeport might open.</span>
+                        </div>
                     }
-                    
+
                     <div class="p-2 flex-grow-1">
                         @if (_isFleetApiWorkingForCar.Any(d => d.Key == car.CarId))
                         {
@@ -176,12 +179,12 @@ else
                             {
                                 <div class="alert alert-danger" role="alert">
                                     <div>API access is not working.</div>
-                                    <hr />
+                                    <hr/>
                                     <p>
                                         Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>. <br/>
                                         If it still does not work, go to your car and under Controls -> blabla you can check if a key named "www.teslasolarcharger.de" is present. If not try adding the key again by clicking <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button>.
                                     </p>
-                                    
+
                                 </div>
                             }
                         }
@@ -194,6 +197,7 @@ else
                                     Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
                                 </div>
                             }
+
                             @if (car.FleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
                             {
                                 <div class="alert alert-danger" role="alert">
@@ -203,7 +207,7 @@ else
                         }
                     </div>
                 }
-                
+
                 <div>
                     @if (car.IsHealthy == false)
                     {
@@ -288,7 +292,7 @@ else
                                 UnitText="%"
                                 HelpText="">
                     <InputFragment>
-                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" " />
+                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" "/>
                     </InputFragment>
                 </InputComponent>
             }
@@ -312,6 +316,7 @@ else
                         </InputFragment>
                     </InputComponent>
                 }
+
                 <InputComponent ValueId="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")"
                                 LabelText="Time"
                                 UnitText=""
@@ -321,7 +326,6 @@ else
                                @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
                     </InputFragment>
                 </InputComponent>
-
             }
             @if (car.ChargingNotPlannedDueToNoSpotPricesAvailable)
             {
@@ -348,7 +352,7 @@ else
             @if (car.ChargeInformation.Count > 0)
             {
                 <p>
-                    Car will @((car.State == CarStateEnum.Charging && car.IsHome) ? "stop" : "start") charging when following conditions are met:<br />
+                    Car will @((car.State == CarStateEnum.Charging && car.IsHome) ? "stop" : "start") charging when following conditions are met:<br/>
                     <ul>
                         @foreach (var chargeInfo in car.ChargeInformation)
                         {
@@ -367,9 +371,8 @@ else
                     <b>Planned Charging Slots:</b>
                     <TableComponent Content="GeneratePlannedChargingSlotsTableContent(car.ChargingSlots)"></TableComponent>
                 </p>
-
             }
-            
+
             <MudExpansionPanels>
                 <MudExpansionPanel Text="More car details:" IsExpandedChanged="(state) => OnCollapseChanged(state, car.CarId)">
                     @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
@@ -380,6 +383,7 @@ else
             </MudExpansionPanels>
         </div>
     }
+
     <div class="shadow p-3 mb-5 bg-white rounded">
         @if (_serverTimeZoneDisplayName != default)
         {
@@ -399,11 +403,15 @@ else
         }
         @if (string.IsNullOrWhiteSpace(_version))
         {
-            <p><em>Could not load version</em></p>
+            <p>
+                <em>Could not load version</em>
+            </p>
         }
         else
         {
-            <p><em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em></p>
+            <p>
+                <em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em>
+            </p>
         }
         <div>
             <b>Installation ID</b>: @_installationId
@@ -416,13 +424,12 @@ else
 
     <form action="https://www.paypal.com/donate" method="post" target="_blank">
         <div style="text-align:center">
-            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
-            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
-            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
+            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ"/>
+            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button"/>
+            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1"/>
         </div>
     </form>
 }
-
 
 
 @code {
@@ -511,6 +518,7 @@ else
         {
             Snackbar.Add("Error updating car configuration", Severity.Error);
         }
+
         await RefreshCarBaseSettings().ConfigureAwait(false);
         await RefreshCarBaseStates().ConfigureAwait(false);
         _savingCarIds.RemoveAll(i => i == dtoCarBaseSettings.CarId);
@@ -523,6 +531,7 @@ else
         {
             return;
         }
+
         var uncollapsedCarIds = new HashSet<int>();
         foreach (var carId in _carBaseStates.Select(s => s.CarId))
         {
@@ -531,6 +540,7 @@ else
                 uncollapsedCarIds.Add(carId);
             }
         }
+
         foreach (var carId in uncollapsedCarIds)
         {
             var dtoCarTopicValues = await HttpClient.GetFromJsonAsync<DtoCarTopicValues>($"api/Index/CarDetails?carId={carId}").ConfigureAwait(false);
@@ -543,41 +553,41 @@ else
             foreach (var dateValue in dtoCarTopicValues.DateValues)
             {
                 dataRows.Add(new DtoTableRow()
-                    {
-                        Elements = new List<string?>()
+                {
+                    Elements = new List<string?>()
                     {
                         dateValue.Topic,
                         dateValue.DateTime?.ToString("g"),
                     },
-                    });
+                });
             }
 
             foreach (var nonDateValue in dtoCarTopicValues.NonDateValues)
             {
                 dataRows.Add(new DtoTableRow()
-                    {
-                        Elements = new List<string?>()
+                {
+                    Elements = new List<string?>()
                     {
                         nonDateValue.Topic,
                         nonDateValue.Value,
                     },
-                    });
+                });
             }
+
             var tableContent = new DtoTableContent()
+            {
+                TableHeader = new DtoTableRow()
                 {
-                    TableHeader = new DtoTableRow()
-                    {
-                        Elements = new List<string?>()
+                    Elements = new List<string?>()
                     {
                         "Topic",
                         "Value",
                     },
-                    },
-                    TableData = dataRows,
-                };
+                },
+                TableData = dataRows,
+            };
             _newCarDetailStates[carId] = tableContent;
         }
-
     }
 
     private async Task RefreshServerTime()
@@ -608,36 +618,37 @@ else
         {
             _collapsedCarDetails.Add(carId);
         }
+
         await RefreshAllVisableCarDetails().ConfigureAwait(false);
     }
 
     private DtoTableContent GeneratePlannedChargingSlotsTableContent(List<DtoChargingSlot> chargingSlots)
     {
         var table = new DtoTableContent()
+        {
+            TableHeader = new DtoTableRow()
             {
-                TableHeader = new DtoTableRow()
-                {
-                    Elements = new List<string?>()
+                Elements = new List<string?>()
                 {
                     "Start",
                     "End",
                     "Duration",
                 },
-                },
-                TableData = new List<DtoTableRow>(),
-            };
+            },
+            TableData = new List<DtoTableRow>(),
+        };
         foreach (var chargingSlot in chargingSlots)
         {
             table.TableData.Add(new DtoTableRow()
-                {
-                    Elements = new List<string?>()
+            {
+                Elements = new List<string?>()
                 {
                     chargingSlot.ChargeStart.ToLocalTime().DateTime.ToString("g"),
                     chargingSlot.ChargeEnd.ToLocalTime().DateTime.ToString("g"),
                     chargingSlot.ChargeDuration < TimeSpan.FromDays(1) ? chargingSlot.ChargeDuration.ToString(@"hh\:mm") : string.Empty,
                 },
-                    IsActive = chargingSlot.IsActive,
-                });
+                IsActive = chargingSlot.IsActive,
+            });
         }
 
         return table;
@@ -655,12 +666,14 @@ else
             {
                 await RefreshApiRequestCount().ConfigureAwait(false);
             }
+
             _couldNotRefreshStates = false;
         }
         catch (Exception)
         {
             _couldNotRefreshStates = true;
         }
+
         StateHasChanged();
     }
 
@@ -678,6 +691,7 @@ else
         {
             _isFleetApiWorkingForCar[carId] = response.Value;
         }
+
         _testingFleetApiCarIds.Remove(carId);
     }
 
