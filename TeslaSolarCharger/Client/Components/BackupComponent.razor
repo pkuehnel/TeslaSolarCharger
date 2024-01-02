@@ -1,7 +1,9 @@
 ﻿@page "/backupAndRestore"
+@using System.Net.Http.Headers
 
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
+@inject HttpClient HttpClient
 
 <h1>Backup and Restore</h1>
 <div>During the backup or restore process all TSC actions will be stopped and started again after the Backup</div>
@@ -44,7 +46,7 @@
     </div>
 }
 
-<MudButton Disabled="@(_processingBackup || _processingRestore)" OnClick="StartRestore" Variant="Variant.Filled" Color="Color.Primary">
+<MudButton Disabled="@(_processingBackup || _processingRestore || _file == default)" OnClick="StartRestore" Variant="Variant.Filled" Color="Color.Primary">
     @if (_processingRestore)
     {
         <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
@@ -60,6 +62,7 @@
 @code {
     private bool _processingBackup;
     private bool _processingRestore;
+    private readonly long _maxFileSize = 1024 * 1024 * 1024; // 1024 MB
 
     private IBrowserFile? _file;
 
@@ -78,20 +81,59 @@
 
     private void SelectFile(IBrowserFile file)
     {
-        var maxFileSize = 1024 * 1024 * 1024; // 1024 MB
-        if (file.Size > maxFileSize)
+        if (file.Size > _maxFileSize)
         {
-            Snackbar.Add($"{file.Name} is greater than {maxFileSize / 1024 / 1024} and won't be uploaded."
-                , Severity.Error, (options) => { options.CloseAfterNavigation = true; });
+            Snackbar.Add($"{file.Name} is greater than {_maxFileSize / 1024 / 1024} and won't be uploaded."
+                , Severity.Error);
         }
         _file = file;
     }
 
-    private Task StartRestore()
+    private async Task StartRestore()
     {
         _processingRestore = true;
+        var upload = false;
+        if (_file == default)
+        {
+            Snackbar.Add("No file selected", Severity.Error);
+            return;
+        }
+        using var content = new MultipartFormDataContent();
+        try
+        {
+            var fileContent = new StreamContent(_file.OpenReadStream(_maxFileSize));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("multipart/form-data");
+            content.Add(
+                content: fileContent,
+                name: "\"file\"",
+                fileName: _file.Name);
+            upload = true;
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Error while uploading file: {e.Message}", Severity.Error);
+            _processingRestore = false;
+            return;
+        }
+
+        if (!upload)
+        {
+            _processingRestore = false;
+            return;
+        }
+
+        // ReSharper disable once UseConfigureAwaitFalse
+        var response = await HttpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Restore complete", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
+        }
+
         _processingRestore = false;
-        throw new NotImplementedException();
     }
 
 }

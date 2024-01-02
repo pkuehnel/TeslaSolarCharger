@@ -49,6 +49,15 @@ public class ConfigurationWrapper(
         return Path.Combine(configFileDirectory, value);
     }
 
+    public string RestoreTempDirectory()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "RestoreTempDirectory";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
     public string SqliteFileFullName()
     {
         var configFileDirectory = ConfigFileDirectory();
@@ -73,7 +82,7 @@ public class ConfigurationWrapper(
         return Path.Combine(configFileDirectory, value);
     }
 
-    internal string ConfigFileDirectory()
+    public string ConfigFileDirectory()
     {
         var environmentVariableName = "ConfigFileLocation";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);

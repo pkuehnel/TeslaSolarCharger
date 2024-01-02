@@ -38,5 +38,11 @@ namespace TeslaSolarCharger.Server.Controllers
             var bytes = await _service.DownloadBackup().ConfigureAwait(false);
             return File(bytes, "application/zip", "TSCBackup.zip");
         }
+
+        [HttpPost]
+        public async Task RestoreBackup(IFormFile file)
+        {
+            await _service.RestoreBackup(file).ConfigureAwait(false);
+        }
     }
 }

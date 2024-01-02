@@ -9,4 +9,5 @@ public interface IBaseConfigurationService
     Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent);
     void UpdatePowerBuffer(int powerBuffer);
     Task<byte[]> DownloadBackup();
+    Task RestoreBackup(IFormFile file);
 }
