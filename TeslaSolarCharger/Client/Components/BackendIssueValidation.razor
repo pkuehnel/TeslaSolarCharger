@@ -18,7 +18,7 @@
                                         _ => "info",
                                     })" role="alert">
                 <div>@issue.IssueMessage</div>
-                @if (issue.PossibleSolutions.Length > 0)
+                @if (issue.PossibleSolutions.Count > 0)
                 {
                     <hr />
                     <div><strong>Possible solutions:</strong></div>

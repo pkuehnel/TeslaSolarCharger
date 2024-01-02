@@ -81,7 +81,7 @@ public static class ServiceCollectionExtensions
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
             .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
             .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
-            .AddSingleton<IPossibleIssues, PossibleIssues>()
+            .AddTransient<IPossibleIssues, PossibleIssues>()
             .AddTransient<IIssueValidationService, IssueValidationService>()
             .AddTransient<IChargingCostService, ChargingCostService>()
             .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()

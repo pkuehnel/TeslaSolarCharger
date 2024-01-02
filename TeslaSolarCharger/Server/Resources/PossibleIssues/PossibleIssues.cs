@@ -180,6 +180,12 @@ public class PossibleIssues : IPossibleIssues
                     "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
                 )
             },
+            {
+                issueKeys.CrashedOnStartup, CreateIssue("The application crashed while starting up.",
+                    IssueType.Error,
+                    "Look into the logfiles for further details."
+                )
+            },
         };
     }
 
@@ -189,7 +195,7 @@ public class PossibleIssues : IPossibleIssues
         {
             IssueMessage = issueMessage,
             IssueType = issueType,
-            PossibleSolutions = possibleSolutions,
+            PossibleSolutions = possibleSolutions.ToList(),
         };
     }
 

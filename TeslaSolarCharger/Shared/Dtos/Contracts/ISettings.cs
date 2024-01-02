@@ -17,4 +17,6 @@ public interface ISettings
     DateTimeOffset LastPvValueUpdate { get; set; }
     int? AverageHomeGridVoltage { get; set; }
     int TeslaApiRequestCounter { get; set; }
+    bool CrashedOnStartup { get; set; }
+    string? StartupCrashMessage { get; set; }
 }
