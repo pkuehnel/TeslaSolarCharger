@@ -1,0 +1,61 @@
+﻿@page "/backupAndRestore"
+
+@inject IJSRuntime JsRuntime
+
+<h1>Backup and Restore</h1>
+<div>During the backup or restore process all TSC actions will be stopped and started again after the Backup</div>
+
+<h2>Backup</h2>
+
+<MudButton Disabled="@(_processingBackup || _processingRestore)" OnClick="StartBackup" Variant="Variant.Filled" Color="Color.Primary">
+    @if (_processingBackup)
+    {
+        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+        <MudText Class="ms-2">Processing</MudText>
+    }
+    else
+    {
+        <MudText>Start Backup</MudText>
+    }
+</MudButton>
+
+<hr />
+<h2>Restore</h2>
+<MudButton Disabled="@(_processingBackup || _processingRestore)" OnClick="StartRestore" Variant="Variant.Filled" Color="Color.Primary">
+    @if (_processingRestore)
+    {
+        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+        <MudText Class="ms-2">Processing</MudText>
+    }
+    else
+    {
+        <MudText>Start restore</MudText>
+    }
+</MudButton>
+
+
+@code {
+    private bool _processingBackup;
+    private bool _processingRestore;
+
+
+    private async Task StartBackup()
+    {
+        _processingBackup = true;
+        StateHasChanged();
+        var fileName = "TSCBackup.zip";
+        var url = "api/BaseConfiguration/DownloadBackup";
+        // ReSharper disable once UseConfigureAwaitFalse
+        await JsRuntime.InvokeVoidAsync("triggerFileDownload", fileName, url);
+        _processingBackup = false;
+        StateHasChanged();
+    }
+
+    private Task StartRestore()
+    {
+        _processingRestore = true;
+        _processingRestore = false;
+        throw new NotImplementedException();
+    }
+
+}
