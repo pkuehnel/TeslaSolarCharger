@@ -113,7 +113,7 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
-                issueKeys.VersionNotUpToDate, CreateIssue("Your installed version is not up to date.",
+                issueKeys.VersionNotUpToDate, CreateIssue("Your installed version is not up to date. Note: The first startup after an update may take more time than usual as the database format is converted. Do not stop TSC during the first startup as this might corrupt the database.",
                     IssueType.Warning,
                     "<a href=\"https://github.com/pkuehnel/TeslaSolarCharger/releases\"  target=\"_blank\">Check release notes of latest versions</a>",
                     "Update to latest version with <code>docker compose pull</code> and <code>docker compose up -d</code>."
