@@ -115,34 +115,6 @@ public class CoreService : ICoreService
             return;
         }
         await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNameSuffix, destinationPath).ConfigureAwait(false);
-
-        //var databaseFileName = _configurationWrapper.SqliteFileFullName();
-        //if (!File.Exists(databaseFileName))
-        //{
-        //    _logger.LogWarning("Database file does not exist. Backup is not created.");
-        //    return;
-        //}
-
-        //var resultFileName = GenerateResultFileName(databaseFileName, currentVersion);
-        //if (File.Exists(resultFileName))
-        //{
-        //    _logger.LogInformation("Database before upgrade to current version already backed up.");
-        //    return;
-        //}
-
-        //File.Copy(databaseFileName, resultFileName, true);
-
-        //var shmFileName = databaseFileName + "-shm";
-        //if (File.Exists(shmFileName))
-        //{
-        //    File.Copy(shmFileName, GenerateResultFileName(shmFileName, currentVersion), true);
-        //}
-
-        //var walFileName = databaseFileName + "-wal";
-        //if (File.Exists(walFileName))
-        //{
-        //    File.Copy(walFileName, GenerateResultFileName(walFileName, currentVersion), true);
-        //}
     }
 
     private string GenerateResultFileName(string databaseFileName, string currentVersion)

@@ -13,7 +13,7 @@ public class JobManager
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IDateTimeProvider _dateTimeProvider;
 
-    private IScheduler _scheduler;
+    private IScheduler? _scheduler;
 
 
 #pragma warning disable CS8618
@@ -103,9 +103,15 @@ public class JobManager
         await _scheduler.Start().ConfigureAwait(false);
     }
 
-    public async Task StopJobs()
+    public async Task<bool> StopJobs()
     {
         _logger.LogTrace("{method}()", nameof(StopJobs));
+        if (_scheduler == null)
+        {
+            _logger.LogInformation("Jobs were not running, yet, so stop is not needed.");
+            return false;
+        }
         await _scheduler.Shutdown(true).ConfigureAwait(false);
+        return true;
     }
 }

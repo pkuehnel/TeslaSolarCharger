@@ -43,7 +43,7 @@ public class BaseConfigurationService : IBaseConfigurationService
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
     {
         _logger.LogTrace("{method}({@baseConfiguration})", nameof(UpdateBaseConfigurationAsync), baseConfiguration);
-        await _jobManager.StopJobs().ConfigureAwait(false);
+        var restartNeeded = await _jobManager.StopJobs().ConfigureAwait(false);
         await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
         await _teslaMateMqttService.ConnectMqttClient().ConfigureAwait(false);
         await _solarMqttService.ConnectMqttClient().ConfigureAwait(false);
@@ -65,7 +65,10 @@ public class BaseConfigurationService : IBaseConfigurationService
         }
         _settings.PowerBuffer = null;
 
-        await _jobManager.StartJobs().ConfigureAwait(false);
+        if (restartNeeded)
+        {
+            await _jobManager.StartJobs().ConfigureAwait(false);
+        }
     }
 
     public async Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent)
@@ -89,9 +92,10 @@ public class BaseConfigurationService : IBaseConfigurationService
 
     public async Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory)
     {
+        var restartNeeded = false;
         try
         {
-            await _jobManager.StopJobs().ConfigureAwait(false);
+            restartNeeded = await _jobManager.StopJobs().ConfigureAwait(false);
             var backupCopyDestinationDirectory = _configurationWrapper.BackupCopyDestinationDirectory();
             CreateEmptyDirectory(backupCopyDestinationDirectory);
 
@@ -127,7 +131,10 @@ public class BaseConfigurationService : IBaseConfigurationService
         }
         finally
         {
-            await _jobManager.StartJobs().ConfigureAwait(false);
+            if (restartNeeded)
+            {
+                await _jobManager.StartJobs().ConfigureAwait(false);
+            }
         }
     }
 
@@ -135,10 +142,9 @@ public class BaseConfigurationService : IBaseConfigurationService
     public async Task RestoreBackup(IFormFile file)
     {
         _logger.LogTrace("{method}({file})", nameof(RestoreBackup), file.FileName);
+        var jobsWereRunning = await _jobManager.StopJobs().ConfigureAwait(false);
         try
         {
-            await _jobManager.StopJobs().ConfigureAwait(false);
-
             var restoreTempDirectory = _configurationWrapper.RestoreTempDirectory();
             CreateEmptyDirectory(restoreTempDirectory);
             var restoreFileName = "TSC-Restore.zip";
@@ -164,7 +170,10 @@ public class BaseConfigurationService : IBaseConfigurationService
         }
         finally
         {
-            await _jobManager.StartJobs().ConfigureAwait(false);
+            if (jobsWereRunning)
+            {
+                await _jobManager.StartJobs().ConfigureAwait(false);
+            }
         }
     }
 
@@ -178,7 +187,7 @@ public class BaseConfigurationService : IBaseConfigurationService
         Directory.CreateDirectory(path);
     }
 
-    public void CopyFiles(string sourceDir, string targetDir)
+    private void CopyFiles(string sourceDir, string targetDir)
     {
         // Create the target directory if it doesn't already exist
         Directory.CreateDirectory(targetDir);
