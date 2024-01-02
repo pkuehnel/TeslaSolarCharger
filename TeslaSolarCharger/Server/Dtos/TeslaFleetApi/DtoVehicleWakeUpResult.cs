@@ -5,13 +5,13 @@ namespace TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 public class DtoVehicleWakeUpResult
 {
     [JsonProperty("id")]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     [JsonProperty("user_id")]
-    public int UserId { get; set; }
+    public long UserId { get; set; }
 
     [JsonProperty("vehicle_id")]
-    public int VehicleId { get; set; }
+    public long VehicleId { get; set; }
 
     [JsonProperty("vin")]
     public string Vin { get; set; }

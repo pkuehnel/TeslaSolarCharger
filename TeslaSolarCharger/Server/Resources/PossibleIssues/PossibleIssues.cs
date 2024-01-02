@@ -162,7 +162,7 @@ public class PossibleIssues : IPossibleIssues
             },
             {
                 issueKeys.FleetApiTokenNotReceived, CreateIssue("The Tesla token was not received, yet.",
-                    IssueType.Error,
+                    IssueType.Warning,
                     "Getting the Token can take up to five minutes after submitting your password.",
                     "If waiting five minutes does not help, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
                 )

@@ -94,8 +94,8 @@ public class TeslaFleetApiService(
         var vin = await GetVinByCarId(carId).ConfigureAwait(false);
         var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(vin, WakeUpRequest).ConfigureAwait(false);
         await teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
-
-        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(true);
+        //ToDo: Next line is never executed
+        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
     }
 
     public async Task StopCharging(int carId)
@@ -151,12 +151,15 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({carId})", nameof(TestFleetApiAccess), carId);
         var vin = await GetVinByCarId(carId).ConfigureAwait(false);
-        var car = settings.Cars.First(c => c.Id == carId);
+        var inMemoryCar = settings.Cars.First(c => c.Id == carId);
         try
         {
-            await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
+            await WakeUpCarIfNeeded(carId, inMemoryCar.CarState.State).ConfigureAwait(false);
             var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, OpenChargePortDoorRequest).ConfigureAwait(false);
             var successResult = result?.Response?.Result == true;
+            var car = teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == carId);
+            car.TeslaFleetApiState = successResult ? TeslaCarFleetApiState.Ok : TeslaCarFleetApiState.NotWorking;
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
             return new DtoValue<bool>(successResult);
         }
         catch (Exception ex)
@@ -172,6 +175,13 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}", nameof(IsFleetApiEnabled));
         var isEnabled = configurationWrapper.UseFleetApi();
+        return new DtoValue<bool>(isEnabled);
+    }
+
+    public DtoValue<bool> IsFleetApiProxyEnabled()
+    {
+        logger.LogTrace("{method}", nameof(IsFleetApiProxyEnabled));
+        var isEnabled = configurationWrapper.UseFleetApiProxy();
         return new DtoValue<bool>(isEnabled);
     }
 
@@ -526,15 +536,9 @@ public class TeslaFleetApiService(
                  && responseString.Contains("vehicle rejected request: your public key has not been paired with the vehicle"))
         {
             logger.LogError("Vehicle {vin} is not paired with TSC. Add The public key to the vehicle", vin);
-            var notPairedKey = string.Format(constants.VehicleNotPaired, vin);
-            var tscConfig = await teslaSolarChargerContext.TscConfigurations
-                .FirstOrDefaultAsync(c => c.Key == notPairedKey).ConfigureAwait(false);
-            if (tscConfig == default)
-            {
-                tscConfig = new TscConfiguration() { Key = notPairedKey, };
-                teslaSolarChargerContext.TscConfigurations.Add(tscConfig);
-            }
-            tscConfig.Value = dateTimeProvider.UtcNow().ToString("o");
+            var teslaMateCarId = teslamateContext.Cars.First(c => c.Vin == vin).Id;
+            var car = teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == teslaMateCarId);
+            car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
         }
         else
         {

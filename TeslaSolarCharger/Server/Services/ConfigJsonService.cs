@@ -10,6 +10,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
+using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -74,6 +75,7 @@ public class ConfigJsonService : IConfigJsonService
                 cars.Add(new Car()
                 {
                     Id = databaseCarConfiguration.CarId,
+                    Vin = _teslamateContext.Cars.FirstOrDefault(c => c.Id == databaseCarConfiguration.CarId)?.Vin ?? string.Empty,
                     CarConfiguration = configuration,
                     CarState = new CarState(),
                 });
@@ -188,6 +190,11 @@ public class ConfigJsonService : IConfigJsonService
             }
             databaseConfig.CarStateJson = JsonConvert.SerializeObject(car.CarConfiguration);
             databaseConfig.LastUpdated = _dateTimeProvider.UtcNow();
+            var databaseCar = await _teslaSolarChargerContext.Cars.FirstOrDefaultAsync(c => c.TeslaMateCarId == car.Id).ConfigureAwait(false);
+            if (databaseCar == default)
+            {
+                _teslaSolarChargerContext.Cars.Add(new Model.Entities.TeslaSolarCharger.Car() { TeslaMateCarId = car.Id, });
+            }
         }
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
@@ -229,6 +236,27 @@ public class ConfigJsonService : IConfigJsonService
         await UpdateCarConfiguration().ConfigureAwait(false);
 
         _logger.LogDebug("All unset car configurations set.");
+    }
+
+    public async Task AddCarsToTscDatabase()
+    {
+        var carsToManage = _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
+        foreach (var car in carsToManage)
+        {
+            var databaseCar = await _teslaSolarChargerContext.Cars.FirstOrDefaultAsync(c => c.Id == car.Id).ConfigureAwait(false);
+            if (databaseCar != default)
+            {
+                continue;
+            }
+
+            databaseCar = new Model.Entities.TeslaSolarCharger.Car()
+            {
+                Id = car.Id,
+                TeslaMateCarId = car.Id,
+            };
+            _teslaSolarChargerContext.Cars.Add(databaseCar);
+        }
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private async Task AddCachedCarStatesToCars(List<Car> cars)

@@ -8,30 +8,21 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class FleetApiController : ApiBaseController
+public class FleetApiController(
+    ITeslaFleetApiService fleetApiService,
+    IBackendApiService backendApiService,
+    ITeslaService teslaService,
+    IConfigurationWrapper configurationWrapper)
+    : ApiBaseController
 {
-    private readonly ITeslaFleetApiService _fleetApiService;
-    private readonly IBackendApiService _backendApiService;
-    private readonly ITeslaService _teslaService;
-    private readonly IConfigurationWrapper _configurationWrapper;
-
-    public FleetApiController(ITeslaFleetApiService fleetApiService, IBackendApiService backendApiService, ITeslaService teslaService,
-        IConfigurationWrapper configurationWrapper)
-    {
-        _fleetApiService = fleetApiService;
-        _backendApiService = backendApiService;
-        _teslaService = teslaService;
-        _configurationWrapper = configurationWrapper;
-    }
+    [HttpGet]
+    public Task<DtoValue<FleetApiTokenState>> FleetApiTokenState() => fleetApiService.GetFleetApiTokenState();
 
     [HttpGet]
-    public Task<DtoValue<FleetApiTokenState>> FleetApiTokenState() => _fleetApiService.GetFleetApiTokenState();
+    public Task<DtoValue<string>> GetOauthUrl(string locale) => backendApiService.StartTeslaOAuth(locale);
 
     [HttpGet]
-    public Task<DtoValue<string>> GetOauthUrl(string locale) => _backendApiService.StartTeslaOAuth(locale);
-
-    [HttpGet]
-    public Task RefreshFleetApiToken() => _fleetApiService.RefreshTokenAsync();
+    public Task RefreshFleetApiToken() => fleetApiService.RefreshTokenAsync();
 
     /// <summary>
     /// Note: This endpoint is only available in development environment
@@ -40,15 +31,17 @@ public class FleetApiController : ApiBaseController
     [HttpGet]
     public Task SetChargeLimit(int carId, int percent)
     {
-        if (!_configurationWrapper.IsDevelopmentEnvironment())
+        if (!configurationWrapper.IsDevelopmentEnvironment())
         {
             throw new InvalidOperationException("This method is only available in development environment");
         }
-        return _teslaService.SetChargeLimit(carId, percent);
+        return teslaService.SetChargeLimit(carId, percent);
     }
 
     [HttpGet]
-    public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => _fleetApiService.TestFleetApiAccess(carId);
+    public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => fleetApiService.TestFleetApiAccess(carId);
     [HttpGet]
-    public DtoValue<bool> IsFleetApiEnabled() => _fleetApiService.IsFleetApiEnabled();
+    public DtoValue<bool> IsFleetApiEnabled() => fleetApiService.IsFleetApiEnabled();
+    [HttpGet]
+    public DtoValue<bool> IsFleetApiProxyEnabled() => fleetApiService.IsFleetApiProxyEnabled();
 }
