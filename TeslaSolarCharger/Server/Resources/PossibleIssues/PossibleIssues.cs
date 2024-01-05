@@ -144,7 +144,7 @@ public class PossibleIssues : IPossibleIssues
             {
                 issueKeys.FleetApiTokenNotRequested, CreateIssue("You did not request a Tesla Token, yet.",
                     IssueType.Error,
-                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow acces to all selectable scopes."
+                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes."
                 )
             },
             {
