@@ -135,13 +135,6 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
-                issueKeys.NewTeslaApiNotUsed, CreateIssue("New cars need a new Tesla API. As this is in a very early beta state I highly recommend not using it if your car supports the old API!",
-                    IssueType.Information,
-                    "To use the new API add <code>UseFleetApi=true</code> as environment variable in your <code>docker-compose.yml</code>",
-                    "Sorry for this information beeing not removable - as switching to the new API in January 2024 as default you won't see this information from then on."
-                )
-            },
-            {
                 issueKeys.FleetApiTokenNotRequested, CreateIssue("You did not request a Tesla Token, yet.",
                     IssueType.Error,
                     "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes."

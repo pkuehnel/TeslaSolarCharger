@@ -19,7 +19,6 @@ public class IssueKeys
     public string VersionNotUpToDate => "VersionNotUpToDate";
     public string CorrectionFactorZero => "CorrectionFactorZero";
     public string ServerTimeZoneDifferentFromClient => "ServerTimeZoneDifferentFromClient";
-    public string NewTeslaApiNotUsed => "NewTeslaApiNotUsed";
     public string FleetApiTokenNotRequested => "FleetApiTokenNotRequested";
     public string FleetApiTokenUnauthorized => "FleetApiTokenUnauthorized";
     public string FleetApiTokenMissingScopes => "FleetApiTokenMissingScopes";
