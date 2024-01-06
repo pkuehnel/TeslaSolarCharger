@@ -586,7 +586,8 @@ else
     {
         _tokenGenerationButtonDisabled = true;
         var locale = CultureInfo.CurrentCulture.ToString();
-        var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={locale}").ConfigureAwait(false);
+        var baseUrl = NavigationManager.BaseUri;
+        var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={Uri.EscapeDataString(locale)}&baseUrl={Uri.EscapeDataString(baseUrl)}").ConfigureAwait(false);
         if (url?.Value != null)
         {
             NavigationManager.NavigateTo(url.Value);

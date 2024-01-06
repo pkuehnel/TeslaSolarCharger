@@ -33,7 +33,7 @@ public class BackendApiService : IBackendApiService
         _dateTimeProvider = dateTimeProvider;
     }
 
-    public async Task<DtoValue<string>> StartTeslaOAuth(string locale)
+    public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
     {
         _logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
         var currentTokens = await _teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
@@ -47,7 +47,7 @@ public class BackendApiService : IBackendApiService
         var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var backendApiBaseUrl = _configurationWrapper.BackendApiBaseUrl();
         using var httpClient = new HttpClient();
-        var requestUri = $"{backendApiBaseUrl}Tsc/StartTeslaOAuth?installationId={installationId}";
+        var requestUri = $"{backendApiBaseUrl}Tsc/StartTeslaOAuth?installationId={Uri.EscapeDataString(installationId.ToString())}&baseUrl={Uri.EscapeDataString(baseUrl)}";
         var responseString = await httpClient.GetStringAsync(requestUri).ConfigureAwait(false);
         var oAuthRequestInformation = JsonConvert.DeserializeObject<DtoTeslaOAuthRequestInformation>(responseString) ?? throw new InvalidDataException("Could not get oAuth data");
         var requestUrl = GenerateAuthUrl(oAuthRequestInformation, locale);

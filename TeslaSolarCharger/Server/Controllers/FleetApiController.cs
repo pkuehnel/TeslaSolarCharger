@@ -19,7 +19,7 @@ public class FleetApiController(
     public Task<DtoValue<FleetApiTokenState>> FleetApiTokenState() => fleetApiService.GetFleetApiTokenState();
 
     [HttpGet]
-    public Task<DtoValue<string>> GetOauthUrl(string locale) => backendApiService.StartTeslaOAuth(locale);
+    public Task<DtoValue<string>> GetOauthUrl(string locale, string baseUrl) => backendApiService.StartTeslaOAuth(locale, baseUrl);
 
     [HttpGet]
     public Task RefreshFleetApiToken() => fleetApiService.RefreshTokenAsync();
