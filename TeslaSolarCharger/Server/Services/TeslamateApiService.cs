@@ -242,7 +242,6 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/logging/resume";
         using var httpClient = new HttpClient();
         var response = await httpClient.PutAsync(url, null).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
     }
 
     private async Task<HttpResponseMessage> SendPostToTeslaMate(string url, Dictionary<string, string>? parameters = null)

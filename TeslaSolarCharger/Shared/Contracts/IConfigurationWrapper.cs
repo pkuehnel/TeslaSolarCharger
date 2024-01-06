@@ -91,4 +91,9 @@ public interface IConfigurationWrapper
     string BackendApiBaseUrl();
     bool IsDevelopmentEnvironment();
     string GetAwattarBaseUrl();
+    string? GetFleetApiBaseUrl();
+    bool UseFleetApiProxy();
+    string RestoreTempDirectory();
+    string ConfigFileDirectory();
+    string AutoBackupsZipDirectory();
 }

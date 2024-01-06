@@ -1,11 +1,11 @@
 #See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 ARG MINVERVERSIONOVERRIDE
 WORKDIR /app
 EXPOSE 80
 
-FROM mcr.microsoft.com/dotnet/sdk:7.0-bullseye-slim-amd64 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim-amd64 AS build
 ARG MINVERVERSIONOVERRIDE
 WORKDIR /src
 COPY ["TeslaSolarCharger/Server/TeslaSolarCharger.Server.csproj", "TeslaSolarCharger/Server/"]
@@ -23,5 +23,6 @@ RUN dotnet publish "TeslaSolarCharger.Server.csproj" -c Release -o /app/publish
 FROM base AS final
 ARG MINVERVERSIONOVERRIDE
 WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:80
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "TeslaSolarCharger.Server.dll"]

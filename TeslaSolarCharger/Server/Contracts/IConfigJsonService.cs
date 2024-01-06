@@ -9,4 +9,5 @@ public interface IConfigJsonService
     Task AddCarIdsToSettings();
     Task UpdateCarConfiguration();
     Task UpdateAverageGridVoltage();
+    Task AddCarsToTscDatabase();
 }

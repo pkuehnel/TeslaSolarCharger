@@ -113,7 +113,7 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
-                issueKeys.VersionNotUpToDate, CreateIssue("Your installed version is not up to date.",
+                issueKeys.VersionNotUpToDate, CreateIssue("Your installed version is not up to date. Note: The first startup after an update may take more time than usual as the database format is converted. Do not stop TSC during the first startup as this might corrupt the database.",
                     IssueType.Warning,
                     "<a href=\"https://github.com/pkuehnel/TeslaSolarCharger/releases\"  target=\"_blank\">Check release notes of latest versions</a>",
                     "Update to latest version with <code>docker compose pull</code> and <code>docker compose up -d</code>."
@@ -135,16 +135,9 @@ public class PossibleIssues : IPossibleIssues
                 )
             },
             {
-                issueKeys.NewTeslaApiNotUsed, CreateIssue("New cars need a new Tesla API. As this is in a very early beta state I highly recommend not using it if your car supports the old API!",
-                    IssueType.Information,
-                    "To use the new API add <code>UseFleetApi=true</code> as environment variable in your <code>docker-compose.yml</code>",
-                    "Sorry for this information beeing not removable - as switching to the new API in January 2024 as default you won't see this information from then on."
-                )
-            },
-            {
                 issueKeys.FleetApiTokenNotRequested, CreateIssue("You did not request a Tesla Token, yet.",
                     IssueType.Error,
-                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow acces to all selectable scopes."
+                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes."
                 )
             },
             {
@@ -162,7 +155,7 @@ public class PossibleIssues : IPossibleIssues
             },
             {
                 issueKeys.FleetApiTokenNotReceived, CreateIssue("The Tesla token was not received, yet.",
-                    IssueType.Error,
+                    IssueType.Warning,
                     "Getting the Token can take up to five minutes after submitting your password.",
                     "If waiting five minutes does not help, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
                 )
@@ -180,6 +173,12 @@ public class PossibleIssues : IPossibleIssues
                     "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
                 )
             },
+            {
+                issueKeys.CrashedOnStartup, CreateIssue("The application crashed while starting up.",
+                    IssueType.Error,
+                    "Look into the logfiles for further details."
+                )
+            },
         };
     }
 
@@ -189,7 +188,7 @@ public class PossibleIssues : IPossibleIssues
         {
             IssueMessage = issueMessage,
             IssueType = issueType,
-            PossibleSolutions = possibleSolutions,
+            PossibleSolutions = possibleSolutions.ToList(),
         };
     }
 

@@ -3,11 +3,10 @@
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
-@using Majorsoft.Blazor.Components.Collapse
 @using TeslaSolarCharger.Shared.Dtos
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
-@inject IToastService ToastService
+@inject ISnackbar Snackbar
 
 
 <PageTitle>Base Configuration</PageTitle>
@@ -447,30 +446,8 @@ else
                 </InputFragment>
             </InputComponent>
         </div>
-        <div>The following values need no change. Please only change values here if you know what you are doing.</div>
-        <CollapsePanel CollapsedColor="@_collapsedColor"
-                   ExpandedColor="@_expandedColor"
-                   HoverColor="@_hoverColor"
-                   Disabled="@_isCollapseDisabled"
-                   Collapsed="@_isCollapsed"
-                   ContentHeight="@_height"
-                   Animate="@_isAnimated"
-                   ShowContentOverflow="@_showOverflow"
-                   OnCollapseChanged="OnCollapsed">
-            <CollapsedHeaderContent>
-                <div class="w-100">
-                    <b>Expand</b>
-                    <span class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></span>
-                </div>
-            </CollapsedHeaderContent>
-            <ExpandedHeaderContent>
-                <div class="w-100">
-                    <b>Collapse</b>
-                    <span class="fa fa-lg fa-chevron-circle-up" aria-hidden="true"></span>
-                </div>
-            </ExpandedHeaderContent>
-            <Content>
-                <div style="border: 1px solid gray; height: 100%;">
+        <MudExpansionPanels>
+            <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
                     <InputComponent ValueId="updateIntervalSeconds"
                                     LabelText="Car power adjustment interval"
                                     UnitText="s"
@@ -481,9 +458,9 @@ else
                     </InputComponent>
 
                     <InputComponent ValueId="pvValueUpdateIntervalSeconds"
-                                LabelText="Solar plant adjustment interval"
-                                UnitText="s"
-                                HelpText="">
+                                    LabelText="Solar plant adjustment interval"
+                                    UnitText="s"
+                                    HelpText="">
                         <InputFragment>
                             <InputNumber id="pvValueUpdateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.PvValueUpdateIntervalSeconds" class="form-control" placeholder=" " />
                         </InputFragment>
@@ -506,7 +483,7 @@ else
                             <InputNumber id="minutesUntilSwitchOn" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" " />
                         </InputFragment>
                     </InputComponent>
-                    <hr/>
+                    <hr />
 
                     @if (_fleetApiTokenState == FleetApiTokenState.NotNeeded)
                     {
@@ -515,12 +492,12 @@ else
                                         UnitText=""
                                         HelpText="You can use the name of the container and the default port even though you changed the external port.">
                             <InputFragment>
-                                <InputText id="teslaMateApiBaseUrl" @bind-Value="_dtoBaseConfiguration.TeslaMateApiBaseUrl" placeholder=" " class="form-control"/>
+                                <InputText id="teslaMateApiBaseUrl" @bind-Value="_dtoBaseConfiguration.TeslaMateApiBaseUrl" placeholder=" " class="form-control" />
                             </InputFragment>
                         </InputComponent>
-                        <hr/>
+                        <hr />
                     }
-                    
+
                     <InputComponent ValueId="teslaMateDbServer"
                                     LabelText="TeslaMate Database Server Name"
                                     UnitText=""
@@ -531,19 +508,19 @@ else
                     </InputComponent>
 
                     <InputComponent ValueId="teslaMateDbPort"
-                                LabelText="TeslaMate Database Server Port"
-                                UnitText=""
-                                HelpText="You can use the internal port of the TeslaMate database container">
+                                    LabelText="TeslaMate Database Server Port"
+                                    UnitText=""
+                                    HelpText="You can use the internal port of the TeslaMate database container">
                         <InputFragment>
                             <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" " />
                         </InputFragment>
                     </InputComponent>
-                    <hr/>
+                    <hr />
 
                     <InputComponent ValueId="mosquitoServer"
-                                LabelText="Mosquito servername"
-                                UnitText=""
-                                HelpText="">
+                                    LabelText="Mosquito servername"
+                                    UnitText=""
+                                    HelpText="">
                         <InputFragment>
                             <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.MosquitoServer" class="form-control" placeholder=" " />
                         </InputFragment>
@@ -557,19 +534,18 @@ else
                             <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.MqqtClientId" class="form-control" placeholder=" " />
                         </InputFragment>
                     </InputComponent>
-                    <hr/>
+                    <hr />
 
                     <InputComponent ValueId="homeBatteryPowerInversionUrl"
-                                LabelText="HomeBatteryPowerInversion Url"
-                                UnitText=""
-                                HelpText="Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.">
+                                    LabelText="HomeBatteryPowerInversion Url"
+                                    UnitText=""
+                                    HelpText="Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.">
                         <InputFragment>
                             <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" placeholder=" " />
                         </InputFragment>
                     </InputComponent>
-                </div>
-            </Content>
-        </CollapsePanel>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
         <DataAnnotationsValidator />
         <ValidationSummary />
         <button type="submit" class="btn btn-primary">Submit</button>
@@ -598,11 +574,11 @@ else
         var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
-            ToastService.ShowSuccess("Base Configuration updated");
+            Snackbar.Add("Base Configuration updated", Severity.Success);
         }
         else
         {
-            ToastService.ShowError("Error updating base configuration");
+            Snackbar.Add("Error updating base configuration", Severity.Error);
         }
     }
 
@@ -610,27 +586,14 @@ else
     {
         _tokenGenerationButtonDisabled = true;
         var locale = CultureInfo.CurrentCulture.ToString();
-        var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={locale}").ConfigureAwait(false);
+        var baseUrl = NavigationManager.BaseUri;
+        var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={Uri.EscapeDataString(locale)}&baseUrl={Uri.EscapeDataString(baseUrl)}").ConfigureAwait(false);
         if (url?.Value != null)
         {
             NavigationManager.NavigateTo(url.Value);
         }
     }
 
-    private string _collapsedColor = "LightGray";
-    private string _expandedColor = "LightGray";
-    private string _hoverColor = "LightGray";
-    private bool _isAnimated = true;
-    private bool _isCollapseDisabled = false;
-    private bool _isCollapsed = true;
-    private bool _showOverflow = false;
-    private int _height = 0;
 
     private string _correctionFactorHelpText = "Use this to correct the returned value. E.g. if the returned value is 1 but should bei -1 insert -1";
-
-    private Task OnCollapsed(bool state)
-    {
-        _isCollapsed = state;
-        return Task.CompletedTask;
-    }
 }

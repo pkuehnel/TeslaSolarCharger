@@ -2,6 +2,7 @@ using Quartz;
 using Quartz.Spi;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling;
 
@@ -12,13 +13,14 @@ public class JobManager
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISettings _settings;
 
-    private IScheduler _scheduler;
+    private IScheduler? _scheduler;
 
 
 #pragma warning disable CS8618
     public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory,
-        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider)
+        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider, ISettings settings)
 #pragma warning restore CS8618
     {
         _logger = logger;
@@ -26,11 +28,16 @@ public class JobManager
         _schedulerFactory = schedulerFactory;
         _configurationWrapper = configurationWrapper;
         _dateTimeProvider = dateTimeProvider;
+        _settings = settings;
     }
 
     public async Task StartJobs()
     {
         _logger.LogTrace("{Method}()", nameof(StartJobs));
+        if (_settings.CrashedOnStartup)
+        {
+            _logger.LogError("Do not start jobs as application crashed during startup.");
+        }
         _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
         _scheduler.JobFactory = _jobFactory;
 
@@ -103,9 +110,15 @@ public class JobManager
         await _scheduler.Start().ConfigureAwait(false);
     }
 
-    public async Task StopJobs()
+    public async Task<bool> StopJobs()
     {
         _logger.LogTrace("{method}()", nameof(StopJobs));
+        if (_scheduler == null)
+        {
+            _logger.LogInformation("Jobs were not running, yet, so stop is not needed.");
+            return false;
+        }
         await _scheduler.Shutdown(true).ConfigureAwait(false);
+        return true;
     }
 }

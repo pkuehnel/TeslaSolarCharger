@@ -10,6 +10,7 @@ public class Car
         CarConfiguration = new CarConfiguration();
     }
     public int Id { get; set; }
+    public string Vin { get; set; }
 
     public CarConfiguration CarConfiguration { get; set; }
 

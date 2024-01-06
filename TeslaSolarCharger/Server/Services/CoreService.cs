@@ -10,6 +10,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -26,11 +27,14 @@ public class CoreService : ICoreService
     private readonly ISettings _settings;
     private readonly IFixedPriceService _fixedPriceService;
     private readonly ITscConfigurationService _tscConfigurationService;
+    private readonly IBaseConfigurationService _baseConfigurationService;
+    private readonly IConstants _constants;
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
         ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService, ISettings settings,
-        IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService)
+        IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService, IBaseConfigurationService baseConfigurationService,
+        IConstants constants)
     {
         _logger = logger;
         _chargingService = chargingService;
@@ -43,6 +47,8 @@ public class CoreService : ICoreService
         _settings = settings;
         _fixedPriceService = fixedPriceService;
         _tscConfigurationService = tscConfigurationService;
+        _baseConfigurationService = baseConfigurationService;
+        _constants = constants;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -95,33 +101,20 @@ public class CoreService : ICoreService
             return;
         }
 
-        var databaseFileName = _configurationWrapper.SqliteFileFullName();
-        if (!File.Exists(databaseFileName))
+        var destinationPath = _configurationWrapper.AutoBackupsZipDirectory();
+        if (!Directory.Exists(destinationPath))
         {
-            _logger.LogWarning("Database file does not exist. Backup is not created.");
+            Directory.CreateDirectory(destinationPath);
+        }
+        var backupFileNameSuffix = $"_{currentVersion}";
+
+        var resultingFileName = Path.Combine(destinationPath, $"{_constants.BackupZipBaseFileName + backupFileNameSuffix}");
+        if (File.Exists(resultingFileName))
+        {
+            _logger.LogInformation("Backup for this version already created. No new backup needed.");
             return;
         }
-
-        var resultFileName = GenerateResultFileName(databaseFileName, currentVersion);
-        if (File.Exists(resultFileName))
-        {
-            _logger.LogInformation("Database before upgrade to current version already backed up.");
-            return;
-        }
-
-        File.Copy(databaseFileName, resultFileName, true);
-
-        var shmFileName = databaseFileName + "-shm";
-        if (File.Exists(shmFileName))
-        {
-            File.Copy(shmFileName, GenerateResultFileName(shmFileName, currentVersion), true);
-        }
-
-        var walFileName = databaseFileName + "-wal";
-        if (File.Exists(walFileName))
-        {
-            File.Copy(walFileName, GenerateResultFileName(walFileName, currentVersion), true);
-        }
+        await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNameSuffix, destinationPath).ConfigureAwait(false);
     }
 
     private string GenerateResultFileName(string databaseFileName, string currentVersion)

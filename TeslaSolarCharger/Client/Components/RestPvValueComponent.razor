@@ -35,18 +35,21 @@ else
     <div class="mb-3">
         @if (Headers.Count > 0)
         {
-            <label class="col-5 col-sm-4 col-md-3 col-lg-2">Key:</label>
-            <label class="col-6 col-sm-6 col-md-3 col-lg-2">Value:</label>
+            <h4>Headers</h4>
         }
         @for (var i = 0; i < Headers.Count; i++)
         {
             var header = Headers.ElementAt(i);
-            <div>
-                <input class="col-5 col-sm-4 col-md-3 col-lg-2" value="@header.Key" type="text" id="@($"{IdPrefix}headerKey{i}")" name="headerKey"
-               @onchange="@(e => UpdateHeaderKey(header.Key, e.Value?.ToString() ?? string.Empty))">
-                <input class="col-6 col-sm-6 col-md-3 col-lg-2" value="@header.Value" type="text" id="@($"{IdPrefix}headerValue{i}")" name="headerValue"
-               @onchange="@(e => Headers[header.Key] = e.Value?.ToString() ?? string.Empty)">
-                <button type="button" class="btn btn-danger" @onclick="() => RemoveHeader(header.Key)">DEL</button>
+            <div class="d-flex align-items-center">
+                <div class="p-2 flex-grow-1">
+                    <MudTextField T="string" Label="@($"Key {i + 1}")" Variant="Variant.Outlined" Value="@header.Key" TextChanged="@(e => UpdateHeaderKey(header.Key, e.ToString()))"></MudTextField>
+                </div>
+                <div class="p-2 flex-grow-1">
+                    <MudTextField T="string" Label="@($"Value {i + 1}")" Variant="Variant.Outlined" Value="@header.Value" TextChanged="@(e => Headers[header.Key] = e.ToString())"></MudTextField>
+                </div>
+                <div class="p-2">
+                    <MudFab StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => RemoveHeader(header.Key)"></MudFab>
+                </div>
             </div>
         }
     </div>

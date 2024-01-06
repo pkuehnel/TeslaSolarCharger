@@ -157,7 +157,29 @@ public class ChargeTimeCalculationService : TestBase
     }
 
     [Fact]
-    public void DoesConcatenateChargingSlotsCorrectly()
+    public void Does_Concatenate_Charging_Slots_Correctly_One_Partial_Slot_Only()
+    {
+        var chargingSlots = new List<DtoChargingSlot>()
+        {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 10, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 10, 30, 0, TimeSpan.Zero),
+            },
+        };
+
+        var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
+
+        var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
+        var concatenatedChargingSlots = chargeTimeCalculationService.ConcatenateChargeTimes(chargingSlots);
+
+
+        Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
+        Assert.Single(concatenatedChargingSlots);
+    }
+
+    [Fact]
+    public void Does_Concatenate_Charging_Slots_Correctly_Two_Full_Hour_One_Partial_Hour_Last()
     {
         var chargingSlots = new List<DtoChargingSlot>()
         {
@@ -169,7 +191,7 @@ public class ChargeTimeCalculationService : TestBase
             new DtoChargingSlot()
             {
                 ChargeStart = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
-                ChargeEnd = new DateTimeOffset(2022, 1, 10, 12, 00, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 12, 0, 0, TimeSpan.Zero),
             },
             new DtoChargingSlot()
             {
@@ -186,6 +208,148 @@ public class ChargeTimeCalculationService : TestBase
 
         Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
         Assert.Equal(2, concatenatedChargingSlots.Count);
+    }
+
+    [Fact]
+    public void Does_Concatenate_Charging_Slots_Correctly_Partial_Hour_First()
+    {
+        var chargingSlots = new List<DtoChargingSlot>()
+        {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 10, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 10, 25, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 12, 0, 0, TimeSpan.Zero),
+            },
+        };
+
+        var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
+
+        var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
+        var concatenatedChargingSlots = chargeTimeCalculationService.ReduceNumberOfSpotPricedChargingSessions(chargingSlots);
+
+
+        Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
+        Assert.Single(concatenatedChargingSlots);
+    }
+
+    [Fact]
+    public void Does_Concatenate_Charging_Slots_Correctly_Partial_Hour_Last()
+    {
+        var chargingSlots = new List<DtoChargingSlot>()
+        {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 10, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 11, 20, 0, TimeSpan.Zero),
+            },
+        };
+
+        var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
+
+        var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
+        var concatenatedChargingSlots = chargeTimeCalculationService.ConcatenateChargeTimes(chargingSlots);
+
+
+        Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
+        Assert.Single(concatenatedChargingSlots);
+    }
+
+    [Fact]
+    public void Does_Concatenate_Charging_Slots_Correctly_Partial_Hour_Middle()
+    {
+        var chargingSlots = new List<DtoChargingSlot>()
+        {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 11, 20, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 11, 21, 0, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 11, 21, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 11, 21, 35, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 11, 22, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 11, 23, 0, 0, TimeSpan.Zero),
+            },
+        };
+
+        var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
+
+        var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
+        var concatenatedChargingSlots = chargeTimeCalculationService.ReduceNumberOfSpotPricedChargingSessions(chargingSlots);
+
+
+        Assert.Equal(combinedChargingTimeBeforeConcatenation,
+            concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum(),
+            0.001);
+        Assert.Equal(2, concatenatedChargingSlots.Count);
+    }
+
+    [Fact]
+    public void Does_Concatenate_Charging_Slots_Correctly_Start_Charge_Now()
+    {
+        var chargingSlots = new List<DtoChargingSlot>()
+        {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 10, 10, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 10, 43, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 11, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 12, 0, 0, TimeSpan.Zero),
+            },
+        };
+
+        var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
+
+        var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
+        var concatenatedChargingSlots = chargeTimeCalculationService.ReduceNumberOfSpotPricedChargingSessions(chargingSlots);
+
+
+        Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
+        Assert.Single(concatenatedChargingSlots);
+    }
+
+    [Fact]
+    public void Does_Concatenate_Charging_Slots_Correctly_Start_Charge_Before_Midnight()
+    {
+        var chargingSlots = new List<DtoChargingSlot>()
+        {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 10, 23, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 10, 23, 30, 0, TimeSpan.Zero),
+            },
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2022, 1, 11, 0, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2022, 1, 11, 1, 0, 0, TimeSpan.Zero),
+            },
+        };
+
+        var combinedChargingTimeBeforeConcatenation = chargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum();
+
+        var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
+        var concatenatedChargingSlots = chargeTimeCalculationService.ReduceNumberOfSpotPricedChargingSessions(chargingSlots);
+
+
+        Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
+        Assert.Single(concatenatedChargingSlots);
     }
 
     [Theory, MemberData(nameof(CalculateCorrectChargeTimesWithoutStockPricesData))]

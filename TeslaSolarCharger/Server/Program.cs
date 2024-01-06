@@ -7,6 +7,7 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,14 +52,16 @@ var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper
 
 try
 {
-
-
     var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
     await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
     await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
 
     var coreService = app.Services.GetRequiredService<ICoreService>();
     coreService.LogVersion();
+
+    //Do nothing before these lines as database is created here.
+    var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
+    await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
     var backendApiService = app.Services.GetRequiredService<IBackendApiService>();
     await backendApiService.PostInstallationInformation("Startup").ConfigureAwait(false);
@@ -70,9 +73,6 @@ try
     {
         coreService.KillAllServices().GetAwaiter().GetResult();
     });
-
-    var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
-    await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
     var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
     var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
@@ -89,6 +89,7 @@ try
 
     var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
     await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
+    await configJsonService.AddCarsToTscDatabase().ConfigureAwait(false);
 
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
@@ -97,8 +98,14 @@ try
 }
 catch (Exception ex)
 {
-    logger.LogCritical(ex, "Crached on startup");
-    throw;
+    logger.LogCritical(ex, "Crashed on startup");
+    var settings = app.Services.GetRequiredService<ISettings>();
+    settings.CrashedOnStartup = true;
+    settings.StartupCrashMessage = ex.Message;
+    var backendApiService = app.Services.GetRequiredService<IBackendApiService>();
+    await backendApiService.PostErrorInformation(nameof(Program), "Startup",
+            $"Exception Message: {ex.Message} StackTrace: {ex.StackTrace}")
+        .ConfigureAwait(false);
 }
 
 // Configure the HTTP request pipeline.

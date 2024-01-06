@@ -9,45 +9,33 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
+using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class ChargeTimeCalculationService : IChargeTimeCalculationService
+public class ChargeTimeCalculationService(
+    ILogger<ChargeTimeCalculationService> logger,
+    IDateTimeProvider dateTimeProvider,
+    ISettings settings,
+    ITeslaSolarChargerContext teslaSolarChargerContext,
+    ISpotPriceService spotPriceService,
+    ITeslaService teslaService,
+    IConstants constants)
+    : IChargeTimeCalculationService
 {
-    private readonly ILogger<ChargeTimeCalculationService> _logger;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ISettings _settings;
-    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
-    private readonly ISpotPriceService _spotPriceService;
-    private readonly ITeslaService _teslaService;
-    private readonly IConstants _constants;
-
-    public ChargeTimeCalculationService(ILogger<ChargeTimeCalculationService> logger, IDateTimeProvider dateTimeProvider,
-        ISettings settings, ITeslaSolarChargerContext teslaSolarChargerContext, ISpotPriceService spotPriceService,
-        ITeslaService teslaService, IConstants constants)
-    {
-        _logger = logger;
-        _dateTimeProvider = dateTimeProvider;
-        _settings = settings;
-        _teslaSolarChargerContext = teslaSolarChargerContext;
-        _spotPriceService = spotPriceService;
-        _teslaService = teslaService;
-        _constants = constants;
-    }
-
     public TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(Car car)
     {
-        _logger.LogTrace("{method}({carId})", nameof(CalculateTimeToReachMinSocAtFullSpeedCharge), car.Id);
+        logger.LogTrace("{method}({carId})", nameof(CalculateTimeToReachMinSocAtFullSpeedCharge), car.Id);
         var socToCharge = (double)car.CarConfiguration.MinimumSoC - (car.CarState.SoC ?? 0);
         const int needsBalancingSocLimit = 100;
         var balancingTime = TimeSpan.FromMinutes(30);
         //This is needed to let the car charge to actually 100% including balancing
         if (socToCharge < 1 && car.CarState.State == CarStateEnum.Charging && car.CarConfiguration.MinimumSoC == needsBalancingSocLimit)
         {
-            _logger.LogDebug("Continue to charge car as Minimum soc is {balancingSoc}%", needsBalancingSocLimit);
+            logger.LogDebug("Continue to charge car as Minimum soc is {balancingSoc}%", needsBalancingSocLimit);
             return balancingTime;
         }
-        if (socToCharge < 1 || (socToCharge < _constants.MinimumSocDifference && car.CarState.State != CarStateEnum.Charging))
+        if (socToCharge < 1 || (socToCharge < constants.MinimumSocDifference && car.CarState.State != CarStateEnum.Charging))
         {
             return TimeSpan.Zero;
         }
@@ -56,7 +44,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
         var numberOfPhases = car.CarState.ActualPhases;
         var maxChargingPower =
             car.CarConfiguration.MaximumAmpere * numberOfPhases
-                                               * (_settings.AverageHomeGridVoltage ?? 230);
+                                               * (settings.AverageHomeGridVoltage ?? 230);
         var chargeTime = TimeSpan.FromHours((double)(energyToCharge / maxChargingPower));
         if (car.CarConfiguration.MinimumSoC == needsBalancingSocLimit)
         {
@@ -67,14 +55,14 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
 
     public void UpdateChargeTime(Car car)
     {
-        car.CarState.ReachingMinSocAtFullSpeedCharge = _dateTimeProvider.Now() + CalculateTimeToReachMinSocAtFullSpeedCharge(car);
+        car.CarState.ReachingMinSocAtFullSpeedCharge = dateTimeProvider.Now() + CalculateTimeToReachMinSocAtFullSpeedCharge(car);
     }
 
 
     public async Task PlanChargeTimesForAllCars()
     {
-        _logger.LogTrace("{method}()", nameof(PlanChargeTimesForAllCars));
-        var carsToPlan = _settings.CarsToManage.ToList();
+        logger.LogTrace("{method}()", nameof(PlanChargeTimesForAllCars));
+        var carsToPlan = settings.CarsToManage.ToList();
         foreach (var car in carsToPlan)
         {
             await UpdatePlannedChargingSlots(car).ConfigureAwait(false);
@@ -84,39 +72,39 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
             }
 #pragma warning disable CS4014
             SetChargeStartIfNeeded(car).ContinueWith(t =>
-                _logger.LogError(t.Exception, "Could not set planned charge start for car {carId}.", car.Id), TaskContinuationOptions.OnlyOnFaulted);
+                logger.LogError(t.Exception, "Could not set planned charge start for car {carId}.", car.Id), TaskContinuationOptions.OnlyOnFaulted);
 #pragma warning restore CS4014
         }
     }
 
     private async Task SetChargeStartIfNeeded(Car car)
     {
-        _logger.LogTrace("{method}({carId})", nameof(SetChargeStartIfNeeded), car.Id);
+        logger.LogTrace("{method}({carId})", nameof(SetChargeStartIfNeeded), car.Id);
         if (car.CarState.State == CarStateEnum.Charging)
         {
-            _logger.LogTrace("Do not set charge start in TeslaApp as car is currently charging");
+            logger.LogTrace("Do not set charge start in TeslaApp as car is currently charging");
             return;
         }
         try
         {
             var nextPlannedCharge = car.CarState.PlannedChargingSlots.MinBy(c => c.ChargeStart);
-            if (nextPlannedCharge == default || nextPlannedCharge.ChargeStart <= _dateTimeProvider.DateTimeOffSetNow() || nextPlannedCharge.IsActive)
+            if (nextPlannedCharge == default || nextPlannedCharge.ChargeStart <= dateTimeProvider.DateTimeOffSetNow() || nextPlannedCharge.IsActive)
             {
-                await _teslaService.SetScheduledCharging(car.Id, null).ConfigureAwait(false);
+                await teslaService.SetScheduledCharging(car.Id, null).ConfigureAwait(false);
                 return;
             }
-            await _teslaService.SetScheduledCharging(car.Id, nextPlannedCharge.ChargeStart).ConfigureAwait(false);
+            await teslaService.SetScheduledCharging(car.Id, nextPlannedCharge.ChargeStart).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not set planned charge start for car {carId}.", car.Id);
+            logger.LogError(ex, "Could not set planned charge start for car {carId}.", car.Id);
         }
     }
 
     public async Task UpdatePlannedChargingSlots(Car car)
     {
-        _logger.LogTrace("{method}({carId}", nameof(UpdatePlannedChargingSlots), car.Id);
-        var dateTimeOffSetNow = _dateTimeProvider.DateTimeOffSetNow();
+        logger.LogTrace("{method}({carId}", nameof(UpdatePlannedChargingSlots), car.Id);
+        var dateTimeOffSetNow = dateTimeProvider.DateTimeOffSetNow();
 
         var plannedChargingSlots = await PlanChargingSlots(car, dateTimeOffSetNow).ConfigureAwait(false);
         ReplaceFirstChargingSlotStartTimeIfAlreadyActive(car, plannedChargingSlots, dateTimeOffSetNow);
@@ -129,7 +117,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     private void ReplaceFirstChargingSlotStartTimeIfAlreadyActive(Car car, List<DtoChargingSlot> plannedChargingSlots,
         DateTimeOffset dateTimeOffSetNow)
     {
-        _logger.LogTrace("{method}({carId}, {@plannedChargingSlots}, {dateTimeOffSetNow}", nameof(ReplaceFirstChargingSlotStartTimeIfAlreadyActive), car.Id, plannedChargingSlots, dateTimeOffSetNow);
+        logger.LogTrace("{method}({carId}, {@plannedChargingSlots}, {dateTimeOffSetNow}", nameof(ReplaceFirstChargingSlotStartTimeIfAlreadyActive), car.Id, plannedChargingSlots, dateTimeOffSetNow);
         //If a planned charging session is faster than expected, only stop charging if charge end is more than 15 minutes earlier than expected.
         var maximumOffSetOfActiveChargingSession = TimeSpan.FromMinutes(15);
 
@@ -149,7 +137,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
 
     internal async Task<List<DtoChargingSlot>> PlanChargingSlots(Car car, DateTimeOffset dateTimeOffSetNow)
     {
-        _logger.LogTrace("{method}({carId}, {dateTimeOffset}", nameof(PlanChargingSlots), car.Id, dateTimeOffSetNow);
+        logger.LogTrace("{method}({carId}, {dateTimeOffset}", nameof(PlanChargingSlots), car.Id, dateTimeOffSetNow);
         var plannedChargingSlots = new List<DtoChargingSlot>();
         var chargeDurationToMinSoc = CalculateTimeToReachMinSocAtFullSpeedCharge(car);
         var timeZoneOffset = TimeSpan.Zero;
@@ -231,7 +219,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
     internal async Task<List<DtoChargingSlot>> GenerateSpotPriceChargingSlots(Car car, TimeSpan chargeDurationToMinSoc,
         DateTimeOffset dateTimeOffSetNow, DateTimeOffset latestTimeToReachSoc)
     {
-        _logger.LogTrace("{method}({carId}, {chargeDurationToMinSoc}", nameof(GenerateSpotPriceChargingSlots), car.Id, chargeDurationToMinSoc);
+        logger.LogTrace("{method}({carId}, {chargeDurationToMinSoc}", nameof(GenerateSpotPriceChargingSlots), car.Id, chargeDurationToMinSoc);
         var chargingSlots = new List<DtoChargingSlot>();
         var chargePricesUntilLatestTimeToReachSocOrderedByPrice =
             await ChargePricesUntilLatestTimeToReachSocOrderedByPrice(dateTimeOffSetNow, latestTimeToReachSoc).ConfigureAwait(false);
@@ -257,8 +245,44 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
                 break;
             }
         }
-        chargingSlots = ConcatenateChargeTimes(chargingSlotsBeforeConcatenation);
+        
+        chargingSlots = ReduceNumberOfSpotPricedChargingSessions(chargingSlotsBeforeConcatenation);
         return chargingSlots;
+    }
+
+    /// <summary>
+    /// Reduces the number of charging session by shifting chargingsessions with less than 1 hour duration to the next charging session if needed.
+    /// Note: This method should only be used if there charge prices within one hour are constant
+    /// </summary>
+    internal List<DtoChargingSlot> ReduceNumberOfSpotPricedChargingSessions(List<DtoChargingSlot> chargingSlotsBeforeConcatenation)
+    {
+        var chargingSlots = ConcatenateChargeTimes(chargingSlotsBeforeConcatenation);
+        if (chargingSlots.Count < 2)
+        {
+            return chargingSlots;
+        }
+        var reducedChargingSessionChargingSlots = new List<DtoChargingSlot>
+        {
+            chargingSlots.First(),
+        };
+        for (var i = 1; i < chargingSlots.Count; i++)
+        {
+            var lastChargingSlot = chargingSlots[i - 1];
+            var currenChargingSlot = chargingSlots[i];
+            //Only move charging slots shorter than one hour as otherwise chargetime more hours ago could be reduced and shifted to more expensive hours
+            if (lastChargingSlot.ChargeDuration < TimeSpan.FromHours(1)
+                && (lastChargingSlot.ChargeEnd - currenChargingSlot.ChargeStart).TotalHours < 1)
+            {
+                lastChargingSlot.ChargeStart = currenChargingSlot.ChargeStart - lastChargingSlot.ChargeDuration;
+                lastChargingSlot.ChargeEnd = currenChargingSlot.ChargeEnd;
+            }
+            else
+            {
+                reducedChargingSessionChargingSlots.Add(currenChargingSlot);
+            }
+        }
+
+        return reducedChargingSessionChargingSlots;
     }
 
     private bool IsAbleToReachSocInTime(Car car, TimeSpan chargeDurationToMinSoc,
@@ -274,7 +298,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
 
     internal List<DtoChargingSlot> ConcatenateChargeTimes(List<DtoChargingSlot> chargingSlotsBeforeConcatenation)
     {
-        _logger.LogTrace("{method}({@chargingSlotsBeforeConcatenation})", nameof(ConcatenateChargeTimes), chargingSlotsBeforeConcatenation);
+        logger.LogTrace("{method}({@chargingSlotsBeforeConcatenation})", nameof(ConcatenateChargeTimes), chargingSlotsBeforeConcatenation);
         if (chargingSlotsBeforeConcatenation.Count < 2)
         {
             return chargingSlotsBeforeConcatenation;
@@ -323,7 +347,7 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
 
     private async Task<List<SpotPrice>> ChargePricesUntilLatestTimeToReachSocOrderedByPrice(DateTimeOffset dateTimeOffSetNow, DateTimeOffset latestTimeToReachSoc)
     {
-        var spotPrices = await _teslaSolarChargerContext.SpotPrices.AsNoTracking()
+        var spotPrices = await teslaSolarChargerContext.SpotPrices.AsNoTracking()
             .Where(s => s.EndDate > dateTimeOffSetNow.UtcDateTime && s.StartDate < latestTimeToReachSoc.UtcDateTime)
             .ToListAsync().ConfigureAwait(false);
         //SqLite can not order decimal
@@ -333,9 +357,9 @@ public class ChargeTimeCalculationService : IChargeTimeCalculationService
 
     public async Task<bool> IsLatestTimeToReachSocAfterLatestKnownChargePrice(int carId)
     {
-        var carConfigurationLatestTimeToReachSoC = _settings.Cars.First(c => c.Id == carId).CarConfiguration.LatestTimeToReachSoC;
+        var carConfigurationLatestTimeToReachSoC = settings.Cars.First(c => c.Id == carId).CarConfiguration.LatestTimeToReachSoC;
         var latestTimeToReachSoC = new DateTimeOffset(carConfigurationLatestTimeToReachSoC, TimeZoneInfo.Local.GetUtcOffset(carConfigurationLatestTimeToReachSoC));
-        return await _spotPriceService.LatestKnownSpotPriceTime().ConfigureAwait(false) < latestTimeToReachSoC;
+        return await spotPriceService.LatestKnownSpotPriceTime().ConfigureAwait(false) < latestTimeToReachSoC;
     }
 
 

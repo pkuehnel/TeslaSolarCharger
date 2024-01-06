@@ -10,6 +10,6 @@ public class Issue
     }
 
     public string IssueMessage { get; set; }
-    public string[] PossibleSolutions { get; set; } = new string[]{};
+    public List<string> PossibleSolutions { get; set; } = new() {};
     public IssueType? IssueType { get; set; }
 }

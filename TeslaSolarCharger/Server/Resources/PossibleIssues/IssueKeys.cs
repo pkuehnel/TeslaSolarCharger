@@ -19,11 +19,11 @@ public class IssueKeys
     public string VersionNotUpToDate => "VersionNotUpToDate";
     public string CorrectionFactorZero => "CorrectionFactorZero";
     public string ServerTimeZoneDifferentFromClient => "ServerTimeZoneDifferentFromClient";
-    public string NewTeslaApiNotUsed => "NewTeslaApiNotUsed";
     public string FleetApiTokenNotRequested => "FleetApiTokenNotRequested";
     public string FleetApiTokenUnauthorized => "FleetApiTokenUnauthorized";
     public string FleetApiTokenMissingScopes => "FleetApiTokenMissingScopes";
     public string FleetApiTokenRequestExpired => "FleetApiTokenRequestExpired";
     public string FleetApiTokenNotReceived => "FleetApiTokenNotReceived";
     public string FleetApiTokenExpired => "FleetApiTokenExpired";
+    public string CrashedOnStartup => "CrashedOnStartup";
 }

@@ -3,6 +3,10 @@
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
+/*This is needed as MudBlazor somehow overrides default user agent list stype types*/
+ul {
+    list-style-type: disc;
+}
 
 h1:focus {
     outline: none;

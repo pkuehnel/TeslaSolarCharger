@@ -12,31 +12,22 @@ using TeslaSolarCharger.Shared.Enums;
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Shared.Wrappers;
 
-public class ConfigurationWrapper : IConfigurationWrapper
+public class ConfigurationWrapper(
+    ILogger<ConfigurationWrapper> logger,
+    IConfiguration configuration,
+    INodePatternTypeHelper nodePatternTypeHelper,
+    IDateTimeProvider dateTimeProvider,
+    ISettings settings)
+    : IConfigurationWrapper
 {
-    private readonly ILogger<ConfigurationWrapper> _logger;
-    private readonly IConfiguration _configuration;
-    private readonly INodePatternTypeHelper _nodePatternTypeHelper;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ISettings _settings;
     private readonly string _baseConfigurationMemoryCacheName = "baseConfiguration";
-
-    public ConfigurationWrapper(ILogger<ConfigurationWrapper> logger, IConfiguration configuration, INodePatternTypeHelper nodePatternTypeHelper,
-        IDateTimeProvider dateTimeProvider, ISettings settings)
-    {
-        _logger = logger;
-        _configuration = configuration;
-        _nodePatternTypeHelper = nodePatternTypeHelper;
-        _dateTimeProvider = dateTimeProvider;
-        _settings = settings;
-    }
 
     public string CarConfigFileFullName()
     {
         var configFileDirectory = ConfigFileDirectory();
         var environmentVariableName = "CarConfigFilename";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return Path.Combine(configFileDirectory, value);
     }
 
@@ -45,7 +36,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         var configFileDirectory = ConfigFileDirectory();
         var environmentVariableName = "BackupCopyDestinationDirectory";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return Path.Combine(configFileDirectory, value);
     }
 
@@ -54,7 +45,25 @@ public class ConfigurationWrapper : IConfigurationWrapper
         var configFileDirectory = ConfigFileDirectory();
         var environmentVariableName = "BackupZipDirectory";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
+    public string AutoBackupsZipDirectory()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "AutoBackupZipDirectory";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
+    public string RestoreTempDirectory()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "RestoreTempDirectory";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return Path.Combine(configFileDirectory, value);
     }
 
@@ -69,7 +78,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         var environmentVariableName = "SqliteFileName";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
@@ -78,18 +87,25 @@ public class ConfigurationWrapper : IConfigurationWrapper
         var configFileDirectory = ConfigFileDirectory();
         var environmentVariableName = "BaseConfigFileName";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return Path.Combine(configFileDirectory, value);
     }
 
-    internal string ConfigFileDirectory()
+    public string ConfigFileDirectory()
     {
         var environmentVariableName = "ConfigFileLocation";
         var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
-        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
         path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), value);
         return path;
+    }
+
+    public string? GetFleetApiBaseUrl()
+    {
+        var environmentVariableName = "TeslaFleetApiBaseUrl";
+        var value = configuration.GetValue<string?>(environmentVariableName);
+        return value;
     }
 
     public string GetAwattarBaseUrl()
@@ -102,21 +118,28 @@ public class ConfigurationWrapper : IConfigurationWrapper
     public bool AllowCors()
     {
         var environmentVariableName = "AllowCORS";
-        var value = _configuration.GetValue<bool>(environmentVariableName);
+        var value = configuration.GetValue<bool>(environmentVariableName);
         return value;
     }
 
     public bool UseFleetApi()
     {
         var environmentVariableName = "UseFleetApi";
-        var value = _configuration.GetValue<bool>(environmentVariableName);
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
+    public bool UseFleetApiProxy()
+    {
+        var environmentVariableName = "UseFleetApiProxy";
+        var value = configuration.GetValue<bool>(environmentVariableName);
         return value;
     }
 
     public string BackendApiBaseUrl()
     {
         var environmentVariableName = "BackendApiBaseUrl";
-        var value = _configuration.GetValue<string>(environmentVariableName);
+        var value = configuration.GetValue<string>(environmentVariableName);
         return value;
     }
 
@@ -449,7 +472,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         if (getInMemoryValueIfAvailable)
         {
-            var settingsPowerBuffer = _settings.PowerBuffer;
+            var settingsPowerBuffer = settings.PowerBuffer;
             if (settingsPowerBuffer != null)
             {
                 return settingsPowerBuffer.Value;
@@ -480,27 +503,27 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             var exception =
                 new NullReferenceException($"Configuration value {environmentVariableName} is null or empty");
-            _logger.LogError(exception, "Error getting configuration value");
+            logger.LogError(exception, "Error getting configuration value");
             throw exception;
         }
-        _logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
         return value;
     }
 
     internal T? GetNullableConfigurationValue<T>(string environmentVariableName)
     {
-        return _configuration.GetValue<T>(environmentVariableName);
+        return configuration.GetValue<T>(environmentVariableName);
     }
 
     internal TimeSpan GetSecondsConfigurationValueIfGreaterThanMinumum(string environmentVariableName, TimeSpan minimum)
     {
-        var value = TimeSpan.FromSeconds(_configuration.GetValue<int>(environmentVariableName));
+        var value = TimeSpan.FromSeconds(configuration.GetValue<int>(environmentVariableName));
         return GetValueIfGreaterThanMinimum(value, minimum);
     }
 
     internal TimeSpan GetMinutesConfigurationValueIfGreaterThanMinumum(string environmentVariableName, TimeSpan minimum)
     {
-        var value = TimeSpan.FromMinutes(_configuration.GetValue<int>(environmentVariableName));
+        var value = TimeSpan.FromMinutes(configuration.GetValue<int>(environmentVariableName));
         return GetValueIfGreaterThanMinimum(value, minimum);
     }
 
@@ -508,7 +531,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
     {
         if (value < minimum)
         {
-            _logger.LogTrace("Replace value {value} with minumum value {minimum}", value, minimum);
+            logger.LogTrace("Replace value {value} with minumum value {minimum}", value, minimum);
             return minimum;
         }
         else
@@ -525,7 +548,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public async Task<DtoBaseConfiguration> GetBaseConfigurationAsync()
     {
-        _logger.LogTrace("{method}()", nameof(GetBaseConfiguration));
+        logger.LogTrace("{method}()", nameof(GetBaseConfiguration));
         var jsonFileContent = await BaseConfigurationJsonFileContent().ConfigureAwait(false);
 
         var dtoBaseConfiguration = JsonConvert.DeserializeObject<DtoBaseConfiguration>(jsonFileContent)!;
@@ -577,7 +600,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         }
 
         dtoBaseConfiguration.FrontendConfiguration.InverterPowerNodePatternType =
-            _nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.CurrentInverterPowerJsonPattern,
+            nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.CurrentInverterPowerJsonPattern,
                 dtoBaseConfiguration.CurrentInverterPowerXmlPattern);
     }
 
@@ -602,7 +625,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         }
 
         dtoBaseConfiguration.FrontendConfiguration.GridPowerNodePatternType =
-            _nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.CurrentPowerToGridJsonPattern,
+            nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.CurrentPowerToGridJsonPattern,
                 dtoBaseConfiguration.CurrentPowerToGridXmlPattern);
     }
 
@@ -633,19 +656,19 @@ public class ConfigurationWrapper : IConfigurationWrapper
         }
 
         dtoBaseConfiguration.FrontendConfiguration.HomeBatteryPowerNodePatternType =
-            _nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.HomeBatteryPowerJsonPattern,
+            nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.HomeBatteryPowerJsonPattern,
                 dtoBaseConfiguration.HomeBatteryPowerXmlPattern);
 
         dtoBaseConfiguration.FrontendConfiguration.HomeBatterySocNodePatternType =
-            _nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.HomeBatterySocJsonPattern,
+            nodePatternTypeHelper.DecideNodePatternType(dtoBaseConfiguration.HomeBatterySocJsonPattern,
                 dtoBaseConfiguration.HomeBatterySocXmlPattern);
     }
 
     public bool ShouldIgnoreSslErrors()
     {
-        _logger.LogTrace("{method}()", nameof(ShouldIgnoreSslErrors));
+        logger.LogTrace("{method}()", nameof(ShouldIgnoreSslErrors));
         var environmentVariableName = "IgnoreSslErrors";
-        var value = _configuration.GetValue<bool>(environmentVariableName);
+        var value = configuration.GetValue<bool>(environmentVariableName);
         return value;
     }
 
@@ -685,7 +708,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not load values from SolarEdge Plugin");
+            logger.LogWarning(ex, "Could not load values from SolarEdge Plugin");
         }
 
         try
@@ -700,7 +723,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not load values from Modbus Plugin");
+            logger.LogWarning(ex, "Could not load values from Modbus Plugin");
         }
     }
 
@@ -745,7 +768,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         var configDirectoryFullName = fileInfo.Directory?.FullName;
         if (!Directory.Exists(configDirectoryFullName))
         {
-            _logger.LogDebug("Config directory {directoryname} does not exist.", configDirectoryFullName);
+            logger.LogDebug("Config directory {directoryname} does not exist.", configDirectoryFullName);
             Directory.CreateDirectory(configDirectoryFullName ?? throw new InvalidOperationException());
         }
 
@@ -758,11 +781,11 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             try
             {
-                File.Copy(configFileLocation, configFileLocation + _dateTimeProvider.DateTimeOffSetNow().ToUnixTimeSeconds(), true);
+                File.Copy(configFileLocation, configFileLocation + dateTimeProvider.DateTimeOffSetNow().ToUnixTimeSeconds(), true);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not backup baseConfig.json");
+                logger.LogWarning(ex, "Could not backup baseConfig.json");
             }
         }
         await File.WriteAllTextAsync(configFileLocation, jsonFileContent).ConfigureAwait(false);
@@ -784,7 +807,7 @@ public class ConfigurationWrapper : IConfigurationWrapper
         {
             throw new InvalidOperationException("Could not deserialize dtoBaseConfiguration to baseconfigurationJson");
         }
-        baseConfigurationJson.LastEditDateTime = _dateTimeProvider.UtcNow();
+        baseConfigurationJson.LastEditDateTime = dateTimeProvider.UtcNow();
 
         var baseConfigurationJsonString = JsonConvert.SerializeObject(baseConfigurationJson);
 
@@ -793,6 +816,6 @@ public class ConfigurationWrapper : IConfigurationWrapper
 
     public bool ShouldDisplayApiRequestCounter()
     {
-        return _configuration.GetValue<bool>("DisplayApiRequestCounter");
+        return configuration.GetValue<bool>("DisplayApiRequestCounter");
     }
 }
