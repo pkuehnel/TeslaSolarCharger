@@ -55,10 +55,6 @@ public class IssueValidationService : IIssueValidationService
             issueList.Add(crashedOnStartupIssue);
             return issueList;
         }
-        if (!_configurationWrapper.UseFleetApi())
-        {
-            issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.NewTeslaApiNotUsed));
-        }
         issueList.AddRange(GetServerConfigurationIssues(clientTimeZoneId));
         if (Debugger.IsAttached)
         {
