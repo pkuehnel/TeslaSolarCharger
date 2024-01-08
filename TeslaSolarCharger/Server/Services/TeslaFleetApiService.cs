@@ -94,7 +94,6 @@ public class TeslaFleetApiService(
         var vin = await GetVinByCarId(carId).ConfigureAwait(false);
         var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(vin, WakeUpRequest).ConfigureAwait(false);
         await teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
-        //ToDo: Next line is never executed
         await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
     }
 
