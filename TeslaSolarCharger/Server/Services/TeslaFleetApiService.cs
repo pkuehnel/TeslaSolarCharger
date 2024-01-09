@@ -327,7 +327,7 @@ public class TeslaFleetApiService(
                 await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}")
                     .ConfigureAwait(false);
-                if (responseString.Contains("unsigned_cmds_hardlocked"))
+                if (string.Equals(vehicleCommandResult.Reason, "unsigned_cmds_hardlocked"))
                 {
                     settings.FleetApiProxyNeeded = true;
                     //remove post after a few versions as only used for debugging
