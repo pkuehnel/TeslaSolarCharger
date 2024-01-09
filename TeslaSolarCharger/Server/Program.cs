@@ -76,7 +76,7 @@ try
 
     var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
     var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-    logger.LogTrace("Installation Id: {installationId}", installationId);
+    logger.LogInformation("Installation Id: {installationId}", installationId);
 
     var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
     await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
