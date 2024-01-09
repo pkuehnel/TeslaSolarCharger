@@ -136,6 +136,13 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool LogLocationData()
+    {
+        var environmentVariableName = "LogLocationData";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public string BackendApiBaseUrl()
     {
         var environmentVariableName = "BackendApiBaseUrl";

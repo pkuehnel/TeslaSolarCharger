@@ -96,4 +96,5 @@ public interface IConfigurationWrapper
     string RestoreTempDirectory();
     string ConfigFileDirectory();
     string AutoBackupsZipDirectory();
+    bool LogLocationData();
 }
