@@ -13,4 +13,5 @@ public interface ITeslaFleetApiService
     Task<DtoValue<bool>> TestFleetApiAccess(int carId);
     DtoValue<bool> IsFleetApiEnabled();
     DtoValue<bool> IsFleetApiProxyEnabled();
+    Task<bool> IsFleetApiProxyNeededInDatabase();
 }

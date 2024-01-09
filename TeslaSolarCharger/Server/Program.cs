@@ -76,7 +76,7 @@ try
 
     var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
     var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-    logger.LogTrace("Installation Id: {installationId}", installationId);
+    logger.LogInformation("Installation Id: {installationId}", installationId);
 
     var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
     await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
@@ -92,6 +92,13 @@ try
     await configJsonService.AddCarsToTscDatabase().ConfigureAwait(false);
 
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
+
+    var teslaFleetApiService = app.Services.GetRequiredService<ITeslaFleetApiService>();
+    var settings = app.Services.GetRequiredService<ISettings>();
+    if (await teslaFleetApiService.IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
+    {
+        settings.FleetApiProxyNeeded = true;
+    }
 
     var jobManager = app.Services.GetRequiredService<JobManager>();
     await jobManager.StartJobs().ConfigureAwait(false);

@@ -131,7 +131,18 @@ public class ConfigurationWrapper(
 
     public bool UseFleetApiProxy()
     {
+        if (settings.FleetApiProxyNeeded)
+        {
+            return true;
+        }
         var environmentVariableName = "UseFleetApiProxy";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
+    public bool LogLocationData()
+    {
+        var environmentVariableName = "LogLocationData";
         var value = configuration.GetValue<bool>(environmentVariableName);
         return value;
     }
