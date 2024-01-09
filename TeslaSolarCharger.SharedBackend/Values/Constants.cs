@@ -15,4 +15,5 @@ public class Constants : IConstants
     public string FleetApiTokenRequested => "FleetApiTokenRequested";
     public string TokenRefreshUnauthorized => "TokenRefreshUnauthorized";
     public string TokenMissingScopes => "TokenMissingScopes";
+    public string FleetApiProxyNeeded => "FleetApiProxyNeeded";
 }

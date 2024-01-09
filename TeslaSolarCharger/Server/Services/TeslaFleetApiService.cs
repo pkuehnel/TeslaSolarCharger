@@ -327,10 +327,32 @@ public class TeslaFleetApiService(
                 await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}")
                     .ConfigureAwait(false);
+                if (responseString.Contains("unsigned_cmds_hardlocked"))
+                {
+                    settings.FleetApiProxyNeeded = true;
+                    //remove post after a few versions as only used for debugging
+                    await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                            "FleetAPI proxy needed set to true")
+                        .ConfigureAwait(false);
+                    if (!await IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
+                    {
+                        teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+                        {
+                            Key = constants.FleetApiProxyNeeded,
+                            Value = true.ToString(),
+                        });
+                    }
+                    
+                }
             }
         }
         logger.LogDebug("Response: {responseString}", responseString);
         return teslaCommandResultResponse;
+    }
+
+    public async Task<bool> IsFleetApiProxyNeededInDatabase()
+    {
+        return await teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == constants.FleetApiProxyNeeded).ConfigureAwait(false);
     }
 
     private string GetFleetApiBaseUrl(TeslaFleetApiRegion region, bool useProxyBaseUrl)
