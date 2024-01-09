@@ -82,7 +82,14 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         _mqttClient.ApplicationMessageReceivedAsync += e =>
         {
             var value = GetValueFromMessage(e.ApplicationMessage);
-            _logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: {value}", value.CarId, value.Topic, value.Value);
+            if ((!_configurationWrapper.LogLocationData()) && (string.Equals(value.Topic, TopicLongitude) || string.Equals(value.Topic, TopicLatitude)))
+            {
+                _logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: xx.xxxxx", value.CarId, value.Topic);
+            }
+            else
+            {
+                _logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: {value}", value.CarId, value.Topic, value.Value);
+            }
             UpdateCar(value);
             return Task.CompletedTask;
         };

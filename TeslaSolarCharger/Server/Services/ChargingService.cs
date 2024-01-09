@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -98,8 +100,23 @@ public class ChargingService : IChargingService
             .ThenBy(c => c.Id)
             .ToList();
 
-        _logger.LogDebug("Relevant cars: {@relevantCars}", relevantCars);
-        _logger.LogDebug("Irrelevant cars: {@irrlevantCars}", irrelevantCars);
+        if (_configurationWrapper.LogLocationData())
+        {
+            _logger.LogDebug("Relevant cars: {@relevantCars}", relevantCars);
+            _logger.LogDebug("Irrelevant cars: {@irrelevantCars}", irrelevantCars);
+        }
+        else
+        {
+            var jsonSerializerSettings = new JsonSerializerSettings
+            {
+                ContractResolver = new IgnorePropertiesResolver(new[] { nameof(Car.CarState.Longitude), nameof(Car.CarState.Latitude) }),
+            };
+            var relevantCarsJson = JsonConvert.SerializeObject(relevantCars, jsonSerializerSettings);
+            _logger.LogDebug("Relevant cars: {relevantCarsJson}", relevantCarsJson);
+            var irrelevantCarsJson = JsonConvert.SerializeObject(irrelevantCars, jsonSerializerSettings);
+            _logger.LogDebug("Irrelevant cars: {irrelevantCarsJson}", irrelevantCarsJson);
+        }
+        
 
         if (relevantCarIds.Count < 1)
         {
