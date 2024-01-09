@@ -25,5 +25,7 @@ public class Settings : ISettings
     public bool CrashedOnStartup { get; set; }
     public string? StartupCrashMessage { get; set; }
 
+    public bool FleetApiProxyNeeded { get; set; }
+
     public List<Car> Cars { get; set; }
 }

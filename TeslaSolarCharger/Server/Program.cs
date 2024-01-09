@@ -93,6 +93,13 @@ try
 
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
+    var teslaFleetApiService = app.Services.GetRequiredService<ITeslaFleetApiService>();
+    var settings = app.Services.GetRequiredService<ISettings>();
+    if (await teslaFleetApiService.IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
+    {
+        settings.FleetApiProxyNeeded = true;
+    }
+
     var jobManager = app.Services.GetRequiredService<JobManager>();
     await jobManager.StartJobs().ConfigureAwait(false);
 }

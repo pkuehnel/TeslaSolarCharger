@@ -16,4 +16,5 @@ public interface IConstants
     string TokenRefreshUnauthorized { get; }
     string TokenMissingScopes { get; }
     string BackupZipBaseFileName { get; }
+    string FleetApiProxyNeeded { get; }
 }
