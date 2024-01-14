@@ -327,27 +327,33 @@ public class TeslaFleetApiService(
                 await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}")
                     .ConfigureAwait(false);
-                if (string.Equals(vehicleCommandResult.Reason, "unsigned_cmds_hardlocked"))
-                {
-                    settings.FleetApiProxyNeeded = true;
-                    //remove post after a few versions as only used for debugging
-                    await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                            "FleetAPI proxy needed set to true")
-                        .ConfigureAwait(false);
-                    if (!await IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
-                    {
-                        teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
-                        {
-                            Key = constants.FleetApiProxyNeeded,
-                            Value = true.ToString(),
-                        });
-                    }
-                    
-                }
+                await HandleUnsignedCommands(vehicleCommandResult).ConfigureAwait(false);
             }
         }
         logger.LogDebug("Response: {responseString}", responseString);
         return teslaCommandResultResponse;
+    }
+
+    internal async Task HandleUnsignedCommands(DtoVehicleCommandResult vehicleCommandResult)
+    {
+        if (string.Equals(vehicleCommandResult.Reason, "unsigned_cmds_hardlocked"))
+        {
+            settings.FleetApiProxyNeeded = true;
+            //remove post after a few versions as only used for debugging
+            await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                    "FleetAPI proxy needed set to true")
+                .ConfigureAwait(false);
+            if (!await IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
+            {
+                teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+                {
+                    Key = constants.FleetApiProxyNeeded,
+                    Value = true.ToString(),
+                });
+                await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            }
+                    
+        }
     }
 
     public async Task<bool> IsFleetApiProxyNeededInDatabase()
