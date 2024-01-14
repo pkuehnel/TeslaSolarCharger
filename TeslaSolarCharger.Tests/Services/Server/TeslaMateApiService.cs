@@ -5,13 +5,8 @@ using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
-public class TeslaMateApiService : TestBase
+public class TeslaMateApiService(ITestOutputHelper outputHelper) : TestBase(outputHelper)
 {
-    public TeslaMateApiService(ITestOutputHelper outputHelper)
-        : base(outputHelper)
-    {
-    }
-
     [Theory]
     [InlineData(18, null, null, false)]
     [InlineData(18, null, 19, true)]
