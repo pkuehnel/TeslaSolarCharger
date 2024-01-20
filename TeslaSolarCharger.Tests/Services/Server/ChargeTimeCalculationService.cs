@@ -50,7 +50,6 @@ public class ChargeTimeCalculationService : TestBase
         };
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
-        Mock.Mock<IConstants>().Setup(c => c.MinimumSocDifference).Returns(2);
         var chargeDuration = chargeTimeCalculationService.CalculateTimeToReachMinSocAtFullSpeedCharge(car);
 
         var expectedTimeSpan = TimeSpan.FromSeconds(expectedTotalSeconds);

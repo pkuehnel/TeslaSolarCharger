@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -107,9 +108,27 @@ public class TeslaFleetApiService(
     public async Task SetAmp(int carId, int amps)
     {
         logger.LogTrace("{method}({carId}, {amps})", nameof(SetAmp), carId, amps);
+        var car = settings.Cars.First(c => c.Id == carId);
+        if (car.CarState.ChargerRequestedCurrent == amps)
+        {
+            logger.LogDebug("Correct charging amp already set.");
+            return;
+        }
         var vin = await GetVinByCarId(carId).ConfigureAwait(false);
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, commandData).ConfigureAwait(false);
+        if (amps < 5 && car.CarState.LastSetAmp >= 5
+            || amps >= 5 && car.CarState.LastSetAmp < 5)
+        {
+            logger.LogDebug("Double set amp to be able to jump over or below 5A");
+            await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+            result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, commandData).ConfigureAwait(false);
+        }
+
+        if (result?.Response?.Result == true)
+        {
+            car.CarState.LastSetAmp = amps;
+        }
     }
 
     public async Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
@@ -327,27 +346,33 @@ public class TeslaFleetApiService(
                 await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}")
                     .ConfigureAwait(false);
-                if (string.Equals(vehicleCommandResult.Reason, "unsigned_cmds_hardlocked"))
-                {
-                    settings.FleetApiProxyNeeded = true;
-                    //remove post after a few versions as only used for debugging
-                    await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                            "FleetAPI proxy needed set to true")
-                        .ConfigureAwait(false);
-                    if (!await IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
-                    {
-                        teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
-                        {
-                            Key = constants.FleetApiProxyNeeded,
-                            Value = true.ToString(),
-                        });
-                    }
-                    
-                }
+                await HandleUnsignedCommands(vehicleCommandResult).ConfigureAwait(false);
             }
         }
         logger.LogDebug("Response: {responseString}", responseString);
         return teslaCommandResultResponse;
+    }
+
+    internal async Task HandleUnsignedCommands(DtoVehicleCommandResult vehicleCommandResult)
+    {
+        if (string.Equals(vehicleCommandResult.Reason, "unsigned_cmds_hardlocked"))
+        {
+            settings.FleetApiProxyNeeded = true;
+            //remove post after a few versions as only used for debugging
+            await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                    "FleetAPI proxy needed set to true")
+                .ConfigureAwait(false);
+            if (!await IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
+            {
+                teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+                {
+                    Key = constants.FleetApiProxyNeeded,
+                    Value = true.ToString(),
+                });
+                await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            }
+                    
+        }
     }
 
     public async Task<bool> IsFleetApiProxyNeededInDatabase()

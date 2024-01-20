@@ -207,6 +207,7 @@ public class ChargingService : IChargingService
 
     public int CalculateAmpByPowerAndCar(int powerToControl, Car car)
     {
+        _logger.LogTrace("{method}({powerToControl}, {carId})", nameof(CalculateAmpByPowerAndCar), powerToControl, car.Id);
         return Convert.ToInt32(Math.Floor(powerToControl / ((double)(_settings.AverageHomeGridVoltage ?? 230) * car.CarState.ActualPhases)));
     }
 
@@ -407,7 +408,7 @@ public class ChargingService : IChargingService
         {
             _logger.LogDebug("Charging should stop");
             //Falls Ausschaltbefehl erst seit Kurzem
-            if (car.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
+            if ((car.CarState.EarliestSwitchOff == default) || (car.CarState.EarliestSwitchOff > _dateTimeProvider.Now()))
             {
                 _logger.LogDebug("Can not stop charging: earliest Switch Off: {earliestSwitchOff}",
                     car.CarState.EarliestSwitchOff);
@@ -533,9 +534,11 @@ public class ChargingService : IChargingService
             var actualCurrent = car.CarState.ChargerActualCurrent ?? 0;
             _logger.LogTrace("Actual current: {actualCurrent}", actualCurrent);
             //This is needed because sometimes actual current is higher than last set amp, leading to higher calculated amp to set, than actually needed
-            if (actualCurrent > car.CarState.LastSetAmp)
+            var lastSetAmp = car.CarState.ChargerRequestedCurrent ?? car.CarState.LastSetAmp;
+            if (actualCurrent > lastSetAmp)
             {
-                actualCurrent = car.CarState.LastSetAmp;
+                _logger.LogTrace("Actual current {actualCurrent} higher than last set amp {lastSetAmp}. Setting actual current as last set amp.", actualCurrent, lastSetAmp);
+                actualCurrent = lastSetAmp;
             }
             ampToSet += actualCurrent;
         }
