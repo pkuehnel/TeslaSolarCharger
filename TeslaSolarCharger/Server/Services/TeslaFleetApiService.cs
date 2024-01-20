@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Globalization;
 using System.Net;
@@ -107,6 +107,12 @@ public class TeslaFleetApiService(
     public async Task SetAmp(int carId, int amps)
     {
         logger.LogTrace("{method}({carId}, {amps})", nameof(SetAmp), carId, amps);
+        var car = settings.Cars.First(c => c.Id == carId);
+        if (car.CarState.ChargerRequestedCurrent == amps)
+        {
+            logger.LogDebug("Correct charging amp already set.");
+            return;
+        }
         var vin = await GetVinByCarId(carId).ConfigureAwait(false);
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, commandData).ConfigureAwait(false);
