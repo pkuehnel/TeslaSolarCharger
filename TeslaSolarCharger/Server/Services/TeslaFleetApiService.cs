@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -116,6 +117,14 @@ public class TeslaFleetApiService(
         var vin = await GetVinByCarId(carId).ConfigureAwait(false);
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, commandData).ConfigureAwait(false);
+        if (amps < 5 && car.CarState.LastSetAmp >= 5
+            || amps >= 5 && car.CarState.LastSetAmp < 5)
+        {
+            logger.LogDebug("Double set amp to be able to jump over or below 5A");
+            await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+            result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, commandData).ConfigureAwait(false);
+        }
+
         if (result?.Response?.Result == true)
         {
             car.CarState.LastSetAmp = amps;
