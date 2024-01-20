@@ -120,6 +120,7 @@ public class TeslaFleetApiService(
         if (amps < 5 && car.CarState.LastSetAmp >= 5
             || amps >= 5 && car.CarState.LastSetAmp < 5)
         {
+            logger.LogDebug("Double set amp to be able to jump over or below 5A");
             await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
             result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, commandData).ConfigureAwait(false);
         }
