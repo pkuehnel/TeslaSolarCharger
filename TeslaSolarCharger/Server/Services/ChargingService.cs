@@ -408,7 +408,7 @@ public class ChargingService : IChargingService
         {
             _logger.LogDebug("Charging should stop");
             //Falls Ausschaltbefehl erst seit Kurzem
-            if ((car.CarState.EarliestSwitchOff != default) && (car.CarState.EarliestSwitchOff > _dateTimeProvider.Now()))
+            if ((car.CarState.EarliestSwitchOff == default) || (car.CarState.EarliestSwitchOff > _dateTimeProvider.Now()))
             {
                 _logger.LogDebug("Can not stop charging: earliest Switch Off: {earliestSwitchOff}",
                     car.CarState.EarliestSwitchOff);
