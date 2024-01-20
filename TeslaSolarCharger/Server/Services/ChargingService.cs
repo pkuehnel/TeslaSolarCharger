@@ -534,10 +534,11 @@ public class ChargingService : IChargingService
             var actualCurrent = car.CarState.ChargerActualCurrent ?? 0;
             _logger.LogTrace("Actual current: {actualCurrent}", actualCurrent);
             //This is needed because sometimes actual current is higher than last set amp, leading to higher calculated amp to set, than actually needed
-            if (actualCurrent > car.CarState.LastSetAmp)
+            var lastSetAmp = car.CarState.ChargerRequestedCurrent ?? car.CarState.LastSetAmp;
+            if (actualCurrent > lastSetAmp)
             {
-                _logger.LogTrace("Actual current {actualCurrent} higher than last set amp {lastSetAmp}. Setting actual current as last set amp.", actualCurrent, car.CarState.LastSetAmp);
-                actualCurrent = car.CarState.LastSetAmp;
+                _logger.LogTrace("Actual current {actualCurrent} higher than last set amp {lastSetAmp}. Setting actual current as last set amp.", actualCurrent, lastSetAmp);
+                actualCurrent = lastSetAmp;
             }
             ampToSet += actualCurrent;
         }
