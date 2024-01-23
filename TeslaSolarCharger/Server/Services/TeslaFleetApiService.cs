@@ -404,6 +404,7 @@ public class TeslaFleetApiService(
     public async Task RefreshTokenAsync()
     {
         logger.LogTrace("{method}()", nameof(RefreshTokenAsync));
+        settings.AllowUnlimitedFleetApiRequests = await CheckIfFleetApiRequestsAreAllowed().ConfigureAwait(false);
         var tokenState = (await GetFleetApiTokenState().ConfigureAwait(false)).Value;
         switch (tokenState)
         {
@@ -426,6 +427,9 @@ public class TeslaFleetApiService(
             case FleetApiTokenState.UpToDate:
                 logger.LogDebug("Token is up to date.");
                 break;
+            case FleetApiTokenState.NoApiRequestsAllowed:
+                logger.LogError("No API requests allowed.");
+                return;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -449,6 +453,36 @@ public class TeslaFleetApiService(
         var dbToken = await GetAccessTokenAndRefreshWhenNeededAsync().ConfigureAwait(false);
     }
 
+    private async Task<bool> CheckIfFleetApiRequestsAreAllowed()
+    {
+        if (settings.AllowUnlimitedFleetApiRequests && (settings.LastFleetApiRequestAllowedCheck > dateTimeProvider.UtcNow().AddHours(-1)))
+        {
+            return true;
+        }
+        settings.LastFleetApiRequestAllowedCheck = dateTimeProvider.UtcNow();
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(2);
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+        var url = configurationWrapper.BackendApiBaseUrl() + $"Tsc/AllowUnlimitedFleetApiAccess?installationId={installationId}";
+        try
+        {
+            var response = await httpClient.GetAsync(url).ConfigureAwait(false);
+            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            var responseValue = JsonConvert.DeserializeObject<DtoValue<bool>>(responseString);
+            return responseValue?.Value != false;
+        }
+        catch (Exception)
+        {
+            return true;
+        }
+        
+    }
+
     public async Task AddNewTokenAsync(DtoTeslaTscDeliveryToken token)
     {
         var currentTokens = await teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
@@ -470,6 +504,11 @@ public class TeslaFleetApiService(
         if (!configurationWrapper.UseFleetApi())
         {
             return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotNeeded);
+        }
+
+        if (!settings.AllowUnlimitedFleetApiRequests)
+        {
+            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NoApiRequestsAllowed);
         }
         var isCurrentRefreshTokenUnauthorized = await teslaSolarChargerContext.TscConfigurations
             .Where(c => c.Key == constants.TokenRefreshUnauthorized)

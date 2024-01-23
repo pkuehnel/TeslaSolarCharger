@@ -27,5 +27,8 @@ public class Settings : ISettings
 
     public bool FleetApiProxyNeeded { get; set; }
 
+    public bool AllowUnlimitedFleetApiRequests { get; set; }
+    public DateTime LastFleetApiRequestAllowedCheck { get; set; }
+
     public List<Car> Cars { get; set; }
 }
