@@ -238,7 +238,7 @@ public class TeslaFleetApiService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Could not get vehicle data for car {carId}", carId);
-                await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(RefreshCarData),
                     $"Error getting vehicle data: {ex.Message} {ex.StackTrace}").ConfigureAwait(false);
             }
         }
@@ -371,6 +371,12 @@ public class TeslaFleetApiService(
         };
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (configurationWrapper.GetVehicleDataFromTeslaDebug())
+        {
+            await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                $"Logged Response string: {responseString}").ConfigureAwait(false);
+        }
+        
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(responseString);
         if (!response.IsSuccessStatusCode)
         {
