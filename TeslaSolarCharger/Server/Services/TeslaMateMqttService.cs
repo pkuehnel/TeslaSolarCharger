@@ -209,6 +209,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
         if (_configurationWrapper.GetVehicleDataFromTesla())
         {
             _logger.LogInformation("Not connecting to TeslaMate as data is retrieved from Teslas Fleet API");
+            return;
         }
         _logger.LogWarning("MqttClient is not connected");
         await ConnectMqttClient().ConfigureAwait(false);

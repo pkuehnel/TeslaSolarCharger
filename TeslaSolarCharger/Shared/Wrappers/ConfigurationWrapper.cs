@@ -146,6 +146,12 @@ public class ConfigurationWrapper(
         var value = configuration.GetValue<bool>(environmentVariableName);
         return value;
     }
+    public bool GetVehicleDataFromTeslaDebug()
+    {
+        var environmentVariableName = "GetVehicleDataFromTeslaDebug";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
 
     public bool LogLocationData()
     {

@@ -14,4 +14,5 @@ public interface ITeslaFleetApiService
     DtoValue<bool> IsFleetApiEnabled();
     DtoValue<bool> IsFleetApiProxyEnabled();
     Task<bool> IsFleetApiProxyNeededInDatabase();
+    Task RefreshCarData();
 }
