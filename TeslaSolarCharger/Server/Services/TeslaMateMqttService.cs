@@ -317,7 +317,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 }
                 break;
             case TopicState:
-                car.CarState.StateString = value.Value;
                 switch (value.Value)
                 {
                     case "asleep":
@@ -346,7 +345,6 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                         car.CarState.State = CarStateEnum.Unknown;
                         break;
                 }
-                _logger.LogTrace("New car state detected {car state}", car.CarState.StateString);
                 break;
             case TopicHealthy:
                 car.CarState.Healthy = Convert.ToBoolean(value.Value);
