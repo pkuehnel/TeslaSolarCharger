@@ -10,4 +10,5 @@ public enum FleetApiTokenState
     NotReceived,
     Expired,
     UpToDate,
+    NoApiRequestsAllowed,
 }

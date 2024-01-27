@@ -45,7 +45,10 @@ public class BaseConfigurationService : IBaseConfigurationService
         _logger.LogTrace("{method}({@baseConfiguration})", nameof(UpdateBaseConfigurationAsync), baseConfiguration);
         var restartNeeded = await _jobManager.StopJobs().ConfigureAwait(false);
         await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
-        await _teslaMateMqttService.ConnectMqttClient().ConfigureAwait(false);
+        if (!_configurationWrapper.GetVehicleDataFromTesla())
+        {
+            await _teslaMateMqttService.ConnectClientIfNotConnected().ConfigureAwait(false);
+        }
         await _solarMqttService.ConnectMqttClient().ConfigureAwait(false);
         if (_configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None)
         {

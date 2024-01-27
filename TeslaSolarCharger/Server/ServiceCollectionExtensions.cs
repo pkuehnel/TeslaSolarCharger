@@ -46,6 +46,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()
             .AddTransient<FleetApiTokenRefreshJob>()
+            .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
