@@ -75,7 +75,7 @@ public class TeslaFleetApiService(
 
     private DtoFleetApiRequest VehicleRequest => new()
     {
-        RequestUrl = $"",
+        RequestUrl = "",
         NeedsProxy = false,
     };
 
