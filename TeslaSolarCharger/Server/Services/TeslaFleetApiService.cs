@@ -316,6 +316,10 @@ public class TeslaFleetApiService(
         {
             return CarStateEnum.Updating;
         }
+        if (teslaCarStateString == "online")
+        {
+            return CarStateEnum.Online;
+        }
         logger.LogWarning("Could not determine car state. TeslaCarStateString: {teslaCarStateString}, TeslaCarShiftState: {teslaCarShiftState}, TeslaCarSoftwareUpdateState: {teslaCarSoftwareUpdateState}, ChargingState: {chargingState}", teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
         return CarStateEnum.Unknown;
     }
