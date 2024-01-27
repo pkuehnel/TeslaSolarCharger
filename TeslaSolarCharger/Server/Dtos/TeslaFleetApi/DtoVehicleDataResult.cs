@@ -29,7 +29,7 @@ public class DtoVehicleDataResult
     public List<string> Tokens { get; set; }
 
     [JsonProperty("state")]
-    public object State { get; set; }
+    public string State { get; set; }
 
     [JsonProperty("in_service")]
     public bool InService { get; set; }
@@ -131,7 +131,7 @@ public class ChargeState
     public int ChargerActualCurrent { get; set; }
 
     [JsonProperty("charger_phases")]
-    public object ChargerPhases { get; set; }
+    public int ChargerPhases { get; set; }
 
     [JsonProperty("charger_pilot_current")]
     public int ChargerPilotCurrent { get; set; }
@@ -203,7 +203,7 @@ public class ChargeState
     public bool ScheduledChargingPending { get; set; }
 
     [JsonProperty("scheduled_charging_start_time")]
-    public object ScheduledChargingStartTime { get; set; }
+    public long? ScheduledChargingStartTime { get; set; }
 
     [JsonProperty("scheduled_departure_time")]
     public int? ScheduledDepartureTime { get; set; }
@@ -389,7 +389,7 @@ public class DriveState
     public int Power { get; set; }
 
     [JsonProperty("shift_state")]
-    public object ShiftState { get; set; }
+    public string? ShiftState { get; set; }
 
     [JsonProperty("speed")]
     public object Speed { get; set; }

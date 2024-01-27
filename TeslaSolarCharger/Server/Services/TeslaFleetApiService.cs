@@ -33,7 +33,8 @@ public class TeslaFleetApiService(
     IConstants constants,
     ITscConfigurationService tscConfigurationService,
     IBackendApiService backendApiService,
-    ISettings settings)
+    ISettings settings,
+    IConfigJsonService configJsonService)
     : ITeslaService, ITeslaFleetApiService
 {
     private DtoFleetApiRequest ChargeStartRequest => new()
@@ -74,7 +75,7 @@ public class TeslaFleetApiService(
 
     private DtoFleetApiRequest VehicleDataRequest => new()
     {
-        RequestUrl = $"vehicle_data?endpoints={Uri.EscapeDataString("drive_state;location_data;vehicle_state;charge_state")}",
+        RequestUrl = $"vehicle_data?endpoints={Uri.EscapeDataString("drive_state;location_data;vehicle_state;charge_state;climate_state")}",
         NeedsProxy = false,
     };
 
@@ -234,6 +235,54 @@ public class TeslaFleetApiService(
                 var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(vin, VehicleDataRequest, HttpMethod.Get)
                     .ConfigureAwait(false);
                 logger.LogTrace("Got vehicleData {@vehicleData}", vehicleData);
+                var teslaResult = vehicleData?.Response;
+                if (teslaResult == default)
+                {
+                    await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(RefreshCarData),
+                        $"Could not deserialize vehicle data: {JsonConvert.SerializeObject(vehicleData)}").ConfigureAwait(false);
+                    logger.LogError("Could not deserialize vehicle data for car {carId}: {@vehicleData}", carId, vehicleData);
+                    continue;
+                }
+
+                if (configurationWrapper.GetVehicleDataFromTesla())
+                {
+                    var car = settings.Cars.First(c => c.Id == carId);
+                    var carState = car.CarState;
+                    carState.Name = teslaResult.VehicleState.VehicleName;
+                    carState.SoC = teslaResult.ChargeState.BatteryLevel;
+                    carState.SocLimit = teslaResult.ChargeState.ChargeLimitSoc;
+                    var minimumSettableSocLimit = teslaResult.ChargeState.ChargeLimitSocMin;
+                    if (car.CarConfiguration.MinimumSoC > car.CarState.SocLimit && car.CarState.SocLimit > minimumSettableSocLimit)
+                    {
+                        logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarState.SocLimit);
+                        car.CarConfiguration.MinimumSoC = (int)car.CarState.SocLimit;
+                        await configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
+                    }
+                    carState.ChargerPhases = teslaResult.ChargeState.ChargerPhases;
+                    carState.ChargerVoltage = teslaResult.ChargeState.ChargerVoltage;
+                    carState.ChargerActualCurrent = teslaResult.ChargeState.ChargerActualCurrent;
+                    carState.PluggedIn = teslaResult.ChargeState.ChargingState != "Disconnected";
+                    carState.ClimateOn = teslaResult.ClimateState.IsClimateOn;
+                    carState.TimeUntilFullCharge = TimeSpan.FromHours(teslaResult.ChargeState.TimeToFullCharge);
+                    var teslaCarStateString = teslaResult.State;
+                    var teslaCarShiftState = teslaResult.DriveState.ShiftState;
+                    var teslaCarSoftwareUpdateState = teslaResult.VehicleState.SoftwareUpdate.Status;
+                    var chargingState = teslaResult.ChargeState.ChargingState;
+                    carState.State = DetermineCarState(teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
+                    if (carState.State == CarStateEnum.Unknown)
+                    {
+                        await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(RefreshCarData),
+                            $"Could not determine car state. TeslaCarStateString: {teslaCarStateString}, TeslaCarShiftState: {teslaCarShiftState}, TeslaCarSoftwareUpdateState: {teslaCarSoftwareUpdateState}, ChargingState: {chargingState}").ConfigureAwait(false);
+                    }
+                    carState.Healthy = true;
+                    carState.ChargerRequestedCurrent = teslaResult.ChargeState.ChargeCurrentRequest;
+                    carState.ChargerPilotCurrent = teslaResult.ChargeState.ChargerPilotCurrent;
+                    carState.ScheduledChargingStartTime = teslaResult.ChargeState.ScheduledChargingStartTime == null ? null : DateTimeOffset.FromUnixTimeSeconds(teslaResult.ChargeState.ScheduledChargingStartTime.Value);
+                    carState.Longitude = teslaResult.DriveState.Longitude;
+                    carState.Latitude = teslaResult.DriveState.Latitude;
+                }
+                
+
             }
             catch (Exception ex)
             {
@@ -242,6 +291,33 @@ public class TeslaFleetApiService(
                     $"Error getting vehicle data: {ex.Message} {ex.StackTrace}").ConfigureAwait(false);
             }
         }
+    }
+
+    private CarStateEnum? DetermineCarState(string teslaCarStateString, string? teslaCarShiftState, string teslaCarSoftwareUpdateState, string chargingState)
+    {
+        if (teslaCarStateString == "asleep")
+        {
+            return CarStateEnum.Asleep;
+        }
+
+        if (teslaCarStateString == "offline")
+        {
+            return CarStateEnum.Offline;
+        }
+        if (teslaCarShiftState is "R" or "D")
+        {
+            return CarStateEnum.Driving;
+        }
+        if (chargingState == "Charging")
+        {
+            return CarStateEnum.Charging;
+        }
+        if (teslaCarSoftwareUpdateState == "installing")
+        {
+            return CarStateEnum.Updating;
+        }
+        logger.LogWarning("Could not determine car state. TeslaCarStateString: {teslaCarStateString}, TeslaCarShiftState: {teslaCarShiftState}, TeslaCarSoftwareUpdateState: {teslaCarSoftwareUpdateState}, ChargingState: {chargingState}", teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
+        return CarStateEnum.Unknown;
     }
 
     private async Task<string> GetVinByCarId(int carId)
