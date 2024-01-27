@@ -62,8 +62,6 @@ public class CarState
             return power;
         }
     }
-
-    public string? StateString { get; set; }
     public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }

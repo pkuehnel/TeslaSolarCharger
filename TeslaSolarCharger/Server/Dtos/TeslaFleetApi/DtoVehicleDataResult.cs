@@ -131,7 +131,7 @@ public class ChargeState
     public int ChargerActualCurrent { get; set; }
 
     [JsonProperty("charger_phases")]
-    public int ChargerPhases { get; set; }
+    public int? ChargerPhases { get; set; }
 
     [JsonProperty("charger_pilot_current")]
     public int ChargerPilotCurrent { get; set; }
