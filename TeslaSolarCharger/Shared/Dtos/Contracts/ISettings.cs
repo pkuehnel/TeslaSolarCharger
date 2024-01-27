@@ -20,4 +20,6 @@ public interface ISettings
     bool CrashedOnStartup { get; set; }
     string? StartupCrashMessage { get; set; }
     bool FleetApiProxyNeeded { get; set; }
+    bool AllowUnlimitedFleetApiRequests { get; set; }
+    DateTime LastFleetApiRequestAllowedCheck { get; set; }
 }

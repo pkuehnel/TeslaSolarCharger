@@ -50,6 +50,7 @@ public class JobManager
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
         var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
         var fleetApiTokenRefreshJob = JobBuilder.Create<FleetApiTokenRefreshJob>().Build();
+        var vehicleDataRefreshJob = JobBuilder.Create<VehicleDataRefreshJob>().Build();
 
         var currentDate = _dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -92,6 +93,9 @@ public class JobManager
         var fleetApiTokenRefreshTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
 
+        var vehicleDataRefreshTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
@@ -103,6 +107,7 @@ public class JobManager
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
             {fleetApiTokenRefreshJob, new HashSet<ITrigger> {fleetApiTokenRefreshTrigger}},
+            {vehicleDataRefreshJob, new HashSet<ITrigger> {vehicleDataRefreshTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

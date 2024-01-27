@@ -179,6 +179,12 @@ public class PossibleIssues : IPossibleIssues
                     "Look into the logfiles for further details."
                 )
             },
+            {
+                issueKeys.FleetApiTokenNoApiRequestsAllowed, CreateIssue("Fleet API requests are not allowed.",
+                    IssueType.Error,
+                    "Update TSC to the latest version."
+                )
+            },
         };
     }
 

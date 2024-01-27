@@ -91,6 +91,9 @@ public class IssueValidationService : IIssueValidationService
                 case FleetApiTokenState.Expired:
                     issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenExpired));
                     break;
+                case FleetApiTokenState.NoApiRequestsAllowed:
+                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenNoApiRequestsAllowed));
+                    break;
                 case FleetApiTokenState.UpToDate:
                     break;
                 default:
@@ -172,7 +175,7 @@ public class IssueValidationService : IIssueValidationService
     {
         _logger.LogTrace("{method}()", nameof(GetMqttIssues));
         var issues = new List<Issue>();
-        if (!_teslaMateMqttService.IsMqttClientConnected)
+        if (!_teslaMateMqttService.IsMqttClientConnected && !_configurationWrapper.GetVehicleDataFromTesla())
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.MqttNotConnected));
         }

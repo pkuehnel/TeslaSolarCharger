@@ -25,5 +25,6 @@ public class IssueKeys
     public string FleetApiTokenRequestExpired => "FleetApiTokenRequestExpired";
     public string FleetApiTokenNotReceived => "FleetApiTokenNotReceived";
     public string FleetApiTokenExpired => "FleetApiTokenExpired";
+    public string FleetApiTokenNoApiRequestsAllowed => "FleetApiRequestsNotAllowed";
     public string CrashedOnStartup => "CrashedOnStartup";
 }
