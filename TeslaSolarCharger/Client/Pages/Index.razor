@@ -11,7 +11,6 @@
 @using TeslaSolarCharger.Shared.Dtos.Table
 @using System.Diagnostics
 @inject HttpClient HttpClient
-@inject ISnackbar Snackbar
 @inject ToolTipTextKeys ToolTipTextKeys
 @inject NavigationManager NavigationManager
 
@@ -512,11 +511,9 @@ else
         var result = await HttpClient.PostAsJsonAsync("/api/Index/UpdateCarBaseSettings", dtoCarBaseSettings).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
-            Snackbar.Add("Car Configuration updated", Severity.Success);
         }
         else
         {
-            Snackbar.Add("Error updating car configuration", Severity.Error);
         }
 
         await RefreshCarBaseSettings().ConfigureAwait(false);

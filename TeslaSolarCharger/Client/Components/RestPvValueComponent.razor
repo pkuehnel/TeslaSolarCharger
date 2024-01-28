@@ -42,13 +42,10 @@ else
             var header = Headers.ElementAt(i);
             <div class="d-flex align-items-center">
                 <div class="p-2 flex-grow-1">
-                    <MudTextField T="string" Label="@($"Key {i + 1}")" Variant="Variant.Outlined" Value="@header.Key" TextChanged="@(e => UpdateHeaderKey(header.Key, e.ToString()))"></MudTextField>
                 </div>
                 <div class="p-2 flex-grow-1">
-                    <MudTextField T="string" Label="@($"Value {i + 1}")" Variant="Variant.Outlined" Value="@header.Value" TextChanged="@(e => Headers[header.Key] = e.ToString())"></MudTextField>
                 </div>
                 <div class="p-2">
-                    <MudFab StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => RemoveHeader(header.Key)"></MudFab>
                 </div>
             </div>
         }

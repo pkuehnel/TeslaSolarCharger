@@ -2,7 +2,6 @@
 @using System.Net.Http.Headers
 
 @inject IJSRuntime JsRuntime
-@inject ISnackbar Snackbar
 @inject HttpClient HttpClient
 
 <h1>Backup and Restore</h1>
@@ -29,17 +28,6 @@
 <h2>Restore</h2>
 
 <div class="mb-2">
-    <MudFileUpload T="IBrowserFile" FilesChanged="SelectFile" Accept=".zip" MaximumFileCount="1">
-        <ButtonTemplate Context="fileUploadContext">
-            <MudButton HtmlTag="label"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.AttachFile"
-                       for="@fileUploadContext">
-                Select Backup File
-            </MudButton>
-        </ButtonTemplate>
-    </MudFileUpload>
 </div>
 
 @if (_file != default)
@@ -86,8 +74,6 @@
     {
         if (file.Size > _maxFileSize)
         {
-            Snackbar.Add($"{file.Name} is greater than {_maxFileSize / 1024 / 1024} and won't be uploaded."
-                , Severity.Error);
         }
         _file = file;
     }
@@ -98,8 +84,6 @@
         var upload = false;
         if (_file == default)
         {
-            Snackbar.Add("No file selected", Severity.Error);
-            return;
         }
         using var content = new MultipartFormDataContent();
         try
@@ -114,8 +98,6 @@
         }
         catch (Exception e)
         {
-            Snackbar.Add($"Error while uploading file: {e.Message}", Severity.Error);
-            _processingRestore = false;
             return;
         }
 
@@ -129,11 +111,9 @@
         var response = await HttpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
         if (response.IsSuccessStatusCode)
         {
-            Snackbar.Add("Restore complete", Severity.Success);
         }
         else
         {
-            Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
         }
 
         _processingRestore = false;
