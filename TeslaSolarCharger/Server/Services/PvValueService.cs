@@ -98,7 +98,7 @@ public class PvValueService : IPvValueService
                 patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
             if (inverterPower < 0)
             {
-                _logger.LogWarning("Inverterpower is below 0: {inverterPower}, using -1 for further purposes", inverterPower);
+                _logger.LogInformation("Inverterpower is below 0: {inverterPower}, using -1 for further purposes", inverterPower);
                 inverterPower = -1;
             }
             _settings.InverterPower = inverterPower;
