@@ -243,7 +243,7 @@ public class ConfigJsonService : IConfigJsonService
         var carsToManage = _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
         foreach (var car in carsToManage)
         {
-            var databaseCar = await _teslaSolarChargerContext.Cars.FirstOrDefaultAsync(c => c.Id == car.Id).ConfigureAwait(false);
+            var databaseCar = await _teslaSolarChargerContext.Cars.FirstOrDefaultAsync(c => c.TeslaMateCarId == car.Id).ConfigureAwait(false);
             if (databaseCar != default)
             {
                 continue;
@@ -251,7 +251,6 @@ public class ConfigJsonService : IConfigJsonService
 
             databaseCar = new Model.Entities.TeslaSolarCharger.Car()
             {
-                Id = car.Id,
                 TeslaMateCarId = car.Id,
             };
             _teslaSolarChargerContext.Cars.Add(databaseCar);
