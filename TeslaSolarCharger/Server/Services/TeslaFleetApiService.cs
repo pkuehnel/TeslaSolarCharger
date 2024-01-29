@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -18,7 +17,6 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.Dtos;
-using static System.Net.WebRequestMethods;
 using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 namespace TeslaSolarCharger.Server.Services;
