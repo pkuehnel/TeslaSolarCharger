@@ -1035,3 +1035,4 @@ As the new Tesla Fleet API requires a domain and external Token creation from ve
 - Your access code is used to get the access token from Tesla (Note: the token itself is only stored locally in your TSC installation. It is only transferred via my server, but the token only exists in memory on the server itself. It is not stored in a database or log file)
 - Your installation ID (GUID) is at the bottom of the page. Do not post this GUID in public forums, as it is used to deliver the Tesla access token to your installation. Note: There is only a five-minute time window between requesting and providing the token using the installation ID. After these 5 minutes, all requests are blocked.)
 - Your installed version.
+- Error and warning logs
