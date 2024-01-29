@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Context;
 using TeslaSolarCharger.GridPriceProvider;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
@@ -44,6 +45,11 @@ if (environment == "Development")
 
 var app = builder.Build();
 
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(app.Services.GetRequiredService<IConfiguration>())
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
 
 //Do nothing before these lines as BaseConfig.json is created here. This results in breaking new installations!
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
@@ -56,16 +62,21 @@ try
     await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
     await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
 
-    var coreService = app.Services.GetRequiredService<ICoreService>();
-    coreService.LogVersion();
 
     //Do nothing before these lines as database is created here.
     var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
     await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
+    var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
+    var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
     var backendApiService = app.Services.GetRequiredService<IBackendApiService>();
+    var version = await backendApiService.GetCurrentVersion().ConfigureAwait(false);
+    LogContext.PushProperty("InstallationId", installationId);
+    LogContext.PushProperty("Version", version);
+
     await backendApiService.PostInstallationInformation("Startup").ConfigureAwait(false);
 
+    var coreService = app.Services.GetRequiredService<ICoreService>();
     await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
 
     var life = app.Services.GetRequiredService<IHostApplicationLifetime>();
@@ -73,10 +84,6 @@ try
     {
         coreService.KillAllServices().GetAwaiter().GetResult();
     });
-
-    var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
-    var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-    logger.LogInformation("Installation Id: {installationId}", installationId);
 
     var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
     await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
