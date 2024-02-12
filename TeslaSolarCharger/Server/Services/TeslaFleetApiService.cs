@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -18,7 +17,6 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.Dtos;
-using static System.Net.WebRequestMethods;
 using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -762,7 +760,7 @@ public class TeslaFleetApiService(
         if (statusCode == HttpStatusCode.Unauthorized)
         {
             logger.LogError(
-                "Your token or refresh token is invalid. Very likely you have changed your Tesla password.");
+                "Your token or refresh token is invalid. Very likely you have changed your Tesla password. Response: {responseString}", responseString);
             teslaSolarChargerContext.TeslaTokens.Remove(token);
             teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
             {
@@ -771,7 +769,7 @@ public class TeslaFleetApiService(
         }
         else if (statusCode == HttpStatusCode.Forbidden)
         {
-            logger.LogError("You did not select all scopes, so TSC can't send commands to your car.");
+            logger.LogError("You did not select all scopes, so TSC can't send commands to your car. Response: {responseString}", responseString);
             teslaSolarChargerContext.TeslaTokens.Remove(token);
             teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
             {
@@ -781,7 +779,7 @@ public class TeslaFleetApiService(
         else if (statusCode == HttpStatusCode.InternalServerError
                  && responseString.Contains("vehicle rejected request: your public key has not been paired with the vehicle"))
         {
-            logger.LogError("Vehicle {vin} is not paired with TSC. Add The public key to the vehicle", vin);
+            logger.LogError("Vehicle {vin} is not paired with TSC. Add The public key to the vehicle. Response: {responseString}", vin, responseString);
             var teslaMateCarId = teslamateContext.Cars.First(c => c.Vin == vin).Id;
             var car = teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == teslaMateCarId);
             car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
@@ -789,8 +787,8 @@ public class TeslaFleetApiService(
         else
         {
             logger.LogWarning(
-                "Staus Code {statusCode} is currently not handled, look into https://developer.tesla.com/docs/fleet-api#response-codes to check status code information",
-                statusCode);
+                "Staus Code {statusCode} is currently not handled, look into https://developer.tesla.com/docs/fleet-api#response-codes to check status code information. Response: {responseString}",
+                statusCode, responseString);
             return;
         }
 
