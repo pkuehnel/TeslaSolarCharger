@@ -1,0 +1,81 @@
+﻿@inject IJSRuntime JavaScriptRuntime
+@inject ISnackbar Snackbar
+
+
+@if (string.IsNullOrWhiteSpace(InputString))
+{
+    <span></span>
+}
+else if (!_hasShortenedText)
+{
+    <span>@InputString</span>
+}
+else
+{
+    <MudTooltip>
+        <ChildContent>
+            @_textToDisplay <MudIcon @onclick="CopyToClipBoard" Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+        </ChildContent>
+        <TooltipContent>
+            <div>
+                @TooltipText
+            </div>
+        </TooltipContent>
+    </MudTooltip>
+}
+
+@code {
+    [Parameter]
+    public string? InputString { get; set; }
+
+    [Parameter]
+    public int MaxLength { get; set; } = 10;
+
+    [Parameter]
+    public bool ShouldDisplayTruncatedCharCount { get; set; } = true;
+
+    [Parameter]
+    public string? TooltipText { get; set; }
+
+    [Parameter]
+    public EventCallback OnCopyClicked { get; set; }
+
+
+    private bool _hasShortenedText;
+
+    private string? _textToDisplay;
+
+    protected override void OnInitialized()
+    {
+        _textToDisplay = TruncateAndAppend(InputString, MaxLength, ShouldDisplayTruncatedCharCount);
+        if (!string.Equals(_textToDisplay, InputString))
+        {
+            _hasShortenedText = true;
+        }
+    }
+
+
+    private string? TruncateAndAppend(string? input, int maxLength, bool shouldDisplayTruncatedCharCount)
+    {
+        if (string.IsNullOrEmpty(input) || input.Length <= maxLength)
+        {
+            return input;
+        }
+        const int charsPerPlaceholder = 3;
+        var numberOfPlaceHolders = shouldDisplayTruncatedCharCount ? 2 : 1;
+        var baseTemplate = "{0}...";
+        var suffixTemplate = shouldDisplayTruncatedCharCount ? baseTemplate + "(+{1})" : baseTemplate;
+        var suffixLength = shouldDisplayTruncatedCharCount ? suffixTemplate.Length - (numberOfPlaceHolders * charsPerPlaceholder) + (input.Length - (MaxLength - suffixTemplate.Length + numberOfPlaceHolders * charsPerPlaceholder)).ToString().Length : 3;
+        var truncatedLength = maxLength - suffixLength;
+        var truncatedString = input.Substring(0, truncatedLength);
+        return string.Format(suffixTemplate, truncatedString, input.Length - truncatedLength);
+    }
+
+    private async Task CopyToClipBoard()
+    {
+        await JavaScriptRuntime.InvokeVoidAsync("navigator.clipboard.writeText", InputString);
+        Snackbar.Add("Copied to clipboard.", Severity.Success);
+        await OnCopyClicked.InvokeAsync();
+    }
+
+}

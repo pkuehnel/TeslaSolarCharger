@@ -414,7 +414,13 @@ else
             </p>
         }
         <div>
-            <b>Installation ID</b>: @_installationId
+            <b>Installation ID</b>:
+            <TextShortenComponent
+                InputString="@_installationId"
+                MaxLength="18"
+                ShouldDisplayTruncatedCharCount="true"
+                TooltipText="Do not share the complete ID with anyone"
+                OnCopyClicked="ShowInstallationIdWarning"></TextShortenComponent>
         </div>
         <div>
             <b>Language settings</b>: @CultureInfo.CurrentCulture
@@ -693,6 +699,11 @@ else
         }
 
         _testingFleetApiCarIds.Remove(carId);
+    }
+
+    private void ShowInstallationIdWarning()
+    {
+        Snackbar.Add("Do not share the ID with anyone", Severity.Warning);
     }
 
 }
