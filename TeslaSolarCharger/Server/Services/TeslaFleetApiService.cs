@@ -491,10 +491,15 @@ public class TeslaFleetApiService(
         }
         
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(responseString);
-        if (!response.IsSuccessStatusCode)
+        if (response.IsSuccessStatusCode)
+        {
+            await RemoveUnecessaryInvalidTokenKey().ConfigureAwait(false);
+        }
+        else
         {
             await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                 $"Sending command to Tesla API resulted in non succes status code: {response.StatusCode} : Command name:{fleetApiRequest.RequestUrl}, Content data:{contentData}. Response string: {responseString}").ConfigureAwait(false);
+            logger.LogError("Sending command to Tesla API resulted in non succes status code: {statusCode} : Command name:{commandName}, Content data:{contentData}. Response string: {responseString}", response.StatusCode, fleetApiRequest.RequestUrl, contentData, responseString);
             await HandleNonSuccessTeslaApiStatusCodes(response.StatusCode, accessToken, responseString, vin).ConfigureAwait(false);
         }
 
@@ -505,6 +510,7 @@ public class TeslaFleetApiService(
                 await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}")
                     .ConfigureAwait(false);
+                logger.LogError("Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}", fleetApiRequest.RequestUrl, contentData, responseString);
                 await HandleUnsignedCommands(vehicleCommandResult).ConfigureAwait(false);
             }
         }
@@ -578,7 +584,7 @@ public class TeslaFleetApiService(
                 return;
             case FleetApiTokenState.TokenUnauthorized:
                 logger.LogError("Your refresh token is unauthorized, create a new token.");
-                return;
+                break;
             case FleetApiTokenState.NotReceived:
                 break;
             case FleetApiTokenState.Expired:
@@ -712,14 +718,6 @@ public class TeslaFleetApiService(
             .OrderByDescending(t => t.ExpiresAtUtc)
             .FirstAsync().ConfigureAwait(false);
         var minimumTokenLifeTime = TimeSpan.FromMinutes(5);
-        var isCurrentRefreshTokenUnauthorized = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.TokenRefreshUnauthorized)
-            .AnyAsync().ConfigureAwait(false);
-        if (isCurrentRefreshTokenUnauthorized)
-        {
-            logger.LogError("Token is unauthorized");
-            throw new InvalidDataException("Current Tesla Fleet Api Token is unauthorized");
-        }
         if (token.ExpiresAtUtc < (dateTimeProvider.UtcNow() + minimumTokenLifeTime))
         {
             logger.LogInformation("Token is expired. Getting new token.");
@@ -735,10 +733,15 @@ public class TeslaFleetApiService(
             encodedContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
             var response = await httpClient.PostAsync(tokenUrl, encodedContent).ConfigureAwait(false);
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
+            {
+                await RemoveUnecessaryInvalidTokenKey().ConfigureAwait(false);
+            }
+            else
             {
                 await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                     $"Refreshing token did result in non success status code. Response status code: {response.StatusCode} Response string: {responseString}").ConfigureAwait(false);
+                logger.LogError("Refreshing token did result in non success status code. Response status code: {statusCode} Response string: {responseString}", response.StatusCode, responseString);
                 await HandleNonSuccessTeslaApiStatusCodes(response.StatusCode, token, responseString).ConfigureAwait(false);
             }
             response.EnsureSuccessStatusCode();
@@ -760,8 +763,7 @@ public class TeslaFleetApiService(
         if (statusCode == HttpStatusCode.Unauthorized)
         {
             logger.LogError(
-                "Your token or refresh token is invalid. Very likely you have changed your Tesla password. Response: {responseString}", responseString);
-            teslaSolarChargerContext.TeslaTokens.Remove(token);
+                "Your token or refresh token is invalid. Very likely you have changed your Tesla password. Should have been valid until: {expiresAt}, Response: {responseString}", token.ExpiresAtUtc, responseString);
             teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
             {
                 Key = constants.TokenRefreshUnauthorized, Value = responseString,
@@ -770,7 +772,6 @@ public class TeslaFleetApiService(
         else if (statusCode == HttpStatusCode.Forbidden)
         {
             logger.LogError("You did not select all scopes, so TSC can't send commands to your car. Response: {responseString}", responseString);
-            teslaSolarChargerContext.TeslaTokens.Remove(token);
             teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
             {
                 Key = constants.TokenMissingScopes, Value = responseString,
@@ -793,5 +794,20 @@ public class TeslaFleetApiService(
         }
 
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+
+    private async Task RemoveUnecessaryInvalidTokenKey()
+    {
+        logger.LogTrace("{method}()", nameof(RemoveUnecessaryInvalidTokenKey));
+        var cconfigEntriesToRemove = await teslaSolarChargerContext.TscConfigurations
+            .Where(c => c.Key == constants.TokenRefreshUnauthorized)
+            .ToListAsync().ConfigureAwait(false);
+        if (cconfigEntriesToRemove.Any())
+        {
+            logger.LogWarning("Token was marked as invalid although it is not.");
+            teslaSolarChargerContext.TscConfigurations.RemoveRange(cconfigEntriesToRemove);
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 }
