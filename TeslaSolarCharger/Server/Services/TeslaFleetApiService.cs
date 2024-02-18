@@ -720,7 +720,7 @@ public class TeslaFleetApiService(
         var minimumTokenLifeTime = TimeSpan.FromMinutes(5);
         if (token.ExpiresAtUtc < (dateTimeProvider.UtcNow() + minimumTokenLifeTime))
         {
-            logger.LogInformation("Token is expired. Getting new token.");
+            logger.LogWarning("Token is expired. Getting new token.");
             using var httpClient = new HttpClient();
             var tokenUrl = "https://auth.tesla.com/oauth2/v3/token";
             var requestData = new Dictionary<string, string>
