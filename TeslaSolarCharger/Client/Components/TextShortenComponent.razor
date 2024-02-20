@@ -73,9 +73,17 @@ else
 
     private async Task CopyToClipBoard()
     {
-        await JavaScriptRuntime.InvokeVoidAsync("navigator.clipboard.writeText", InputString);
-        Snackbar.Add("Copied to clipboard.", Severity.Success);
-        await OnCopyClicked.InvokeAsync();
+        try
+        {
+            await JavaScriptRuntime.InvokeVoidAsync("copyToClipboard", InputString);
+            Snackbar.Add("Copied to clipboard.", Severity.Success);
+            await OnCopyClicked.InvokeAsync();
+        }
+        catch(Exception e)
+        {
+            Snackbar.Add("Failed to copy to clipboard.", Severity.Error);
+        }
+        
     }
 
 }
