@@ -468,7 +468,7 @@ public class TeslaFleetApiService(
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, HttpMethod httpMethod, string contentData = "{}") where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {contentData})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, contentData);
-        var accessToken = await GetAccessTokenAndRefreshWhenNeededAsync().ConfigureAwait(false);
+        var accessToken = await GetAccessToken().ConfigureAwait(false);
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
         var content = new StringContent(contentData, System.Text.Encoding.UTF8, "application/json");
@@ -493,7 +493,6 @@ public class TeslaFleetApiService(
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(responseString);
         if (response.IsSuccessStatusCode)
         {
-            await RemoveUnecessaryInvalidTokenKey().ConfigureAwait(false);
         }
         else
         {
@@ -566,41 +565,24 @@ public class TeslaFleetApiService(
         return $"https://fleet-api.prd.{regionCode}.vn.cloud.tesla.com/";
     }
 
-    public async Task RefreshTokenAsync()
+    public async Task GetNewTokenFromBackend()
     {
-        logger.LogTrace("{method}()", nameof(RefreshTokenAsync));
-        settings.AllowUnlimitedFleetApiRequests = await CheckIfFleetApiRequestsAreAllowed().ConfigureAwait(false);
-        var tokenState = (await GetFleetApiTokenState().ConfigureAwait(false)).Value;
-        switch (tokenState)
-        {
-            case FleetApiTokenState.NotNeeded:
-                logger.LogDebug("Refreshing token not needed.");
-                return;
-            case FleetApiTokenState.NotRequested:
-                logger.LogDebug("No token has been requested, yet.");
-                return;
-            case FleetApiTokenState.TokenRequestExpired:
-                logger.LogError("Your token request has expired, create a new one.");
-                return;
-            case FleetApiTokenState.TokenUnauthorized:
-                logger.LogError("Your refresh token is unauthorized, create a new token.");
-                break;
-            case FleetApiTokenState.NotReceived:
-                break;
-            case FleetApiTokenState.Expired:
-                break;
-            case FleetApiTokenState.UpToDate:
-                logger.LogDebug("Token is up to date.");
-                break;
-            case FleetApiTokenState.NoApiRequestsAllowed:
-                logger.LogError("No API requests allowed.");
-                return;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
+        logger.LogTrace("{method}()", nameof(GetNewTokenFromBackend));
+        //As all tokens get deleted when requesting a new one, we can assume that there is no token in the database.
         var token = await teslaSolarChargerContext.TeslaTokens.FirstOrDefaultAsync().ConfigureAwait(false);
         if (token == null)
         {
+            var tokenRequestedDate = await GetTokenRequestedDate().ConfigureAwait(false);
+            if (tokenRequestedDate == null)
+            {
+                logger.LogError("Token has not been requested. Fleet API currently not working");
+                return;
+            }
+            if (tokenRequestedDate < dateTimeProvider.UtcNow().Add(TimeSpan.MaxValue))
+            {
+                logger.LogError("Last token request is too old. Request a new token.");
+                return;
+            }
             using var httpClient = new HttpClient();
             var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
             var url = configurationWrapper.BackendApiBaseUrl() + $"Tsc/DeliverAuthToken?installationId={installationId}";
@@ -608,14 +590,75 @@ public class TeslaFleetApiService(
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
+                logger.LogError("Error getting token from TSC Backend. Response status code: {statusCode}, Response string: {responseString}",
+                    response.StatusCode, responseString);
+            }
+            else
+            {
+                var newToken = JsonConvert.DeserializeObject<DtoTeslaTscDeliveryToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
+                await AddNewTokenAsync(newToken).ConfigureAwait(false);
+            }
+            
+        }
+    }
+
+    public async Task RefreshTokensIfAllowedAndNeeded()
+    {
+        logger.LogTrace("{method}()", nameof(RefreshTokensIfAllowedAndNeeded));
+        settings.AllowUnlimitedFleetApiRequests = await CheckIfFleetApiRequestsAreAllowed().ConfigureAwait(false);
+        var tokens = await teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
+        if (tokens.Count < 1)
+        {
+            logger.LogError("No token found. Cannot refresh token.");
+            return;
+        }
+        var tokensToRefresh = tokens.Where(t => t.ExpiresAtUtc < (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(2))).ToList();
+        if (tokensToRefresh.Count < 1)
+        {
+            logger.LogTrace("No token needs to be refreshed.");
+            return;
+        }
+        //ToDo: needs to handle manual generated tokens. For now as soon as rate limits are introduced nobody gets refresh tokens even if they have a token not from www.teslasolarcharger.de
+        if (settings.AllowUnlimitedFleetApiRequests == false)
+        {
+            logger.LogError("Due to rate limitations fleet api requests are not allowed. As this version can not handle rate limits try updating to the latest version.");
+            return;
+        }
+        foreach (var tokenToRefresh in tokensToRefresh)
+        {
+            logger.LogWarning("Token {tokenId} needs to be refreshed as it expires on {expirationDateTime}", tokenToRefresh.Id, tokenToRefresh.ExpiresAtUtc);
+            using var httpClient = new HttpClient();
+            var tokenUrl = "https://auth.tesla.com/oauth2/v3/token";
+            var requestData = new Dictionary<string, string>
+            {
+                { "grant_type", "refresh_token" },
+                { "client_id", configurationWrapper.FleetApiClientId() },
+                { "refresh_token", tokenToRefresh.RefreshToken },
+            };
+            var encodedContent = new FormUrlEncodedContent(requestData);
+            encodedContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+            var response = await httpClient.PostAsync(tokenUrl, encodedContent).ConfigureAwait(false);
+            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (response.IsSuccessStatusCode)
+            {
+            }
+            else
+            {
                 await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                    $"Getting token from TscBackend. Response status code: {response.StatusCode} Response string: {responseString}").ConfigureAwait(false);
+                    $"Refreshing token did result in non success status code. Response status code: {response.StatusCode} Response string: {responseString}").ConfigureAwait(false);
+                logger.LogError("Refreshing token did result in non success status code. Response status code: {statusCode} Response string: {responseString}", response.StatusCode, responseString);
+                await HandleNonSuccessTeslaApiStatusCodes(response.StatusCode, tokenToRefresh, responseString).ConfigureAwait(false);
             }
             response.EnsureSuccessStatusCode();
-            var newToken = JsonConvert.DeserializeObject<DtoTeslaTscDeliveryToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
-            await AddNewTokenAsync(newToken).ConfigureAwait(false);
+            var newToken = JsonConvert.DeserializeObject<DtoTeslaFleetApiRefreshToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
+            tokenToRefresh.AccessToken = newToken.AccessToken;
+            tokenToRefresh.RefreshToken = newToken.RefreshToken;
+            tokenToRefresh.IdToken = newToken.IdToken;
+            tokenToRefresh.ExpiresAtUtc = dateTimeProvider.UtcNow().AddSeconds(newToken.ExpiresIn);
+            tokenToRefresh.UnauthorizedCounter = 0;
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            logger.LogInformation("New Token saved to database.");
         }
-        var dbToken = await GetAccessTokenAndRefreshWhenNeededAsync().ConfigureAwait(false);
     }
 
     private async Task<bool> CheckIfFleetApiRequestsAreAllowed()
@@ -660,6 +703,7 @@ public class TeslaFleetApiService(
             IdToken = token.IdToken,
             ExpiresAtUtc = dateTimeProvider.UtcNow().AddSeconds(token.ExpiresIn),
             Region = token.Region,
+            UnauthorizedCounter = 0,
         });
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
@@ -675,13 +719,6 @@ public class TeslaFleetApiService(
         {
             return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NoApiRequestsAllowed);
         }
-        var isCurrentRefreshTokenUnauthorized = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.TokenRefreshUnauthorized)
-            .AnyAsync().ConfigureAwait(false);
-        if (isCurrentRefreshTokenUnauthorized)
-        {
-            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.TokenUnauthorized);
-        }
         var hasCurrentTokenMissingScopes = await teslaSolarChargerContext.TscConfigurations
             .Where(c => c.Key == constants.TokenMissingScopes)
             .AnyAsync().ConfigureAwait(false);
@@ -692,66 +729,49 @@ public class TeslaFleetApiService(
         var token = await teslaSolarChargerContext.TeslaTokens.FirstOrDefaultAsync().ConfigureAwait(false);
         if (token != null)
         {
+            if (token.UnauthorizedCounter > constants.MaxTokenUnauthorizedCount)
+            {
+                return new DtoValue<FleetApiTokenState>(FleetApiTokenState.TokenUnauthorized);
+            }
             return new DtoValue<FleetApiTokenState>(token.ExpiresAtUtc < dateTimeProvider.UtcNow() ? FleetApiTokenState.Expired : FleetApiTokenState.UpToDate);
         }
-        var tokenRequestedDateString = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.FleetApiTokenRequested)
-            .Select(c => c.Value)
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        if (tokenRequestedDateString == null)
+        var tokenRequestedDate = await GetTokenRequestedDate().ConfigureAwait(false);
+        if (tokenRequestedDate == null)
         {
             return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotRequested);
         }
-        var tokenRequestedDate = DateTime.Parse(tokenRequestedDateString, null, DateTimeStyles.RoundtripKind);
         var currentDate = dateTimeProvider.UtcNow();
-        if (tokenRequestedDate < currentDate.AddMinutes(-5))
+        if (tokenRequestedDate < (currentDate - constants.MaxTokenRequestWaitTime))
         {
             return new DtoValue<FleetApiTokenState>(FleetApiTokenState.TokenRequestExpired);
         }
         return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotReceived);
     }
 
-    private async Task<TeslaToken> GetAccessTokenAndRefreshWhenNeededAsync()
+    private async Task<DateTime?> GetTokenRequestedDate()
     {
-        logger.LogTrace("{method}()", nameof(GetAccessTokenAndRefreshWhenNeededAsync));
+        var tokenRequestedDateString = await teslaSolarChargerContext.TscConfigurations
+            .Where(c => c.Key == constants.FleetApiTokenRequested)
+            .Select(c => c.Value)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (tokenRequestedDateString == null)
+        {
+            return null;
+        }
+        var tokenRequestedDate = DateTime.Parse(tokenRequestedDateString, null, DateTimeStyles.RoundtripKind);
+        return tokenRequestedDate;
+    }
+
+    private async Task<TeslaToken> GetAccessToken()
+    {
+        logger.LogTrace("{method}()", nameof(GetAccessToken));
         var token = await teslaSolarChargerContext.TeslaTokens
             .OrderByDescending(t => t.ExpiresAtUtc)
             .FirstAsync().ConfigureAwait(false);
-        var minimumTokenLifeTime = TimeSpan.FromMinutes(5);
-        if (token.ExpiresAtUtc < (dateTimeProvider.UtcNow() + minimumTokenLifeTime))
+        if (token.UnauthorizedCounter > constants.MaxTokenUnauthorizedCount)
         {
-            logger.LogWarning("Token is expired. Getting new token.");
-            using var httpClient = new HttpClient();
-            var tokenUrl = "https://auth.tesla.com/oauth2/v3/token";
-            var requestData = new Dictionary<string, string>
-            {
-                { "grant_type", "refresh_token" },
-                { "client_id", configurationWrapper.FleetApiClientId() },
-                { "refresh_token", token.RefreshToken },
-            };
-            var encodedContent = new FormUrlEncodedContent(requestData);
-            encodedContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
-            var response = await httpClient.PostAsync(tokenUrl, encodedContent).ConfigureAwait(false);
-            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (response.IsSuccessStatusCode)
-            {
-                await RemoveUnecessaryInvalidTokenKey().ConfigureAwait(false);
-            }
-            else
-            {
-                await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                    $"Refreshing token did result in non success status code. Response status code: {response.StatusCode} Response string: {responseString}").ConfigureAwait(false);
-                logger.LogError("Refreshing token did result in non success status code. Response status code: {statusCode} Response string: {responseString}", response.StatusCode, responseString);
-                await HandleNonSuccessTeslaApiStatusCodes(response.StatusCode, token, responseString).ConfigureAwait(false);
-            }
-            response.EnsureSuccessStatusCode();
-            var newToken = JsonConvert.DeserializeObject<DtoTeslaFleetApiRefreshToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
-            token.AccessToken = newToken.AccessToken;
-            token.RefreshToken = newToken.RefreshToken;
-            token.IdToken = newToken.IdToken;
-            token.ExpiresAtUtc = dateTimeProvider.UtcNow().AddSeconds(newToken.ExpiresIn);
-            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-            logger.LogInformation("New Token saved to database.");
+            logger.LogError("Token unauthorized counter is too high. Request a new token.");
+            throw new InvalidOperationException("Token unauthorized counter is too high. Request a new token.");
         }
         return token;
     }
@@ -763,11 +783,8 @@ public class TeslaFleetApiService(
         if (statusCode == HttpStatusCode.Unauthorized)
         {
             logger.LogError(
-                "Your token or refresh token is invalid. Very likely you have changed your Tesla password. Should have been valid until: {expiresAt}, Response: {responseString}", token.ExpiresAtUtc, responseString);
-            teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
-            {
-                Key = constants.TokenRefreshUnauthorized, Value = responseString,
-            });
+                "Your token or refresh token is invalid. Very likely you have changed your Tesla password. Current unauthorized counter {unauthorizedCounter}, Should have been valid until: {expiresAt}, Response: {responseString}",
+                ++token.UnauthorizedCounter, token.ExpiresAtUtc, responseString);
         }
         else if (statusCode == HttpStatusCode.Forbidden)
         {
@@ -794,20 +811,5 @@ public class TeslaFleetApiService(
         }
 
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-
-    private async Task RemoveUnecessaryInvalidTokenKey()
-    {
-        logger.LogTrace("{method}()", nameof(RemoveUnecessaryInvalidTokenKey));
-        var cconfigEntriesToRemove = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.TokenRefreshUnauthorized)
-            .ToListAsync().ConfigureAwait(false);
-        if (cconfigEntriesToRemove.Any())
-        {
-            logger.LogWarning("Token was marked as invalid although it is not.");
-            teslaSolarChargerContext.TscConfigurations.RemoveRange(cconfigEntriesToRemove);
-            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        }
     }
 }
