@@ -13,8 +13,10 @@ public interface IConstants
 
     string InstallationIdKey { get; }
     string FleetApiTokenRequested { get; }
-    string TokenRefreshUnauthorized { get; }
     string TokenMissingScopes { get; }
     string BackupZipBaseFileName { get; }
     string FleetApiProxyNeeded { get; }
+    TimeSpan MaxTokenRequestWaitTime { get; }
+    TimeSpan MinTokenRestLifetime { get; }
+    int MaxTokenUnauthorizedCount { get; }
 }
