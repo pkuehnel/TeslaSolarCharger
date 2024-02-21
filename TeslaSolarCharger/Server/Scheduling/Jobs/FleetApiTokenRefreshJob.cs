@@ -11,6 +11,7 @@ public class FleetApiTokenRefreshJob(ILogger<FleetApiTokenRefreshJob> logger,
     public async Task Execute(IJobExecutionContext context)
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
+        await service.RefreshFleetApiRequestsAreAllowed().ConfigureAwait(false);
         await service.GetNewTokenFromBackend().ConfigureAwait(false);
         await service.RefreshTokensIfAllowedAndNeeded().ConfigureAwait(false);
     }

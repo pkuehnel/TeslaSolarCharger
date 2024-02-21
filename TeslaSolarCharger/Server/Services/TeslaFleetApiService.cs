@@ -14,6 +14,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.Dtos;
@@ -578,7 +579,7 @@ public class TeslaFleetApiService(
                 logger.LogError("Token has not been requested. Fleet API currently not working");
                 return;
             }
-            if (tokenRequestedDate < dateTimeProvider.UtcNow().Add(TimeSpan.MaxValue))
+            if (tokenRequestedDate < dateTimeProvider.UtcNow().Subtract(constants.MaxTokenRequestWaitTime))
             {
                 logger.LogError("Last token request is too old. Request a new token.");
                 return;
@@ -605,7 +606,6 @@ public class TeslaFleetApiService(
     public async Task RefreshTokensIfAllowedAndNeeded()
     {
         logger.LogTrace("{method}()", nameof(RefreshTokensIfAllowedAndNeeded));
-        settings.AllowUnlimitedFleetApiRequests = await CheckIfFleetApiRequestsAreAllowed().ConfigureAwait(false);
         var tokens = await teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
         if (tokens.Count < 1)
         {
@@ -624,9 +624,17 @@ public class TeslaFleetApiService(
             logger.LogError("Due to rate limitations fleet api requests are not allowed. As this version can not handle rate limits try updating to the latest version.");
             return;
         }
+
         foreach (var tokenToRefresh in tokensToRefresh)
         {
             logger.LogWarning("Token {tokenId} needs to be refreshed as it expires on {expirationDateTime}", tokenToRefresh.Id, tokenToRefresh.ExpiresAtUtc);
+
+            //DO NOTE REMOVE *2: As normal requests could result in reaching max unauthorized count, the max value is higher here, so even if token is unauthorized, refreshing it is still tried a couple of times.
+            if (tokenToRefresh.UnauthorizedCounter > (constants.MaxTokenUnauthorizedCount * 2))
+            {
+                logger.LogError("Token {tokenId} has been unauthorized too often. Do not refresh token.", tokenToRefresh.Id);
+                continue;
+            }
             using var httpClient = new HttpClient();
             var tokenUrl = "https://auth.tesla.com/oauth2/v3/token";
             var requestData = new Dictionary<string, string>
@@ -661,11 +669,12 @@ public class TeslaFleetApiService(
         }
     }
 
-    private async Task<bool> CheckIfFleetApiRequestsAreAllowed()
+    public async Task RefreshFleetApiRequestsAreAllowed()
     {
+        logger.LogTrace("{method}()", nameof(RefreshFleetApiRequestsAreAllowed));
         if (settings.AllowUnlimitedFleetApiRequests && (settings.LastFleetApiRequestAllowedCheck > dateTimeProvider.UtcNow().AddHours(-1)))
         {
-            return true;
+            return;
         }
         settings.LastFleetApiRequestAllowedCheck = dateTimeProvider.UtcNow();
         using var httpClient = new HttpClient();
@@ -678,15 +687,16 @@ public class TeslaFleetApiService(
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                return true;
+                settings.AllowUnlimitedFleetApiRequests = true;
+                return;
             }
 
             var responseValue = JsonConvert.DeserializeObject<DtoValue<bool>>(responseString);
-            return responseValue?.Value != false;
+            settings.AllowUnlimitedFleetApiRequests = responseValue?.Value != false;
         }
         catch (Exception)
         {
-            return true;
+            settings.AllowUnlimitedFleetApiRequests = true;
         }
         
     }

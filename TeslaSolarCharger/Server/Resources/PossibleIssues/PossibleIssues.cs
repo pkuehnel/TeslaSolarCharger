@@ -164,7 +164,7 @@ public class PossibleIssues : IPossibleIssues
                 issueKeys.FleetApiTokenRequestExpired, CreateIssue("The Tesla token could not be received.",
                     IssueType.Error,
                     "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-                    "If this issue keeps occuring, feel free to open an issue <a href=\"https://github.com/pkuehnel/TeslaSolarCharger/issues\" target=\"_blank\">on Github</a> including the last 5 chars of your installation ID (bottom of the page). Do NOT include the whole ID."
+                    "If this issue keeps occuring, feel free to open an issue <a href=\"https://github.com/pkuehnel/TeslaSolarCharger/issues\" target=\"_blank\">on Github</a> including the first 10 chars of your installation ID (bottom of the page). Do NOT include the whole ID."
                 )
             },
             {
