@@ -14,6 +14,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.Dtos;
@@ -578,7 +579,7 @@ public class TeslaFleetApiService(
                 logger.LogError("Token has not been requested. Fleet API currently not working");
                 return;
             }
-            if (tokenRequestedDate < dateTimeProvider.UtcNow().Add(TimeSpan.MaxValue))
+            if (tokenRequestedDate < dateTimeProvider.UtcNow().Subtract(constants.MaxTokenRequestWaitTime))
             {
                 logger.LogError("Last token request is too old. Request a new token.");
                 return;
@@ -605,7 +606,6 @@ public class TeslaFleetApiService(
     public async Task RefreshTokensIfAllowedAndNeeded()
     {
         logger.LogTrace("{method}()", nameof(RefreshTokensIfAllowedAndNeeded));
-        settings.AllowUnlimitedFleetApiRequests = await CheckIfFleetApiRequestsAreAllowed().ConfigureAwait(false);
         var tokens = await teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
         if (tokens.Count < 1)
         {
@@ -661,11 +661,12 @@ public class TeslaFleetApiService(
         }
     }
 
-    private async Task<bool> CheckIfFleetApiRequestsAreAllowed()
+    public async Task RefreshFleetApiRequestsAreAllowed()
     {
+        logger.LogTrace("{method}()", nameof(RefreshFleetApiRequestsAreAllowed));
         if (settings.AllowUnlimitedFleetApiRequests && (settings.LastFleetApiRequestAllowedCheck > dateTimeProvider.UtcNow().AddHours(-1)))
         {
-            return true;
+            return;
         }
         settings.LastFleetApiRequestAllowedCheck = dateTimeProvider.UtcNow();
         using var httpClient = new HttpClient();
@@ -678,15 +679,16 @@ public class TeslaFleetApiService(
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                return true;
+                settings.AllowUnlimitedFleetApiRequests = true;
+                return;
             }
 
             var responseValue = JsonConvert.DeserializeObject<DtoValue<bool>>(responseString);
-            return responseValue?.Value != false;
+            settings.AllowUnlimitedFleetApiRequests = responseValue?.Value != false;
         }
         catch (Exception)
         {
-            return true;
+            settings.AllowUnlimitedFleetApiRequests = true;
         }
         
     }

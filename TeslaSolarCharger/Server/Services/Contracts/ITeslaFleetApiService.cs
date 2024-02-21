@@ -16,4 +16,6 @@ public interface ITeslaFleetApiService
     Task<bool> IsFleetApiProxyNeededInDatabase();
     Task RefreshCarData();
     Task RefreshTokensIfAllowedAndNeeded();
+    Task RefreshFleetApiRequestsAreAllowed();
+
 }
