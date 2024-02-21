@@ -624,9 +624,17 @@ public class TeslaFleetApiService(
             logger.LogError("Due to rate limitations fleet api requests are not allowed. As this version can not handle rate limits try updating to the latest version.");
             return;
         }
+
         foreach (var tokenToRefresh in tokensToRefresh)
         {
             logger.LogWarning("Token {tokenId} needs to be refreshed as it expires on {expirationDateTime}", tokenToRefresh.Id, tokenToRefresh.ExpiresAtUtc);
+
+            //DO NOTE REMOVE *2: As normal requests could result in reaching max unauthorized count, the max value is higher here, so even if token is unauthorized, refreshing it is still tried a couple of times.
+            if (tokenToRefresh.UnauthorizedCounter > (constants.MaxTokenUnauthorizedCount * 2))
+            {
+                logger.LogError("Token {tokenId} has been unauthorized too often. Do not refresh token.", tokenToRefresh.Id);
+                continue;
+            }
             using var httpClient = new HttpClient();
             var tokenUrl = "https://auth.tesla.com/oauth2/v3/token";
             var requestData = new Dictionary<string, string>
