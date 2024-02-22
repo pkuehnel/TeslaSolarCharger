@@ -39,8 +39,7 @@ public class BackendApiService : IBackendApiService
         var currentTokens = await _teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
         _teslaSolarChargerContext.TeslaTokens.RemoveRange(currentTokens);
         var cconfigEntriesToRemove = await _teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == _constants.TokenRefreshUnauthorized
-            || c.Key == _constants.TokenMissingScopes)
+            .Where(c => c.Key == _constants.TokenMissingScopes)
             .ToListAsync().ConfigureAwait(false);
         _teslaSolarChargerContext.TscConfigurations.RemoveRange(cconfigEntriesToRemove);
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);

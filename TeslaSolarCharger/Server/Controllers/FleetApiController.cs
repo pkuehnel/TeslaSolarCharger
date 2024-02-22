@@ -22,7 +22,7 @@ public class FleetApiController(
     public Task<DtoValue<string>> GetOauthUrl(string locale, string baseUrl) => backendApiService.StartTeslaOAuth(locale, baseUrl);
 
     [HttpGet]
-    public Task RefreshFleetApiToken() => fleetApiService.RefreshTokenAsync();
+    public Task RefreshFleetApiToken() => fleetApiService.GetNewTokenFromBackend();
 
     /// <summary>
     /// Note: This endpoint is only available in development environment
