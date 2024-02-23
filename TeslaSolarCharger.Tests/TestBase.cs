@@ -17,6 +17,7 @@ using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.SharedBackend.Contracts;
+using TeslaSolarCharger.Tests.Data;
 using Xunit.Abstractions;
 using Constants = TeslaSolarCharger.SharedBackend.Values.Constants;
 

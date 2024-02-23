@@ -22,11 +22,11 @@ public class ChargingService : TestBase
     }
 
     [Theory, MemberData(nameof(AutoFullSpeedChargeData))]
-    public void Does_autoenable_fullspeed_charge_if_needed(DtoChargingSlot chargingSlot, bool shouldEnableFullSpeedCharge)
+    public void Does_autoenable_fullspeed_charge_if_needed(DtoChargingSlot chargingSlot, DateTimeOffset currentDate, bool shouldEnableFullSpeedCharge)
     {
         Mock.Mock<IDateTimeProvider>()
             .Setup(d => d.DateTimeOffSetNow())
-            .Returns(new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero));
+            .Returns(currentDate);
         var car = new Car()
         {
             CarState = new CarState()
@@ -46,11 +46,11 @@ public class ChargingService : TestBase
     }
 
     [Theory, MemberData(nameof(AutoFullSpeedChargeData))]
-    public void Does_autodisable_fullspeed_charge_if_needed(DtoChargingSlot chargingSlot, bool shouldEnableFullSpeedCharge)
+    public void Does_autodisable_fullspeed_charge_if_needed(DtoChargingSlot chargingSlot, DateTimeOffset currentDate, bool shouldEnableFullSpeedCharge)
     {
         Mock.Mock<IDateTimeProvider>()
             .Setup(d => d.DateTimeOffSetNow())
-            .Returns(new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero));
+            .Returns(currentDate);
         var car = new Car()
         {
             CarState = new CarState()
@@ -71,9 +71,28 @@ public class ChargingService : TestBase
 
     public static readonly object[][] AutoFullSpeedChargeData =
     {
-        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero) }, true },
-        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 1, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero) }, false },
-        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 8, 0, 1, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 9, 0, 0, TimeSpan.Zero) }, false },
+        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero) }, new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero), true },
+        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 1, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero) }, new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero), false },
+        new object[] { new DtoChargingSlot() {ChargeStart = new DateTimeOffset(2023, 2, 1, 8, 0, 1, TimeSpan.Zero), ChargeEnd = new DateTimeOffset(2023, 2, 1, 9, 0, 0, TimeSpan.Zero) }, new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero), false },
+        new object[] {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero),
+            },
+            new DateTimeOffset(2023, 2, 1, 11, 1, 0, TimeSpan.FromHours(1)),
+            true,
+        },
+        new object[] {
+            new DtoChargingSlot()
+            {
+                ChargeStart = new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero),
+                ChargeEnd = new DateTimeOffset(2023, 2, 1, 11, 0, 0, TimeSpan.Zero),
+            },
+            new DateTimeOffset(2023, 2, 1, 10, 59, 0, TimeSpan.FromHours(1)),
+            false,
+        },
+
     };
 
     [Theory]

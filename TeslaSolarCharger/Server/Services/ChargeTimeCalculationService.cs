@@ -269,8 +269,9 @@ public class ChargeTimeCalculationService(
         {
             var lastChargingSlot = chargingSlots[i - 1];
             var currenChargingSlot = chargingSlots[i];
-            //Only move charging slots shorter than one hour as otherwise chargetime more hours ago could be reduced and shifted to more expensive hours
-            if (lastChargingSlot.ChargeDuration < TimeSpan.FromHours(1)
+            //Only move not started charging slots shorter than one hour as otherwise chargetime more hours ago could be reduced and shifted to more expensive hours
+            if (lastChargingSlot.ChargeStart < dateTimeProvider.DateTimeOffSetNow().AddMilliseconds(1)
+                && lastChargingSlot.ChargeDuration < TimeSpan.FromHours(1)
                 && (lastChargingSlot.ChargeEnd - currenChargingSlot.ChargeStart).TotalHours < 1)
             {
                 lastChargingSlot.ChargeStart = currenChargingSlot.ChargeStart - lastChargingSlot.ChargeDuration;
