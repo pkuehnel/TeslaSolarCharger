@@ -40,7 +40,7 @@ public class ChargeTimeCalculationService : TestBase
     public void Calculates_Correct_Full_Speed_Charge_Durations(int minimumSoc, int? acutalSoc, int usableEnergy,
         int chargerPhases, int maximumAmpere, double expectedTotalSeconds, CarStateEnum carState)
     {
-        var car = new Car()
+        var car = new DtoCar()
         {
             CarConfiguration = new CarConfiguration()
             {
@@ -71,7 +71,7 @@ public class ChargeTimeCalculationService : TestBase
     [InlineData(1)]
     public void Calculates_Correct_Charge_MaxSpeed_Charge_Time(int numberOfPhases)
     {
-        var car = new Car()
+        var car = new DtoCar()
         {
             Id = 1,
             CarState = new CarState()
@@ -105,7 +105,7 @@ public class ChargeTimeCalculationService : TestBase
     [Fact]
     public void Handles_Reaced_Minimum_Soc()
     {
-        var car = new Car()
+        var car = new DtoCar()
         {
             Id = 1,
             CarState = new CarState()
@@ -140,12 +140,12 @@ public class ChargeTimeCalculationService : TestBase
         var chargeDuration = TimeSpan.Zero;
 
         Mock.Mock<IChargeTimeCalculationService>()
-            .Setup(c => c.CalculateTimeToReachMinSocAtFullSpeedCharge(It.IsAny<Car>()))
+            .Setup(c => c.CalculateTimeToReachMinSocAtFullSpeedCharge(It.IsAny<DtoCar>()))
             .Returns(chargeDuration);
 
         var currentDate = DateTimeOffset.Now;
 
-        var car = new Car
+        var car = new DtoCar
         {
             CarConfiguration = new CarConfiguration
             {
@@ -389,7 +389,7 @@ public class ChargeTimeCalculationService : TestBase
     {
         var chargeDuration = TimeSpan.FromHours(1);
 
-        var car = new Car
+        var car = new DtoCar
         {
             CarConfiguration = new CarConfiguration
             {

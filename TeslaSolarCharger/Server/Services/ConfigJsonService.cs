@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MQTTnet.Server;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using System.Diagnostics.CodeAnalysis;
@@ -10,7 +11,6 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
-using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -44,65 +44,118 @@ public class ConfigJsonService : IConfigJsonService
         return File.Exists(path);
     }
 
-    public async Task<List<Car>> GetCarsFromConfiguration()
+    public async Task<List<DtoCar>> GetCarsFromConfiguration()
     {
-        var cars = new List<Car>();
-        var databaseCarConfigurations = await _teslaSolarChargerContext.CachedCarStates
-            .Where(c => c.Key == _constants.CarConfigurationKey)
-            .ToListAsync().ConfigureAwait(false);
-        if (databaseCarConfigurations.Count < 1 && CarConfigurationFileExists())
-        {
-            try
-            {
-                var fileContent = await GetCarConfigurationFileContent().ConfigureAwait(false);
-                cars = DeserializeCarsFromConfigurationString(fileContent);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not get car configurations, use default configuration");
-            }
-        }
+        _logger.LogTrace("{method}()", nameof(GetCarsFromConfiguration));
+        var cars = new List<DtoCar>();
 
-        if (databaseCarConfigurations.Count > 0)
+        var carConfigurationAlreadyConverted =
+            await _teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == _constants.CarConfigurationsConverted).ConfigureAwait(false);
+
+        if (!carConfigurationAlreadyConverted)
         {
-            foreach (var databaseCarConfiguration in databaseCarConfigurations)
+            var databaseCarConfigurations = await _teslaSolarChargerContext.CachedCarStates
+                .Where(c => c.Key == _constants.CarConfigurationKey)
+                .ToListAsync().ConfigureAwait(false);
+            if (databaseCarConfigurations.Count < 1 && CarConfigurationFileExists())
             {
-                var configuration = JsonConvert.DeserializeObject<CarConfiguration>(databaseCarConfiguration.CarStateJson ?? string.Empty);
-                if (configuration == default)
+                try
                 {
-                    continue;
+                    var fileContent = await GetCarConfigurationFileContent().ConfigureAwait(false);
+                    cars = DeserializeCarsFromConfigurationString(fileContent);
                 }
-                cars.Add(new Car()
+                catch (Exception ex)
                 {
-                    Id = databaseCarConfiguration.CarId,
-                    Vin = _teslamateContext.Cars.FirstOrDefault(c => c.Id == databaseCarConfiguration.CarId)?.Vin ?? string.Empty,
-                    CarConfiguration = configuration,
-                    CarState = new CarState(),
-                });
+                    _logger.LogWarning(ex, "Could not get car configurations, use default configuration");
+                }
             }
-        }
 
-        try
-        {
-            var carIds = await _teslamateContext.Cars.Select(c => (int)c.Id).ToListAsync().ConfigureAwait(false);
-            RemoveOldCars(cars, carIds);
+            if (databaseCarConfigurations.Count > 0)
+            {
+                foreach (var databaseCarConfiguration in databaseCarConfigurations)
+                {
+                    var configuration = JsonConvert.DeserializeObject<CarConfiguration>(databaseCarConfiguration.CarStateJson ?? string.Empty);
+                    if (configuration == default)
+                    {
+                        continue;
+                    }
+                    cars.Add(new DtoCar()
+                    {
+                        Id = databaseCarConfiguration.CarId,
+                        Vin = _teslamateContext.Cars.FirstOrDefault(c => c.Id == databaseCarConfiguration.CarId)?.Vin ?? string.Empty,
+                        CarConfiguration = configuration,
+                        CarState = new CarState(),
+                    });
+                }
+            }
+            await AddCachedCarStatesToCars(cars).ConfigureAwait(false);
 
-            var newCarIds = carIds.Where(i => !cars.Any(c => c.Id == i)).ToList();
-            AddNewCars(newCarIds, cars);
+            var tscCars = await _teslaSolarChargerContext.Cars
+                .ToListAsync().ConfigureAwait(false);
+            foreach (var car in cars)
+            {
+                var entity = tscCars.FirstOrDefault(c => c.TeslaMateCarId == car.Id) ?? new Model.Entities.TeslaSolarCharger.Car();
+                entity.TeslaMateCarId = car.Id;
+                entity.Name = car.CarState.Name;
+                entity.Vin = car.Vin;
+                entity.ChargeMode = car.CarConfiguration.ChargeMode;
+                entity.MinimumSoc = car.CarConfiguration.MinimumSoC;
+                entity.LatestTimeToReachSoC = car.CarConfiguration.LatestTimeToReachSoC;
+                entity.IgnoreLatestTimeToReachSocDate = car.CarConfiguration.IgnoreLatestTimeToReachSocDate;
+                entity.MaximumAmpere = car.CarConfiguration.MaximumAmpere;
+                entity.MinimumAmpere = car.CarConfiguration.MinimumAmpere;
+                entity.UsableEnergy = car.CarConfiguration.UsableEnergy;
+                entity.ShouldBeManaged = car.CarConfiguration.ShouldBeManaged ?? true;
+                entity.ShouldSetChargeStartTimes = car.CarConfiguration.ShouldSetChargeStartTimes ?? true;
+                entity.ChargingPriority = car.CarConfiguration.ChargingPriority;
+                if (entity.Id == default)
+                {
+                    _teslaSolarChargerContext.Cars.Add(entity);
+                }
+                await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+                car.Id = entity.Id;
+            }
+
+            var cachedCarStates = await _teslaSolarChargerContext.CachedCarStates.ToListAsync().ConfigureAwait(false);
+            _teslaSolarChargerContext.CachedCarStates.RemoveRange(cachedCarStates);
+            _teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration() { Key = _constants.CarConfigurationsConverted, Value = "true" });
+            await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogError(ex, "Could not get cars from TeslaMate database.");
+            cars = await _teslaSolarChargerContext.Cars
+                .Select(c => new DtoCar()
+                {
+                    Id = c.TeslaMateCarId,
+                    Vin = c.Vin,
+                    CarConfiguration = new CarConfiguration()
+                    {
+                        ChargeMode = c.ChargeMode,
+                        MinimumSoC = c.MinimumSoc,
+                        LatestTimeToReachSoC = c.LatestTimeToReachSoC,
+                        IgnoreLatestTimeToReachSocDate = c.IgnoreLatestTimeToReachSocDate,
+                        MaximumAmpere = c.MaximumAmpere,
+                        MinimumAmpere = c.MinimumAmpere,
+                        UsableEnergy = c.UsableEnergy,
+                        ShouldBeManaged = c.ShouldBeManaged,
+                        ShouldSetChargeStartTimes = c.ShouldSetChargeStartTimes,
+                        ChargingPriority = c.ChargingPriority,
+                    },
+                    CarState = new CarState(),
+                })
+                .ToListAsync().ConfigureAwait(false);
+            await AddCachedCarStatesToCars(cars).ConfigureAwait(false);
         }
-        await AddCachedCarStatesToCars(cars).ConfigureAwait(false);
+        
+        
 
         return cars;
     }
 
-    internal List<Car> DeserializeCarsFromConfigurationString(string fileContent)
+    internal List<DtoCar> DeserializeCarsFromConfigurationString(string fileContent)
     {
         _logger.LogTrace("{method}({param})", nameof(DeserializeCarsFromConfigurationString), fileContent);
-        var cars = JsonConvert.DeserializeObject<List<Car>>(fileContent) ?? throw new InvalidOperationException("Could not deserialize file content");
+        var cars = JsonConvert.DeserializeObject<List<DtoCar>>(fileContent) ?? throw new InvalidOperationException("Could not deserialize file content");
         return cars;
     }
 
@@ -112,13 +165,13 @@ public class ConfigJsonService : IConfigJsonService
         return fileContent;
     }
 
-    internal void AddNewCars(List<int> newCarIds, List<Car> cars)
+    internal void AddNewCars(List<int> newCarIds, List<DtoCar> cars)
     {
         foreach (var carId in newCarIds)
         {
             if (cars.All(c => c.Id != carId))
             {
-                var car = new Car
+                var car = new DtoCar
                 {
                     Id = carId,
                     CarConfiguration =
@@ -238,27 +291,7 @@ public class ConfigJsonService : IConfigJsonService
         _logger.LogDebug("All unset car configurations set.");
     }
 
-    public async Task AddCarsToTscDatabase()
-    {
-        var carsToManage = _settings.Cars.Where(c => c.CarConfiguration.ShouldBeManaged == true).ToList();
-        foreach (var car in carsToManage)
-        {
-            var databaseCar = await _teslaSolarChargerContext.Cars.FirstOrDefaultAsync(c => c.TeslaMateCarId == car.Id).ConfigureAwait(false);
-            if (databaseCar != default)
-            {
-                continue;
-            }
-
-            databaseCar = new Model.Entities.TeslaSolarCharger.Car()
-            {
-                TeslaMateCarId = car.Id,
-            };
-            _teslaSolarChargerContext.Cars.Add(databaseCar);
-        }
-        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-    private async Task AddCachedCarStatesToCars(List<Car> cars)
+    private async Task AddCachedCarStatesToCars(List<DtoCar> cars)
     {
         foreach (var car in cars)
         {
@@ -281,7 +314,7 @@ public class ConfigJsonService : IConfigJsonService
         }
     }
 
-    internal void RemoveOldCars(List<Car> cars, List<int> stillExistingCarIds)
+    internal void RemoveOldCars(List<DtoCar> cars, List<int> stillExistingCarIds)
     {
         var carsIdsToRemove = cars
             .Where(c => !stillExistingCarIds.Any(i => c.Id == i))

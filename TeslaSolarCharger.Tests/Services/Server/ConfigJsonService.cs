@@ -19,7 +19,7 @@ public class ConfigJsonService : TestBase
     public void Adds_every_new_car()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
-        var cars = new List<Car>();
+        var cars = new List<DtoCar>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
         configJsonService.AddNewCars(newCarIds, cars);
@@ -31,7 +31,7 @@ public class ConfigJsonService : TestBase
     public void Sets_correct_default_values_on_new_cars()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
-        var cars = new List<Car>();
+        var cars = new List<DtoCar>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
         configJsonService.AddNewCars(newCarIds, cars);
@@ -51,7 +51,7 @@ public class ConfigJsonService : TestBase
     public void Removes_old_cars()
     {
         var newCarIds = new List<int>() { 1, 2, 3, 4 };
-        var cars = new List<Car>();
+        var cars = new List<DtoCar>();
 
         var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
         configJsonService.AddNewCars(newCarIds, cars);

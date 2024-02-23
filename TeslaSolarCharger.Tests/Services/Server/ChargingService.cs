@@ -50,7 +50,7 @@ public class ChargingService : TestBase
     {
         Mock.Mock<IDateTimeProvider>()
             .Setup(d => d.DateTimeOffSetNow())
-            .Returns(currentDate);
+            .Returns(new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero));
         var car = new Car()
         {
             CarState = new CarState()
@@ -145,9 +145,9 @@ public class ChargingService : TestBase
     [Fact]
     public void Gets_relevant_car_IDs()
     {
-        var cars = new List<Car>()
+        var cars = new List<DtoCar>()
         {
-            new Car()
+            new DtoCar()
             {
                 Id = 1,
                 CarState = new CarState()
@@ -164,7 +164,7 @@ public class ChargingService : TestBase
                     ShouldBeManaged = true,
                 },
             },
-            new Car()
+            new DtoCar()
             {
                 Id = 2,
                 CarState = new CarState()
@@ -180,7 +180,7 @@ public class ChargingService : TestBase
                     ShouldBeManaged = true,
                 },
             },
-            new Car()
+            new DtoCar()
             {
                 Id = 3,
                 CarState = new CarState()
@@ -210,9 +210,9 @@ public class ChargingService : TestBase
     [Fact]
     public void Gets_irrelevant_cars()
     {
-        var cars = new List<Car>()
+        var cars = new List<DtoCar>()
         {
-            new Car()
+            new DtoCar()
             {
                 Id = 1,
                 CarState = new CarState()
@@ -226,7 +226,7 @@ public class ChargingService : TestBase
                 },
                 CarConfiguration = new CarConfiguration() { ShouldBeManaged = true },
             },
-            new Car()
+            new DtoCar()
             {
                 Id = 2,
                 CarState = new CarState()
@@ -239,7 +239,7 @@ public class ChargingService : TestBase
                 },
                 CarConfiguration = new CarConfiguration() { ShouldBeManaged = true },
             },
-            new Car()
+            new DtoCar()
             {
                 Id = 3,
                 CarState = new CarState()
@@ -264,9 +264,9 @@ public class ChargingService : TestBase
         Assert.Contains(3, irrelevantCars.Select(c => c.Id));
     }
     
-    private Car CreateDemoCar(ChargeMode chargeMode, DateTime latestTimeToReachSoC, int soC, int minimumSoC, bool autoFullSpeedCharge)
+    private DtoCar CreateDemoCar(ChargeMode chargeMode, DateTime latestTimeToReachSoC, int soC, int minimumSoC, bool autoFullSpeedCharge)
     {
-        var car = new Car()
+        var car = new DtoCar()
         {
             CarState = new CarState()
             {
@@ -333,7 +333,7 @@ public class ChargingService : TestBase
     [Fact]
     public void DoesSetShouldStartTimesCorrectly()
     {
-        var car = new Car();
+        var car = new DtoCar();
         var chargeTimeUpdateService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
         var dateTime = new DateTime(2022, 12, 15, 10, 0, 0, DateTimeKind.Local);
 
@@ -352,7 +352,7 @@ public class ChargingService : TestBase
     [Fact]
     public void DoesSetShouldStopTimesCorrectly()
     {
-        var car = new Car();
+        var car = new DtoCar();
         var chargeTimeUpdateService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
         var dateTime = new DateTime(2022, 12, 15, 10, 0, 0, DateTimeKind.Local);
 

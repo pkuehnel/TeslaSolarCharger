@@ -155,16 +155,16 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         throw new NotImplementedException();
     }
 
-    internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
+    internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, DtoCar dtoCar, out Dictionary<string, string> parameters)
     {
-        _logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, car.Id, nameof(parameters));
+        _logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, dtoCar.Id, nameof(parameters));
         parameters = new Dictionary<string, string>();
         if (chargingStartTime != null)
         {
             _logger.LogTrace("{chargingStartTime} is not null", nameof(chargingStartTime));
             chargingStartTime = RoundToNextQuarterHour(chargingStartTime.Value);
         }
-        if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
+        if (dtoCar.CarState.ScheduledChargingStartTime == chargingStartTime)
         {
             _logger.LogDebug("Correct charging start time already set.");
             return false;
@@ -186,7 +186,7 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         var timeUntilChargeStart = chargingStartTime.Value - currentDate;
         var scheduledChargeShouldBeSet = true;
 
-        if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
+        if (dtoCar.CarState.ScheduledChargingStartTime == chargingStartTime)
         {
             _logger.LogDebug("Correct charging start time already set.");
             return true;
@@ -199,7 +199,7 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
             return false;
         }
 
-        if (car.CarState.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
+        if (dtoCar.CarState.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
         {
             _logger.LogDebug("No charge schedule set and no charge schedule should be set.");
             return true;

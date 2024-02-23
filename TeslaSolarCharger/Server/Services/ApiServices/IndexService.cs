@@ -115,17 +115,17 @@ public class IndexService : IIndexService
         return carBaseValues;
     }
 
-    private List<DtoChargeInformation> GenerateChargeInformation(Car enabledCar)
+    private List<DtoChargeInformation> GenerateChargeInformation(DtoCar enabledDtoCar)
     {
-        _logger.LogTrace("{method}({carId})", nameof(GenerateChargeInformation), enabledCar.Id);
-        if (_settings.Overage == _constants.DefaultOverage || enabledCar.CarState.PlannedChargingSlots.Any(c => c.IsActive))
+        _logger.LogTrace("{method}({carId})", nameof(GenerateChargeInformation), enabledDtoCar.Id);
+        if (_settings.Overage == _constants.DefaultOverage || enabledDtoCar.CarState.PlannedChargingSlots.Any(c => c.IsActive))
         {
             return new List<DtoChargeInformation>();
         }
 
         var result = new List<DtoChargeInformation>();
 
-        if (enabledCar.CarState.IsHomeGeofence != true)
+        if (enabledDtoCar.CarState.IsHomeGeofence != true)
         {
             result.Add(new DtoChargeInformation()
             {
@@ -134,7 +134,7 @@ public class IndexService : IIndexService
             });
         }
 
-        if (enabledCar.CarState.PluggedIn != true)
+        if (enabledDtoCar.CarState.PluggedIn != true)
         {
             result.Add(new DtoChargeInformation()
             {
@@ -143,19 +143,19 @@ public class IndexService : IIndexService
             });
         }
 
-        if ((!(enabledCar.CarState.State == CarStateEnum.Charging && enabledCar.CarState.IsHomeGeofence == true))
-            && enabledCar.CarState.EarliestSwitchOn != null
-            && enabledCar.CarState.EarliestSwitchOn > _dateTimeProvider.Now())
+        if ((!(enabledDtoCar.CarState.State == CarStateEnum.Charging && enabledDtoCar.CarState.IsHomeGeofence == true))
+            && enabledDtoCar.CarState.EarliestSwitchOn != null
+            && enabledDtoCar.CarState.EarliestSwitchOn > _dateTimeProvider.Now())
         {
             result.Add(new DtoChargeInformation()
             {
                 InfoText = "Enough solar power until {0}.",
-                TimeToDisplay = enabledCar.CarState.EarliestSwitchOn ?? default,
+                TimeToDisplay = enabledDtoCar.CarState.EarliestSwitchOn ?? default,
             });
         }
 
-        if ((!(enabledCar.CarState.State == CarStateEnum.Charging && enabledCar.CarState.IsHomeGeofence == true))
-            && enabledCar.CarState.EarliestSwitchOn == null)
+        if ((!(enabledDtoCar.CarState.State == CarStateEnum.Charging && enabledDtoCar.CarState.IsHomeGeofence == true))
+            && enabledDtoCar.CarState.EarliestSwitchOn == null)
         {
             result.Add(new DtoChargeInformation()
             {
@@ -164,19 +164,19 @@ public class IndexService : IIndexService
             });
         }
 
-        if ((enabledCar.CarState.State == CarStateEnum.Charging && enabledCar.CarState.IsHomeGeofence == true)
-            && enabledCar.CarState.EarliestSwitchOff != null
-            && enabledCar.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
+        if ((enabledDtoCar.CarState.State == CarStateEnum.Charging && enabledDtoCar.CarState.IsHomeGeofence == true)
+            && enabledDtoCar.CarState.EarliestSwitchOff != null
+            && enabledDtoCar.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
         {
             result.Add(new DtoChargeInformation()
             {
                 InfoText = "Not Enough solar power until {0}",
-                TimeToDisplay = enabledCar.CarState.EarliestSwitchOff ?? default,
+                TimeToDisplay = enabledDtoCar.CarState.EarliestSwitchOff ?? default,
             });
         }
 
-        if ((!(enabledCar.CarState.State == CarStateEnum.Charging && enabledCar.CarState.IsHomeGeofence == true))
-            && (enabledCar.CarState.SocLimit - enabledCar.CarState.SoC) < (_constants.MinimumSocDifference + 1))
+        if ((!(enabledDtoCar.CarState.State == CarStateEnum.Charging && enabledDtoCar.CarState.IsHomeGeofence == true))
+            && (enabledDtoCar.CarState.SocLimit - enabledDtoCar.CarState.SoC) < (_constants.MinimumSocDifference + 1))
         {
             result.Add(new DtoChargeInformation()
             {
@@ -254,10 +254,10 @@ public class IndexService : IIndexService
         var carState = _settings.Cars.First(c => c.Id == carId).CarState;
         var propertiesToExclude = new List<string>()
         {
-            nameof(Car.CarState.PlannedChargingSlots),
-            nameof(Car.CarState.Name),
-            nameof(Car.CarState.SocLimit),
-            nameof(Car.CarState.SoC),
+            nameof(DtoCar.CarState.PlannedChargingSlots),
+            nameof(DtoCar.CarState.Name),
+            nameof(DtoCar.CarState.SocLimit),
+            nameof(DtoCar.CarState.SoC),
         };
         foreach (var property in carState.GetType().GetProperties())
         {
@@ -333,7 +333,7 @@ public class IndexService : IIndexService
         return newText.ToString();
     }
 
-    private List<Car> GetEnabledCars()
+    private List<DtoCar> GetEnabledCars()
     {
         _logger.LogTrace("{method}()", nameof(GetEnabledCars));
         return _settings.CarsToManage;

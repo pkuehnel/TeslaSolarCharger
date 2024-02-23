@@ -13,6 +13,7 @@ using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using ChargingProcess = TeslaSolarCharger.Model.Entities.TeslaMate.ChargingProcess;
 
 namespace TeslaSolarCharger.Server.Services;
 

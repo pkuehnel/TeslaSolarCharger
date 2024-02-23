@@ -19,4 +19,5 @@ public interface IConstants
     TimeSpan MaxTokenRequestWaitTime { get; }
     TimeSpan MinTokenRestLifetime { get; }
     int MaxTokenUnauthorizedCount { get; }
+    string CarConfigurationsConverted { get; }
 }

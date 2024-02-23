@@ -24,9 +24,9 @@ public class TeslaMateMqttService : TestBase
     [InlineData("8")]
     public void ReducesActualCurrentToLastSetAmpIfDifferenceIsOneAndBelow5AAndEqualToRequestedCurrent(string value)
     {
-        var cars = new List<Car>()
+        var cars = new List<DtoCar>()
         {
-            new Car()
+            new DtoCar()
             {
                 Id = 1,
                 CarState = new CarState()

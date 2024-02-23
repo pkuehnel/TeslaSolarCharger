@@ -18,7 +18,6 @@ using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.Dtos;
-using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -370,16 +369,16 @@ public class TeslaFleetApiService(
         return vin;
     }
 
-    internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, Car car, out Dictionary<string, string> parameters)
+    internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, DtoCar dtoCar, out Dictionary<string, string> parameters)
     {
-        logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, car.Id, nameof(parameters));
+        logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, dtoCar.Id, nameof(parameters));
         parameters = new Dictionary<string, string>();
         if (chargingStartTime != null)
         {
             logger.LogTrace("{chargingStartTime} is not null", nameof(chargingStartTime));
             chargingStartTime = RoundToNextQuarterHour(chargingStartTime.Value);
         }
-        if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
+        if (dtoCar.CarState.ScheduledChargingStartTime == chargingStartTime)
         {
             logger.LogDebug("Correct charging start time already set.");
             return false;
@@ -401,7 +400,7 @@ public class TeslaFleetApiService(
         var timeUntilChargeStart = chargingStartTime.Value - currentDate;
         var scheduledChargeShouldBeSet = true;
 
-        if (car.CarState.ScheduledChargingStartTime == chargingStartTime)
+        if (dtoCar.CarState.ScheduledChargingStartTime == chargingStartTime)
         {
             logger.LogDebug("Correct charging start time already set.");
             return true;
@@ -414,7 +413,7 @@ public class TeslaFleetApiService(
             return false;
         }
 
-        if (car.CarState.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
+        if (dtoCar.CarState.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
         {
             logger.LogDebug("No charge schedule set and no charge schedule should be set.");
             return true;

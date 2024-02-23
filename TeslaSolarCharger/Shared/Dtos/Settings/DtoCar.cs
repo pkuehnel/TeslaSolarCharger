@@ -1,9 +1,9 @@
 ﻿namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
-public class Car
+public class DtoCar
 {
 #pragma warning disable CS8618
-    public Car()
+    public DtoCar()
 #pragma warning restore CS8618
     {
         CarState = new CarState();
