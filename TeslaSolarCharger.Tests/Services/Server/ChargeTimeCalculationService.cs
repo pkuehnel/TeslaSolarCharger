@@ -1,15 +1,22 @@
 ﻿using Moq;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using Xunit;
 using Xunit.Abstractions;
+using static MudBlazor.FilterOperator;
+using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
+using DateTime = System.DateTime;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
@@ -234,6 +241,32 @@ public class ChargeTimeCalculationService : TestBase
 
         Assert.Equal(combinedChargingTimeBeforeConcatenation, concatenatedChargingSlots.Select(c => c.ChargeDuration.TotalHours).Sum());
         Assert.Single(concatenatedChargingSlots);
+    }
+
+    //This test is based on log data from private message https://tff-forum.de/t/aw-teslasolarcharger-laden-nach-pv-ueberschuss-mit-beliebiger-wallbox/331033
+    [Fact]
+    public async Task Does_Use_Cheapest_Price()
+    {
+        var spotpricesJson =
+            "[\r\n  {\r\n    \"startDate\": \"2024-02-22T18:00:00\",\r\n    \"endDate\": \"2024-02-22T19:00:00\",\r\n    \"price\": 0.05242\r\n  },\r\n  {\r\n   \"startDate\": \"2024-02-22T19:00:00\",\r\n    \"endDate\": \"2024-02-22T20:00:00\",\r\n    \"price\": 0.04245\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-22T20:00:00\",\r\n    \"endDate\": \"2024-02-22T21:00:00\",\r\n    \"price\": 0.02448\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-22T21:00:00\",\r\n    \"endDate\": \"2024-02-22T22:00:00\",\r\n    \"price\": 0.01206\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-22T22:00:00\",\r\n    \"endDate\": \"2024-02-22T23:00:00\",\r\n    \"price\": 0.00191\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-22T23:00:00\",\r\n    \"endDate\": \"2024-02-23T00:00:00\",\r\n    \"price\": 0.00923\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T00:00:00\",\r\n    \"endDate\": \"2024-02-23T01:00:00\",\r\n    \"price\": 0.00107\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T01:00:00\",\r\n    \"endDate\": \"2024-02-23T02:00:00\",\r\n    \"price\": 0.00119\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T02:00:00\",\r\n    \"endDate\": \"2024-02-23T03:00:00\",\r\n    \"price\": 0.00009\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T03:00:00\",\r\n    \"endDate\": \"2024-02-23T04:00:00\",\r\n    \"price\": 0.00002\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T04:00:00\",\r\n    \"endDate\": \"2024-02-23T05:00:00\",\r\n    \"price\": 0.00009\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T05:00:00\",\r\n    \"endDate\": \"2024-02-23T06:00:00\",\r\n    \"price\": 0.03968\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T06:00:00\",\r\n    \"endDate\": \"2024-02-23T07:00:00\",\r\n    \"price\": 0.05706\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T07:00:00\",\r\n    \"endDate\": \"2024-02-23T08:00:00\",\r\n    \"price\": 0.05935\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T08:00:00\",\r\n    \"endDate\": \"2024-02-23T09:00:00\",\r\n    \"price\": 0.05169\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T09:00:00\",\r\n    \"endDate\": \"2024-02-23T10:00:00\",\r\n    \"price\": 0.04664\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T10:00:00\",\r\n    \"endDate\": \"2024-02-23T11:00:00\",\r\n    \"price\": 0.04165\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T11:00:00\",\r\n    \"endDate\": \"2024-02-23T12:00:00\",\r\n    \"price\": 0.0371\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T12:00:00\",\r\n    \"endDate\": \"2024-02-23T13:00:00\",\r\n    \"price\": 0.0336\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T13:00:00\",\r\n    \"endDate\": \"2024-02-23T14:00:00\",\r\n    \"price\": 0.03908\r\n  },\r\n  {\r\n   \"startDate\": \"2024-02-23T14:00:00\",\r\n    \"endDate\": \"2024-02-23T15:00:00\",\r\n    \"price\": 0.04951\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T15:00:00\",\r\n    \"endDate\": \"2024-02-23T16:00:00\",\r\n    \"price\": 0.06308\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T16:00:00\",\r\n    \"endDate\": \"2024-02-23T17:00:00\",\r\n    \"price\": 0.0738\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T17:00:00\",\r\n    \"endDate\": \"2024-02-23T18:00:00\",\r\n    \"price\": 0.08644\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T18:00:00\",\r\n    \"endDate\": \"2024-02-23T19:00:00\",\r\n    \"price\": 0.08401\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T19:00:00\",\r\n    \"endDate\": \"2024-02-23T20:00:00\",\r\n    \"price\": 0.07297\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T20:00:00\",\r\n    \"endDate\": \"2024-02-23T21:00:00\",\r\n    \"price\": 0.06926\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T21:00:00\",\r\n    \"endDate\": \"2024-02-23T22:00:00\",\r\n    \"price\": 0.06798\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T22:00:00\",\r\n    \"endDate\": \"2024-02-23T23:00:00\",\r\n    \"price\": 0.0651\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-23T23:00:00\",\r\n    \"endDate\": \"2024-02-24T00:00:00\",\r\n    \"price\": 0.06647\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-24T00:00:00\",\r\n    \"endDate\": \"2024-02-24T01:00:00\",\r\n    \"price\": 0.0639\r\n  },\r\n  {\r\n    \"startDate\": \"2024-02-24T01:00:00\",\r\n    \"endDate\": \"2024-02-24T02:00:00\",\r\n    \"price\": 0.0595\r\n  }\r\n]";
+        var spotPricesToAddToDb = JsonConvert.DeserializeObject<List<SpotPrice>>(spotpricesJson);
+        Assert.NotNull(spotPricesToAddToDb);
+        Context.SpotPrices.AddRange(spotPricesToAddToDb);
+        await Context.SaveChangesAsync();
+        var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
+        var carJson =
+            "{\"Id\":1,\"Vin\":\"LRW3E7FS2NC\",\"CarConfiguration\":{\"ChargeMode\":3,\"MinimumSoC\":80,\"LatestTimeToReachSoC\":\"2024-02-23T15:30:00\",\"IgnoreLatestTimeToReachSocDate\":false,\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":58,\"ShouldBeManaged\":true,\"ShouldSetChargeStartTimes\":true,\"ChargingPriority\":1},\"CarState\":{\"Name\":\"Model 3\",\"ShouldStartChargingSince\":null,\"EarliestSwitchOn\":null,\"ShouldStopChargingSince\":\"2024-02-22T13:01:37.0448677+01:00\",\"EarliestSwitchOff\":\"2024-02-22T13:06:37.0448677+01:00\",\"ScheduledChargingStartTime\":\"2024-02-24T01:45:00+00:00\",\"SoC\":58,\"SocLimit\":100,\"IsHomeGeofence\":true,\"TimeUntilFullCharge\":\"02:45:00\",\"ReachingMinSocAtFullSpeedCharge\":\"2024-02-23T06:09:34.4100825+01:00\",\"AutoFullSpeedCharge\":true,\"LastSetAmp\":16,\"ChargerPhases\":2,\"ActualPhases\":3,\"ChargerVoltage\":228,\"ChargerActualCurrent\":16,\"ChargerPilotCurrent\":16,\"ChargerRequestedCurrent\":16,\"PluggedIn\":true,\"ClimateOn\":false,\"DistanceToHomeGeofence\":-19,\"ChargingPowerAtHome\":10944,\"State\":3,\"Healthy\":true,\"ReducedChargeSpeedWarning\":false,\"PlannedChargingSlots\":[{\"ChargeStart\":\"2024-02-23T12:00:00+00:00\",\"ChargeEnd\":\"2024-02-23T12:09:34.4150924+00:00\",\"IsActive\":false,\"ChargeDuration\":\"00:09:34.4150924\"},{\"ChargeStart\":\"2024-02-23T02:43:07.0475086+01:00\",\"ChargeEnd\":\"2024-02-23T06:00:00+01:00\",\"IsActive\":true,\"ChargeDuration\":\"03:16:52.9524914\"}]}}";
+        var car = JsonConvert.DeserializeObject<Shared.Dtos.Settings.Car>(carJson);
+        Assert.NotNull(car);
+        Mock.Mock<ISettings>().Setup(ds => ds.Cars).Returns(new List<Car>() { car });
+        var dateTimeOffsetNow = new DateTimeOffset(2024, 2, 23, 5, 0, 1, TimeSpan.FromHours(1));
+        Mock.Mock<IDateTimeProvider>().Setup(ds => ds.DateTimeOffSetNow()).Returns(dateTimeOffsetNow);
+        Mock.Mock<ISpotPriceService>()
+            .Setup(ds => ds.LatestKnownSpotPriceTime())
+            .Returns(Task.FromResult(new DateTimeOffset(spotPricesToAddToDb.OrderByDescending(p => p.EndDate).Select(p => p.EndDate).First(), TimeSpan.Zero)));
+        var chargingSlots = await chargeTimeCalculationService.GenerateSpotPriceChargingSlots(car,
+            TimeSpan.FromMinutes(69), dateTimeOffsetNow,
+            new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, TimeSpan.FromHours(1)));
     }
 
     [Fact]
