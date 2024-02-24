@@ -51,6 +51,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<Car>()
             .HasIndex(c => c.TeslaMateCarId)
             .IsUnique();
+
+        modelBuilder.Entity<Car>()
+            .HasIndex(c => c.Vin)
+            .IsUnique();
     }
 
 #pragma warning disable CS8618

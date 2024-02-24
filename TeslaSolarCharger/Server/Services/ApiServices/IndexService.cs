@@ -213,7 +213,7 @@ public class IndexService : IIndexService
         carConfiguration.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
         await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
         await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
-        await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
+        await _configJsonService.UpdateCarConfiguration(car.Vin, carConfiguration).ConfigureAwait(false);
     }
 
     public Dictionary<string, string> GetToolTipTexts()

@@ -6,6 +6,6 @@ public interface IConfigJsonService
 {
     Task CacheCarStates();
     Task AddCarIdsToSettings();
-    Task UpdateCarConfiguration();
     Task UpdateAverageGridVoltage();
+    Task UpdateCarConfiguration(string carVin, CarConfiguration carConfiguration);
 }

@@ -11,11 +11,8 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
-using TeslaSolarCharger.SharedBackend.Contracts;
 using Xunit;
 using Xunit.Abstractions;
-using static MudBlazor.FilterOperator;
-using Car = TeslaSolarCharger.Shared.Dtos.Settings.Car;
 using DateTime = System.DateTime;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
@@ -256,9 +253,9 @@ public class ChargeTimeCalculationService : TestBase
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
         var carJson =
             "{\"Id\":1,\"Vin\":\"LRW3E7FS2NC\",\"CarConfiguration\":{\"ChargeMode\":3,\"MinimumSoC\":80,\"LatestTimeToReachSoC\":\"2024-02-23T15:30:00\",\"IgnoreLatestTimeToReachSocDate\":false,\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":58,\"ShouldBeManaged\":true,\"ShouldSetChargeStartTimes\":true,\"ChargingPriority\":1},\"CarState\":{\"Name\":\"Model 3\",\"ShouldStartChargingSince\":null,\"EarliestSwitchOn\":null,\"ShouldStopChargingSince\":\"2024-02-22T13:01:37.0448677+01:00\",\"EarliestSwitchOff\":\"2024-02-22T13:06:37.0448677+01:00\",\"ScheduledChargingStartTime\":\"2024-02-24T01:45:00+00:00\",\"SoC\":58,\"SocLimit\":100,\"IsHomeGeofence\":true,\"TimeUntilFullCharge\":\"02:45:00\",\"ReachingMinSocAtFullSpeedCharge\":\"2024-02-23T06:09:34.4100825+01:00\",\"AutoFullSpeedCharge\":true,\"LastSetAmp\":16,\"ChargerPhases\":2,\"ActualPhases\":3,\"ChargerVoltage\":228,\"ChargerActualCurrent\":16,\"ChargerPilotCurrent\":16,\"ChargerRequestedCurrent\":16,\"PluggedIn\":true,\"ClimateOn\":false,\"DistanceToHomeGeofence\":-19,\"ChargingPowerAtHome\":10944,\"State\":3,\"Healthy\":true,\"ReducedChargeSpeedWarning\":false,\"PlannedChargingSlots\":[{\"ChargeStart\":\"2024-02-23T12:00:00+00:00\",\"ChargeEnd\":\"2024-02-23T12:09:34.4150924+00:00\",\"IsActive\":false,\"ChargeDuration\":\"00:09:34.4150924\"},{\"ChargeStart\":\"2024-02-23T02:43:07.0475086+01:00\",\"ChargeEnd\":\"2024-02-23T06:00:00+01:00\",\"IsActive\":true,\"ChargeDuration\":\"03:16:52.9524914\"}]}}";
-        var car = JsonConvert.DeserializeObject<Shared.Dtos.Settings.Car>(carJson);
+        var car = JsonConvert.DeserializeObject<DtoCar>(carJson);
         Assert.NotNull(car);
-        Mock.Mock<ISettings>().Setup(ds => ds.Cars).Returns(new List<Car>() { car });
+        Mock.Mock<ISettings>().Setup(ds => ds.Cars).Returns(new List<DtoCar>() { car });
         var dateTimeOffsetNow = new DateTimeOffset(2024, 2, 23, 5, 0, 1, TimeSpan.FromHours(1));
         Mock.Mock<IDateTimeProvider>().Setup(ds => ds.DateTimeOffSetNow()).Returns(dateTimeOffsetNow);
         Mock.Mock<ISpotPriceService>()

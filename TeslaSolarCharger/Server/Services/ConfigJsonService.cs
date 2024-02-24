@@ -2,6 +2,7 @@
 using MQTTnet.Server;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
+using Quartz;
 using System.Diagnostics.CodeAnalysis;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -127,7 +128,7 @@ public class ConfigJsonService : IConfigJsonService
                 .Select(c => new DtoCar()
                 {
                     Id = c.TeslaMateCarId,
-                    Vin = c.Vin,
+                    Vin = c.Vin ?? string.Empty,
                     CarConfiguration = new CarConfiguration()
                     {
                         ChargeMode = c.ChargeMode,
@@ -146,9 +147,6 @@ public class ConfigJsonService : IConfigJsonService
                 .ToListAsync().ConfigureAwait(false);
             await AddCachedCarStatesToCars(cars).ConfigureAwait(false);
         }
-        
-        
-
         return cars;
     }
 
@@ -163,35 +161,6 @@ public class ConfigJsonService : IConfigJsonService
     {
         var fileContent = await File.ReadAllTextAsync(_configurationWrapper.CarConfigFileFullName()).ConfigureAwait(false);
         return fileContent;
-    }
-
-    internal void AddNewCars(List<int> newCarIds, List<DtoCar> cars)
-    {
-        foreach (var carId in newCarIds)
-        {
-            if (cars.All(c => c.Id != carId))
-            {
-                var car = new DtoCar
-                {
-                    Id = carId,
-                    CarConfiguration =
-                    {
-                        ChargeMode = ChargeMode.PvAndMinSoc,
-                        MaximumAmpere = 16,
-                        MinimumAmpere = 1,
-                        UsableEnergy = 75,
-                        LatestTimeToReachSoC = new DateTime(2022, 1, 1),
-                        ShouldBeManaged = true,
-                    },
-                    CarState =
-                    {
-                        ShouldStartChargingSince = null,
-                        ShouldStopChargingSince = null,
-                    },
-                };
-                cars.Add(car);
-            }
-        }
     }
 
     public async Task CacheCarStates()
@@ -220,33 +189,6 @@ public class ConfigJsonService : IConfigJsonService
             {
                 cachedCarState.CarStateJson = JsonConvert.SerializeObject(car.CarState);
                 cachedCarState.LastUpdated = _dateTimeProvider.UtcNow();
-            }
-        }
-        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-    public async Task UpdateCarConfiguration()
-    {
-        _logger.LogTrace("{method}()", nameof(UpdateCarConfiguration));
-        foreach (var car in _settings.Cars)
-        {
-            var databaseConfig = await _teslaSolarChargerContext.CachedCarStates
-                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == _constants.CarConfigurationKey).ConfigureAwait(false);
-            if (databaseConfig == default)
-            {
-                databaseConfig = new CachedCarState()
-                {
-                    CarId = car.Id,
-                    Key = _constants.CarConfigurationKey,
-                };
-                _teslaSolarChargerContext.CachedCarStates.Add(databaseConfig);
-            }
-            databaseConfig.CarStateJson = JsonConvert.SerializeObject(car.CarConfiguration);
-            databaseConfig.LastUpdated = _dateTimeProvider.UtcNow();
-            var databaseCar = await _teslaSolarChargerContext.Cars.FirstOrDefaultAsync(c => c.TeslaMateCarId == car.Id).ConfigureAwait(false);
-            if (databaseCar == default)
-            {
-                _teslaSolarChargerContext.Cars.Add(new Model.Entities.TeslaSolarCharger.Car() { TeslaMateCarId = car.Id, });
             }
         }
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -285,8 +227,9 @@ public class ConfigJsonService : IConfigJsonService
                 _logger.LogInformation("Car {carId}: {variable} is not set, use default value {defaultValue}", car.Id, nameof(car.CarConfiguration.ShouldBeManaged), defaultValue);
                 car.CarConfiguration.ShouldBeManaged = defaultValue;
             }
+            await UpdateCarConfiguration(car.Vin, car.CarConfiguration).ConfigureAwait(false);
         }
-        await UpdateCarConfiguration().ConfigureAwait(false);
+        
 
         _logger.LogDebug("All unset car configurations set.");
     }
@@ -311,18 +254,6 @@ public class ConfigJsonService : IConfigJsonService
             }
 
             car.CarState = carState;
-        }
-    }
-
-    internal void RemoveOldCars(List<DtoCar> cars, List<int> stillExistingCarIds)
-    {
-        var carsIdsToRemove = cars
-            .Where(c => !stillExistingCarIds.Any(i => c.Id == i))
-            .Select(c => c.Id)
-            .ToList();
-        foreach (var carId in carsIdsToRemove)
-        {
-            cars.RemoveAll(c => c.Id == carId);
         }
     }
 
@@ -356,5 +287,30 @@ public class ConfigJsonService : IConfigJsonService
         {
             _logger.LogError(ex, "Could not detect average grid voltage.");
         }
+    }
+
+    public async Task UpdateCarConfiguration(string carVin, CarConfiguration carConfiguration)
+    {
+        _logger.LogTrace("{method}({carVin}, {@carConfiguration})", nameof(UpdateCarConfiguration), carVin, carConfiguration);
+        var databaseCar = _teslaSolarChargerContext.Cars.FirstOrDefault(c => c.Vin == carVin);
+        if (databaseCar == default)
+        {
+            databaseCar = new Car()
+            {
+                Vin = carVin,
+            };
+            _teslaSolarChargerContext.Cars.Add(databaseCar);
+        }
+        databaseCar.ChargeMode = carConfiguration.ChargeMode;
+        databaseCar.MinimumSoc = carConfiguration.MinimumSoC;
+        databaseCar.LatestTimeToReachSoC = carConfiguration.LatestTimeToReachSoC;
+        databaseCar.IgnoreLatestTimeToReachSocDate = carConfiguration.IgnoreLatestTimeToReachSocDate;
+        databaseCar.MaximumAmpere = carConfiguration.MaximumAmpere;
+        databaseCar.MinimumAmpere = carConfiguration.MinimumAmpere;
+        databaseCar.UsableEnergy = carConfiguration.UsableEnergy;
+        databaseCar.ShouldBeManaged = carConfiguration.ShouldBeManaged ?? true;
+        databaseCar.ShouldSetChargeStartTimes = carConfiguration.ShouldSetChargeStartTimes ?? true;
+        databaseCar.ChargingPriority = carConfiguration.ChargingPriority;
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 }

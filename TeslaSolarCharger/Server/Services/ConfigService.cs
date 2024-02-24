@@ -36,7 +36,7 @@ public class ConfigService : IConfigService
             throw new InvalidOperationException("Can not set minimum soc lower than charge limit in Tesla App");
         }
         existingCar.CarConfiguration = carConfiguration;
-        await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
+        await _configJsonService.UpdateCarConfiguration(existingCar.Vin, existingCar.CarConfiguration).ConfigureAwait(false);
     }
 
     public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations()
@@ -80,6 +80,6 @@ public class ConfigService : IConfigService
         car.CarConfiguration.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         car.CarConfiguration.ChargingPriority = carBasicConfiguration.ChargingPriority;
         car.CarConfiguration.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
-        await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
+        await _configJsonService.UpdateCarConfiguration(car.Vin, car.CarConfiguration).ConfigureAwait(false);
     }
 }

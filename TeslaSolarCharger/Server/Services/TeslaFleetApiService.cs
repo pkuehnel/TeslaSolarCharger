@@ -288,7 +288,7 @@ public class TeslaFleetApiService(
                     {
                         logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarState.SocLimit);
                         car.CarConfiguration.MinimumSoC = (int)car.CarState.SocLimit;
-                        await configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
+                        await configJsonService.UpdateCarConfiguration(car.Vin, car.CarConfiguration).ConfigureAwait(false);
                     }
                     carState.ChargerPhases = vehicleDataResult.ChargeState.ChargerPhases;
                     carState.ChargerVoltage = vehicleDataResult.ChargeState.ChargerVoltage;

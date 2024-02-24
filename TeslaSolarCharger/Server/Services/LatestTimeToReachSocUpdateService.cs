@@ -34,8 +34,9 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
             }
             var carConfiguration = car.CarConfiguration;
             UpdateCarConfiguration(carConfiguration);
+            await _configJsonService.UpdateCarConfiguration(car.Vin, carConfiguration).ConfigureAwait(false);
         }
-        await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
+        
     }
 
     internal void UpdateCarConfiguration(CarConfiguration carConfiguration)

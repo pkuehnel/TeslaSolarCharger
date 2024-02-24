@@ -243,7 +243,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                     {
                         _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarState.SocLimit);
                         car.CarConfiguration.MinimumSoC = (int)car.CarState.SocLimit;
-                        _configJsonService.UpdateCarConfiguration();
+                        _configJsonService.UpdateCarConfiguration(car.Vin, car.CarConfiguration);
                     }
                 }
                 break;

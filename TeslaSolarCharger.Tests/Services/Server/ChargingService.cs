@@ -27,7 +27,7 @@ public class ChargingService : TestBase
         Mock.Mock<IDateTimeProvider>()
             .Setup(d => d.DateTimeOffSetNow())
             .Returns(currentDate);
-        var car = new Car()
+        var car = new DtoCar()
         {
             CarState = new CarState()
             {
@@ -51,7 +51,7 @@ public class ChargingService : TestBase
         Mock.Mock<IDateTimeProvider>()
             .Setup(d => d.DateTimeOffSetNow())
             .Returns(new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero));
-        var car = new Car()
+        var car = new DtoCar()
         {
             CarState = new CarState()
             {
