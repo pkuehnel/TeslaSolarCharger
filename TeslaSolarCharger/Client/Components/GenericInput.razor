@@ -18,164 +18,172 @@
 {
     <div class="d-flex align-items-center">
         <div class="p-2 flex-grow-1">
-            @if (typeof(T) == typeof(DateTime?))
-            {
-                <MudDatePicker @bind-Date="DateValue"
-                               For="@(ForDateTime)"
-                               Required="@IsRequired"
-                               Label="@LabelName"
-                               Disabled="IsDisabled"
-                               ReadOnly="IsReadOnly"
-                               Variant="Variant.Outlined"
-                               Margin="InputMargin" />
-            }
-            else if (DropDownOptions != default && typeof(T) == typeof(int?))
-            {
-                <MudSelectExtended T="int?"
-                                   @bind-Value="@NullableIntValue"
-                                   SearchBox="true"
-                                   For="@(ForNullableInt)"
+            <div>
+                @if (typeof(T) == typeof(DateTime?))
+                {
+                    <MudDatePicker @bind-Date="DateValue"
+                                   For="@(ForDateTime)"
                                    Required="@IsRequired"
                                    Label="@LabelName"
                                    Disabled="IsDisabled"
                                    ReadOnly="IsReadOnly"
                                    Variant="Variant.Outlined"
-                                   Margin="InputMargin"
-                                   SearchBoxAutoFocus="true"
-                                   ToStringFunc="@(new Func<int?, string>(x => DropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
-                                   ItemCollection="@DropDownOptions.Keys.Select(k => (int?)k).ToList()">
-                </MudSelectExtended>
-            }
-            else if (DropDownOptions != default && typeof(T) == typeof(HashSet<int>))
-            {
-                <MudSelectExtended T="int"
-                                   MultiSelection="true"
-                                   @bind-Value="@MultiSelectValue"
-                                   @bind-SelectedValues="SelectedMultiSelectValues"
-                                   SearchBox="true"
-                                   Required="@IsRequired"
-                                   Label="@LabelName"
-                                   Disabled="IsDisabled"
-                                   ReadOnly="IsReadOnly"
-                                   Variant="Variant.Outlined"
-                                   Margin="InputMargin"
-                                   SearchBoxAutoFocus="true"
-                                   ToStringFunc="@(new Func<int, string>(x => DropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
-                                   ItemCollection="@DropDownOptions.Keys.ToList()">
-                </MudSelectExtended>
-            }
-            else if (StringIdDropDownOptions != default && typeof(T) == typeof(string))
-            {
-                @* Even though compiler says ?? string.Empty is not needed in ToStringFunc, it is needed. *@
-                <MudSelectExtended T="string"
-                                   @bind-Value="@NullableStringValue"
-                                   For="@(ForNullableString)"
-                                   SearchBox="true"
-                                   Required="@IsRequired"
-                                   Label="@LabelName"
-                                   Disabled="IsDisabled"
-                                   ReadOnly="IsReadOnly"
-                                   Variant="Variant.Outlined"
-                                   Margin="InputMargin"
-                                   SearchBoxAutoFocus="true"
-                                   ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
-                                   ItemCollection="@StringIdDropDownOptions.Keys.ToList()">
-                </MudSelectExtended>
-            }
-            else if (StringIdDropDownOptions != default && typeof(T) == typeof(HashSet<string>))
-            {
-                //ToDo: For label is missing
-                @* Even though compiler says ?? string.Empty is not needed in ToStringFunc, it is needed. *@
-                <MudSelectExtended T="string"
-                                   MultiSelection="true"
-                                   @bind-Value="@MultiSelectStringValue"
-                                   @bind-SelectedValues="SelectedMultiSelectStringValues"
-                                   SearchBox="true"
-                                   Required="@IsRequired"
-                                   Label="@LabelName"
-                                   Disabled="IsDisabled"
-                                   ReadOnly="IsReadOnly"
-                                   Variant="Variant.Outlined"
-                                   Margin="InputMargin"
-                                   SearchBoxAutoFocus="true"
-                                   ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
-                                   ItemCollection="@StringIdDropDownOptions.Keys.ToList()">
-                </MudSelectExtended>
-            }
-            else if (typeof(T) == typeof(short)
-            || typeof(T) == typeof(short?)
-            || typeof(T) == typeof(ushort)
-            || typeof(T) == typeof(ushort?)
-            || typeof(T) == typeof(int)
-            || typeof(T) == typeof(int?)
-            || typeof(T) == typeof(uint)
-            || typeof(T) == typeof(uint?)
-            || typeof(T) == typeof(long)
-            || typeof(T) == typeof(long?)
-            || typeof(T) == typeof(ulong)
-            || typeof(T) == typeof(ulong?)
-            || typeof(T) == typeof(float)
-            || typeof(T) == typeof(float?)
-            || typeof(T) == typeof(double)
-            || typeof(T) == typeof(double?)
-            || typeof(T) == typeof(decimal)
-            || typeof(T) == typeof(decimal?))
-            {
-                <MudNumericField @bind-Value="Value"
+                                   Margin="InputMargin"/>
+                }
+                else if (DropDownOptions != default && typeof(T) == typeof(int?))
+                {
+                    <MudSelectExtended T="int?"
+                                       @bind-Value="@NullableIntValue"
+                                       SearchBox="true"
+                                       For="@(ForNullableInt)"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<int?, string>(x => DropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
+                                       ItemCollection="@DropDownOptions.Keys.Select(k => (int?)k).ToList()">
+                    </MudSelectExtended>
+                }
+                else if (DropDownOptions != default && typeof(T) == typeof(HashSet<int>))
+                {
+                    <MudSelectExtended T="int"
+                                       MultiSelection="true"
+                                       @bind-Value="@MultiSelectValue"
+                                       @bind-SelectedValues="SelectedMultiSelectValues"
+                                       SearchBox="true"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<int, string>(x => DropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
+                                       ItemCollection="@DropDownOptions.Keys.ToList()">
+                    </MudSelectExtended>
+                }
+                else if (StringIdDropDownOptions != default && typeof(T) == typeof(string))
+                {
+                    @* Even though compiler says ?? string.Empty is not needed in ToStringFunc, it is needed. *@
+                    <MudSelectExtended T="string"
+                                       @bind-Value="@NullableStringValue"
+                                       For="@(ForNullableString)"
+                                       SearchBox="true"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
+                                       ItemCollection="@StringIdDropDownOptions.Keys.ToList()">
+                    </MudSelectExtended>
+                }
+                else if (StringIdDropDownOptions != default && typeof(T) == typeof(HashSet<string>))
+                {
+                    //ToDo: For label is missing
+                    @* Even though compiler says ?? string.Empty is not needed in ToStringFunc, it is needed. *@
+                    <MudSelectExtended T="string"
+                                       MultiSelection="true"
+                                       @bind-Value="@MultiSelectStringValue"
+                                       @bind-SelectedValues="SelectedMultiSelectStringValues"
+                                       SearchBox="true"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
+                                       ItemCollection="@StringIdDropDownOptions.Keys.ToList()">
+                    </MudSelectExtended>
+                }
+                else if (typeof(T) == typeof(short)
+                         || typeof(T) == typeof(short?)
+                         || typeof(T) == typeof(ushort)
+                         || typeof(T) == typeof(ushort?)
+                         || typeof(T) == typeof(int)
+                         || typeof(T) == typeof(int?)
+                         || typeof(T) == typeof(uint)
+                         || typeof(T) == typeof(uint?)
+                         || typeof(T) == typeof(long)
+                         || typeof(T) == typeof(long?)
+                         || typeof(T) == typeof(ulong)
+                         || typeof(T) == typeof(ulong?)
+                         || typeof(T) == typeof(float)
+                         || typeof(T) == typeof(float?)
+                         || typeof(T) == typeof(double)
+                         || typeof(T) == typeof(double?)
+                         || typeof(T) == typeof(decimal)
+                         || typeof(T) == typeof(decimal?))
+                {
+                    <MudNumericField @bind-Value="Value"
+                                     For="@(For)"
+                                     Required="@IsRequired"
+                                     Label="@LabelName"
+                                     Disabled="IsDisabled"
+                                     ReadOnly="IsReadOnly"
+                                     Variant="Variant.Outlined"
+                                     Adornment="@Adornment"
+                                     AdornmentText="@AdornmentText"
+                                     Margin="InputMargin"/>
+                }
+                else if (IsNormalText())
+                {
+                    if (IsPassword)
+                    {
+                        <MudTextField @bind-Value="Value"
+                                      For="@(For)"
+                                      Required="@IsRequired"
+                                      HelperText="Leave empty if you want to keep the existing password."
+                                      InputType="InputType.Password"
+                                      Label="@LabelName"
+                                      Disabled="IsDisabled"
+                                      ReadOnly="IsReadOnly"
+                                      Variant="Variant.Outlined"
+                                      Margin="InputMargin"/>
+                    }
+                    else
+                    {
+                        <MudTextField id="@_inputId"
+                                      OnKeyUp="_ => UpdateLineCount(true)"
+                                      Lines="@TextAreaLines"
+                                      @bind-Value="Value" For="@(For)"
+                                      Required="@IsRequired"
+                                      Label="@LabelName"
+                                      Disabled="IsDisabled"
+                                      ReadOnly="IsReadOnly"
+                                      Variant="Variant.Outlined"
+                                      Margin="InputMargin"/>
+                    }
+                }
+                else if (typeof(T) == typeof(bool)
+                         || typeof(T) == typeof(bool?))
+                {
+                    <MudCheckBox @bind-Checked="@Value"
                                  For="@(For)"
                                  Required="@IsRequired"
-                                 Label="@LabelName"
                                  Disabled="IsDisabled"
                                  ReadOnly="IsReadOnly"
-                                 Variant="Variant.Outlined"
-                                 Adornment="@Adornment"
-                                 AdornmentText="@AdornmentText"
-                                 Margin="InputMargin" />
-            }
-            else if (IsNormalText())
-            {
-                if (IsPassword)
-                {
-                    <MudTextField @bind-Value="Value"
-                                  For="@(For)"
-                                  Required="@IsRequired"
-                                  HelperText="Leave empty if you want to keep the existing password."
-                                  InputType="InputType.Password"
-                                  Label="@LabelName"
-                                  Disabled="IsDisabled"
-                                  ReadOnly="IsReadOnly"
-                                  Variant="Variant.Outlined"
-                                  Margin="InputMargin" />
+                                 Label="@LabelName"
+                                 Dense="InputMargin == Margin.Dense">
+                    </MudCheckBox>
                 }
                 else
                 {
-                    <MudTextField id="@_inputId"
-                                  OnKeyUp="_ => UpdateLineCount(true)"
-                                  Lines="@TextAreaLines"
-                                  @bind-Value="Value" For="@(For)"
-                                  Required="@IsRequired"
-                                  Label="@LabelName"
-                                  Disabled="IsDisabled"
-                                  ReadOnly="IsReadOnly"
-                                  Variant="Variant.Outlined"
-                                  Margin="InputMargin" />
+                    throw new ArgumentOutOfRangeException();
                 }
-            }
-            else if (typeof(T) == typeof(bool)
-            || typeof(T) == typeof(bool?))
+            </div>
+            @if(!string.IsNullOrEmpty(HelperText))
             {
-                <MudCheckBox @bind-Checked="@Value"
-                             For="@(For)"
-                             Required="@IsRequired"
-                             Disabled="IsDisabled"
-                             ReadOnly="IsReadOnly"
-                             Label="@LabelName"
-                             Dense="InputMargin == Margin.Dense">
-                </MudCheckBox>
-            }
-            else
-            {
-                throw new ArgumentOutOfRangeException();
+                <div>
+                    <small class="form-text text-muted">@HelperText</small>
+                </div>
             }
         </div>
         @if (!string.IsNullOrEmpty(PostfixButtonStartIcon))
@@ -378,6 +386,9 @@
     [Parameter]
     public bool? IsReadOnlyParameter { get; set; }
 
+    [Parameter]
+    public string? HelperText { get; set; }
+
     private string? AdornmentText { get; set; }
     private bool IsRequired { get; set; }
     private bool IsDisabled { get; set; }
@@ -567,9 +578,12 @@
             IsDisabled = IsDisabledParameter ?? propertyInfo.GetCustomAttributes(true).OfType<DisabledAttribute>().Any();
         }
 
+        HelperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
+
 
         var postfixAttribute = propertyInfo.GetCustomAttributes<PostfixAttribute>(false).SingleOrDefault();
         var prefixAttribute = propertyInfo.GetCustomAttributes<PrefixAttribute>(false).SingleOrDefault();
+        
 
         if (postfixAttribute != default)
         {
