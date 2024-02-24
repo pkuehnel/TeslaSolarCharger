@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Resources.Contracts;
+using MudBlazor;
+
+namespace TeslaSolarCharger.Shared.Resources.Contracts;
 
 public interface IConstants
 {
@@ -20,4 +22,6 @@ public interface IConstants
     TimeSpan MinTokenRestLifetime { get; }
     int MaxTokenUnauthorizedCount { get; }
     string CarConfigurationsConverted { get; }
+    string DefaultMargin { get; }
+    Margin InputMargin { get; }
 }

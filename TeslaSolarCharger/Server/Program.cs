@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Context;
+using System.Diagnostics;
 using TeslaSolarCharger.GridPriceProvider;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
@@ -109,7 +110,10 @@ try
     }
 
     var jobManager = app.Services.GetRequiredService<JobManager>();
-    await jobManager.StartJobs().ConfigureAwait(false);
+    if (!Debugger.IsAttached)
+    {
+        await jobManager.StartJobs().ConfigureAwait(false);
+    }
 }
 catch (Exception ex)
 {

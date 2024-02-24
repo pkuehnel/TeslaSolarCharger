@@ -56,7 +56,7 @@ public class ConfigService : IConfigService
             };
             try
             {
-                carBasicConfiguration.VehicleIdentificationNumber =
+                carBasicConfiguration.Vin =
                     await _indexService.GetVinByCarId(car.Id).ConfigureAwait(false) ?? string.Empty;
             }
             catch (Exception ex)

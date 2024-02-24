@@ -1,0 +1,34 @@
+﻿@using TeslaSolarCharger.Client.Wrapper
+
+@typeparam T
+
+<EditForm EditContext="@WrappedElement.EditContext" OnValidSubmit="@(_ => HandleValidSubmit(WrappedElement.Item))">
+        <DataAnnotationsValidator/>
+            @ChildContent
+        <ValidationSummary />
+        <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Save</MudButton>
+        </MudPaper>
+    </EditForm>
+
+
+
+
+
+@code {
+
+    [Parameter]
+    public EditableItem<T> WrappedElement { get; set; }
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback<T> OnValidSubmit { get; set; }
+
+
+    private void HandleValidSubmit(T wrappedItem)
+    {
+        OnValidSubmit.InvokeAsync(wrappedItem);
+    }
+
+}

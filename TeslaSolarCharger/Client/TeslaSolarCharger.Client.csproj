@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -31,7 +31,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Components\Dialogs\" />
     <Folder Include="Enums\" />
+    <Folder Include="Wrapper\" />
   </ItemGroup>
 
 </Project>

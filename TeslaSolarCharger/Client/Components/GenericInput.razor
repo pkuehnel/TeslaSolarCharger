@@ -1,11 +1,13 @@
-﻿@using System.Linq.Expressions
+@using System.Linq.Expressions
 @using System.Reflection
 @using System.ComponentModel.DataAnnotations
 @using System.ComponentModel
 @using MudExtensions
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
 
+@inject IConstants Constants
 @inject IStringHelper StringHelper
 @* ReSharper disable once InconsistentNaming *@
 @inject IJSRuntime JSRuntime
@@ -203,9 +205,8 @@
     [Parameter]
     public string? ErrorMessage { get; set; }
 
-    private string MarginClass => "mb-4";
-
-    private Margin InputMargin => Margin.Normal;
+    private string MarginClass => Constants.DefaultMargin;
+    private Margin InputMargin => Constants.InputMargin;
 
     private int InputWidth => string.IsNullOrEmpty(PostfixButtonStartIcon) ? 12 : 10;
     private int ButtonWidth => 12 - InputWidth;

@@ -1,5 +1,6 @@
 ﻿@page "/CarSettings"
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Client.Wrapper
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
@@ -18,14 +19,24 @@ else
     @foreach (var carBasicConfiguration in _carBasicConfigurations)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <h3>@carBasicConfiguration.CarName</h3>
-            <div class ="h4">
-                @carBasicConfiguration.VehicleIdentificationNumber
+            <EditFormComponent WrappedElement="@(new EditableItem<CarBasicConfiguration>(carBasicConfiguration))">
+                <GenericInput For="() => carBasicConfiguration.CarName" />
+                <GenericInput For="() => carBasicConfiguration.Vin" />
+                <GenericInput For="() => carBasicConfiguration.MinimumAmpere" />
+                <GenericInput For="() => carBasicConfiguration.MaximumAmpere" />
+                <GenericInput For="() => carBasicConfiguration.UsableEnergy" />
+                <GenericInput For="() => carBasicConfiguration.ChargingPriority" />
+                <GenericInput For="() => carBasicConfiguration.ShouldBeManaged" />
+                <GenericInput For="() => carBasicConfiguration.ShouldSetChargeStartTimes" />
+            </EditFormComponent>
+            
+            <div class="h4">
+                @carBasicConfiguration.Vin
             </div>
             <div class="mb-3">
                 <div class="input-group">
                     <div class="form-floating flex-grow-1">
-                        <InputNumber id="@($"minAmpere_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.MinimumAmpere" class="form-control" />
+                        <InputNumber id="@($"minAmpere_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.MinimumAmpere" class="form-control"/>
                         <label for="@($"minAmpere_{carBasicConfiguration.CarId}")">Minimum Current</label>
                     </div>
                     <span class="input-group-text">A</span>
@@ -37,7 +48,7 @@ else
             <div class="mb-3">
                 <div class="input-group">
                     <div class="form-floating flex-grow-1">
-                        <InputNumber id="@($"maxAmpere_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.MaximumAmpere" class="form-control" />
+                        <InputNumber id="@($"maxAmpere_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.MaximumAmpere" class="form-control"/>
                         <label for="@($"maxAmpere_{carBasicConfiguration.CarId}")">MaximumAmpere Current</label>
                     </div>
                     <span class="input-group-text">A</span>
@@ -49,7 +60,7 @@ else
             <div class="mb-3">
                 <div class="input-group">
                     <div class="form-floating flex-grow-1">
-                        <InputNumber id="@($"usableEnergy_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.UsableEnergy" class="form-control" />
+                        <InputNumber id="@($"usableEnergy_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.UsableEnergy" class="form-control"/>
                         <label for="@($"usableEnergy{carBasicConfiguration.CarId}")">Usable Car Battery Energy</label>
                     </div>
                     <span class="input-group-text">kWh</span>
@@ -61,7 +72,7 @@ else
             <div class="mb-3">
                 <div class="input-group">
                     <div class="form-floating flex-grow-1">
-                        <InputNumber id="@($"chargingPriority{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.ChargingPriority" class="form-control" />
+                        <InputNumber id="@($"chargingPriority{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.ChargingPriority" class="form-control"/>
                         <label for="@($"chargingPriority{carBasicConfiguration.CarId}")">Charging Priority</label>
                     </div>
                 </div>
@@ -70,7 +81,7 @@ else
                 </div>
             </div>
             <div class="mb-3">
-                <InputCheckbox class="form-check-input" id="@($"useTeslaSolarCharger{carBasicConfiguration.CarId}")" @bind-Value="carBasicConfiguration.ShouldBeManaged" />
+                <InputCheckbox class="form-check-input" id="@($"useTeslaSolarCharger{carBasicConfiguration.CarId}")" @bind-Value="carBasicConfiguration.ShouldBeManaged"/>
                 <label class="form-check-label" for="@($"useTeslaSolarCharger{carBasicConfiguration.CarId}")">
                     Use TeslaSolarCharger
                 </label>
@@ -79,7 +90,7 @@ else
                 </div>
             </div>
             <div class="mb-3">
-                <InputCheckbox class="form-check-input" id="@($"shouldSetChargeStartTimes{carBasicConfiguration.CarId}")" @bind-Value="carBasicConfiguration.ShouldSetChargeStartTimes" />
+                <InputCheckbox class="form-check-input" id="@($"shouldSetChargeStartTimes{carBasicConfiguration.CarId}")" @bind-Value="carBasicConfiguration.ShouldSetChargeStartTimes"/>
                 <label class="form-check-label" for="@($"shouldSetChargeStartTimes{carBasicConfiguration.CarId}")">
                     Autoset charge starts
                 </label>

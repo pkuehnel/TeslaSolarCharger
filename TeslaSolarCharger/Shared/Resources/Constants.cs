@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Resources.Contracts;
+using MudBlazor;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Shared.Resources;
 
@@ -10,6 +11,8 @@ public class Constants : IConstants
     public int DefaultOverage => -1000000;
     public int MinimumSocDifference => 2;
     public string BackupZipBaseFileName => "TSC-Backup.zip";
+    public string DefaultMargin => "mb-4";
+    public Margin InputMargin => Margin.Dense;
 
     public string InstallationIdKey => "InstallationId";
     public string FleetApiTokenRequested => "FleetApiTokenRequested";
