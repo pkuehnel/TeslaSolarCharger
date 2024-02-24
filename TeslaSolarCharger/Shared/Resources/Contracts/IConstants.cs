@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.SharedBackend.Contracts;
+﻿namespace TeslaSolarCharger.Shared.Resources.Contracts;
 
 public interface IConstants
 {

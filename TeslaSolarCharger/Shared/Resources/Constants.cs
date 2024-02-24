@@ -1,6 +1,6 @@
-﻿using TeslaSolarCharger.SharedBackend.Contracts;
+﻿using TeslaSolarCharger.Shared.Resources.Contracts;
 
-namespace TeslaSolarCharger.SharedBackend.Values;
+namespace TeslaSolarCharger.Shared.Resources;
 
 public class Constants : IConstants
 {

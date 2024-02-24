@@ -15,11 +15,12 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.Tests.Data;
 using Xunit.Abstractions;
-using Constants = TeslaSolarCharger.SharedBackend.Values.Constants;
+using Constants = TeslaSolarCharger.Shared.Resources.Constants;
 
 namespace TeslaSolarCharger.Tests;
 

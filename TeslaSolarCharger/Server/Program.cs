@@ -7,6 +7,7 @@ using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 
@@ -26,6 +27,7 @@ builder.Services.AddSwaggerGen();
 
 var useFleetApi = configurationManager.GetValue<bool>("UseFleetApi");
 builder.Services.AddMyDependencies(useFleetApi);
+builder.Services.AddSharedDependencies();
 builder.Services.AddGridPriceProvider();
 
 builder.Host.UseSerilog((context, configuration) => configuration
