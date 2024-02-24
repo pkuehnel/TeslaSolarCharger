@@ -93,7 +93,7 @@ public class TeslaFleetApiService(
         }
         await WakeUpCarIfNeeded(carId, carState).ConfigureAwait(false);
 
-        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var vin = GetVinByCarId(carId);
         await SetAmp(carId, startAmp).ConfigureAwait(false);
 
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, ChargeStartRequest, HttpMethod.Post).ConfigureAwait(false);
@@ -103,7 +103,7 @@ public class TeslaFleetApiService(
     public async Task WakeUpCar(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(WakeUpCar), carId);
-        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var vin = GetVinByCarId(carId);
         var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(vin, WakeUpRequest, HttpMethod.Post).ConfigureAwait(false);
         await teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
         await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
@@ -112,7 +112,7 @@ public class TeslaFleetApiService(
     public async Task StopCharging(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(StopCharging), carId);
-        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var vin = GetVinByCarId(carId);
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, ChargeStopRequest, HttpMethod.Post).ConfigureAwait(false);
     }
 
@@ -125,7 +125,7 @@ public class TeslaFleetApiService(
             logger.LogDebug("Correct charging amp already set.");
             return;
         }
-        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var vin = GetVinByCarId(carId);
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, HttpMethod.Post, commandData).ConfigureAwait(false);
         if (amps < 5 && car.CarState.LastSetAmp >= 5
@@ -145,7 +145,7 @@ public class TeslaFleetApiService(
     public async Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
     {
         logger.LogTrace("{method}({param1}, {param2})", nameof(SetScheduledCharging), carId, chargingStartTime);
-        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var vin = GetVinByCarId(carId);
         var car = settings.Cars.First(c => c.Id == carId);
         if (!IsChargingScheduleChangeNeeded(chargingStartTime, dateTimeProvider.DateTimeOffSetNow(), car, out var parameters))
         {
@@ -166,7 +166,7 @@ public class TeslaFleetApiService(
     public async Task SetChargeLimit(int carId, int limitSoC)
     {
         logger.LogTrace("{method}({param1}, {param2})", nameof(SetChargeLimit), carId, limitSoC);
-        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var vin = GetVinByCarId(carId);
         var car = settings.Cars.First(c => c.Id == carId);
         await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
         var parameters = new Dictionary<string, int>()
@@ -179,7 +179,7 @@ public class TeslaFleetApiService(
     public async Task<DtoValue<bool>> TestFleetApiAccess(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(TestFleetApiAccess), carId);
-        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var vin = GetVinByCarId(carId);
         var inMemoryCar = settings.Cars.First(c => c.Id == carId);
         try
         {
@@ -217,7 +217,7 @@ public class TeslaFleetApiService(
     public async Task OpenChargePortDoor(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(OpenChargePortDoor), carId);
-        var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+        var vin = GetVinByCarId(carId);
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, OpenChargePortDoorRequest, HttpMethod.Post).ConfigureAwait(false);
     }
 
@@ -233,7 +233,7 @@ public class TeslaFleetApiService(
         var carIds = settings.CarsToManage.Select(c => c.Id).ToList();
         foreach (var carId in carIds)
         {
-            var vin = await GetVinByCarId(carId).ConfigureAwait(false);
+            var vin = GetVinByCarId(carId);
             try
             {
                 var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(vin, VehicleRequest, HttpMethod.Get).ConfigureAwait(false);
@@ -357,15 +357,9 @@ public class TeslaFleetApiService(
         return CarStateEnum.Unknown;
     }
 
-    private async Task<string> GetVinByCarId(int carId)
+    private string GetVinByCarId(int carId)
     {
-        var vin = await teslamateContext.Cars.Where(c => c.Id == carId).Select(c => c.Vin).FirstAsync().ConfigureAwait(false);
-        if (string.IsNullOrEmpty(vin))
-        {
-            logger.LogError("Could not get VIN for car ID {carId}", carId);
-            throw new InvalidOperationException("Could not find VIN");
-        }
-
+        var vin = settings.Cars.First(c => c.Id == carId).Vin;
         return vin;
     }
 
