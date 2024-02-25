@@ -24,4 +24,5 @@ public interface IConstants
     string CarConfigurationsConverted { get; }
     string DefaultMargin { get; }
     Margin InputMargin { get; }
+    string HandledChargesCarIdsConverted { get; }
 }

@@ -99,6 +99,7 @@ try
 
     var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
     await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
+    await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 

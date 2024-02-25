@@ -17,4 +17,5 @@ public interface IConfigJsonService
     Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration);
     Task<List<CarBasicConfiguration>> GetCarBasicConfigurations();
     ISettings GetSettings();
+    Task AddCarsToSettings();
 }

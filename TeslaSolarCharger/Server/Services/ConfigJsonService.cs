@@ -39,6 +39,13 @@ public class ConfigJsonService(
     public async Task ConvertOldCarsToNewCar()
     {
         logger.LogTrace("{method}()", nameof(ConvertOldCarsToNewCar));
+        await ConvertCarConfigurationsIncludingCarStatesIfNeeded().ConfigureAwait(false);
+
+        await ConvertHandledChargesCarIdsIfNeeded().ConfigureAwait(false);
+    }
+
+    private async Task ConvertCarConfigurationsIncludingCarStatesIfNeeded()
+    {
         var cars = new List<DtoCar>();
 
         var carConfigurationAlreadyConverted =
@@ -105,20 +112,58 @@ public class ConfigJsonService(
                 Value = "true",
             });
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-            throw new NotImplementedException(
-                "For each car with a different TeslaMateCarId than TSC car ID all HandledCharges' CarIds need to be updated");
+        }
+    }
+
+    private async Task ConvertHandledChargesCarIdsIfNeeded()
+    {
+        var handledChargesCarIdsConverted =
+            await teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == constants.HandledChargesCarIdsConverted).ConfigureAwait(false);
+        if (!handledChargesCarIdsConverted)
+        {
+            var carIdsToChange = await teslaSolarChargerContext.Cars
+                .Where(c => c.Id != c.TeslaMateCarId)
+                .Select(c => new
+                {
+                    c.TeslaMateCarId,
+                    c.Id,
+                })
+                .ToListAsync().ConfigureAwait(false);
+            if (carIdsToChange.Count < 1)
+            {
+                return;
+            }
+            var handledCharges = await teslaSolarChargerContext.HandledCharges.ToListAsync().ConfigureAwait(false);
+            foreach (var handledCharge in handledCharges)
+            {
+                if (carIdsToChange.Any(c => c.TeslaMateCarId == handledCharge.CarId))
+                {
+                    handledCharge.CarId = carIdsToChange.First(c => c.TeslaMateCarId == handledCharge.CarId).Id;
+                }
+            }
+            teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+            {
+                Key = constants.HandledChargesCarIdsConverted,
+                Value = "true",
+            });
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 
     public async Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
     {
         logger.LogTrace("{method}({@carBaseSettings})", nameof(UpdateCarBaseSettings), carBaseSettings);
-        var car = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carBaseSettings.CarId).ConfigureAwait(false);
-        car.ChargeMode = carBaseSettings.ChargeMode;
-        car.MinimumSoc = carBaseSettings.MinimumStateOfCharge;
-        car.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
-        car.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
+        var databaseCar = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carBaseSettings.CarId).ConfigureAwait(false);
+        databaseCar.ChargeMode = carBaseSettings.ChargeMode;
+        databaseCar.MinimumSoc = carBaseSettings.MinimumStateOfCharge;
+        databaseCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
+        databaseCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        var settingsCar = settings.Cars.First(c => c.Id == carBaseSettings.CarId);
+        settingsCar.ChargeMode = carBaseSettings.ChargeMode;
+        settingsCar.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
+        settingsCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
+        settingsCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
 
     }
 
@@ -143,6 +188,11 @@ public class ConfigJsonService(
     {
         logger.LogTrace("{method}()", nameof(GetSettings));
         return settings;
+    }
+
+    public async Task AddCarsToSettings()
+    {
+        settings.Cars = await GetCars().ConfigureAwait(false);
     }
 
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)

@@ -20,6 +20,7 @@ public class Constants : IConstants
     public string TokenMissingScopes => "TokenMissingScopes";
     public string FleetApiProxyNeeded => "FleetApiProxyNeeded";
     public string CarConfigurationsConverted => "CarConfigurationsConverted";
+    public string HandledChargesCarIdsConverted => "HandledChargesCarIdsConverted";
     public TimeSpan MaxTokenRequestWaitTime => TimeSpan.FromMinutes(5);
     public TimeSpan MinTokenRestLifetime => TimeSpan.FromMinutes(2);
     public int MaxTokenUnauthorizedCount => 5;
