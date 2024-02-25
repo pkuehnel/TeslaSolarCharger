@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Components\Dialogs\**" />
+    <Content Remove="Components\Dialogs\**" />
+    <EmbeddedResource Remove="Components\Dialogs\**" />
+    <None Remove="Components\Dialogs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Components\TooltipComponent.razor.css" />
   </ItemGroup>
 
@@ -31,7 +38,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Components\Dialogs\" />
     <Folder Include="Enums\" />
     <Folder Include="Wrapper\" />
   </ItemGroup>

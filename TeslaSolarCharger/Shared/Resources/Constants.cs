@@ -12,7 +12,7 @@ public class Constants : IConstants
     public int MinimumSocDifference => 2;
     public string BackupZipBaseFileName => "TSC-Backup.zip";
     public string DefaultMargin => "mb-4";
-    public Margin InputMargin => Margin.Dense;
+    public Margin InputMargin => Margin.None;
 
     public string InstallationIdKey => "InstallationId";
     public string FleetApiTokenRequested => "FleetApiTokenRequested";

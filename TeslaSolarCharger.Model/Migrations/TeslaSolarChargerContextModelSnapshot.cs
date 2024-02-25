@@ -23,7 +23,7 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("CarId")
+                    b.Property<int>("Id")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CarStateJson")
@@ -146,7 +146,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<decimal?>("CalculatedPrice")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("CarId")
+                    b.Property<int>("Id")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ChargingProcessId")

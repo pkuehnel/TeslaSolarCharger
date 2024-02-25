@@ -1,4 +1,9 @@
-﻿using TeslaSolarCharger.Server.Contracts;
+﻿using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -12,13 +17,20 @@ public class ConfigService : IConfigService
     private readonly ISettings _settings;
     private readonly IIndexService _indexService;
     private readonly IConfigJsonService _configJsonService;
+    private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
+    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
 
-    public ConfigService(ILogger<ConfigService> logger, ISettings settings, IIndexService indexService, IConfigJsonService configJsonService)
+    public ConfigService(ILogger<ConfigService> logger,
+        ISettings settings, IIndexService indexService, IConfigJsonService configJsonService,
+        IMapperConfigurationFactory mapperConfigurationFactory,
+        ITeslaSolarChargerContext teslaSolarChargerContext)
     {
         _logger = logger;
         _settings = settings;
         _indexService = indexService;
         _configJsonService = configJsonService;
+        _mapperConfigurationFactory = mapperConfigurationFactory;
+        _teslaSolarChargerContext = teslaSolarChargerContext;
     }
 
     public ISettings GetSettings()
@@ -42,32 +54,18 @@ public class ConfigService : IConfigService
     public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations()
     {
         _logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
-        var carSettings = new List<CarBasicConfiguration>();
-        foreach (var car in _settings.Cars)
+
+        var mapper = _mapperConfigurationFactory.Create(cfg =>
         {
-            var carBasicConfiguration = new CarBasicConfiguration(car.Id, car.CarState.Name)
-            {
-                MaximumAmpere = car.CarConfiguration.MaximumAmpere,
-                MinimumAmpere = car.CarConfiguration.MinimumAmpere,
-                UsableEnergy = car.CarConfiguration.UsableEnergy,
-                ShouldBeManaged = car.CarConfiguration.ShouldBeManaged != false,
-                ChargingPriority = car.CarConfiguration.ChargingPriority,
-                ShouldSetChargeStartTimes = car.CarConfiguration.ShouldSetChargeStartTimes == true,
-            };
-            try
-            {
-                carBasicConfiguration.Vin =
-                    await _indexService.GetVinByCarId(car.Id).ConfigureAwait(false) ?? string.Empty;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Could not get VIN of car {carId}", car.Id);
-            }
+            cfg.CreateMap<Car, CarBasicConfiguration>()
+                ;
+        });
 
-            carSettings.Add(carBasicConfiguration);
-        }
+        var cars = await _teslaSolarChargerContext.Cars
+            .ProjectTo<CarBasicConfiguration>(mapper)
+            .ToListAsync().ConfigureAwait(false);
 
-        return carSettings.OrderBy(c => c.CarId).ToList();
+        return cars;
     }
 
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
@@ -80,6 +78,8 @@ public class ConfigService : IConfigService
         car.CarConfiguration.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         car.CarConfiguration.ChargingPriority = carBasicConfiguration.ChargingPriority;
         car.CarConfiguration.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
+        car.CarState.Name = carBasicConfiguration.Name;
+        car.Vin = carBasicConfiguration.Vin;
         await _configJsonService.UpdateCarConfiguration(car.Vin, car.CarConfiguration).ConfigureAwait(false);
     }
 }

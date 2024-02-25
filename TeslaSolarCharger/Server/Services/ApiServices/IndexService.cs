@@ -345,7 +345,7 @@ public class IndexService : IIndexService
     public async Task<string?> GetVinByCarId(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetVinByCarId), carId);
-        return await _teslamateContext.Cars
+        return await _teslaSolarChargerContext.Cars
             .Where(c => c.Id == carId)
             .Select(c => c.Vin).FirstAsync().ConfigureAwait(false);
     }
