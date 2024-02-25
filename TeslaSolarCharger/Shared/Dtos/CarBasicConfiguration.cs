@@ -16,8 +16,8 @@ public class CarBasicConfiguration
         Id = id;
         Name = name;
     }
-    public int Id { get; }
-    public string? Name { get; }
+    public int Id { get; set; }
+    public string? Name { get; set; }
     public string Vin { get; set; }
     [Range(1, int.MaxValue)]
     [Postfix("A")]

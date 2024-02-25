@@ -71,15 +71,25 @@ public class ConfigService : IConfigService
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         _logger.LogTrace("{method}({param1}, {@param2})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
-        var car = _settings.Cars.First(c => c.Id == carId);
-        car.CarConfiguration.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
-        car.CarConfiguration.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
-        car.CarConfiguration.UsableEnergy = carBasicConfiguration.UsableEnergy;
-        car.CarConfiguration.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
-        car.CarConfiguration.ChargingPriority = carBasicConfiguration.ChargingPriority;
-        car.CarConfiguration.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
-        car.CarState.Name = carBasicConfiguration.Name;
-        car.Vin = carBasicConfiguration.Vin;
-        await _configJsonService.UpdateCarConfiguration(car.Vin, car.CarConfiguration).ConfigureAwait(false);
+        var databaseCar = _teslaSolarChargerContext.Cars.First(c => c.Id == carId);
+        databaseCar.Name = carBasicConfiguration.Name;
+        databaseCar.Vin = carBasicConfiguration.Vin;
+        databaseCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
+        databaseCar.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
+        databaseCar.UsableEnergy = carBasicConfiguration.UsableEnergy;
+        databaseCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
+        databaseCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
+        databaseCar.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+
+        var settingsCar = _settings.Cars.First(c => c.Id == carId);
+        settingsCar.CarConfiguration.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
+        settingsCar.CarConfiguration.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
+        settingsCar.CarConfiguration.UsableEnergy = carBasicConfiguration.UsableEnergy;
+        settingsCar.CarConfiguration.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
+        settingsCar.CarConfiguration.ChargingPriority = carBasicConfiguration.ChargingPriority;
+        settingsCar.CarConfiguration.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
+        settingsCar.CarState.Name = carBasicConfiguration.Name;
+        settingsCar.Vin = carBasicConfiguration.Vin;
     }
 }
