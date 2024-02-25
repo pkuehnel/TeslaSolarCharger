@@ -7,8 +7,6 @@ public interface ISettings
     int? InverterPower { get; set; }
     int? Overage { get; set; }
     int? PowerBuffer { get; set; }
-    List<DtoCar> Cars { get; set; }
-    List<DtoCar> CarsToManage { get; }
     int? HomeBatterySoc { get; set; }
     int? HomeBatteryPower { get; set; }
     List<Issue> ActiveIssues { get; set; }
@@ -22,4 +20,6 @@ public interface ISettings
     bool FleetApiProxyNeeded { get; set; }
     bool AllowUnlimitedFleetApiRequests { get; set; }
     DateTime LastFleetApiRequestAllowedCheck { get; set; }
+    List<DtoCar> Cars { get; set; }
+    List<DtoCar> CarsToManage { get; }
 }

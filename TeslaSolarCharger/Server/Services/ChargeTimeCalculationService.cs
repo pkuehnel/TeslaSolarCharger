@@ -26,27 +26,27 @@ public class ChargeTimeCalculationService(
     public TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(DtoCar dtoCar)
     {
         logger.LogTrace("{method}({carId})", nameof(CalculateTimeToReachMinSocAtFullSpeedCharge), dtoCar.Id);
-        var socToCharge = (double)dtoCar.CarConfiguration.MinimumSoC - (dtoCar.CarState.SoC ?? 0);
+        var socToCharge = (double)dtoCar.MinimumSoC - (dtoCar.SoC ?? 0);
         const int needsBalancingSocLimit = 100;
         var balancingTime = TimeSpan.FromMinutes(30);
         //This is needed to let the car charge to actually 100% including balancing
-        if (socToCharge < 1 && dtoCar.CarState.State == CarStateEnum.Charging && dtoCar.CarConfiguration.MinimumSoC == needsBalancingSocLimit)
+        if (socToCharge < 1 && dtoCar.State == CarStateEnum.Charging && dtoCar.MinimumSoC == needsBalancingSocLimit)
         {
             logger.LogDebug("Continue to charge car as Minimum soc is {balancingSoc}%", needsBalancingSocLimit);
             return balancingTime;
         }
-        if (socToCharge < 1 || (socToCharge < constants.MinimumSocDifference && dtoCar.CarState.State != CarStateEnum.Charging))
+        if (socToCharge < 1 || (socToCharge < constants.MinimumSocDifference && dtoCar.State != CarStateEnum.Charging))
         {
             return TimeSpan.Zero;
         }
 
-        var energyToCharge = dtoCar.CarConfiguration.UsableEnergy * 1000 * (decimal)(socToCharge / 100.0);
-        var numberOfPhases = dtoCar.CarState.ActualPhases;
+        var energyToCharge = dtoCar.UsableEnergy * 1000 * (decimal)(socToCharge / 100.0);
+        var numberOfPhases = dtoCar.ActualPhases;
         var maxChargingPower =
-            dtoCar.CarConfiguration.MaximumAmpere * numberOfPhases
+            dtoCar.MaximumAmpere * numberOfPhases
                                                * (settings.AverageHomeGridVoltage ?? 230);
         var chargeTime = TimeSpan.FromHours((double)(energyToCharge / maxChargingPower));
-        if (dtoCar.CarConfiguration.MinimumSoC == needsBalancingSocLimit)
+        if (dtoCar.MinimumSoC == needsBalancingSocLimit)
         {
             chargeTime += balancingTime;
         }
@@ -55,7 +55,7 @@ public class ChargeTimeCalculationService(
 
     public void UpdateChargeTime(DtoCar dtoCar)
     {
-        dtoCar.CarState.ReachingMinSocAtFullSpeedCharge = dateTimeProvider.Now() + CalculateTimeToReachMinSocAtFullSpeedCharge(dtoCar);
+        dtoCar.ReachingMinSocAtFullSpeedCharge = dateTimeProvider.Now() + CalculateTimeToReachMinSocAtFullSpeedCharge(dtoCar);
     }
 
 
@@ -66,7 +66,7 @@ public class ChargeTimeCalculationService(
         foreach (var car in carsToPlan)
         {
             await UpdatePlannedChargingSlots(car).ConfigureAwait(false);
-            if (car.CarConfiguration.ShouldSetChargeStartTimes != true || car.CarState.IsHomeGeofence != true)
+            if (car.ShouldSetChargeStartTimes != true || car.IsHomeGeofence != true)
             {
                 continue;
             }
@@ -80,14 +80,14 @@ public class ChargeTimeCalculationService(
     private async Task SetChargeStartIfNeeded(DtoCar dtoCar)
     {
         logger.LogTrace("{method}({carId})", nameof(SetChargeStartIfNeeded), dtoCar.Id);
-        if (dtoCar.CarState.State == CarStateEnum.Charging)
+        if (dtoCar.State == CarStateEnum.Charging)
         {
             logger.LogTrace("Do not set charge start in TeslaApp as car is currently charging");
             return;
         }
         try
         {
-            var nextPlannedCharge = dtoCar.CarState.PlannedChargingSlots.MinBy(c => c.ChargeStart);
+            var nextPlannedCharge = dtoCar.PlannedChargingSlots.MinBy(c => c.ChargeStart);
             if (nextPlannedCharge == default || nextPlannedCharge.ChargeStart <= dateTimeProvider.DateTimeOffSetNow() || nextPlannedCharge.IsActive)
             {
                 await teslaService.SetScheduledCharging(dtoCar.Id, null).ConfigureAwait(false);
@@ -110,7 +110,7 @@ public class ChargeTimeCalculationService(
         ReplaceFirstChargingSlotStartTimeIfAlreadyActive(dtoCar, plannedChargingSlots, dateTimeOffSetNow);
 
         //ToDo: if no new planned charging slot and one chargingslot is active, do not remove it if min soc is not reached.
-        dtoCar.CarState.PlannedChargingSlots = plannedChargingSlots;
+        dtoCar.PlannedChargingSlots = plannedChargingSlots;
 
     }
 
@@ -124,7 +124,7 @@ public class ChargeTimeCalculationService(
         var earliestPlannedChargingSession = plannedChargingSlots
             .Where(c => c.ChargeStart <= (dateTimeOffSetNow + maximumOffSetOfActiveChargingSession))
             .MinBy(c => c.ChargeStart);
-        var activeChargingSession = dtoCar.CarState.PlannedChargingSlots.FirstOrDefault(c => c.IsActive);
+        var activeChargingSession = dtoCar.PlannedChargingSlots.FirstOrDefault(c => c.IsActive);
 
         if (earliestPlannedChargingSession != default && activeChargingSession != default)
         {
@@ -141,26 +141,26 @@ public class ChargeTimeCalculationService(
         var plannedChargingSlots = new List<DtoChargingSlot>();
         var chargeDurationToMinSoc = CalculateTimeToReachMinSocAtFullSpeedCharge(dtoCar);
         var timeZoneOffset = TimeSpan.Zero;
-        if (dtoCar.CarConfiguration.LatestTimeToReachSoC.Kind != DateTimeKind.Utc)
+        if (dtoCar.LatestTimeToReachSoC.Kind != DateTimeKind.Utc)
         {
-            timeZoneOffset = TimeZoneInfo.Local.GetUtcOffset(dtoCar.CarConfiguration.LatestTimeToReachSoC);
+            timeZoneOffset = TimeZoneInfo.Local.GetUtcOffset(dtoCar.LatestTimeToReachSoC);
         }
         var latestTimeToReachSoc =
-            new DateTimeOffset(dtoCar.CarConfiguration.LatestTimeToReachSoC, timeZoneOffset);
-        if (chargeDurationToMinSoc == TimeSpan.Zero && dtoCar.CarConfiguration.ChargeMode != ChargeMode.MaxPower)
+            new DateTimeOffset(dtoCar.LatestTimeToReachSoC, timeZoneOffset);
+        if (chargeDurationToMinSoc == TimeSpan.Zero && dtoCar.ChargeMode != ChargeMode.MaxPower)
         {
             //No charging is planned
         }
         else
         {
-            if (dtoCar.CarConfiguration.ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice
+            if (dtoCar.ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice
                 && !IsAbleToReachSocInTime(dtoCar, chargeDurationToMinSoc, dateTimeOffSetNow, latestTimeToReachSoc))
             {
                 var plannedChargeSlot = GenerateChargingSlotFromNow(dateTimeOffSetNow, chargeDurationToMinSoc);
                 plannedChargingSlots.Add(plannedChargeSlot);
                 return plannedChargingSlots;
             }
-            switch (dtoCar.CarConfiguration.ChargeMode)
+            switch (dtoCar.ChargeMode)
             {
                 case ChargeMode.PvAndMinSoc:
                     var plannedChargeSlot = GenerateChargingSlotFromNow(dateTimeOffSetNow, chargeDurationToMinSoc);
@@ -289,7 +289,7 @@ public class ChargeTimeCalculationService(
     private bool IsAbleToReachSocInTime(DtoCar dtoCar, TimeSpan chargeDurationToMinSoc,
         DateTimeOffset dateTimeOffSetNow, DateTimeOffset latestTimeToReachSoc)
     {
-        var activeCharge = dtoCar.CarState.PlannedChargingSlots.FirstOrDefault(p => p.IsActive);
+        var activeCharge = dtoCar.PlannedChargingSlots.FirstOrDefault(p => p.IsActive);
         var activeChargeStartedBeforeLatestTimeToReachSoc =
             activeCharge != default && activeCharge.ChargeStart < latestTimeToReachSoc;
         return !((chargeDurationToMinSoc > TimeSpan.Zero)
@@ -358,7 +358,7 @@ public class ChargeTimeCalculationService(
 
     public async Task<bool> IsLatestTimeToReachSocAfterLatestKnownChargePrice(int carId)
     {
-        var carConfigurationLatestTimeToReachSoC = settings.Cars.First(c => c.Id == carId).CarConfiguration.LatestTimeToReachSoC;
+        var carConfigurationLatestTimeToReachSoC = settings.Cars.First(c => c.Id == carId).LatestTimeToReachSoC;
         var latestTimeToReachSoC = new DateTimeOffset(carConfigurationLatestTimeToReachSoC, TimeZoneInfo.Local.GetUtcOffset(carConfigurationLatestTimeToReachSoC));
         return await spotPriceService.LatestKnownSpotPriceTime().ConfigureAwait(false) < latestTimeToReachSoC;
     }

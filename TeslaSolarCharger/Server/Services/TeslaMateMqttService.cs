@@ -225,32 +225,32 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             case TopicDisplayName:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.Name = value.Value;
+                    car.Name = value.Value;
                 }
                 break;
             case TopicSoc:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.SoC = Convert.ToInt32(value.Value);
+                    car.SoC = Convert.ToInt32(value.Value);
                 }
                 break;
             case TopicChargeLimit:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.SocLimit = Convert.ToInt32(value.Value);
+                    car.SocLimit = Convert.ToInt32(value.Value);
                     var minimumSettableSocLimit = 50;
-                    if (car.CarConfiguration.MinimumSoC > car.CarState.SocLimit && car.CarState.SocLimit > minimumSettableSocLimit)
+                    if (car.MinimumSoC > car.SocLimit && car.SocLimit > minimumSettableSocLimit)
                     {
-                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.CarConfiguration.MinimumSoC, car.CarState.SocLimit);
-                        car.CarConfiguration.MinimumSoC = (int)car.CarState.SocLimit;
-                        _configJsonService.UpdateCarConfiguration(car.Vin, car.CarConfiguration);
+                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.MinimumSoC, car.SocLimit);
+                        car.MinimumSoC = (int)car.SocLimit;
+                        _logger.LogError("Can not handle lower Soc than minimumSoc");
                     }
                 }
                 break;
             case TopicChargerPhases:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.ChargerPhases = Convert.ToInt32(value.Value);
+                    car.ChargerPhases = Convert.ToInt32(value.Value);
                 }
                 else
                 {
@@ -262,104 +262,104 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             case TopicChargerVoltage:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.ChargerVoltage = Convert.ToInt32(value.Value);
+                    car.ChargerVoltage = Convert.ToInt32(value.Value);
                 }
                 else
                 {
-                    car.CarState.ChargerVoltage = null;
+                    car.ChargerVoltage = null;
                 }
                 break;
             case TopicChargerActualCurrent:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.ChargerActualCurrent = Convert.ToInt32(value.Value);
-                    if (car.CarState.ChargerActualCurrent < 5 &&
-                        car.CarState.ChargerRequestedCurrent == car.CarState.LastSetAmp &&
-                        car.CarState.LastSetAmp == car.CarState.ChargerActualCurrent - 1 &&
-                        car.CarState.LastSetAmp > 0)
+                    car.ChargerActualCurrent = Convert.ToInt32(value.Value);
+                    if (car.ChargerActualCurrent < 5 &&
+                        car.ChargerRequestedCurrent == car.LastSetAmp &&
+                        car.LastSetAmp == car.ChargerActualCurrent - 1 &&
+                        car.LastSetAmp > 0)
                     {
-                        _logger.LogWarning("CarId {carId}: Reducing {actualCurrent} from {originalValue} to {newValue} due to error in TeslaApi", car.Id, nameof(car.CarState.ChargerActualCurrent), car.CarState.ChargerActualCurrent, car.CarState.LastSetAmp);
+                        _logger.LogWarning("CarId {carId}: Reducing {actualCurrent} from {originalValue} to {newValue} due to error in TeslaApi", car.Id, nameof(car.ChargerActualCurrent), car.ChargerActualCurrent, car.LastSetAmp);
                         //ToDo: Set to average of requested and actual current
-                        car.CarState.ChargerActualCurrent = car.CarState.LastSetAmp;
+                        car.ChargerActualCurrent = car.LastSetAmp;
                     }
 
-                    if (car.CarState.ChargerActualCurrent > 0 && car.CarState.PluggedIn != true)
+                    if (car.ChargerActualCurrent > 0 && car.PluggedIn != true)
                     {
                         _logger.LogWarning("Car {carId} is not detected as plugged in but actual current > 0 => set plugged in to true", car.Id);
-                        car.CarState.PluggedIn = true;
+                        car.PluggedIn = true;
                     }
                 }
                 else
                 {
-                    car.CarState.ChargerActualCurrent = null;
+                    car.ChargerActualCurrent = null;
                 }
                 break;
             case TopicPluggedIn:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.PluggedIn = Convert.ToBoolean(value.Value);
+                    car.PluggedIn = Convert.ToBoolean(value.Value);
                 }
                 break;
             case TopicIsClimateOn:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.ClimateOn = Convert.ToBoolean(value.Value);
+                    car.ClimateOn = Convert.ToBoolean(value.Value);
                 }
                 break;
             case TopicTimeToFullCharge:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.TimeUntilFullCharge = TimeSpan.FromHours(Convert.ToDouble(value.Value, CultureInfo.InvariantCulture));
+                    car.TimeUntilFullCharge = TimeSpan.FromHours(Convert.ToDouble(value.Value, CultureInfo.InvariantCulture));
                 }
                 else
                 {
-                    car.CarState.TimeUntilFullCharge = null;
+                    car.TimeUntilFullCharge = null;
                 }
                 break;
             case TopicState:
                 switch (value.Value)
                 {
                     case "asleep":
-                        car.CarState.State = CarStateEnum.Asleep;
+                        car.State = CarStateEnum.Asleep;
                         break;
                     case "offline":
-                        car.CarState.State = CarStateEnum.Offline;
+                        car.State = CarStateEnum.Offline;
                         break;
                     case "online":
-                        car.CarState.State = CarStateEnum.Online;
+                        car.State = CarStateEnum.Online;
                         break;
                     case "charging":
-                        car.CarState.State = CarStateEnum.Charging;
+                        car.State = CarStateEnum.Charging;
                         break;
                     case "suspended":
-                        car.CarState.State = CarStateEnum.Suspended;
+                        car.State = CarStateEnum.Suspended;
                         break;
                     case "driving":
-                        car.CarState.State = CarStateEnum.Driving;
+                        car.State = CarStateEnum.Driving;
                         break;
                     case "updating":
-                        car.CarState.State = CarStateEnum.Updating;
+                        car.State = CarStateEnum.Updating;
                         break;
                     default:
                         _logger.LogWarning("Unknown car state deteckted: {carState}", value.Value);
-                        car.CarState.State = CarStateEnum.Unknown;
+                        car.State = CarStateEnum.Unknown;
                         break;
                 }
                 break;
             case TopicHealthy:
-                car.CarState.Healthy = Convert.ToBoolean(value.Value);
-                _logger.LogTrace("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.CarState.Healthy);
+                car.Healthy = Convert.ToBoolean(value.Value);
+                _logger.LogTrace("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.Healthy);
                 break;
             case TopicChargeCurrentRequest:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.ChargerRequestedCurrent = Convert.ToInt32(value.Value);
+                    car.ChargerRequestedCurrent = Convert.ToInt32(value.Value);
                 }
                 break;
             case TopicChargeCurrentRequestMax:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.ChargerPilotCurrent = Convert.ToInt32(value.Value);
+                    car.ChargerPilotCurrent = Convert.ToInt32(value.Value);
                 }
                 break;
             case TopicScheduledChargingStartTime:
@@ -370,37 +370,37 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                     if (parsedScheduledChargingStartTime < _dateTimeProvider.DateTimeOffSetNow().AddDays(-14))
                     {
                         _logger.LogWarning("TeslaMate set scheduled charging start time to {teslaMateValue}. As this is in the past, it will be ignored.", parsedScheduledChargingStartTime);
-                        car.CarState.ScheduledChargingStartTime = null;
+                        car.ScheduledChargingStartTime = null;
                     }
                     else
                     {
-                        car.CarState.ScheduledChargingStartTime = parsedScheduledChargingStartTime;
+                        car.ScheduledChargingStartTime = parsedScheduledChargingStartTime;
                     }
                 }
                 else
                 {
-                    car.CarState.ScheduledChargingStartTime = null;
+                    car.ScheduledChargingStartTime = null;
                 }
                 break;
             case TopicLongitude:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.Longitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
+                    car.Longitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
                 }
                 break;
             case TopicLatitude:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.CarState.Latitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
+                    car.Latitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
                 }
                 break;
             case TopicSpeed:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     var speed = Convert.ToInt32(value.Value);
-                    if (speed > 0 && car.CarState.PluggedIn == true)
+                    if (speed > 0 && car.PluggedIn == true)
                     {
-                        car.CarState.PluggedIn = false;
+                        car.PluggedIn = false;
                     }
                 }
                 break;

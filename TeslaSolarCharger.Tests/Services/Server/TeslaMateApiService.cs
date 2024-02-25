@@ -37,10 +37,7 @@ public class TeslaMateApiService(ITestOutputHelper outputHelper) : TestBase(outp
 
         var car = new DtoCar()
         {
-            CarState = new CarState()
-            {
                 ScheduledChargingStartTime = setChargeStart,
-            },
         };
 
         var isChangeNeeded = teslamateApiService.IsChargingScheduleChangeNeeded(chargeStartToSet, currentDate, car, out var parameters);

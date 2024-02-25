@@ -98,7 +98,7 @@ try
     await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
 
     var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
-    await configJsonService.AddCarIdsToSettings().ConfigureAwait(false);
+    await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
 
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 

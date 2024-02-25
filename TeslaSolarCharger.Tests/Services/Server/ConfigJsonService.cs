@@ -76,13 +76,13 @@ public class ConfigJsonService : TestBase
         var firstCar = cars.First();
         var lastCar = cars.Last();
 
-        Assert.Equal(ChargeMode.PvOnly, firstCar.CarConfiguration.ChargeMode);
-        Assert.Equal(ChargeMode.PvAndMinSoc, lastCar.CarConfiguration.ChargeMode);
+        Assert.Equal(ChargeMode.PvOnly, firstCar.ChargeMode);
+        Assert.Equal(ChargeMode.PvAndMinSoc, lastCar.ChargeMode);
 
         Assert.Equal(1, firstCar.Id);
         Assert.Equal(2, lastCar.Id);
 
-        Assert.Equal(0, firstCar.CarConfiguration.MinimumSoC);
-        Assert.Equal(45, lastCar.CarConfiguration.MinimumSoC);
+        Assert.Equal(0, firstCar.MinimumSoC);
+        Assert.Equal(45, lastCar.MinimumSoC);
     }
 }

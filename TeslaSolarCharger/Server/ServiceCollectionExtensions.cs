@@ -80,7 +80,6 @@ public static class ServiceCollectionExtensions
                 options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
-            .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
             .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
             .AddTransient<IPossibleIssues, PossibleIssues>()
             .AddTransient<IIssueValidationService, IssueValidationService>()

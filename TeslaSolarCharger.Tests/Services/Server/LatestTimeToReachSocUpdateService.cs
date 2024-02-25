@@ -17,7 +17,7 @@ public class LatestTimeToReachSocUpdateService : TestBase
     [Theory, MemberData(nameof(CorrectData))]
     public void Correctly_Updates_LatestTimeToReachSoc(bool shouldIgnoreDate, DateTime currentDate, DateTime configuredDate, DateTime expectedDate)
     {
-        var carConfiguration = new CarConfiguration()
+        var car = new DtoCar()
         {
             IgnoreLatestTimeToReachSocDate = shouldIgnoreDate,
             LatestTimeToReachSoC = configuredDate,
@@ -25,9 +25,9 @@ public class LatestTimeToReachSocUpdateService : TestBase
 
         _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(currentDate));
         var latestTimeToReachSocUpdateService = _fake.Resolve<TeslaSolarCharger.Server.Services.LatestTimeToReachSocUpdateService>();
-        latestTimeToReachSocUpdateService.UpdateCarConfiguration(carConfiguration);
+        latestTimeToReachSocUpdateService.UpdateCarConfiguration(car);
         
-        Assert.Equal(expectedDate, carConfiguration.LatestTimeToReachSoC);
+        Assert.Equal(expectedDate, car.LatestTimeToReachSoC);
     }
 
     public static readonly object[][] CorrectData =

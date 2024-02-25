@@ -69,7 +69,7 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         var result = await SendPostToTeslaMate(url).ConfigureAwait(false);
 
         var car = _settings.Cars.First(c => c.Id == carId);
-        car.CarState.LastSetAmp = 0;
+        car.LastSetAmp = 0;
 
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
     }
@@ -100,20 +100,20 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         };
 
         HttpResponseMessage? result = null;
-        if (car.CarState.ChargerRequestedCurrent != amps)
+        if (car.ChargerRequestedCurrent != amps)
         {
             result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
         }
         
 
-        if (amps < 5 && car.CarState.LastSetAmp > 5
-            || amps > 5 && car.CarState.LastSetAmp < 5)
+        if (amps < 5 && car.LastSetAmp > 5
+            || amps > 5 && car.LastSetAmp < 5)
         {
             await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
             result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
         }
 
-        car.CarState.LastSetAmp = amps;
+        car.LastSetAmp = amps;
 
         if (result != null)
         {
@@ -139,13 +139,13 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
             return;
         }
 
-        await WakeUpCarIfNeeded(carId, car.CarState.State).ConfigureAwait(false);
+        await WakeUpCarIfNeeded(carId, car.State).ConfigureAwait(false);
         
         var result = await SendPostToTeslaMate(url, parameters).ConfigureAwait(false);
         //assume update was sucessfull as update is not working after mosquitto restart (or wrong cached State)
         if (parameters["enable"] == "false")
         {
-            car.CarState.ScheduledChargingStartTime = null;
+            car.ScheduledChargingStartTime = null;
         }
         _logger.LogTrace("result: {resultContent}", result.Content.ReadAsStringAsync().Result);
     }
@@ -164,7 +164,7 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
             _logger.LogTrace("{chargingStartTime} is not null", nameof(chargingStartTime));
             chargingStartTime = RoundToNextQuarterHour(chargingStartTime.Value);
         }
-        if (dtoCar.CarState.ScheduledChargingStartTime == chargingStartTime)
+        if (dtoCar.ScheduledChargingStartTime == chargingStartTime)
         {
             _logger.LogDebug("Correct charging start time already set.");
             return false;
@@ -186,7 +186,7 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         var timeUntilChargeStart = chargingStartTime.Value - currentDate;
         var scheduledChargeShouldBeSet = true;
 
-        if (dtoCar.CarState.ScheduledChargingStartTime == chargingStartTime)
+        if (dtoCar.ScheduledChargingStartTime == chargingStartTime)
         {
             _logger.LogDebug("Correct charging start time already set.");
             return true;
@@ -199,7 +199,7 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
             return false;
         }
 
-        if (dtoCar.CarState.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
+        if (dtoCar.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
         {
             _logger.LogDebug("No charge schedule set and no charge schedule should be set.");
             return true;

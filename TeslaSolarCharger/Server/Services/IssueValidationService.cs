@@ -181,12 +181,12 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.MqttNotConnected));
         }
 
-        if (_settings.CarsToManage.Any(c => (c.CarState.SocLimit == null || c.CarState.SocLimit < _constants.MinSocLimit)))
+        if (_settings.CarsToManage.Any(c => (c.SocLimit == null || c.SocLimit < _constants.MinSocLimit)))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocLimitNotReadable));
         }
 
-        if (_settings.CarsToManage.Any(c => c.CarState.SoC == null))
+        if (_settings.CarsToManage.Any(c => c.SoC == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocNotReadable));
         }

@@ -69,7 +69,7 @@ public class IndexService : IIndexService
             HomeBatteryPower = _settings.HomeBatteryPower,
             HomeBatterySoc = _settings.HomeBatterySoc,
             PowerBuffer = powerBuffer, 
-            CarCombinedChargingPowerAtHome = _settings.CarsToManage.Select(c => c.CarState.ChargingPowerAtHome).Sum(),
+            CarCombinedChargingPowerAtHome = _settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum(),
             LastUpdated = _settings.LastPvValueUpdate,
         };
     }
@@ -84,22 +84,19 @@ public class IndexService : IIndexService
             var dtoCarBaseValues = new DtoCarBaseStates()
             {
                 CarId = enabledCar.Id,
-                NameOrVin = enabledCar.CarState.Name,
-                StateOfCharge = enabledCar.CarState.SoC,
-                StateOfChargeLimit = enabledCar.CarState.SocLimit,
-                HomeChargePower = enabledCar.CarState.ChargingPowerAtHome,
-                PluggedIn = enabledCar.CarState.PluggedIn == true,
-                IsHome = enabledCar.CarState.IsHomeGeofence == true,
-                IsAutoFullSpeedCharging = enabledCar.CarState.AutoFullSpeedCharge,
-                ChargingSlots = enabledCar.CarState.PlannedChargingSlots,
-                State = enabledCar.CarState.State,
+                Name = enabledCar.Name,
+                Vin = enabledCar.Vin,
+                StateOfCharge = enabledCar.SoC,
+                StateOfChargeLimit = enabledCar.SocLimit,
+                HomeChargePower = enabledCar.ChargingPowerAtHome,
+                PluggedIn = enabledCar.PluggedIn == true,
+                IsHome = enabledCar.IsHomeGeofence == true,
+                IsAutoFullSpeedCharging = enabledCar.AutoFullSpeedCharge,
+                ChargingSlots = enabledCar.PlannedChargingSlots,
+                State = enabledCar.State,
             };
-            if (string.IsNullOrEmpty(dtoCarBaseValues.NameOrVin))
-            {
-                dtoCarBaseValues.NameOrVin = await GetVinByCarId(enabledCar.Id).ConfigureAwait(false);
-            }
             dtoCarBaseValues.DtoChargeSummary = await _chargingCostService.GetChargeSummary(enabledCar.Id).ConfigureAwait(false);
-            if (enabledCar.CarConfiguration.ChargeMode == ChargeMode.SpotPrice)
+            if (enabledCar.ChargeMode == ChargeMode.SpotPrice)
             {
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
                     await _chargeTimeCalculationService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
@@ -119,14 +116,14 @@ public class IndexService : IIndexService
     private List<DtoChargeInformation> GenerateChargeInformation(DtoCar enabledDtoCar)
     {
         _logger.LogTrace("{method}({carId})", nameof(GenerateChargeInformation), enabledDtoCar.Id);
-        if (_settings.Overage == _constants.DefaultOverage || enabledDtoCar.CarState.PlannedChargingSlots.Any(c => c.IsActive))
+        if (_settings.Overage == _constants.DefaultOverage || enabledDtoCar.PlannedChargingSlots.Any(c => c.IsActive))
         {
             return new List<DtoChargeInformation>();
         }
 
         var result = new List<DtoChargeInformation>();
 
-        if (enabledDtoCar.CarState.IsHomeGeofence != true)
+        if (enabledDtoCar.IsHomeGeofence != true)
         {
             result.Add(new DtoChargeInformation()
             {
@@ -135,7 +132,7 @@ public class IndexService : IIndexService
             });
         }
 
-        if (enabledDtoCar.CarState.PluggedIn != true)
+        if (enabledDtoCar.PluggedIn != true)
         {
             result.Add(new DtoChargeInformation()
             {
@@ -144,19 +141,19 @@ public class IndexService : IIndexService
             });
         }
 
-        if ((!(enabledDtoCar.CarState.State == CarStateEnum.Charging && enabledDtoCar.CarState.IsHomeGeofence == true))
-            && enabledDtoCar.CarState.EarliestSwitchOn != null
-            && enabledDtoCar.CarState.EarliestSwitchOn > _dateTimeProvider.Now())
+        if ((!(enabledDtoCar.State == CarStateEnum.Charging && enabledDtoCar.IsHomeGeofence == true))
+            && enabledDtoCar.EarliestSwitchOn != null
+            && enabledDtoCar.EarliestSwitchOn > _dateTimeProvider.Now())
         {
             result.Add(new DtoChargeInformation()
             {
                 InfoText = "Enough solar power until {0}.",
-                TimeToDisplay = enabledDtoCar.CarState.EarliestSwitchOn ?? default,
+                TimeToDisplay = enabledDtoCar.EarliestSwitchOn ?? default,
             });
         }
 
-        if ((!(enabledDtoCar.CarState.State == CarStateEnum.Charging && enabledDtoCar.CarState.IsHomeGeofence == true))
-            && enabledDtoCar.CarState.EarliestSwitchOn == null)
+        if ((!(enabledDtoCar.State == CarStateEnum.Charging && enabledDtoCar.IsHomeGeofence == true))
+            && enabledDtoCar.EarliestSwitchOn == null)
         {
             result.Add(new DtoChargeInformation()
             {
@@ -165,19 +162,19 @@ public class IndexService : IIndexService
             });
         }
 
-        if ((enabledDtoCar.CarState.State == CarStateEnum.Charging && enabledDtoCar.CarState.IsHomeGeofence == true)
-            && enabledDtoCar.CarState.EarliestSwitchOff != null
-            && enabledDtoCar.CarState.EarliestSwitchOff > _dateTimeProvider.Now())
+        if ((enabledDtoCar.State == CarStateEnum.Charging && enabledDtoCar.IsHomeGeofence == true)
+            && enabledDtoCar.EarliestSwitchOff != null
+            && enabledDtoCar.EarliestSwitchOff > _dateTimeProvider.Now())
         {
             result.Add(new DtoChargeInformation()
             {
                 InfoText = "Not Enough solar power until {0}",
-                TimeToDisplay = enabledDtoCar.CarState.EarliestSwitchOff ?? default,
+                TimeToDisplay = enabledDtoCar.EarliestSwitchOff ?? default,
             });
         }
 
-        if ((!(enabledDtoCar.CarState.State == CarStateEnum.Charging && enabledDtoCar.CarState.IsHomeGeofence == true))
-            && (enabledDtoCar.CarState.SocLimit - enabledDtoCar.CarState.SoC) < (_constants.MinimumSocDifference + 1))
+        if ((!(enabledDtoCar.State == CarStateEnum.Charging && enabledDtoCar.IsHomeGeofence == true))
+            && (enabledDtoCar.SocLimit - enabledDtoCar.SoC) < (_constants.MinimumSocDifference + 1))
         {
             result.Add(new DtoChargeInformation()
             {
@@ -197,24 +194,18 @@ public class IndexService : IIndexService
         return enabledCars.ToDictionary(enabledCar => enabledCar.Id, enabledCar => new DtoCarBaseSettings()
         {
             CarId = enabledCar.Id,
-            ChargeMode = enabledCar.CarConfiguration.ChargeMode,
-            MinimumStateOfCharge = enabledCar.CarConfiguration.MinimumSoC,
-            LatestTimeToReachStateOfCharge = enabledCar.CarConfiguration.LatestTimeToReachSoC,
-            IgnoreLatestTimeToReachSocDate = enabledCar.CarConfiguration.IgnoreLatestTimeToReachSocDate,
+            ChargeMode = enabledCar.ChargeMode,
+            MinimumStateOfCharge = enabledCar.MinimumSoC,
+            LatestTimeToReachStateOfCharge = enabledCar.LatestTimeToReachSoC,
+            IgnoreLatestTimeToReachSocDate = enabledCar.IgnoreLatestTimeToReachSocDate,
         });
     }
 
     public async Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
     {
-        var car = _settings.Cars.First(c => c.Id == carBaseSettings.CarId);
-        var carConfiguration = car.CarConfiguration;
-        carConfiguration.ChargeMode = carBaseSettings.ChargeMode;
-        carConfiguration.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
-        carConfiguration.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
-        carConfiguration.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
         await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
         await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
-        await _configJsonService.UpdateCarConfiguration(car.Vin, carConfiguration).ConfigureAwait(false);
+        await _configJsonService.UpdateCarBaseSettings(carBaseSettings).ConfigureAwait(false);
     }
 
     public Dictionary<string, string> GetToolTipTexts()
@@ -252,13 +243,13 @@ public class IndexService : IIndexService
             NonDateValues = nonDateValues,
             DateValues = dateValues,
         };
-        var carState = _settings.Cars.First(c => c.Id == carId).CarState;
+        var carState = _settings.Cars.First(c => c.Id == carId);
         var propertiesToExclude = new List<string>()
         {
-            nameof(DtoCar.CarState.PlannedChargingSlots),
-            nameof(DtoCar.CarState.Name),
-            nameof(DtoCar.CarState.SocLimit),
-            nameof(DtoCar.CarState.SoC),
+            nameof(DtoCar.PlannedChargingSlots),
+            nameof(DtoCar.Name),
+            nameof(DtoCar.SocLimit),
+            nameof(DtoCar.SoC),
         };
         foreach (var property in carState.GetType().GetProperties())
         {
@@ -301,14 +292,14 @@ public class IndexService : IIndexService
         _logger.LogTrace("{method}({carId})", nameof(RecalculateAndGetChargingSlots), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
         _chargeTimeCalculationService.UpdatePlannedChargingSlots(car);
-        return car.CarState.PlannedChargingSlots;
+        return car.PlannedChargingSlots;
     }
 
     public List<DtoChargingSlot> GetChargingSlots(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetChargingSlots), carId);
         var car = _settings.Cars.First(c => c.Id == carId);
-        return car.CarState.PlannedChargingSlots;
+        return car.PlannedChargingSlots;
     }
 
     public async Task UpdateCarFleetApiState(int carId, TeslaCarFleetApiState fleetApiState)

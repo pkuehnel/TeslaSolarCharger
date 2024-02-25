@@ -11,7 +11,6 @@ using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using Xunit;
 using Xunit.Abstractions;
-using CarState = TeslaSolarCharger.Shared.Dtos.Settings.CarState;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
@@ -30,20 +29,17 @@ public class ChargingService : TestBase
             .Returns(currentDate);
         var car = new DtoCar()
         {
-            CarState = new CarState()
-            {
                 PlannedChargingSlots = new List<DtoChargingSlot>() { chargingSlot },
                 AutoFullSpeedCharge = false,
-            }
         };
 
         var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
 
         chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
         chargingService.DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
-        Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+        Assert.Equal(car.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
         chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
-        Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+        Assert.Equal(car.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
     }
 
     [Theory, MemberData(nameof(AutoFullSpeedChargeData))]
@@ -54,20 +50,17 @@ public class ChargingService : TestBase
             .Returns(new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero));
         var car = new DtoCar()
         {
-            CarState = new CarState()
-            {
                 PlannedChargingSlots = new List<DtoChargingSlot>() { chargingSlot },
                 AutoFullSpeedCharge = true,
-            }
         };
 
         var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
 
         chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
         chargingService.DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
-        Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+        Assert.Equal(car.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
         chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
-        Assert.Equal(car.CarState.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+        Assert.Equal(car.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
     }
 
     public static readonly object[][] AutoFullSpeedChargeData =
@@ -113,11 +106,11 @@ public class ChargingService : TestBase
 
         var car = CreateDemoCar(ChargeMode.PvAndMinSoc, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc + 10, minSoc, autoFullSpeedCharge);
 
-        car.CarState.ReachingMinSocAtFullSpeedCharge = null;
+        car.ReachingMinSocAtFullSpeedCharge = null;
 
         chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
 
-        Assert.Equal(autoFullSpeedCharge, car.CarState.AutoFullSpeedCharge);
+        Assert.Equal(autoFullSpeedCharge, car.AutoFullSpeedCharge);
     }
 
     [Theory]
@@ -136,11 +129,11 @@ public class ChargingService : TestBase
 
         var car = CreateDemoCar(ChargeMode.PvOnly, currentTime + timeSpanToLatestTimeToReachMinSoc, minSoc - 10, minSoc, autoFullSpeedCharge);
 
-        car.CarState.ReachingMinSocAtFullSpeedCharge = null;
+        car.ReachingMinSocAtFullSpeedCharge = null;
 
         chargingService.DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
 
-        Assert.False(car.CarState.AutoFullSpeedCharge);
+        Assert.False(car.AutoFullSpeedCharge);
     }
 
     [Fact]
@@ -151,52 +144,34 @@ public class ChargingService : TestBase
             new DtoCar()
             {
                 Id = 1,
-                CarState = new CarState()
-                {
                     IsHomeGeofence = true,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
-                },
-                CarConfiguration = new CarConfiguration()
-                {
                     ShouldBeManaged = true,
-                },
             },
             new DtoCar()
             {
                 Id = 2,
-                CarState = new CarState()
-                {
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
-                },
-                CarConfiguration = new CarConfiguration()
-                {
                     ShouldBeManaged = true,
-                },
             },
             new DtoCar()
             {
                 Id = 3,
-                CarState = new CarState()
-                {
                     IsHomeGeofence = true,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
-                },
-                CarConfiguration = new CarConfiguration()
-                {
                     ShouldBeManaged = false,
-                },
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
@@ -216,43 +191,34 @@ public class ChargingService : TestBase
             new DtoCar()
             {
                 Id = 1,
-                CarState = new CarState()
-                {
                     IsHomeGeofence = true,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
-                },
-                CarConfiguration = new CarConfiguration() { ShouldBeManaged = true },
+                    ShouldBeManaged = true,
             },
             new DtoCar()
             {
                 Id = 2,
-                CarState = new CarState()
-                {
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
-                },
-                CarConfiguration = new CarConfiguration() { ShouldBeManaged = true },
+                ShouldBeManaged = true,
             },
             new DtoCar()
             {
                 Id = 3,
-                CarState = new CarState()
-                {
                     IsHomeGeofence = true,
                     PluggedIn = true,
                     ClimateOn = false,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
-                },
-                CarConfiguration = new CarConfiguration() { ShouldBeManaged = false },
+                ShouldBeManaged = false,
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
@@ -269,17 +235,11 @@ public class ChargingService : TestBase
     {
         var car = new DtoCar()
         {
-            CarState = new CarState()
-            {
                 AutoFullSpeedCharge = autoFullSpeedCharge,
                 SoC = soC,
-            },
-            CarConfiguration = new CarConfiguration()
-            {
                 LatestTimeToReachSoC = latestTimeToReachSoC,
                 MinimumSoC = minimumSoC,
                 ChargeMode = chargeMode,
-            },
         };
         return car;
     }
@@ -338,16 +298,16 @@ public class ChargingService : TestBase
         var chargeTimeUpdateService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
         var dateTime = new DateTime(2022, 12, 15, 10, 0, 0, DateTimeKind.Local);
 
-        car.CarState.ShouldStopChargingSince = dateTime;
-        car.CarState.EarliestSwitchOff = dateTime;
+        car.ShouldStopChargingSince = dateTime;
+        car.EarliestSwitchOff = dateTime;
 
         Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
         var timeSpanUntilSwitchOn = TimeSpan.FromMinutes(5);
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.TimespanUntilSwitchOn()).Returns(timeSpanUntilSwitchOn);
         chargeTimeUpdateService.SetEarliestSwitchOnToNowWhenNotAlreadySet(car);
 
-        Assert.Equal(dateTime, car.CarState.ShouldStartChargingSince);
-        Assert.Equal(dateTime + timeSpanUntilSwitchOn, car.CarState.EarliestSwitchOn);
+        Assert.Equal(dateTime, car.ShouldStartChargingSince);
+        Assert.Equal(dateTime + timeSpanUntilSwitchOn, car.EarliestSwitchOn);
     }
 
     [Fact]
@@ -357,18 +317,18 @@ public class ChargingService : TestBase
         var chargeTimeUpdateService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
         var dateTime = new DateTime(2022, 12, 15, 10, 0, 0, DateTimeKind.Local);
 
-        car.CarState.ShouldStartChargingSince = dateTime;
-        car.CarState.EarliestSwitchOn = dateTime;
+        car.ShouldStartChargingSince = dateTime;
+        car.EarliestSwitchOn = dateTime;
 
         Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
         var timeSpanUntilSwitchOn = TimeSpan.FromMinutes(5);
         Mock.Mock<IConfigurationWrapper>().Setup(c => c.TimespanUntilSwitchOff()).Returns(timeSpanUntilSwitchOn);
         chargeTimeUpdateService.SetEarliestSwitchOffToNowWhenNotAlreadySet(car);
 
-        Assert.Equal(dateTime, car.CarState.ShouldStopChargingSince);
-        Assert.Null(car.CarState.ShouldStartChargingSince);
-        Assert.Equal(dateTime + timeSpanUntilSwitchOn, car.CarState.EarliestSwitchOff);
-        Assert.Null(car.CarState.EarliestSwitchOn);
+        Assert.Equal(dateTime, car.ShouldStopChargingSince);
+        Assert.Null(car.ShouldStartChargingSince);
+        Assert.Equal(dateTime + timeSpanUntilSwitchOn, car.EarliestSwitchOff);
+        Assert.Null(car.EarliestSwitchOn);
     }
 
 

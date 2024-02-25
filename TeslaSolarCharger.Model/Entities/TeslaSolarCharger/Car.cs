@@ -6,7 +6,7 @@ namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 public class Car
 {
     public int Id { get; set; }
-    public int TeslaMateCarId { get; set; }
+    public int? TeslaMateCarId { get; set; }
     public string? Name { get; set; }
     public string? Vin { get; set; }
     public TeslaCarFleetApiState TeslaFleetApiState { get; set; } = TeslaCarFleetApiState.NotConfigured;
@@ -26,5 +26,18 @@ public class Car
     public bool? ShouldSetChargeStartTimes { get; set; }
 
     public int ChargingPriority { get; set; }
-    
+
+    public int? SoC { get; set; }
+    public int? SocLimit { get; set; }
+
+    public int? ChargerPhases { get; set; }
+    public int? ChargerVoltage { get; set; }
+    public int? ChargerActualCurrent { get; set; }
+    public int? ChargerPilotCurrent { get; set; }
+    public int? ChargerRequestedCurrent { get; set; }
+    public bool? PluggedIn { get; set; }
+    public bool? ClimateOn { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public CarStateEnum? State { get; set; }
 }

@@ -27,39 +27,51 @@ public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateServ
         _logger.LogTrace("{method}()", nameof(UpdateAllCars));
         foreach (var car in _settings.CarsToManage)
         {
-            if (car.CarState.ChargingPowerAtHome > 0)
+            if (car.ChargingPowerAtHome > 0)
             {
                 _logger.LogInformation("Charge date is not updated as car {carId} is currently charging", car.Id);
                 continue;
             }
-            var carConfiguration = car.CarConfiguration;
-            UpdateCarConfiguration(carConfiguration);
+            UpdateCarConfiguration(car);
+            var carConfiguration = new CarConfiguration()
+            {
+                ChargeMode = car.ChargeMode,
+                MinimumSoC = car.MinimumSoC,
+                LatestTimeToReachSoC = car.LatestTimeToReachSoC,
+                IgnoreLatestTimeToReachSocDate = car.IgnoreLatestTimeToReachSocDate,
+                MaximumAmpere = car.MaximumAmpere,
+                MinimumAmpere = car.MinimumAmpere,
+                UsableEnergy = car.UsableEnergy,
+                ShouldBeManaged = car.ShouldBeManaged,
+                ShouldSetChargeStartTimes = car.ShouldSetChargeStartTimes,
+                ChargingPriority = car.ChargingPriority
+            };
             await _configJsonService.UpdateCarConfiguration(car.Vin, carConfiguration).ConfigureAwait(false);
         }
         
     }
 
-    internal void UpdateCarConfiguration(CarConfiguration carConfiguration)
+    internal void UpdateCarConfiguration(DtoCar car)
     {
-        _logger.LogTrace("{method}({@param})", nameof(UpdateCarConfiguration), carConfiguration);
+        _logger.LogTrace("{method}({@param})", nameof(UpdateCarConfiguration), car);
 
         var dateTimeOffSetNow = _dateTimeProvider.DateTimeOffSetNow();
-        if (carConfiguration.IgnoreLatestTimeToReachSocDate)
+        if (car.IgnoreLatestTimeToReachSocDate)
         {
             var dateToSet = dateTimeOffSetNow.DateTime.Date;
-            if (carConfiguration.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
+            if (car.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
             {
                 dateToSet = dateTimeOffSetNow.DateTime.AddDays(1).Date;
             }
-            carConfiguration.LatestTimeToReachSoC = dateToSet + carConfiguration.LatestTimeToReachSoC.TimeOfDay;
+            car.LatestTimeToReachSoC = dateToSet + car.LatestTimeToReachSoC.TimeOfDay;
         }
         else
         {
             var localDateTime = dateTimeOffSetNow.ToLocalTime().DateTime;
-            if (carConfiguration.LatestTimeToReachSoC.Date < localDateTime.Date)
+            if (car.LatestTimeToReachSoC.Date < localDateTime.Date)
             {
-                carConfiguration.LatestTimeToReachSoC = _dateTimeProvider.Now().Date.AddDays(-1) +
-                                                        carConfiguration.LatestTimeToReachSoC.TimeOfDay;
+                car.LatestTimeToReachSoC = _dateTimeProvider.Now().Date.AddDays(-1) +
+                                                        car.LatestTimeToReachSoC.TimeOfDay;
             }
         }
     }

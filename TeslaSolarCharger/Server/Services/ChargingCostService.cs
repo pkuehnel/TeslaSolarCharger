@@ -139,7 +139,7 @@ public class ChargingCostService : IChargingCostService
 
         foreach (var car in _settings.CarsToManage)
         {
-            if (car.CarState.ChargingPowerAtHome > 0)
+            if (car.ChargingPowerAtHome > 0)
             {
                 var powerFromGrid = -_settings.Overage;
                 if (_configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None
@@ -149,9 +149,9 @@ public class ChargingCostService : IChargingCostService
                     var powerBuffer = _configurationWrapper.PowerBuffer(true);
                     powerFromGrid = - _settings.InverterPower
                                     + (powerBuffer > 0 ? powerBuffer : 0)
-                                    + _settings.CarsToManage.Select(c => c.CarState.ChargingPowerAtHome).Sum();
+                                    + _settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum();
                 }
-                await AddPowerDistribution(car.Id, car.CarState.ChargingPowerAtHome, powerFromGrid).ConfigureAwait(false);
+                await AddPowerDistribution(car.Id, car.ChargingPowerAtHome, powerFromGrid).ConfigureAwait(false);
             }
         }
     }

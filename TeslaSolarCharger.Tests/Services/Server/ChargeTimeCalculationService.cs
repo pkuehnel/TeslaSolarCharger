@@ -39,18 +39,12 @@ public class ChargeTimeCalculationService : TestBase
     {
         var car = new DtoCar()
         {
-            CarConfiguration = new CarConfiguration()
-            {
-                MinimumSoC = minimumSoc,
-                UsableEnergy = usableEnergy,
-                MaximumAmpere = maximumAmpere,
-            },
-            CarState = new CarState()
-            {
-                SoC = acutalSoc,
-                ChargerPhases = chargerPhases,
-                State = carState,
-            },
+            MinimumSoC = minimumSoc,
+            UsableEnergy = usableEnergy,
+            MaximumAmpere = maximumAmpere,
+            SoC = acutalSoc,
+            ChargerPhases = chargerPhases,
+            State = carState,
         };
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
@@ -71,18 +65,12 @@ public class ChargeTimeCalculationService : TestBase
         var car = new DtoCar()
         {
             Id = 1,
-            CarState = new CarState()
-            {
-                PluggedIn = true,
-                SoC = 30,
-                ChargerPhases = numberOfPhases
-            },
-            CarConfiguration = new CarConfiguration()
-            {
-                MinimumSoC = 45,
-                UsableEnergy = 74,
-                MaximumAmpere = 16,
-            }
+            PluggedIn = true,
+            SoC = 30,
+            ChargerPhases = numberOfPhases,
+            MinimumSoC = 45,
+            UsableEnergy = 74,
+            MaximumAmpere = 16,
         };
 
 
@@ -95,7 +83,7 @@ public class ChargeTimeCalculationService : TestBase
         var lowerMinutes = 60 * (3 / numberOfPhases);
 
 #pragma warning disable CS8629
-        Assert.InRange((DateTime)car.CarState.ReachingMinSocAtFullSpeedCharge, dateTime.AddMinutes(lowerMinutes), dateTime.AddMinutes(lowerMinutes + 1));
+        Assert.InRange((DateTime)car.ReachingMinSocAtFullSpeedCharge, dateTime.AddMinutes(lowerMinutes), dateTime.AddMinutes(lowerMinutes + 1));
 #pragma warning restore CS8629
     }
 
@@ -105,18 +93,12 @@ public class ChargeTimeCalculationService : TestBase
         var car = new DtoCar()
         {
             Id = 1,
-            CarState = new CarState()
-            {
-                PluggedIn = true,
-                SoC = 30,
-                ChargerPhases = 1
-            },
-            CarConfiguration = new CarConfiguration()
-            {
-                MinimumSoC = 30,
-                UsableEnergy = 74,
-                MaximumAmpere = 16,
-            }
+            PluggedIn = true,
+            SoC = 30,
+            ChargerPhases = 1,
+            MinimumSoC = 30,
+            UsableEnergy = 74,
+            MaximumAmpere = 16,
         };
 
 
@@ -126,7 +108,7 @@ public class ChargeTimeCalculationService : TestBase
 
         chargeTimeCalculationService.UpdateChargeTime(car);
 
-        Assert.Equal(dateTime, car.CarState.ReachingMinSocAtFullSpeedCharge);
+        Assert.Equal(dateTime, car.ReachingMinSocAtFullSpeedCharge);
     }
 
     [Theory]
@@ -144,12 +126,8 @@ public class ChargeTimeCalculationService : TestBase
 
         var car = new DtoCar
         {
-            CarConfiguration = new CarConfiguration
-            {
                 ChargeMode = chargeMode,
                 LatestTimeToReachSoC = currentDate.LocalDateTime,
-            },
-            CarState = new CarState(),
         };
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
@@ -263,7 +241,7 @@ public class ChargeTimeCalculationService : TestBase
             .Returns(Task.FromResult(new DateTimeOffset(spotPricesToAddToDb.OrderByDescending(p => p.EndDate).Select(p => p.EndDate).First(), TimeSpan.Zero)));
         var chargingSlots = await chargeTimeCalculationService.GenerateSpotPriceChargingSlots(car,
             TimeSpan.FromMinutes(69), dateTimeOffsetNow,
-            new DateTimeOffset(car.CarConfiguration.LatestTimeToReachSoC, TimeSpan.FromHours(1)));
+            new DateTimeOffset(car.LatestTimeToReachSoC, TimeSpan.FromHours(1)));
     }
 
     [Fact]
@@ -388,19 +366,13 @@ public class ChargeTimeCalculationService : TestBase
 
         var car = new DtoCar
         {
-            CarConfiguration = new CarConfiguration
-            {
                 ChargeMode = chargeMode,
                 LatestTimeToReachSoC = latestTimeToReachSoc,
                 MinimumSoC = 47,
                 UsableEnergy = 50000,
                 MaximumAmpere = 15215,
-            },
-            CarState = new CarState()
-            {
                 SoC = 40,
                 ChargerPhases = 1,
-            },
         };
 
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
