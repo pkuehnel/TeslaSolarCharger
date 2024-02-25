@@ -12,13 +12,11 @@ namespace TeslaSolarCharger.Server.Controllers
 {
     public class ConfigController : ApiBaseController
     {
-        private readonly IConfigService _service;
         private readonly IConfigJsonService _configJsonService;
         private readonly ITeslaFleetApiService _teslaFleetApiService;
 
-        public ConfigController(IConfigService service, IConfigJsonService configJsonService, ITeslaFleetApiService teslaFleetApiService)
+        public ConfigController(IConfigJsonService configJsonService, ITeslaFleetApiService teslaFleetApiService)
         {
-            _service = service;
             _configJsonService = configJsonService;
             _teslaFleetApiService = teslaFleetApiService;
         }
@@ -27,13 +25,13 @@ namespace TeslaSolarCharger.Server.Controllers
         /// Get all settings and status of all cars
         /// </summary>
         [HttpGet]
-        public ISettings GetSettings() => _service.GetSettings();
+        public ISettings GetSettings() => _configJsonService.GetSettings();
 
         /// <summary>
         /// Get basic Configuration of cars, which are not often changed
         /// </summary>
         [HttpGet]
-        public Task<List<CarBasicConfiguration>> GetCarBasicConfigurations() => _service.GetCarBasicConfigurations();
+        public Task<List<CarBasicConfiguration>> GetCarBasicConfigurations() => _configJsonService.GetCarBasicConfigurations();
 
         /// <summary>
         /// Update Car's configuration

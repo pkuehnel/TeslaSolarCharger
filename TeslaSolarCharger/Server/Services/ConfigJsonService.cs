@@ -14,6 +14,7 @@ using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
+using TeslaSolarCharger.Model.EntityFramework;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -119,6 +120,29 @@ public class ConfigJsonService(
         car.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
 
+    }
+
+    public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations()
+    {
+        logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
+
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<Car, CarBasicConfiguration>()
+            ;
+        });
+
+        var cars = await teslaSolarChargerContext.Cars
+            .ProjectTo<CarBasicConfiguration>(mapper)
+            .ToListAsync().ConfigureAwait(false);
+
+        return cars;
+    }
+
+    public ISettings GetSettings()
+    {
+        logger.LogTrace("{method}()", nameof(GetSettings));
+        return settings;
     }
 
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)

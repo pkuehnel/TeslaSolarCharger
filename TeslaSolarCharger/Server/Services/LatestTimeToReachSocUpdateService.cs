@@ -1,5 +1,4 @@
 ﻿using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;

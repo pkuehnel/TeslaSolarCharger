@@ -1,4 +1,5 @@
 ﻿using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -14,4 +15,6 @@ public interface IConfigJsonService
     Task ConvertOldCarsToNewCar();
     Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings);
     Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration);
+    Task<List<CarBasicConfiguration>> GetCarBasicConfigurations();
+    ISettings GetSettings();
 }

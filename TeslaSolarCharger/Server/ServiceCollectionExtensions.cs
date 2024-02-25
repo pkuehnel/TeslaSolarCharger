@@ -51,7 +51,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
             .AddTransient<IChargingService, ChargingService>()
-            .AddTransient<IConfigService, ConfigService>()
             .AddTransient<IConfigJsonService, ConfigJsonService>()
             .AddTransient<IDateTimeProvider, DateTimeProvider>()
             .AddTransient<ITelegramService, TelegramService>()
