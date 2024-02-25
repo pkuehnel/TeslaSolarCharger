@@ -2,7 +2,7 @@
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
-public class CarState
+public class DepricatedCarState
 {
     public string? Name { get; set; }
     public DateTime? ShouldStartChargingSince { get; set; }

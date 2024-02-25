@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
+using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -12,11 +13,13 @@ namespace TeslaSolarCharger.Server.Controllers
     public class ConfigController : ApiBaseController
     {
         private readonly IConfigService _service;
+        private readonly IConfigJsonService _configJsonService;
         private readonly ITeslaFleetApiService _teslaFleetApiService;
 
-        public ConfigController(IConfigService service, ITeslaFleetApiService teslaFleetApiService)
+        public ConfigController(IConfigService service, IConfigJsonService configJsonService, ITeslaFleetApiService teslaFleetApiService)
         {
             _service = service;
+            _configJsonService = configJsonService;
             _teslaFleetApiService = teslaFleetApiService;
         }
 
@@ -25,15 +28,6 @@ namespace TeslaSolarCharger.Server.Controllers
         /// </summary>
         [HttpGet]
         public ISettings GetSettings() => _service.GetSettings();
-
-        /// <summary>
-        /// Update Car's configuration
-        /// </summary>
-        /// <param name="carId">Car Id of car to update</param>
-        /// <param name="carConfiguration">Car Configuration which should be set to car</param>
-        [HttpPut]
-        public Task UpdateCarConfiguration(int carId, [FromBody] CarConfiguration carConfiguration) =>
-            _service.UpdateCarConfiguration(carId, carConfiguration);
 
         /// <summary>
         /// Get basic Configuration of cars, which are not often changed
@@ -48,7 +42,7 @@ namespace TeslaSolarCharger.Server.Controllers
         /// <param name="carBasicConfiguration">Car Configuration which should be set to car</param>
         [HttpPut]
         public Task UpdateCarBasicConfiguration(int carId, [FromBody] CarBasicConfiguration carBasicConfiguration) =>
-            _service.UpdateCarBasicConfiguration(carId, carBasicConfiguration);
+            _configJsonService.UpdateCarBasicConfiguration(carId, carBasicConfiguration);
 
         [HttpPost]
         public Task AddTeslaFleetApiToken([FromBody] DtoTeslaTscDeliveryToken token) =>

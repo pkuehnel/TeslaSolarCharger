@@ -2,9 +2,9 @@
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
-public class CarConfiguration
+public class DepricatedCarConfiguration
 {
-    public CarConfiguration()
+    public DepricatedCarConfiguration()
     {
         ShouldBeManaged = true;
     }
