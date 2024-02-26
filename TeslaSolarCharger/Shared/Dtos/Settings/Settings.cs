@@ -24,6 +24,7 @@ public class Settings : ISettings
 
     public bool AllowUnlimitedFleetApiRequests { get; set; }
     public DateTime LastFleetApiRequestAllowedCheck { get; set; }
+    public bool RestartNeeded { get; set; }
 
     public List<DtoCar> Cars { get; set; } = new();
 }

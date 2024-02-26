@@ -22,4 +22,5 @@ public interface ISettings
     DateTime LastFleetApiRequestAllowedCheck { get; set; }
     List<DtoCar> Cars { get; set; }
     List<DtoCar> CarsToManage { get; }
+    bool RestartNeeded { get; set; }
 }

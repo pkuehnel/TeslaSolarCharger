@@ -174,10 +174,7 @@ public class BaseConfigurationService : IBaseConfigurationService
         }
         finally
         {
-            if (jobsWereRunning)
-            {
-                await _jobManager.StartJobs().ConfigureAwait(false);
-            }
+            _settings.RestartNeeded = true;
         }
     }
 

@@ -49,6 +49,11 @@ public class IssueValidationService : IIssueValidationService
     {
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
         var issueList = new List<Issue>();
+        if (_settings.RestartNeeded)
+        {
+            issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.RestartNeeded));
+            return issueList;
+        }
         if (_settings.CrashedOnStartup)
         {
             var crashedOnStartupIssue = _possibleIssues.GetIssueByKey(_issueKeys.CrashedOnStartup);

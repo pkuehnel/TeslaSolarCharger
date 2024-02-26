@@ -185,6 +185,13 @@ public class PossibleIssues : IPossibleIssues
                     "Update TSC to the latest version."
                 )
             },
+            {
+                issueKeys.RestartNeeded, CreateIssue("A restart is needed.",
+                    IssueType.Error,
+                    "Restart the TSC container.",
+                                         "Restart the Docker host."
+                )
+            },
         };
     }
 

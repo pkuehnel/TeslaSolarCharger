@@ -34,9 +34,15 @@ public class JobManager
     public async Task StartJobs()
     {
         _logger.LogTrace("{Method}()", nameof(StartJobs));
+        if (_settings.RestartNeeded)
+        {
+            _logger.LogError("Do not start jobs as application restart is needed.");
+            return;
+        }
         if (_settings.CrashedOnStartup)
         {
             _logger.LogError("Do not start jobs as application crashed during startup.");
+            return;
         }
         _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
         _scheduler.JobFactory = _jobFactory;
