@@ -6,6 +6,7 @@ public class DtoCar
 {
     public int Id { get; set; }
     public string Vin { get; set; }
+    public int? TeslaMateCarId { get; set; }
 
     public ChargeMode ChargeMode { get; set; }
 

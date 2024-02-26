@@ -85,6 +85,7 @@ public class ConfigJsonService(
                 cars.Add(new DtoCar()
                 {
                     Vin = (await teslamateContext.Cars.FirstOrDefaultAsync(c => c.Id == databaseCarConfiguration.CarId).ConfigureAwait(false))?.Vin ?? string.Empty,
+                    TeslaMateCarId = databaseCarConfiguration.CarId,
                     ChargeMode = configuration.ChargeMode,
                     MinimumSoC = configuration.MinimumSoC,
                     LatestTimeToReachSoC = configuration.LatestTimeToReachSoC,
@@ -226,7 +227,7 @@ public class ConfigJsonService(
 
     public async Task SaveOrUpdateCar(DtoCar car)
     {
-        var entity = teslaSolarChargerContext.Cars.FirstOrDefault(c => c.TeslaMateCarId == car.Id) ?? new Car()
+        var entity = teslaSolarChargerContext.Cars.FirstOrDefault(c => c.TeslaMateCarId == car.TeslaMateCarId) ?? new Car()
         {
             Id = car.Id,
             TeslaMateCarId = teslamateContext.Cars.FirstOrDefault(c => c.Vin == car.Vin)?.Id ?? default,
@@ -336,7 +337,7 @@ public class ConfigJsonService(
         foreach (var car in cars)
         {
             var cachedCarState = await teslaSolarChargerContext.CachedCarStates
-                .FirstOrDefaultAsync(c => c.CarId == car.Id && c.Key == constants.CarStateKey).ConfigureAwait(false);
+                .FirstOrDefaultAsync(c => c.CarId == car.TeslaMateCarId && c.Key == constants.CarStateKey).ConfigureAwait(false);
             if (cachedCarState == default)
             {
                 logger.LogWarning("No cached car state found for car with id {carId}", car.Id);
