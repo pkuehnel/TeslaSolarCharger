@@ -3,7 +3,7 @@ using AutoMapper.Configuration.Annotations;
 using System.Reflection;
 using IConfigurationProvider = AutoMapper.IConfigurationProvider;
 
-namespace TeslaSolarCharger.Server.MappingExtensions;
+namespace TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 public class MapperConfigurationFactory : IMapperConfigurationFactory
 {

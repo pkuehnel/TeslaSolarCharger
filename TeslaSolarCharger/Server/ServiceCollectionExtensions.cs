@@ -11,7 +11,6 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
-using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
@@ -28,6 +27,7 @@ using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
 using TeslaSolarCharger.SharedBackend;
+using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server;
 

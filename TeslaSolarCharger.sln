@@ -31,6 +31,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeslaSolarCharger.GridPriceProvider", "TeslaSolarCharger.GridPriceProvider\TeslaSolarCharger.GridPriceProvider.csproj", "{1BE60FFB-0C76-4D8A-8FD5-04C886885AB9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeslaSolarCharger.SharedModel", "TeslaSolarCharger.SharedModel\TeslaSolarCharger.SharedModel.csproj", "{1F0ECB0D-0F44-47EF-983C-C0001FFE0D73}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeslaSolarCharger.Services", "TeslaSolarCharger.Services\TeslaSolarCharger.Services.csproj", "{21A8DB64-E449-474E-94DD-360C30D1756A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +85,14 @@ Global
 		{1BE60FFB-0C76-4D8A-8FD5-04C886885AB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1BE60FFB-0C76-4D8A-8FD5-04C886885AB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1BE60FFB-0C76-4D8A-8FD5-04C886885AB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F0ECB0D-0F44-47EF-983C-C0001FFE0D73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F0ECB0D-0F44-47EF-983C-C0001FFE0D73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F0ECB0D-0F44-47EF-983C-C0001FFE0D73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F0ECB0D-0F44-47EF-983C-C0001FFE0D73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21A8DB64-E449-474E-94DD-360C30D1756A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21A8DB64-E449-474E-94DD-360C30D1756A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21A8DB64-E449-474E-94DD-360C30D1756A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21A8DB64-E449-474E-94DD-360C30D1756A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

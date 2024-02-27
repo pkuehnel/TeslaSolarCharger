@@ -7,6 +7,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 

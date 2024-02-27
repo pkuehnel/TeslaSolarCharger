@@ -15,6 +15,9 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<TeslaToken> TeslaTokens { get; set; } = null!;
     public DbSet<TscConfiguration> TscConfigurations { get; set; } = null!;
     public DbSet<Car> Cars { get; set; } = null!;
+    public DbSet<RestValueConfiguration> RestValueConfigurations { get; set; } = null!;
+    public DbSet<RestValueConfigurationHeader> RestValueConfigurationHeaders { get; set; } = null!;
+    public DbSet<RestValueResultConfiguration> RestValueResultConfigurations { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -54,6 +57,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
         modelBuilder.Entity<Car>()
             .HasIndex(c => c.Vin)
+            .IsUnique();
+
+        modelBuilder.Entity<RestValueConfigurationHeader>()
+            .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
     }
 

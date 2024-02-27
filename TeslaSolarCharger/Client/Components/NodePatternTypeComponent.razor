@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.SharedModel.Enums
 
 
 <InputComponent ValueId="@($"{IdPrefix}nodePatternType")"
@@ -17,7 +18,7 @@
         </InputSelect>
     </InputFragment>
 </InputComponent>
-@if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Json)
+@if (NodePatternType == TeslaSolarCharger.SharedModel.Enums.NodePatternType.Json)
 {
     <InputComponent ValueId="@($"{IdPrefix}JsonPattern")"
                     LabelText="@($"{Purpose} Json Pattern")"
@@ -28,7 +29,7 @@
         </InputFragment>
     </InputComponent>
 }
-@if (NodePatternType == TeslaSolarCharger.Shared.Enums.NodePatternType.Xml)
+@if (NodePatternType == TeslaSolarCharger.SharedModel.Enums.NodePatternType.Xml)
 {
     <InputComponent ValueId="@($"{IdPrefix}XmlPattern")"
                     LabelText="@($"{Purpose} XML Pattern")"

@@ -22,4 +22,8 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Runtime.Caching" Version="8.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\TeslaSolarCharger.SharedModel\TeslaSolarCharger.SharedModel.csproj" />
+  </ItemGroup>
 </Project>
