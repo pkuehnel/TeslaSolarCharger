@@ -1,0 +1,87 @@
+﻿@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+
+@foreach (var editableItem in EditableItems)
+{
+    <div>
+        <EditFormComponent T="DtoRestValueConfigurationHeader"
+                           WrappedElement="editableItem"
+                           OnValidSubmit="(item) => HandleValidSubmit(item)"
+                           HideSubmitButton="true">
+            <ChildContent>
+                <div class="d-flex align-items-center">
+                    <div class="p-2 flex-grow-1">
+                        <div class="row">
+                            <div class="col">
+                                <GenericInput For="() => editableItem.Item.Key"></GenericInput>
+                            </div>
+                            <div class="col">
+                                <GenericInput For="() => editableItem.Item.Value"></GenericInput>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Size="Size.Medium" ButtonType="ButtonType.Submit"></MudFab>
+                        </div>
+                        <div class="col">
+                            <MudFab Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="_ => InvokeDeleteClicked(editableItem.Item)" Size="Size.Medium" ButtonType="ButtonType.Button"></MudFab>
+                        </div>
+                    </div>
+                </div>
+            </ChildContent>
+        </EditFormComponent>
+    </div>
+    <hr />
+}
+<RightAlignedButtonComponent ButtonText="Add Header"
+                             IsDisabled="RestValueResultHeaders.Any(r => r.Id == default)"
+                             OnButtonClicked="() => RestValueResultHeaders.Add(new DtoRestValueConfigurationHeader())"></RightAlignedButtonComponent>
+
+@code {
+    [Parameter]
+    public int ParentId { get; set; }
+
+    private List<DtoRestValueConfigurationHeader> RestValueResultHeaders { get; set; } = new();
+
+    private List<EditableItem<DtoRestValueConfigurationHeader>> EditableItems => RestValueResultHeaders.Select(e => new EditableItem<DtoRestValueConfigurationHeader>(e)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueConfigurationHeader>>($"api/RestValueConfiguration/GetHeadersByConfigurationId?parentId={ParentId}");
+        RestValueResultHeaders = elements ?? new List<DtoRestValueConfigurationHeader>();
+    }
+
+    private async Task HandleValidSubmit(DtoRestValueConfigurationHeader item)
+    {
+        var result = await HttpClient.PostAsJsonAsync($"/api/RestValueConfiguration/SaveHeader?parentId={ParentId}", item);
+        if (!result.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            return;
+        }
+        var resultContent = await result.Content.ReadFromJsonAsync<DtoValue<int>>();
+        if (resultContent == default)
+        {
+            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            return;
+        }
+        Snackbar.Add("Header saved", Severity.Success);
+        item.Id = resultContent.Value;
+    }
+
+    private async Task InvokeDeleteClicked(DtoRestValueConfigurationHeader editableItemItem)
+    {
+        throw new NotImplementedException();
+    }
+
+}
+

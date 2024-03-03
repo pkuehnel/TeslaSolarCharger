@@ -5,10 +5,13 @@
 <EditForm EditContext="@WrappedElement.EditContext" OnValidSubmit="@(_ => HandleValidSubmit(WrappedElement.Item))">
         <DataAnnotationsValidator/>
             @ChildContent
-        <ValidationSummary />
-        <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
-        </MudPaper>
+            <ValidationSummary />
+            @if (!HideSubmitButton)
+            {
+                <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+                </MudPaper>
+            }
     </EditForm>
 
 
@@ -21,6 +24,8 @@
     public EditableItem<T> WrappedElement { get; set; }
     [Parameter]
     public RenderFragment ChildContent { get; set; }
+    [Parameter]
+    public bool HideSubmitButton { get; set; }
 
     [Parameter]
     public EventCallback<T> OnValidSubmit { get; set; }

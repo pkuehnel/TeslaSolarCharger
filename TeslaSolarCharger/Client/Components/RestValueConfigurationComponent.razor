@@ -45,6 +45,7 @@
         </EditFormComponent>
         @if (editableItem.Item.Id != default && !editableItem.EditContext.IsModified())
         {
+            <RestValueHeaderConfigurationComponent ParentId="editableItem.Item.Id"></RestValueHeaderConfigurationComponent>
             <RestValueResultConfigurationComponent ParentId="editableItem.Item.Id"
                                                    NodePatternType="editableItem.Item.NodePatternType"></RestValueResultConfigurationComponent>
         }
@@ -105,6 +106,8 @@
             Snackbar.Add("Failed to update REST value configuration", Severity.Error);
             return;
         }
+
+        Snackbar.Add("Rest value configuration saved.", Severity.Success);
         item.Id = resultContent.Value;
     }
 

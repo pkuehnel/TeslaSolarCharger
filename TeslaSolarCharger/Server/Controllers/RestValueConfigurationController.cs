@@ -33,4 +33,17 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     {
         return Ok(new DtoValue<int>(await service.SaveResultConfiguration(parentId, dtoData)));
     }
+
+    [HttpGet]
+    public async Task<ActionResult<List<DtoRestValueConfigurationHeader>>> GetHeadersByConfigurationId(int parentId)
+    {
+        var result = await service.GetHeadersByConfigurationId(parentId);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<int>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
+    {
+        return Ok(new DtoValue<int>(await service.SaveHeader(parentId, dtoData)));
+    }
 }

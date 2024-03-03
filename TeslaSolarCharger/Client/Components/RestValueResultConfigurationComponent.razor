@@ -93,7 +93,7 @@
 
     private async Task LoadData()
     {
-        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={ParentId}&nodePatternType={NodePatternType}");
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={ParentId}");
         RestValueResultConfigurations = elements ?? new List<DtoRestValueResultConfiguration>();
         if (RestValueResultConfigurations.Count == 0)
         {
@@ -115,6 +115,7 @@
             Snackbar.Add("Failed to update REST value configuration", Severity.Error);
             return;
         }
+        Snackbar.Add("Result configuration saved.", Severity.Success);
         item.Id = resultContent.Value;
     }
 
