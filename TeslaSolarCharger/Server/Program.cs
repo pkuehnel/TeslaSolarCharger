@@ -105,6 +105,9 @@ try
 
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
+    var pvValueService = app.Services.GetRequiredService<IPvValueService>();
+    await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
+
     var teslaFleetApiService = app.Services.GetRequiredService<ITeslaFleetApiService>();
     var settings = app.Services.GetRequiredService<ISettings>();
     if (await teslaFleetApiService.IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
