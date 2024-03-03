@@ -578,7 +578,11 @@
             IsDisabled = IsDisabledParameter ?? propertyInfo.GetCustomAttributes(true).OfType<DisabledAttribute>().Any();
         }
 
-        HelperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
+        var helperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
+        if (helperText != default)
+        {
+            HelperText = helperText;
+        }
 
 
         var postfixAttribute = propertyInfo.GetCustomAttributes<PostfixAttribute>(false).SingleOrDefault();

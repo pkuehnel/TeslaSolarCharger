@@ -1,0 +1,126 @@
+﻿@using TeslaSolarCharger.SharedModel.Enums
+@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@inject HttpClient HttpClient
+@inject IConstants Constants
+@inject IStringHelper StringHelper
+@inject ISnackbar Snackbar
+
+@foreach(var editableItem in EditableItems)
+{
+    <div>
+        <EditFormComponent T="DtoRestValueResultConfiguration"
+                           WrappedElement="editableItem"
+                           OnValidSubmit="(item) => HandleValidSubmit(item)">
+            <ChildContent>
+                <div class="row">
+                    @if (NodePatternType != NodePatternType.Direct)
+                    {
+                        <div class="col">
+                            <GenericInput For="() => editableItem.Item.NodePattern"></GenericInput>
+                        </div>
+                    }
+                    @if(NodePatternType == NodePatternType.Xml)
+                    {
+                        <div>
+                            <GenericInput For="() => editableItem.Item.XmlAttributeHeaderName"></GenericInput>
+                        </div>
+                    }
+                </div>
+                @if (NodePatternType == NodePatternType.Xml)
+                {
+                    <div class="col">
+                        <div>
+                            <GenericInput For="() => editableItem.Item.XmlAttributeHeaderValue"></GenericInput>
+                        </div>
+                        <div>
+                            <GenericInput For="() => editableItem.Item.XmlAttributeValueName"></GenericInput>
+                        </div>
+                    </div>
+
+                }
+
+                <div class="row">
+                    <div class="col">
+                        <div class="p-2">
+                            <MudSelect T="ValueOperator"
+                                       Class="@Constants.DefaultMargin"
+                                       Variant="Variant.Outlined"
+                                       Value="@editableItem.Item.Operator"
+                                       ValueChanged="(newItem) => UpdateOperator(editableItem.Item, newItem)"
+                                       Label="Operator">
+                                @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
+                                {
+                                    <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <GenericInput For="() => editableItem.Item.CorrectionFactor"></GenericInput>
+                    </div>
+                </div>
+            </ChildContent>
+        </EditFormComponent>
+    </div>
+    <hr />
+}
+@if (NodePatternType != NodePatternType.Direct)
+{
+    <RightAlignedButtonComponent ButtonText="Add Result"
+                                 IsDisabled="RestValueResultConfigurations.Any(r => r.Id == default)"
+                                 OnButtonClicked="() => RestValueResultConfigurations.Add(new DtoRestValueResultConfiguration())"></RightAlignedButtonComponent>
+}
+
+@code {
+    [Parameter]
+    public int ParentId { get; set; }
+
+    [Parameter]
+    public NodePatternType NodePatternType { get; set; }
+
+    private List<DtoRestValueResultConfiguration> RestValueResultConfigurations { get; set; } = new();
+    
+    private List<EditableItem<DtoRestValueResultConfiguration>> EditableItems => RestValueResultConfigurations.Select(restValueResultConfiguration => new EditableItem<DtoRestValueResultConfiguration>(restValueResultConfiguration)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={ParentId}&nodePatternType={NodePatternType}");
+        RestValueResultConfigurations = elements ?? new List<DtoRestValueResultConfiguration>();
+        if (RestValueResultConfigurations.Count == 0)
+        {
+            RestValueResultConfigurations.Add(new DtoRestValueResultConfiguration());
+        }
+    }
+
+    private async Task HandleValidSubmit(DtoRestValueResultConfiguration item)
+    {
+        var result = await HttpClient.PostAsJsonAsync($"/api/RestValueConfiguration/SaveResultConfiguration?parentId={ParentId}", item);
+        if (!result.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            return;
+        }
+        var resultContent = await result.Content.ReadFromJsonAsync<DtoValue<int>>();
+        if (resultContent == default)
+        {
+            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            return;
+        }
+        item.Id = resultContent.Value;
+    }
+
+    private void UpdateOperator(DtoRestValueResultConfiguration editableItemItem, ValueOperator newItem)
+    {
+        editableItemItem.Operator = newItem;
+    }
+
+}

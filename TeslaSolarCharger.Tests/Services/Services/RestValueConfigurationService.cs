@@ -87,7 +87,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
-        var values = await service.GetResultConfigurationByConfigurationId(firstValue.Id);
+        var values = await service.GetResultConfigurationsByConfigurationId(firstValue.Id);
         Assert.NotEmpty(values);
         Assert.Equal(1, values.Count);
         var firstHeader = values.First();
@@ -103,7 +103,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
-        var values = await service.GetResultConfigurationByConfigurationId(firstValue.Id);
+        var values = await service.GetResultConfigurationsByConfigurationId(firstValue.Id);
         var firstHeader = values.First();
         var newNodePattern = "$.data2";
         var newCorrectionFactor = 2;

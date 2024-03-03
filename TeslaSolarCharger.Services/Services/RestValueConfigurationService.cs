@@ -90,9 +90,9 @@ public class RestValueConfigurationService(
         return dbData.Id;
     }
 
-    public async Task<List<DtoRestValueResultConfiguration>> GetResultConfigurationByConfigurationId(int parentId)
+    public async Task<List<DtoRestValueResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId)
     {
-        logger.LogTrace("{method}({parentId})", nameof(GetResultConfigurationByConfigurationId), parentId);
+        logger.LogTrace("{method}({parentId})", nameof(GetResultConfigurationsByConfigurationId), parentId);
         var mapper = mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<RestValueResultConfiguration, DtoRestValueResultConfiguration>()

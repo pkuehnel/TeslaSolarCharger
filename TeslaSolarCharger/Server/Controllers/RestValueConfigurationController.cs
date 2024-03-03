@@ -20,4 +20,17 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     {
         return Ok(new DtoValue<int>(await service.SaveRestValueConfiguration(dtoData)));
     }
+
+    [HttpGet]
+    public async Task<ActionResult<List<DtoRestValueResultConfiguration>>> GetResultConfigurationsByConfigurationId(int parentId)
+    {
+        var result = await service.GetResultConfigurationsByConfigurationId(parentId);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<int>> SaveResultConfiguration(int parentId, [FromBody] DtoRestValueResultConfiguration dtoData)
+    {
+        return Ok(new DtoValue<int>(await service.SaveResultConfiguration(parentId, dtoData)));
+    }
 }

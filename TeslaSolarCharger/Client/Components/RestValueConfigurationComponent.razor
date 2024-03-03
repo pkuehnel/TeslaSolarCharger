@@ -19,20 +19,22 @@
                                Class="@Constants.DefaultMargin"
                                Variant="Variant.Outlined"
                                Value="@editableItem.Item.HttpMethod"
-                               ValueChanged="(newItem) => UpdateHttpVerb(editableItem.Item, newItem)">
+                               ValueChanged="(newItem) => UpdateHttpVerb(editableItem.Item, newItem)"
+                               Label="HTTP Method">
                         @foreach (HttpVerb item in Enum.GetValues(typeof(HttpVerb)))
                         {
                             <MudSelectItem T="HttpVerb" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
                         }
                     </MudSelect>
                 </div>
-                <GenericInput For="() => editableItem.Item.Url"></GenericInput>
+                <GenericInput T="string" For="() => editableItem.Item.Url" OnValueChanged="StateHasChanged"></GenericInput>
                 <div class="p-2">
                     <MudSelect T="NodePatternType"
                                Class="@Constants.DefaultMargin"
                                Variant="Variant.Outlined"
                                Value="@editableItem.Item.NodePatternType"
-                               ValueChanged="@((newValue) => UpdateNodePatternType(editableItem.Item, newValue))">
+                               ValueChanged="@((newValue) => UpdateNodePatternType(editableItem.Item, newValue))"
+                               Label="Node Pattern Type">
                         @foreach (NodePatternType item in Enum.GetValues(typeof(NodePatternType)))
                         {
                             <MudSelectItem T="NodePatternType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
@@ -41,8 +43,19 @@
                 </div>
             </ChildContent>
         </EditFormComponent>
+        @if (editableItem.Item.Id != default && !editableItem.EditContext.IsModified())
+        {
+            <RestValueResultConfigurationComponent ParentId="editableItem.Item.Id"
+                                                   NodePatternType="editableItem.Item.NodePatternType"></RestValueResultConfigurationComponent>
+        }
+        else
+        {
+            <div class="p-2">
+                Save Data to enable result configuration
+            </div>
+            
+        }
     </div>
-
 }
 <RightAlignedButtonComponent ButtonText="Add REST Call"
                              IsDisabled="RestValueConfigurations.Any(r => r.Id == default)"
