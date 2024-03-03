@@ -45,9 +45,13 @@
         </EditFormComponent>
         @if (editableItem.Item.Id != default && !editableItem.EditContext.IsModified())
         {
-            <RestValueHeaderConfigurationComponent ParentId="editableItem.Item.Id"></RestValueHeaderConfigurationComponent>
-            <RestValueResultConfigurationComponent ParentId="editableItem.Item.Id"
-                                                   NodePatternType="editableItem.Item.NodePatternType"></RestValueResultConfigurationComponent>
+            <div class="shadow p-3 mb-5 bg-white rounded">
+                <RestValueHeaderConfigurationComponent ParentId="editableItem.Item.Id"></RestValueHeaderConfigurationComponent>
+            </div>
+            <div class="shadow p-3 mb-5 bg-white rounded">
+                <RestValueResultConfigurationComponent ParentId="editableItem.Item.Id"
+                                                       NodePatternType="editableItem.Item.NodePatternType"></RestValueResultConfigurationComponent>
+            </div>
         }
         else
         {
