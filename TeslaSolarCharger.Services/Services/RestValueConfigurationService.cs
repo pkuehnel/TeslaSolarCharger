@@ -23,9 +23,10 @@ public class RestValueConfigurationService(
                 ;
         });
 
-        return await context.RestValueConfigurations
+        var result = await context.RestValueConfigurations
             .ProjectTo<DtoRestValueConfiguration>(mapper)
             .ToListAsync().ConfigureAwait(false);
+        return result;
     }
 
     public async Task<int> SaveRestValueConfiguration(DtoRestValueConfiguration dtoData)

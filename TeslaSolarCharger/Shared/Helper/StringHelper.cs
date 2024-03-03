@@ -30,7 +30,7 @@ public class StringHelper(ILogger<StringHelper> logger) : IStringHelper
         }
     }
 
-    private string GenerateFriendlyStringFromPascalString(string inputString)
+    public string GenerateFriendlyStringFromPascalString(string inputString)
     {
         return Regex.Replace(inputString, "(\\B[A-Z])", " $1");
     }
