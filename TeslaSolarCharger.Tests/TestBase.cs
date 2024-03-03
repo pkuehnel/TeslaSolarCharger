@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System.Linq;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Shared.Contracts;
@@ -112,8 +113,10 @@ public class TestBase : IDisposable
 
         _ctx = _fake.Provide(new TeslaSolarChargerContext(options));
         _ctx.Database.EnsureCreated();
-        //_ctx.InitContextData();
+        _ctx.InitRestValueConfigurations();
         _ctx.SaveChanges();
+        _ctx.ChangeTracker.Entries().Where(e => e.State != EntityState.Detached).ToList()
+            .ForEach(entry => entry.State = EntityState.Detached);
     }
 
     private static (ILoggerFactory, LoggingLevelSwitch) GetOrCreateLoggerFactory(

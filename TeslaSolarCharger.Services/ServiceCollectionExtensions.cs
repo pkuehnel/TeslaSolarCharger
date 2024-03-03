@@ -9,5 +9,6 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddServicesDependencies(this IServiceCollection services) =>
             services
                 .AddTransient<IRestValueConfigurationService, RestValueConfigurationService>()
+                .AddTransient<IRestValueExecutionService, RestValueExecutionService>()
             ;
 }

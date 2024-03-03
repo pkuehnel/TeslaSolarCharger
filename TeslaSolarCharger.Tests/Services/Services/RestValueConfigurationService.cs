@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.SharedModel.Enums;
+using TeslaSolarCharger.Tests.Data;
 using Xunit;
 using Xunit.Abstractions;
 #pragma warning disable xUnit2013
@@ -14,34 +15,24 @@ namespace TeslaSolarCharger.Tests.Services.Services;
 [SuppressMessage("ReSharper", "UseConfigureAwaitFalse")]
 public class RestValueConfigurationService(ITestOutputHelper outputHelper) : TestBase(outputHelper)
 {
-    private string _httpLocalhostApiValues = "http://localhost:5000/api/values";
-    private NodePatternType _nodePatternType = NodePatternType.Json;
-    private HttpVerb _httpMethod = HttpVerb.Get;
-    private string _headerKey = "Authorization";
-    private string _headerValue = "Bearer asdf";
-    private string? _nodePattern = "$.data";
-    private float _correctionFactor = 1;
-    private ValueUsage _valueUsage = ValueUsage.GridPower;
-    private ValueOperator _valueOperator = ValueOperator.Plus;
+    
 
     [Fact]
     public async Task Can_Get_Rest_Configurations()
     {
-        await GenerateDemoData();
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         Assert.NotEmpty(restValueConfigurations);
         Assert.Equal(1, restValueConfigurations.Count);
         var firstValue = restValueConfigurations.First();
-        Assert.Equal(_httpLocalhostApiValues, firstValue.Url);
-        Assert.Equal(_nodePatternType, firstValue.NodePatternType);
-        Assert.Equal(_httpMethod, firstValue.HttpMethod);
+        Assert.Equal(DataGenerator._httpLocalhostApiValues, firstValue.Url);
+        Assert.Equal(DataGenerator._nodePatternType, firstValue.NodePatternType);
+        Assert.Equal(DataGenerator._httpMethod, firstValue.HttpMethod);
     }
 
     [Fact]
     public async Task Can_Update_Rest_Configurations()
     {
-        await GenerateDemoData();
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
@@ -61,7 +52,6 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Get_Rest_Configuration_Headers()
     {
-        await GenerateDemoData();
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
@@ -69,14 +59,13 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         Assert.NotEmpty(headers);
         Assert.Equal(1, headers.Count);
         var firstHeader = headers.First();
-        Assert.Equal(_headerKey, firstHeader.Key);
-        Assert.Equal(_headerValue, firstHeader.Value);
+        Assert.Equal(DataGenerator._headerKey, firstHeader.Key);
+        Assert.Equal(DataGenerator._headerValue, firstHeader.Value);
     }
 
     [Fact]
     public async Task Can_Update_Rest_Configuration_Headers()
     {
-        await GenerateDemoData();
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
@@ -95,7 +84,6 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Get_Rest_Result_Configurations()
     {
-        await GenerateDemoData();
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
@@ -103,16 +91,15 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         Assert.NotEmpty(values);
         Assert.Equal(1, values.Count);
         var firstHeader = values.First();
-        Assert.Equal(_nodePattern, firstHeader.NodePattern);
-        Assert.Equal(_correctionFactor, firstHeader.CorrectionFactor);
-        Assert.Equal(_valueUsage, firstHeader.UsedFor);
-        Assert.Equal(_valueOperator, firstHeader.Operator);
+        Assert.Equal(DataGenerator._nodePattern, firstHeader.NodePattern);
+        Assert.Equal(DataGenerator._correctionFactor, firstHeader.CorrectionFactor);
+        Assert.Equal(DataGenerator._valueUsage, firstHeader.UsedFor);
+        Assert.Equal(DataGenerator._valueOperator, firstHeader.Operator);
     }
 
     [Fact]
     public async Task Can_Update_Rest_Result_Configurations()
     {
-        await GenerateDemoData();
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
@@ -132,36 +119,5 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         firstHeader.Operator = newValueOperator;
         var id = await service.SaveResultConfiguration(firstValue.Id, firstHeader);
         Assert.Equal(firstHeader.Id, id);
-    }
-
-    private async Task GenerateDemoData()
-    {
-        Context.RestValueConfigurations.Add(new RestValueConfiguration()
-        {
-            Url = _httpLocalhostApiValues,
-            NodePatternType = _nodePatternType,
-            HttpMethod = _httpMethod,
-            Headers = new List<RestValueConfigurationHeader>()
-            {
-                new RestValueConfigurationHeader()
-                {
-                    Key = _headerKey,
-                    Value = _headerValue,
-                },
-            },
-            RestValueResultConfigurations = new List<RestValueResultConfiguration>()
-            {
-                new RestValueResultConfiguration()
-                {
-                    NodePattern = _nodePattern,
-                    CorrectionFactor = _correctionFactor,
-                    UsedFor = _valueUsage,
-                    Operator = _valueOperator,
-                },
-            },
-        });
-        await Context.SaveChangesAsync();
-        Context.ChangeTracker.Entries().Where(e => e.State != EntityState.Detached).ToList()
-            .ForEach(entry => entry.State = EntityState.Detached);
     }
 }
