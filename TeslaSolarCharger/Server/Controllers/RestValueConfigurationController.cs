@@ -22,6 +22,26 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpGet]
+    public async Task<ActionResult<List<DtoRestValueConfigurationHeader>>> GetHeadersByConfigurationId(int parentId)
+    {
+        var result = await service.GetHeadersByConfigurationId(parentId);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<int>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
+    {
+        return Ok(new DtoValue<int>(await service.SaveHeader(parentId, dtoData)));
+    }
+
+    [HttpDelete]
+    public async Task<ActionResult> DeleteHeader(int id)
+    {
+        await service.DeleteHeader(id);
+        return Ok();
+    }
+
+    [HttpGet]
     public async Task<ActionResult<List<DtoRestValueResultConfiguration>>> GetResultConfigurationsByConfigurationId(int parentId)
     {
         var result = await service.GetResultConfigurationsByConfigurationId(parentId);
@@ -34,16 +54,10 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
         return Ok(new DtoValue<int>(await service.SaveResultConfiguration(parentId, dtoData)));
     }
 
-    [HttpGet]
-    public async Task<ActionResult<List<DtoRestValueConfigurationHeader>>> GetHeadersByConfigurationId(int parentId)
+    [HttpDelete]
+    public async Task<ActionResult> DeleteResultConfiguration(int id)
     {
-        var result = await service.GetHeadersByConfigurationId(parentId);
-        return Ok(result);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<int>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
-    {
-        return Ok(new DtoValue<int>(await service.SaveHeader(parentId, dtoData)));
+        await service.DeleteResultConfiguration(id);
+        return Ok();
     }
 }

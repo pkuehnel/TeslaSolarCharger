@@ -9,9 +9,11 @@
 @inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
 
+<h2>REST Value configuration</h2>
 @foreach (var editableItem in EditableItems)
 {
     <div class="shadow p-3 mb-5 bg-white rounded">
+        <h3>HTTP Request configuration</h3>
         <EditFormComponent T="DtoRestValueConfiguration" WrappedElement="editableItem" OnValidSubmit="(item) => HandleValidSubmit(item)">
             <ChildContent>
                 <div class="p-2">
@@ -58,7 +60,7 @@
             <div class="p-2">
                 Save Data to enable result configuration
             </div>
-            
+
         }
     </div>
 }

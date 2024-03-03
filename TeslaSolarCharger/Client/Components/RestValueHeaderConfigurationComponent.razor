@@ -4,6 +4,7 @@
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
+<h3>Headers</h3>
 @foreach (var editableItem in EditableItems)
 {
     <div>
@@ -80,7 +81,18 @@
 
     private async Task InvokeDeleteClicked(DtoRestValueConfigurationHeader editableItemItem)
     {
-        throw new NotImplementedException();
+        if(editableItemItem.Id != default)
+        {
+            var result = await HttpClient.DeleteAsync($"/api/RestValueConfiguration/DeleteHeader?id={editableItemItem.Id}");
+            if (!result.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to delete header configuration", Severity.Error);
+                return;
+            }
+            
+        }
+        RestValueResultHeaders.Remove(editableItemItem);
+        Snackbar.Add("Header deleted", Severity.Success);
     }
 
 }

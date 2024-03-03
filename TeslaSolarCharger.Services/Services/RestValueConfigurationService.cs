@@ -90,6 +90,13 @@ public class RestValueConfigurationService(
         return dbData.Id;
     }
 
+    public async Task DeleteHeader(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteHeader), id);
+        context.RestValueConfigurationHeaders.Remove(new RestValueConfigurationHeader { Id = id });
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
     public async Task<List<DtoRestValueResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId)
     {
         logger.LogTrace("{method}({parentId})", nameof(GetResultConfigurationsByConfigurationId), parentId);
@@ -126,5 +133,12 @@ public class RestValueConfigurationService(
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
         return dbData.Id;
+    }
+
+    public async Task DeleteResultConfiguration(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteResultConfiguration), id);
+        context.RestValueResultConfigurations.Remove(new RestValueResultConfiguration { Id = id });
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 }
