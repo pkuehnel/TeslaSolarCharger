@@ -4,6 +4,7 @@
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using MudExtensions
 @inject HttpClient HttpClient
 @inject IConstants Constants
 @inject IStringHelper StringHelper
@@ -20,6 +21,20 @@
             <ChildContent>
                 <div class="d-flex align-items-center">
                     <div class="p-2 flex-grow-1">
+                        <div class="p-2">
+                            <MudSelectExtended T="ValueUsage"
+                                               Variant="Variant.Outlined"
+                                               AnchorOrigin="Origin.BottomCenter"
+                                               @bind-Value="@editableItem.Item.UsedFor"
+                                               Label="Used for">
+                                <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
+                                    @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
+                                    {
+                                        <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                                    }
+                                </MudSelectItemGroupExtended>
+                            </MudSelectExtended>
+                        </div>
                         <div class="row">
                             @if (NodePatternType != NodePatternType.Direct)
                             {
@@ -152,6 +167,11 @@
         }
         RestValueResultConfigurations.Remove(editableItemItem);
         Snackbar.Add("Result configuration deleted", Severity.Success);
+    }
+
+    private void UpdateUsedFor(DtoRestValueResultConfiguration editableItemItem, ValueUsage newItem)
+    {
+        editableItemItem.UsedFor = newItem;
     }
 
 }
