@@ -31,6 +31,20 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     }
 
     [Fact]
+    public async Task Can_Get_PVValueRest_Configurations()
+    {
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var usedFors = new HashSet<ValueUsage>() { ValueUsage.InverterPower, ValueUsage.GridPower, };
+        var restValueConfigurations = await service.GetRestValueConfigurationsByValueUsage(usedFors);
+        Assert.NotEmpty(restValueConfigurations);
+        Assert.Equal(1, restValueConfigurations.Count);
+        var firstValue = restValueConfigurations.First();
+        Assert.Equal(DataGenerator._httpLocalhostApiValues, firstValue.Url);
+        Assert.Equal(DataGenerator._nodePatternType, firstValue.NodePatternType);
+        Assert.Equal(DataGenerator._httpMethod, firstValue.HttpMethod);
+    }
+
+    [Fact]
     public async Task Can_Update_Rest_Configurations()
     {
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();

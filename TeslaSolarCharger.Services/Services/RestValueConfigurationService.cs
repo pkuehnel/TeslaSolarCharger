@@ -6,6 +6,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services;
 
@@ -27,6 +28,37 @@ public class RestValueConfigurationService(
             .ProjectTo<DtoRestValueConfiguration>(mapper)
             .ToListAsync().ConfigureAwait(false);
         return result;
+    }
+
+    public async Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByValueUsage(HashSet<ValueUsage> valueUsages)
+    {
+        logger.LogTrace("{method}({@valueUsages})", nameof(GetRestValueConfigurationsByValueUsage), valueUsages);
+        var resultConfigurations = await context.RestValueConfigurations
+            .Where(r => r.RestValueResultConfigurations.Any(result => valueUsages.Contains(result.UsedFor)))
+            .Select(config => new DtoFullRestValueConfiguration()
+            {
+                Id = config.Id,
+                HttpMethod = config.HttpMethod,
+                NodePatternType = config.NodePatternType,
+                Url = config.Url,
+                Headers = config.Headers.Select(header => new DtoRestValueConfigurationHeader()
+                {
+                    Id = header.Id, Key = header.Key, Value = header.Value,
+                }).ToList(),
+                RestValueResultConfigurations = config.RestValueResultConfigurations
+                    .Where(r => valueUsages.Contains(r.UsedFor))
+                    .Select(result => new DtoRestValueResultConfiguration()
+                    {
+                        Id = result.Id,
+                        NodePattern = result.NodePattern,
+                        CorrectionFactor = result.CorrectionFactor,
+                        Operator = result.Operator,
+                        UsedFor = result.UsedFor,
+                    }).ToList(),
+            })
+            .ToListAsync().ConfigureAwait(false);
+
+        return resultConfigurations;
     }
 
     public async Task<int> SaveRestValueConfiguration(DtoRestValueConfiguration dtoData)

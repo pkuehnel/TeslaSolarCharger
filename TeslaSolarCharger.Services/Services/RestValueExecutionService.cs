@@ -18,18 +18,14 @@ public class RestValueExecutionService(
     /// Get result for each configuration ID
     /// </summary>
     /// <param name="config">Rest Value configuration</param>
-    /// <param name="headers">Headers for REST request</param>
-    /// <param name="resultConfigurations">Configurations to extract the values</param>
     /// <returns>Dictionary with with resultConfiguration as key and resulting value as Value</returns>
     /// <exception cref="InvalidOperationException">Throw if request results in not success status code</exception>
-    public async Task<Dictionary<int, decimal>> GetResult(DtoRestValueConfiguration config,
-        List<DtoRestValueConfigurationHeader> headers,
-        List<DtoRestValueResultConfiguration> resultConfigurations)
+    public async Task<Dictionary<int, decimal>> GetResult(DtoFullRestValueConfiguration config)
     {
-        logger.LogTrace("{method}({@config}, {@headers}, {resultConfigurations})", nameof(GetResult), config, headers, resultConfigurations);
+        logger.LogTrace("{method}({@config})", nameof(GetResult), config);
         var client = new HttpClient();
         var request = new HttpRequestMessage(new HttpMethod(config.HttpMethod.ToString()), config.Url);
-        foreach (var header in headers)
+        foreach (var header in config.Headers)
         {
             request.Headers.Add(header.Key, header.Value);
         }
@@ -41,7 +37,7 @@ public class RestValueExecutionService(
             throw new InvalidOperationException($"Requesting JSON Result with url {config.Url} did result in non success status code: {response.StatusCode} {contentString}");
         }
         var results = new Dictionary<int, decimal>();
-        foreach (var resultConfig in resultConfigurations)
+        foreach (var resultConfig in config.RestValueResultConfigurations)
         {
             var contentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             results.Add(resultConfig.Id, GetValue(contentString, config.NodePatternType, resultConfig));

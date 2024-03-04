@@ -56,6 +56,27 @@ public static class DataGenerator
                     UsedFor = _valueUsage,
                     Operator = _valueOperator,
                 },
+                new RestValueResultConfiguration()
+                {
+                    NodePattern = "$.invPower",
+                    CorrectionFactor = _correctionFactor,
+                    UsedFor = ValueUsage.InverterPower,
+                    Operator = _valueOperator,
+                },
+                new RestValueResultConfiguration()
+                {
+                    NodePattern = "$.batSoc",
+                    CorrectionFactor = _correctionFactor,
+                    UsedFor = ValueUsage.HomeBatterySoc,
+                    Operator = _valueOperator,
+                },
+                new RestValueResultConfiguration()
+                {
+                    NodePattern = "$.batPower",
+                    CorrectionFactor = _correctionFactor,
+                    UsedFor = ValueUsage.HomeBatteryPower,
+                    Operator = _valueOperator,
+                },
             },
         });
         return context;
