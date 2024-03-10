@@ -58,18 +58,6 @@ public class ConfigJsonService(
         var oldCarConfiguration = await teslaSolarChargerContext.CachedCarStates
             .Where(c => c.Key == constants.CarConfigurationKey)
             .ToListAsync().ConfigureAwait(false);
-        if (oldCarConfiguration.Count < 1 && CarConfigurationFileExists())
-        {
-            try
-            {
-                var fileContent = await GetCarConfigurationFileContent().ConfigureAwait(false);
-                cars = DeserializeCarsFromConfigurationString(fileContent);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Could not get car configurations, use default configuration");
-            }
-        }
 
         if (oldCarConfiguration.Count > 0)
         {
@@ -288,13 +276,6 @@ public class ConfigJsonService(
         var cars = await teslaSolarChargerContext.Cars
             .ProjectTo<DtoCar>(mapper)
             .ToListAsync().ConfigureAwait(false);
-        return cars;
-    }
-
-    internal List<DtoCar> DeserializeCarsFromConfigurationString(string fileContent)
-    {
-        logger.LogTrace("{method}({param})", nameof(DeserializeCarsFromConfigurationString), fileContent);
-        var cars = JsonConvert.DeserializeObject<List<DtoCar>>(fileContent) ?? throw new InvalidOperationException("Could not deserialize file content");
         return cars;
     }
 

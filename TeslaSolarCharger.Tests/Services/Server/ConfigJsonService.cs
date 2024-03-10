@@ -64,25 +64,4 @@ public class ConfigJsonService : TestBase
     //    Assert.DoesNotContain(cars, car => car.Id == 4);
     //}
 
-    [Theory]
-    [InlineData("[{\"Id\":1,\"CarConfiguration\":{\"ChargeMode\":1,\"MinimumSoC\":0,\"LatestTimeToReachSoC\":\"2022-04-11T00:00:00\",\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":75}},{\"Id\":2,\"CarConfiguration\":{\"ChargeMode\":2,\"MinimumSoC\":45,\"LatestTimeToReachSoC\":\"2022-04-11T00:00:00\",\"MaximumAmpere\":16,\"MinimumAmpere\":1,\"UsableEnergy\":75}}]")]
-    public void Deserializes_car_configuration(string configString)
-    {
-        var configJsonService = Mock.Create<TeslaSolarCharger.Server.Services.ConfigJsonService>();
-        var cars = configJsonService.DeserializeCarsFromConfigurationString(configString);
-
-        Assert.Equal(2, cars.Count);
-
-        var firstCar = cars.First();
-        var lastCar = cars.Last();
-
-        Assert.Equal(ChargeMode.PvOnly, firstCar.ChargeMode);
-        Assert.Equal(ChargeMode.PvAndMinSoc, lastCar.ChargeMode);
-
-        Assert.Equal(1, firstCar.Id);
-        Assert.Equal(2, lastCar.Id);
-
-        Assert.Equal(0, firstCar.MinimumSoC);
-        Assert.Equal(45, lastCar.MinimumSoC);
-    }
 }
