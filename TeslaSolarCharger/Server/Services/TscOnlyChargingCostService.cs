@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Runtime.InteropServices.JavaScript;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -94,6 +93,10 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .Where(c => c.ValidSince < from)
             .OrderByDescending(c => c.ValidSince)
             .FirstAsync();
+        var fromDateTimeOffset = new DateTimeOffset(from, TimeSpan.Zero);
+        var toDateTimeOffset = new DateTimeOffset(to, TimeSpan.Zero);
+        IPriceDataService priceDataService;
+        List<Price> prices;
         switch (chargePrice.EnergyProvider)
         {
             case EnergyProvider.Octopus:
@@ -101,9 +104,9 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             case EnergyProvider.Tibber:
                 break;
             case EnergyProvider.FixedPrice:
-                var priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
-                var prices = await priceDataService.GetPriceData(from, to, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false);
-                return prices.ToList();
+                priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
+                prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
+                return prices;
             case EnergyProvider.Awattar:
                 break;
             case EnergyProvider.Energinet:
@@ -111,6 +114,9 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             case EnergyProvider.HomeAssistant:
                 break;
             case EnergyProvider.OldTeslaSolarChargerConfig:
+                priceDataService = serviceProvider.GetRequiredService<IOldTscConfigPriceService>();
+                prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.Id.ToString()).ConfigureAwait(false)).ToList();
+                return prices;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

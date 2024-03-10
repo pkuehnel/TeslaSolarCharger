@@ -101,6 +101,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
             .AddTransient<IFixedPriceService, FixedPriceService>()
+            .AddTransient<IOldTscConfigPriceService, OldTscConfigPriceService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {
