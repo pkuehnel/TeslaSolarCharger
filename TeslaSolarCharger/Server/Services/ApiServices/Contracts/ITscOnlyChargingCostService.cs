@@ -3,4 +3,5 @@
 public interface ITscOnlyChargingCostService
 {
     Task AddChargingDetailsForAllCars();
+    Task FinalizeFinishedChargingProcesses();
 }

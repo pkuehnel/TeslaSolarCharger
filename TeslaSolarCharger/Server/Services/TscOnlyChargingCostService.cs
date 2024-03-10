@@ -1,9 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Runtime.InteropServices.JavaScript;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -11,7 +15,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     ITeslaSolarChargerContext context,
     ISettings settings,
     IDateTimeProvider dateTimeProvider,
-    IConfigurationWrapper configurationWrapper) : ITscOnlyChargingCostService
+    IConfigurationWrapper configurationWrapper,
+    IServiceProvider serviceProvider) : ITscOnlyChargingCostService
 {
     public async Task FinalizeFinishedChargingProcesses()
     {
@@ -49,25 +54,68 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     private async Task FinalizeChargingProcess(ChargingProcess chargingProcess)
     {
         logger.LogTrace("{method}({chargingProcessId})", nameof(FinalizeChargingProcess), chargingProcess.Id);
+        
         var chargingDetails = await context.ChargingDetails
             .Where(cd => cd.ChargingProcessId == chargingProcess.Id)
-            .OrderBy(cd => cd.Id)
+            .OrderBy(cd => cd.TimeStamp)
             .ToListAsync().ConfigureAwait(false);
-        decimal usedSolarEnergy = 0;
-        decimal usedGridEnergy = 0;
+        decimal usedSolarEnergyWh = 0;
+        decimal usedGridEnergyWh = 0;
         decimal cost = 0;
+        chargingProcess.EndDate = chargingDetails.Last().TimeStamp;
+        var prices = await GetPricesInTimeSpan(chargingProcess.StartDate, chargingProcess.EndDate.Value);
         for (var index = 1; index < chargingDetails.Count; index++)
         {
+            var price = GetPriceByTimeStamp(prices, chargingDetails[index].TimeStamp);
             var chargingDetail = chargingDetails[index];
             var timeSpanSinceLastDetail = chargingDetail.TimeStamp - chargingDetails[index - 1].TimeStamp;
-            usedSolarEnergy += (decimal)(chargingDetail.SolarPower * timeSpanSinceLastDetail.TotalHours);
-            usedGridEnergy += (decimal)(chargingDetail.GridPower * timeSpanSinceLastDetail.TotalHours);
+            var usedSolarWhSinceLastChargingDetail = (decimal)(chargingDetail.SolarPower * timeSpanSinceLastDetail.TotalHours);
+            usedSolarEnergyWh += usedSolarWhSinceLastChargingDetail;
+            var usedGridPowerSinceLastChargingDetail = (decimal)(chargingDetail.GridPower * timeSpanSinceLastDetail.TotalHours);
+            usedGridEnergyWh += usedGridPowerSinceLastChargingDetail;
+            cost += usedGridPowerSinceLastChargingDetail * price.Value;
+            cost += usedSolarWhSinceLastChargingDetail * price.SolarPrice;
         }
-        chargingProcess.EndDate = chargingDetails.Last().TimeStamp;
-        chargingProcess.UsedSolarEnergy = usedSolarEnergy;
-        chargingProcess.UsedGridEnergy = usedGridEnergy;
+        chargingProcess.UsedSolarEnergyKwh = usedSolarEnergyWh / 1000m;
+        chargingProcess.UsedGridEnergyKwh = usedGridEnergyWh / 1000m;
         chargingProcess.Cost = cost;
         await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private Price GetPriceByTimeStamp(List<Price> prices, DateTime timeStamp)
+    {
+        return prices.First(p => p.ValidFrom <= timeStamp && p.ValidTo > timeStamp);
+    }
+
+    private async Task<List<Price>> GetPricesInTimeSpan(DateTime from, DateTime to)
+    {
+        logger.LogTrace("{method}({from}, {to})", nameof(GetPricesInTimeSpan), from, to);
+        var chargePrice = await context.ChargePrices
+            .Where(c => c.ValidSince < from)
+            .OrderByDescending(c => c.ValidSince)
+            .FirstAsync();
+        switch (chargePrice.EnergyProvider)
+        {
+            case EnergyProvider.Octopus:
+                break;
+            case EnergyProvider.Tibber:
+                break;
+            case EnergyProvider.FixedPrice:
+                var priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
+                var prices = await priceDataService.GetPriceData(from, to, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false);
+                return prices.ToList();
+            case EnergyProvider.Awattar:
+                break;
+            case EnergyProvider.Energinet:
+                break;
+            case EnergyProvider.HomeAssistant:
+                break;
+            case EnergyProvider.OldTeslaSolarChargerConfig:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        throw new NotImplementedException($"Energyprovider {chargePrice.EnergyProvider} is not implemented.");
     }
 
     public async Task AddChargingDetailsForAllCars()

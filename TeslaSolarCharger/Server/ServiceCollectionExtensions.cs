@@ -43,7 +43,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<CarStateCachingJob>()
             .AddTransient<PvValueJob>()
             .AddTransient<ChargingDetailsAddJob>()
-            .AddTransient<HandledChargeFinalizingJob>()
+            .AddTransient<FinishedChargingProcessFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()

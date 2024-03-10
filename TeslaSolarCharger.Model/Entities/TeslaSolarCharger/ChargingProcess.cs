@@ -5,8 +5,8 @@ public class ChargingProcess
     public int Id { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public decimal? UsedGridEnergy { get; set; }
-    public decimal? UsedSolarEnergy { get; set; }
+    public decimal? UsedGridEnergyKwh { get; set; }
+    public decimal? UsedSolarEnergyKwh { get; set; }
     public decimal? Cost { get; set; }
 
     public int CarId { get; set; }

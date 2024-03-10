@@ -51,7 +51,7 @@ public class JobManager
         var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
         var chargingDetailsAddJob = JobBuilder.Create<ChargingDetailsAddJob>().Build();
-        var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
+        var finishedChargingProcessFinalizingJob = JobBuilder.Create<FinishedChargingProcessFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
         var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
@@ -84,7 +84,7 @@ public class JobManager
         var chargingDetailsAddTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
 
-        var handledChargeFinalizingTrigger = TriggerBuilder.Create()
+        var finishedChargingProcessFinalizingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(9)).Build();
 
         var mqttReconnectionTrigger = TriggerBuilder.Create()
@@ -108,7 +108,7 @@ public class JobManager
             {carStateCachingJob, new HashSet<ITrigger> {carStateCachingTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
-            {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
+            {finishedChargingProcessFinalizingJob, new HashSet<ITrigger> {finishedChargingProcessFinalizingTrigger}},
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
