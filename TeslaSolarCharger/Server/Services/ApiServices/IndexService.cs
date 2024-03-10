@@ -21,7 +21,6 @@ public class IndexService : IIndexService
     private readonly ILogger<IndexService> _logger;
     private readonly ISettings _settings;
     private readonly ITeslamateContext _teslamateContext;
-    private readonly IChargingCostService _chargingCostService;
     private readonly ToolTipTextKeys _toolTipTextKeys;
     private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
     private readonly IConfigJsonService _configJsonService;
@@ -30,18 +29,17 @@ public class IndexService : IIndexService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
+    private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
 
-    public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext,
-        IChargingCostService chargingCostService, ToolTipTextKeys toolTipTextKeys,
+    public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext, ToolTipTextKeys toolTipTextKeys,
         ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
         IChargeTimeCalculationService chargeTimeCalculationService,
         IConstants constants, IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider,
-        ITeslaSolarChargerContext teslaSolarChargerContext)
+        ITeslaSolarChargerContext teslaSolarChargerContext, ITscOnlyChargingCostService tscOnlyChargingCostService)
     {
         _logger = logger;
         _settings = settings;
         _teslamateContext = teslamateContext;
-        _chargingCostService = chargingCostService;
         _toolTipTextKeys = toolTipTextKeys;
         _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
         _configJsonService = configJsonService;
@@ -50,6 +48,7 @@ public class IndexService : IIndexService
         _configurationWrapper = configurationWrapper;
         _dateTimeProvider = dateTimeProvider;
         _teslaSolarChargerContext = teslaSolarChargerContext;
+        _tscOnlyChargingCostService = tscOnlyChargingCostService;
     }
 
     public DtoPvValues GetPvValues()
@@ -95,7 +94,7 @@ public class IndexService : IIndexService
                 ChargingSlots = enabledCar.PlannedChargingSlots,
                 State = enabledCar.State,
             };
-            dtoCarBaseValues.DtoChargeSummary = await _chargingCostService.GetChargeSummary(enabledCar.Id).ConfigureAwait(false);
+            dtoCarBaseValues.DtoChargeSummary = await _tscOnlyChargingCostService.GetChargeSummary(enabledCar.Id).ConfigureAwait(false);
             if (enabledCar.ChargeMode == ChargeMode.SpotPrice)
             {
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =

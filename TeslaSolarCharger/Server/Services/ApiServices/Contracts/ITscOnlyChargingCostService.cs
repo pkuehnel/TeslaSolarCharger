@@ -9,4 +9,5 @@ public interface ITscOnlyChargingCostService
     Task UpdateChargePricesOfAllChargingProcesses();
     Task<DtoChargeSummary> GetChargeSummary(int carId);
     Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries();
+    Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int carId);
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
@@ -9,6 +10,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -17,7 +19,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     ISettings settings,
     IDateTimeProvider dateTimeProvider,
     IConfigurationWrapper configurationWrapper,
-    IServiceProvider serviceProvider) : ITscOnlyChargingCostService
+    IServiceProvider serviceProvider,
+    IMapperConfigurationFactory mapperConfigurationFactory) : ITscOnlyChargingCostService
 {
     public async Task FinalizeFinishedChargingProcesses()
     {
@@ -96,6 +99,33 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .ToListAsync().ConfigureAwait(false);
         var chargeSummary = GetChargeSummaryByChargingProcesses(chargingProcesses);
         return chargeSummary;
+    }
+
+    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int carId)
+    {
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            //ToDo: Maybe possible null exceptions as not all members that are nullable in database are also nullable in dto
+            cfg.CreateMap<ChargingProcess, DtoHandledCharge>()
+                .ForMember(d => d.StartTime, opt => opt.MapFrom(h => h.StartDate.ToLocalTime()))
+                .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.Cost))
+                .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergyKwh))
+                .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergyKwh))
+                ;
+        });
+
+        var handledCharges = await context.ChargingProcesses
+            .Where(h => h.CarId == carId && h.Cost != null)
+            .OrderByDescending(h => h.StartDate)
+            .ProjectTo<DtoHandledCharge>(mapper)
+            .ToListAsync().ConfigureAwait(false);
+
+        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy) < 0.1m);
+        foreach (var dtoHandledCharge in handledCharges)
+        {
+            dtoHandledCharge.PricePerKwh = dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy);
+        }
+        return handledCharges;
     }
 
     private static DtoChargeSummary GetChargeSummaryByChargingProcesses(List<ChargingProcess> chargingProcesses)

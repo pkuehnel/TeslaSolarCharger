@@ -41,7 +41,6 @@ else
                     "Price per kWh",
                     "Used Grid kWh",
                     "Used Solar kWh",
-                    "Avg. Spot Price",
                 },
             },
             TableData = new List<DtoTableRow>(),
@@ -57,7 +56,6 @@ else
                     handledCharge.PricePerKwh.ToString("0.0000"),
                     handledCharge.UsedGridEnergy.ToString("0.00"),
                     handledCharge.UsedSolarEnergy.ToString("0.00"),
-                    handledCharge.AverageSpotPrice != null ? ((decimal)handledCharge.AverageSpotPrice).ToString("0.00") : "",
                 },
             });
         }

@@ -199,43 +199,7 @@ public class ChargingCostService(
     {
         return await teslaSolarChargerContext.SpotPrices.ToListAsync().ConfigureAwait(false);
     }
-
-    public async Task<List<DtoHandledCharge>> GetHandledCharges(int carId)
-    {
-        var mapper = mapperConfigurationFactory.Create(cfg =>
-        {
-            //ToDo: Maybe possible null exceptions as not all members that are nullable in database are also nullable in dto
-            cfg.CreateMap<HandledCharge, DtoHandledCharge>()
-                .ForMember(d => d.ChargingProcessId, opt => opt.MapFrom(h => h.ChargingProcessId))
-                .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.CalculatedPrice))
-                .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergy))
-                .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergy))
-                .ForMember(d => d.AverageSpotPrice, opt => opt.MapFrom(h => h.AverageSpotPrice))
-                ;
-        });
-        var handledCharges = await teslaSolarChargerContext.HandledCharges
-            .Where(h => h.CarId == carId && h.CalculatedPrice != null)
-            .ProjectTo<DtoHandledCharge>(mapper)
-            .ToListAsync().ConfigureAwait(false);
-
-        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy) < (decimal)0.1);
-
-        var chargingProcesses = await teslamateContext.ChargingProcesses
-            .Where(c => handledCharges.Select(h => h.ChargingProcessId).Contains(c.Id))
-            .Select(c => new { c.StartDate, ChargingProcessId = c.Id })
-            .ToListAsync().ConfigureAwait(false);
-
-        foreach (var dtoHandledCharge in handledCharges)
-        {
-            var chargingProcess = chargingProcesses
-                .FirstOrDefault(c => c.ChargingProcessId == dtoHandledCharge.ChargingProcessId);
-            dtoHandledCharge.StartTime = chargingProcess?.StartDate.ToLocalTime();
-            dtoHandledCharge.PricePerKwh =
-                dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy);
-        }
-        return handledCharges.OrderByDescending(d => d.StartTime).ToList();
-    }
-
+    
     public async Task<DtoChargePrice> GetChargePriceById(int id)
     {
         logger.LogTrace("{method}({id})", nameof(GetChargePriceById), id);
