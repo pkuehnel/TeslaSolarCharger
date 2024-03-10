@@ -46,7 +46,7 @@ public class ChargingService : TestBase
     {
         Mock.Mock<IDateTimeProvider>()
             .Setup(d => d.DateTimeOffSetNow())
-            .Returns(new DateTimeOffset(2023, 2, 1, 10, 0, 0, TimeSpan.Zero));
+            .Returns(currentDate);
         var car = new DtoCar()
         {
                 PlannedChargingSlots = new List<DtoChargingSlot>() { chargingSlot },
@@ -57,9 +57,9 @@ public class ChargingService : TestBase
 
         chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
         chargingService.DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(car);
-        Assert.Equal(car.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+        Assert.Equal(shouldEnableFullSpeedCharge, car.AutoFullSpeedCharge);
         chargingService.EnableFullSpeedChargeIfWithinPlannedChargingSlot(car);
-        Assert.Equal(car.AutoFullSpeedCharge, shouldEnableFullSpeedCharge);
+        Assert.Equal(shouldEnableFullSpeedCharge, car.AutoFullSpeedCharge);
     }
 
     public static readonly object[][] AutoFullSpeedChargeData =

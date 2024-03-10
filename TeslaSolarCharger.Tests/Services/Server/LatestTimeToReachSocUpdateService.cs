@@ -25,9 +25,9 @@ public class LatestTimeToReachSocUpdateService : TestBase
 
         _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(currentDate));
         var latestTimeToReachSocUpdateService = _fake.Resolve<TeslaSolarCharger.Server.Services.LatestTimeToReachSocUpdateService>();
-        latestTimeToReachSocUpdateService.GetNewLatestTimeToReachSoc(car);
+        var newDate = latestTimeToReachSocUpdateService.GetNewLatestTimeToReachSoc(car);
         
-        Assert.Equal(expectedDate, car.LatestTimeToReachSoC);
+        Assert.Equal(expectedDate, newDate);
     }
 
     public static readonly object[][] CorrectData =
