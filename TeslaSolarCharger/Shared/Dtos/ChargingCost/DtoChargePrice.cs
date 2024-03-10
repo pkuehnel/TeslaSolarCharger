@@ -10,7 +10,6 @@ public class DtoChargePrice
     public DateTime ValidSince { get; set; }
     public EnergyProvider EnergyProvider { get; set; } = EnergyProvider.FixedPrice;
     public string? EnergyProviderConfiguration { get; set; }
-    public List<FixedPrice>? FixedPrices { get; set; }
     [Required]
     public decimal? SolarPrice { get; set; }
     [Required]

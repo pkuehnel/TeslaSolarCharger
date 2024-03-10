@@ -1,13 +1,12 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
-using TeslaSolarCharger.GridPriceProvider.Data;
-using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
-using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
@@ -64,6 +63,7 @@ public class ChargingCostService : IChargingCostService
         chargePrice.EnergyProvider = dtoChargePrice.EnergyProvider;
         chargePrice.AddSpotPriceToGridPrice = dtoChargePrice.AddSpotPriceToGridPrice;
         chargePrice.SpotPriceCorrectionFactor = (dtoChargePrice.SpotPriceSurcharge ?? 0) / 100;
+        chargePrice.EnergyProviderConfiguration = dtoChargePrice.EnergyProviderConfiguration;
         switch (dtoChargePrice.EnergyProvider)
         {
             case EnergyProvider.Octopus:
@@ -71,7 +71,6 @@ public class ChargingCostService : IChargingCostService
             case EnergyProvider.Tibber:
                 break;
             case EnergyProvider.FixedPrice:
-                chargePrice.EnergyProviderConfiguration = _fixedPriceService.GenerateConfigString(dtoChargePrice.FixedPrices ?? throw new InvalidOperationException());
                 break;
             case EnergyProvider.Awattar:
                 break;
@@ -658,7 +657,6 @@ public class ChargingCostService : IChargingCostService
         {
             cfg.CreateMap<ChargePrice, DtoChargePrice>()
                 .ForMember(d => d.SpotPriceSurcharge, opt => opt.MapFrom(c => c.SpotPriceCorrectionFactor * 100))
-                .ForMember(d => d.FixedPrices, opt => opt.Ignore())
                 ;
         });
         var chargePrices = await _teslaSolarChargerContext.ChargePrices
@@ -672,7 +670,6 @@ public class ChargingCostService : IChargingCostService
             case EnergyProvider.Tibber:
                 break;
             case EnergyProvider.FixedPrice:
-                chargePrices.FixedPrices = chargePrices.EnergyProviderConfiguration != null ? _fixedPriceService.ParseConfigString(chargePrices.EnergyProviderConfiguration) : new List<FixedPrice>();
                 break;
             case EnergyProvider.Awattar:
                 break;

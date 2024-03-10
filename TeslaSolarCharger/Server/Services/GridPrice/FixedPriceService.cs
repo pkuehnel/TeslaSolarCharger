@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-using TeslaSolarCharger.GridPriceProvider.Data;
-using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
+using static MudBlazor.CategoryTypes;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
-namespace TeslaSolarCharger.GridPriceProvider.Services;
+namespace TeslaSolarCharger.Server.Services.GridPrice;
 
 public class FixedPriceService : IFixedPriceService
 {
@@ -20,7 +20,7 @@ public class FixedPriceService : IFixedPriceService
 
     public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
     {
-        _logger.LogTrace("{method}({from}, {to}, {fixedPriceStrings}", nameof(GetPriceData), from, to, configString);
+        _logger.LogTrace("{method}({from}, {to})", nameof(GetPriceData), from, to);
         if (string.IsNullOrWhiteSpace(configString))
         {
             throw new ArgumentNullException(nameof(configString));
@@ -110,15 +110,8 @@ public class FixedPriceService : IFixedPriceService
 
         return splitPrices;
     }
-
-
-    public string GenerateConfigString(List<FixedPrice> prices)
-    {
-        var json = JsonConvert.SerializeObject(prices);
-        return json;
-    }
-
-    public List<FixedPrice> ParseConfigString(string configString)
+    
+    private List<FixedPrice> ParseConfigString(string configString)
     {
         var fixedPrices = JsonConvert.DeserializeObject<List<FixedPrice>>(configString);
         if (fixedPrices == null)

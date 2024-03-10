@@ -4,11 +4,11 @@ using GraphQL.Client.Http;
 using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
-using TeslaSolarCharger.GridPriceProvider.Data;
-using TeslaSolarCharger.GridPriceProvider.Data.Options;
-using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+using TeslaSolarCharger.Server.Services.GridPrice.Options;
 
-namespace TeslaSolarCharger.GridPriceProvider.Services;
+namespace TeslaSolarCharger.Server.Services.GridPrice;
 
 public class TibberService : IPriceDataService
 {
@@ -27,6 +27,11 @@ public class TibberService : IPriceDataService
         _options = options.Value;
         _graphQLHttpClientOptions = new GraphQLHttpClientOptions { EndPoint = new Uri(_options.BaseUrl) };
         _graphQLJsonSerializer = graphQLJsonSerializer;
+    }
+
+    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to)
@@ -176,8 +181,5 @@ query PriceData($after: String, $first: Int) {
         public DateTimeOffset StartsAt { get; set; }
     }
 
-    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
-    {
-        throw new NotImplementedException();
-    }
+    
 }

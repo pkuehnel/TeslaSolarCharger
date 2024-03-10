@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TeslaSolarCharger.GridPriceProvider.Data.Options;
+namespace TeslaSolarCharger.Server.Services.GridPrice.Options;
 
 public class EnerginetOptions
 {
@@ -17,7 +17,6 @@ public class EnerginetOptions
 
     public FixedPriceOptions? FixedPrices { get; set; }
 }
-
 public enum EnerginetRegion
 {
     DK1,

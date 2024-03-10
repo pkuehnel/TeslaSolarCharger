@@ -18,6 +18,8 @@ using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.ApiServices;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -98,6 +100,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
+            .AddTransient<IFixedPriceService, FixedPriceService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

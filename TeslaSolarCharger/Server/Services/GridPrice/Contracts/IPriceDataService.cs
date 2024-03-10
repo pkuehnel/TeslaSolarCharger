@@ -1,6 +1,6 @@
-﻿using TeslaSolarCharger.GridPriceProvider.Data;
+﻿using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 
-namespace TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
+namespace TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 
 public interface IPriceDataService
 {

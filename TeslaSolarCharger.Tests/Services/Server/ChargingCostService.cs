@@ -2,8 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using Xunit;
 using Xunit.Abstractions;
 

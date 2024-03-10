@@ -3,9 +3,10 @@
 //using System.Text.Json.Serialization;
 //using TeslaSolarCharger.GridPriceProvider.Data;
 //using TeslaSolarCharger.GridPriceProvider.Data.Options;
+//using TeslaSolarCharger.GridPriceProvider.Services;
 //using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
 
-//namespace TeslaSolarCharger.GridPriceProvider.Services;
+//namespace TeslaSolarCharger.Server.Services.GridPrice;
 
 //public class EnerginetService : IPriceDataService
 //{

@@ -1,17 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
-using TeslaSolarCharger.GridPriceProvider.Data;
-using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
-using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 

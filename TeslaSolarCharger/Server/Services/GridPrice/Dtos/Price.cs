@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.GridPriceProvider.Data;
+﻿namespace TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 
 public class Price
 {

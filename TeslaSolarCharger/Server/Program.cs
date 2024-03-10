@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
-using TeslaSolarCharger.GridPriceProvider;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
@@ -30,7 +29,6 @@ builder.Services.AddSwaggerGen();
 var useFleetApi = configurationManager.GetValue<bool>("UseFleetApi");
 builder.Services.AddMyDependencies(useFleetApi);
 builder.Services.AddSharedDependencies();
-builder.Services.AddGridPriceProvider();
 builder.Services.AddServicesDependencies();
 
 builder.Host.UseSerilog((context, configuration) => configuration

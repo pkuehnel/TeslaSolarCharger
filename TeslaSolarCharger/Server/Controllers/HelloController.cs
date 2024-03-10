@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 

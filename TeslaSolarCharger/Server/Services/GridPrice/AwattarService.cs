@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using TeslaSolarCharger.GridPriceProvider.Data;
-using TeslaSolarCharger.GridPriceProvider.Data.Options;
-using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+using TeslaSolarCharger.Server.Services.GridPrice.Options;
 
-namespace TeslaSolarCharger.GridPriceProvider.Services;
+namespace TeslaSolarCharger.Server.Services.GridPrice;
 
 public class AwattarService : IPriceDataService
 {
@@ -16,6 +16,11 @@ public class AwattarService : IPriceDataService
     {
         _client = client;
         _options = options.Value;
+    }
+
+    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to)
@@ -59,10 +64,5 @@ public class AwattarService : IPriceDataService
     {
         [JsonPropertyName("data")]
         public List<AwattarPrice> Results { get; set; }
-    }
-
-    public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to, string? configString)
-    {
-        throw new NotImplementedException();
     }
 }

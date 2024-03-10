@@ -20,7 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TeslaSolarCharger.GridPriceProvider\TeslaSolarCharger.GridPriceProvider.csproj" />
     <ProjectReference Include="..\TeslaSolarCharger\Shared\TeslaSolarCharger.Shared.csproj" />
   </ItemGroup>
 
