@@ -103,7 +103,7 @@ public class ChargingCostService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private async Task SaveNewChargingProcess(Model.Entities.TeslaSolarCharger.ChargingProcess newChargingProcess)
+    private async Task SaveNewChargingProcess(ChargingProcess newChargingProcess)
     {
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
@@ -234,45 +234,6 @@ public class ChargingCostService(
                 dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy);
         }
         return handledCharges.OrderByDescending(d => d.StartTime).ToList();
-    }
-
-    public async Task<DtoChargeSummary> GetChargeSummary(int carId)
-    {
-        var handledCharges = await teslaSolarChargerContext.HandledCharges
-            .Where(h => h.CalculatedPrice != null && h.CarId == carId)
-            .ToListAsync().ConfigureAwait(false);
-
-        return GetChargeSummary(handledCharges);
-    }
-
-    private DtoChargeSummary GetChargeSummary(List<HandledCharge> handledCharges)
-    {
-        var dtoChargeSummary = new DtoChargeSummary()
-        {
-            ChargeCost = handledCharges.Sum(h => h.CalculatedPrice ?? 0),
-            ChargedGridEnergy = handledCharges.Sum(h => h.UsedGridEnergy ?? 0),
-            ChargedSolarEnergy = handledCharges.Sum(h => h.UsedSolarEnergy ?? 0),
-        };
-
-        return dtoChargeSummary;
-    }
-
-    public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
-    {
-        var handledChargeGroups = (await teslaSolarChargerContext.HandledCharges
-                .Where(h => h.CalculatedPrice != null)
-                .ToListAsync().ConfigureAwait(false))
-            .GroupBy(h => h.CarId).ToList();
-
-        var chargeSummaries = new Dictionary<int, DtoChargeSummary>();
-
-        foreach (var handledChargeGroup in handledChargeGroups)
-        {
-            var list = handledChargeGroup.ToList();
-            chargeSummaries.Add(handledChargeGroup.Key, GetChargeSummary(list));
-        }
-
-        return chargeSummaries;
     }
 
     public async Task<DtoChargePrice> GetChargePriceById(int id)

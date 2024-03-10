@@ -1,66 +1,63 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
-    public class ChargingCostController : ApiBaseController
+    public class ChargingCostController(
+        IChargingCostService chargingCostService,
+        ITscOnlyChargingCostService tscOnlyChargingCostService)
+        : ApiBaseController
     {
-        private readonly IChargingCostService _chargingCostService;
-
-        public ChargingCostController(IChargingCostService chargingCostService)
-        {
-            _chargingCostService = chargingCostService;
-        }
-
         [HttpGet]
         public Task<DtoChargeSummary> GetChargeSummary(int carId)
         {
-            return _chargingCostService.GetChargeSummary(carId);
+            return tscOnlyChargingCostService.GetChargeSummary(carId);
         }
 
         [HttpGet]
         public Task<List<DtoHandledCharge>> GetHandledCharges(int carId)
         {
-            return _chargingCostService.GetHandledCharges(carId);
+            return chargingCostService.GetHandledCharges(carId);
         }
 
         [HttpGet]
         public Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
         {
-            return _chargingCostService.GetChargeSummaries();
+            return tscOnlyChargingCostService.GetChargeSummaries();
         }
 
         [HttpGet]
         public Task<List<DtoChargePrice>> GetChargePrices()
         {
-            return _chargingCostService.GetChargePrices();
+            return chargingCostService.GetChargePrices();
         }
 
         [HttpGet]
         public Task<List<SpotPrice>> GetSpotPrices()
         {
-            return _chargingCostService.GetSpotPrices();
+            return chargingCostService.GetSpotPrices();
         }
 
         [HttpGet]
         public Task<DtoChargePrice> GetChargePriceById(int id)
         {
-            return _chargingCostService.GetChargePriceById(id);
+            return chargingCostService.GetChargePriceById(id);
         }
 
         [HttpDelete]
         public Task DeleteChargePriceById(int id)
         {
-            return _chargingCostService.DeleteChargePriceById(id);
+            return chargingCostService.DeleteChargePriceById(id);
         }
 
         [HttpPost]
         public Task UpdateChargePrice([FromBody] DtoChargePrice chargePrice)
         {
-            return _chargingCostService.UpdateChargePrice(chargePrice);
+            return chargingCostService.UpdateChargePrice(chargePrice);
         }
     }
 }

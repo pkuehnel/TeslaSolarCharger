@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -67,6 +69,46 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 logger.LogError(ex, "Error while updating charge prices of charging process with ID {chargingProcessId}.", chargingProcess.Id);
             }
         }
+    }
+
+    public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
+    {
+        var chargingProcessGroups = (await context.ChargingProcesses
+                .Where(h => h.Cost != null)
+                .ToListAsync().ConfigureAwait(false))
+            .GroupBy(h => h.CarId).ToList();
+        var chargeSummaries = new Dictionary<int, DtoChargeSummary>();
+        foreach (var chargingProcessGroup in chargingProcessGroups)
+        {
+            var list = chargingProcessGroup.ToList();
+            chargeSummaries.Add(chargingProcessGroup.Key, GetChargeSummaryByChargingProcesses(list));
+        }
+
+        return chargeSummaries;
+    }
+
+    public async Task<DtoChargeSummary> GetChargeSummary(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(GetChargeSummary), carId);
+        var chargingProcesses = await context.ChargingProcesses
+            .Where(cp => cp.CarId == carId)
+            .AsNoTracking()
+            .ToListAsync().ConfigureAwait(false);
+        var chargeSummary = GetChargeSummaryByChargingProcesses(chargingProcesses);
+        return chargeSummary;
+    }
+
+    private static DtoChargeSummary GetChargeSummaryByChargingProcesses(List<ChargingProcess> chargingProcesses)
+    {
+        var chargeSummary = new DtoChargeSummary();
+        foreach (var chargingProcess in chargingProcesses)
+        {
+            chargeSummary.ChargeCost += chargingProcess.Cost ?? 0;
+            chargeSummary.ChargedGridEnergy += chargingProcess.UsedGridEnergyKwh ?? 0;
+            chargeSummary.ChargedSolarEnergy += chargingProcess.UsedSolarEnergyKwh ?? 0;
+        }
+
+        return chargeSummary;
     }
 
     private async Task FinalizeChargingProcess(ChargingProcess chargingProcess)
