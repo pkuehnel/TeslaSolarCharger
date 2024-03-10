@@ -103,8 +103,8 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         var firstValue = restValueConfigurations.First();
         var values = await service.GetResultConfigurationsByConfigurationId(firstValue.Id);
         Assert.NotEmpty(values);
-        Assert.Equal(1, values.Count);
-        var firstHeader = values.First();
+        Assert.Equal(4, values.Count);
+        var firstHeader = values.First(v => v.UsedFor == ValueUsage.GridPower);
         Assert.Equal(DataGenerator._nodePattern, firstHeader.NodePattern);
         Assert.Equal(DataGenerator._correctionFactor, firstHeader.CorrectionFactor);
         Assert.Equal(DataGenerator._valueUsage, firstHeader.UsedFor);
