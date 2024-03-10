@@ -50,6 +50,25 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         }
     }
 
+    public async Task UpdateChargePricesOfAllChargingProcesses()
+    {
+        logger.LogTrace("{method}()", nameof(UpdateChargePricesOfAllChargingProcesses));
+        var openChargingProcesses = await context.ChargingProcesses
+            .Where(cp => cp.EndDate != null)
+            .ToListAsync().ConfigureAwait(false);
+        foreach (var chargingProcess in openChargingProcesses)
+        {
+            try
+            {
+                await FinalizeChargingProcess(chargingProcess);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error while updating charge prices of charging process with ID {chargingProcessId}.", chargingProcess.Id);
+            }
+        }
+    }
+
     private async Task FinalizeChargingProcess(ChargingProcess chargingProcess)
     {
         logger.LogTrace("{method}({chargingProcessId})", nameof(FinalizeChargingProcess), chargingProcess.Id);

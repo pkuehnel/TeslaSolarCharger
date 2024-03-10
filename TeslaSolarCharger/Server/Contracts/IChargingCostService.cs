@@ -5,8 +5,6 @@ namespace TeslaSolarCharger.Server.Contracts;
 
 public interface IChargingCostService
 {
-    Task AddPowerDistributionForAllChargingCars();
-    Task FinalizeHandledCharges();
     Task<DtoChargeSummary> GetChargeSummary(int carId);
     Task UpdateChargePrice(DtoChargePrice dtoChargePrice);
     Task<List<DtoChargePrice>> GetChargePrices();
