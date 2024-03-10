@@ -8,6 +8,7 @@ public class ChargingProcess
     public decimal? UsedGridEnergyKwh { get; set; }
     public decimal? UsedSolarEnergyKwh { get; set; }
     public decimal? Cost { get; set; }
+    public bool ConvertedFromOldStructure { get; set; }
 
     public int CarId { get; set; }
 

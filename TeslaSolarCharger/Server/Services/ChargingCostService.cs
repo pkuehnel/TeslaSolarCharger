@@ -2,6 +2,7 @@ using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
@@ -9,6 +10,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using ChargingProcess = TeslaSolarCharger.Model.Entities.TeslaMate.ChargingProcess;
 
@@ -24,12 +26,14 @@ public class ChargingCostService : IChargingCostService
     private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IFixedPriceService _fixedPriceService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IConstants _constants;
 
     public ChargingCostService(ILogger<ChargingCostService> logger,
         ITeslaSolarChargerContext teslaSolarChargerContext, ITeslamateContext teslamateContext,
         IDateTimeProvider dateTimeProvider, ISettings settings,
         IMapperConfigurationFactory mapperConfigurationFactory, IConfigurationWrapper configurationWrapper,
-        IFixedPriceService fixedPriceService)
+        IFixedPriceService fixedPriceService, IServiceProvider serviceProvider, IConstants constants)
     {
         _logger = logger;
         _teslaSolarChargerContext = teslaSolarChargerContext;
@@ -39,6 +43,98 @@ public class ChargingCostService : IChargingCostService
         _mapperConfigurationFactory = mapperConfigurationFactory;
         _configurationWrapper = configurationWrapper;
         _fixedPriceService = fixedPriceService;
+        _serviceProvider = serviceProvider;
+        _constants = constants;
+    }
+
+    public async Task ConvertToNewChargingProcessStructure()
+    {
+        var chargingProcessesConverted =
+            await _teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == _constants.HandledChargesConverted).ConfigureAwait(false);
+        if (chargingProcessesConverted)
+        {
+            return;
+        }
+        var convertedChargingProcesses = await _teslaSolarChargerContext.ChargingProcesses
+            .Where(c => c.ConvertedFromOldStructure)
+            .ToListAsync();
+        var gcCounter = 0;
+        foreach (var convertedChargingProcess in convertedChargingProcesses)
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var scopedTscContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+            var chargingDetails = await scopedTscContext.ChargingDetails
+                .Where(cd => cd.ChargingProcessId == convertedChargingProcess.Id)
+                .ToListAsync().ConfigureAwait(false);
+            scopedTscContext.ChargingDetails.RemoveRange(chargingDetails);
+            await scopedTscContext.SaveChangesAsync().ConfigureAwait(false);
+            _teslaSolarChargerContext.ChargingProcesses.Remove(convertedChargingProcess);
+            await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            if (gcCounter++ % 20 == 0)
+            {
+                _logger.LogInformation("Deleted {counter} converted charging processes before restarting conversion", gcCounter);
+                GC.Collect();
+            }
+        }
+        var handledCharges = await _teslaSolarChargerContext.HandledCharges
+            .Include(h => h.PowerDistributions)
+            .AsNoTracking()
+            .ToListAsync();
+        gcCounter = 0;
+        foreach (var handledCharge in handledCharges)
+        {
+            var teslaMateChargingProcess = _teslamateContext.ChargingProcesses.FirstOrDefault(c => c.Id == handledCharge.ChargingProcessId);
+            if (teslaMateChargingProcess == default)
+            {
+                _logger.LogWarning("Could not find charging process in TeslaMate with ID {id} for handled charge with ID {handledChargeId}", handledCharge.ChargingProcessId, handledCharge.Id);
+                continue;
+            }
+
+            var newChargingProcess = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess()
+            {
+                CarId = handledCharge.CarId,
+                StartDate = teslaMateChargingProcess.StartDate,
+                EndDate = teslaMateChargingProcess.EndDate,
+                UsedGridEnergyKwh = handledCharge.UsedGridEnergy,
+                UsedSolarEnergyKwh = handledCharge.UsedSolarEnergy,
+                Cost = handledCharge.CalculatedPrice,
+                ConvertedFromOldStructure = true,
+            };
+            var chargingDetails = handledCharge.PowerDistributions.Select(p => new ChargingDetail()
+            {
+                TimeStamp = p.TimeStamp,
+                SolarPower = p.ChargingPower - (p.PowerFromGrid < 0 ? 0 : p.PowerFromGrid),
+                GridPower = (p.PowerFromGrid < 0 ? 0 : p.PowerFromGrid),
+            }).ToList();
+            newChargingProcess.ChargingDetails = chargingDetails;
+            try
+            {
+                await SaveNewChargingProcess(newChargingProcess);
+                if (gcCounter++ % 20 == 0)
+                {
+                    _logger.LogInformation("Converted {counter} charging processes...", gcCounter);
+                    GC.Collect();
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting handled charge with ID {handledChargeId} to new charging process structure", handledCharge.Id);
+            }
+        }
+        _teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+        {
+            Key = _constants.HandledChargesConverted,
+            Value = "true",
+        });
+        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private async Task SaveNewChargingProcess(Model.Entities.TeslaSolarCharger.ChargingProcess newChargingProcess)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        context.ChargingProcesses.Add(newChargingProcess);
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task UpdateChargePrice(DtoChargePrice dtoChargePrice)
@@ -367,6 +463,8 @@ public class ChargingCostService : IChargingCostService
         }
         return handledCharges.OrderByDescending(d => d.StartTime).ToList();
     }
+
+    
 
     public async Task FinalizeHandledCharges()
     {

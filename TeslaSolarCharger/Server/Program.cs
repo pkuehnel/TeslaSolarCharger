@@ -90,8 +90,9 @@ try
 
     var chargingCostService = app.Services.GetRequiredService<IChargingCostService>();
     await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
-
     
+
+
     await configurationWrapper.TryAutoFillUrls().ConfigureAwait(false);
 
     var telegramService = app.Services.GetRequiredService<ITelegramService>();
@@ -100,11 +101,15 @@ try
     var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
     await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
     await configJsonService.AddCarsToSettings().ConfigureAwait(false);
+    //This needs to be done after converting old cars to new cars as IDs might change
+    await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
 
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
     var pvValueService = app.Services.GetRequiredService<IPvValueService>();
     await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
+
+    
 
     var teslaFleetApiService = app.Services.GetRequiredService<ITeslaFleetApiService>();
     var settings = app.Services.GetRequiredService<ISettings>();
@@ -114,7 +119,7 @@ try
     }
 
     var jobManager = app.Services.GetRequiredService<JobManager>();
-    //if (!Debugger.IsAttached)
+    if (!Debugger.IsAttached)
     {
         await jobManager.StartJobs().ConfigureAwait(false);
     }
