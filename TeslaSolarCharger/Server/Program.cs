@@ -116,7 +116,7 @@ try
     }
 
     var jobManager = app.Services.GetRequiredService<JobManager>();
-    if (!Debugger.IsAttached)
+    //if (!Debugger.IsAttached)
     {
         await jobManager.StartJobs().ConfigureAwait(false);
     }

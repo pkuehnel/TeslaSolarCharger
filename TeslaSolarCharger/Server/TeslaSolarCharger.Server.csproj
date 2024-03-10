@@ -76,6 +76,7 @@
 	<ItemGroup>
 		<Folder Include="Enums\" />
 		<Folder Include="MappingExtensions\" />
+		<Folder Include="Services\GridPrice\Contracts\" />
 	</ItemGroup>
 
 

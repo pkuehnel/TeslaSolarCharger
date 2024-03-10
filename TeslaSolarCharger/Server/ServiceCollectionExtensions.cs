@@ -40,7 +40,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ChargingValueJob>()
             .AddTransient<CarStateCachingJob>()
             .AddTransient<PvValueJob>()
-            .AddTransient<PowerDistributionAddJob>()
+            .AddTransient<ChargingDetailsAddJob>()
             .AddTransient<HandledChargeFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
@@ -97,6 +97,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslamateApiService, TeslamateApiService>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
             .AddTransient<IBackendApiService, BackendApiService>()
+            .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

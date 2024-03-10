@@ -50,7 +50,7 @@ public class JobManager
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
         var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
-        var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
+        var chargingDetailsAddJob = JobBuilder.Create<ChargingDetailsAddJob>().Build();
         var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
@@ -81,8 +81,8 @@ public class JobManager
         var carStateCachingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
-        var powerDistributionAddTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(16)).Build();
+        var chargingDetailsAddTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
 
         var handledChargeFinalizingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(9)).Build();
@@ -107,7 +107,7 @@ public class JobManager
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
             {carStateCachingJob, new HashSet<ITrigger> {carStateCachingTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
-            {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
+            {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
             {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},

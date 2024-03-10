@@ -40,4 +40,6 @@ public class Car
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public CarStateEnum? State { get; set; }
+
+    public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
 }

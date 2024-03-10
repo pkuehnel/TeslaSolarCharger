@@ -4,6 +4,7 @@ namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
 public class DtoCar
 {
+    private int? _chargingPower;
     public int Id { get; set; }
     public string Vin { get; set; }
     public int? TeslaMateCarId { get; set; }
@@ -67,7 +68,19 @@ public class DtoCar
         }
     }
 
-    private int? ChargingPower { get; set; }
+    private int? ChargingPower
+    {
+        get
+        {
+            if (_chargingPower == default)
+            {
+                return ChargerActualCurrent * ChargerVoltage * ActualPhases;
+            }
+            return _chargingPower;
+        }
+        set => _chargingPower = value;
+    }
+
     public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
