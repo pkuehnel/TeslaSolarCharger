@@ -61,6 +61,32 @@ var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper
 
 try
 {
+    var shouldRetry = false;
+    var teslaMateContext = app.Services.GetRequiredService<ITeslamateContext>();
+    try
+    {
+        var geofences = await teslaMateContext.Geofences.ToListAsync();
+    }
+    catch (Exception ex)
+    {
+        shouldRetry = true;
+        logger.LogError(ex, "TeslaMate Database not ready yet. Waiting for 20 seconds.");
+        await Task.Delay(20000);
+    }
+
+    if (shouldRetry)
+    {
+        try
+        {
+            var geofences = await teslaMateContext.Geofences.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "TeslaMate Database still not ready. Throwing exception.");
+            throw new Exception("TeslaMate database is not available. Check the database and restart TSC.");
+        }
+    }
+
     var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
     await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
     await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
