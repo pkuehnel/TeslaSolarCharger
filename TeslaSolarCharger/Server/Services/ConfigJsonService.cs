@@ -70,9 +70,17 @@ public class ConfigJsonService(
                     continue;
                 }
 
+                var teslaMateDatabaseCar = await teslamateContext.Cars.FirstOrDefaultAsync(c => c.Id == databaseCarConfiguration.CarId)
+                    .ConfigureAwait(false);
+                if (teslaMateDatabaseCar == default)
+                {
+                    logger.LogError("Car with id {carId} not found in teslamate database. Can not be converted.", databaseCarConfiguration.CarId);
+                    continue;
+                }
                 cars.Add(new DtoCar()
                 {
-                    Vin = (await teslamateContext.Cars.FirstOrDefaultAsync(c => c.Id == databaseCarConfiguration.CarId).ConfigureAwait(false))?.Vin ?? string.Empty,
+                    Vin = teslaMateDatabaseCar.Vin ?? string.Empty,
+                    Name = teslaMateDatabaseCar.Name ?? string.Empty,
                     TeslaMateCarId = databaseCarConfiguration.CarId,
                     ChargeMode = configuration.ChargeMode,
                     MinimumSoC = configuration.MinimumSoC,
@@ -332,7 +340,6 @@ public class ConfigJsonService(
                 continue;
             }
 
-            car.Name = carState.Name;
             car.SoC = carState.SoC;
             car.SocLimit = carState.SocLimit;
             car.ChargerPhases = carState.ChargerPhases;
