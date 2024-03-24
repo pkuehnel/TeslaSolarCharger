@@ -30,7 +30,7 @@ public class ChargingCostService(
             return;
         }
         var convertedChargingProcesses = await teslaSolarChargerContext.ChargingProcesses
-            .Where(c => c.ConvertedFromOldStructure)
+            .Where(c => c.OldHandledChargeId != null)
             .ToListAsync();
         var gcCounter = 0;
         foreach (var convertedChargingProcess in convertedChargingProcesses)
@@ -72,7 +72,7 @@ public class ChargingCostService(
                 UsedGridEnergyKwh = handledCharge.UsedGridEnergy,
                 UsedSolarEnergyKwh = handledCharge.UsedSolarEnergy,
                 Cost = handledCharge.CalculatedPrice,
-                ConvertedFromOldStructure = true,
+                OldHandledChargeId = handledCharge.Id,
             };
             var chargingDetails = handledCharge.PowerDistributions.Select(p => new ChargingDetail()
             {
