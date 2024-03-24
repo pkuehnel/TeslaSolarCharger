@@ -168,7 +168,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         }
         chargingProcess.UsedSolarEnergyKwh = usedSolarEnergyWh / 1000m;
         chargingProcess.UsedGridEnergyKwh = usedGridEnergyWh / 1000m;
-        chargingProcess.Cost = cost;
+        chargingProcess.Cost = cost / 1000m;
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
@@ -185,7 +185,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .OrderByDescending(c => c.ValidSince)
             .FirstAsync();
         var fromDateTimeOffset = new DateTimeOffset(from, TimeSpan.Zero);
-        var toDateTimeOffset = new DateTimeOffset(to, TimeSpan.Zero);
+        var toDateTimeOffset = new DateTimeOffset(to.AddMilliseconds(1), TimeSpan.Zero);
         IPriceDataService priceDataService;
         List<Price> prices;
         switch (chargePrice.EnergyProvider)
