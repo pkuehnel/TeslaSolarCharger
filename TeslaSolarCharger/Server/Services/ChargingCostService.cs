@@ -57,6 +57,11 @@ public class ChargingCostService(
         gcCounter = 0;
         foreach (var handledCharge in handledCharges)
         {
+            if (handledCharge.CalculatedPrice == null || handledCharge.UsedGridEnergy == null || handledCharge.UsedSolarEnergy == null)
+            {
+                logger.LogWarning("Handled charge with ID {handledChargeId} has missing data and will not be converted", handledCharge.Id);
+                continue;
+            }
             var teslaMateChargingProcess = teslamateContext.ChargingProcesses.FirstOrDefault(c => c.Id == handledCharge.ChargingProcessId);
             if (teslaMateChargingProcess == default)
             {
