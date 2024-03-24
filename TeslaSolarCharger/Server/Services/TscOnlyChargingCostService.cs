@@ -218,7 +218,15 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     public async Task AddChargingDetailsForAllCars()
     {
         logger.LogTrace("{method}()", nameof(AddChargingDetailsForAllCars));
-        var availableSolarPower = GetSolarPower();
+        var overage = GetOverage();
+        var solarPower = overage;
+        foreach (var car in settings.Cars)
+        {
+            if (car.ChargingPowerAtHome != default)
+            {
+                solarPower += car.ChargingPowerAtHome.Value;
+            }
+        }
         foreach (var car in settings.CarsToManage.OrderBy(c => c.ChargingPriority))
         {
             var chargingPowerAtHome = car.ChargingPowerAtHome ?? 0;
@@ -228,43 +236,54 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 continue;
             }
             var chargingDetail = await GetAttachedChargingDetail(car.Id);
-            if (chargingPowerAtHome < availableSolarPower)
+            if (solarPower - chargingPowerAtHome > 0)
             {
                 chargingDetail.SolarPower = chargingPowerAtHome;
                 chargingDetail.GridPower = 0;
             }
             else
             {
-                chargingDetail.SolarPower = availableSolarPower;
-                chargingDetail.GridPower = chargingPowerAtHome - availableSolarPower;
+                chargingDetail.SolarPower = (solarPower < 0 ? 0 : solarPower);
+                if (solarPower < 0)
+                {
+                    chargingDetail.GridPower = chargingPowerAtHome;
+                }
+                else
+                {
+                    chargingDetail.GridPower = chargingPowerAtHome - solarPower;
+                }
             }
-            availableSolarPower -= chargingDetail.SolarPower;
-            if (availableSolarPower < 0)
+            solarPower -= chargingDetail.SolarPower;
+            if (solarPower < 0)
             {
-                availableSolarPower = 0;
+                solarPower = 0;
             }
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private int GetSolarPower()
+    private int GetOverage()
     {
-        var solarPower = settings.Overage;
-        if (solarPower == default && settings.InverterPower != default)
+        var overage = settings.Overage;
+        if (settings.HomeBatteryPower != default)
+        {
+            overage += settings.HomeBatteryPower;
+        }
+        if (overage == default && settings.InverterPower != default)
         {
             //no grid meter available, so we have to calculate the power by using the inverter power and the power buffer
             var powerBuffer = configurationWrapper.PowerBuffer(true);
-            solarPower = settings.InverterPower
+            overage = settings.InverterPower
                          //if powerBuffer is negative, it will be subtracted as it should be expected home power usage when no grid meter is available
                          - (powerBuffer > 0 ? powerBuffer : 0);
         }
 
-        if (solarPower == default)
+        if (overage == default)
         {
             logger.LogInformation("No solar power available, using 0 as default.");
             return 0;
         }
-        return (int)solarPower;
+        return (int)overage;
     }
 
     private async Task<ChargingDetail> GetAttachedChargingDetail(int carId)
@@ -291,6 +310,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         else
         {
             chargingDetail.ChargingProcessId = latestOpenChargingProcessId;
+            context.ChargingDetails.Add(chargingDetail);
         }
         return chargingDetail;
     }

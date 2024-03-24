@@ -14,5 +14,5 @@ public class ChargingProcess
 
     public Car Car { get; set; } = null!;
 
-    public List<ChargingDetail> ChargingDetails { get; set; }
+    public List<ChargingDetail> ChargingDetails { get; set; } = new();
 }
