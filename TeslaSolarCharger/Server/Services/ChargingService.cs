@@ -126,7 +126,7 @@ public class ChargingService : IChargingService
             return;
         }
 
-        var powerToControl = CalculatePowerToControl(_settings.ControlledACarAtLastCycle);
+        var powerToControl = CalculatePowerToControl();
 
         _logger.LogDebug("At least one car is charging.");
         _settings.ControlledACarAtLastCycle = true;
@@ -212,14 +212,13 @@ public class ChargingService : IChargingService
         return Convert.ToInt32(Math.Floor(powerToControl / ((double)(_settings.AverageHomeGridVoltage ?? 230) * dtoCar.ActualPhases)));
     }
 
-    public int CalculatePowerToControl(bool calculateAverage)
+    public int CalculatePowerToControl()
     {
-        _logger.LogTrace("{method}({calculateAverage})", nameof(CalculatePowerToControl), calculateAverage);
+        _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
 
         var buffer = _configurationWrapper.PowerBuffer(true);
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-        var averagedOverage =
-            calculateAverage ? _pvValueService.GetAveragedOverage() : (_settings.Overage ?? _constants.DefaultOverage);
+        var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
         if (_configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None
@@ -527,7 +526,7 @@ public class ChargingService : IChargingService
     private void UpdateShouldStartStopChargingSince(DtoCar dtoCar)
     {
         _logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), dtoCar.Id);
-        var powerToControl = CalculatePowerToControl(false);
+        var powerToControl = CalculatePowerToControl();
         var ampToSet = CalculateAmpByPowerAndCar(powerToControl, dtoCar);
         _logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
         if (dtoCar.IsHomeGeofence == true)

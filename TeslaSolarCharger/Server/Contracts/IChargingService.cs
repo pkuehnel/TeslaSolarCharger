@@ -6,7 +6,7 @@ public interface IChargingService
 {
     Task SetNewChargingValues();
     int CalculateAmpByPowerAndCar(int powerToControl, DtoCar dtoCar);
-    int CalculatePowerToControl(bool calculateAverage);
+    int CalculatePowerToControl();
     List<int> GetRelevantCarIds();
     int GetBatteryTargetChargingPower();
 }

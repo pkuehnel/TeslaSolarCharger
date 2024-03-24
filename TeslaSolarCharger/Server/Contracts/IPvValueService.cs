@@ -6,7 +6,6 @@ namespace TeslaSolarCharger.Server.Contracts;
 public interface IPvValueService
 {
     Task UpdatePvValues();
-    int GetAveragedOverage();
     void AddOverageValueToInMemoryList(int overage);
 
     int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor,

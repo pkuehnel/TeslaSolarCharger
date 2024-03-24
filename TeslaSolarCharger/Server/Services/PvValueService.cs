@@ -374,30 +374,6 @@ public class PvValueService : IPvValueService
         return request;
     }
 
-    public int GetAveragedOverage()
-    {
-        _logger.LogTrace("{method}()", nameof(GetAveragedOverage));
-        long weightedSum = 0;
-        if (_settings.Overage == null)
-        {
-            return _constants.DefaultOverage;
-        }
-        _logger.LogTrace("Build weighted average of {count} values", _inMemoryValues.OverageValues.Count);
-        for (var i = 0; i < _inMemoryValues.OverageValues.Count; i++)
-        {
-            _logger.LogTrace("Power Value: {value}", _inMemoryValues.OverageValues[i]);
-            weightedSum += _inMemoryValues.OverageValues[i] * (i + 1);
-            _logger.LogTrace("weightedSum: {value}", weightedSum);
-        }
-        var weightedCount = _inMemoryValues.OverageValues.Count * (_inMemoryValues.OverageValues.Count + 1) / 2;
-        if (weightedCount == 0)
-        {
-            _logger.LogWarning("There are no power values available, use default value of {defaultValue}", _constants.DefaultOverage);
-            return _constants.DefaultOverage;
-        }
-        return (int)(weightedSum / weightedCount);
-    }
-
     public void ClearOverageValues()
     {
         _inMemoryValues.OverageValues.Clear();
