@@ -37,6 +37,81 @@ public class RestValueExecutionService(ITestOutputHelper outputHelper) : TestBas
     }
 
     [Fact]
+    public void Can_Get_Negative_Direct_Value()
+    {
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueExecutionService>();
+        var json = "-1504";
+        var value = service.GetValue(json, NodePatternType.Direct, new DtoRestValueResultConfiguration
+        {
+            Id = 1,
+            Operator = ValueOperator.Plus,
+            UsedFor = ValueUsage.GridPower,
+            CorrectionFactor = 1m,
+        });
+        Assert.Equal(-1504, value);
+    }
+
+    [Fact]
+    public void Can_Get_Positive_Direct_Value()
+    {
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueExecutionService>();
+        var json = "1504";
+        var value = service.GetValue(json, NodePatternType.Direct, new DtoRestValueResultConfiguration
+        {
+            Id = 1,
+            Operator = ValueOperator.Plus,
+            UsedFor = ValueUsage.GridPower,
+            CorrectionFactor = 1m,
+        });
+        Assert.Equal(1504, value);
+    }
+
+    [Fact]
+    public void Can_Get_Positive_Decimal_Direct_Value()
+    {
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueExecutionService>();
+        var json = "1504.87";
+        var value = service.GetValue(json, NodePatternType.Direct, new DtoRestValueResultConfiguration
+        {
+            Id = 1,
+            Operator = ValueOperator.Plus,
+            UsedFor = ValueUsage.GridPower,
+            CorrectionFactor = 1m,
+        });
+        Assert.Equal(1504.87m, value);
+    }
+
+    [Fact]
+    public void Can_Get_Negative_Decimal_Direct_Value()
+    {
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueExecutionService>();
+        var json = "-1504.87";
+        var value = service.GetValue(json, NodePatternType.Direct, new DtoRestValueResultConfiguration
+        {
+            Id = 1,
+            Operator = ValueOperator.Plus,
+            UsedFor = ValueUsage.GridPower,
+            CorrectionFactor = 1m,
+        });
+        Assert.Equal(-1504.87m, value);
+    }
+
+    [Fact]
+    public void Can_Get_Positive_Decimal_Comma_Direct_Value()
+    {
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueExecutionService>();
+        var json = "1504,87";
+        var value = service.GetValue(json, NodePatternType.Direct, new DtoRestValueResultConfiguration
+        {
+            Id = 1,
+            Operator = ValueOperator.Plus,
+            UsedFor = ValueUsage.GridPower,
+            CorrectionFactor = 1m,
+        });
+        Assert.Equal(150487m, value);
+    }
+
+    [Fact]
     public void CanCalculateCorrectionFactor()
     {
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueExecutionService>();

@@ -52,12 +52,12 @@ public class RestValueExecutionService(
         switch (configNodePatternType)
         {
             case NodePatternType.Direct:
-                rawValue = decimal.Parse(responseString, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+                rawValue = decimal.Parse(responseString, NumberStyles.Number, CultureInfo.InvariantCulture);
                 break;
             case NodePatternType.Json:
                 var jsonTokenString = (JObject.Parse(responseString).SelectToken(resultConfig.NodePattern ?? throw new ArgumentNullException(nameof(resultConfig.NodePattern))) ??
                           throw new InvalidOperationException("Could not find token by pattern")).Value<string>() ?? "0";
-                rawValue = decimal.Parse(jsonTokenString, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+                rawValue = decimal.Parse(jsonTokenString, NumberStyles.Number, CultureInfo.InvariantCulture);
                 break;
             case NodePatternType.Xml:
                 var xmlDocument = new XmlDocument();
@@ -82,7 +82,7 @@ public class RestValueExecutionService(
                         }
                         break;
                 }
-                rawValue = decimal.Parse(xmlTokenString, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+                rawValue = decimal.Parse(xmlTokenString, NumberStyles.Number, CultureInfo.InvariantCulture);
                 break;
             default:
                 throw new InvalidOperationException($"NodePatternType {configNodePatternType} not supported");
