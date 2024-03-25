@@ -1,65 +1,76 @@
 ﻿@page "/HandledCharges/{carId:int}"
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
-@using TeslaSolarCharger.Shared.Dtos.Table
+@using TeslaSolarCharger.Shared.Helper.Contracts
 @inject HttpClient HttpClient
+@inject IStringHelper StringHelper
 
 <h1>HandledChargesList</h1>
 
-@if (_tableContent == null)
+@if (_handledCharges == null)
 {
     <div class="spinner"></div>
 }
 else
 {
-    <TableComponent 
-        Content="@_tableContent"></TableComponent>
+    <MudDataGrid Items="_handledCharges" Groupable="true" Filterable="true"
+                 Hover="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
+                 Height="calc(100vh - 13rem);">
+        <Columns>
+            <PropertyColumn Property="x => x.StartTime"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))"></PropertyColumn>
+            <PropertyColumn Property="x => x.CalculatedPrice"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.CalculatedPrice))"
+                            AggregateDefinition="_calculatedPriceAggregation">
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.PricePerKwh"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.PricePerKwh))"
+                            AggregateDefinition="_pricePerKwhAggregation"></PropertyColumn>
+            <PropertyColumn Property="x => x.UsedGridEnergy"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedGridEnergy))"
+                            AggregateDefinition="_usedGridEnergyAggrregation"></PropertyColumn>
+            <PropertyColumn Property="x => x.UsedSolarEnergy"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedSolarEnergy))"
+                            AggregateDefinition="_usedSolarEnergyAggrregation"></PropertyColumn>
+        </Columns>
+    </MudDataGrid>
 }
 
 @code {
     [Parameter]
     public int CarId { get; set; }
 
+    private List<DtoHandledCharge>? _handledCharges;
+    private AggregateDefinition<DtoHandledCharge> _calculatedPriceAggregation = new AggregateDefinition<DtoHandledCharge>()
+    {
+        Type = AggregateType.Sum,
+        DisplayFormat = "Sum: {value}",
+    };
 
-    private DtoTableContent? _tableContent;
+    private AggregateDefinition<DtoHandledCharge> _pricePerKwhAggregation = new AggregateDefinition<DtoHandledCharge>()
+        {
+            Type = AggregateType.Custom,
+            CustomAggregate = x =>
+            {
+                var averagePricePerKwh = x.Average(z => z.PricePerKwh);
+                var resultString = $"Average: {averagePricePerKwh:F3}";
+                return resultString;
+            }
+        };
+
+    private AggregateDefinition<DtoHandledCharge> _usedSolarEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
+        {
+            Type = AggregateType.Sum,
+            DisplayFormat = "Sum: {value}",
+        };
+
+    private AggregateDefinition<DtoHandledCharge> _usedGridEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
+    {
+        Type = AggregateType.Sum,
+        DisplayFormat = "Sum: {value}",
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        var handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
-        _tableContent = GeneratePlannedChargingSlotsTableContent(handledCharges);
-    }
-
-    private DtoTableContent GeneratePlannedChargingSlotsTableContent(List<DtoHandledCharge> handledCharges)
-    {
-        var table = new DtoTableContent()
-        {
-            TableHeader = new DtoTableRow()
-            {
-                Elements = new List<string?>()
-                {
-                    "Start time",
-                    "Charge Cost",
-                    "Price per kWh",
-                    "Used Grid kWh",
-                    "Used Solar kWh",
-                },
-            },
-            TableData = new List<DtoTableRow>(),
-        };
-        foreach (var handledCharge in handledCharges)
-        {
-            table.TableData.Add(new DtoTableRow()
-            {
-                Elements = new List<string?>()
-                {
-                    handledCharge.StartTime?.ToString("g"),
-                    handledCharge.CalculatedPrice.ToString("0.00"),
-                    handledCharge.PricePerKwh.ToString("0.0000"),
-                    handledCharge.UsedGridEnergy.ToString("0.00"),
-                    handledCharge.UsedSolarEnergy.ToString("0.00"),
-                },
-            });
-        }
-
-        return table;
+        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
     }
 }
