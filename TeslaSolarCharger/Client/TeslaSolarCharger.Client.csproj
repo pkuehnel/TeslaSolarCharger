@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -6,6 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Components\Dialogs\**" />
+    <Content Remove="Components\Dialogs\**" />
+    <EmbeddedResource Remove="Components\Dialogs\**" />
+    <None Remove="Components\Dialogs\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Remove="Components\TooltipComponent.razor.css" />
@@ -16,9 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="6.9.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.3" PrivateAssets="all" />
-    <PackageReference Include="MudBlazor" Version="6.18.0" />
+    <PackageReference Include="MudBlazor" Version="6.19.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,8 +38,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Components\Dialogs\" />
     <Folder Include="Enums\" />
+    <Folder Include="Wrapper\" />
   </ItemGroup>
 
 </Project>

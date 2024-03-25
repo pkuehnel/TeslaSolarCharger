@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;

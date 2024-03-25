@@ -7,7 +7,8 @@ namespace TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 public class DtoCarBaseStates
 {
     public int CarId { get; set; }
-    public string? NameOrVin { get; set; }
+    public string? Name { get; set; }
+    public string? Vin { get; set; }
     public int? StateOfCharge { get; set; }
     public int? StateOfChargeLimit { get; set; }
     public int? HomeChargePower { get; set; }

@@ -1,19 +1,14 @@
 ﻿using System.Net.Http;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedModel.Enums;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
-public class PvValueService : TestBase
+public class PvValueService(ITestOutputHelper outputHelper) : TestBase(outputHelper)
 {
-    public PvValueService(ITestOutputHelper outputHelper)
-        : base(outputHelper)
-    {
-    }
-
-
     [Theory]
     [InlineData("384")]
     [InlineData("384.0")]

@@ -24,16 +24,13 @@ public class TeslaMateMqttService : TestBase
     [InlineData("8")]
     public void ReducesActualCurrentToLastSetAmpIfDifferenceIsOneAndBelow5AAndEqualToRequestedCurrent(string value)
     {
-        var cars = new List<Car>()
+        var cars = new List<DtoCar>()
         {
-            new Car()
+            new DtoCar()
             {
                 Id = 1,
-                CarState = new CarState()
-                {
                     LastSetAmp = 3,
                     ChargerRequestedCurrent = 3,
-                },
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
@@ -51,17 +48,17 @@ public class TeslaMateMqttService : TestBase
         switch (value)
         {
             case "1":
-                Assert.Equal(1, cars.First().CarState.ChargerActualCurrent);
+                Assert.Equal(1, cars.First().ChargerActualCurrent);
                 break;
             case "3":
             case "4":
-                Assert.Equal(3, cars.First().CarState.ChargerActualCurrent);
+                Assert.Equal(3, cars.First().ChargerActualCurrent);
                 break;
             case "5":
-                Assert.Equal(5, cars.First().CarState.ChargerActualCurrent);
+                Assert.Equal(5, cars.First().ChargerActualCurrent);
                 break;
             case "8":
-                Assert.Equal(8, cars.First().CarState.ChargerActualCurrent);
+                Assert.Equal(8, cars.First().ChargerActualCurrent);
                 break;
             default:
                 throw new NotImplementedException();

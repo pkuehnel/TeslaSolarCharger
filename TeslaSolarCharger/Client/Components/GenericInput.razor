@@ -1,0 +1,671 @@
+@using System.Linq.Expressions
+@using System.Reflection
+@using System.ComponentModel.DataAnnotations
+@using System.ComponentModel
+@using MudExtensions
+@using TeslaSolarCharger.Shared.Attributes
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject IConstants Constants
+@inject IStringHelper StringHelper
+@* ReSharper disable once InconsistentNaming *@
+@inject IJSRuntime JSRuntime
+
+@typeparam T
+
+@if (!EqualityComparer<T>.Default.Equals(Value, default(T)) || !IsReadOnly)
+{
+    <div class="d-flex align-items-center">
+        <div class="p-2 flex-grow-1">
+            <div>
+                @if (typeof(T) == typeof(DateTime?))
+                {
+                    <MudDatePicker @bind-Date="DateValue"
+                                   For="@(ForDateTime)"
+                                   Required="@IsRequired"
+                                   Label="@LabelName"
+                                   Disabled="IsDisabled"
+                                   ReadOnly="IsReadOnly"
+                                   Variant="Variant.Outlined"
+                                   Margin="InputMargin"/>
+                }
+                else if (DropDownOptions != default && typeof(T) == typeof(int?))
+                {
+                    <MudSelectExtended T="int?"
+                                       @bind-Value="@NullableIntValue"
+                                       SearchBox="true"
+                                       For="@(ForNullableInt)"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<int?, string>(x => DropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
+                                       ItemCollection="@DropDownOptions.Keys.Select(k => (int?)k).ToList()">
+                    </MudSelectExtended>
+                }
+                else if (DropDownOptions != default && typeof(T) == typeof(HashSet<int>))
+                {
+                    <MudSelectExtended T="int"
+                                       MultiSelection="true"
+                                       @bind-Value="@MultiSelectValue"
+                                       @bind-SelectedValues="SelectedMultiSelectValues"
+                                       SearchBox="true"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<int, string>(x => DropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
+                                       ItemCollection="@DropDownOptions.Keys.ToList()">
+                    </MudSelectExtended>
+                }
+                else if (StringIdDropDownOptions != default && typeof(T) == typeof(string))
+                {
+                    @* Even though compiler says ?? string.Empty is not needed in ToStringFunc, it is needed. *@
+                    <MudSelectExtended T="string"
+                                       @bind-Value="@NullableStringValue"
+                                       For="@(ForNullableString)"
+                                       SearchBox="true"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
+                                       ItemCollection="@StringIdDropDownOptions.Keys.ToList()">
+                    </MudSelectExtended>
+                }
+                else if (StringIdDropDownOptions != default && typeof(T) == typeof(HashSet<string>))
+                {
+                    //ToDo: For label is missing
+                    @* Even though compiler says ?? string.Empty is not needed in ToStringFunc, it is needed. *@
+                    <MudSelectExtended T="string"
+                                       MultiSelection="true"
+                                       @bind-Value="@MultiSelectStringValue"
+                                       @bind-SelectedValues="SelectedMultiSelectStringValues"
+                                       SearchBox="true"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
+                                       ItemCollection="@StringIdDropDownOptions.Keys.ToList()">
+                    </MudSelectExtended>
+                }
+                else if (typeof(T) == typeof(short)
+                         || typeof(T) == typeof(short?)
+                         || typeof(T) == typeof(ushort)
+                         || typeof(T) == typeof(ushort?)
+                         || typeof(T) == typeof(int)
+                         || typeof(T) == typeof(int?)
+                         || typeof(T) == typeof(uint)
+                         || typeof(T) == typeof(uint?)
+                         || typeof(T) == typeof(long)
+                         || typeof(T) == typeof(long?)
+                         || typeof(T) == typeof(ulong)
+                         || typeof(T) == typeof(ulong?)
+                         || typeof(T) == typeof(float)
+                         || typeof(T) == typeof(float?)
+                         || typeof(T) == typeof(double)
+                         || typeof(T) == typeof(double?)
+                         || typeof(T) == typeof(decimal)
+                         || typeof(T) == typeof(decimal?))
+                {
+                    <MudNumericField @bind-Value="Value"
+                                     For="@(For)"
+                                     Required="@IsRequired"
+                                     Label="@LabelName"
+                                     Disabled="IsDisabled"
+                                     ReadOnly="IsReadOnly"
+                                     Variant="Variant.Outlined"
+                                     Adornment="@Adornment"
+                                     AdornmentText="@AdornmentText"
+                                     Margin="InputMargin"/>
+                }
+                else if (IsNormalText())
+                {
+                    if (IsPassword)
+                    {
+                        <MudTextField @bind-Value="Value"
+                                      For="@(For)"
+                                      Required="@IsRequired"
+                                      HelperText="Leave empty if you want to keep the existing password."
+                                      InputType="InputType.Password"
+                                      Label="@LabelName"
+                                      Disabled="IsDisabled"
+                                      ReadOnly="IsReadOnly"
+                                      Variant="Variant.Outlined"
+                                      Margin="InputMargin"/>
+                    }
+                    else
+                    {
+                        <MudTextField id="@_inputId"
+                                      OnKeyUp="_ => UpdateLineCount(true)"
+                                      Lines="@TextAreaLines"
+                                      @bind-Value="Value" For="@(For)"
+                                      Required="@IsRequired"
+                                      Label="@LabelName"
+                                      Disabled="IsDisabled"
+                                      ReadOnly="IsReadOnly"
+                                      Variant="Variant.Outlined"
+                                      Margin="InputMargin"/>
+                    }
+                }
+                else if (typeof(T) == typeof(bool)
+                         || typeof(T) == typeof(bool?))
+                {
+                    <MudCheckBox @bind-Checked="@Value"
+                                 For="@(For)"
+                                 Required="@IsRequired"
+                                 Disabled="IsDisabled"
+                                 ReadOnly="IsReadOnly"
+                                 Label="@LabelName"
+                                 Dense="InputMargin == Margin.Dense">
+                    </MudCheckBox>
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException();
+                }
+            </div>
+            @if(!string.IsNullOrEmpty(HelperText))
+            {
+                <div>
+                    <small class="form-text text-muted">@HelperText</small>
+                </div>
+            }
+        </div>
+        @if (!string.IsNullOrEmpty(PostfixButtonStartIcon))
+        {
+            <div class="p-2">
+                <MudFab Disabled="@ButtonDisplayedAsDisabled"
+                        StartIcon="@PostfixButtonStartIcon"
+                        ButtonType="ButtonType.Button"
+                        Color="Color.Primary"
+                        @onclick="InvokeOnButtonClicked"
+                        Size="@(InputMargin == Margin.Dense ? Size.Small : Size.Medium)">
+                </MudFab>
+            </div>
+        }
+    </div>
+}
+
+
+@code {
+
+    [Parameter]
+    public Expression<Func<T?>>? For { get; set; }
+
+    [Parameter]
+    public bool? ShouldBeInErrorState { get; set; }
+    
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    private string MarginClass => Constants.DefaultMargin;
+    private Margin InputMargin => Constants.InputMargin;
+
+    private int InputWidth => string.IsNullOrEmpty(PostfixButtonStartIcon) ? 12 : 10;
+    private int ButtonWidth => 12 - InputWidth;
+    private bool ButtonDisplayedAsDisabled
+    {
+        get
+        {
+            if (IsButtonDisabled != default)
+            {
+                return IsButtonDisabled == true;
+            }
+            return IsDisabled;
+        }
+    }
+
+    private string _inputId = Guid.NewGuid().ToString();
+
+    [Parameter]
+    public int TextAreaMinimumLines { get; set; } = 1;
+
+    private int TextAreaLines { get; set; } = 1;
+
+    private Expression<Func<DateTime?>>? ForDateTime
+    {
+        get
+        {
+            // if (typeof(T) == typeof(DateTime))
+            // {
+            //     if (For is not null)
+            //     {
+            //         var unaryExpression = Expression.Convert(For.Body, typeof(DateTime?));
+            //         if (unaryExpression.Operand is MemberExpression newBody) return Expression.Lambda<Func<DateTime?>>(newBody);
+            //     }
+            //     return null;
+            // }
+            if (typeof(T) == typeof(DateTime?) && For != null)
+            {
+                return (Expression<Func<DateTime?>>)(object)For;
+            }
+            return null;
+        }
+        set => throw new NotImplementedException($"{nameof(ForDateTime)} can not be set.");
+    }
+
+    private int MultiSelectValue { get; set; } = 0;
+
+    private string MultiSelectStringValue { get; set; } = string.Empty;
+
+    private async Task<int> GetVisibleLineBreaksCount()
+    {
+        return await JSRuntime.InvokeAsync<int>("countVisibleLineBreaks", _inputId);
+    }
+
+    private async Task<bool> IsTextCutOff()
+    {
+        return await JSRuntime.InvokeAsync<bool>("isInputTextCutOff", _inputId);
+    }
+
+    private async Task SetFocusToCurrentInput()
+    {
+        await JSRuntime.InvokeVoidAsync("setFocusToInput", _inputId);
+    }
+
+    private async Task UpdateLineCount(bool shouldSetFocus)
+    {
+        var textFieldReplacedByTextarea = false;
+        if (IsNormalText() && !IsPassword)
+        {
+            if (TextAreaLines < 2)
+            {
+                if (!await IsTextCutOff())
+                {
+                    return;
+                }
+                textFieldReplacedByTextarea = true;
+            }
+            var lineCount = await GetVisibleLineBreaksCount();
+            TextAreaLines = lineCount > TextAreaMinimumLines ? lineCount : TextAreaMinimumLines;
+            this.StateHasChanged();
+            if (shouldSetFocus && textFieldReplacedByTextarea)
+            {
+                await SetFocusToCurrentInput();
+            }
+            if (textFieldReplacedByTextarea)
+            {
+                await UpdateLineCount(false);
+            }
+        }
+    }
+
+    private Expression<Func<HashSet<int>>> ForMultiSelectValues
+    {
+        get
+        {
+            if (typeof(T) == typeof(HashSet<int>) && For != null)
+            {
+                return (Expression<Func<HashSet<int>>>)(object)For;
+            }
+            throw new InvalidCastException();
+        }
+        set => throw new NotImplementedException($"{nameof(ForMultiSelectValues)} can not be set.");
+    }
+
+    private Expression<Func<string?>> ForNullableString
+    {
+        get
+        {
+            if (typeof(T) == typeof(string) && For != null)
+            {
+                return (Expression<Func<string?>>)(object)For;
+            }
+            throw new InvalidCastException();
+        }
+        set => throw new NotImplementedException($"{nameof(ForMultiSelectValues)} can not be set.");
+    }
+
+    private Expression<Func<int?>> ForNullableInt
+    {
+        get
+        {
+            if (typeof(T) == typeof(int?) && For != null)
+            {
+                return (Expression<Func<int?>>)(object)For;
+            }
+            throw new InvalidCastException();
+        }
+        set => throw new NotImplementedException($"{nameof(ForMultiSelectValues)} can not be set.");
+    }
+
+    [Parameter]
+    public Dictionary<int, string>? DropDownOptions { get; set; }
+
+    [Parameter]
+    public Dictionary<string, string>? StringIdDropDownOptions { get; set; }
+
+    [Parameter]
+    public string? PrefixText { get; set; }
+
+    [Parameter]
+    public string? PostfixText { get; set; }
+
+    [Parameter]
+    public string? PostfixButtonStartIcon { get; set; }
+
+    [Parameter]
+    public bool? IsButtonDisabled { get; set; }
+
+    [Parameter]
+    public bool IsPassword { get; set; }
+
+    [Parameter]
+    public bool DisplayMultiSelectValues { get; set; }
+
+    [Parameter]
+    public EventCallback OnButtonClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<T> OnValueChanged { get; set; }
+
+    [Parameter]
+    public string? LabelName { get; set; }
+
+    [Parameter]
+    public bool? IsDisabledParameter { get; set; }
+
+    [Parameter]
+    public bool? IsRequiredParameter { get; set; }
+
+    [Parameter]
+    public bool? IsReadOnlyParameter { get; set; }
+
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    private string? AdornmentText { get; set; }
+    private bool IsRequired { get; set; }
+    private bool IsDisabled { get; set; }
+    private bool IsReadOnly { get; set; }
+    private Adornment Adornment { get; set; }
+
+    private IEnumerable<int> SelectedMultiSelectValues
+    {
+        get
+        {
+            if (Value is HashSet<int> selectedValues)
+            {
+                return selectedValues;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+        set => Value = (T)value;
+    }
+
+    private IEnumerable<string> SelectedMultiSelectStringValues
+    {
+        get
+        {
+            if (Value is HashSet<string> selectedValues)
+            {
+                return selectedValues;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+        set => Value = (T)value;
+    }
+
+    private string? NullableStringValue
+    {
+        get
+        {
+            if (typeof(T) == typeof(string) && Value != null)
+            {
+                return (string?)(object)Value;
+            }
+            if (Value == null)
+            {
+                return null;
+            }
+            throw new NotImplementedException();
+        }
+        set
+        {
+            if (value != default)
+            {
+                Value = (T)(object)value;
+            }
+            else
+            {
+                Value = default;
+            }
+        }
+    }
+
+    private int? NullableIntValue
+    {
+        get
+        {
+            if (typeof(T) == typeof(int?) && Value != null)
+            {
+                return (int?)(object)Value;
+            }
+            if (Value == null)
+            {
+                return null;
+            }
+            throw new NotImplementedException();
+        }
+        set
+        {
+            if (value != default)
+            {
+                Value = (T)(object)value;
+            }
+            else
+            {
+                Value = default;
+            }
+        }
+    }
+
+    private DateTime? DateValue
+    {
+        get
+        {
+            if (Value is DateTime dateTime)
+            {
+                return dateTime;
+            }
+            return default;
+        }
+        set
+        {
+            if (value != default)
+            {
+                Value = (T)(object)value;
+            }
+            else
+            {
+                Value = default;
+            }
+        }
+    }
+
+    private T? Value
+    {
+        get => For == default ? default : For.Compile().Invoke();
+        set
+        {
+            if (For == default)
+            {
+                return;
+            }
+            // Ensure the body of the expression is a MemberAccess
+            if (!(For.Body is MemberExpression memberExpression))
+            {
+                throw new InvalidOperationException("The expression does not represent member access.");
+            }
+
+            // Extract the property
+            var property = memberExpression.Member as PropertyInfo;
+            if (property == null)
+            {
+                throw new InvalidOperationException("The member in the expression is not a property.");
+            }
+
+            // Extract the target object
+#pragma warning disable CS8604
+            var lambda = Expression.Lambda(memberExpression.Expression, For.Parameters);
+#pragma warning restore CS8604
+            var target = lambda.Compile().DynamicInvoke();
+
+            // Set the value
+            property.SetValue(target, value);
+
+            OnValueChanged.InvokeAsync(Value);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && IsNormalText() && !IsPassword)
+        {
+            await UpdateLineCount(false);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        TextAreaLines = TextAreaMinimumLines;
+        if (For == default)
+        {
+            throw new ArgumentException("Expression body is null");
+        }
+        if (For.Body is not MemberExpression member)
+        {
+            throw new ArgumentException($"Expression '{For}' refers to a method, not a property.");
+        }
+
+        if (member.Member is not PropertyInfo propertyInfo)
+        {
+            throw new ArgumentException($"Expression '{For}' refers to a field, not a property.");
+        }
+
+        //Only set label name based on property  name / display name attribute if not already set via parameter
+        LabelName ??= propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault()?.DisplayName ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
+
+        IsRequired = IsRequiredParameter ?? propertyInfo.GetCustomAttributes(true).OfType<RequiredAttribute>().Any();
+        if (IsReadOnlyParameter == true)
+        {
+            IsReadOnly = true;
+        }
+        else
+        {
+            IsReadOnly = false;
+            IsDisabled = IsDisabledParameter ?? propertyInfo.GetCustomAttributes(true).OfType<DisabledAttribute>().Any();
+        }
+
+        var helperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
+        if (helperText != default)
+        {
+            HelperText = helperText;
+        }
+
+
+        var postfixAttribute = propertyInfo.GetCustomAttributes<PostfixAttribute>(false).SingleOrDefault();
+        var prefixAttribute = propertyInfo.GetCustomAttributes<PrefixAttribute>(false).SingleOrDefault();
+        
+
+        if (postfixAttribute != default)
+        {
+            AdornmentText = postfixAttribute.Postfix;
+            Adornment = Adornment.End;
+        }
+        else if (prefixAttribute != default)
+        {
+            AdornmentText = prefixAttribute.Prefix;
+            Adornment = Adornment.Start;
+        }
+        else if (PostfixText != default)
+        {
+            AdornmentText = PostfixText;
+            Adornment = Adornment.End;
+        }
+        else if (PrefixText != default)
+        {
+            AdornmentText = PrefixText;
+            Adornment = Adornment.Start;
+        }
+        else
+        {
+            Adornment = Adornment.None;
+        }        
+    }
+
+    protected override void OnInitialized()
+    {
+        
+    }
+
+    private string GetMultiSelectionText(List<string> selectedValues)
+    {
+        if (DisplayMultiSelectValues && selectedValues.Count > 0)
+        {
+            if (DropDownOptions != null)
+            {
+                try
+                {
+                    return string.Join("; ", selectedValues.Select(x => DropDownOptions[Convert.ToInt32(x)]));
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+            }
+            else if(StringIdDropDownOptions != null)
+            {
+                try
+                {
+                    return string.Join("; ", selectedValues.Select(x => StringIdDropDownOptions[x]));
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+            }
+        }
+        return $"{selectedValues.Count} item{(selectedValues.Count == 1 ? " has" : "s have")} been selected";
+    }
+
+    private void InvokeOnButtonClicked()
+    {
+        OnButtonClicked.InvokeAsync();
+    }
+
+    private bool IsNormalText()
+    {
+        return ((StringIdDropDownOptions == default)
+                && (typeof(T) == typeof(string)
+                    || typeof(T) == typeof(char)
+                    || typeof(T) == typeof(char?)));
+    }
+
+    public void RefreshComponent()
+    {
+        this.StateHasChanged();
+    }
+
+}

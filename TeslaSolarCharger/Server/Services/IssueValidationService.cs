@@ -10,6 +10,7 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -48,6 +49,11 @@ public class IssueValidationService : IIssueValidationService
     {
         _logger.LogTrace("{method}()", nameof(RefreshIssues));
         var issueList = new List<Issue>();
+        if (_settings.RestartNeeded)
+        {
+            issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.RestartNeeded));
+            return issueList;
+        }
         if (_settings.CrashedOnStartup)
         {
             var crashedOnStartupIssue = _possibleIssues.GetIssueByKey(_issueKeys.CrashedOnStartup);
@@ -180,12 +186,12 @@ public class IssueValidationService : IIssueValidationService
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.MqttNotConnected));
         }
 
-        if (_settings.CarsToManage.Any(c => (c.CarState.SocLimit == null || c.CarState.SocLimit < _constants.MinSocLimit)))
+        if (_settings.CarsToManage.Any(c => (c.SocLimit == null || c.SocLimit < _constants.MinSocLimit)))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocLimitNotReadable));
         }
 
-        if (_settings.CarsToManage.Any(c => c.CarState.SoC == null))
+        if (_settings.CarsToManage.Any(c => c.SoC == null))
         {
             issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocNotReadable));
         }

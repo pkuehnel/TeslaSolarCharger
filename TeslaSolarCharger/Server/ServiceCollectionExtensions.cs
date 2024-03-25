@@ -11,7 +11,6 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
-using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
@@ -19,6 +18,8 @@ using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.ApiServices;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -28,6 +29,7 @@ using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
 using TeslaSolarCharger.SharedBackend;
+using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server;
 
@@ -40,8 +42,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<ChargingValueJob>()
             .AddTransient<CarStateCachingJob>()
             .AddTransient<PvValueJob>()
-            .AddTransient<PowerDistributionAddJob>()
-            .AddTransient<HandledChargeFinalizingJob>()
+            .AddTransient<ChargingDetailsAddJob>()
+            .AddTransient<FinishedChargingProcessFinalizingJob>()
             .AddTransient<MqttReconnectionJob>()
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()
@@ -51,7 +53,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
             .AddTransient<IChargingService, ChargingService>()
-            .AddTransient<IConfigService, ConfigService>()
             .AddTransient<IConfigJsonService, ConfigJsonService>()
             .AddTransient<IDateTimeProvider, DateTimeProvider>()
             .AddTransient<ITelegramService, TelegramService>()
@@ -80,7 +81,6 @@ public static class ServiceCollectionExtensions
                 options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
-            .AddTransient<ICarDbUpdateService, CarDbUpdateService>()
             .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
             .AddTransient<IPossibleIssues, PossibleIssues>()
             .AddTransient<IIssueValidationService, IssueValidationService>()
@@ -99,6 +99,9 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslamateApiService, TeslamateApiService>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
             .AddTransient<IBackendApiService, BackendApiService>()
+            .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
+            .AddTransient<IFixedPriceService, FixedPriceService>()
+            .AddTransient<IOldTscConfigPriceService, OldTscConfigPriceService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

@@ -1,14 +1,23 @@
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
+using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Contracts;
+using TeslaSolarCharger.SharedBackend.MappingExtensions;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -21,11 +30,18 @@ public class PvValueService : IPvValueService
     private readonly ITelegramService _telegramService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConstants _constants;
+    private readonly ITeslaSolarChargerContext _context;
+    private readonly IRestValueExecutionService _restValueExecutionService;
+    private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
+    private readonly IRestValueConfigurationService _restValueConfigurationService;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
         IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper,
         ITelegramService telegramService,IDateTimeProvider dateTimeProvider,
-        IConstants constants)
+        IConstants constants, ITeslaSolarChargerContext context,
+        IRestValueExecutionService restValueExecutionService,
+        IMapperConfigurationFactory mapperConfigurationFactory,
+        IRestValueConfigurationService restValueConfigurationService)
     {
         _logger = logger;
         _settings = settings;
@@ -34,168 +50,265 @@ public class PvValueService : IPvValueService
         _telegramService = telegramService;
         _dateTimeProvider = dateTimeProvider;
         _constants = constants;
+        _context = context;
+        _restValueExecutionService = restValueExecutionService;
+        _mapperConfigurationFactory = mapperConfigurationFactory;
+        _restValueConfigurationService = restValueConfigurationService;
+    }
+
+    public async Task ConvertToNewConfiguration()
+    {
+        if (await _context.RestValueConfigurations.AnyAsync())
+        {
+            return;
+        }
+        //Do not change order of the following methods
+        await ConvertGridValueConfiguration();
+        await ConvertInverterValueConfiguration();
+        await ConvertHomeBatterySocConfiguration();
+        await ConvertHomeBatteryPowerConfiguration();
+    }
+
+    private async Task ConvertHomeBatteryPowerConfiguration()
+    {
+        var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl) && frontendConfiguration is
+                { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+        {
+            var patternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
+            var newHomeBatteryPowerConfiguration = await _context.RestValueConfigurations
+                .Where(r => r.Url == homeBatteryPowerRequestUrl)
+                .FirstOrDefaultAsync();
+            if (newHomeBatteryPowerConfiguration == default)
+            {
+                newHomeBatteryPowerConfiguration = new RestValueConfiguration()
+                {
+                    Url = homeBatteryPowerRequestUrl,
+                    NodePatternType = patternType,
+                    HttpMethod = HttpVerb.Get,
+                };
+                _context.RestValueConfigurations.Add(newHomeBatteryPowerConfiguration);
+                var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
+                foreach (var homeBatteryPowerHeader in homeBatteryPowerHeaders)
+                {
+                    newHomeBatteryPowerConfiguration.Headers.Add(new RestValueConfigurationHeader()
+                    {
+                        Key = homeBatteryPowerHeader.Key,
+                        Value = homeBatteryPowerHeader.Value,
+                    });
+                }
+            }
+            var resultConfiguration = new RestValueResultConfiguration()
+            {
+                CorrectionFactor = _configurationWrapper.HomeBatteryPowerCorrectionFactor(),
+                UsedFor = ValueUsage.HomeBatteryPower,
+            };
+            if (newHomeBatteryPowerConfiguration.NodePatternType == NodePatternType.Xml)
+            {
+                resultConfiguration.NodePattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
+                resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
+                resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
+                resultConfiguration.XmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
+            }
+            else if (newHomeBatteryPowerConfiguration.NodePatternType == NodePatternType.Json)
+            {
+                resultConfiguration.NodePattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
+            }
+            newHomeBatteryPowerConfiguration.RestValueResultConfigurations.Add(resultConfiguration);
+            await _context.SaveChangesAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task ConvertHomeBatterySocConfiguration()
+    {
+        var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl) && frontendConfiguration is
+                { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+        {
+            var patternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
+            var newHomeBatterySocConfiguration = await _context.RestValueConfigurations
+                .Where(r => r.Url == homeBatterySocRequestUrl)
+                .FirstOrDefaultAsync();
+            if (newHomeBatterySocConfiguration == default)
+            {
+                newHomeBatterySocConfiguration = new RestValueConfiguration()
+                {
+                    Url = homeBatterySocRequestUrl,
+                    NodePatternType = patternType,
+                    HttpMethod = HttpVerb.Get,
+                };
+                _context.RestValueConfigurations.Add(newHomeBatterySocConfiguration);
+                var hombatteryHeaders = _configurationWrapper.HomeBatterySocHeaders();
+                foreach (var homeBatteryHeader in hombatteryHeaders)
+                {
+                    newHomeBatterySocConfiguration.Headers.Add(new RestValueConfigurationHeader()
+                    {
+                        Key = homeBatteryHeader.Key,
+                        Value = homeBatteryHeader.Value,
+                    });
+                }
+            }
+            var resultConfiguration = new RestValueResultConfiguration()
+            {
+                CorrectionFactor = _configurationWrapper.HomeBatterySocCorrectionFactor(),
+                UsedFor = ValueUsage.HomeBatterySoc,
+            };
+            if (newHomeBatterySocConfiguration.NodePatternType == NodePatternType.Xml)
+            {
+                resultConfiguration.NodePattern = _configurationWrapper.HomeBatterySocXmlPattern();
+                resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
+                resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
+                resultConfiguration.XmlAttributeValueName = _configurationWrapper.HomeBatterySocXmlAttributeValueName();
+            }
+            else if (newHomeBatterySocConfiguration.NodePatternType == NodePatternType.Json)
+            {
+                resultConfiguration.NodePattern = _configurationWrapper.HomeBatterySocJsonPattern();
+            }
+            newHomeBatterySocConfiguration.RestValueResultConfigurations.Add(resultConfiguration);
+            await _context.SaveChangesAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task ConvertInverterValueConfiguration()
+    {
+        var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        if (!string.IsNullOrWhiteSpace(inverterRequestUrl) && frontendConfiguration is
+                { InverterValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+        {
+            var patternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
+            var newInverterConfiguration = await _context.RestValueConfigurations
+                .Where(r => r.Url == inverterRequestUrl)
+                .FirstOrDefaultAsync();
+            if (newInverterConfiguration == default)
+            {
+                newInverterConfiguration = new RestValueConfiguration()
+                {
+                    Url = inverterRequestUrl,
+                    NodePatternType = patternType,
+                    HttpMethod = HttpVerb.Get,
+                };
+                _context.RestValueConfigurations.Add(newInverterConfiguration);
+                var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
+                foreach (var inverterRequestHeader in inverterRequestHeaders)
+                {
+                    newInverterConfiguration.Headers.Add(new RestValueConfigurationHeader()
+                    {
+                        Key = inverterRequestHeader.Key,
+                        Value = inverterRequestHeader.Value,
+                    });
+                }
+            }
+            var resultConfiguration = new RestValueResultConfiguration()
+            {
+                CorrectionFactor = _configurationWrapper.CurrentInverterPowerCorrectionFactor(),
+                UsedFor = ValueUsage.InverterPower,
+            };
+            if (newInverterConfiguration.NodePatternType == NodePatternType.Xml)
+            {
+                resultConfiguration.NodePattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
+                resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
+                resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
+                resultConfiguration.XmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
+            }
+            else if (newInverterConfiguration.NodePatternType == NodePatternType.Json)
+            {
+                resultConfiguration.NodePattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
+            }
+            newInverterConfiguration.RestValueResultConfigurations.Add(resultConfiguration);
+            await _context.SaveChangesAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task ConvertGridValueConfiguration()
+    {
+        var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is
+                { GridValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+        {
+            var patternType = frontendConfiguration.GridPowerNodePatternType ?? NodePatternType.Direct;
+            var newGridConfiguration = new RestValueConfiguration()
+            {
+                Url = gridRequestUrl,
+                NodePatternType = patternType,
+                HttpMethod = HttpVerb.Get,
+            };
+            _context.RestValueConfigurations.Add(newGridConfiguration);
+            var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
+            foreach (var gridRequestHeader in gridRequestHeaders)
+            {
+                newGridConfiguration.Headers.Add(new RestValueConfigurationHeader()
+                {
+                    Key = gridRequestHeader.Key,
+                    Value = gridRequestHeader.Value,
+                });
+            }
+            var resultConfiguration = new RestValueResultConfiguration()
+            {
+                CorrectionFactor = _configurationWrapper.CurrentPowerToGridCorrectionFactor(),
+                UsedFor = ValueUsage.GridPower,
+            };
+            if (newGridConfiguration.NodePatternType == NodePatternType.Xml)
+            {
+                resultConfiguration.NodePattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
+                resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
+                resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
+                resultConfiguration.XmlAttributeValueName = _configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
+            }
+            else if (newGridConfiguration.NodePatternType == NodePatternType.Json)
+            {
+                resultConfiguration.NodePattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+            }
+            newGridConfiguration.RestValueResultConfigurations.Add(resultConfiguration);
+            await _context.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 
     public async Task UpdatePvValues()
     {
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
-        
-        var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        HttpRequestMessage? originGridRequest = default;
-        HttpRequestMessage? originInverterRequest = default;
-        HttpRequestMessage? originHomeBatterySocRequest = default;
-        HttpResponseMessage? gridHttpResponse = default;
-        if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is { GridValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+        var valueUsages = new HashSet<ValueUsage>
         {
-            var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
-            var gridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
-            originGridRequest = GenerateHttpRequestMessage(gridRequestUrl, gridRequestHeaders);
-            _logger.LogTrace("Request grid power.");
-            gridHttpResponse = await GetHttpResponse(gridRequest).ConfigureAwait(false);
-            var patternType = frontendConfiguration.GridPowerNodePatternType ?? NodePatternType.Direct;
-            var gridJsonPattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
-            var gridXmlPattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
-            var gridCorrectionFactor = (double)_configurationWrapper.CurrentPowerToGridCorrectionFactor();
-            var xmlAttributeHeaderName = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
-            var xmlAttributeHeaderValue = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
-            var xmlAttributeValueName = _configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
-            var overage = await GetValueByHttpResponse(gridHttpResponse, gridJsonPattern, gridXmlPattern, gridCorrectionFactor, patternType,
-                xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
-            _logger.LogTrace("Overage is {overage}", overage);
-            _settings.Overage = overage;
-            if (overage != null)
-            {
-                AddOverageValueToInMemoryList((int)overage);
-            }
-        }
-
-
-        var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
-        HttpResponseMessage? inverterHttpResponse = default;
-        if (!string.IsNullOrWhiteSpace(inverterRequestUrl) && frontendConfiguration is { InverterValueSource: SolarValueSource.Modbus or SolarValueSource.Rest})
+            ValueUsage.InverterPower,
+            ValueUsage.GridPower,
+            ValueUsage.HomeBatteryPower,
+            ValueUsage.HomeBatterySoc,
+        };
+        var resultConfigurations = await _restValueConfigurationService
+            .GetRestValueConfigurationsByValueUsage(valueUsages).ConfigureAwait(false);
+        var resultSums = new Dictionary<ValueUsage, decimal>();
+        foreach (var restConfiguration in resultConfigurations)
         {
-            var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
-            var inverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
-            originInverterRequest = GenerateHttpRequestMessage(inverterRequestUrl, inverterRequestHeaders);
-            if (IsSameRequest(originGridRequest, inverterRequest))
+            try
             {
-                inverterHttpResponse = gridHttpResponse;
-            }
-            else
-            {
-                _logger.LogTrace("Request inverter power.");
-                inverterHttpResponse = await GetHttpResponse(inverterRequest).ConfigureAwait(false);
-            }
-            var patternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
-            var inverterJsonPattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
-            var inverterXmlPattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
-            var inverterCorrectionFactor = (double)_configurationWrapper.CurrentInverterPowerCorrectionFactor();
-            var xmlAttributeHeaderName = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
-            var xmlAttributeHeaderValue = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
-            var xmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
-            var inverterPower = await GetValueByHttpResponse(inverterHttpResponse, inverterJsonPattern, inverterXmlPattern, inverterCorrectionFactor,
-                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
-            if (inverterPower < 0)
-            {
-                _logger.LogInformation("Inverterpower is below 0: {inverterPower}, using -1 for further purposes", inverterPower);
-                inverterPower = -1;
-            }
-            _settings.InverterPower = inverterPower;
-        }
-
-        var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
-        HttpResponseMessage? homeBatterySocHttpResponse = default;
-        if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl) && frontendConfiguration is { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
-        {
-            var homeBatterySocHeaders = _configurationWrapper.HomeBatterySocHeaders();
-            var homeBatterySocRequest = GenerateHttpRequestMessage(homeBatterySocRequestUrl, homeBatterySocHeaders);
-            originHomeBatterySocRequest = GenerateHttpRequestMessage(homeBatterySocRequestUrl, homeBatterySocHeaders);
-            if (IsSameRequest(originGridRequest, homeBatterySocRequest))
-            {
-                homeBatterySocHttpResponse = gridHttpResponse;
-            }
-            else if (originInverterRequest != default && IsSameRequest(originInverterRequest, homeBatterySocRequest))
-            {
-                homeBatterySocHttpResponse = inverterHttpResponse;
-            }
-            else
-            {
-                _logger.LogTrace("Request home battery soc.");
-                homeBatterySocHttpResponse = await GetHttpResponse(homeBatterySocRequest).ConfigureAwait(false);
-            }
-            var patternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
-            var homeBatterySocJsonPattern = _configurationWrapper.HomeBatterySocJsonPattern();
-            var homeBatterySocXmlPattern = _configurationWrapper.HomeBatterySocXmlPattern();
-            var homeBatterySocCorrectionFactor = (double)_configurationWrapper.HomeBatterySocCorrectionFactor();
-            var xmlAttributeHeaderName = _configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
-            var xmlAttributeHeaderValue = _configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
-            var xmlAttributeValueName = _configurationWrapper.HomeBatterySocXmlAttributeValueName();
-            var homeBatterySoc = await GetValueByHttpResponse(homeBatterySocHttpResponse, homeBatterySocJsonPattern, homeBatterySocXmlPattern, homeBatterySocCorrectionFactor,
-                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
-            _settings.HomeBatterySoc = homeBatterySoc;
-        }
-
-        var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
-        if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl) && frontendConfiguration is { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
-        {
-            var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
-            var homeBatteryPowerRequest = GenerateHttpRequestMessage(homeBatteryPowerRequestUrl, homeBatteryPowerHeaders);
-            HttpResponseMessage? homeBatteryPowerHttpResponse;
-            if (IsSameRequest(originGridRequest, homeBatteryPowerRequest))
-            {
-                homeBatteryPowerHttpResponse = gridHttpResponse;
-            }
-            else if (originInverterRequest != default && IsSameRequest(originInverterRequest, homeBatteryPowerRequest))
-            {
-                homeBatteryPowerHttpResponse = inverterHttpResponse;
-            }
-            else if (originHomeBatterySocRequest != default && IsSameRequest(originHomeBatterySocRequest, homeBatteryPowerRequest))
-            {
-                homeBatteryPowerHttpResponse = homeBatterySocHttpResponse;
-            }
-            else
-            {
-                _logger.LogTrace("Request home battery power.");
-                homeBatteryPowerHttpResponse = await GetHttpResponse(homeBatteryPowerRequest).ConfigureAwait(false);
-            }
-            var patternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
-            var homeBatteryPowerJsonPattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
-            var homeBatteryPowerXmlPattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
-            var homeBatteryPowerCorrectionFactor = (double)_configurationWrapper.HomeBatteryPowerCorrectionFactor();
-            var xmlAttributeHeaderName = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
-            var xmlAttributeHeaderValue = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
-            var xmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
-            var homeBatteryPower = await GetValueByHttpResponse(homeBatteryPowerHttpResponse, homeBatteryPowerJsonPattern, homeBatteryPowerXmlPattern, homeBatteryPowerCorrectionFactor,
-                patternType, xmlAttributeHeaderName, xmlAttributeHeaderValue, xmlAttributeValueName).ConfigureAwait(false);
-            var homeBatteryPowerInversionRequestUrl = _configurationWrapper.HomeBatteryPowerInversionUrl();
-            if (!string.IsNullOrEmpty(homeBatteryPowerInversionRequestUrl))
-            {
-                var homeBatteryPowerInversionHeaders = _configurationWrapper.HomeBatteryPowerInversionHeaders();
-                //ToDo: implement setting Headers in frontend
-                var homeBatteryPowerInversionRequest = GenerateHttpRequestMessage(homeBatteryPowerInversionRequestUrl, homeBatteryPowerInversionHeaders);
-                _logger.LogTrace("Request home battery power inversion.");
-                var homeBatteryPowerInversionHttpResponse = await GetHttpResponse(homeBatteryPowerInversionRequest).ConfigureAwait(false);
-                var shouldInvertHomeBatteryPowerInt = await GetValueByHttpResponse(homeBatteryPowerInversionHttpResponse, null, null, 1, NodePatternType.Direct, null, null, null).ConfigureAwait(false);
-                var shouldInvertHomeBatteryPower = Convert.ToBoolean(shouldInvertHomeBatteryPowerInt);
-                if (shouldInvertHomeBatteryPower)
+                var results = await _restValueExecutionService.GetResult(restConfiguration).ConfigureAwait(false);
+                foreach (var result in results)
                 {
-                    homeBatteryPower = -homeBatteryPower;
+                    var valueUsage = restConfiguration.RestValueResultConfigurations.First(r => r.Id == result.Key).UsedFor;
+                    if (!resultSums.ContainsKey(valueUsage))
+                    {
+                        resultSums[valueUsage] = 0;
+                    }
+                    resultSums[valueUsage] += result.Value;
                 }
             }
-
-            const int maxPlausibleHomeBatteryPower = 999999;
-            const int minPlausibleHomeBatteryPower = -999999;
-            if (homeBatteryPower is > maxPlausibleHomeBatteryPower or < minPlausibleHomeBatteryPower)
+            catch (Exception ex)
             {
-                _logger.LogInformation("The extracted home battery power {homeBatteryPower} was set to zero as is not plausible", homeBatteryPower);
-                homeBatteryPower = 0;
+                _logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
             }
-
-            _settings.HomeBatteryPower = homeBatteryPower;
         }
+
+        _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ? (int?)inverterPower : null;
+        _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ? (int?)gridPower : null;
+        _settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ? (int?)homeBatteryPower : null;
+        _settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ? (int?)homeBatterySoc : null;
         _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
     }
+
+    
 
     private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern,
         double correctionFactor, NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
@@ -259,30 +372,6 @@ public class PvValueService : IPvValueService
         }
 
         return request;
-    }
-
-    public int GetAveragedOverage()
-    {
-        _logger.LogTrace("{method}()", nameof(GetAveragedOverage));
-        long weightedSum = 0;
-        if (_settings.Overage == null)
-        {
-            return _constants.DefaultOverage;
-        }
-        _logger.LogTrace("Build weighted average of {count} values", _inMemoryValues.OverageValues.Count);
-        for (var i = 0; i < _inMemoryValues.OverageValues.Count; i++)
-        {
-            _logger.LogTrace("Power Value: {value}", _inMemoryValues.OverageValues[i]);
-            weightedSum += _inMemoryValues.OverageValues[i] * (i + 1);
-            _logger.LogTrace("weightedSum: {value}", weightedSum);
-        }
-        var weightedCount = _inMemoryValues.OverageValues.Count * (_inMemoryValues.OverageValues.Count + 1) / 2;
-        if (weightedCount == 0)
-        {
-            _logger.LogWarning("There are no power values available, use default value of {defaultValue}", _constants.DefaultOverage);
-            return _constants.DefaultOverage;
-        }
-        return (int)(weightedSum / weightedCount);
     }
 
     public void ClearOverageValues()
@@ -387,7 +476,6 @@ public class PvValueService : IPvValueService
 
         return (int?)(doubleValue * correctionFactor);
     }
-
     
     internal double GetValueFromResult(string? pattern, string result, NodePatternType patternType,
         string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)

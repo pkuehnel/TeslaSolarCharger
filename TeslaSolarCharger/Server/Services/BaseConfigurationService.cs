@@ -8,6 +8,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -173,10 +174,7 @@ public class BaseConfigurationService : IBaseConfigurationService
         }
         finally
         {
-            if (jobsWereRunning)
-            {
-                await _jobManager.StartJobs().ConfigureAwait(false);
-            }
+            _settings.RestartNeeded = true;
         }
     }
 

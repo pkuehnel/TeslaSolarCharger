@@ -24,6 +24,13 @@
 		<MinVerDefaultPreReleaseIdentifiers>edge</MinVerDefaultPreReleaseIdentifiers>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <Compile Remove="MappingExtensions\**" />
+	  <Content Remove="MappingExtensions\**" />
+	  <EmbeddedResource Remove="MappingExtensions\**" />
+	  <None Remove="MappingExtensions\**" />
+	</ItemGroup>
+
 	<!--<Target Name="MyTarget" AfterTargets="MinVer" >
 		<PropertyGroup>
 			<FileVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch).$(MinVerPreRelease.Split(`.`)[2]))</FileVersion>
@@ -34,7 +41,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="AutoMapper" Version="13.0.1" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.2" />
+		<PackageReference Include="GraphQL.Client" Version="6.0.3" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.3" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.3" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
 		  <PrivateAssets>all</PrivateAssets>
@@ -59,8 +67,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\TeslaSolarCharger.GridPriceProvider\TeslaSolarCharger.GridPriceProvider.csproj" />
 		<ProjectReference Include="..\..\TeslaSolarCharger.Model\TeslaSolarCharger.Model.csproj" />
+		<ProjectReference Include="..\..\TeslaSolarCharger.Services\TeslaSolarCharger.Services.csproj" />
 		<ProjectReference Include="..\..\TeslaSolarCharger.SharedBackend\TeslaSolarCharger.SharedBackend.csproj" />
 		<ProjectReference Include="..\Client\TeslaSolarCharger.Client.csproj" />
 		<ProjectReference Include="..\Shared\TeslaSolarCharger.Shared.csproj" />
@@ -74,7 +82,6 @@
 
 	<ItemGroup>
 		<Folder Include="Enums\" />
-		<Folder Include="MappingExtensions\" />
 	</ItemGroup>
 
 
