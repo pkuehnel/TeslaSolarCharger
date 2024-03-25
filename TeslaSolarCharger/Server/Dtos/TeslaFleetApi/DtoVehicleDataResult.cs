@@ -785,16 +785,16 @@ public class VehicleState
     public bool TpmsHardWarningRr { get; set; }
 
     [JsonProperty("tpms_last_seen_pressure_time_fl")]
-    public int TpmsLastSeenPressureTimeFl { get; set; }
+    public int? TpmsLastSeenPressureTimeFl { get; set; }
 
     [JsonProperty("tpms_last_seen_pressure_time_fr")]
-    public int TpmsLastSeenPressureTimeFr { get; set; }
+    public int? TpmsLastSeenPressureTimeFr { get; set; }
 
     [JsonProperty("tpms_last_seen_pressure_time_rl")]
-    public int TpmsLastSeenPressureTimeRl { get; set; }
+    public int? TpmsLastSeenPressureTimeRl { get; set; }
 
     [JsonProperty("tpms_last_seen_pressure_time_rr")]
-    public int TpmsLastSeenPressureTimeRr { get; set; }
+    public int? TpmsLastSeenPressureTimeRr { get; set; }
 
     [JsonProperty("tpms_pressure_fl")]
     public float TpmsPressureFl { get; set; }

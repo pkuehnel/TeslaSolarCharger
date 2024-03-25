@@ -27,7 +27,9 @@
 
 <hr />
 <h2>Restore</h2>
-
+<div class="alert alert-warning" role="alert">
+    After the restore process you need to restart the TSC container.
+</div>
 <div class="mb-2">
     <MudFileUpload T="IBrowserFile" FilesChanged="SelectFile" Accept=".zip" MaximumFileCount="1">
         <ButtonTemplate Context="fileUploadContext">

@@ -34,9 +34,15 @@ public class JobManager
     public async Task StartJobs()
     {
         _logger.LogTrace("{Method}()", nameof(StartJobs));
+        if (_settings.RestartNeeded)
+        {
+            _logger.LogError("Do not start jobs as application restart is needed.");
+            return;
+        }
         if (_settings.CrashedOnStartup)
         {
             _logger.LogError("Do not start jobs as application crashed during startup.");
+            return;
         }
         _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
         _scheduler.JobFactory = _jobFactory;
@@ -44,8 +50,8 @@ public class JobManager
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
         var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
-        var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
-        var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
+        var chargingDetailsAddJob = JobBuilder.Create<ChargingDetailsAddJob>().Build();
+        var finishedChargingProcessFinalizingJob = JobBuilder.Create<FinishedChargingProcessFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
         var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
@@ -75,10 +81,10 @@ public class JobManager
         var carStateCachingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
-        var powerDistributionAddTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(16)).Build();
+        var chargingDetailsAddTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
 
-        var handledChargeFinalizingTrigger = TriggerBuilder.Create()
+        var finishedChargingProcessFinalizingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(9)).Build();
 
         var mqttReconnectionTrigger = TriggerBuilder.Create()
@@ -101,8 +107,8 @@ public class JobManager
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
             {carStateCachingJob, new HashSet<ITrigger> {carStateCachingTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
-            {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
-            {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
+            {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
+            {finishedChargingProcessFinalizingJob, new HashSet<ITrigger> {finishedChargingProcessFinalizingTrigger}},
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},

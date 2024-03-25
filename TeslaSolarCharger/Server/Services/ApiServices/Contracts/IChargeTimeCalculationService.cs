@@ -4,9 +4,9 @@ namespace TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 
 public interface IChargeTimeCalculationService
 {
-    TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(Car car);
-    void UpdateChargeTime(Car car);
+    TimeSpan CalculateTimeToReachMinSocAtFullSpeedCharge(DtoCar dtoCar);
+    void UpdateChargeTime(DtoCar dtoCar);
     Task PlanChargeTimesForAllCars();
-    Task UpdatePlannedChargingSlots(Car car);
+    Task UpdatePlannedChargingSlots(DtoCar dtoCar);
     Task<bool> IsLatestTimeToReachSocAfterLatestKnownChargePrice(int carId);
 }

@@ -1,4 +1,4 @@
-﻿using TeslaSolarCharger.Server.Contracts;
+﻿using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -6,60 +6,58 @@ using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class LatestTimeToReachSocUpdateService : ILatestTimeToReachSocUpdateService
+public class LatestTimeToReachSocUpdateService(
+    ILogger<LatestTimeToReachSocUpdateService> logger,
+    ISettings settings,
+    IDateTimeProvider dateTimeProvider,
+    ITeslaSolarChargerContext teslaSolarChargerContext)
+    : ILatestTimeToReachSocUpdateService
 {
-    private readonly ILogger<LatestTimeToReachSocUpdateService> _logger;
-    private readonly ISettings _settings;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly IConfigJsonService _configJsonService;
-
-    public LatestTimeToReachSocUpdateService(ILogger<LatestTimeToReachSocUpdateService> logger, ISettings settings,
-        IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService)
-    {
-        _logger = logger;
-        _settings = settings;
-        _dateTimeProvider = dateTimeProvider;
-        _configJsonService = configJsonService;
-    }
 
     public async Task UpdateAllCars()
     {
-        _logger.LogTrace("{method}()", nameof(UpdateAllCars));
-        foreach (var car in _settings.CarsToManage)
+        logger.LogTrace("{method}()", nameof(UpdateAllCars));
+        foreach (var car in settings.CarsToManage)
         {
-            if (car.CarState.ChargingPowerAtHome > 0)
+            if (car.ChargingPowerAtHome > 0)
             {
-                _logger.LogInformation("Charge date is not updated as car {carId} is currently charging", car.Id);
+                logger.LogInformation("Charge date is not updated as car {carId} is currently charging", car.Id);
                 continue;
             }
-            var carConfiguration = car.CarConfiguration;
-            UpdateCarConfiguration(carConfiguration);
+            var newTime = GetNewLatestTimeToReachSoc(car);
+            if (newTime.Equals(car.LatestTimeToReachSoC))
+            {
+                continue;
+            }
+            var databaseCar = teslaSolarChargerContext.Cars.First(c => c.Id == car.Id);
+            databaseCar.LatestTimeToReachSoC = newTime;
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            car.LatestTimeToReachSoC = newTime;
         }
-        await _configJsonService.UpdateCarConfiguration().ConfigureAwait(false);
+        
     }
 
-    internal void UpdateCarConfiguration(CarConfiguration carConfiguration)
+    internal DateTime GetNewLatestTimeToReachSoc(DtoCar car)
     {
-        _logger.LogTrace("{method}({@param})", nameof(UpdateCarConfiguration), carConfiguration);
+        logger.LogTrace("{method}({@param})", nameof(GetNewLatestTimeToReachSoc), car);
 
-        var dateTimeOffSetNow = _dateTimeProvider.DateTimeOffSetNow();
-        if (carConfiguration.IgnoreLatestTimeToReachSocDate)
+        var dateTimeOffSetNow = dateTimeProvider.DateTimeOffSetNow();
+        if (car.IgnoreLatestTimeToReachSocDate)
         {
             var dateToSet = dateTimeOffSetNow.DateTime.Date;
-            if (carConfiguration.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
+            if (car.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
             {
                 dateToSet = dateTimeOffSetNow.DateTime.AddDays(1).Date;
             }
-            carConfiguration.LatestTimeToReachSoC = dateToSet + carConfiguration.LatestTimeToReachSoC.TimeOfDay;
+            return dateToSet + car.LatestTimeToReachSoC.TimeOfDay;
         }
-        else
+
+        var localDateTime = dateTimeOffSetNow.ToLocalTime().DateTime;
+        if (car.LatestTimeToReachSoC.Date < localDateTime.Date)
         {
-            var localDateTime = dateTimeOffSetNow.ToLocalTime().DateTime;
-            if (carConfiguration.LatestTimeToReachSoC.Date < localDateTime.Date)
-            {
-                carConfiguration.LatestTimeToReachSoC = _dateTimeProvider.Now().Date.AddDays(-1) +
-                                                        carConfiguration.LatestTimeToReachSoC.TimeOfDay;
-            }
+            return dateTimeProvider.Now().Date.AddDays(-1) +
+                   car.LatestTimeToReachSoC.TimeOfDay;
         }
+        return car.LatestTimeToReachSoC;
     }
 }

@@ -16,35 +16,6 @@ public class FixedPriceService : TestBase
     }
 
     [Fact]
-    public void Can_Generate_Fixed_Price_Config()
-    {
-        var fixedPrices = new List<FixedPrice>()
-        {
-            new()
-            {
-                FromHour = 6,
-                FromMinute = 0,
-                ToHour = 15,
-                ToMinute = 0,
-                Value = 0.11m,
-            },
-            new()
-            {
-                FromHour = 15,
-                FromMinute = 0,
-                ToHour = 6,
-                ToMinute = 0,
-                Value = 0.30m,
-            },
-        };
-
-        var fixedPriceService = Mock.Create<GridPriceProvider.Services.FixedPriceService>();
-        var jsonString = fixedPriceService.GenerateConfigString(fixedPrices);
-        var expectedJson = "[{\"FromHour\":6,\"FromMinute\":0,\"ToHour\":15,\"ToMinute\":0,\"Value\":0.11,\"ValidOnDays\":null},{\"FromHour\":15,\"FromMinute\":0,\"ToHour\":6,\"ToMinute\":0,\"Value\":0.30,\"ValidOnDays\":null}]";
-        Assert.Equal(expectedJson, jsonString);
-    }
-
-    [Fact]
     public void Can_Generate_Prices_Based_On_Fixed_Prices()
     {
         var fixedPrices = new List<FixedPrice>()
@@ -66,7 +37,7 @@ public class FixedPriceService : TestBase
                 Value = 0.30m,
             },
         };
-        var fixedPriceService = Mock.Create<GridPriceProvider.Services.FixedPriceService>();
+        var fixedPriceService = Mock.Create<TeslaSolarCharger.Server.Services.GridPrice.FixedPriceService>();
         var prices = fixedPriceService.GeneratePricesBasedOnFixedPrices(new DateTimeOffset(2023, 1, 21, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2023, 1, 21, 23, 59, 59, TimeSpan.Zero), fixedPrices);
         //ToDo: to test this properly, a timezone has to be set in the test
     }
@@ -93,7 +64,7 @@ public class FixedPriceService : TestBase
                 Value = 0.30m,
             },
         };
-        var fixedPriceService = Mock.Create<GridPriceProvider.Services.FixedPriceService>();
+        var fixedPriceService = Mock.Create<TeslaSolarCharger.Server.Services.GridPrice.FixedPriceService>();
         var midnightSeparatedFixedPrices = fixedPriceService.SplitFixedPricesAtMidnight(fixedPrices);
         Assert.Equal(3, midnightSeparatedFixedPrices.Count);
         Assert.Single(midnightSeparatedFixedPrices.Where(p => p is { FromHour: 6, FromMinute: 0, ToHour: 15, ToMinute: 0, Value: 0.11m, ValidOnDays: null}));
@@ -152,7 +123,7 @@ public class FixedPriceService : TestBase
                 ValidOnDays = new List<DayOfWeek>() { DayOfWeek.Sunday },
             },
         };
-        var fixedPriceService = Mock.Create<GridPriceProvider.Services.FixedPriceService>();
+        var fixedPriceService = Mock.Create<TeslaSolarCharger.Server.Services.GridPrice.FixedPriceService>();
         var midnightSeparatedFixedPrices = fixedPriceService.SplitFixedPricesAtMidnight(fixedPrices);
         Assert.Equal(7, midnightSeparatedFixedPrices.Count);
         Assert.Single(midnightSeparatedFixedPrices.Where(p => p is { FromHour: 0, FromMinute: 0, ToHour: 7, ToMinute: 0, Value: 0.2134m, ValidOnDays.Count: 5 }

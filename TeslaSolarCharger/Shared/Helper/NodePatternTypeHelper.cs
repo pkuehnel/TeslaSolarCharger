@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Shared.Helper;
 

@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
 using MudBlazor.Services;
+using MudExtensions.Services;
 using TeslaSolarCharger.Client;
+using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Resources;
@@ -17,6 +19,7 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.H
 builder.Services.AddScoped<INodePatternTypeHelper, NodePatternTypeHelper>();
 builder.Services.AddScoped<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddSingleton<ToolTipTextKeys>();
+builder.Services.AddSharedDependencies();
 builder.Services.AddMudServices(config =>
 {
     config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopRight;
@@ -27,5 +30,6 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.HideTransitionDuration = 500;
     config.SnackbarConfiguration.ShowTransitionDuration = 250;
     config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
-});
+})
+    .AddMudExtensions();
 await builder.Build().RunAsync().ConfigureAwait(false);
