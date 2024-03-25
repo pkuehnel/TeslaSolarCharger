@@ -12,7 +12,9 @@
 }
 else
 {
-    <MudDataGrid Items="_handledCharges" Groupable="true" Filterable="true" Hover="true">
+    <MudDataGrid Items="_handledCharges" Groupable="true" Filterable="true"
+                 Hover="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
+                 Height="calc(100vh - 13rem);">
         <Columns>
             <PropertyColumn Property="x => x.StartTime"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))"></PropertyColumn>
