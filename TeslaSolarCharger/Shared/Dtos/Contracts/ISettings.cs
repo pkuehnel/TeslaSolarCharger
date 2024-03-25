@@ -25,5 +25,5 @@ public interface ISettings
     bool RestartNeeded { get; set; }
     Dictionary<int, string> RawRestRequestResults { get; set; }
     Dictionary<int, string> RawRestValues { get; set; }
-    Dictionary<int, decimal> CalculatedRestValues { get; set; }
+    Dictionary<int, decimal?> CalculatedRestValues { get; set; }
 }

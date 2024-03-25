@@ -1,7 +1,10 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using AutoMapper.QueryableExtensions;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.IO.Compression;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Shared.Contracts;
@@ -10,6 +13,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Contracts;
+using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -22,7 +26,9 @@ public class BaseConfigurationService(
     ISettings settings,
     IPvValueService pvValueService,
     IDbConnectionStringHelper dbConnectionStringHelper,
-    IConstants constants)
+    IConstants constants,
+    IMapperConfigurationFactory mapperConfigurationFactory,
+    ITeslaSolarChargerContext teslaSolarChargerContext)
     : IBaseConfigurationService
 {
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
@@ -57,6 +63,35 @@ public class BaseConfigurationService(
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
+    }
+
+    public async Task<List<DtoRestConfigurationOverview>> GetRestValueConfigurations()
+    {
+        logger.LogTrace("{method}()", nameof(GetRestValueConfigurations));
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<RestValueConfiguration, DtoRestConfigurationOverview>()
+                .ForMember(d => d.Results, opt => opt.MapFrom(s => s.RestValueResultConfigurations))
+                ;
+
+            cfg.CreateMap<RestValueResultConfiguration, DtoRestValueResult>()
+                .ForMember(d => d.CalculatedValue, opt => opt.Ignore())
+                ;
+        });
+
+        var restValueConfigurations = await teslaSolarChargerContext.RestValueConfigurations
+            .ProjectTo<DtoRestConfigurationOverview>(mapper)
+            .ToListAsync();
+
+        foreach (var restValueConfiguration in restValueConfigurations)
+        {
+            foreach (var dtoRestValueResult in restValueConfiguration.Results)
+            {
+                dtoRestValueResult.CalculatedValue = settings.CalculatedRestValues[dtoRestValueResult.Id];
+            }
+        }
+
+        return restValueConfigurations;
     }
 
     public async Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent)

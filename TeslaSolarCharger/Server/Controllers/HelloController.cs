@@ -67,6 +67,6 @@ namespace TeslaSolarCharger.Server.Controllers
         public Dictionary<int, string> GetRawRestValue() => _coreService.GetRawRestValue();
 
         [HttpGet]
-        public Dictionary<int, decimal> GetCalculatedRestValue() => _coreService.GetCalculatedRestValue();
+        public Dictionary<int, decimal?> GetCalculatedRestValue() => _coreService.GetCalculatedRestValue();
     }
 }

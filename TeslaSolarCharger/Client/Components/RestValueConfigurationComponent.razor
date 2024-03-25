@@ -11,6 +11,44 @@
 
 <h2>REST Value configuration</h2>
 
+<div class="d-flex flex-wrap justify-content-evenly">
+    @foreach (var restValueConfiguration in RestValueConfigurations)
+    {
+        <div class="align-self-center">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6"><TextShortenComponent InputString="@restValueConfiguration.Url"
+                                                                      ShouldDisplayTruncatedCharCount="false"
+                                                                      MaxLength="25"
+                                                                      ShouldDisplayCopyButton="false"
+                                                                      TooltipText="@restValueConfiguration.Url"></TextShortenComponent></MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default"/>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    @* @foreach *@
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-0">
+                            <MudIcon Icon="@Constants.GridPoleIcon"></MudIcon>
+                        </div>
+                        <div class="flex-grow-1">
+                            <MudChip Text="grey">Default</MudChip>
+                        </div>
+                    </div>
+                    <MudText>This day everything happened.</MudText>
+                    <MudText Typo="Typo.body2">The quick, brown fox jumps over a lazy dog.</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary">Read More</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </div>
+            }
+        </div>
+
 <MudDataGrid Items="RestValueConfigurations" Groupable="true" Filterable="false"
              Hover="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
              Height="auto">

@@ -30,5 +30,5 @@ public class Settings : ISettings
 
     public Dictionary<int, string> RawRestRequestResults { get; set; } = new();
     public Dictionary<int, string> RawRestValues { get; set; } = new();
-    public Dictionary<int, decimal> CalculatedRestValues { get; set; } = new();
+    public Dictionary<int, decimal?> CalculatedRestValues { get; set; } = new();
 }

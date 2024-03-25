@@ -184,7 +184,7 @@ public class CoreService : ICoreService
         return _settings.RawRestValues;
     }
 
-    public Dictionary<int, decimal> GetCalculatedRestValue()
+    public Dictionary<int, decimal?> GetCalculatedRestValue()
     {
         return _settings.CalculatedRestValues;
     }

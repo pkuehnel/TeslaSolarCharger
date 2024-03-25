@@ -22,5 +22,5 @@ public interface ICoreService
     Task<string> GetInstallationId();
     Dictionary<int, string> GetRawRestRequestResults();
     Dictionary<int, string> GetRawRestValue();
-    Dictionary<int, decimal> GetCalculatedRestValue();
+    Dictionary<int, decimal?> GetCalculatedRestValue();
 }

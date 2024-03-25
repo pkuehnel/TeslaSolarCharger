@@ -28,7 +28,7 @@ public class RestValueExecutionService(ITestOutputHelper outputHelper) : TestBas
     {
         Mock.Mock<ISettings>().Setup(d => d.RawRestRequestResults).Returns(new Dictionary<int, string>());
         Mock.Mock<ISettings>().Setup(d => d.RawRestValues).Returns(new Dictionary<int, string>());
-        Mock.Mock<ISettings>().Setup(d => d.CalculatedRestValues).Returns(new Dictionary<int, decimal>());
+        Mock.Mock<ISettings>().Setup(d => d.CalculatedRestValues).Returns(new Dictionary<int, decimal?>());
     }
 
     [Fact]
