@@ -173,4 +173,19 @@ public class CoreService : ICoreService
         var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         return installationId.ToString();
     }
+
+    public Dictionary<int, string> GetRawRestRequestResults()
+    {
+        return _settings.RawRestRequestResults;
+    }
+
+    public Dictionary<int, string> GetRawRestValue()
+    {
+        return _settings.RawRestValues;
+    }
+
+    public Dictionary<int, decimal> GetCalculatedRestValue()
+    {
+        return _settings.CalculatedRestValues;
+    }
 }

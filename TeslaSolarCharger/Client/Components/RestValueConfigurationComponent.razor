@@ -10,6 +10,118 @@
 @inject ISnackbar Snackbar
 
 <h2>REST Value configuration</h2>
+
+<MudDataGrid Items="RestValueConfigurations" Groupable="true" Filterable="false"
+             Hover="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
+             Height="auto">
+    <Columns>
+        <HierarchyColumn T="DtoRestValueConfiguration" />
+        <PropertyColumn Property="x => x.HttpMethod"
+                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfiguration.HttpMethod))"></PropertyColumn>
+        <PropertyColumn Property="x => x.Url"
+                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfiguration.Url))">
+            <CellTemplate>
+                <TextShortenComponent InputString="@context.Item.Url" ShouldDisplayTruncatedCharCount="false" MaxLength="25"></TextShortenComponent>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.NodePatternType"
+                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfiguration.NodePatternType))"></PropertyColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudStack Row>
+                    <MudFab Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"></MudFab>
+                    <MudFab Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"></MudFab>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <ChildRowContent>
+        <MudDataGrid T="DtoRestValueConfigurationHeader" ServerData="@(_ => GetHeaders(context.Item.Id))">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Headers</MudText>
+                <MudSpacer />
+                <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"></MudFab>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Key"
+                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfigurationHeader.Key))"></PropertyColumn>
+                <PropertyColumn Property="x => x.Value"
+                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfigurationHeader.Value))"></PropertyColumn>
+                <TemplateColumn CellClass="d-flex justify-end" Context="columnContext">
+                    <CellTemplate>
+                        <MudStack Row>
+                            <MudFab Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"></MudFab>
+                            <MudFab Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"></MudFab>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+        
+        @{
+            if(context.Item.NodePatternType != NodePatternType.Direct && _requestResults.TryGetValue(context.Item.Id, out var value))
+            {
+                <div class="p-2 border rounded">
+                    <h3>Current request result</h3>
+                    @value
+                </div>
+            }
+        }
+        
+        <MudDataGrid T="DtoRestValueResultConfiguration" ServerData="@(_ => GetResultConfigurations(context.Item.Id))">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Value Configs</MudText>
+                <MudSpacer />
+                <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"></MudFab>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.UsedFor"
+                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueResultConfiguration.UsedFor))"></PropertyColumn>
+                <PropertyColumn Property="x => x.Operator"
+                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueResultConfiguration.Operator))"></PropertyColumn>
+                <PropertyColumn Property="x => x.CorrectionFactor"
+                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueResultConfiguration.CorrectionFactor))"></PropertyColumn>
+                <TemplateColumn Title="Current raw value" Context="column">
+                    <CellTemplate>
+                        @{
+                            if(_rawValues.TryGetValue(context.Item.Id, out var value))
+                            {
+                                <span class="strong">@value</span>
+                            }
+                            else
+                            {
+                                <span>Not available</span>
+                            }
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Current calculated value" Context="column">
+                    <CellTemplate>
+                        @{
+                            if (_calculatedValues.TryGetValue(context.Item.Id, out var value))
+                            {
+                                <span class="strong">@value</span>
+                            }
+                            else
+                            {
+                                <span>Not available</span>
+                            }
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn CellClass="d-flex justify-end" Context="ColumnContext">
+                    <CellTemplate>
+                        <MudStack Row>
+                            <MudFab Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"></MudFab>
+                            <MudFab Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"></MudFab>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </ChildRowContent>
+</MudDataGrid>
+
 @foreach (var editableItem in EditableItems)
 {
     <div class="shadow p-3 mb-5 bg-white rounded">
@@ -69,6 +181,9 @@
                              OnButtonClicked="() => RestValueConfigurations.Add(new DtoRestValueConfiguration())"></RightAlignedButtonComponent>
 
 @code {
+    private Dictionary<int, string> _requestResults = new();
+    private Dictionary<int, string> _rawValues = new();
+    private Dictionary<int, decimal> _calculatedValues = new();
 
     private List<DtoRestValueConfiguration> RestValueConfigurations { get; set; } = new();
 
@@ -77,6 +192,9 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadRestValueConfigurations();
+        await RefreshRequestResults();
+        await RefreshRawValues();
+        await RefreshCalculatedValues();
 
     }
 
@@ -117,4 +235,51 @@
         item.Id = resultContent.Value;
     }
 
+    private Task<GridData<DtoRestValueConfiguration>> GetChildContent(GridState<DtoRestValueConfiguration> arg)
+    {
+        
+        return Task.FromResult(new GridData<DtoRestValueConfiguration>
+        {
+            Items = new List<DtoRestValueConfiguration>(),
+            TotalItems = 0
+        });
+    }
+
+    private async Task<GridData<DtoRestValueConfigurationHeader>> GetHeaders(int itemId)
+    {
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueConfigurationHeader>>($"api/RestValueConfiguration/GetHeadersByConfigurationId?parentId={itemId}");
+        var result = elements ?? new List<DtoRestValueConfigurationHeader>();
+        return new GridData<DtoRestValueConfigurationHeader>
+        {
+            Items = result,
+            TotalItems = result.Count,
+        };
+    }
+
+    private async Task<GridData<DtoRestValueResultConfiguration>> GetResultConfigurations(int itemId)
+    {
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={itemId}");
+        var result = elements ?? new List<DtoRestValueResultConfiguration>();
+        return new GridData<DtoRestValueResultConfiguration>
+        {
+            Items = result,
+            TotalItems = result.Count,
+        };
+    }
+
+    
+    private async Task RefreshRequestResults()
+    {
+        _requestResults = await HttpClient.GetFromJsonAsync<Dictionary<int, string>>("api/Hello/GetRawRestRequestResults") ?? new Dictionary<int, string>();
+    }
+
+    private async Task RefreshRawValues()
+    {
+        _rawValues = await HttpClient.GetFromJsonAsync<Dictionary<int, string>>("api/Hello/GetRawRestRequestResults") ?? new Dictionary<int, string>();
+    }
+
+    private async Task RefreshCalculatedValues()
+    {
+        _calculatedValues = await HttpClient.GetFromJsonAsync<Dictionary<int, decimal>>("api/Hello/GetCalculatedRestValue") ?? new Dictionary<int, decimal>();
+    }
 }
