@@ -108,9 +108,9 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             //ToDo: Maybe possible null exceptions as not all members that are nullable in database are also nullable in dto
             cfg.CreateMap<ChargingProcess, DtoHandledCharge>()
                 .ForMember(d => d.StartTime, opt => opt.MapFrom(h => h.StartDate.ToLocalTime()))
-                .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.Cost))
-                .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergyKwh))
-                .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergyKwh))
+                .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.Cost == null ? 0m : Math.Round(h.Cost.Value, 2)))
+                .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergyKwh == null ? 0m : Math.Round(h.UsedGridEnergyKwh.Value, 2)))
+                .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergyKwh == null ? 0m : Math.Round(h.UsedSolarEnergyKwh.Value, 2)))
                 ;
         });
 
@@ -123,7 +123,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy) < 0.1m);
         foreach (var dtoHandledCharge in handledCharges)
         {
-            dtoHandledCharge.PricePerKwh = dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy);
+            dtoHandledCharge.PricePerKwh = Math.Round(dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy), 3);
         }
         return handledCharges;
     }
