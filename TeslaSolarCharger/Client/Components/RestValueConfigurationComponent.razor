@@ -27,6 +27,18 @@
                                                   TooltipText="@restConfigurationOverview.Url"></TextShortenComponent>
                         </MudText>
                     </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudTooltip>
+                            <ChildContent>
+                                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" />
+                            </ChildContent>
+                            <TooltipContent>
+                                <div>
+                                    Refresh values
+                                </div>
+                            </TooltipContent>
+                        </MudTooltip>
+                    </CardHeaderActions>
                 </MudCardHeader>
                 <MudCardContent>
                     @foreach (var restValueResult in restConfigurationOverview.Results)
