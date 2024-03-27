@@ -4,161 +4,91 @@
 @using TeslaSolarCharger.SharedModel.Enums
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @inject HttpClient HttpClient
 @inject IConstants Constants
 @inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
 
-<h2>REST Value configuration</h2>
+<h2>REST sources</h2>
 
 <div class="d-flex flex-wrap justify-content-evenly">
-    @foreach (var restValueConfiguration in RestValueConfigurations)
+    @foreach (var restConfigurationOverview in _restConfigurationOverviews)
     {
-        <div class="align-self-center">
+        <div class="align-self-center m-3">
             <MudCard>
                 <MudCardHeader>
                     <CardHeaderContent>
-                        <MudText Typo="Typo.h6"><TextShortenComponent InputString="@restValueConfiguration.Url"
-                                                                      ShouldDisplayTruncatedCharCount="false"
-                                                                      MaxLength="25"
-                                                                      ShouldDisplayCopyButton="false"
-                                                                      TooltipText="@restValueConfiguration.Url"></TextShortenComponent></MudText>
+                        <MudText Typo="Typo.h6">
+                            <TextShortenComponent InputString="@restConfigurationOverview.Url"
+                                                  ShouldDisplayTruncatedCharCount="false"
+                                                  MaxLength="25"
+                                                  ShouldDisplayCopyButton="false"
+                                                  TooltipText="@restConfigurationOverview.Url"></TextShortenComponent>
+                        </MudText>
                     </CardHeaderContent>
-                    <CardHeaderActions>
-                        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default"/>
-                    </CardHeaderActions>
                 </MudCardHeader>
                 <MudCardContent>
-                    @* @foreach *@
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-0">
-                            <MudIcon Icon="@Constants.GridPoleIcon"></MudIcon>
+                    @foreach (var restValueResult in restConfigurationOverview.Results)
+                    {
+                        string suffixString;
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-0">
+                                @switch (restValueResult.UsedFor)
+                                {
+                                    case ValueUsage.InverterPower:
+                                        <MudIcon Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
+                                        suffixString = "W";
+                                        break;
+                                    case ValueUsage.GridPower:
+                                        <MudIcon Icon="@Constants.GridPoleIcon"></MudIcon>
+                                        suffixString = "W";
+                                        break;
+                                    case ValueUsage.HomeBatteryPower:
+                                        <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull"></MudIcon>
+                                        suffixString = "W";
+                                        break;
+                                    case ValueUsage.HomeBatterySoc:
+                                        <MudIcon Icon="@Icons.Material.Filled.Battery4Bar"></MudIcon>
+                                        suffixString = "%";
+                                        break;
+                                    default:
+                                        throw new ArgumentOutOfRangeException();
+                                }
+                            </div>
+                            <div class="flex-grow-1">
+                                <MudChip Text="grey">@(restValueResult.CalculatedValue == null ? "Not available" : Math.Round(restValueResult.CalculatedValue.Value, 2) + $" {suffixString}")</MudChip>
+                            </div>
                         </div>
-                        <div class="flex-grow-1">
-                            <MudChip Text="grey">Default</MudChip>
-                        </div>
-                    </div>
-                    <MudText>This day everything happened.</MudText>
-                    <MudText Typo="Typo.body2">The quick, brown fox jumps over a lazy dog.</MudText>
+                    }
                 </MudCardContent>
                 <MudCardActions>
-                    <MudButton Variant="Variant.Text" Color="Color.Primary">Read More</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary">Configure</MudButton>
                 </MudCardActions>
             </MudCard>
         </div>
-            }
-        </div>
-
-<MudDataGrid Items="RestValueConfigurations" Groupable="true" Filterable="false"
-             Hover="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
-             Height="auto">
-    <Columns>
-        <HierarchyColumn T="DtoRestValueConfiguration" />
-        <PropertyColumn Property="x => x.HttpMethod"
-                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfiguration.HttpMethod))"></PropertyColumn>
-        <PropertyColumn Property="x => x.Url"
-                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfiguration.Url))">
-            <CellTemplate>
-                <TextShortenComponent InputString="@context.Item.Url" ShouldDisplayTruncatedCharCount="false" MaxLength="25"></TextShortenComponent>
-            </CellTemplate>
-        </PropertyColumn>
-        <PropertyColumn Property="x => x.NodePatternType"
-                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfiguration.NodePatternType))"></PropertyColumn>
-        <TemplateColumn CellClass="d-flex justify-end">
-            <CellTemplate>
-                <MudStack Row>
-                    <MudFab Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"></MudFab>
-                    <MudFab Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"></MudFab>
-                </MudStack>
-            </CellTemplate>
-        </TemplateColumn>
-    </Columns>
-    <ChildRowContent>
-        <MudDataGrid T="DtoRestValueConfigurationHeader" ServerData="@(_ => GetHeaders(context.Item.Id))">
-            <ToolBarContent>
-                <MudText Typo="Typo.h6">Headers</MudText>
-                <MudSpacer />
-                <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"></MudFab>
-            </ToolBarContent>
-            <Columns>
-                <PropertyColumn Property="x => x.Key"
-                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfigurationHeader.Key))"></PropertyColumn>
-                <PropertyColumn Property="x => x.Value"
-                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueConfigurationHeader.Value))"></PropertyColumn>
-                <TemplateColumn CellClass="d-flex justify-end" Context="columnContext">
-                    <CellTemplate>
-                        <MudStack Row>
-                            <MudFab Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"></MudFab>
-                            <MudFab Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"></MudFab>
-                        </MudStack>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-        </MudDataGrid>
-        
-        @{
-            if(context.Item.NodePatternType != NodePatternType.Direct && _requestResults.TryGetValue(context.Item.Id, out var value))
-            {
-                <div class="p-2 border rounded">
-                    <h3>Current request result</h3>
-                    @value
+    }
+    <div class="align-self-center m-3">
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        Add new REST source
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <div class="d-flex justify-content-center">
+                    <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"></MudFab>
                 </div>
-            }
-        }
-        
-        <MudDataGrid T="DtoRestValueResultConfiguration" ServerData="@(_ => GetResultConfigurations(context.Item.Id))">
-            <ToolBarContent>
-                <MudText Typo="Typo.h6">Value Configs</MudText>
-                <MudSpacer />
-                <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"></MudFab>
-            </ToolBarContent>
-            <Columns>
-                <PropertyColumn Property="x => x.UsedFor"
-                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueResultConfiguration.UsedFor))"></PropertyColumn>
-                <PropertyColumn Property="x => x.Operator"
-                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueResultConfiguration.Operator))"></PropertyColumn>
-                <PropertyColumn Property="x => x.CorrectionFactor"
-                                Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoRestValueResultConfiguration.CorrectionFactor))"></PropertyColumn>
-                <TemplateColumn Title="Current raw value" Context="column">
-                    <CellTemplate>
-                        @{
-                            if(_rawValues.TryGetValue(context.Item.Id, out var value))
-                            {
-                                <span class="strong">@value</span>
-                            }
-                            else
-                            {
-                                <span>Not available</span>
-                            }
-                        }
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn Title="Current calculated value" Context="column">
-                    <CellTemplate>
-                        @{
-                            if (_calculatedValues.TryGetValue(context.Item.Id, out var value))
-                            {
-                                <span class="strong">@value</span>
-                            }
-                            else
-                            {
-                                <span>Not available</span>
-                            }
-                        }
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn CellClass="d-flex justify-end" Context="ColumnContext">
-                    <CellTemplate>
-                        <MudStack Row>
-                            <MudFab Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"></MudFab>
-                            <MudFab Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"></MudFab>
-                        </MudStack>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-        </MudDataGrid>
-    </ChildRowContent>
-</MudDataGrid>
+                
+            </MudCardContent>
+            <MudCardActions>
+                @* <MudButton Variant="Variant.Text" Color="Color.Primary">Configure</MudButton> *@
+            </MudCardActions>
+        </MudCard>
+    </div>
+</div>
 
 @foreach (var editableItem in EditableItems)
 {
@@ -219,9 +149,7 @@
                              OnButtonClicked="() => RestValueConfigurations.Add(new DtoRestValueConfiguration())"></RightAlignedButtonComponent>
 
 @code {
-    private Dictionary<int, string> _requestResults = new();
-    private Dictionary<int, string> _rawValues = new();
-    private Dictionary<int, decimal> _calculatedValues = new();
+    private List<DtoRestConfigurationOverview> _restConfigurationOverviews = new();
 
     private List<DtoRestValueConfiguration> RestValueConfigurations { get; set; } = new();
 
@@ -231,8 +159,6 @@
     {
         await LoadRestValueConfigurations();
         await RefreshRequestResults();
-        await RefreshRawValues();
-        await RefreshCalculatedValues();
 
     }
 
@@ -308,16 +234,6 @@
     
     private async Task RefreshRequestResults()
     {
-        _requestResults = await HttpClient.GetFromJsonAsync<Dictionary<int, string>>("api/Hello/GetRawRestRequestResults") ?? new Dictionary<int, string>();
-    }
-
-    private async Task RefreshRawValues()
-    {
-        _rawValues = await HttpClient.GetFromJsonAsync<Dictionary<int, string>>("api/Hello/GetRawRestRequestResults") ?? new Dictionary<int, string>();
-    }
-
-    private async Task RefreshCalculatedValues()
-    {
-        _calculatedValues = await HttpClient.GetFromJsonAsync<Dictionary<int, decimal>>("api/Hello/GetCalculatedRestValue") ?? new Dictionary<int, decimal>();
+        _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoRestConfigurationOverview>>("api/BaseConfiguration/GetRestValueConfigurations") ?? new List<DtoRestConfigurationOverview>();
     }
 }
