@@ -1,0 +1,149 @@
+﻿@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
+@using TeslaSolarCharger.Shared.Helper
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.SharedModel.Enums
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos
+
+@inject HttpClient HttpClient
+@inject IConstants Constants
+@inject IStringHelper StringHelper
+@inject ISnackbar Snackbar
+
+<h3>RestValueConfigurationDialog</h3>
+
+@if (EditableRestValueConfiguration == null)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <EditFormComponent T="DtoRestValueConfiguration"
+                       WrappedElement="EditableRestValueConfiguration"
+                       OnValidSubmit="(item) => HandleValidSubmit(item)">
+        <ChildContent>
+            <div class="p-2">
+                <MudSelect T="HttpVerb"
+                           Class="@Constants.DefaultMargin"
+                           Variant="Variant.Outlined"
+                           Value="@EditableRestValueConfiguration.Item.HttpMethod"
+                           ValueChanged="(newItem) => UpdateHttpVerb(EditableRestValueConfiguration.Item, newItem)"
+                           Label="HTTP Method">
+                    @foreach (HttpVerb item in Enum.GetValues(typeof(HttpVerb)))
+                    {
+                        <MudSelectItem T="HttpVerb" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <GenericInput T="string" For="() => EditableRestValueConfiguration.Item.Url" OnValueChanged="StateHasChanged"></GenericInput>
+            <div class="p-2">
+                <MudSelect T="NodePatternType"
+                           Class="@Constants.DefaultMargin"
+                           Variant="Variant.Outlined"
+                           Value="@EditableRestValueConfiguration.Item.NodePatternType"
+                           ValueChanged="@((newValue) => UpdateNodePatternType(EditableRestValueConfiguration.Item, newValue))"
+                           Label="Node Pattern Type">
+                    @foreach (NodePatternType item in Enum.GetValues(typeof(NodePatternType)))
+                    {
+                        <MudSelectItem T="NodePatternType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </ChildContent>
+    </EditFormComponent>
+
+}
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public int? RestValueConfigurationId { get; set; }
+
+    private DtoRestValueConfiguration? RestValueConfiguration { get; set; }
+
+    private EditableItem<DtoRestValueConfiguration>? EditableRestValueConfiguration => RestValueConfiguration == null ? null : new EditableItem<DtoRestValueConfiguration>(RestValueConfiguration);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if(RestValueConfigurationId == null)
+        {
+            RestValueConfiguration = new DtoRestValueConfiguration();
+        }
+        else
+        {
+            await LoadRestValueConfigurations();
+        }
+    }
+
+    private async Task LoadRestValueConfigurations()
+    {
+        RestValueConfiguration = await HttpClient.GetFromJsonAsync<DtoRestValueConfiguration>($"/api/RestValueConfiguration/GetRestValueConfiguration?id={RestValueConfigurationId}");
+    }
+
+    private void UpdateNodePatternType(DtoRestValueConfiguration restValueConfiguration, NodePatternType newItem)
+    {
+        restValueConfiguration.NodePatternType = newItem;
+        StateHasChanged();
+    }
+
+    private void UpdateHttpVerb(DtoRestValueConfiguration restValueConfiguration, HttpVerb newItem)
+    {
+        restValueConfiguration.HttpMethod = newItem;
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit(DtoRestValueConfiguration item)
+    {
+        var result = await HttpClient.PostAsJsonAsync("/api/RestValueConfiguration/UpdateRestValueConfiguration", item);
+        if (!result.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            return;
+        }
+        var resultContent = await result.Content.ReadFromJsonAsync<DtoValue<int>>();
+        if (resultContent == default)
+        {
+            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("Rest value configuration saved.", Severity.Success);
+        item.Id = resultContent.Value;
+    }
+
+    private Task<GridData<DtoRestValueConfiguration>> GetChildContent(GridState<DtoRestValueConfiguration> arg)
+    {
+
+        return Task.FromResult(new GridData<DtoRestValueConfiguration>
+            {
+                Items = new List<DtoRestValueConfiguration>(),
+                TotalItems = 0
+            });
+    }
+
+    private async Task<GridData<DtoRestValueConfigurationHeader>> GetHeaders(int itemId)
+    {
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueConfigurationHeader>>($"api/RestValueConfiguration/GetHeadersByConfigurationId?parentId={itemId}");
+        var result = elements ?? new List<DtoRestValueConfigurationHeader>();
+        return new GridData<DtoRestValueConfigurationHeader>
+            {
+                Items = result,
+                TotalItems = result.Count,
+            };
+    }
+
+    private async Task<GridData<DtoRestValueResultConfiguration>> GetResultConfigurations(int itemId)
+    {
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={itemId}");
+        var result = elements ?? new List<DtoRestValueResultConfiguration>();
+        return new GridData<DtoRestValueResultConfiguration>
+            {
+                Items = result,
+                TotalItems = result.Count,
+            };
+    }
+}

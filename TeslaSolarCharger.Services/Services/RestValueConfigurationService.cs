@@ -30,6 +30,22 @@ public class RestValueConfigurationService(
         return result;
     }
 
+    public async Task<DtoRestValueConfiguration> GetRestValueConfiguration(int id)
+    {
+        logger.LogTrace("{method}()", nameof(GetAllRestValueConfigurations));
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<RestValueConfiguration, DtoRestValueConfiguration>()
+                ;
+        });
+
+        var result = await context.RestValueConfigurations
+            .Where(x => x.Id == id)
+            .ProjectTo<DtoRestValueConfiguration>(mapper)
+            .FirstAsync().ConfigureAwait(false);
+        return result;
+    }
+
     public async Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByValueUsage(HashSet<ValueUsage> valueUsages)
     {
         logger.LogTrace("{method}({@valueUsages})", nameof(GetRestValueConfigurationsByValueUsage), valueUsages);
