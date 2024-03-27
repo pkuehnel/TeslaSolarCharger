@@ -26,4 +26,5 @@ public interface IConstants
     Margin InputMargin { get; }
     string HandledChargesCarIdsConverted { get; }
     string HandledChargesConverted { get; }
+    string GridPoleIcon { get; }
 }

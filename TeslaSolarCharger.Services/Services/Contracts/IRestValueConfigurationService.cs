@@ -15,4 +15,5 @@ public interface IRestValueConfigurationService
     Task DeleteResultConfiguration(int id);
 
     Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByValueUsage(HashSet<ValueUsage> valueUsages);
+    Task<DtoRestValueConfiguration> GetRestValueConfiguration(int id);
 }

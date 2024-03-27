@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Xml;
 using TeslaSolarCharger.Services.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -12,7 +13,7 @@ using TeslaSolarCharger.SharedModel.Enums;
 namespace TeslaSolarCharger.Services.Services;
 
 public class RestValueExecutionService(
-    ILogger<RestValueConfigurationService> logger) : IRestValueExecutionService
+    ILogger<RestValueConfigurationService> logger, ISettings settings) : IRestValueExecutionService
 {
     /// <summary>
     /// Get result for each configuration ID
@@ -30,17 +31,20 @@ public class RestValueExecutionService(
             request.Headers.Add(header.Key, header.Value);
         }
         var response = await client.SendAsync(request).ConfigureAwait(false);
+        var contentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        settings.RawRestRequestResults[config.Id] = contentString;
         if (!response.IsSuccessStatusCode)
         {
-            var contentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             logger.LogError("Requesting JSON Result with url {requestUrl} did result in non success status code: {statusCode} {content}", config.Url, response.StatusCode, contentString);
             throw new InvalidOperationException($"Requesting JSON Result with url {config.Url} did result in non success status code: {response.StatusCode} {contentString}");
         }
         var results = new Dictionary<int, decimal>();
+        
         foreach (var resultConfig in config.RestValueResultConfigurations)
         {
-            var contentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            results.Add(resultConfig.Id, GetValue(contentString, config.NodePatternType, resultConfig));
+            var value = GetValue(contentString, config.NodePatternType, resultConfig);
+            settings.CalculatedRestValues[resultConfig.Id] = value;
+            results.Add(resultConfig.Id, value);
         }
         return results;
     }
@@ -52,11 +56,13 @@ public class RestValueExecutionService(
         switch (configNodePatternType)
         {
             case NodePatternType.Direct:
+                settings.RawRestValues[resultConfig.Id] = responseString;
                 rawValue = decimal.Parse(responseString, NumberStyles.Number, CultureInfo.InvariantCulture);
                 break;
             case NodePatternType.Json:
                 var jsonTokenString = (JObject.Parse(responseString).SelectToken(resultConfig.NodePattern ?? throw new ArgumentNullException(nameof(resultConfig.NodePattern))) ??
                           throw new InvalidOperationException("Could not find token by pattern")).Value<string>() ?? "0";
+                settings.RawRestValues[resultConfig.Id] = jsonTokenString;
                 rawValue = decimal.Parse(jsonTokenString, NumberStyles.Number, CultureInfo.InvariantCulture);
                 break;
             case NodePatternType.Xml:
@@ -82,6 +88,7 @@ public class RestValueExecutionService(
                         }
                         break;
                 }
+                settings.RawRestValues[resultConfig.Id] = xmlTokenString;
                 rawValue = decimal.Parse(xmlTokenString, NumberStyles.Number, CultureInfo.InvariantCulture);
                 break;
             default:

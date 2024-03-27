@@ -11,4 +11,5 @@ public interface IBaseConfigurationService
     Task<byte[]> DownloadBackup(string backupFileNameSuffix, string? backupZipDestinationDirectory);
     Task RestoreBackup(IFormFile file);
     Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory);
+    Task<List<DtoRestConfigurationOverview>> GetRestValueConfigurations();
 }

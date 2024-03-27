@@ -14,7 +14,12 @@ else
 {
     <MudTooltip>
         <ChildContent>
-            @_textToDisplay <MudIcon @onclick="CopyToClipBoard" Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+            @_textToDisplay @{
+                if (ShouldDisplayCopyButton)
+                {
+                    <MudIcon @onclick="CopyToClipBoard" Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+                }
+            }
         </ChildContent>
         <TooltipContent>
             <div>
@@ -33,6 +38,8 @@ else
 
     [Parameter]
     public bool ShouldDisplayTruncatedCharCount { get; set; } = true;
+    [Parameter]
+    public bool ShouldDisplayCopyButton { get; set; } = true;
 
     [Parameter]
     public string? TooltipText { get; set; }
