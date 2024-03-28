@@ -7,6 +7,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -28,7 +29,8 @@ public class BaseConfigurationService(
     IDbConnectionStringHelper dbConnectionStringHelper,
     IConstants constants,
     IMapperConfigurationFactory mapperConfigurationFactory,
-    ITeslaSolarChargerContext teslaSolarChargerContext)
+    ITeslaSolarChargerContext teslaSolarChargerContext,
+    IRestValueConfigurationService restValueConfigurationService)
     : IBaseConfigurationService
 {
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
@@ -65,9 +67,12 @@ public class BaseConfigurationService(
         }
     }
 
-    public async Task<List<DtoRestConfigurationOverview>> GetRestValueConfigurations()
+    public async Task<List<DtoRestConfigurationOverview>> GetRestValueOverviews()
     {
-        logger.LogTrace("{method}()", nameof(GetRestValueConfigurations));
+        logger.LogTrace("{method}()", nameof(GetRestValueOverviews));
+
+        var fullConfigs = await restValueConfigurationService.GetRestValueConfigurationsByPredicate((RestValueConfiguration c) => true).ConfigureAwait(false);
+
         var mapper = mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<RestValueConfiguration, DtoRestConfigurationOverview>()
@@ -85,9 +90,17 @@ public class BaseConfigurationService(
 
         foreach (var restValueConfiguration in restValueConfigurations)
         {
+
             foreach (var dtoRestValueResult in restValueConfiguration.Results)
             {
-                dtoRestValueResult.CalculatedValue = settings.CalculatedRestValues[dtoRestValueResult.Id];
+                try
+                {
+                    dtoRestValueResult.CalculatedValue = settings.CalculatedRestValues[dtoRestValueResult.Id];
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Could not get calculated REST value from valueResult ID {id}", dtoRestValueResult.Id);
+                }
             }
         }
 

@@ -35,11 +35,11 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     {
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
         var usedFors = new HashSet<ValueUsage>() { ValueUsage.InverterPower, ValueUsage.GridPower, };
-        var restValueConfigurations = await service.GetRestValueConfigurationsByValueUsage(usedFors);
+        var restValueConfigurations = await service.GetRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => usedFors.Contains(r.UsedFor)));
         Assert.NotEmpty(restValueConfigurations);
         Assert.Equal(1, restValueConfigurations.Count);
         var firstValue = restValueConfigurations.First();
-        Assert.Equal(DataGenerator._httpLocalhostApiValues, firstValue.Url);
+        Assert.Equal("http://localhost:5000/api/values", firstValue.Url);
         Assert.Equal(DataGenerator._nodePatternType, firstValue.NodePatternType);
         Assert.Equal(DataGenerator._httpMethod, firstValue.HttpMethod);
     }

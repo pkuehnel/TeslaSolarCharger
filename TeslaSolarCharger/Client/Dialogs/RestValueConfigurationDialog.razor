@@ -1,9 +1,7 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
-@using TeslaSolarCharger.Shared.Helper
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.SharedModel.Enums
-@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos
 
@@ -22,35 +20,45 @@ else
 {
     <EditFormComponent T="DtoRestValueConfiguration"
                        WrappedElement="EditableRestValueConfiguration"
-                       OnValidSubmit="(item) => HandleValidSubmit(item)">
+                       OnValidSubmit="(item) => HandleValidSubmit(item)"
+                       HideSubmitButton="true">
         <ChildContent>
-            <div class="p-2">
-                <MudSelect T="HttpVerb"
-                           Class="@Constants.DefaultMargin"
-                           Variant="Variant.Outlined"
-                           Value="@EditableRestValueConfiguration.Item.HttpMethod"
-                           ValueChanged="(newItem) => UpdateHttpVerb(EditableRestValueConfiguration.Item, newItem)"
-                           Label="HTTP Method">
-                    @foreach (HttpVerb item in Enum.GetValues(typeof(HttpVerb)))
-                    {
-                        <MudSelectItem T="HttpVerb" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-            <GenericInput T="string" For="() => EditableRestValueConfiguration.Item.Url" OnValueChanged="StateHasChanged"></GenericInput>
-            <div class="p-2">
-                <MudSelect T="NodePatternType"
-                           Class="@Constants.DefaultMargin"
-                           Variant="Variant.Outlined"
-                           Value="@EditableRestValueConfiguration.Item.NodePatternType"
-                           ValueChanged="@((newValue) => UpdateNodePatternType(EditableRestValueConfiguration.Item, newValue))"
-                           Label="Node Pattern Type">
-                    @foreach (NodePatternType item in Enum.GetValues(typeof(NodePatternType)))
-                    {
-                        <MudSelectItem T="NodePatternType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
+            <MudDialog>
+                <DialogContent>
+                    <div class="p-2">
+                        <MudSelect T="HttpVerb"
+                                   Class="@Constants.DefaultMargin"
+                                   Variant="Variant.Outlined"
+                                   Value="@EditableRestValueConfiguration.Item.HttpMethod"
+                                   ValueChanged="(newItem) => UpdateHttpVerb(EditableRestValueConfiguration.Item, newItem)"
+                                   Label="HTTP Method">
+                            @foreach (HttpVerb item in Enum.GetValues(typeof(HttpVerb)))
+                            {
+                                <MudSelectItem T="HttpVerb" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                    <GenericInput T="string" For="() => EditableRestValueConfiguration.Item.Url" OnValueChanged="StateHasChanged"></GenericInput>
+                    <div class="p-2">
+                        <MudSelect T="NodePatternType"
+                                   Class="@Constants.DefaultMargin"
+                                   Variant="Variant.Outlined"
+                                   Value="@EditableRestValueConfiguration.Item.NodePatternType"
+                                   ValueChanged="@((newValue) => UpdateNodePatternType(EditableRestValueConfiguration.Item, newValue))"
+                                   Label="Node Pattern Type">
+                            @foreach (NodePatternType item in Enum.GetValues(typeof(NodePatternType)))
+                            {
+                                <MudSelectItem T="NodePatternType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                </DialogContent>
+                <DialogActions>
+                    <MudButton OnClick="Cancel">Cancel</MudButton>
+                    <MudButton Color="Color.Primary" ButtonType="ButtonType.Submit">Save</MudButton>
+                </DialogActions>
+            </MudDialog>
+            
         </ChildContent>
     </EditFormComponent>
 
@@ -62,6 +70,8 @@ else
 
     [Parameter]
     public int? RestValueConfigurationId { get; set; }
+
+    void Cancel() => MudDialog.Cancel();
 
     private DtoRestValueConfiguration? RestValueConfiguration { get; set; }
 
@@ -113,6 +123,7 @@ else
 
         Snackbar.Add("Rest value configuration saved.", Severity.Success);
         item.Id = resultContent.Value;
+        MudDialog.Close(DialogResult.Ok(item.Id));
     }
 
     private Task<GridData<DtoRestValueConfiguration>> GetChildContent(GridState<DtoRestValueConfiguration> arg)
@@ -146,4 +157,5 @@ else
                 TotalItems = result.Count,
             };
     }
+
 }

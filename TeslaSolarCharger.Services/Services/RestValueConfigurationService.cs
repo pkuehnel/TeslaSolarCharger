@@ -1,6 +1,8 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
@@ -30,50 +32,37 @@ public class RestValueConfigurationService(
         return result;
     }
 
-    public async Task<DtoRestValueConfiguration> GetRestValueConfiguration(int id)
+    public async Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByPredicate(
+        Expression<Func<RestValueConfiguration, bool>> predicate)
     {
-        logger.LogTrace("{method}()", nameof(GetAllRestValueConfigurations));
+
         var mapper = mapperConfigurationFactory.Create(cfg =>
         {
-            cfg.CreateMap<RestValueConfiguration, DtoRestValueConfiguration>()
+            cfg.CreateMap<RestValueConfigurationHeader, DtoRestValueConfigurationHeader>();
+            cfg.CreateMap<RestValueConfiguration, DtoFullRestValueConfiguration>()
+                .ForMember(d => d.Headers, opt => opt.MapFrom(s => s.Headers))
                 ;
         });
-
-        var result = await context.RestValueConfigurations
-            .Where(x => x.Id == id)
-            .ProjectTo<DtoRestValueConfiguration>(mapper)
-            .FirstAsync().ConfigureAwait(false);
-        return result;
+        var resultConfigurations = await context.RestValueConfigurations
+            .Where(predicate)
+            .ProjectTo<DtoFullRestValueConfiguration>(mapper)
+            .ToListAsync().ConfigureAwait(false);
+        return resultConfigurations;
     }
 
-    public async Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByValueUsage(HashSet<ValueUsage> valueUsages)
+    public async Task<List<DtoRestValueResultConfiguration>> GetRestValueConfigurationsByPredicate(
+        Expression<Func<RestValueResultConfiguration, bool>> predicate)
     {
-        logger.LogTrace("{method}({@valueUsages})", nameof(GetRestValueConfigurationsByValueUsage), valueUsages);
-        var resultConfigurations = await context.RestValueConfigurations
-            .Where(r => r.RestValueResultConfigurations.Any(result => valueUsages.Contains(result.UsedFor)))
-            .Select(config => new DtoFullRestValueConfiguration()
-            {
-                Id = config.Id,
-                HttpMethod = config.HttpMethod,
-                NodePatternType = config.NodePatternType,
-                Url = config.Url,
-                Headers = config.Headers.Select(header => new DtoRestValueConfigurationHeader()
-                {
-                    Id = header.Id, Key = header.Key, Value = header.Value,
-                }).ToList(),
-                RestValueResultConfigurations = config.RestValueResultConfigurations
-                    .Where(r => valueUsages.Contains(r.UsedFor))
-                    .Select(result => new DtoRestValueResultConfiguration()
-                    {
-                        Id = result.Id,
-                        NodePattern = result.NodePattern,
-                        CorrectionFactor = result.CorrectionFactor,
-                        Operator = result.Operator,
-                        UsedFor = result.UsedFor,
-                    }).ToList(),
-            })
-            .ToListAsync().ConfigureAwait(false);
 
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<RestValueResultConfiguration, DtoRestValueResultConfiguration>()
+                ;
+        });
+        var resultConfigurations = await context.RestValueResultConfigurations
+            .Where(predicate)
+            .ProjectTo<DtoRestValueResultConfiguration>(mapper)
+            .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
     }
 

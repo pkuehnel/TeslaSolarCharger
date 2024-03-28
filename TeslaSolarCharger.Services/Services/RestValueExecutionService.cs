@@ -21,7 +21,7 @@ public class RestValueExecutionService(
     /// <param name="config">Rest Value configuration</param>
     /// <returns>Dictionary with with resultConfiguration as key and resulting value as Value</returns>
     /// <exception cref="InvalidOperationException">Throw if request results in not success status code</exception>
-    public async Task<Dictionary<int, decimal>> GetResult(DtoFullRestValueConfiguration config)
+    public async Task<string> GetResult(DtoFullRestValueConfiguration config)
     {
         logger.LogTrace("{method}({@config})", nameof(GetResult), config);
         var client = new HttpClient();
@@ -38,18 +38,12 @@ public class RestValueExecutionService(
             logger.LogError("Requesting JSON Result with url {requestUrl} did result in non success status code: {statusCode} {content}", config.Url, response.StatusCode, contentString);
             throw new InvalidOperationException($"Requesting JSON Result with url {config.Url} did result in non success status code: {response.StatusCode} {contentString}");
         }
-        var results = new Dictionary<int, decimal>();
-        
-        foreach (var resultConfig in config.RestValueResultConfigurations)
-        {
-            var value = GetValue(contentString, config.NodePatternType, resultConfig);
-            settings.CalculatedRestValues[resultConfig.Id] = value;
-            results.Add(resultConfig.Id, value);
-        }
-        return results;
+
+        return contentString;
     }
 
-    internal decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoRestValueResultConfiguration resultConfig)
+
+    public decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoRestValueResultConfiguration resultConfig)
     {
         logger.LogTrace("{method}({responseString}, {configNodePatternType}, {@resultConfig})", nameof(GetValue), responseString, configNodePatternType, resultConfig);
         decimal rawValue;

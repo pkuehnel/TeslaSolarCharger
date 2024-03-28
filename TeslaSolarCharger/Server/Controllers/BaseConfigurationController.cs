@@ -28,7 +28,7 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public Task<List<DtoRestConfigurationOverview>> GetRestValueConfigurations() =>
-            service.GetRestValueConfigurations();
+            service.GetRestValueOverviews();
 
         [HttpGet]
         public async Task<FileContentResult> DownloadBackup()

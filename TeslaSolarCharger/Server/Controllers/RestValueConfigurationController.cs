@@ -15,13 +15,6 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
         return Ok(result);
     }
 
-    [HttpGet]
-    public async Task<ActionResult<DtoRestValueConfiguration>> GetRestValueConfiguration(int id)
-    {
-        var result = await service.GetRestValueConfiguration(id);
-        return Ok(result);
-    }
-
     [HttpPost]
     public async Task<ActionResult<int>> UpdateRestValueConfiguration([FromBody] DtoRestValueConfiguration dtoData)
     {

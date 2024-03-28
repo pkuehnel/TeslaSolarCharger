@@ -5,10 +5,12 @@
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Client.Dialogs
 @inject HttpClient HttpClient
 @inject IConstants Constants
 @inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <h2>REST sources</h2>
 
@@ -30,7 +32,7 @@
                     <CardHeaderActions>
                         <MudTooltip>
                             <ChildContent>
-                                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="RefreshRequestResults" />
                             </ChildContent>
                             <TooltipContent>
                                 <div>
@@ -75,7 +77,7 @@
                     }
                 </MudCardContent>
                 <MudCardActions>
-                    <MudButton Variant="Variant.Text" Color="Color.Primary">Configure</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OpenRestValueConfigurationDialog(restConfigurationOverview.Id)">Configure</MudButton>
                 </MudCardActions>
             </MudCard>
         </div>
@@ -248,4 +250,24 @@
     {
         _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoRestConfigurationOverview>>("api/BaseConfiguration/GetRestValueConfigurations") ?? new List<DtoRestConfigurationOverview>();
     }
+
+    private async Task OpenRestValueConfigurationDialog(int id)
+    {
+        var options = new DialogOptions()
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+            };
+        var parameters = new DialogParameters<RestValueConfigurationDialog>
+        {
+            { x => x.RestValueConfigurationId, id },
+        };
+        var title = id == default ? "Add" : "Edit";
+        var dialog = await DialogService.ShowAsync<RestValueConfigurationDialog>($"{title} REST config", parameters, options);
+        var result = await dialog.Result;
+
+        await LoadRestValueConfigurations();
+        await RefreshRequestResults();
+    }
+
 }
