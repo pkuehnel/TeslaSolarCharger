@@ -50,7 +50,7 @@ public class RestValueConfigurationService(
         return resultConfigurations;
     }
 
-    public async Task<List<DtoRestValueResultConfiguration>> GetRestValueConfigurationsByPredicate(
+    public async Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(
         Expression<Func<RestValueResultConfiguration, bool>> predicate)
     {
 

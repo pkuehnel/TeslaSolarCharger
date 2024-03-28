@@ -18,6 +18,6 @@ public interface IRestValueConfigurationService
     Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByPredicate(
         Expression<Func<RestValueConfiguration, bool>> predicate);
 
-    Task<List<DtoRestValueResultConfiguration>> GetRestValueConfigurationsByPredicate(
+    Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(
         Expression<Func<RestValueResultConfiguration, bool>> predicate);
 }

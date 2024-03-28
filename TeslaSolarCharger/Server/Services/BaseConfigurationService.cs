@@ -1,6 +1,7 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using TeslaSolarCharger.Model.Contracts;
@@ -11,6 +12,7 @@ using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Contracts;
@@ -30,7 +32,8 @@ public class BaseConfigurationService(
     IConstants constants,
     IMapperConfigurationFactory mapperConfigurationFactory,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    IRestValueConfigurationService restValueConfigurationService)
+    IRestValueConfigurationService restValueConfigurationService,
+    IRestValueExecutionService restValueExecutionService)
     : IBaseConfigurationService
 {
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
@@ -70,41 +73,49 @@ public class BaseConfigurationService(
     public async Task<List<DtoRestConfigurationOverview>> GetRestValueOverviews()
     {
         logger.LogTrace("{method}()", nameof(GetRestValueOverviews));
-
-        var fullConfigs = await restValueConfigurationService.GetRestValueConfigurationsByPredicate((RestValueConfiguration c) => true).ConfigureAwait(false);
-
-        var mapper = mapperConfigurationFactory.Create(cfg =>
+        var restValueConfigurations = await restValueConfigurationService.GetRestValueConfigurationsByPredicate(c => true).ConfigureAwait(false);
+        var results = new List<DtoRestConfigurationOverview>();
+        foreach (var dtoFullRestValueConfiguration in restValueConfigurations)
         {
-            cfg.CreateMap<RestValueConfiguration, DtoRestConfigurationOverview>()
-                .ForMember(d => d.Results, opt => opt.MapFrom(s => s.RestValueResultConfigurations))
-                ;
-
-            cfg.CreateMap<RestValueResultConfiguration, DtoRestValueResult>()
-                .ForMember(d => d.CalculatedValue, opt => opt.Ignore())
-                ;
-        });
-
-        var restValueConfigurations = await teslaSolarChargerContext.RestValueConfigurations
-            .ProjectTo<DtoRestConfigurationOverview>(mapper)
-            .ToListAsync();
-
-        foreach (var restValueConfiguration in restValueConfigurations)
-        {
-
-            foreach (var dtoRestValueResult in restValueConfiguration.Results)
+            string result;
+            try
             {
+                result = await restValueExecutionService.GetResult(dtoFullRestValueConfiguration).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting result for configuration {id}", dtoFullRestValueConfiguration.Id);
+                continue;
+            }
+            var resultConfigurations = await restValueConfigurationService.GetRestResultConfigurationByPredicate(c => c.RestValueConfigurationId == dtoFullRestValueConfiguration.Id).ConfigureAwait(false);
+            var overviewElement = new DtoRestConfigurationOverview
+            {
+                Id = dtoFullRestValueConfiguration.Id,
+                Url = dtoFullRestValueConfiguration.Url,
+            };
+            results.Add(overviewElement);
+            foreach (var resultConfiguration in resultConfigurations)
+            {
+                var dtoRestValueResult = new DtoRestValueResult { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
                 try
                 {
-                    dtoRestValueResult.CalculatedValue = settings.CalculatedRestValues[dtoRestValueResult.Id];
+                    
+                    var value = restValueExecutionService.GetValue(result, dtoFullRestValueConfiguration.NodePatternType, resultConfiguration);
+                    dtoRestValueResult.CalculatedValue = value;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError("Could not get calculated REST value from valueResult ID {id}", dtoRestValueResult.Id);
+                    logger.LogError(ex, "Error getting value for configuration {id}", resultConfiguration.Id);
+                    continue;
+                }
+                finally
+                {
+                    overviewElement.Results.Add(dtoRestValueResult);
                 }
             }
         }
 
-        return restValueConfigurations;
+        return results;
     }
 
     public async Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent)
