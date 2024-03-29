@@ -62,18 +62,10 @@ public class ChargingCostService(
                 logger.LogWarning("Handled charge with ID {handledChargeId} has missing data and will not be converted", handledCharge.Id);
                 continue;
             }
-            var teslaMateChargingProcess = teslamateContext.ChargingProcesses.FirstOrDefault(c => c.Id == handledCharge.ChargingProcessId);
-            if (teslaMateChargingProcess == default)
-            {
-                logger.LogWarning("Could not find charging process in TeslaMate with ID {id} for handled charge with ID {handledChargeId}", handledCharge.ChargingProcessId, handledCharge.Id);
-                continue;
-            }
 
-            var newChargingProcess = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess()
+            var newChargingProcess = new ChargingProcess()
             {
                 CarId = handledCharge.CarId,
-                StartDate = teslaMateChargingProcess.StartDate,
-                EndDate = teslaMateChargingProcess.EndDate,
                 UsedGridEnergyKwh = handledCharge.UsedGridEnergy,
                 UsedSolarEnergyKwh = handledCharge.UsedSolarEnergy,
                 Cost = handledCharge.CalculatedPrice,
@@ -84,7 +76,11 @@ public class ChargingCostService(
                 TimeStamp = p.TimeStamp,
                 SolarPower = p.ChargingPower - (p.PowerFromGrid < 0 ? 0 : p.PowerFromGrid),
                 GridPower = (p.PowerFromGrid < 0 ? 0 : p.PowerFromGrid),
-            }).ToList();
+            })
+                .OrderBy(c => c.TimeStamp)
+                .ToList();
+            newChargingProcess.StartDate = chargingDetails.First().TimeStamp;
+            newChargingProcess.EndDate = chargingDetails.Last().TimeStamp;
             newChargingProcess.ChargingDetails = chargingDetails;
             try
             {
