@@ -48,7 +48,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     public async Task Can_Update_Rest_Configurations()
     {
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
-        var restValueConfigurations = await service.GetAllRestValueConfigurations();
+        var restValueConfigurations = await service.GetFullRestValueConfigurationsByPredicate(x => true);
         var firstValue = restValueConfigurations.First();
         var newUrl = "http://localhost:5000/api/values2";
         var newNodePatternType = NodePatternType.Xml;
@@ -67,9 +67,8 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     public async Task Can_Get_Rest_Configuration_Headers()
     {
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
-        var restValueConfigurations = await service.GetAllRestValueConfigurations();
-        var firstValue = restValueConfigurations.First();
-        var headers = await service.GetHeadersByConfigurationId(firstValue.Id);
+        var restFullValueConfigurations = await service.GetFullRestValueConfigurationsByPredicate(x => x.Id == 1);
+        var headers = restFullValueConfigurations.First().Headers;
         Assert.NotEmpty(headers);
         Assert.Equal(1, headers.Count);
         var firstHeader = headers.First();
@@ -81,9 +80,9 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     public async Task Can_Update_Rest_Configuration_Headers()
     {
         var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
-        var restValueConfigurations = await service.GetAllRestValueConfigurations();
-        var firstValue = restValueConfigurations.First();
-        var headers = await service.GetHeadersByConfigurationId(firstValue.Id);
+        var restFullValueConfigurations = await service.GetFullRestValueConfigurationsByPredicate(x => x.Id == 1);
+        var restValueConfiguration = restFullValueConfigurations.First();
+        var headers = restValueConfiguration.Headers;
         var firstHeader = headers.First();
         var newKey = "test1";
         var newValue = "test2";
@@ -91,7 +90,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         Assert.NotEqual(newValue, firstHeader.Value);
         firstHeader.Key = newKey;
         firstHeader.Value = newValue;
-        var id = await service.SaveHeader(firstValue.Id, firstHeader);
+        var id = await service.SaveRestValueConfiguration(restValueConfiguration);
         Assert.Equal(firstHeader.Id, id);
     }
 

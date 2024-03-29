@@ -173,19 +173,19 @@ else
         RestValueConfiguration = result;
     }
 
-    private void UpdateNodePatternType(DtoRestValueConfiguration restValueConfiguration, NodePatternType newItem)
+    private void UpdateNodePatternType(DtoFullRestValueConfiguration restValueConfiguration, NodePatternType newItem)
     {
         restValueConfiguration.NodePatternType = newItem;
         StateHasChanged();
     }
 
-    private void UpdateHttpVerb(DtoRestValueConfiguration restValueConfiguration, HttpVerb newItem)
+    private void UpdateHttpVerb(DtoFullRestValueConfiguration restValueConfiguration, HttpVerb newItem)
     {
         restValueConfiguration.HttpMethod = newItem;
         StateHasChanged();
     }
 
-    private async Task HandleValidSubmit(DtoRestValueConfiguration item)
+    private async Task HandleValidSubmit(DtoFullRestValueConfiguration item)
     {
         var result = await HttpClient.PostAsJsonAsync("/api/RestValueConfiguration/UpdateRestValueConfiguration", item);
         if (!result.IsSuccessStatusCode)
@@ -203,27 +203,6 @@ else
         Snackbar.Add("Rest value configuration saved.", Severity.Success);
         item.Id = resultContent.Value;
         MudDialog.Close(DialogResult.Ok(item.Id));
-    }
-
-    private Task<GridData<DtoRestValueConfiguration>> GetChildContent(GridState<DtoRestValueConfiguration> arg)
-    {
-
-        return Task.FromResult(new GridData<DtoRestValueConfiguration>
-            {
-                Items = new List<DtoRestValueConfiguration>(),
-                TotalItems = 0
-            });
-    }
-
-    private async Task<GridData<DtoRestValueConfigurationHeader>> GetHeaders(int itemId)
-    {
-        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueConfigurationHeader>>($"api/RestValueConfiguration/GetHeadersByConfigurationId?parentId={itemId}");
-        var result = elements ?? new List<DtoRestValueConfigurationHeader>();
-        return new GridData<DtoRestValueConfigurationHeader>
-            {
-                Items = result,
-                TotalItems = result.Count,
-            };
     }
 
     private async Task<GridData<DtoRestValueResultConfiguration>> GetResultConfigurations(int itemId)

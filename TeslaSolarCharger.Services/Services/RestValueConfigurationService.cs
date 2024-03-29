@@ -64,7 +64,7 @@ public class RestValueConfigurationService(
         return resultConfigurations;
     }
 
-    public async Task<int> SaveRestValueConfiguration(DtoRestValueConfiguration dtoData)
+    public async Task<int> SaveRestValueConfiguration(DtoFullRestValueConfiguration dtoData)
     {
         logger.LogTrace("{method}({@dtoData})", nameof(SaveRestValueConfiguration), dtoData);
         var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
@@ -81,7 +81,32 @@ public class RestValueConfigurationService(
         }
         else
         {
+            var dtoHeaderIds = dtoData.Headers.Select(h => h.Id).ToList();
+            var headersToRemove = await context.RestValueConfigurationHeaders
+                .Where(x => x.RestValueConfigurationId == dbData.Id &&
+                            !dtoHeaderIds.Contains(x.Id))
+                .ToListAsync().ConfigureAwait(false);
+            context.RestValueConfigurationHeaders.RemoveRange(headersToRemove);
             context.RestValueConfigurations.Update(dbData);
+        }
+        var headerMapperConfiguration = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<DtoRestValueConfigurationHeader, RestValueConfigurationHeader>()
+                ;
+        });
+        var headerMapper = headerMapperConfiguration.CreateMapper();
+        foreach (var dtoHeader in dtoData.Headers)
+        {
+            var dbHeader = headerMapper.Map<RestValueConfigurationHeader>(dtoHeader);
+            dbHeader.RestValueConfigurationId = dbData.Id;
+            if (dbHeader.Id == default)
+            {
+                context.RestValueConfigurationHeaders.Add(dbHeader);
+            }
+            else
+            {
+                context.RestValueConfigurationHeaders.Update(dbHeader);
+            }
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
         return dbData.Id;

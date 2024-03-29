@@ -70,16 +70,7 @@ public class BaseConfigurationService(
         var results = new List<DtoRestConfigurationOverview>();
         foreach (var dtoFullRestValueConfiguration in restValueConfigurations)
         {
-            string result;
-            try
-            {
-                result = await restValueExecutionService.GetResult(dtoFullRestValueConfiguration).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error getting result for configuration {id}", dtoFullRestValueConfiguration.Id);
-                continue;
-            }
+            string? result;
             var resultConfigurations = await restValueConfigurationService.GetRestResultConfigurationByPredicate(c => c.RestValueConfigurationId == dtoFullRestValueConfiguration.Id).ConfigureAwait(false);
             var overviewElement = new DtoRestConfigurationOverview
             {
@@ -87,14 +78,21 @@ public class BaseConfigurationService(
                 Url = dtoFullRestValueConfiguration.Url,
             };
             results.Add(overviewElement);
+            try
+            {
+                result = await restValueExecutionService.GetResult(dtoFullRestValueConfiguration).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting result for configuration {id}", dtoFullRestValueConfiguration.Id);
+                result = null;
+            }
             foreach (var resultConfiguration in resultConfigurations)
             {
                 var dtoRestValueResult = new DtoRestValueResult { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
                 try
                 {
-                    
-                    var value = restValueExecutionService.GetValue(result, dtoFullRestValueConfiguration.NodePatternType, resultConfiguration);
-                    dtoRestValueResult.CalculatedValue = value;
+                    dtoRestValueResult.CalculatedValue = result == null ? null : restValueExecutionService.GetValue(result, dtoFullRestValueConfiguration.NodePatternType, resultConfiguration); ;
                 }
                 catch (Exception ex)
                 {

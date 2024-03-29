@@ -24,7 +24,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpPost]
-    public async Task<ActionResult<int>> UpdateRestValueConfiguration([FromBody] DtoRestValueConfiguration dtoData)
+    public async Task<ActionResult<int>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveRestValueConfiguration(dtoData)));
     }
