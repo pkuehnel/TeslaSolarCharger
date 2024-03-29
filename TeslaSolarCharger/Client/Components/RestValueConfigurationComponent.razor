@@ -15,93 +15,117 @@
 <h2>REST sources</h2>
 
 <div class="d-flex flex-wrap justify-content-evenly">
-    @foreach (var restConfigurationOverview in _restConfigurationOverviews)
+    @if (_restConfigurationOverviews == null)
     {
+        @for (int i = 0; i < 3; i++)
+        {
+            <div class="align-self-center m-3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudSkeleton Width="95%" Height="42px;" />
+                        <MudSkeleton Width="30%" Height="42px;"/>
+                        <MudSkeleton Width="80%"/>
+                        <MudSkeleton Width="100%"/>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudSkeleton Width="64px" Height="40px" Class="ml-2" />
+                        <MudSkeleton Width="105px" Height="40px" Class="ml-3" />
+                    </MudCardActions>
+                </MudCard>
+            </div>            
+        }
+    }
+    else
+    {
+        @foreach (var restConfigurationOverview in _restConfigurationOverviews)
+        {
+            <div class="align-self-center m-3">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <TextShortenComponent InputString="@restConfigurationOverview.Url"
+                                                      ShouldDisplayTruncatedCharCount="false"
+                                                      MaxLength="25"
+                                                      ShouldDisplayCopyButton="false"
+                                                      TooltipText="@restConfigurationOverview.Url"></TextShortenComponent>
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudTooltip>
+                                <ChildContent>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="RefreshRequestResults" />
+                                </ChildContent>
+                                <TooltipContent>
+                                    <div>
+                                        Refresh values
+                                    </div>
+                                </TooltipContent>
+                            </MudTooltip>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @foreach (var restValueResult in restConfigurationOverview.Results)
+                        {
+                            string suffixString;
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-0">
+                                    @switch (restValueResult.UsedFor)
+                                    {
+                                        case ValueUsage.InverterPower:
+                                            <MudIcon Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
+                                            suffixString = "W";
+                                            break;
+                                        case ValueUsage.GridPower:
+                                            <MudIcon Icon="@Constants.GridPoleIcon"></MudIcon>
+                                            suffixString = "W";
+                                            break;
+                                        case ValueUsage.HomeBatteryPower:
+                                            <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull"></MudIcon>
+                                            suffixString = "W";
+                                            break;
+                                        case ValueUsage.HomeBatterySoc:
+                                            <MudIcon Icon="@Icons.Material.Filled.Battery4Bar"></MudIcon>
+                                            suffixString = "%";
+                                            break;
+                                        default:
+                                            throw new ArgumentOutOfRangeException();
+                                    }
+                                </div>
+                                <div class="flex-grow-1">
+                                    <MudChip Text="grey">@(restValueResult.CalculatedValue == null ? "Not available" : Math.Round(restValueResult.CalculatedValue.Value, 2) + $" {suffixString}")</MudChip>
+                                </div>
+                            </div>
+                        }
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OpenRestValueConfigurationDialog(restConfigurationOverview.Id)">Configure</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </div>
+        }
         <div class="align-self-center m-3">
             <MudCard>
                 <MudCardHeader>
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
-                            <TextShortenComponent InputString="@restConfigurationOverview.Url"
-                                                  ShouldDisplayTruncatedCharCount="false"
-                                                  MaxLength="25"
-                                                  ShouldDisplayCopyButton="false"
-                                                  TooltipText="@restConfigurationOverview.Url"></TextShortenComponent>
+                            Add new REST source
                         </MudText>
                     </CardHeaderContent>
-                    <CardHeaderActions>
-                        <MudTooltip>
-                            <ChildContent>
-                                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="RefreshRequestResults" />
-                            </ChildContent>
-                            <TooltipContent>
-                                <div>
-                                    Refresh values
-                                </div>
-                            </TooltipContent>
-                        </MudTooltip>
-                    </CardHeaderActions>
                 </MudCardHeader>
                 <MudCardContent>
-                    @foreach (var restValueResult in restConfigurationOverview.Results)
-                    {
-                        string suffixString;
-                        <div class="d-flex align-items-center">
-                            <div class="flex-grow-0">
-                                @switch (restValueResult.UsedFor)
-                                {
-                                    case ValueUsage.InverterPower:
-                                        <MudIcon Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
-                                        suffixString = "W";
-                                        break;
-                                    case ValueUsage.GridPower:
-                                        <MudIcon Icon="@Constants.GridPoleIcon"></MudIcon>
-                                        suffixString = "W";
-                                        break;
-                                    case ValueUsage.HomeBatteryPower:
-                                        <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull"></MudIcon>
-                                        suffixString = "W";
-                                        break;
-                                    case ValueUsage.HomeBatterySoc:
-                                        <MudIcon Icon="@Icons.Material.Filled.Battery4Bar"></MudIcon>
-                                        suffixString = "%";
-                                        break;
-                                    default:
-                                        throw new ArgumentOutOfRangeException();
-                                }
-                            </div>
-                            <div class="flex-grow-1">
-                                <MudChip Text="grey">@(restValueResult.CalculatedValue == null ? "Not available" : Math.Round(restValueResult.CalculatedValue.Value, 2) + $" {suffixString}")</MudChip>
-                            </div>
-                        </div>
-                    }
+                    <div class="d-flex justify-content-center">
+                        <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"></MudFab>
+                    </div>
+
                 </MudCardContent>
                 <MudCardActions>
-                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OpenRestValueConfigurationDialog(restConfigurationOverview.Id)">Configure</MudButton>
+                    @* <MudButton Variant="Variant.Text" Color="Color.Primary">Configure</MudButton> *@
                 </MudCardActions>
             </MudCard>
         </div>
     }
-    <div class="align-self-center m-3">
-        <MudCard>
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudText Typo="Typo.h6">
-                        Add new REST source
-                    </MudText>
-                </CardHeaderContent>
-            </MudCardHeader>
-            <MudCardContent>
-                <div class="d-flex justify-content-center">
-                    <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"></MudFab>
-                </div>
-                
-            </MudCardContent>
-            <MudCardActions>
-                @* <MudButton Variant="Variant.Text" Color="Color.Primary">Configure</MudButton> *@
-            </MudCardActions>
-        </MudCard>
-    </div>
+
 </div>
 
 @foreach (var editableItem in EditableItems)
@@ -163,7 +187,7 @@
                              OnButtonClicked="() => RestValueConfigurations.Add(new DtoRestValueConfiguration())"></RightAlignedButtonComponent>
 
 @code {
-    private List<DtoRestConfigurationOverview> _restConfigurationOverviews = new();
+    private List<DtoRestConfigurationOverview>? _restConfigurationOverviews;
 
     private List<DtoRestValueConfiguration> RestValueConfigurations { get; set; } = new();
 
@@ -215,12 +239,12 @@
 
     private Task<GridData<DtoRestValueConfiguration>> GetChildContent(GridState<DtoRestValueConfiguration> arg)
     {
-        
+
         return Task.FromResult(new GridData<DtoRestValueConfiguration>
-        {
-            Items = new List<DtoRestValueConfiguration>(),
-            TotalItems = 0
-        });
+            {
+                Items = new List<DtoRestValueConfiguration>(),
+                TotalItems = 0
+            });
     }
 
     private async Task<GridData<DtoRestValueConfigurationHeader>> GetHeaders(int itemId)
@@ -228,10 +252,10 @@
         var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueConfigurationHeader>>($"api/RestValueConfiguration/GetHeadersByConfigurationId?parentId={itemId}");
         var result = elements ?? new List<DtoRestValueConfigurationHeader>();
         return new GridData<DtoRestValueConfigurationHeader>
-        {
-            Items = result,
-            TotalItems = result.Count,
-        };
+            {
+                Items = result,
+                TotalItems = result.Count,
+            };
     }
 
     private async Task<GridData<DtoRestValueResultConfiguration>> GetResultConfigurations(int itemId)
@@ -239,13 +263,13 @@
         var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={itemId}");
         var result = elements ?? new List<DtoRestValueResultConfiguration>();
         return new GridData<DtoRestValueResultConfiguration>
-        {
-            Items = result,
-            TotalItems = result.Count,
-        };
+            {
+                Items = result,
+                TotalItems = result.Count,
+            };
     }
 
-    
+
     private async Task RefreshRequestResults()
     {
         _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoRestConfigurationOverview>>("api/BaseConfiguration/GetRestValueConfigurations") ?? new List<DtoRestConfigurationOverview>();
