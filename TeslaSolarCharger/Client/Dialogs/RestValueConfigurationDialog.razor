@@ -38,7 +38,7 @@ else
                             }
                         </MudSelect>
                     </div>
-                    <GenericInput T="string" For="() => EditableRestValueConfiguration.Item.Url" OnValueChanged="StateHasChanged"></GenericInput>
+                    <GenericInput T="string" For="() => EditableRestValueConfiguration.Item.Url"></GenericInput>
                     @if (EditableRestValueConfiguration.Item.Headers.Count > 0)
                     {
                         <div class="fw-bold px-2 pt-2">
