@@ -245,7 +245,7 @@ else
         }
         IsRequestingCurrentRestStringContent = true;
         CurrentRestStringContent = null;
-        StateHasChanged();
+        MudDialog.StateHasChanged();
         try
         {
             var result = await HttpClient.PostAsJsonAsync("api/RestValueExecution/DebugRestValueConfiguration", RestValueConfiguration);
@@ -259,7 +259,7 @@ else
         finally
         {
             IsRequestingCurrentRestStringContent = false;
-            StateHasChanged();
+            MudDialog.StateHasChanged();
         }
         
     }
