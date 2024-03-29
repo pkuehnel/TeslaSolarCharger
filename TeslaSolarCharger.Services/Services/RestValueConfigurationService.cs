@@ -1,6 +1,5 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
@@ -8,7 +7,6 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
-using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services;
 

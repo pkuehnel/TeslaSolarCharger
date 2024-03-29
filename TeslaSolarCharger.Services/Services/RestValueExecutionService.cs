@@ -24,7 +24,10 @@ public class RestValueExecutionService(
     public async Task<string> GetResult(DtoFullRestValueConfiguration config)
     {
         logger.LogTrace("{method}({@config})", nameof(GetResult), config);
-        var client = new HttpClient();
+        var client = new HttpClient()
+        {
+            Timeout = TimeSpan.FromSeconds(1),
+        };
         var request = new HttpRequestMessage(new HttpMethod(config.HttpMethod.ToString()), config.Url);
         foreach (var header in config.Headers)
         {
@@ -35,8 +38,8 @@ public class RestValueExecutionService(
         settings.RawRestRequestResults[config.Id] = contentString;
         if (!response.IsSuccessStatusCode)
         {
-            logger.LogError("Requesting JSON Result with url {requestUrl} did result in non success status code: {statusCode} {content}", config.Url, response.StatusCode, contentString);
-            throw new InvalidOperationException($"Requesting JSON Result with url {config.Url} did result in non success status code: {response.StatusCode} {contentString}");
+            logger.LogError("Requesting string with url {requestUrl} did result in non success status code: {statusCode} {content}", config.Url, response.StatusCode, contentString);
+            throw new InvalidOperationException($"Requesting string with url {config.Url} did result in non success status code: {response.StatusCode} {contentString}");
         }
 
         return contentString;
@@ -89,6 +92,19 @@ public class RestValueExecutionService(
                 throw new InvalidOperationException($"NodePatternType {configNodePatternType} not supported");
         }
         return MakeCalculationsOnRawValue(resultConfig.CorrectionFactor, resultConfig.Operator, rawValue);
+    }
+
+    public async Task<string> DebugRestValueConfiguration(DtoFullRestValueConfiguration config)
+    {
+        logger.LogTrace("{method}({@config})", nameof(DebugRestValueConfiguration), config);
+        try
+        {
+            return await GetResult(config);
+        }
+        catch (Exception e)
+        {
+            return e.Message;
+        }
     }
 
     internal decimal MakeCalculationsOnRawValue(decimal correctionFactor, ValueOperator valueOperator, decimal rawValue)

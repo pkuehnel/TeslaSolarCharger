@@ -14,4 +14,5 @@ public interface IRestValueExecutionService
     /// <exception cref="InvalidOperationException">Throw if request results in not success status code</exception>
     Task<string> GetResult(DtoFullRestValueConfiguration config);
     decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoRestValueResultConfiguration resultConfig);
+    Task<string> DebugRestValueConfiguration(DtoFullRestValueConfiguration config);
 }

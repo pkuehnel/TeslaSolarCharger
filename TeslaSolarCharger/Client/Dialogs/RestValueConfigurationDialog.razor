@@ -24,13 +24,14 @@ else
         <ChildContent>
             <MudDialog>
                 <DialogContent>
-                    <div class="p-2">
+                    <div class="px-2 pt-2">
                         <MudSelect T="HttpVerb"
                                    Class="@Constants.DefaultMargin"
                                    Variant="Variant.Outlined"
                                    Value="@EditableRestValueConfiguration.Item.HttpMethod"
                                    ValueChanged="(newItem) => UpdateHttpVerb(EditableRestValueConfiguration.Item, newItem)"
-                                   Label="HTTP Method">
+                                   Label="HTTP Method"
+                                   Margin="Constants.InputMargin">
                             @foreach (HttpVerb item in Enum.GetValues(typeof(HttpVerb)))
                             {
                                 <MudSelectItem T="HttpVerb" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
@@ -38,13 +39,86 @@ else
                         </MudSelect>
                     </div>
                     <GenericInput T="string" For="() => EditableRestValueConfiguration.Item.Url" OnValueChanged="StateHasChanged"></GenericInput>
+                    @if (EditableRestValueConfiguration.Item.Headers.Count > 0)
+                    {
+                        <div class="fw-bold px-2 pt-2">
+                            Headers
+                        </div>
+                    }
+                    @foreach (var header in EditableRestValueConfiguration.Item.Headers)
+                    {
+                        <div class="d-flex align-items-center">
+                            <div class="pt-2 flex-grow-1">
+                                <div class="row">
+                                    <div class="col">
+                                        <GenericInput For="() => header.Key"></GenericInput>
+                                    </div>
+                                    <div class="col">
+                                        <GenericInput For="() => header.Value"></GenericInput>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="px-2 pt-2">
+                                <MudFab Color="Color.Error"
+                                        StartIcon="@Icons.Material.Filled.Delete"
+                                        Size="Size.Medium"
+                                        ButtonType="ButtonType.Button"
+                                        OnClick="_ => EditableRestValueConfiguration.Item.Headers.Remove(header)"></MudFab>
+                            </div>
+                        </div>
+                    }
                     <div class="p-2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="_ => EditableRestValueConfiguration.Item.Headers.Add(new())">Add Header</MudButton>
+                    </div>
+                    @if (CurrentRestStringContent == null && !IsRequestingCurrentRestStringContent)
+                    {
+                        <div class="p-2">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       FullWidth="true"
+                                       StartIcon="@(IsRequestingCurrentRestStringContent ? "" : Icons.Material.Filled.Refresh)"
+                                       Disabled="IsRequestingCurrentRestStringContent"
+                                       OnClick="GetCurrentRestString">
+                                @if (IsRequestingCurrentRestStringContent)
+                                {
+                                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                                    <MudText Class="ms-2">Processing</MudText>
+                                }
+                                else
+                                {
+                                    <MudText>Display current result</MudText>
+                                }
+                            </MudButton>
+                        </div>
+                    }
+                    else
+                    {
+                        if (CurrentRestStringContent == null)
+                        {
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <GenericInput T="string" For="() => CurrentRestStringContent.Value"
+                                                  IsDisabledParameter="true"></GenericInput>
+                                </div>
+                                <MudFab StartIcon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="GetCurrentRestString">Test</MudFab>
+                            </div>
+                            
+                        }
+                    }
+                    <hr />
+                    <div class="px-2 pt-2">
                         <MudSelect T="NodePatternType"
                                    Class="@Constants.DefaultMargin"
                                    Variant="Variant.Outlined"
                                    Value="@EditableRestValueConfiguration.Item.NodePatternType"
                                    ValueChanged="@((newValue) => UpdateNodePatternType(EditableRestValueConfiguration.Item, newValue))"
-                                   Label="Node Pattern Type">
+                                   Label="Node Pattern Type"
+                                   Margin="Constants.InputMargin">
                             @foreach (NodePatternType item in Enum.GetValues(typeof(NodePatternType)))
                             {
                                 <MudSelectItem T="NodePatternType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
@@ -76,6 +150,10 @@ else
 
     private EditableItem<DtoFullRestValueConfiguration>? EditableRestValueConfiguration => RestValueConfiguration == null ? null : new EditableItem<DtoFullRestValueConfiguration>(RestValueConfiguration);
 
+    private DtoValue<string>? CurrentRestStringContent { get; set; }
+    public bool IsRequestingCurrentRestStringContent { get; set; }
+    
+    
     protected override async Task OnInitializedAsync()
     {
         if(RestValueConfigurationId == null)
@@ -157,6 +235,33 @@ else
                 Items = result,
                 TotalItems = result.Count,
             };
+    }
+
+    private async Task GetCurrentRestString()
+    {
+        if (RestValueConfiguration == default)
+        {
+            Snackbar.Add("Rest value configuration is null", Severity.Error);
+        }
+        IsRequestingCurrentRestStringContent = true;
+        CurrentRestStringContent = null;
+        StateHasChanged();
+        try
+        {
+            var result = await HttpClient.PostAsJsonAsync("api/RestValueExecution/DebugRestValueConfiguration", RestValueConfiguration);
+            var resultString = await result.Content.ReadAsStringAsync();
+            CurrentRestStringContent = JsonConvert.DeserializeObject<DtoValue<string>>(resultString);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add("Failed to get current rest string", Severity.Error);
+        }
+        finally
+        {
+            IsRequestingCurrentRestStringContent = false;
+            StateHasChanged();
+        }
+        
     }
 
 }
