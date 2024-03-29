@@ -3,6 +3,7 @@ using Quartz.Spi;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling;
 
@@ -14,13 +15,14 @@ public class JobManager
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISettings _settings;
+    private readonly IConstants _constants;
 
     private IScheduler? _scheduler;
 
 
 #pragma warning disable CS8618
     public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory,
-        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider, ISettings settings)
+        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider, ISettings settings, IConstants constants)
 #pragma warning restore CS8618
     {
         _logger = logger;
@@ -29,6 +31,7 @@ public class JobManager
         _configurationWrapper = configurationWrapper;
         _dateTimeProvider = dateTimeProvider;
         _settings = settings;
+        _constants = constants;
     }
 
     public async Task StartJobs()
@@ -82,7 +85,7 @@ public class JobManager
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
         var chargingDetailsAddTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(_constants.ChargingDetailsAddTriggerEveryXSeconds)).Build();
 
         var finishedChargingProcessFinalizingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(9)).Build();

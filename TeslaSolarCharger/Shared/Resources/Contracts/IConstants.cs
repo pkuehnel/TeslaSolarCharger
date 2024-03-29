@@ -27,4 +27,5 @@ public interface IConstants
     string HandledChargesCarIdsConverted { get; }
     string HandledChargesConverted { get; }
     string GridPoleIcon { get; }
+    int ChargingDetailsAddTriggerEveryXSeconds { get; }
 }

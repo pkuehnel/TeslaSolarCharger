@@ -364,6 +364,7 @@ public class ConfigJsonService(
         const int lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
         try
         {
+            //ToDo: needs to be updated to charging processes
             var chargerVoltages = await teslamateContext
                 .Charges
                 .Where(c => c.ChargingProcess.Geofence != null

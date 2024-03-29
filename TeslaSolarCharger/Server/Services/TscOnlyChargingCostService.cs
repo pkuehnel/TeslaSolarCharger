@@ -10,6 +10,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -20,7 +21,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     IDateTimeProvider dateTimeProvider,
     IConfigurationWrapper configurationWrapper,
     IServiceProvider serviceProvider,
-    IMapperConfigurationFactory mapperConfigurationFactory) : ITscOnlyChargingCostService
+    IMapperConfigurationFactory mapperConfigurationFactory,
+    IConstants constants) : ITscOnlyChargingCostService
 {
     public async Task FinalizeFinishedChargingProcesses()
     {
@@ -154,11 +156,19 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         decimal cost = 0;
         chargingProcess.EndDate = chargingDetails.Last().TimeStamp;
         var prices = await GetPricesInTimeSpan(chargingProcess.StartDate, chargingProcess.EndDate.Value);
+        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
+        var maxChargingDetailsDuration = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds).Add(TimeSpan.FromSeconds(10));
         for (var index = 1; index < chargingDetails.Count; index++)
         {
             var price = GetPriceByTimeStamp(prices, chargingDetails[index].TimeStamp);
             var chargingDetail = chargingDetails[index];
             var timeSpanSinceLastDetail = chargingDetail.TimeStamp - chargingDetails[index - 1].TimeStamp;
+            
+            if (timeSpanSinceLastDetail > maxChargingDetailsDuration)
+            {
+                logger.LogWarning("Do not use charging detail as last charging detail ist too old");
+                continue;
+            }
             var usedSolarWhSinceLastChargingDetail = (decimal)(chargingDetail.SolarPower * timeSpanSinceLastDetail.TotalHours);
             usedSolarEnergyWh += usedSolarWhSinceLastChargingDetail;
             var usedGridPowerSinceLastChargingDetail = (decimal)(chargingDetail.GridPower * timeSpanSinceLastDetail.TotalHours);
