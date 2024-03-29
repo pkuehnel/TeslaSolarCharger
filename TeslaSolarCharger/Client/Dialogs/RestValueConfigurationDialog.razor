@@ -5,6 +5,7 @@
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos
 @using Newtonsoft.Json
+@using MudExtensions
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
@@ -17,10 +18,11 @@
 }
 else
 {
+
     <EditFormComponent T="DtoFullRestValueConfiguration"
                        WrappedElement="EditableRestValueConfiguration"
-                       OnValidSubmit="(item) => HandleValidSubmit(item)"
-                       HideSubmitButton="true">
+                       HideSubmitButton="true"
+                       @ref=fullConfigForm>
         <ChildContent>
             <MudDialog>
                 <DialogContent>
@@ -82,7 +84,7 @@ else
                                        OnClick="GetCurrentRestString">
                                 @if (IsRequestingCurrentRestStringContent)
                                 {
-                                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
                                     <MudText Class="ms-2">Processing</MudText>
                                 }
                                 else
@@ -107,7 +109,7 @@ else
                                 </div>
                                 <MudFab StartIcon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="GetCurrentRestString">Test</MudFab>
                             </div>
-                            
+
                         }
                     }
                     <hr />
@@ -125,13 +127,99 @@ else
                             }
                         </MudSelect>
                     </div>
+
+                    @foreach (var editableResultConfig in EditableRestResultConfigurations)
+                    {
+                        <EditFormComponent T="DtoRestValueResultConfiguration"
+                                           WrappedElement="editableResultConfig"
+                                           HideSubmitButton="true"
+                                           @ref="ResultConfigEditFormSetter">
+                            <ChildContent>
+                                <div class="d-flex align-items-center">
+                                    <div class="p-2 flex-grow-1">
+                                        <div class="p-2">
+                                            <MudSelectExtended T="ValueUsage"
+                                                               Variant="Variant.Outlined"
+                                                               AnchorOrigin="Origin.BottomCenter"
+                                                               @bind-Value="@editableResultConfig.Item.UsedFor"
+                                                               Label="Used for"
+                                                               Margin="Constants.InputMargin">
+                                                <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
+                                                    @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
+                                                    {
+                                                        <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                                                    }
+                                                </MudSelectItemGroupExtended>
+                                            </MudSelectExtended>
+                                        </div>
+                                        <div class="row">
+                                            @if (EditableRestValueConfiguration.Item.NodePatternType != NodePatternType.Direct)
+                                            {
+                                                <div class="col">
+                                                    <GenericInput For="() => editableResultConfig.Item.NodePattern"></GenericInput>
+                                                </div>
+                                            }
+                                            @if (EditableRestValueConfiguration.Item.NodePatternType == NodePatternType.Xml)
+                                            {
+                                                <div>
+                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderName"></GenericInput>
+                                                </div>
+                                            }
+                                        </div>
+                                        @if (EditableRestValueConfiguration.Item.NodePatternType == NodePatternType.Xml)
+                                        {
+                                            <div class="col">
+                                                <div>
+                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeHeaderValue"></GenericInput>
+                                                </div>
+                                                <div>
+                                                    <GenericInput For="() => editableResultConfig.Item.XmlAttributeValueName"></GenericInput>
+                                                </div>
+                                            </div>
+
+                                        }
+                                        <div class="row">
+                                            <div class="col">
+                                                <div class="p-2">
+                                                    <MudSelect T="ValueOperator"
+                                                               Class="@Constants.DefaultMargin"
+                                                               Variant="Variant.Outlined"
+                                                               Value="@editableResultConfig.Item.Operator"
+                                                               ValueChanged="(newItem) => UpdateOperator(editableResultConfig.Item, newItem)"
+                                                               Label="Operator"
+                                                               Margin="Constants.InputMargin">
+                                                        @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
+                                                        {
+                                                            <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                        }
+                                                    </MudSelect>
+                                                </div>
+                                            </div>
+                                            <div class="col">
+                                                <GenericInput For="() => editableResultConfig.Item.CorrectionFactor"></GenericInput>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            <MudFab Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="_ => InvokeDeleteClicked(editableResultConfig.Item)" Size="Size.Medium" ButtonType="ButtonType.Button"></MudFab>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ChildContent>
+                        </EditFormComponent>
+                    }
+                    <div class="p-2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="_ => RestValueResultConfigurations.Add(new ())">Add Result</MudButton>
+                    </div>
                 </DialogContent>
                 <DialogActions>
                     <MudButton OnClick="Cancel">Cancel</MudButton>
-                    <MudButton Color="Color.Primary" ButtonType="ButtonType.Submit">Save</MudButton>
+                    <MudButton Color="Color.Primary" OnClick="SubmitAllForms">Save</MudButton>
                 </DialogActions>
             </MudDialog>
-            
+
         </ChildContent>
     </EditFormComponent>
 
@@ -144,26 +232,102 @@ else
     [Parameter]
     public int? RestValueConfigurationId { get; set; }
 
+    EditFormComponent<DtoFullRestValueConfiguration>? fullConfigForm;
+
     void Cancel() => MudDialog.Cancel();
 
     private DtoFullRestValueConfiguration? RestValueConfiguration { get; set; }
 
     private EditableItem<DtoFullRestValueConfiguration>? EditableRestValueConfiguration => RestValueConfiguration == null ? null : new EditableItem<DtoFullRestValueConfiguration>(RestValueConfiguration);
 
+    private List<EditableItem<DtoRestValueResultConfiguration>> EditableRestResultConfigurations => RestValueResultConfigurations.Select(restValueResultConfiguration => new EditableItem<DtoRestValueResultConfiguration>(restValueResultConfiguration)).ToList();
+    private List<DtoRestValueResultConfiguration> RestValueResultConfigurations { get; set; } = new();
+
+
     private DtoValue<string>? CurrentRestStringContent { get; set; }
     public bool IsRequestingCurrentRestStringContent { get; set; }
-    
-    
+
+    private Dictionary<string, EditFormComponent<DtoRestValueResultConfiguration>> ResultConfigEditForms { get; set; } = new();
+    public EditFormComponent<DtoRestValueResultConfiguration> ResultConfigEditFormSetter
+    {
+        set => ResultConfigEditForms[value.WrappedElement.Guid] = value;
+    }
+
+
     protected override async Task OnInitializedAsync()
     {
-        if(RestValueConfigurationId == null)
+        if (RestValueConfigurationId == null)
         {
             RestValueConfiguration = new DtoFullRestValueConfiguration();
         }
         else
         {
             await LoadRestValueConfigurations();
+            await LoadResultConfigurations();
+
         }
+    }
+
+    private async Task SubmitAllForms()
+    {
+        if (fullConfigForm == default)
+        {
+            Snackbar.Add("Config form is null, can not save values", Severity.Error);
+            return;
+        }
+
+        if (RestValueConfiguration == default)
+        {
+            Snackbar.Add("Rest value configuration is null", Severity.Error);
+            return;
+        }
+
+        if (!fullConfigForm.WrappedElement.EditContext.Validate())
+        {
+            Snackbar.Add("Rest configuration is not valid", Severity.Error);
+            return;
+        }
+
+        if (ResultConfigEditForms.Any(r => r.Value.WrappedElement.EditContext.Validate() != true))
+        {
+            Snackbar.Add("At least one value configuration is not valid");
+            return;
+        }
+        var result = await HttpClient.PostAsJsonAsync("/api/RestValueConfiguration/UpdateRestValueConfiguration", RestValueConfiguration);
+        if (!result.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            return;
+        }
+        var resultContent = await result.Content.ReadFromJsonAsync<DtoValue<int>>();
+        if (resultContent == default)
+        {
+            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+            return;
+        }
+        Snackbar.Add("Rest value configuration saved.", Severity.Success);
+        RestValueConfiguration.Id = resultContent.Value;
+        var parentId = RestValueConfiguration?.Id ?? RestValueConfigurationId;
+        foreach (var editForm in ResultConfigEditForms)
+        {
+            var resultConfig = editForm.Value.WrappedElement.Item;
+            var resultConfigResult = await HttpClient.PostAsJsonAsync($"/api/RestValueConfiguration/SaveResultConfiguration?parentId={parentId}", resultConfig);
+            if (!result.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+                return;
+            }
+            var resultConfigResultContent = await resultConfigResult.Content.ReadFromJsonAsync<DtoValue<int>>();
+            if (resultConfigResultContent == default)
+            {
+                Snackbar.Add("Failed to update REST value configuration", Severity.Error);
+                return;
+            }
+            Snackbar.Add("Result configuration saved.", Severity.Success);
+            resultConfig.Id = resultContent.Value;
+        }
+
+        MudDialog.Close(DialogResult.Ok(RestValueConfiguration.Id));
     }
 
     private async Task LoadRestValueConfigurations()
@@ -171,6 +335,21 @@ else
         var resultString = await HttpClient.GetStringAsync($"/api/RestValueConfiguration/GetFullRestValueConfigurationsById?id={RestValueConfigurationId}");
         var result = JsonConvert.DeserializeObject<DtoFullRestValueConfiguration>(resultString);
         RestValueConfiguration = result;
+    }
+
+    private async Task LoadResultConfigurations()
+    {
+        var parentId = RestValueConfiguration?.Id ?? RestValueConfigurationId;
+        if (parentId == null)
+        {
+            return;
+        }
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={parentId}");
+        RestValueResultConfigurations = elements ?? new List<DtoRestValueResultConfiguration>();
+        if (RestValueResultConfigurations.Count == 0)
+        {
+            RestValueResultConfigurations.Add(new DtoRestValueResultConfiguration());
+        }
     }
 
     private void UpdateNodePatternType(DtoFullRestValueConfiguration restValueConfiguration, NodePatternType newItem)
@@ -185,35 +364,25 @@ else
         StateHasChanged();
     }
 
-    private async Task HandleValidSubmit(DtoFullRestValueConfiguration item)
+    private void UpdateOperator(DtoRestValueResultConfiguration editableItemItem, ValueOperator newItem)
     {
-        var result = await HttpClient.PostAsJsonAsync("/api/RestValueConfiguration/UpdateRestValueConfiguration", item);
-        if (!result.IsSuccessStatusCode)
-        {
-            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
-            return;
-        }
-        var resultContent = await result.Content.ReadFromJsonAsync<DtoValue<int>>();
-        if (resultContent == default)
-        {
-            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
-            return;
-        }
-
-        Snackbar.Add("Rest value configuration saved.", Severity.Success);
-        item.Id = resultContent.Value;
-        MudDialog.Close(DialogResult.Ok(item.Id));
+        editableItemItem.Operator = newItem;
     }
 
-    private async Task<GridData<DtoRestValueResultConfiguration>> GetResultConfigurations(int itemId)
+    private async Task InvokeDeleteClicked(DtoRestValueResultConfiguration editableItemItem)
     {
-        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={itemId}");
-        var result = elements ?? new List<DtoRestValueResultConfiguration>();
-        return new GridData<DtoRestValueResultConfiguration>
+        if (editableItemItem.Id != default)
+        {
+            var result = await HttpClient.DeleteAsync($"/api/RestValueConfiguration/DeleteResultConfiguration?id={editableItemItem.Id}");
+            if (!result.IsSuccessStatusCode)
             {
-                Items = result,
-                TotalItems = result.Count,
-            };
+                Snackbar.Add("Failed to delete result configuration", Severity.Error);
+                return;
+            }
+
+        }
+        RestValueResultConfigurations.Remove(editableItemItem);
+        Snackbar.Add("Result configuration deleted", Severity.Success);
     }
 
     private async Task GetCurrentRestString()
@@ -240,7 +409,6 @@ else
             IsRequestingCurrentRestStringContent = false;
             MudDialog.StateHasChanged();
         }
-        
-    }
 
+    }
 }
