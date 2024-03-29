@@ -32,7 +32,7 @@ public class RestValueConfigurationService(
         return result;
     }
 
-    public async Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByPredicate(
+    public async Task<List<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsByPredicate(
         Expression<Func<RestValueConfiguration, bool>> predicate)
     {
 

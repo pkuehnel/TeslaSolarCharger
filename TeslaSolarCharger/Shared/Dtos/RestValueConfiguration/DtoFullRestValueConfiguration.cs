@@ -2,5 +2,5 @@
 
 public class DtoFullRestValueConfiguration : DtoRestValueConfiguration
 {
-    public List<DtoRestValueConfigurationHeader> Headers { get; set; } = new List<DtoRestValueConfigurationHeader>();
+    public List<DtoRestValueConfigurationHeader> Headers { get; set; } = new();
 }

@@ -66,7 +66,7 @@ public class BaseConfigurationService(
     public async Task<List<DtoRestConfigurationOverview>> GetRestValueOverviews()
     {
         logger.LogTrace("{method}()", nameof(GetRestValueOverviews));
-        var restValueConfigurations = await restValueConfigurationService.GetRestValueConfigurationsByPredicate(c => true).ConfigureAwait(false);
+        var restValueConfigurations = await restValueConfigurationService.GetFullRestValueConfigurationsByPredicate(c => true).ConfigureAwait(false);
         var results = new List<DtoRestConfigurationOverview>();
         foreach (var dtoFullRestValueConfiguration in restValueConfigurations)
         {

@@ -278,7 +278,7 @@ public class PvValueService : IPvValueService
             ValueUsage.HomeBatterySoc,
         };
         var restConfigurations = await _restValueConfigurationService
-            .GetRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
+            .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
         var resultSums = new Dictionary<ValueUsage, decimal>();
         foreach (var restConfiguration in restConfigurations)
         {

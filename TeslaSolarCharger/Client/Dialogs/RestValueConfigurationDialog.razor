@@ -4,13 +4,12 @@
 @using TeslaSolarCharger.SharedModel.Enums
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos
+@using Newtonsoft.Json
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
 @inject IStringHelper StringHelper
 @inject ISnackbar Snackbar
-
-<h3>RestValueConfigurationDialog</h3>
 
 @if (EditableRestValueConfiguration == null)
 {
@@ -18,7 +17,7 @@
 }
 else
 {
-    <EditFormComponent T="DtoRestValueConfiguration"
+    <EditFormComponent T="DtoFullRestValueConfiguration"
                        WrappedElement="EditableRestValueConfiguration"
                        OnValidSubmit="(item) => HandleValidSubmit(item)"
                        HideSubmitButton="true">
@@ -73,15 +72,15 @@ else
 
     void Cancel() => MudDialog.Cancel();
 
-    private DtoRestValueConfiguration? RestValueConfiguration { get; set; }
+    private DtoFullRestValueConfiguration? RestValueConfiguration { get; set; }
 
-    private EditableItem<DtoRestValueConfiguration>? EditableRestValueConfiguration => RestValueConfiguration == null ? null : new EditableItem<DtoRestValueConfiguration>(RestValueConfiguration);
+    private EditableItem<DtoFullRestValueConfiguration>? EditableRestValueConfiguration => RestValueConfiguration == null ? null : new EditableItem<DtoFullRestValueConfiguration>(RestValueConfiguration);
 
     protected override async Task OnInitializedAsync()
     {
         if(RestValueConfigurationId == null)
         {
-            RestValueConfiguration = new DtoRestValueConfiguration();
+            RestValueConfiguration = new DtoFullRestValueConfiguration();
         }
         else
         {
@@ -91,7 +90,9 @@ else
 
     private async Task LoadRestValueConfigurations()
     {
-        RestValueConfiguration = await HttpClient.GetFromJsonAsync<DtoRestValueConfiguration>($"/api/RestValueConfiguration/GetRestValueConfiguration?id={RestValueConfigurationId}");
+        var resultString = await HttpClient.GetStringAsync($"/api/RestValueConfiguration/GetFullRestValueConfigurationsById?id={RestValueConfigurationId}");
+        var result = JsonConvert.DeserializeObject<DtoFullRestValueConfiguration>(resultString);
+        RestValueConfiguration = result;
     }
 
     private void UpdateNodePatternType(DtoRestValueConfiguration restValueConfiguration, NodePatternType newItem)

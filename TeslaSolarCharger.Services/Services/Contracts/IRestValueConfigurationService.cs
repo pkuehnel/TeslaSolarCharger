@@ -15,7 +15,7 @@ public interface IRestValueConfigurationService
     Task<List<DtoRestValueResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId);
     Task<int> SaveResultConfiguration(int parentId, DtoRestValueResultConfiguration dtoData);
     Task DeleteResultConfiguration(int id);
-    Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByPredicate(
+    Task<List<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsByPredicate(
         Expression<Func<RestValueConfiguration, bool>> predicate);
 
     Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(
