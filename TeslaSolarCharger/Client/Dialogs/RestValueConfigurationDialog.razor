@@ -202,7 +202,7 @@ else
                                     </div>
                                     <div class="row">
                                         <div class="col">
-                                            <MudFab Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="_ => InvokeDeleteClicked(editableResultConfig.Item)" Size="Size.Medium" ButtonType="ButtonType.Button"></MudFab>
+                                            <MudFab Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="_ => InvokeDeleteClicked(editableResultConfig.Item, editableResultConfig.Guid)" Size="Size.Medium" ButtonType="ButtonType.Button"></MudFab>
                                         </div>
                                     </div>
                                 </div>
@@ -211,7 +211,7 @@ else
                     }
                     <div class="p-2">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Add"
-                                   OnClick="_ => RestValueResultConfigurations.Add(new ())">Add Result</MudButton>
+                                   OnClick="_ => EditableRestResultConfigurations.Add(new EditableItem<DtoRestValueResultConfiguration>(new()))">Add Result</MudButton>
                     </div>
                 </DialogContent>
                 <DialogActions>
@@ -240,9 +240,7 @@ else
 
     private EditableItem<DtoFullRestValueConfiguration>? EditableRestValueConfiguration => RestValueConfiguration == null ? null : new EditableItem<DtoFullRestValueConfiguration>(RestValueConfiguration);
 
-    private List<EditableItem<DtoRestValueResultConfiguration>> EditableRestResultConfigurations => RestValueResultConfigurations.Select(restValueResultConfiguration => new EditableItem<DtoRestValueResultConfiguration>(restValueResultConfiguration)).ToList();
-    private List<DtoRestValueResultConfiguration> RestValueResultConfigurations { get; set; } = new();
-
+    private List<EditableItem<DtoRestValueResultConfiguration>> EditableRestResultConfigurations { get; set; } = new();
 
     private DtoValue<string>? CurrentRestStringContent { get; set; }
     public bool IsRequestingCurrentRestStringContent { get; set; }
@@ -305,7 +303,6 @@ else
             Snackbar.Add("Failed to update REST value configuration", Severity.Error);
             return;
         }
-        Snackbar.Add("Rest value configuration saved.", Severity.Success);
         RestValueConfiguration.Id = resultContent.Value;
         var parentId = RestValueConfiguration?.Id ?? RestValueConfigurationId;
         foreach (var editForm in ResultConfigEditForms)
@@ -323,11 +320,10 @@ else
                 Snackbar.Add("Failed to update REST value configuration", Severity.Error);
                 return;
             }
-            Snackbar.Add("Result configuration saved.", Severity.Success);
             resultConfig.Id = resultContent.Value;
         }
-
-        MudDialog.Close(DialogResult.Ok(RestValueConfiguration.Id));
+        Snackbar.Add("Rest value configuration saved.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(parentId));
     }
 
     private async Task LoadRestValueConfigurations()
@@ -345,10 +341,14 @@ else
             return;
         }
         var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={parentId}");
-        RestValueResultConfigurations = elements ?? new List<DtoRestValueResultConfiguration>();
-        if (RestValueResultConfigurations.Count == 0)
+        elements ??= new List<DtoRestValueResultConfiguration>();
+        foreach (var element in elements)
         {
-            RestValueResultConfigurations.Add(new DtoRestValueResultConfiguration());
+            EditableRestResultConfigurations.Add(new(element));
+        }
+        if (elements.Count == 0)
+        {
+            EditableRestResultConfigurations.Add(new(new()));
         }
     }
 
@@ -369,7 +369,7 @@ else
         editableItemItem.Operator = newItem;
     }
 
-    private async Task InvokeDeleteClicked(DtoRestValueResultConfiguration editableItemItem)
+    private async Task InvokeDeleteClicked(DtoRestValueResultConfiguration editableItemItem, string guid)
     {
         if (editableItemItem.Id != default)
         {
@@ -381,7 +381,8 @@ else
             }
 
         }
-        RestValueResultConfigurations.Remove(editableItemItem);
+        EditableRestResultConfigurations.RemoveAll(r => r.Guid == guid);
+        ResultConfigEditForms.Remove(guid);
         Snackbar.Add("Result configuration deleted", Severity.Success);
     }
 
