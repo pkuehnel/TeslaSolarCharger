@@ -27,4 +27,8 @@ public class Settings : ISettings
     public bool RestartNeeded { get; set; }
 
     public List<DtoCar> Cars { get; set; } = new();
+
+    public Dictionary<int, string> RawRestRequestResults { get; set; } = new();
+    public Dictionary<int, string> RawRestValues { get; set; } = new();
+    public Dictionary<int, decimal?> CalculatedRestValues { get; set; } = new();
 }

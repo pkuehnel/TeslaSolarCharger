@@ -27,6 +27,10 @@ namespace TeslaSolarCharger.Server.Controllers
             service.UpdatePowerBuffer(powerBuffer);
 
         [HttpGet]
+        public Task<List<DtoRestConfigurationOverview>> GetRestValueConfigurations() =>
+            service.GetRestValueOverviews();
+
+        [HttpGet]
         public async Task<FileContentResult> DownloadBackup()
         {
             var bytes = await service.DownloadBackup(string.Empty, null).ConfigureAwait(false);

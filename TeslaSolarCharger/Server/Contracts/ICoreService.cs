@@ -20,4 +20,7 @@ public interface ICoreService
     DtoValue<bool> ShouldDisplayApiRequestCounter();
     Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to);
     Task<string> GetInstallationId();
+    Dictionary<int, string> GetRawRestRequestResults();
+    Dictionary<int, string> GetRawRestValue();
+    Dictionary<int, decimal?> GetCalculatedRestValue();
 }

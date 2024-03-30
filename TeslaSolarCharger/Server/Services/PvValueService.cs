@@ -277,17 +277,23 @@ public class PvValueService : IPvValueService
             ValueUsage.HomeBatteryPower,
             ValueUsage.HomeBatterySoc,
         };
-        var resultConfigurations = await _restValueConfigurationService
-            .GetRestValueConfigurationsByValueUsage(valueUsages).ConfigureAwait(false);
+        var restConfigurations = await _restValueConfigurationService
+            .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
         var resultSums = new Dictionary<ValueUsage, decimal>();
-        foreach (var restConfiguration in resultConfigurations)
+        foreach (var restConfiguration in restConfigurations)
         {
             try
             {
-                var results = await _restValueExecutionService.GetResult(restConfiguration).ConfigureAwait(false);
+                var responseString = await _restValueExecutionService.GetResult(restConfiguration).ConfigureAwait(false);
+                var resultConfigurations = await _restValueConfigurationService.GetResultConfigurationsByConfigurationId(restConfiguration.Id).ConfigureAwait(false);
+                var results = new Dictionary<int, decimal>();
+                foreach (var resultConfiguration in resultConfigurations)
+                {
+                    results.Add(resultConfiguration.Id, _restValueExecutionService.GetValue(responseString, restConfiguration.NodePatternType, resultConfiguration));
+                }
                 foreach (var result in results)
                 {
-                    var valueUsage = restConfiguration.RestValueResultConfigurations.First(r => r.Id == result.Key).UsedFor;
+                    var valueUsage = resultConfigurations.First(r => r.Id == result.Key).UsedFor;
                     if (!resultSums.ContainsKey(valueUsage))
                     {
                         resultSums[valueUsage] = 0;

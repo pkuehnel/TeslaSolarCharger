@@ -59,5 +59,14 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public Task<string> GetInstallationId() => _coreService.GetInstallationId();
+
+        [HttpGet]
+        public Dictionary<int, string> GetRawRestRequestResults() => _coreService.GetRawRestRequestResults();
+
+        [HttpGet]
+        public Dictionary<int, string> GetRawRestValue() => _coreService.GetRawRestValue();
+
+        [HttpGet]
+        public Dictionary<int, decimal?> GetCalculatedRestValue() => _coreService.GetCalculatedRestValue();
     }
 }

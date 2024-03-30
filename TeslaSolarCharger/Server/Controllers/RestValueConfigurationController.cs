@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
@@ -15,8 +16,15 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
         return Ok(result);
     }
 
+    [HttpGet]
+    public async Task<ActionResult<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsById(int id)
+    {
+        var result = await service.GetFullRestValueConfigurationsByPredicate(c => c.Id == id);
+        return Ok(result.Single());
+    }
+
     [HttpPost]
-    public async Task<ActionResult<int>> UpdateRestValueConfiguration([FromBody] DtoRestValueConfiguration dtoData)
+    public async Task<ActionResult<int>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveRestValueConfiguration(dtoData)));
     }

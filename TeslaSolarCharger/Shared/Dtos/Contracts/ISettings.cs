@@ -23,4 +23,7 @@ public interface ISettings
     List<DtoCar> Cars { get; set; }
     List<DtoCar> CarsToManage { get; }
     bool RestartNeeded { get; set; }
+    Dictionary<int, string> RawRestRequestResults { get; set; }
+    Dictionary<int, string> RawRestValues { get; set; }
+    Dictionary<int, decimal?> CalculatedRestValues { get; set; }
 }

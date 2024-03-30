@@ -1,12 +1,12 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
-using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services;
 
@@ -30,38 +30,41 @@ public class RestValueConfigurationService(
         return result;
     }
 
-    public async Task<List<DtoFullRestValueConfiguration>> GetRestValueConfigurationsByValueUsage(HashSet<ValueUsage> valueUsages)
+    public async Task<List<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsByPredicate(
+        Expression<Func<RestValueConfiguration, bool>> predicate)
     {
-        logger.LogTrace("{method}({@valueUsages})", nameof(GetRestValueConfigurationsByValueUsage), valueUsages);
-        var resultConfigurations = await context.RestValueConfigurations
-            .Where(r => r.RestValueResultConfigurations.Any(result => valueUsages.Contains(result.UsedFor)))
-            .Select(config => new DtoFullRestValueConfiguration()
-            {
-                Id = config.Id,
-                HttpMethod = config.HttpMethod,
-                NodePatternType = config.NodePatternType,
-                Url = config.Url,
-                Headers = config.Headers.Select(header => new DtoRestValueConfigurationHeader()
-                {
-                    Id = header.Id, Key = header.Key, Value = header.Value,
-                }).ToList(),
-                RestValueResultConfigurations = config.RestValueResultConfigurations
-                    .Where(r => valueUsages.Contains(r.UsedFor))
-                    .Select(result => new DtoRestValueResultConfiguration()
-                    {
-                        Id = result.Id,
-                        NodePattern = result.NodePattern,
-                        CorrectionFactor = result.CorrectionFactor,
-                        Operator = result.Operator,
-                        UsedFor = result.UsedFor,
-                    }).ToList(),
-            })
-            .ToListAsync().ConfigureAwait(false);
 
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<RestValueConfigurationHeader, DtoRestValueConfigurationHeader>();
+            cfg.CreateMap<RestValueConfiguration, DtoFullRestValueConfiguration>()
+                .ForMember(d => d.Headers, opt => opt.MapFrom(s => s.Headers))
+                ;
+        });
+        var resultConfigurations = await context.RestValueConfigurations
+            .Where(predicate)
+            .ProjectTo<DtoFullRestValueConfiguration>(mapper)
+            .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
     }
 
-    public async Task<int> SaveRestValueConfiguration(DtoRestValueConfiguration dtoData)
+    public async Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(
+        Expression<Func<RestValueResultConfiguration, bool>> predicate)
+    {
+
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<RestValueResultConfiguration, DtoRestValueResultConfiguration>()
+                ;
+        });
+        var resultConfigurations = await context.RestValueResultConfigurations
+            .Where(predicate)
+            .ProjectTo<DtoRestValueResultConfiguration>(mapper)
+            .ToListAsync().ConfigureAwait(false);
+        return resultConfigurations;
+    }
+
+    public async Task<int> SaveRestValueConfiguration(DtoFullRestValueConfiguration dtoData)
     {
         logger.LogTrace("{method}({@dtoData})", nameof(SaveRestValueConfiguration), dtoData);
         var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
@@ -78,7 +81,32 @@ public class RestValueConfigurationService(
         }
         else
         {
+            var dtoHeaderIds = dtoData.Headers.Select(h => h.Id).ToList();
+            var headersToRemove = await context.RestValueConfigurationHeaders
+                .Where(x => x.RestValueConfigurationId == dbData.Id &&
+                            !dtoHeaderIds.Contains(x.Id))
+                .ToListAsync().ConfigureAwait(false);
+            context.RestValueConfigurationHeaders.RemoveRange(headersToRemove);
             context.RestValueConfigurations.Update(dbData);
+        }
+        var headerMapperConfiguration = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<DtoRestValueConfigurationHeader, RestValueConfigurationHeader>()
+                ;
+        });
+        var headerMapper = headerMapperConfiguration.CreateMapper();
+        foreach (var dtoHeader in dtoData.Headers)
+        {
+            var dbHeader = headerMapper.Map<RestValueConfigurationHeader>(dtoHeader);
+            dbHeader.RestValueConfigurationId = dbData.Id;
+            if (dbHeader.Id == default)
+            {
+                context.RestValueConfigurationHeaders.Add(dbHeader);
+            }
+            else
+            {
+                context.RestValueConfigurationHeaders.Update(dbHeader);
+            }
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
         return dbData.Id;

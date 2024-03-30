@@ -3,7 +3,7 @@
 @typeparam T
 
 <EditForm EditContext="@WrappedElement.EditContext" OnValidSubmit="@(_ => HandleValidSubmit(WrappedElement.Item))">
-        <DataAnnotationsValidator/>
+        <ObjectGraphDataAnnotationsValidator/>
             @ChildContent
             <ValidationSummary />
             @if (!HideSubmitButton)
