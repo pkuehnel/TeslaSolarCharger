@@ -23,5 +23,6 @@ public interface ITeslaSolarChargerContext
     DbSet<RestValueResultConfiguration> RestValueResultConfigurations { get; set; }
     DbSet<ChargingProcess> ChargingProcesses { get; set; }
     DbSet<ChargingDetail> ChargingDetails { get; set; }
+    DbSet<ModbusConfiguration> ModbusConfigurations { get; set; }
     void RejectChanges();
 }
