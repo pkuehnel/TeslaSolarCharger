@@ -267,6 +267,12 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("Address")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BitLength")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BitStartIndex")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ConnectDelaySeconds")
                         .HasColumnType("INTEGER");
 

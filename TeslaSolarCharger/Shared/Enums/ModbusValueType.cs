@@ -8,4 +8,5 @@ public enum ModbusValueType
     UInt,
     UShort,
     Ulong,
+    Bool,
 }

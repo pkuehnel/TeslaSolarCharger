@@ -26,6 +26,8 @@ namespace TeslaSolarCharger.Model.Migrations
                     Endianess = table.Column<int>(type: "INTEGER", nullable: false),
                     ConnectDelaySeconds = table.Column<int>(type: "INTEGER", nullable: false),
                     ReadTimeoutSeconds = table.Column<int>(type: "INTEGER", nullable: false),
+                    BitStartIndex = table.Column<int>(type: "INTEGER", nullable: true),
+                    BitLength = table.Column<int>(type: "INTEGER", nullable: true),
                     InvertsModbusConfigurationId = table.Column<int>(type: "INTEGER", nullable: true),
                     CorrectionFactor = table.Column<decimal>(type: "TEXT", nullable: false),
                     UsedFor = table.Column<int>(type: "INTEGER", nullable: false),

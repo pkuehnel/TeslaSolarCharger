@@ -1,9 +1,8 @@
-﻿using TeslaSolarCharger.Model.BaseClasses;
-using TeslaSolarCharger.Shared.Enums;
+﻿using TeslaSolarCharger.Shared.Enums;
 
-namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+namespace TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 
-public class ModbusConfiguration : ResultConfigurationBase
+public class DtoModbusConfiguration
 {
     public int Id { get; set; }
     public int UnitIdentifier { get; set; }
@@ -20,6 +19,4 @@ public class ModbusConfiguration : ResultConfigurationBase
     public int? BitLength { get; set; }
 
     public int? InvertsModbusConfigurationId { get; set; }
-
-    public ModbusConfiguration? InvertsModbusConfiguration { get; set; }
 }

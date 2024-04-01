@@ -10,5 +10,6 @@ public static class ServiceCollectionExtensions
             services
                 .AddTransient<IRestValueConfigurationService, RestValueConfigurationService>()
                 .AddTransient<IRestValueExecutionService, RestValueExecutionService>()
+                .AddTransient<IModbusValueConfigurationService, ModbusValueConfigurationService>()
             ;
 }

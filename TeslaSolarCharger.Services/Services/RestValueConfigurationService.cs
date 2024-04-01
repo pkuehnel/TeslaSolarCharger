@@ -33,7 +33,7 @@ public class RestValueConfigurationService(
     public async Task<List<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsByPredicate(
         Expression<Func<RestValueConfiguration, bool>> predicate)
     {
-
+        logger.LogTrace("{method}({predicate})", nameof(GetFullRestValueConfigurationsByPredicate), predicate);
         var mapper = mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<RestValueConfigurationHeader, DtoRestValueConfigurationHeader>();

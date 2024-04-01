@@ -11,7 +11,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    [Migration("20240331092441_AddModbusConfiguration")]
+    [Migration("20240401154649_AddModbusConfiguration")]
     partial class AddModbusConfiguration
     {
         /// <inheritdoc />
@@ -268,6 +268,12 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Address")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BitLength")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BitStartIndex")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ConnectDelaySeconds")
