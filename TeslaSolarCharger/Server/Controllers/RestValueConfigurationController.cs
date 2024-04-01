@@ -2,12 +2,14 @@
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class RestValueConfigurationController(IRestValueConfigurationService service) : ApiBaseController
+public class RestValueConfigurationController(IRestValueConfigurationService service,
+    IRestValueExecutionService executionService) : ApiBaseController
 {
     [HttpGet]
     public async Task<ActionResult<List<DtoRestValueConfiguration>>> GetAllRestValueConfigurations()
@@ -15,6 +17,10 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
         var result = await service.GetAllRestValueConfigurations();
         return Ok(result);
     }
+
+    [HttpGet]
+    public Task<List<DtoValueConfigurationOverview>> GetRestValueConfigurations() =>
+        executionService.GetRestValueOverviews();
 
     [HttpGet]
     public async Task<ActionResult<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsById(int id)

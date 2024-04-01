@@ -22,11 +22,7 @@ public class BaseConfigurationService(
     ISettings settings,
     IPvValueService pvValueService,
     IDbConnectionStringHelper dbConnectionStringHelper,
-    IConstants constants,
-    IMapperConfigurationFactory mapperConfigurationFactory,
-    ITeslaSolarChargerContext teslaSolarChargerContext,
-    IRestValueConfigurationService restValueConfigurationService,
-    IRestValueExecutionService restValueExecutionService)
+    IConstants constants)
     : IBaseConfigurationService
 {
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
@@ -61,52 +57,6 @@ public class BaseConfigurationService(
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
-    }
-
-    public async Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews()
-    {
-        logger.LogTrace("{method}()", nameof(GetRestValueOverviews));
-        var restValueConfigurations = await restValueConfigurationService.GetFullRestValueConfigurationsByPredicate(c => true).ConfigureAwait(false);
-        var results = new List<DtoValueConfigurationOverview>();
-        foreach (var dtoFullRestValueConfiguration in restValueConfigurations)
-        {
-            string? result;
-            var resultConfigurations = await restValueConfigurationService.GetRestResultConfigurationByPredicate(c => c.RestValueConfigurationId == dtoFullRestValueConfiguration.Id).ConfigureAwait(false);
-            var overviewElement = new DtoValueConfigurationOverview
-            {
-                Id = dtoFullRestValueConfiguration.Id,
-                Heading = dtoFullRestValueConfiguration.Url,
-            };
-            results.Add(overviewElement);
-            try
-            {
-                result = await restValueExecutionService.GetResult(dtoFullRestValueConfiguration).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error getting result for rest configuration {id}", dtoFullRestValueConfiguration.Id);
-                result = null;
-            }
-            foreach (var resultConfiguration in resultConfigurations)
-            {
-                var dtoRestValueResult = new DtoOverviewValueResult { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
-                try
-                {
-                    dtoRestValueResult.CalculatedValue = result == null ? null : restValueExecutionService.GetValue(result, dtoFullRestValueConfiguration.NodePatternType, resultConfiguration); ;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error getting value for rest configuration {id}", resultConfiguration.Id);
-                    continue;
-                }
-                finally
-                {
-                    overviewElement.Results.Add(dtoRestValueResult);
-                }
-            }
-        }
-
-        return results;
     }
 
     public async Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent)

@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
+﻿using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Contracts;
@@ -15,4 +16,5 @@ public interface IRestValueExecutionService
     Task<string> GetResult(DtoFullRestValueConfiguration config);
     decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoRestValueResultConfiguration resultConfig);
     Task<string> DebugRestValueConfiguration(DtoFullRestValueConfiguration config);
+    Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews();
 }

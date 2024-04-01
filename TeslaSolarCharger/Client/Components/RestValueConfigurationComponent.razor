@@ -214,7 +214,7 @@
 
     private async Task RefreshRequestResults()
     {
-        _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>("api/BaseConfiguration/GetRestValueConfigurations") ?? new List<DtoValueConfigurationOverview>();
+        _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>("api/RestValueConfiguration/GetRestValueConfigurations") ?? new List<DtoValueConfigurationOverview>();
     }
 
     private async Task OpenRestValueConfigurationDialog(int id)
