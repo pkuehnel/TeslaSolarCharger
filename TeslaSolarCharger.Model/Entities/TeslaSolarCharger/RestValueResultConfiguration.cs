@@ -5,7 +5,6 @@ namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
 public class RestValueResultConfiguration : ResultConfigurationBase
 {
-    public int Id { get; set; }
     public string? NodePattern { get; set; }
     public string? XmlAttributeHeaderName { get; set; }
     public string? XmlAttributeHeaderValue { get; set; }

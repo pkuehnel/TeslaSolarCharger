@@ -27,7 +27,7 @@ namespace TeslaSolarCharger.Server.Controllers
             service.UpdatePowerBuffer(powerBuffer);
 
         [HttpGet]
-        public Task<List<DtoRestConfigurationOverview>> GetRestValueConfigurations() =>
+        public Task<List<DtoValueConfigurationOverview>> GetRestValueConfigurations() =>
             service.GetRestValueOverviews();
 
         [HttpGet]

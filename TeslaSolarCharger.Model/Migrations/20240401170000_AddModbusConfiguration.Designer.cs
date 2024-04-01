@@ -11,7 +11,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    [Migration("20240401154649_AddModbusConfiguration")]
+    [Migration("20240401170000_AddModbusConfiguration")]
     partial class AddModbusConfiguration
     {
         /// <inheritdoc />
@@ -318,7 +318,8 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvertsModbusConfigurationId");
+                    b.HasIndex("InvertsModbusConfigurationId")
+                        .IsUnique();
 
                     b.ToTable("ModbusConfigurations");
                 });

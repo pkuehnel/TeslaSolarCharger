@@ -6,6 +6,6 @@ namespace TeslaSolarCharger.Services.Services.Contracts;
 
 public interface IModbusValueConfigurationService
 {
-    Task<DtoModbusConfiguration> GetModbusConfigurationByPredicate(Expression<Func<ModbusConfiguration, bool>> predicate);
+    Task<List<DtoModbusConfiguration>> GetModbusConfigurationByPredicate(Expression<Func<ModbusConfiguration, bool>> predicate);
     Task<int> SaveModbusConfiguration(DtoModbusConfiguration dtoData);
 }

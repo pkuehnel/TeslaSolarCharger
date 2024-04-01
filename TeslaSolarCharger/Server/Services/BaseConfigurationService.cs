@@ -63,19 +63,19 @@ public class BaseConfigurationService(
         }
     }
 
-    public async Task<List<DtoRestConfigurationOverview>> GetRestValueOverviews()
+    public async Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews()
     {
         logger.LogTrace("{method}()", nameof(GetRestValueOverviews));
         var restValueConfigurations = await restValueConfigurationService.GetFullRestValueConfigurationsByPredicate(c => true).ConfigureAwait(false);
-        var results = new List<DtoRestConfigurationOverview>();
+        var results = new List<DtoValueConfigurationOverview>();
         foreach (var dtoFullRestValueConfiguration in restValueConfigurations)
         {
             string? result;
             var resultConfigurations = await restValueConfigurationService.GetRestResultConfigurationByPredicate(c => c.RestValueConfigurationId == dtoFullRestValueConfiguration.Id).ConfigureAwait(false);
-            var overviewElement = new DtoRestConfigurationOverview
+            var overviewElement = new DtoValueConfigurationOverview
             {
                 Id = dtoFullRestValueConfiguration.Id,
-                Url = dtoFullRestValueConfiguration.Url,
+                Heading = dtoFullRestValueConfiguration.Url,
             };
             results.Add(overviewElement);
             try
@@ -84,19 +84,19 @@ public class BaseConfigurationService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error getting result for configuration {id}", dtoFullRestValueConfiguration.Id);
+                logger.LogError(ex, "Error getting result for rest configuration {id}", dtoFullRestValueConfiguration.Id);
                 result = null;
             }
             foreach (var resultConfiguration in resultConfigurations)
             {
-                var dtoRestValueResult = new DtoRestValueResult { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
+                var dtoRestValueResult = new DtoOverviewValueResult { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
                 try
                 {
                     dtoRestValueResult.CalculatedValue = result == null ? null : restValueExecutionService.GetValue(result, dtoFullRestValueConfiguration.NodePatternType, resultConfiguration); ;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error getting value for configuration {id}", resultConfiguration.Id);
+                    logger.LogError(ex, "Error getting value for rest configuration {id}", resultConfiguration.Id);
                     continue;
                 }
                 finally

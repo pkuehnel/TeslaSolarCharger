@@ -5,7 +5,6 @@ namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
 public class ModbusConfiguration : ResultConfigurationBase
 {
-    public int Id { get; set; }
     public int UnitIdentifier { get; set; }
     public ModbusRegisterType RegisterType { get; set; }
     public ModbusValueType ValueType { get; set; }

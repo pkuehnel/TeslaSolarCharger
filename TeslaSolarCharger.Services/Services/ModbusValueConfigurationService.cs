@@ -16,7 +16,7 @@ public class ModbusValueConfigurationService (
     ITeslaSolarChargerContext context,
     IMapperConfigurationFactory mapperConfigurationFactory) : IModbusValueConfigurationService
 {
-    public async Task<DtoModbusConfiguration> GetModbusConfigurationByPredicate(Expression<Func<ModbusConfiguration, bool>> predicate)
+    public async Task<List<DtoModbusConfiguration>> GetModbusConfigurationByPredicate(Expression<Func<ModbusConfiguration, bool>> predicate)
     {
         logger.LogTrace("{method}({predicate})", nameof(GetModbusConfigurationByPredicate), predicate);
         var mapper = mapperConfigurationFactory.Create(cfg =>
@@ -27,7 +27,7 @@ public class ModbusValueConfigurationService (
         var resultConfigurations = await context.ModbusConfigurations
             .Where(predicate)
             .ProjectTo<DtoModbusConfiguration>(mapper)
-            .FirstAsync().ConfigureAwait(false);
+            .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
     }
 

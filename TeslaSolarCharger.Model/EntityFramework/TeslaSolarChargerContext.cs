@@ -87,6 +87,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<RestValueConfigurationHeader>()
             .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
+
+        modelBuilder.Entity<ModbusConfiguration>()
+            .HasIndex(c => c.InvertsModbusConfigurationId)
+            .IsUnique();
     }
 
 #pragma warning disable CS8618

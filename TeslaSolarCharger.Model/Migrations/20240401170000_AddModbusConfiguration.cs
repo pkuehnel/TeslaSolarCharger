@@ -46,7 +46,8 @@ namespace TeslaSolarCharger.Model.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_ModbusConfigurations_InvertsModbusConfigurationId",
                 table: "ModbusConfigurations",
-                column: "InvertsModbusConfigurationId");
+                column: "InvertsModbusConfigurationId",
+                unique: true);
         }
 
         /// <inheritdoc />

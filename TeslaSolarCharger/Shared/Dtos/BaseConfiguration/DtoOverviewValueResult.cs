@@ -2,7 +2,7 @@
 
 namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
-public class DtoRestValueResult
+public class DtoOverviewValueResult
 {
     public int Id { get; set; }
     public ValueUsage UsedFor { get; set; }

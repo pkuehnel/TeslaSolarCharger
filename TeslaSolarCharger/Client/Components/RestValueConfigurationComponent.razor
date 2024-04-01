@@ -44,11 +44,11 @@
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
-                                <TextShortenComponent InputString="@restConfigurationOverview.Url"
+                                <TextShortenComponent InputString="@restConfigurationOverview.Heading"
                                                       ShouldDisplayTruncatedCharCount="false"
                                                       MaxLength="25"
                                                       ShouldDisplayCopyButton="false"
-                                                      TooltipText="@restConfigurationOverview.Url"></TextShortenComponent>
+                                                      TooltipText="@restConfigurationOverview.Heading"></TextShortenComponent>
                             </MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
@@ -129,7 +129,7 @@
 </div>
 
 @code {
-    private List<DtoRestConfigurationOverview>? _restConfigurationOverviews;
+    private List<DtoValueConfigurationOverview>? _restConfigurationOverviews;
 
     private List<DtoRestValueConfiguration> RestValueConfigurations { get; set; } = new();
 
@@ -214,7 +214,7 @@
 
     private async Task RefreshRequestResults()
     {
-        _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoRestConfigurationOverview>>("api/BaseConfiguration/GetRestValueConfigurations") ?? new List<DtoRestConfigurationOverview>();
+        _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>("api/BaseConfiguration/GetRestValueConfigurations") ?? new List<DtoValueConfigurationOverview>();
     }
 
     private async Task OpenRestValueConfigurationDialog(int id)

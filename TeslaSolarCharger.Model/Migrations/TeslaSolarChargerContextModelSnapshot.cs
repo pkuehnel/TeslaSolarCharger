@@ -315,7 +315,8 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvertsModbusConfigurationId");
+                    b.HasIndex("InvertsModbusConfigurationId")
+                        .IsUnique();
 
                     b.ToTable("ModbusConfigurations");
                 });
