@@ -397,7 +397,7 @@ else
         MudDialog.StateHasChanged();
         try
         {
-            var result = await HttpClient.PostAsJsonAsync("api/RestValueExecution/DebugRestValueConfiguration", RestValueConfiguration);
+            var result = await HttpClient.PostAsJsonAsync("api/RestValueConfiguration/DebugRestValueConfiguration", RestValueConfiguration);
             var resultString = await result.Content.ReadAsStringAsync();
             CurrentRestStringContent = JsonConvert.DeserializeObject<DtoValue<string>>(resultString);
         }

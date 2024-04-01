@@ -22,6 +22,13 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     public Task<List<DtoValueConfigurationOverview>> GetRestValueConfigurations() =>
         executionService.GetRestValueOverviews();
 
+    [HttpPost]
+    public async Task<ActionResult<DtoValue<string>>> DebugRestValueConfiguration([FromBody] DtoFullRestValueConfiguration config)
+    {
+        var result = await executionService.DebugRestValueConfiguration(config);
+        return Ok(new DtoValue<string>(result));
+    }
+
     [HttpGet]
     public async Task<ActionResult<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsById(int id)
     {
@@ -30,7 +37,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpPost]
-    public async Task<ActionResult<int>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
+    public async Task<ActionResult<DtoValue<int>>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveRestValueConfiguration(dtoData)));
     }
@@ -43,7 +50,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpPost]
-    public async Task<ActionResult<int>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
+    public async Task<ActionResult<DtoValue<int>>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveHeader(parentId, dtoData)));
     }
@@ -63,7 +70,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpPost]
-    public async Task<ActionResult<int>> SaveResultConfiguration(int parentId, [FromBody] DtoRestValueResultConfiguration dtoData)
+    public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoRestValueResultConfiguration dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveResultConfiguration(parentId, dtoData)));
     }
