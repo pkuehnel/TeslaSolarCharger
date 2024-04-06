@@ -115,7 +115,7 @@
                 </MudCardHeader>
                 <MudCardContent>
                     <div class="d-flex justify-content-center">
-                        <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"></MudFab>
+                        <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="_ => OpenRestValueConfigurationDialog(null)"></MudFab>
                     </div>
 
                 </MudCardContent>
@@ -217,7 +217,7 @@
         _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>("api/RestValueConfiguration/GetRestValueConfigurations") ?? new List<DtoValueConfigurationOverview>();
     }
 
-    private async Task OpenRestValueConfigurationDialog(int id)
+    private async Task OpenRestValueConfigurationDialog(int? id)
     {
         var options = new DialogOptions()
             {
