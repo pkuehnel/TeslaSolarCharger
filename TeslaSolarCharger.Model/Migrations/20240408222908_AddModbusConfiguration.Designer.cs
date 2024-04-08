@@ -11,7 +11,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    [Migration("20240401170000_AddModbusConfiguration")]
+    [Migration("20240408222908_AddModbusConfiguration")]
     partial class AddModbusConfiguration
     {
         /// <inheritdoc />
@@ -267,6 +267,36 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ConnectDelayMilliseconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Endianess")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ReadTimeoutMilliseconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UnitIdentifier")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ModbusConfigurations");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Address")
                         .HasColumnType("INTEGER");
 
@@ -276,38 +306,22 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int?>("BitStartIndex")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ConnectDelaySeconds")
-                        .HasColumnType("INTEGER");
-
                     b.Property<decimal>("CorrectionFactor")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Endianess")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Host")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("InvertsModbusConfigurationId")
+                    b.Property<int?>("InvertsModbusResultConfigurationId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Length")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ModbusConfigurationId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Operator")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Port")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ReadTimeoutSeconds")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("RegisterType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("UnitIdentifier")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("UsedFor")
@@ -318,10 +332,12 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvertsModbusConfigurationId")
+                    b.HasIndex("InvertsModbusResultConfigurationId")
                         .IsUnique();
 
-                    b.ToTable("ModbusConfigurations");
+                    b.HasIndex("ModbusConfigurationId");
+
+                    b.ToTable("ModbusResultConfigurations");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.PowerDistribution", b =>
@@ -533,13 +549,21 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Navigation("Car");
                 });
 
-            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", b =>
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", b =>
                 {
-                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", "InvertsModbusConfiguration")
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", "InvertsModbusResultConfiguration")
                         .WithMany()
-                        .HasForeignKey("InvertsModbusConfigurationId");
+                        .HasForeignKey("InvertsModbusResultConfigurationId");
 
-                    b.Navigation("InvertsModbusConfiguration");
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", "ModbusConfiguration")
+                        .WithMany("ModbusResultConfigurations")
+                        .HasForeignKey("ModbusConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InvertsModbusResultConfiguration");
+
+                    b.Navigation("ModbusConfiguration");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.PowerDistribution", b =>
@@ -588,6 +612,11 @@ namespace TeslaSolarCharger.Model.Migrations
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.HandledCharge", b =>
                 {
                     b.Navigation("PowerDistributions");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", b =>
+                {
+                    b.Navigation("ModbusResultConfigurations");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfiguration", b =>

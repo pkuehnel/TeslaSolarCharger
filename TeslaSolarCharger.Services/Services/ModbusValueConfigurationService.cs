@@ -31,6 +31,45 @@ public class ModbusValueConfigurationService (
         return resultConfigurations;
     }
 
+    public async Task<List<DtoModbusValueResultConfiguration>> GetModbusResultConfigurationsByPredicate(
+        Expression<Func<ModbusResultConfiguration, bool>> predicate)
+    {
+        logger.LogTrace("{method}({predicate})", nameof(GetModbusResultConfigurationsByPredicate), predicate);
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<ModbusResultConfiguration, DtoModbusValueResultConfiguration>()
+                ;
+        });
+        var resultConfigurations = await context.ModbusResultConfigurations
+            .Where(predicate)
+            .ProjectTo<DtoModbusValueResultConfiguration>(mapper)
+            .ToListAsync().ConfigureAwait(false);
+        return resultConfigurations;
+    }
+
+    public async Task<int> SaveModbusResultConfiguration(DtoModbusValueResultConfiguration dtoData)
+    {
+        logger.LogTrace("{method}({@dtoData})", nameof(SaveModbusResultConfiguration), dtoData);
+        var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<DtoModbusValueResultConfiguration, ModbusResultConfiguration>()
+                ;
+        });
+
+        var mapper = mapperConfiguration.CreateMapper();
+        var dbData = mapper.Map<ModbusResultConfiguration>(dtoData);
+        if (dbData.Id == default)
+        {
+            context.ModbusResultConfigurations.Add(dbData);
+        }
+        else
+        {
+            context.ModbusResultConfigurations.Update(dbData);
+        }
+        await context.SaveChangesAsync().ConfigureAwait(false);
+        return dbData.Id;
+    }
+
     public async Task<int> SaveModbusConfiguration(DtoModbusConfiguration dtoData)
     {
         logger.LogTrace("{method}({@dtoData})", nameof(SaveModbusConfiguration), dtoData);

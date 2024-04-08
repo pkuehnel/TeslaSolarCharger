@@ -41,11 +41,11 @@ public class RestValueConfigurationService(
                 .ForMember(d => d.Headers, opt => opt.MapFrom(s => s.Headers))
                 ;
         });
-        var resultConfigurations = await context.RestValueConfigurations
+        var restValueConfigurations = await context.RestValueConfigurations
             .Where(predicate)
             .ProjectTo<DtoFullRestValueConfiguration>(mapper)
             .ToListAsync().ConfigureAwait(false);
-        return resultConfigurations;
+        return restValueConfigurations;
     }
 
     public async Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(

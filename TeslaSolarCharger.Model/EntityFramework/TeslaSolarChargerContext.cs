@@ -22,6 +22,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<ChargingProcess> ChargingProcesses { get; set; } = null!;
     public DbSet<ChargingDetail> ChargingDetails { get; set; } = null!;
     public DbSet<ModbusConfiguration> ModbusConfigurations { get; set; } = null!;
+    public DbSet<ModbusResultConfiguration> ModbusResultConfigurations { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -88,8 +89,8 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
 
-        modelBuilder.Entity<ModbusConfiguration>()
-            .HasIndex(c => c.InvertsModbusConfigurationId)
+        modelBuilder.Entity<ModbusResultConfiguration>()
+            .HasIndex(c => c.InvertsModbusResultConfigurationId)
             .IsUnique();
     }
 
