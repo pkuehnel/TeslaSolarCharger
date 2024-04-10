@@ -81,4 +81,11 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
         await service.DeleteResultConfiguration(id);
         return Ok();
     }
+
+    [HttpDelete]
+    public async Task<ActionResult> DeleteRestValueConfiguration(int id)
+    {
+        await service.DeleteRestValueConfiguration(id);
+        return Ok();
+    }
 }

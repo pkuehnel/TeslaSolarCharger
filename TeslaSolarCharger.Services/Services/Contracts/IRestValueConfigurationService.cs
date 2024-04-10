@@ -20,4 +20,6 @@ public interface IRestValueConfigurationService
 
     Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(
         Expression<Func<RestValueResultConfiguration, bool>> predicate);
+
+    Task DeleteRestValueConfiguration(int id);
 }

@@ -133,4 +133,45 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         var id = await service.SaveResultConfiguration(firstValue.Id, firstHeader);
         Assert.Equal(firstHeader.Id, id);
     }
+
+    [Fact]
+    public async Task Can_Delete_Rest_Value_Configuration()
+    {
+        var restValueConfiguration = new RestValueConfiguration()
+        {
+            Headers = new List<RestValueConfigurationHeader>()
+            {
+                new()
+                {
+                    Key = "test",
+                    Value = "test",
+                },
+            },
+            HttpMethod = HttpVerb.Get,
+            NodePatternType = NodePatternType.Json,
+            Url = "http://localhost:5000/api/values",
+            RestValueResultConfigurations = new List<RestValueResultConfiguration>()
+            {
+                new()
+                {
+                    NodePattern = "$.data",
+                    CorrectionFactor = 1,
+                    UsedFor = ValueUsage.GridPower,
+                    Operator = ValueOperator.Plus,
+                },
+            },
+        };
+        Context.RestValueConfigurations.Add(restValueConfiguration);
+        await Context.SaveChangesAsync();
+        DetachAllEntities();
+        Assert.NotEqual(0, restValueConfiguration.Id);
+        Assert.True(await Context.RestValueConfigurations.AnyAsync(c => c.Id == restValueConfiguration.Id));
+        Assert.True(await Context.RestValueResultConfigurations.AnyAsync(c => c.RestValueConfigurationId == restValueConfiguration.Id));
+        Assert.True(await Context.RestValueConfigurationHeaders.AnyAsync(c => c.RestValueConfigurationId == restValueConfiguration.Id));
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        await service.DeleteRestValueConfiguration(restValueConfiguration.Id);
+        Assert.False(await Context.RestValueConfigurations.AnyAsync(c => c.Id == restValueConfiguration.Id));
+        Assert.False(await Context.RestValueResultConfigurations.AnyAsync(c => c.RestValueConfigurationId == restValueConfiguration.Id));
+        Assert.False(await Context.RestValueConfigurationHeaders.AnyAsync(c => c.RestValueConfigurationId == restValueConfiguration.Id));
+    }
 }

@@ -100,6 +100,7 @@
                     </MudCardContent>
                     <MudCardActions>
                         <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OpenRestValueConfigurationDialog(restConfigurationOverview.Id)">Configure</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="_ => DeleteRestValueConfiguration(restConfigurationOverview.Id)">Delete</MudButton>
                     </MudCardActions>
                 </MudCard>
             </div>
@@ -234,6 +235,28 @@
 
         await LoadRestValueConfigurations();
         await RefreshRequestResults();
+    }
+
+    private async Task DeleteRestValueConfiguration(int id)
+    {
+        var options = new DialogOptions()
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+        };
+        var parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.ElementName, "the REST configuration" },
+        };
+        var dialog = await DialogService.ShowAsync<DeleteDialog>($"Delete REST config?", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await HttpClient.DeleteAsync($"api/RestValueConfiguration/DeleteRestValueConfiguration?id={id}");
+            Snackbar.Add("Rest value configuration deleted.", Severity.Success);
+            await LoadRestValueConfigurations();
+            await RefreshRequestResults();
+        }
     }
 
 }

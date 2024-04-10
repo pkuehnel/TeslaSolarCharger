@@ -201,4 +201,15 @@ public class RestValueConfigurationService(
         context.RestValueResultConfigurations.Remove(new RestValueResultConfiguration { Id = id });
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
+
+    public async Task DeleteRestValueConfiguration(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteRestValueConfiguration), id);
+        var restValueConfiguration = await context.RestValueConfigurations
+            .Include(x => x.Headers)
+            .Include(x => x.RestValueResultConfigurations)
+            .FirstAsync(x => x.Id == id).ConfigureAwait(false);
+        context.RestValueConfigurations.Remove(restValueConfiguration);
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
 }

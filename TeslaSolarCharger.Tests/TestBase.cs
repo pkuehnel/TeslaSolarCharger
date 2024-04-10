@@ -115,6 +115,11 @@ public class TestBase : IDisposable
         _ctx.Database.EnsureCreated();
         _ctx.InitRestValueConfigurations();
         _ctx.SaveChanges();
+        DetachAllEntities();
+    }
+
+    protected void DetachAllEntities()
+    {
         _ctx.ChangeTracker.Entries().Where(e => e.State != EntityState.Detached).ToList()
             .ForEach(entry => entry.State = EntityState.Detached);
     }
