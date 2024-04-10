@@ -1,12 +1,17 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System.Globalization;
+using System.Net.Http;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using TeslaSolarCharger.Services.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
+using TeslaSolarCharger.Shared.Wrappers;
 using TeslaSolarCharger.SharedModel.Enums;
 
 
@@ -14,7 +19,7 @@ using TeslaSolarCharger.SharedModel.Enums;
 namespace TeslaSolarCharger.Services.Services;
 
 public class RestValueExecutionService(
-    ILogger<RestValueConfigurationService> logger, ISettings settings, IRestValueConfigurationService restValueConfigurationService) : IRestValueExecutionService
+    ILogger<RestValueConfigurationService> logger, ISettings settings, IRestValueConfigurationService restValueConfigurationService, IConfigurationWrapper configurationWrapper) : IRestValueExecutionService
 {
     /// <summary>
     /// Get result for each configuration ID
@@ -25,10 +30,15 @@ public class RestValueExecutionService(
     public async Task<string> GetResult(DtoFullRestValueConfiguration config)
     {
         logger.LogTrace("{method}({@config})", nameof(GetResult), config);
-        var client = new HttpClient()
+        var httpClientHandler = new HttpClientHandler();
+
+        if (configurationWrapper.ShouldIgnoreSslErrors())
         {
-            Timeout = TimeSpan.FromSeconds(1),
-        };
+            logger.LogWarning("PV Value SSL errors are ignored.");
+            httpClientHandler.ServerCertificateCustomValidationCallback = MyRemoteCertificateValidationCallback;
+        }
+        using var client = new HttpClient(httpClientHandler);
+        client.Timeout = TimeSpan.FromSeconds(1);
         var request = new HttpRequestMessage(new HttpMethod(config.HttpMethod.ToString()), config.Url);
         foreach (var header in config.Headers)
         {
@@ -45,7 +55,10 @@ public class RestValueExecutionService(
 
         return contentString;
     }
-
+    private bool MyRemoteCertificateValidationCallback(HttpRequestMessage requestMessage, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors sslErrors)
+    {
+        return true; // Ignoriere alle Zertifikatfehler
+    }
 
     public decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoRestValueResultConfiguration resultConfig)
     {
