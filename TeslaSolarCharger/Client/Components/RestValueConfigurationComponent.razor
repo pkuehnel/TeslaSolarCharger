@@ -23,84 +23,15 @@
 @code {
     private List<DtoValueConfigurationOverview>? _restConfigurationOverviews;
 
-    private List<DtoRestValueConfiguration> RestValueConfigurations { get; set; } = new();
-
-    private List<EditableItem<DtoRestValueConfiguration>> EditableItems => RestValueConfigurations.Select(restValueConfiguration => new EditableItem<DtoRestValueConfiguration>(restValueConfiguration)).ToList();
-
     protected override async Task OnInitializedAsync()
     {
-        await LoadRestValueConfigurations();
         await RefreshRequestResults();
-
-    }
-
-    private async Task LoadRestValueConfigurations()
-    {
-        var restValueConfigurations = await HttpClient.GetFromJsonAsync<List<DtoRestValueConfiguration>>("/api/RestValueConfiguration/GetAllRestValueConfigurations");
-        RestValueConfigurations = restValueConfigurations ?? new List<DtoRestValueConfiguration>();
     }
 
     private void UpdateNodePatternType(DtoRestValueConfiguration restValueConfiguration, NodePatternType newItem)
     {
         restValueConfiguration.NodePatternType = newItem;
         StateHasChanged();
-    }
-
-    private void UpdateHttpVerb(DtoRestValueConfiguration restValueConfiguration, HttpVerb newItem)
-    {
-        restValueConfiguration.HttpMethod = newItem;
-        StateHasChanged();
-    }
-
-    private async Task HandleValidSubmit(DtoRestValueConfiguration item)
-    {
-        var result = await HttpClient.PostAsJsonAsync("/api/RestValueConfiguration/UpdateRestValueConfiguration", item);
-        if (!result.IsSuccessStatusCode)
-        {
-            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
-            return;
-        }
-        var resultContent = await result.Content.ReadFromJsonAsync<DtoValue<int>>();
-        if (resultContent == default)
-        {
-            Snackbar.Add("Failed to update REST value configuration", Severity.Error);
-            return;
-        }
-
-        Snackbar.Add("Rest value configuration saved.", Severity.Success);
-        item.Id = resultContent.Value;
-    }
-
-    private Task<GridData<DtoRestValueConfiguration>> GetChildContent(GridState<DtoRestValueConfiguration> arg)
-    {
-
-        return Task.FromResult(new GridData<DtoRestValueConfiguration>
-            {
-                Items = new List<DtoRestValueConfiguration>(),
-                TotalItems = 0
-            });
-    }
-
-    private async Task<GridData<DtoRestValueConfigurationHeader>> GetHeaders(int itemId)
-    {
-        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueConfigurationHeader>>($"api/RestValueConfiguration/GetHeadersByConfigurationId?parentId={itemId}");
-        var result = elements ?? new List<DtoRestValueConfigurationHeader>();
-        return new GridData<DtoRestValueConfigurationHeader>
-            {
-                Items = result,
-                TotalItems = result.Count,
-            };
-    }
-
-    private async Task<GridData<DtoRestValueResultConfiguration>> GetResultConfigurations(int itemId)
-    {
-        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={itemId}");
-        var result = elements ?? new List<DtoRestValueResultConfiguration>();
-        return new GridData<DtoRestValueResultConfiguration>
-            {
-                Items = result,
-                TotalItems = result.Count,
-            };
     }
 
 
@@ -124,7 +55,6 @@
         var dialog = await DialogService.ShowAsync<RestValueConfigurationDialog>($"{title} REST config", parameters, options);
         var result = await dialog.Result;
 
-        await LoadRestValueConfigurations();
         await RefreshRequestResults();
     }
 
@@ -145,7 +75,6 @@
         {
             await HttpClient.DeleteAsync($"api/RestValueConfiguration/DeleteRestValueConfiguration?id={id}");
             Snackbar.Add("Rest value configuration deleted.", Severity.Success);
-            await LoadRestValueConfigurations();
             await RefreshRequestResults();
         }
     }
