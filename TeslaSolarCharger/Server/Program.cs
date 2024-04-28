@@ -61,6 +61,15 @@ var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper
 
 try
 {
+    var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
+    await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
+    await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
+
+
+    //Do nothing before these lines as database is created here.
+    var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
+    await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+
     var shouldRetry = false;
     var teslaMateContext = app.Services.GetRequiredService<ITeslamateContext>();
     try
@@ -87,14 +96,6 @@ try
         }
     }
 
-    var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
-    await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
-    await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
-
-
-    //Do nothing before these lines as database is created here.
-    var teslaSolarChargerContext = app.Services.GetRequiredService<ITeslaSolarChargerContext>();
-    await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
     var tscConfigurationService = app.Services.GetRequiredService<ITscConfigurationService>();
     var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
