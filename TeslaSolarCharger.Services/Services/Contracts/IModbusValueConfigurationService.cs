@@ -12,5 +12,9 @@ public interface IModbusValueConfigurationService
     Task<List<DtoModbusValueResultConfiguration>> GetModbusResultConfigurationsByPredicate(
         Expression<Func<ModbusResultConfiguration, bool>> predicate);
 
-    Task<int> SaveModbusResultConfiguration(DtoModbusValueResultConfiguration dtoData);
+    Task<int> SaveModbusResultConfiguration(int parentId, DtoModbusValueResultConfiguration dtoData);
+    Task DeleteModbusConfiguration(int id);
+    Task<DtoModbusConfiguration> GetValueConfigurationById(int id);
+    Task<List<DtoModbusValueResultConfiguration>> GetResultConfigurationsByValueConfigurationId(int valueId);
+    Task DeleteResultConfiguration(int id);
 }

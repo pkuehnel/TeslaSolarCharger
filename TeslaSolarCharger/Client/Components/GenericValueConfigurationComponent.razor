@@ -4,6 +4,7 @@
 
 @inject IConstants Constants
 
+<h2>@(SourceName) sources</h2>
 <div class="d-flex flex-wrap justify-content-evenly">
     @if (ConfigurationOverviews == null)
     {
@@ -100,7 +101,7 @@
                 <MudCardHeader>
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
-                            Add new REST source
+                            Add new @(SourceName) source
                         </MudText>
                     </CardHeaderContent>
                 </MudCardHeader>
@@ -120,6 +121,9 @@
 </div>
 
 @code {
+    [Parameter]
+    public string SourceName { get; set; }
+
     [Parameter]
     public List<DtoValueConfigurationOverview>? ConfigurationOverviews { get; set; }
 

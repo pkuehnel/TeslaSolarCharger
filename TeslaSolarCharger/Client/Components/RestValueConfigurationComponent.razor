@@ -12,9 +12,8 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<h2>REST Sources</h2>
-
 <GenericValueConfigurationComponent
+    SourceName="REST"
     ConfigurationOverviews="_restConfigurationOverviews"
     OnRefreshClicked="RefreshRequestResults"
     OnConfigureClicked="id => OpenRestValueConfigurationDialog(id)"
@@ -27,13 +26,6 @@
     {
         await RefreshRequestResults();
     }
-
-    private void UpdateNodePatternType(DtoRestValueConfiguration restValueConfiguration, NodePatternType newItem)
-    {
-        restValueConfiguration.NodePatternType = newItem;
-        StateHasChanged();
-    }
-
 
     private async Task RefreshRequestResults()
     {

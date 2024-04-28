@@ -31,6 +31,13 @@ public class ModbusValueConfigurationService (
         return resultConfigurations;
     }
 
+    public async Task<DtoModbusConfiguration> GetValueConfigurationById(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(GetValueConfigurationById), id);
+        var configurations = await GetModbusConfigurationByPredicate(x => x.Id == id);
+        return configurations.Single();
+    }
+
     public async Task<List<DtoModbusValueResultConfiguration>> GetModbusResultConfigurationsByPredicate(
         Expression<Func<ModbusResultConfiguration, bool>> predicate)
     {
@@ -47,9 +54,16 @@ public class ModbusValueConfigurationService (
         return resultConfigurations;
     }
 
-    public async Task<int> SaveModbusResultConfiguration(DtoModbusValueResultConfiguration dtoData)
+    public async Task<List<DtoModbusValueResultConfiguration>> GetResultConfigurationsByValueConfigurationId(int valueId)
     {
-        logger.LogTrace("{method}({@dtoData})", nameof(SaveModbusResultConfiguration), dtoData);
+        logger.LogTrace("{method}({id})", nameof(GetResultConfigurationsByValueConfigurationId), valueId);
+        var resultConfigurations = await GetModbusResultConfigurationsByPredicate(x => x.ModbusConfigurationId == valueId);
+        return resultConfigurations;
+    }
+
+    public async Task<int> SaveModbusResultConfiguration(int parentId, DtoModbusValueResultConfiguration dtoData)
+    {
+        logger.LogTrace("{method}({parentId}, {@dtoData})", nameof(SaveModbusResultConfiguration), parentId, dtoData);
         var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<DtoModbusValueResultConfiguration, ModbusResultConfiguration>()
@@ -58,6 +72,7 @@ public class ModbusValueConfigurationService (
 
         var mapper = mapperConfiguration.CreateMapper();
         var dbData = mapper.Map<ModbusResultConfiguration>(dtoData);
+        dbData.ModbusConfigurationId = parentId;
         if (dbData.Id == default)
         {
             context.ModbusResultConfigurations.Add(dbData);
@@ -68,6 +83,25 @@ public class ModbusValueConfigurationService (
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
         return dbData.Id;
+    }
+
+    public async Task DeleteModbusConfiguration(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteModbusConfiguration), id);
+        var modbusConfiguration = await context.ModbusConfigurations
+            .Include(m => m.ModbusResultConfigurations)
+            .FirstAsync(x => x.Id == id).ConfigureAwait(false);
+        context.ModbusConfigurations.Remove(modbusConfiguration);
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public async Task DeleteResultConfiguration(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteResultConfiguration), id);
+        var modbusResultConfiguration = await context.ModbusResultConfigurations
+            .FirstAsync(x => x.Id == id).ConfigureAwait(false);
+        context.ModbusResultConfigurations.Remove(modbusResultConfiguration);
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task<int> SaveModbusConfiguration(DtoModbusConfiguration dtoData)
