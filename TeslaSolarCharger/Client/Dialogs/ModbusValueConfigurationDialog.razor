@@ -55,6 +55,10 @@ else
                             <ChildContent>
                                 <div class="d-flex align-items-center">
                                     <div class="p-2 flex-grow-1">
+                                        @if (editableResultConfig.Item.Id != default)
+                                        {
+                                            <GenericInput For="() => editableResultConfig.Item.Id" IsDisabledParameter="true"></GenericInput>
+                                        }
                                         <div class="p-2">
                                             <MudSelectExtended T="ValueUsage"
                                                                Variant="Variant.Outlined"
@@ -70,38 +74,45 @@ else
                                                 </MudSelectItemGroupExtended>
                                             </MudSelectExtended>
                                         </div>
-                                        <MudSelect T="ModbusRegisterType"
-                                                   Class="@Constants.DefaultMargin"
-                                                   Variant="Variant.Outlined"
-                                                   Value="@editableResultConfig.Item.RegisterType"
-                                                   ValueChanged="(newItem) => UpdateRegisterType(editableResultConfig.Item, newItem)"
-                                                   Label="Register Type"
-                                                   Margin="Constants.InputMargin">
-                                            @foreach (ModbusRegisterType item in Enum.GetValues(typeof(ModbusRegisterType)))
-                                            {
-                                                <MudSelectItem T="ModbusRegisterType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                            }
-                                        </MudSelect>
-                                        <MudSelect T="ModbusValueType"
-                                                   Class="@Constants.DefaultMargin"
-                                                   Variant="Variant.Outlined"
-                                                   Value="@editableResultConfig.Item.ValueType"
-                                                   ValueChanged="(newItem) => UpdateValueType(editableResultConfig.Item, newItem)"
-                                                   Label="Value Type"
-                                                   Margin="Constants.InputMargin">
-                                            @foreach (ModbusValueType item in Enum.GetValues(typeof(ModbusValueType)))
-                                            {
-                                                <MudSelectItem T="ModbusValueType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
-                                            }
-                                        </MudSelect>
+                                        <div class="px-2 pt-2">
+                                            <MudSelect T="ModbusRegisterType"
+                                                       Class="@Constants.DefaultMargin"
+                                                       Variant="Variant.Outlined"
+                                                       Value="@editableResultConfig.Item.RegisterType"
+                                                       ValueChanged="(newItem) => UpdateRegisterType(editableResultConfig.Item, newItem)"
+                                                       Label="Register Type"
+                                                       Margin="Constants.InputMargin">
+                                                @foreach (ModbusRegisterType item in Enum.GetValues(typeof(ModbusRegisterType)))
+                                                {
+                                                    <MudSelectItem T="ModbusRegisterType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </div>
+                                        <div class="px-2 pt-2">
+                                            <MudSelect T="ModbusValueType"
+                                                       Class="@Constants.DefaultMargin"
+                                                       Variant="Variant.Outlined"
+                                                       Value="@editableResultConfig.Item.ValueType"
+                                                       ValueChanged="(newItem) => UpdateValueType(editableResultConfig.Item, newItem)"
+                                                       Label="Value Type"
+                                                       Margin="Constants.InputMargin">
+                                                @foreach (ModbusValueType item in Enum.GetValues(typeof(ModbusValueType)))
+                                                {
+                                                    <MudSelectItem T="ModbusValueType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </div>
                                         <GenericInput For="() => editableResultConfig.Item.Address"></GenericInput>
                                         <GenericInput For="() => editableResultConfig.Item.Length"></GenericInput>
-                                        <GenericInput For="() => editableResultConfig.Item.BitStartIndex"></GenericInput>
-                                        <GenericInput For="() => editableResultConfig.Item.BitLength"></GenericInput>
-                                        <GenericInput For="() => editableResultConfig.Item.InvertsModbusResultConfigurationId"></GenericInput>
+                                        <GenericInput T="int?" For="() => editableResultConfig.Item.InvertsModbusResultConfigurationId" OnValueChanged="StateHasChanged"></GenericInput>
+                                        @if (editableResultConfig.Item.InvertsModbusResultConfigurationId != default)
+                                        {
+                                            <GenericInput For="() => editableResultConfig.Item.BitStartIndex"></GenericInput>
+                                            <GenericInput For="() => editableResultConfig.Item.BitLength"></GenericInput>
+                                        }
                                         <div class="row">
                                             <div class="col">
-                                                <div class="p-2">
+                                                <div class="px-2 pt-2">
                                                     <MudSelect T="ValueOperator"
                                                                Class="@Constants.DefaultMargin"
                                                                Variant="Variant.Outlined"
