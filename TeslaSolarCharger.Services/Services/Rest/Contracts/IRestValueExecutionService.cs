@@ -2,7 +2,7 @@
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedModel.Enums;
 
-namespace TeslaSolarCharger.Services.Services.Contracts;
+namespace TeslaSolarCharger.Services.Services.Rest.Contracts;
 
 public interface IRestValueExecutionService
 {

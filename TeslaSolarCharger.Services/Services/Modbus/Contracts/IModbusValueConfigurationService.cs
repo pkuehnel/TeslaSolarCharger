@@ -2,7 +2,7 @@
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 
-namespace TeslaSolarCharger.Services.Services.Contracts;
+namespace TeslaSolarCharger.Services.Services.Modbus.Contracts;
 
 public interface IModbusValueConfigurationService
 {

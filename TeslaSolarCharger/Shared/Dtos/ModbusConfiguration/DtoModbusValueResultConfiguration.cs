@@ -12,8 +12,10 @@ public class DtoModbusValueResultConfiguration : ValueConfigurationBase
     [Required]
     public ModbusValueType ValueType { get; set; }
     [Required]
+    [Range(ushort.MinValue, ushort.MaxValue)]
     public int Address { get; set; }
     [Required]
+    [Range(ushort.MinValue, ushort.MaxValue)]
     public int Length { get; set; }
     public int? BitStartIndex { get; set; }
     public int? BitLength { get; set; }

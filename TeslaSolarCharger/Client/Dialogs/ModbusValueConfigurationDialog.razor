@@ -43,8 +43,8 @@ else
                             }
                         </MudSelect>
                     </div>
-                    <GenericInput For="() => EditableValueConfiguration.Item.ConnectDelaySeconds"></GenericInput>
-                    <GenericInput For="() => EditableValueConfiguration.Item.ReadTimeoutSeconds"></GenericInput>
+                    <GenericInput For="() => EditableValueConfiguration.Item.ConnectDelayMilliseconds"></GenericInput>
+                    <GenericInput For="() => EditableValueConfiguration.Item.ReadTimeoutMilliseconds"></GenericInput>
                     @foreach (var editableResultConfig in EditableResultConfigurations)
                     {
                         <EditFormComponent T="DtoModbusValueResultConfiguration"
