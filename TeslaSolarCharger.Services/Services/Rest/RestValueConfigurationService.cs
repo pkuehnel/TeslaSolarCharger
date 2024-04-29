@@ -8,7 +8,7 @@ using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
-namespace TeslaSolarCharger.Services.Services;
+namespace TeslaSolarCharger.Services.Services.Rest;
 
 public class RestValueConfigurationService(
     ILogger<RestValueConfigurationService> logger,

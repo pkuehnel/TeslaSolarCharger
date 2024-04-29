@@ -6,10 +6,9 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
-using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
-namespace TeslaSolarCharger.Services.Services;
+namespace TeslaSolarCharger.Services.Services.Modbus;
 
 public class ModbusValueConfigurationService (
     ILogger<ModbusValueConfigurationService> logger,

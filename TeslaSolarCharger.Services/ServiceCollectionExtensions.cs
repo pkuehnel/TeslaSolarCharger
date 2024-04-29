@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TeslaSolarCharger.Services.Services;
 using TeslaSolarCharger.Services.Services.Contracts;
+using TeslaSolarCharger.Services.Services.Modbus;
+using TeslaSolarCharger.Services.Services.Rest;
 
 namespace TeslaSolarCharger.Services;
 

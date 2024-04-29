@@ -3,7 +3,7 @@ using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 
-namespace TeslaSolarCharger.Services.Services;
+namespace TeslaSolarCharger.Services.Services.Modbus;
 
 public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> logger,
     IModbusValueConfigurationService modbusValueConfigurationService) : IModbusValueExecutionService

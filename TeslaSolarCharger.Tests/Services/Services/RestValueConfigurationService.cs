@@ -20,7 +20,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Get_Rest_Configurations()
     {
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         Assert.NotEmpty(restValueConfigurations);
         Assert.Equal(1, restValueConfigurations.Count);
@@ -33,7 +33,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Get_PVValueRest_Configurations()
     {
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueConfigurationService>();
         var usedFors = new HashSet<ValueUsage>() { ValueUsage.InverterPower, ValueUsage.GridPower, };
         var restValueConfigurations = await service.GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => usedFors.Contains(r.UsedFor)));
         Assert.NotEmpty(restValueConfigurations);
@@ -47,7 +47,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Update_Rest_Configurations()
     {
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetFullRestValueConfigurationsByPredicate(x => true);
         var firstValue = restValueConfigurations.First();
         var newUrl = "http://localhost:5000/api/values2";
@@ -66,7 +66,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Get_Rest_Configuration_Headers()
     {
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueConfigurationService>();
         var restFullValueConfigurations = await service.GetFullRestValueConfigurationsByPredicate(x => x.Id == 1);
         var headers = restFullValueConfigurations.First().Headers;
         Assert.NotEmpty(headers);
@@ -79,7 +79,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Update_Rest_Configuration_Headers()
     {
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueConfigurationService>();
         var restFullValueConfigurations = await service.GetFullRestValueConfigurationsByPredicate(x => x.Id == 1);
         var restValueConfiguration = restFullValueConfigurations.First();
         var headers = restValueConfiguration.Headers;
@@ -97,7 +97,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Get_Rest_Result_Configurations()
     {
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
         var values = await service.GetResultConfigurationsByConfigurationId(firstValue.Id);
@@ -113,7 +113,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
     [Fact]
     public async Task Can_Update_Rest_Result_Configurations()
     {
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueConfigurationService>();
         var restValueConfigurations = await service.GetAllRestValueConfigurations();
         var firstValue = restValueConfigurations.First();
         var values = await service.GetResultConfigurationsByConfigurationId(firstValue.Id);
@@ -168,7 +168,7 @@ public class RestValueConfigurationService(ITestOutputHelper outputHelper) : Tes
         Assert.True(await Context.RestValueConfigurations.AnyAsync(c => c.Id == restValueConfiguration.Id));
         Assert.True(await Context.RestValueResultConfigurations.AnyAsync(c => c.RestValueConfigurationId == restValueConfiguration.Id));
         Assert.True(await Context.RestValueConfigurationHeaders.AnyAsync(c => c.RestValueConfigurationId == restValueConfiguration.Id));
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.RestValueConfigurationService>();
+        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueConfigurationService>();
         await service.DeleteRestValueConfiguration(restValueConfiguration.Id);
         Assert.False(await Context.RestValueConfigurations.AnyAsync(c => c.Id == restValueConfiguration.Id));
         Assert.False(await Context.RestValueResultConfigurations.AnyAsync(c => c.RestValueConfigurationId == restValueConfiguration.Id));

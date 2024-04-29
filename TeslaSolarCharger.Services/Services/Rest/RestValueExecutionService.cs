@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System.Globalization;
-using System.Net.Http;
 using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
@@ -11,12 +10,10 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
-using TeslaSolarCharger.Shared.Wrappers;
 using TeslaSolarCharger.SharedModel.Enums;
 
-
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
-namespace TeslaSolarCharger.Services.Services;
+namespace TeslaSolarCharger.Services.Services.Rest;
 
 public class RestValueExecutionService(
     ILogger<RestValueConfigurationService> logger, ISettings settings, IRestValueConfigurationService restValueConfigurationService, IConfigurationWrapper configurationWrapper) : IRestValueExecutionService
