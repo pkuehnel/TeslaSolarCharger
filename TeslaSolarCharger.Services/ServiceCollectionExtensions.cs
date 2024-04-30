@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TeslaSolarCharger.Services.Services;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest;
@@ -17,5 +18,6 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IModbusTcpClient, CustomModbusTcpClient>()
                 .AddTransient<IModbusValueConfigurationService, ModbusValueConfigurationService>()
                 .AddTransient<IModbusValueExecutionService, ModbusValueExecutionService>()
+                .AddTransient<IResultValueCalculationService, ResultValueCalculationService>()
             ;
 }

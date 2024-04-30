@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
@@ -131,7 +132,7 @@ public class RestValueExecutionService(ITestOutputHelper outputHelper) : TestBas
     [Fact]
     public void CanCalculateCorrectionFactor()
     {
-        var service = Mock.Create<TeslaSolarCharger.Services.Services.Rest.RestValueExecutionService>();
+        var service = Mock.Create<ResultValueCalculationService>();
         var value = service.MakeCalculationsOnRawValue(10, ValueOperator.Minus, 14);
         Assert.Equal(-140, value);
     }

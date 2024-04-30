@@ -6,6 +6,6 @@ namespace TeslaSolarCharger.Services.Services.Modbus.Contracts;
 public interface IModbusValueExecutionService
 {
     Task<byte[]> GetResult(DtoModbusConfiguration modbusConfig, DtoModbusValueResultConfiguration resultConfiguration);
-    decimal GetValue(byte[] registerResult, DtoModbusConfiguration resultConfig);
+    decimal GetValue(byte[] byteArray, DtoModbusValueResultConfiguration resultConfig);
     Task<List<DtoValueConfigurationOverview>> GetModbusValueOverviews();
 }

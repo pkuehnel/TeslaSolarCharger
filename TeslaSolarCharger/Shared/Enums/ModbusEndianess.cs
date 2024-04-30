@@ -2,6 +2,6 @@
 
 public enum ModbusEndianess
 {
-    LittleEndian,//FluentModbus default
     BigEndian,
+    LittleEndian,
 }

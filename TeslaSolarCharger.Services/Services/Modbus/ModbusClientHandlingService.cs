@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 
@@ -16,11 +17,34 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         logger.LogTrace("{method}({unitIdentifier}, {host}, {port}, {endianess}, {connectDelay}, {readTimeout}, {registerType}, {address}, {length})",
                        nameof(GetByteArray), unitIdentifier, host, port, endianess, connectDelay, readTimeout, registerType, address, length);
         var client = await GetConnectedModbusTcpClient(host, port, endianess, connectDelay);
+        byte[] byteArray;
         if (registerType == ModbusRegisterType.HoldingRegister)
         {
-            return await client.GetByteArrayFromHoldingRegisters(unitIdentifier, address, length, readTimeout);
+            byteArray = await client.GetByteArrayFromHoldingRegisters(unitIdentifier, address, length, readTimeout);
         }
-        return await client.GetByteArrayFromInputRegisters(unitIdentifier, address, length, readTimeout);
+        else
+        {
+            byteArray = await client.GetByteArrayFromInputRegisters(unitIdentifier, address, length, readTimeout);
+        }
+        return ConvertToCorrectEndianess(endianess, byteArray);
+    }
+
+    private static byte[] ConvertToCorrectEndianess(ModbusEndianess endianess, byte[] byteArray)
+    {
+        var tempArray = endianess == ModbusEndianess.LittleEndian ? byteArray : byteArray.Reverse().ToArray();
+        if (endianess == ModbusEndianess.LittleEndian && tempArray.Length % 4 == 0)
+        {
+            var swappedByteArray = new byte[tempArray.Length];
+            for (var i = 0; i < tempArray.Length; i += 4)
+            {
+                swappedByteArray[i + 0] = tempArray[i + 2];
+                swappedByteArray[i + 1] = tempArray[i + 3];
+                swappedByteArray[i + 2] = tempArray[i + 0];
+                swappedByteArray[i + 3] = tempArray[i + 1];
+            }
+            return swappedByteArray;
+        }
+        return tempArray;
     }
 
     private async Task<IModbusTcpClient> GetConnectedModbusTcpClient(string host, int port, ModbusEndianess endianess, TimeSpan connectDelay)

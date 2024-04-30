@@ -5,6 +5,7 @@ using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
@@ -16,7 +17,11 @@ using TeslaSolarCharger.SharedModel.Enums;
 namespace TeslaSolarCharger.Services.Services.Rest;
 
 public class RestValueExecutionService(
-    ILogger<RestValueConfigurationService> logger, ISettings settings, IRestValueConfigurationService restValueConfigurationService, IConfigurationWrapper configurationWrapper) : IRestValueExecutionService
+    ILogger<RestValueConfigurationService> logger,
+    ISettings settings,
+    IRestValueConfigurationService restValueConfigurationService,
+    IConfigurationWrapper configurationWrapper,
+    IResultValueCalculationService resultValueCalculationService) : IRestValueExecutionService
 {
     /// <summary>
     /// Get result for each configuration ID
@@ -102,7 +107,7 @@ public class RestValueExecutionService(
             default:
                 throw new InvalidOperationException($"NodePatternType {configNodePatternType} not supported");
         }
-        return MakeCalculationsOnRawValue(resultConfig.CorrectionFactor, resultConfig.Operator, rawValue);
+        return resultValueCalculationService.MakeCalculationsOnRawValue(resultConfig.CorrectionFactor, resultConfig.Operator, rawValue);
     }
 
     public async Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews()
@@ -161,20 +166,6 @@ public class RestValueExecutionService(
         catch (Exception e)
         {
             return e.Message;
-        }
-    }
-
-    internal decimal MakeCalculationsOnRawValue(decimal correctionFactor, ValueOperator valueOperator, decimal rawValue)
-    {
-        rawValue = correctionFactor * rawValue;
-        switch (valueOperator)
-        {
-            case ValueOperator.Plus:
-                return rawValue;
-            case ValueOperator.Minus:
-                return -rawValue;
-            default:
-                throw new ArgumentOutOfRangeException();
         }
     }
 }
