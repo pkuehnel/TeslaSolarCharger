@@ -103,11 +103,14 @@ else
                                         </div>
                                         <GenericInput For="() => editableResultConfig.Item.Address"></GenericInput>
                                         <GenericInput For="() => editableResultConfig.Item.Length"></GenericInput>
-                                        <GenericInput T="int?" For="() => editableResultConfig.Item.InvertsModbusResultConfigurationId" OnValueChanged="StateHasChanged"></GenericInput>
-                                        @if (editableResultConfig.Item.InvertsModbusResultConfigurationId != default)
+                                        @if (editableResultConfig.Item.ValueType == ModbusValueType.Bool)
                                         {
                                             <GenericInput For="() => editableResultConfig.Item.BitStartIndex"></GenericInput>
                                             <GenericInput For="() => editableResultConfig.Item.BitLength"></GenericInput>
+                                        }
+                                        else
+                                        {
+                                            <GenericInput T="int?" For="() => editableResultConfig.Item.InvertedByModbusResultConfigurationId" OnValueChanged="StateHasChanged"></GenericInput>
                                         }
                                         <div class="row">
                                             <div class="col">
@@ -306,6 +309,7 @@ else
     private void UpdateValueType(DtoModbusValueResultConfiguration item, ModbusValueType newItem)
     {
         item.ValueType = newItem;
+        StateHasChanged();
     }
 
     private async Task InvokeDeleteClicked(DtoModbusValueResultConfiguration item, string guid)

@@ -21,5 +21,5 @@ public class DtoModbusValueResultConfiguration : ValueConfigurationBase
     public int? BitLength { get; set; }
 
     [HelperText("If you have an inverter that always displays positive values, you can use this to invert the value based on a bit. For now this is only known for the battery power of Sungrow inverters")]
-    public int? InvertsModbusResultConfigurationId { get; set; }
+    public int? InvertedByModbusResultConfigurationId { get; set; }
 }

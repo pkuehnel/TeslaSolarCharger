@@ -13,9 +13,9 @@ public class ModbusResultConfiguration : ResultConfigurationBase
     public int? BitLength { get; set; }
 
     public int ModbusConfigurationId { get; set; }
-    public int? InvertsModbusResultConfigurationId { get; set; }
+    public int? InvertedByModbusResultConfigurationId { get; set; }
 
     public ModbusConfiguration ModbusConfiguration { get; set; }
-    public ModbusResultConfiguration? InvertsModbusResultConfiguration { get; set; }
+    public ModbusResultConfiguration? InvertedByModbusResultConfiguration { get; set; }
     
 }
