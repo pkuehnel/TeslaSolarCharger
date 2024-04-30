@@ -63,18 +63,18 @@ public class PvValueService : IPvValueService
             return;
         }
         //Do not change order of the following methods
-        await ConvertGridValueConfiguration();
-        await ConvertInverterValueConfiguration();
-        await ConvertHomeBatterySocConfiguration();
-        await ConvertHomeBatteryPowerConfiguration();
+        await ConvertGridRestValueConfiguration();
+        await ConvertInverterRestValueConfiguration();
+        await ConvertHomeBatterySocRestConfiguration();
+        await ConvertHomeBatteryPowerRestConfiguration();
     }
 
-    private async Task ConvertHomeBatteryPowerConfiguration()
+    private async Task ConvertHomeBatteryPowerRestConfiguration()
     {
         var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl) && frontendConfiguration is
-                { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+                { HomeBatteryValuesSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
             var newHomeBatteryPowerConfiguration = await _context.RestValueConfigurations
@@ -120,12 +120,12 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task ConvertHomeBatterySocConfiguration()
+    private async Task ConvertHomeBatterySocRestConfiguration()
     {
         var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl) && frontendConfiguration is
-                { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+                { HomeBatteryValuesSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
             var newHomeBatterySocConfiguration = await _context.RestValueConfigurations
@@ -171,12 +171,12 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task ConvertInverterValueConfiguration()
+    private async Task ConvertInverterRestValueConfiguration()
     {
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(inverterRequestUrl) && frontendConfiguration is
-                { InverterValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+                { InverterValueSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
             var newInverterConfiguration = await _context.RestValueConfigurations
@@ -222,12 +222,12 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task ConvertGridValueConfiguration()
+    private async Task ConvertGridRestValueConfiguration()
     {
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is
-                { GridValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+                { GridValueSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.GridPowerNodePatternType ?? NodePatternType.Direct;
             var newGridConfiguration = new RestValueConfiguration()
