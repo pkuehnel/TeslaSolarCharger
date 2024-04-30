@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="6.9.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="8.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.3" PrivateAssets="all" />
     <PackageReference Include="MudBlazor" Version="6.19.1" />
