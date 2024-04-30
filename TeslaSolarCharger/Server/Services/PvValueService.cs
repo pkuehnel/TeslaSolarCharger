@@ -41,6 +41,7 @@ public class PvValueService : IPvValueService
     private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
     private readonly IRestValueConfigurationService _restValueConfigurationService;
     private readonly IModbusValueConfigurationService _modbusValueConfigurationService;
+    private readonly IModbusValueExecutionService _modbusValueExecutionService;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
         IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper,
@@ -49,7 +50,8 @@ public class PvValueService : IPvValueService
         IRestValueExecutionService restValueExecutionService,
         IMapperConfigurationFactory mapperConfigurationFactory,
         IRestValueConfigurationService restValueConfigurationService,
-        IModbusValueConfigurationService modbusValueConfigurationService)
+        IModbusValueConfigurationService modbusValueConfigurationService,
+        IModbusValueExecutionService modbusValueExecutionService)
     {
         _logger = logger;
         _settings = settings;
@@ -63,6 +65,7 @@ public class PvValueService : IPvValueService
         _mapperConfigurationFactory = mapperConfigurationFactory;
         _restValueConfigurationService = restValueConfigurationService;
         _modbusValueConfigurationService = modbusValueConfigurationService;
+        _modbusValueExecutionService = modbusValueExecutionService;
     }
 
     public async Task ConvertToNewConfiguration()
@@ -493,9 +496,10 @@ public class PvValueService : IPvValueService
             ValueUsage.HomeBatteryPower,
             ValueUsage.HomeBatterySoc,
         };
+        var resultSums = new Dictionary<ValueUsage, decimal>();
+        //ToDo: Modbus and rest values can be requersted in parallel but dictionary needs to be thread save for that
         var restConfigurations = await _restValueConfigurationService
             .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
-        var resultSums = new Dictionary<ValueUsage, decimal>();
         foreach (var restConfiguration in restConfigurations)
         {
             try
@@ -522,6 +526,26 @@ public class PvValueService : IPvValueService
                 _logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
             }
         }
+
+        var modbusConfigurations = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
+        foreach (var modbusConfiguration in modbusConfigurations)
+        {
+            var modbusResultConfigurations =
+                await _modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
+                    r.ModbusConfigurationId == modbusConfiguration.Id);
+            foreach (var resultConfiguration in modbusResultConfigurations)
+            {
+                var byteArry = await _modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration);
+                var value = await _modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
+                var valueUsage = resultConfiguration.UsedFor;
+                if (!resultSums.ContainsKey(valueUsage))
+                {
+                    resultSums[valueUsage] = 0;
+                }
+                resultSums[valueUsage] += value;
+            }
+        }
+
 
         _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ? (int?)inverterPower : null;
         _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ? (int?)gridPower : null;
