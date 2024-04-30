@@ -4,11 +4,11 @@ using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Services.Services.Contracts;
+using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
-namespace TeslaSolarCharger.Services.Services;
+namespace TeslaSolarCharger.Services.Services.Rest;
 
 public class RestValueConfigurationService(
     ILogger<RestValueConfigurationService> logger,
@@ -33,7 +33,7 @@ public class RestValueConfigurationService(
     public async Task<List<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsByPredicate(
         Expression<Func<RestValueConfiguration, bool>> predicate)
     {
-
+        logger.LogTrace("{method}({predicate})", nameof(GetFullRestValueConfigurationsByPredicate), predicate);
         var mapper = mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<RestValueConfigurationHeader, DtoRestValueConfigurationHeader>();
@@ -41,11 +41,11 @@ public class RestValueConfigurationService(
                 .ForMember(d => d.Headers, opt => opt.MapFrom(s => s.Headers))
                 ;
         });
-        var resultConfigurations = await context.RestValueConfigurations
+        var restValueConfigurations = await context.RestValueConfigurations
             .Where(predicate)
             .ProjectTo<DtoFullRestValueConfiguration>(mapper)
             .ToListAsync().ConfigureAwait(false);
-        return resultConfigurations;
+        return restValueConfigurations;
     }
 
     public async Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(
@@ -199,6 +199,17 @@ public class RestValueConfigurationService(
     {
         logger.LogTrace("{method}({id})", nameof(DeleteResultConfiguration), id);
         context.RestValueResultConfigurations.Remove(new RestValueResultConfiguration { Id = id });
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public async Task DeleteRestValueConfiguration(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteRestValueConfiguration), id);
+        var restValueConfiguration = await context.RestValueConfigurations
+            .Include(x => x.Headers)
+            .Include(x => x.RestValueResultConfigurations)
+            .FirstAsync(x => x.Id == id).ConfigureAwait(false);
+        context.RestValueConfigurations.Remove(restValueConfiguration);
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 }

@@ -1,19 +1,27 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System.Globalization;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using TeslaSolarCharger.Services.Services.Contracts;
+using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedModel.Enums;
 
-
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
-namespace TeslaSolarCharger.Services.Services;
+namespace TeslaSolarCharger.Services.Services.Rest;
 
 public class RestValueExecutionService(
-    ILogger<RestValueConfigurationService> logger, ISettings settings) : IRestValueExecutionService
+    ILogger<RestValueConfigurationService> logger,
+    ISettings settings,
+    IRestValueConfigurationService restValueConfigurationService,
+    IConfigurationWrapper configurationWrapper,
+    IResultValueCalculationService resultValueCalculationService) : IRestValueExecutionService
 {
     /// <summary>
     /// Get result for each configuration ID
@@ -24,10 +32,15 @@ public class RestValueExecutionService(
     public async Task<string> GetResult(DtoFullRestValueConfiguration config)
     {
         logger.LogTrace("{method}({@config})", nameof(GetResult), config);
-        var client = new HttpClient()
+        var httpClientHandler = new HttpClientHandler();
+
+        if (configurationWrapper.ShouldIgnoreSslErrors())
         {
-            Timeout = TimeSpan.FromSeconds(1),
-        };
+            logger.LogWarning("PV Value SSL errors are ignored.");
+            httpClientHandler.ServerCertificateCustomValidationCallback = MyRemoteCertificateValidationCallback;
+        }
+        using var client = new HttpClient(httpClientHandler);
+        client.Timeout = TimeSpan.FromSeconds(1);
         var request = new HttpRequestMessage(new HttpMethod(config.HttpMethod.ToString()), config.Url);
         foreach (var header in config.Headers)
         {
@@ -44,7 +57,10 @@ public class RestValueExecutionService(
 
         return contentString;
     }
-
+    private bool MyRemoteCertificateValidationCallback(HttpRequestMessage requestMessage, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors sslErrors)
+    {
+        return true; // Ignoriere alle Zertifikatfehler
+    }
 
     public decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoRestValueResultConfiguration resultConfig)
     {
@@ -91,7 +107,53 @@ public class RestValueExecutionService(
             default:
                 throw new InvalidOperationException($"NodePatternType {configNodePatternType} not supported");
         }
-        return MakeCalculationsOnRawValue(resultConfig.CorrectionFactor, resultConfig.Operator, rawValue);
+        return resultValueCalculationService.MakeCalculationsOnRawValue(resultConfig.CorrectionFactor, resultConfig.Operator, rawValue);
+    }
+
+    public async Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews()
+    {
+        logger.LogTrace("{method}()", nameof(GetRestValueOverviews));
+        var restValueConfigurations = await restValueConfigurationService.GetFullRestValueConfigurationsByPredicate(c => true).ConfigureAwait(false);
+        var results = new List<DtoValueConfigurationOverview>();
+        foreach (var dtoFullRestValueConfiguration in restValueConfigurations)
+        {
+            string? result;
+            var resultConfigurations = await restValueConfigurationService.GetRestResultConfigurationByPredicate(c => c.RestValueConfigurationId == dtoFullRestValueConfiguration.Id).ConfigureAwait(false);
+            var overviewElement = new DtoValueConfigurationOverview
+            {
+                Id = dtoFullRestValueConfiguration.Id,
+                Heading = dtoFullRestValueConfiguration.Url,
+            };
+            results.Add(overviewElement);
+            try
+            {
+                result = await GetResult(dtoFullRestValueConfiguration).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting result for rest configuration {id}", dtoFullRestValueConfiguration.Id);
+                result = null;
+            }
+            foreach (var resultConfiguration in resultConfigurations)
+            {
+                var dtoRestValueResult = new DtoOverviewValueResult { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
+                try
+                {
+                    dtoRestValueResult.CalculatedValue = result == null ? null : GetValue(result, dtoFullRestValueConfiguration.NodePatternType, resultConfiguration); ;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error getting value for rest configuration {id}", resultConfiguration.Id);
+                    continue;
+                }
+                finally
+                {
+                    overviewElement.Results.Add(dtoRestValueResult);
+                }
+            }
+        }
+
+        return results;
     }
 
     public async Task<string> DebugRestValueConfiguration(DtoFullRestValueConfiguration config)
@@ -104,20 +166,6 @@ public class RestValueExecutionService(
         catch (Exception e)
         {
             return e.Message;
-        }
-    }
-
-    internal decimal MakeCalculationsOnRawValue(decimal correctionFactor, ValueOperator valueOperator, decimal rawValue)
-    {
-        rawValue = correctionFactor * rawValue;
-        switch (valueOperator)
-        {
-            case ValueOperator.Plus:
-                return rawValue;
-            case ValueOperator.Minus:
-                return -rawValue;
-            default:
-                throw new ArgumentOutOfRangeException();
         }
     }
 }

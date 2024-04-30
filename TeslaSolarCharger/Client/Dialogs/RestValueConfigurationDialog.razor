@@ -89,7 +89,7 @@ else
                                 }
                                 else
                                 {
-                                    <MudText>Display current result</MudText>
+                                    <MudText>Test</MudText>
                                 }
                             </MudButton>
                         </div>
@@ -286,9 +286,15 @@ else
             return;
         }
 
+        if (ResultConfigEditForms.Count < 1)
+        {
+            Snackbar.Add("At least one result configuration is required", Severity.Error);
+            return;
+        }
+
         if (ResultConfigEditForms.Any(r => r.Value.WrappedElement.EditContext.Validate() != true))
         {
-            Snackbar.Add("At least one value configuration is not valid");
+            Snackbar.Add("At least one result configuration is not valid");
             return;
         }
         var result = await HttpClient.PostAsJsonAsync("/api/RestValueConfiguration/UpdateRestValueConfiguration", RestValueConfiguration);
@@ -346,10 +352,6 @@ else
         {
             EditableRestResultConfigurations.Add(new(element));
         }
-        if (elements.Count == 0)
-        {
-            EditableRestResultConfigurations.Add(new(new()));
-        }
     }
 
     private void UpdateNodePatternType(DtoFullRestValueConfiguration restValueConfiguration, NodePatternType newItem)
@@ -397,7 +399,7 @@ else
         MudDialog.StateHasChanged();
         try
         {
-            var result = await HttpClient.PostAsJsonAsync("api/RestValueExecution/DebugRestValueConfiguration", RestValueConfiguration);
+            var result = await HttpClient.PostAsJsonAsync("api/RestValueConfiguration/DebugRestValueConfiguration", RestValueConfiguration);
             var resultString = await result.Content.ReadAsStringAsync();
             CurrentRestStringContent = JsonConvert.DeserializeObject<DtoValue<string>>(resultString);
         }

@@ -1,0 +1,68 @@
+﻿@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Client.Dialogs
+@inject HttpClient HttpClient
+@inject IStringHelper StringHelper
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<GenericValueConfigurationComponent SourceName="Modbus TCP"
+                                    ConfigurationOverviews="_modbusConfigurationOverviews"
+                                    OnRefreshClicked="RefreshRequestResults"
+                                    OnConfigureClicked="id => OpenConfigurationDialog(id)"
+                                    OnDeleteClicked="id => DeleteConfiguration(id)"></GenericValueConfigurationComponent>
+
+@code {
+    private List<DtoValueConfigurationOverview>? _modbusConfigurationOverviews;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshRequestResults();
+    }
+
+    private async Task RefreshRequestResults()
+    {
+        _modbusConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>("api/ModbusValueConfiguration/GetModbusValueOverviews") ?? new List<DtoValueConfigurationOverview>();
+    }
+
+    private async Task OpenConfigurationDialog(int? id)
+    {
+        var options = new DialogOptions()
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+        };
+        var parameters = new DialogParameters<ModbusValueConfigurationDialog>
+        {
+            { x => x.ValueConfigurationId, id },
+        };
+        var title = id == default ? "Add" : "Edit";
+        var dialog = await DialogService.ShowAsync<ModbusValueConfigurationDialog>($"{title} REST config", parameters, options);
+        var result = await dialog.Result;
+
+        await RefreshRequestResults();
+    }
+
+    private async Task DeleteConfiguration(int id)
+    {
+        var options = new DialogOptions()
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+            };
+        var parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.ElementName, "the Modbus configuration" },
+        };
+        var dialog = await DialogService.ShowAsync<DeleteDialog>($"Delete Modbus config?", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await HttpClient.DeleteAsync($"api/ModbusValueConfiguration/DeleteModbusConfiguration?id={id}");
+            Snackbar.Add("Modbus value configuration deleted.", Severity.Success);
+            await RefreshRequestResults();
+        }
+    }
+
+}

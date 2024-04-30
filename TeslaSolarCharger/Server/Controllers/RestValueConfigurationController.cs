@@ -1,19 +1,32 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Services.Services.Contracts;
+using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class RestValueConfigurationController(IRestValueConfigurationService service) : ApiBaseController
+public class RestValueConfigurationController(IRestValueConfigurationService service,
+    IRestValueExecutionService executionService) : ApiBaseController
 {
     [HttpGet]
     public async Task<ActionResult<List<DtoRestValueConfiguration>>> GetAllRestValueConfigurations()
     {
         var result = await service.GetAllRestValueConfigurations();
         return Ok(result);
+    }
+
+    [HttpGet]
+    public Task<List<DtoValueConfigurationOverview>> GetRestValueConfigurations() =>
+        executionService.GetRestValueOverviews();
+
+    [HttpPost]
+    public async Task<ActionResult<DtoValue<string>>> DebugRestValueConfiguration([FromBody] DtoFullRestValueConfiguration config)
+    {
+        var result = await executionService.DebugRestValueConfiguration(config);
+        return Ok(new DtoValue<string>(result));
     }
 
     [HttpGet]
@@ -24,7 +37,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpPost]
-    public async Task<ActionResult<int>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
+    public async Task<ActionResult<DtoValue<int>>> UpdateRestValueConfiguration([FromBody] DtoFullRestValueConfiguration dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveRestValueConfiguration(dtoData)));
     }
@@ -37,7 +50,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpPost]
-    public async Task<ActionResult<int>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
+    public async Task<ActionResult<DtoValue<int>>> SaveHeader(int parentId, [FromBody] DtoRestValueConfigurationHeader dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveHeader(parentId, dtoData)));
     }
@@ -57,7 +70,7 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpPost]
-    public async Task<ActionResult<int>> SaveResultConfiguration(int parentId, [FromBody] DtoRestValueResultConfiguration dtoData)
+    public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoRestValueResultConfiguration dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveResultConfiguration(parentId, dtoData)));
     }
@@ -66,6 +79,13 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     public async Task<ActionResult> DeleteResultConfiguration(int id)
     {
         await service.DeleteResultConfiguration(id);
+        return Ok();
+    }
+
+    [HttpDelete]
+    public async Task<ActionResult> DeleteRestValueConfiguration(int id)
+    {
+        await service.DeleteRestValueConfiguration(id);
         return Ok();
     }
 }

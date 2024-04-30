@@ -1,17 +1,23 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Web;
 using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Services.Services.Contracts;
+using TeslaSolarCharger.Services.Services.Modbus;
+using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
@@ -34,6 +40,8 @@ public class PvValueService : IPvValueService
     private readonly IRestValueExecutionService _restValueExecutionService;
     private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
     private readonly IRestValueConfigurationService _restValueConfigurationService;
+    private readonly IModbusValueConfigurationService _modbusValueConfigurationService;
+    private readonly IModbusValueExecutionService _modbusValueExecutionService;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
         IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper,
@@ -41,7 +49,9 @@ public class PvValueService : IPvValueService
         IConstants constants, ITeslaSolarChargerContext context,
         IRestValueExecutionService restValueExecutionService,
         IMapperConfigurationFactory mapperConfigurationFactory,
-        IRestValueConfigurationService restValueConfigurationService)
+        IRestValueConfigurationService restValueConfigurationService,
+        IModbusValueConfigurationService modbusValueConfigurationService,
+        IModbusValueExecutionService modbusValueExecutionService)
     {
         _logger = logger;
         _settings = settings;
@@ -54,27 +64,236 @@ public class PvValueService : IPvValueService
         _restValueExecutionService = restValueExecutionService;
         _mapperConfigurationFactory = mapperConfigurationFactory;
         _restValueConfigurationService = restValueConfigurationService;
+        _modbusValueConfigurationService = modbusValueConfigurationService;
+        _modbusValueExecutionService = modbusValueExecutionService;
     }
 
     public async Task ConvertToNewConfiguration()
     {
-        if (await _context.RestValueConfigurations.AnyAsync())
+        if (!await _context.RestValueConfigurations.AnyAsync())
         {
-            return;
+            //Do not change order of the following methods
+            try
+            {
+                await ConvertGridRestValueConfiguration();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting grid rest value configuration");
+            }
+
+            try
+            {
+                await ConvertInverterRestValueConfiguration();
+
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting inverter rest value configuration");
+            }
+
+            try
+            {
+                await ConvertHomeBatterySocRestConfiguration();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting home battery soc rest value configuration");
+            }
+
+            try
+            {
+                await ConvertHomeBatteryPowerRestConfiguration();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting home battery power rest value configuration");
+            }
         }
-        //Do not change order of the following methods
-        await ConvertGridValueConfiguration();
-        await ConvertInverterValueConfiguration();
-        await ConvertHomeBatterySocConfiguration();
-        await ConvertHomeBatteryPowerConfiguration();
+
+        if (!await _context.ModbusConfigurations.AnyAsync())
+        {
+            try
+            {
+                await ConvertGridModbusValueConfiguration();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting grid modbus value configuration");
+            }
+            try
+            {
+                await ConvertInverterModbusValueConfiguration();
+
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting inverter modbus value configuration");
+            }
+
+            try
+            {
+                await ConvertHomeBatteryPowerModbusValueConfiguration();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting home battery power modbus value configuration");
+            }
+
+            try
+            {
+                await ConvertHomeBatterySocModbusValueConfiguration();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting home battery soc modbus value configuration");
+            }
+        }
     }
 
-    private async Task ConvertHomeBatteryPowerConfiguration()
+    private async Task ConvertGridModbusValueConfiguration()
+    {
+        var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var correctionFactor = _configurationWrapper.CurrentPowerToGridCorrectionFactor();
+        if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is
+            { GridValueSource: SolarValueSource.Modbus })
+        {
+            await ConvertGenericModbusValueConfiguration(gridRequestUrl, ValueUsage.GridPower, correctionFactor);
+        }
+    }
+
+    private async Task ConvertInverterModbusValueConfiguration()
+    {
+        var requestUrl = _configurationWrapper.CurrentInverterPowerUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var correctionFactor = _configurationWrapper.CurrentInverterPowerCorrectionFactor();
+        if (!string.IsNullOrWhiteSpace(requestUrl) && frontendConfiguration is
+                { InverterValueSource: SolarValueSource.Modbus })
+        {
+            await ConvertGenericModbusValueConfiguration(requestUrl, ValueUsage.InverterPower, correctionFactor);
+        }
+    }
+
+    private async Task ConvertHomeBatteryPowerModbusValueConfiguration()
+    {
+        var requestUrl = _configurationWrapper.HomeBatteryPowerUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var correctionFactor = _configurationWrapper.HomeBatteryPowerCorrectionFactor();
+        if (!string.IsNullOrWhiteSpace(requestUrl) && frontendConfiguration is
+                { HomeBatteryValuesSource: SolarValueSource.Modbus })
+        {
+            await ConvertGenericModbusValueConfiguration(requestUrl, ValueUsage.HomeBatteryPower, correctionFactor);
+        }
+    }
+
+    private async Task ConvertHomeBatterySocModbusValueConfiguration()
+    {
+        var requestUrl = _configurationWrapper.HomeBatterySocUrl();
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var correctionFactor = _configurationWrapper.HomeBatterySocCorrectionFactor();
+        if (!string.IsNullOrWhiteSpace(requestUrl) && frontendConfiguration is
+                { HomeBatteryValuesSource: SolarValueSource.Modbus })
+        {
+            await ConvertGenericModbusValueConfiguration(requestUrl, ValueUsage.HomeBatterySoc, correctionFactor);
+        }
+    }
+
+    private async Task ConvertGenericModbusValueConfiguration(string requestUrl, ValueUsage valueUsage, decimal correctionFactor)
+    {
+        var uri = new Uri(requestUrl);
+        var modbusValueConfiguration = new DtoModbusConfiguration()
+        {
+            UnitIdentifier = int.Parse(GetQueryParameterValue(uri, "unitIdentifier", "1")),
+            Host = GetQueryParameterValue(uri, "ipAddress"),
+            Port = int.Parse(GetQueryParameterValue(uri, "port", "502")),
+        };
+        var registerSwapString = GetQueryParameterValue(uri, "registerSwap", "false");
+        modbusValueConfiguration.Endianess = bool.Parse(registerSwapString) ? ModbusEndianess.LittleEndian : ModbusEndianess.BigEndian;
+        var connectDelaySecondsString = GetQueryParameterValue(uri, "connectDelaySeconds", "0");
+        modbusValueConfiguration.ConnectDelayMilliseconds = (int.Parse(connectDelaySecondsString)) * 1000;
+        var timeoutSecondsString = GetQueryParameterValue(uri, "timeoutSeconds", "1");
+        modbusValueConfiguration.ReadTimeoutMilliseconds = (int.Parse(timeoutSecondsString)) * 1000;
+        int configurationId;
+        var existingConfigurations = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c =>
+            c.Host == modbusValueConfiguration.Host && c.Port == modbusValueConfiguration.Port);
+        if (existingConfigurations.Any())
+        {
+            configurationId = existingConfigurations.First().Id;
+        }
+        else
+        {
+            configurationId = await _modbusValueConfigurationService.SaveModbusConfiguration(modbusValueConfiguration);
+        }
+        var resultConfiguration = new DtoModbusValueResultConfiguration()
+        {
+            UsedFor = valueUsage,
+            CorrectionFactor = correctionFactor,
+        };
+        SetRegisterType(uri, resultConfiguration);
+        SetValueType(uri, resultConfiguration);
+        var addressString = GetQueryParameterValue(uri, "startingAddress");
+        resultConfiguration.Address = int.Parse(addressString);
+        var quantityString = GetQueryParameterValue(uri, "quantity");
+        resultConfiguration.Length = int.Parse(quantityString);
+        await _modbusValueConfigurationService.SaveModbusResultConfiguration(configurationId, resultConfiguration);
+    }
+
+    private void SetValueType(Uri uri, DtoModbusValueResultConfiguration resultConfiguration)
+    {
+        var modbusValueTypeString = GetQueryParameterValue(uri, "modbusValueType", string.Empty);
+        ModbusValueType valueType;
+        if (string.IsNullOrEmpty(modbusValueTypeString))
+        {
+            var methodName = uri.Segments.Last();
+            if (methodName.Equals("GetValue", StringComparison.CurrentCultureIgnoreCase) || methodName.Equals("GetInt32Value", StringComparison.CurrentCultureIgnoreCase))
+            {
+                valueType = ModbusValueType.Int;
+            }
+            else if (methodName.Equals("GetInt16Value", StringComparison.CurrentCultureIgnoreCase))
+            {
+                valueType = ModbusValueType.Short;
+            }
+            else if (methodName.Equals("GetFloatValue", StringComparison.CurrentCultureIgnoreCase))
+            {
+                valueType = ModbusValueType.Float;
+            }
+            else
+            {
+                valueType = ModbusValueType.Int;
+            }
+        }
+        else
+        {
+            valueType = (ModbusValueType)Enum.Parse(typeof(ModbusValueType), modbusValueTypeString);
+        }
+        resultConfiguration.ValueType = valueType;
+    }
+
+    private void SetRegisterType(Uri uri, DtoModbusValueResultConfiguration resultConfiguration)
+    {
+        var modbusRegisterTypeString = GetQueryParameterValue(uri, "modbusRegisterType", string.Empty);
+        if (string.IsNullOrEmpty(modbusRegisterTypeString))
+        {
+            resultConfiguration.RegisterType = ModbusRegisterType.HoldingRegister;
+        }
+        else
+        {
+            resultConfiguration.RegisterType = (ModbusRegisterType)Enum.Parse(typeof(ModbusRegisterType), modbusRegisterTypeString);
+        }
+    }
+
+    private string GetQueryParameterValue(Uri uri, string queryParameter, string? defaultValue = null)
+    {
+        return HttpUtility.ParseQueryString(uri.Query).Get(queryParameter) ?? (string.IsNullOrEmpty(defaultValue) ? throw new InvalidOperationException() : defaultValue);
+    }
+
+    private async Task ConvertHomeBatteryPowerRestConfiguration()
     {
         var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl) && frontendConfiguration is
-                { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+                { HomeBatteryValuesSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
             var newHomeBatteryPowerConfiguration = await _context.RestValueConfigurations
@@ -120,12 +339,12 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task ConvertHomeBatterySocConfiguration()
+    private async Task ConvertHomeBatterySocRestConfiguration()
     {
         var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl) && frontendConfiguration is
-                { HomeBatteryValuesSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+                { HomeBatteryValuesSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
             var newHomeBatterySocConfiguration = await _context.RestValueConfigurations
@@ -171,12 +390,12 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task ConvertInverterValueConfiguration()
+    private async Task ConvertInverterRestValueConfiguration()
     {
         var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(inverterRequestUrl) && frontendConfiguration is
-                { InverterValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+                { InverterValueSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
             var newInverterConfiguration = await _context.RestValueConfigurations
@@ -222,12 +441,12 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task ConvertGridValueConfiguration()
+    private async Task ConvertGridRestValueConfiguration()
     {
         var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
         var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is
-                { GridValueSource: SolarValueSource.Modbus or SolarValueSource.Rest })
+                { GridValueSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.GridPowerNodePatternType ?? NodePatternType.Direct;
             var newGridConfiguration = new RestValueConfiguration()
@@ -277,9 +496,10 @@ public class PvValueService : IPvValueService
             ValueUsage.HomeBatteryPower,
             ValueUsage.HomeBatterySoc,
         };
+        var resultSums = new Dictionary<ValueUsage, decimal>();
+        //ToDo: Modbus and rest values can be requersted in parallel but dictionary needs to be thread save for that
         var restConfigurations = await _restValueConfigurationService
             .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
-        var resultSums = new Dictionary<ValueUsage, decimal>();
         foreach (var restConfiguration in restConfigurations)
         {
             try
@@ -306,6 +526,26 @@ public class PvValueService : IPvValueService
                 _logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
             }
         }
+
+        var modbusConfigurations = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
+        foreach (var modbusConfiguration in modbusConfigurations)
+        {
+            var modbusResultConfigurations =
+                await _modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
+                    r.ModbusConfigurationId == modbusConfiguration.Id);
+            foreach (var resultConfiguration in modbusResultConfigurations)
+            {
+                var byteArry = await _modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration);
+                var value = await _modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
+                var valueUsage = resultConfiguration.UsedFor;
+                if (!resultSums.ContainsKey(valueUsage))
+                {
+                    resultSums[valueUsage] = 0;
+                }
+                resultSums[valueUsage] += value;
+            }
+        }
+
 
         _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ? (int?)inverterPower : null;
         _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ? (int?)gridPower : null;

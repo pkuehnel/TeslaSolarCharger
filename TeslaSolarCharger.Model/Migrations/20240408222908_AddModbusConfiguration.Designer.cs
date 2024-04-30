@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20240408222908_AddModbusConfiguration")]
+    partial class AddModbusConfiguration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.2");
@@ -297,13 +300,16 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("Address")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BitLength")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("BitStartIndex")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("CorrectionFactor")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("InvertedByModbusResultConfigurationId")
+                    b.Property<int?>("InvertsModbusResultConfigurationId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Length")
@@ -326,7 +332,8 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvertedByModbusResultConfigurationId");
+                    b.HasIndex("InvertsModbusResultConfigurationId")
+                        .IsUnique();
 
                     b.HasIndex("ModbusConfigurationId");
 
@@ -544,9 +551,9 @@ namespace TeslaSolarCharger.Model.Migrations
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", b =>
                 {
-                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", "InvertedByModbusResultConfiguration")
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", "InvertsModbusResultConfiguration")
                         .WithMany()
-                        .HasForeignKey("InvertedByModbusResultConfigurationId");
+                        .HasForeignKey("InvertsModbusResultConfigurationId");
 
                     b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", "ModbusConfiguration")
                         .WithMany("ModbusResultConfigurations")
@@ -554,7 +561,7 @@ namespace TeslaSolarCharger.Model.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("InvertedByModbusResultConfiguration");
+                    b.Navigation("InvertsModbusResultConfiguration");
 
                     b.Navigation("ModbusConfiguration");
                 });
