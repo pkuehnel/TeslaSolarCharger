@@ -17,7 +17,6 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
-using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using TeslaSolarCharger.Tests.Data;
 using Xunit.Abstractions;
