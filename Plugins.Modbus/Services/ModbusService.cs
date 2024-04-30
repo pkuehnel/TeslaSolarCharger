@@ -100,9 +100,9 @@ public class ModbusService : IModbusService
         var byteArray = await GetByteArray(unitIdentifier, startingAddress, quantity, ipAddress, port, connectDelaySeconds, timeoutSeconds, modbusRegisterType, registerSwap).ConfigureAwait(false);
         byteArray = byteArray.Reverse().ToArray();
         var stringbuilder = new StringBuilder();
-        foreach (var byteString in byteArray)
+        foreach (var byteValue in byteArray)
         {
-            stringbuilder.Append(Convert.ToString(byteString, 2).PadLeft(8, '0'));
+            stringbuilder.Append(Convert.ToString(byteValue, 2).PadLeft(8, '0'));
             stringbuilder.Append(_byteDelimiter);
         }
 

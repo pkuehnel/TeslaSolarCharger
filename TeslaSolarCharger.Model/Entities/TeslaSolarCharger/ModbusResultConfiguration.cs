@@ -10,7 +10,6 @@ public class ModbusResultConfiguration : ResultConfigurationBase
     public int Address { get; set; }
     public int Length { get; set; }
     public int? BitStartIndex { get; set; }
-    public int? BitLength { get; set; }
 
     public int ModbusConfigurationId { get; set; }
     public int? InvertedByModbusResultConfigurationId { get; set; }

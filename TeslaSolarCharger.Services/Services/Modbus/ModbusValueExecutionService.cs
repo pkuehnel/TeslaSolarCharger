@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections;
 using System.IO.Pipes;
+using System.Text;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
@@ -24,7 +26,7 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
         return byteArray;
     }
 
-    public decimal GetValue(byte[] byteArray, DtoModbusValueResultConfiguration resultConfig)
+    public async Task<decimal> GetValue(byte[] byteArray, DtoModbusValueResultConfiguration resultConfig)
     {
         logger.LogTrace("{method}({byteArray}, {resultConfig})", nameof(GetValue), byteArray, resultConfig);
         decimal rawValue;
@@ -55,13 +57,48 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
                 rawValue = ulongValue;
                 break;
             case ModbusValueType.Bool:
-                var boolValue = BitConverter.ToBoolean(byteArray, 0);
-                rawValue = boolValue ? 1 : 0;
-                break;
+                if (resultConfig.BitStartIndex == null)
+                    throw new ArgumentException("BitStartIndex must be set for ValueType Bool", nameof(ModbusResultConfiguration.BitStartIndex));
+                var binaryString = GetBinaryString(byteArray);
+                var bitChar = binaryString[resultConfig.BitStartIndex.Value];
+                rawValue = bitChar == '1' ? 1 : 0;
+                return rawValue;
             default:
                 throw new ArgumentOutOfRangeException();
         }
+
+        rawValue = await InvertValueOnExistingInversionRegister(rawValue, resultConfig.InvertedByModbusResultConfigurationId);
         return resultValueCalculationService.MakeCalculationsOnRawValue(resultConfig.CorrectionFactor, resultConfig.Operator, rawValue);
+    }
+
+    private async Task<decimal> InvertValueOnExistingInversionRegister(decimal rawValue, int? resultConfigInvertedByModbusResultConfigurationId)
+    {
+        if (resultConfigInvertedByModbusResultConfigurationId == default)
+        {
+            return rawValue;
+        }
+
+        var resultConfigurations =
+            await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
+                r.Id == resultConfigInvertedByModbusResultConfigurationId);
+        var resultConfiguration = resultConfigurations.Single();
+        var valueConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c =>
+            c.ModbusResultConfigurations.Any(r => r.Id == resultConfigInvertedByModbusResultConfigurationId.Value));
+        var valueConfiguration = valueConfigurations.Single();
+        var byteArray = await GetResult(valueConfiguration, resultConfiguration);
+        var inversionValue = await GetValue(byteArray, resultConfiguration);
+        return inversionValue == 0 ? rawValue : -rawValue;
+    }
+
+    private string GetBinaryString(byte[] byteArray)
+    {
+        var stringbuilder = new StringBuilder();
+        foreach (var byteValue in byteArray)
+        {
+            stringbuilder.Append(Convert.ToString(byteValue, 2).PadLeft(8, '0'));
+        }
+
+        return stringbuilder.ToString();
     }
 
     public async Task<List<DtoValueConfigurationOverview>> GetModbusValueOverviews()
@@ -83,7 +120,7 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
                 var dtoValueResult = new DtoOverviewValueResult() { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
                 try
                 {
-                    dtoValueResult.CalculatedValue = GetValue(await GetResult(modbusConfiguration, resultConfiguration), resultConfiguration);
+                    dtoValueResult.CalculatedValue = await GetValue(await GetResult(modbusConfiguration, resultConfiguration), resultConfiguration);
                 }
                 catch (Exception ex)
                 {

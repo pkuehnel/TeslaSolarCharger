@@ -13,7 +13,8 @@ namespace TeslaSolarCharger.Services.Services.Modbus;
 public class ModbusValueConfigurationService (
     ILogger<ModbusValueConfigurationService> logger,
     ITeslaSolarChargerContext context,
-    IMapperConfigurationFactory mapperConfigurationFactory) : IModbusValueConfigurationService
+    IMapperConfigurationFactory mapperConfigurationFactory,
+    IModbusClientHandlingService modbusClientHandlingService) : IModbusValueConfigurationService
 {
     public async Task<List<DtoModbusConfiguration>> GetModbusConfigurationByPredicate(Expression<Func<ModbusConfiguration, bool>> predicate)
     {
@@ -111,6 +112,14 @@ public class ModbusValueConfigurationService (
             cfg.CreateMap<DtoModbusConfiguration, ModbusConfiguration>()
                 ;
         });
+        if (dtoData.Id != default)
+        {
+            modbusClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port);
+            var hostPortCombination = context.ModbusConfigurations.Where(x => x.Id == dtoData.Id)
+                .Select(x => new { x.Host, x.Port })
+                .Single();
+            modbusClientHandlingService.RemoveClient(hostPortCombination.Host, hostPortCombination.Port);
+        }
 
         var mapper = mapperConfiguration.CreateMapper();
         var dbData = mapper.Map<ModbusConfiguration>(dtoData);

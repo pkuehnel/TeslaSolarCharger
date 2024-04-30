@@ -29,6 +29,21 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         return ConvertToCorrectEndianess(endianess, byteArray);
     }
 
+    public void RemoveClient(string host, int port)
+    {
+        logger.LogTrace("{method}({host}, {port})", nameof(RemoveClient), host, port);
+        var key = CreateModbusTcpClientKey(host, port);
+        if (_modbusClients.TryGetValue(key, out var client))
+        {
+            if (client.IsConnected)
+            {
+                client.Disconnect();
+            }
+            client.Dispose();
+            _modbusClients.Remove(key);
+        }
+    }
+
     private static byte[] ConvertToCorrectEndianess(ModbusEndianess endianess, byte[] byteArray)
     {
         var tempArray = endianess == ModbusEndianess.LittleEndian ? byteArray : byteArray.Reverse().ToArray();
