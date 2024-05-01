@@ -73,13 +73,22 @@ public class ModbusValueConfigurationService (
         var mapper = mapperConfiguration.CreateMapper();
         var dbData = mapper.Map<ModbusResultConfiguration>(dtoData);
         dbData.ModbusConfigurationId = parentId;
-        if (dbData.Id == default)
+        var trackedData = context.ChangeTracker.Entries<ModbusResultConfiguration>()
+            .FirstOrDefault(e => e.Entity.Id == dbData.Id);
+        if (trackedData == default)
         {
-            context.ModbusResultConfigurations.Add(dbData);
+            if (dbData.Id == default)
+            {
+                context.ModbusResultConfigurations.Add(dbData);
+            }
+            else
+            {
+                context.ModbusResultConfigurations.Update(dbData);
+            }
         }
         else
         {
-            context.ModbusResultConfigurations.Update(dbData);
+            trackedData.CurrentValues.SetValues(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
         return dbData.Id;
