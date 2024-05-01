@@ -3,6 +3,8 @@ using TeslaSolarCharger.Services.Services;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Services.Services.Mqtt;
+using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 
@@ -19,5 +21,6 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IModbusValueConfigurationService, ModbusValueConfigurationService>()
                 .AddTransient<IModbusValueExecutionService, ModbusValueExecutionService>()
                 .AddTransient<IResultValueCalculationService, ResultValueCalculationService>()
+                .AddTransient<IMqttConfigurationService, MqttConfigurationService>()
             ;
 }
