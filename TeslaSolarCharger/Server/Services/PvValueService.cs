@@ -2,6 +2,7 @@ using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
@@ -139,6 +140,14 @@ public class PvValueService : IPvValueService
             {
                 _logger.LogError(e, "Error while converting home battery power modbus value configuration");
             }
+            try
+            {
+                await ConvertHomeBatteryPowerInversionUrl();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting home battery power inversion modbus value configuration");
+            }
 
             try
             {
@@ -187,6 +196,24 @@ public class PvValueService : IPvValueService
         }
     }
 
+    private async Task ConvertHomeBatteryPowerInversionUrl()
+    {
+        var requestUrl = _configurationWrapper.HomeBatteryPowerInversionUrl();
+        if (string.IsNullOrEmpty(requestUrl))
+        {
+            return;
+        }
+        var homeBatteryPowerResultConfigurations =
+            await _modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r => r.UsedFor == ValueUsage.HomeBatteryPower);
+        var homeBatteryPowerResultConfiguration = homeBatteryPowerResultConfigurations.Single();
+        var parentConfigs = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c =>
+            c.ModbusResultConfigurations.Any(r => r.Id == homeBatteryPowerResultConfiguration.Id));
+        var parentConfig = parentConfigs.Single();
+        var inversionId = await ConvertGenericModbusValueConfiguration(requestUrl, ValueUsage.HomeBatteryPower, 1);
+        homeBatteryPowerResultConfiguration.InvertedByModbusResultConfigurationId = inversionId;
+        await _modbusValueConfigurationService.SaveModbusResultConfiguration(parentConfig.Id, homeBatteryPowerResultConfiguration);
+    }
+
     private async Task ConvertHomeBatterySocModbusValueConfiguration()
     {
         var requestUrl = _configurationWrapper.HomeBatterySocUrl();
@@ -199,7 +226,7 @@ public class PvValueService : IPvValueService
         }
     }
 
-    private async Task ConvertGenericModbusValueConfiguration(string requestUrl, ValueUsage valueUsage, decimal correctionFactor)
+    private async Task<int> ConvertGenericModbusValueConfiguration(string requestUrl, ValueUsage valueUsage, decimal correctionFactor)
     {
         var uri = new Uri(requestUrl);
         var modbusValueConfiguration = new DtoModbusConfiguration()
@@ -231,12 +258,21 @@ public class PvValueService : IPvValueService
             CorrectionFactor = correctionFactor,
         };
         SetRegisterType(uri, resultConfiguration);
-        SetValueType(uri, resultConfiguration);
+        var startIndex = GetQueryParameterValue(uri, "startIndex", string.Empty);
+        if (string.IsNullOrEmpty(startIndex))
+        {
+            SetValueType(uri, resultConfiguration);
+        }
+        else
+        {
+            resultConfiguration.BitStartIndex = int.Parse(startIndex);
+            resultConfiguration.ValueType = ModbusValueType.Bool;
+        }
         var addressString = GetQueryParameterValue(uri, "startingAddress");
         resultConfiguration.Address = int.Parse(addressString);
         var quantityString = GetQueryParameterValue(uri, "quantity");
         resultConfiguration.Length = int.Parse(quantityString);
-        await _modbusValueConfigurationService.SaveModbusResultConfiguration(configurationId, resultConfiguration);
+        return await _modbusValueConfigurationService.SaveModbusResultConfiguration(configurationId, resultConfiguration);
     }
 
     private void SetValueType(Uri uri, DtoModbusValueResultConfiguration resultConfiguration)
@@ -285,7 +321,7 @@ public class PvValueService : IPvValueService
 
     private string GetQueryParameterValue(Uri uri, string queryParameter, string? defaultValue = null)
     {
-        return HttpUtility.ParseQueryString(uri.Query).Get(queryParameter) ?? (string.IsNullOrEmpty(defaultValue) ? throw new InvalidOperationException() : defaultValue);
+        return HttpUtility.ParseQueryString(uri.Query).Get(queryParameter) ?? (defaultValue ?? throw new InvalidOperationException());
     }
 
     private async Task ConvertHomeBatteryPowerRestConfiguration()
