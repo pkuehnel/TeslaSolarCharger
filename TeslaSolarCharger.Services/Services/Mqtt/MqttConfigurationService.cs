@@ -79,4 +79,58 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
         context.MqttConfigurations.Remove(configuration);
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
+
+    public async Task<List<DtoMqttResultConfiguration>> GetMqttResultConfigurationsByPredicate(Expression<Func<MqttResultConfiguration, bool>> predicate)
+    {
+        logger.LogTrace("{method}({predicate})", nameof(GetMqttResultConfigurationsByPredicate), predicate);
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<MqttResultConfiguration, DtoMqttResultConfiguration>()
+                ;
+        });
+        var resultConfigurations = await context.MqttResultConfigurations
+            .Where(predicate)
+            .ProjectTo<DtoMqttResultConfiguration>(mapper)
+            .ToListAsync().ConfigureAwait(false);
+        return resultConfigurations;
+    }
+
+    public async Task<DtoMqttResultConfiguration> GetResultConfigurationById(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(GetResultConfigurationById), id);
+        var configurations = await GetMqttResultConfigurationsByPredicate(x => x.Id == id);
+        return configurations.Single();
+    }
+
+    public async Task<int> SaveResultConfiguration(int parentId, DtoMqttResultConfiguration dtoData)
+    {
+        logger.LogTrace("{method}({@dtoData})", nameof(SaveResultConfiguration), dtoData);
+        var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<DtoMqttResultConfiguration, MqttResultConfiguration>()
+                ;
+        });
+        var mapper = mapperConfiguration.CreateMapper();
+        var dbData = mapper.Map<MqttResultConfiguration>(dtoData);
+        dbData.MqttConfigurationId = parentId;
+        if (dbData.Id == default)
+        {
+            context.MqttResultConfigurations.Add(dbData);
+        }
+        else
+        {
+            context.MqttResultConfigurations.Update(dbData);
+        }
+        await context.SaveChangesAsync().ConfigureAwait(false);
+        return dbData.Id;
+    }
+
+    public async Task DeleteResultConfiguration(int id)
+    {
+        logger.LogTrace("{method}({id})", nameof(DeleteResultConfiguration), id);
+        var configuration = await context.MqttResultConfigurations
+            .FirstAsync(x => x.Id == id).ConfigureAwait(false);
+        context.MqttResultConfigurations.Remove(configuration);
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
 }

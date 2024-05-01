@@ -11,4 +11,8 @@ public interface IMqttConfigurationService
     Task<int> SaveConfiguration(DtoMqttConfiguration dtoData);
     Task DeleteConfiguration(int id);
     Task<DtoMqttConfiguration> GetConfigurationById(int id);
+    Task<List<DtoMqttResultConfiguration>> GetMqttResultConfigurationsByPredicate(Expression<Func<MqttResultConfiguration, bool>> predicate);
+    Task<DtoMqttResultConfiguration> GetResultConfigurationById(int id);
+    Task<int> SaveResultConfiguration(int parentId, DtoMqttResultConfiguration dtoData);
+    Task DeleteResultConfiguration(int id);
 }
