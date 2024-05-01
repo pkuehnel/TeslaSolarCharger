@@ -1,11 +1,7 @@
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Web;
@@ -13,16 +9,13 @@ using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Services.Services.Modbus;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
-using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using TeslaSolarCharger.SharedModel.Enums;
 
