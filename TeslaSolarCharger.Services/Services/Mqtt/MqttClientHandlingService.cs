@@ -130,7 +130,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
 
     public string CreateMqttClientKey(string host, int port, string? userName)
     {
-        return $"{host}:{port};{userName}";
+        return string.IsNullOrEmpty(userName) ? $"{host}:{port}" : $"{host}:{port};{userName}";
     }
 
     public IMqttClient? GetClientByKey(string key)
