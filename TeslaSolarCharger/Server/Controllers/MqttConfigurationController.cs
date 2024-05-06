@@ -31,7 +31,7 @@ public class MqttConfigurationController(IMqttConfigurationService configuration
     }
 
     [HttpGet]
-    public Task<DtoMqttResultConfiguration> GetResultConfigurationsByParentId(int parentId) =>
+    public Task<List<DtoMqttResultConfiguration>> GetResultConfigurationsByParentId(int parentId) =>
         configurationService.GetResultConfigurationsByParentId(parentId);
 
     [HttpPost]

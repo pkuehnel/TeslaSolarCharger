@@ -53,6 +53,7 @@ else
                             <ChildContent>
                                 <div class="d-flex align-items-center">
                                     <div class="p-2 flex-grow-1">
+                                        <GenericInput For="() => editableResultConfig.Item.Topic"></GenericInput>
                                         <div class="px-2 pt-2">
                                             <MudSelect T="NodePatternType"
                                                        Class="@Constants.DefaultMargin"
@@ -273,7 +274,8 @@ else
         {
             return;
         }
-        var elements = await HttpClient.GetFromJsonAsync<List<DtoMqttResultConfiguration>>($"api/MqttConfiguration/GetResultConfigurationsByParentId?parentId={parentId}");
+        var resultString = await HttpClient.GetStringAsync($"/api/MqttConfiguration/GetResultConfigurationsByParentId?parentId={parentId}");
+        var elements = JsonConvert.DeserializeObject<List<DtoMqttResultConfiguration>>(resultString);
         elements ??= new List<DtoMqttResultConfiguration>();
         foreach (var element in elements)
         {

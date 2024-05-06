@@ -97,11 +97,11 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
         return resultConfigurations;
     }
 
-    public async Task<DtoMqttResultConfiguration> GetResultConfigurationsByParentId(int parentId)
+    public async Task<List<DtoMqttResultConfiguration>> GetResultConfigurationsByParentId(int parentId)
     {
         logger.LogTrace("{method}({parentId})", nameof(GetResultConfigurationsByParentId), parentId);
         var configurations = await GetMqttResultConfigurationsByPredicate(x => x.MqttConfigurationId == parentId);
-        return configurations.Single();
+        return configurations;
     }
 
     public async Task<int> SaveResultConfiguration(int parentId, DtoMqttResultConfiguration dtoData)
