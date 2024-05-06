@@ -14,7 +14,7 @@ public interface IRestValueExecutionService
     /// <returns>Dictionary with with resultConfiguration as key and resulting value as Value</returns>
     /// <exception cref="InvalidOperationException">Throw if request results in not success status code</exception>
     Task<string> GetResult(DtoFullRestValueConfiguration config);
-    decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoRestValueResultConfiguration resultConfig);
+    decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoJsonXmlResultConfiguration resultConfig);
     Task<string> DebugRestValueConfiguration(DtoFullRestValueConfiguration config);
     Task<List<DtoValueConfigurationOverview>> GetRestValueOverviews();
 }

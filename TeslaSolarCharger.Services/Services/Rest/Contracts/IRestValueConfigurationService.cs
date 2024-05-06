@@ -11,13 +11,13 @@ public interface IRestValueConfigurationService
     Task<int> SaveHeader(int parentId, DtoRestValueConfigurationHeader dtoData);
     Task DeleteHeader(int id);
     Task<int> SaveRestValueConfiguration(DtoFullRestValueConfiguration dtoData);
-    Task<List<DtoRestValueResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId);
-    Task<int> SaveResultConfiguration(int parentId, DtoRestValueResultConfiguration dtoData);
+    Task<List<DtoJsonXmlResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId);
+    Task<int> SaveResultConfiguration(int parentId, DtoJsonXmlResultConfiguration dtoData);
     Task DeleteResultConfiguration(int id);
     Task<List<DtoFullRestValueConfiguration>> GetFullRestValueConfigurationsByPredicate(
         Expression<Func<RestValueConfiguration, bool>> predicate);
 
-    Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(
+    Task<List<DtoJsonXmlResultConfiguration>> GetRestResultConfigurationByPredicate(
         Expression<Func<RestValueResultConfiguration, bool>> predicate);
 
     Task DeleteRestValueConfiguration(int id);

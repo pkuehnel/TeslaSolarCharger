@@ -62,7 +62,7 @@ public class RestValueExecutionService(
         return true; // Ignoriere alle Zertifikatfehler
     }
 
-    public decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoRestValueResultConfiguration resultConfig)
+    public decimal GetValue(string responseString, NodePatternType configNodePatternType, DtoJsonXmlResultConfiguration resultConfig)
     {
         logger.LogTrace("{method}({responseString}, {configNodePatternType}, {@resultConfig})", nameof(GetValue), responseString, configNodePatternType, resultConfig);
         decimal rawValue;
