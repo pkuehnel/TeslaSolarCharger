@@ -591,17 +591,31 @@ public class PvValueService : IPvValueService
                 resultSums[mqttValue.UsedFor] += mqttValue.Value;
             }
         }
-        
 
 
-        _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ? (int?)inverterPower : null;
-        _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ? (int?)gridPower : null;
-        _settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ? (int?)homeBatteryPower : null;
-        _settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ? (int?)homeBatterySoc : null;
+
+        _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
+            SafeToInt(inverterPower) : null;
+        _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ?
+            SafeToInt(gridPower) : null;
+        _settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ?
+            SafeToInt(homeBatteryPower) : null;
+        _settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
+            SafeToInt(homeBatterySoc) : null;
         _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
     }
 
-    
+    /// <summary>
+    /// Safely converts a decimal value to an integer, clamping the value within the range of int.MinValue to int.MaxValue.
+    /// </summary>
+    /// <param name="value">The decimal value to convert.</param>
+    /// <returns>An integer value clamped within the legal range of an int.</returns>
+    private static int SafeToInt(decimal value)
+    {
+        return (int)Math.Min(Math.Max(value, int.MinValue), int.MaxValue);
+    }
+
+
 
     private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern,
         double correctionFactor, NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
