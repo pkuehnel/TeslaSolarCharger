@@ -22,5 +22,6 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IModbusValueExecutionService, ModbusValueExecutionService>()
                 .AddTransient<IResultValueCalculationService, ResultValueCalculationService>()
                 .AddTransient<IMqttConfigurationService, MqttConfigurationService>()
+                .AddSingleton<IMqttClientHandlingService, MqttClientHandlingService>()
             ;
 }

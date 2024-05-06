@@ -153,6 +153,6 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
         logger.LogTrace("{method}({configurationId})", nameof(ConnectMqttClientByConfigurationId), configurationId);
         var configuration = await GetConfigurationById(configurationId);
         var resultConfigurations = await GetMqttResultConfigurationsByPredicate(x => x.MqttConfigurationId == configurationId);
-        mqttClientHandlingService.ConnectClient(configuration, resultConfigurations);
+        await mqttClientHandlingService.ConnectClient(configuration, resultConfigurations);
     }
 }

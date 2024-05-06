@@ -6,6 +6,7 @@ namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 public class MqttResultConfiguration : JsonXmlResultConfigurationBase
 {
     public NodePatternType NodePatternType { get; set; }
+    public string Topic { get; set; }
 
     public int MqttConfigurationId { get; set; }
     public MqttConfiguration MqttConfiguration { get; set; } = null!;

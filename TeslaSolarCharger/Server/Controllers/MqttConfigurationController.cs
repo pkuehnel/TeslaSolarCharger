@@ -1,14 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
-using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class MqttConfigurationController(IMqttConfigurationService configurationService) : ApiBaseController
+public class MqttConfigurationController(IMqttConfigurationService configurationService, IMqttClientHandlingService clientHandlingService) : ApiBaseController
 {
+    [HttpGet]
+    public List<DtoValueConfigurationOverview> GetMqttValueOverviews() =>
+        clientHandlingService.GetMqttValueOverviews();
+
     [HttpGet]
     public Task<DtoMqttConfiguration> GetConfigurationById(int id) =>
         configurationService.GetConfigurationById(id);

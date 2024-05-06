@@ -6,6 +6,8 @@ using MQTTnet.Server;
 using System.Text;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 
@@ -14,13 +16,13 @@ namespace TeslaSolarCharger.Services.Services.Mqtt;
 public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger,
     IServiceProvider serviceProvider,
     IRestValueExecutionService restValueExecutionService,
-    TimeProvider timeProvider)
+    IDateTimeProvider dateTimeProvider)
     : IMqttClientHandlingService
 {
     private readonly Dictionary<string, IMqttClient> _mqttClients = new();
     private readonly Dictionary<int, DtoMqttResult> _mqttResults = new();
 
-    public void ConnectClient(DtoMqttConfiguration mqttConfiguration, List<DtoMqttResultConfiguration> resultConfigurations)
+    public async Task ConnectClient(DtoMqttConfiguration mqttConfiguration, List<DtoMqttResultConfiguration> resultConfigurations)
     {
         var key = CreateMqttClientKey(mqttConfiguration.Host, mqttConfiguration.Port, mqttConfiguration.Username);
         RemoveClientByKey(key);
@@ -59,13 +61,38 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             {
                 Value = value,
                 UsedFor = resultConfiguration.UsedFor,
-                TimeStamp = timeProvider.GetUtcNow(),
+                TimeStamp = dateTimeProvider.DateTimeOffSetUtcNow(),
                 Key = key,
             };
             _mqttResults[resultConfiguration.Id] = mqttResult;
             return Task.CompletedTask;
         };
+        await mqttClient.ConnectAsync(mqttClientOptions);
         _mqttClients.Add(key, mqttClient);
+    }
+
+    public List<DtoValueConfigurationOverview> GetMqttValueOverviews()
+    {
+        logger.LogTrace("{method}()", nameof(GetMqttValueOverviews));
+        var overviews = new List<DtoValueConfigurationOverview>();
+        foreach (var mqttClient in _mqttClients)
+        {
+            var valueOverview = new DtoValueConfigurationOverview() { Heading = mqttClient.Key, };
+            foreach (var mqttResult in _mqttResults)
+            {
+                if (mqttResult.Value.Key == mqttClient.Key)
+                {
+                    valueOverview.Results.Add(new DtoOverviewValueResult
+                    {
+                        Id = mqttResult.Key,
+                        UsedFor = mqttResult.Value.UsedFor,
+                        CalculatedValue = mqttResult.Value.Value,
+                    });
+                }
+            }
+            overviews.Add(valueOverview);
+        }
+        return overviews;
     }
 
     public void RemoveClient(string host, int port, string? userName)

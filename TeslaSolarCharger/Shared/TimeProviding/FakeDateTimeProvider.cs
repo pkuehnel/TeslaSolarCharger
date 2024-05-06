@@ -31,4 +31,9 @@ public class FakeDateTimeProvider : IDateTimeProvider
 
         return new DateTimeOffset(_dateTime, offset);
     }
+
+    public DateTimeOffset DateTimeOffSetUtcNow()
+    {
+        return new DateTimeOffset(_dateTime);
+    }
 }
