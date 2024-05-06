@@ -17,7 +17,11 @@ public class MqttExecutionService(ILogger<MqttExecutionService> logger,
         foreach (var mqttConfiguration in mqttConfigurations)
         {
             var clientKey = mqttClientHandlingService.CreateMqttClientKey(mqttConfiguration.Host, mqttConfiguration.Port, mqttConfiguration.Username);
-            var valueOverview = new DtoValueConfigurationOverview() { Heading = clientKey, };
+            var valueOverview = new DtoValueConfigurationOverview()
+            {
+                Heading = clientKey,
+                Id = mqttConfiguration.Id,
+            };
             var resultConfigurations =
                 await mqttConfigurationService.GetMqttResultConfigurationsByPredicate(x => x.MqttConfigurationId == mqttConfiguration.Id);
             foreach (var resultConfiguration in resultConfigurations)
