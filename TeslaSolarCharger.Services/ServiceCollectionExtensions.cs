@@ -24,5 +24,6 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IMqttConfigurationService, MqttConfigurationService>()
                 .AddSingleton<IMqttClientHandlingService, MqttClientHandlingService>()
                 .AddTransient<IMqttExecutionService, MqttExecutionService>()
+                .AddTransient<IMqttClientReconnectionService, MqttClientReconnectionService>()
             ;
 }

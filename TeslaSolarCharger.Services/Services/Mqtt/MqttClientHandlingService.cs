@@ -37,9 +37,18 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         return _mqttResults.ToDictionary(x => x.Key, x => x.Value);
     }
 
-    public async Task ConnectClient(DtoMqttConfiguration mqttConfiguration, List<DtoMqttResultConfiguration> resultConfigurations)
+    public async Task ConnectClient(DtoMqttConfiguration mqttConfiguration, List<DtoMqttResultConfiguration> resultConfigurations, bool forceReconnection)
     {
         var key = CreateMqttClientKey(mqttConfiguration.Host, mqttConfiguration.Port, mqttConfiguration.Username);
+        if (!forceReconnection && _mqttClients.TryGetValue(key, out var client))
+        {
+            if (client.IsConnected)
+            {
+                return;
+            }
+            await ConnectClient(mqttConfiguration, resultConfigurations, true);
+            return;
+        }
         RemoveClientByKey(key);
         var guid = Guid.NewGuid();
         var mqqtClientId = $"TeslaSolarCharger{guid}";
@@ -98,6 +107,10 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         var topicFilters = new List<MqttTopicFilter>();
         foreach (var resultConfiguration in resultConfigurations)
         {
+            if (topicFilters.Any(f => string.Equals(f.Topic, resultConfiguration.Topic)))
+            {
+                continue;
+            }
             var topicFilter = new MqttTopicFilter
             {
                 Topic = resultConfiguration.Topic,
@@ -118,6 +131,15 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
     public string CreateMqttClientKey(string host, int port, string? userName)
     {
         return $"{host}:{port};{userName}";
+    }
+
+    public IMqttClient? GetClientByKey(string key)
+    {
+        if (_mqttClients.TryGetValue(key, out var client))
+        {
+            return client;
+        }
+        return default;
     }
 
     private void RemoveClientByKey(string key)
