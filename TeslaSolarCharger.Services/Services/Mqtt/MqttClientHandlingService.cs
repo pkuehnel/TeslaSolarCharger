@@ -92,14 +92,16 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             return Task.CompletedTask;
         };
         await mqttClient.ConnectAsync(mqttClientOptions);
-        _mqttClients.Add(key, mqttClient);
-
+        
         var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
             .Build();
 
-        mqttSubscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
-
-        await mqttClient.SubscribeAsync(mqttSubscribeOptions).ConfigureAwait(false);
+        if (resultConfigurations.Count > 0)
+        {
+            mqttSubscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
+            await mqttClient.SubscribeAsync(mqttSubscribeOptions).ConfigureAwait(false);
+        }
+        _mqttClients.Add(key, mqttClient);
     }
 
     private List<MqttTopicFilter> GetMqttTopicFilters(List<DtoMqttResultConfiguration> resultConfigurations)
