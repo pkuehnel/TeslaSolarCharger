@@ -60,6 +60,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
                 Value = value,
                 UsedFor = resultConfiguration.UsedFor,
                 TimeStamp = timeProvider.GetUtcNow(),
+                Key = key,
             };
             _mqttResults[resultConfiguration.Id] = mqttResult;
             return Task.CompletedTask;
@@ -84,6 +85,12 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             }
             client.Dispose();
             _mqttClients.Remove(key);
+        }
+
+        var resultIds = _mqttResults.Where(r => r.Value.Key == key).Select(r => r.Key);
+        foreach (var resultId in resultIds)
+        {
+            _mqttResults.Remove(resultId);
         }
     }
 
