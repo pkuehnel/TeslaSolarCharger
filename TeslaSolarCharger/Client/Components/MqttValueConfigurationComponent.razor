@@ -7,14 +7,14 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<GenericValueConfigurationComponent SourceName="Modbus TCP"
-                                    ConfigurationOverviews="_modbusConfigurationOverviews"
+<GenericValueConfigurationComponent SourceName="MQTT"
+                                    ConfigurationOverviews="_mqttConfigurationOverviews"
                                     OnRefreshClicked="RefreshRequestResults"
                                     OnConfigureClicked="id => OpenConfigurationDialog(id)"
                                     OnDeleteClicked="id => DeleteConfiguration(id)"></GenericValueConfigurationComponent>
 
 @code {
-    private List<DtoValueConfigurationOverview>? _modbusConfigurationOverviews;
+    private List<DtoValueConfigurationOverview>? _mqttConfigurationOverviews;
 
     protected override async Task OnInitializedAsync()
     {
@@ -23,22 +23,22 @@
 
     private async Task RefreshRequestResults()
     {
-        _modbusConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>("api/ModbusValueConfiguration/GetModbusValueOverviews") ?? new List<DtoValueConfigurationOverview>();
+        _mqttConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>("api/MqttConfiguration/GetMqttValueOverviews") ?? new List<DtoValueConfigurationOverview>();
     }
 
     private async Task OpenConfigurationDialog(int? id)
     {
         var options = new DialogOptions()
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+            };
+        var parameters = new DialogParameters<MqttValueConfigurationDialog>
         {
-            CloseButton = true,
-            CloseOnEscapeKey = true,
-        };
-        var parameters = new DialogParameters<ModbusValueConfigurationDialog>
-        {
-            { x => x.ValueConfigurationId, id },
+            { x => x.MqttConfigurationId, id },
         };
         var title = id == default ? "Add" : "Edit";
-        var dialog = await DialogService.ShowAsync<ModbusValueConfigurationDialog>($"{title} Modbus config", parameters, options);
+        var dialog = await DialogService.ShowAsync<MqttValueConfigurationDialog>($"{title} MQTT config", parameters, options);
         var result = await dialog.Result;
 
         await RefreshRequestResults();
@@ -53,14 +53,14 @@
             };
         var parameters = new DialogParameters<DeleteDialog>
         {
-            { x => x.ElementName, "the Modbus configuration" },
+            { x => x.ElementName, "the MQTT configuration" },
         };
-        var dialog = await DialogService.ShowAsync<DeleteDialog>($"Delete Modbus config?", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteDialog>($"Delete MQTT config?", parameters, options);
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            await HttpClient.DeleteAsync($"api/ModbusValueConfiguration/DeleteModbusConfiguration?id={id}");
-            Snackbar.Add("Modbus value configuration deleted.", Severity.Success);
+            await HttpClient.DeleteAsync($"api/MqttConfiguration/DeleteConfiguration?id={id}");
+            Snackbar.Add("MQTT configuration deleted.", Severity.Success);
             await RefreshRequestResults();
         }
     }

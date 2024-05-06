@@ -5,6 +5,7 @@ using MQTTnet.Client;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
+using MudBlazor;
 using System.Text;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
@@ -29,6 +30,11 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
     {
         logger.LogTrace("{method}()", nameof(GetMqttValues));
         return _mqttResults.Values.ToList();
+    }
+
+    public Dictionary<int, DtoMqttResult> GetMqttValueDictionary()
+    {
+        return _mqttResults.ToDictionary(x => x.Key, x => x.Value);
     }
 
     public async Task ConnectClient(DtoMqttConfiguration mqttConfiguration, List<DtoMqttResultConfiguration> resultConfigurations)
@@ -102,35 +108,16 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         return topicFilters;
     }
 
-    public List<DtoValueConfigurationOverview> GetMqttValueOverviews()
-    {
-        logger.LogTrace("{method}()", nameof(GetMqttValueOverviews));
-        var overviews = new List<DtoValueConfigurationOverview>();
-        foreach (var mqttClient in _mqttClients)
-        {
-            var valueOverview = new DtoValueConfigurationOverview() { Heading = mqttClient.Key, };
-            foreach (var mqttResult in _mqttResults)
-            {
-                if (mqttResult.Value.Key == mqttClient.Key)
-                {
-                    valueOverview.Results.Add(new DtoOverviewValueResult
-                    {
-                        Id = mqttResult.Key,
-                        UsedFor = mqttResult.Value.UsedFor,
-                        CalculatedValue = mqttResult.Value.Value,
-                    });
-                }
-            }
-            overviews.Add(valueOverview);
-        }
-        return overviews;
-    }
-
     public void RemoveClient(string host, int port, string? userName)
     {
         logger.LogTrace("{method}({host}, {port}, {userName})", nameof(RemoveClient), host, port, userName);
         var key = CreateMqttClientKey(host, port, userName);
         RemoveClientByKey(key);
+    }
+
+    public string CreateMqttClientKey(string host, int port, string? userName)
+    {
+        return $"{host}:{port};{userName}";
     }
 
     private void RemoveClientByKey(string key)
@@ -150,10 +137,5 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         {
             _mqttResults.Remove(resultId);
         }
-    }
-
-    private string CreateMqttClientKey(string host, int port, string? userName)
-    {
-        return $"{host}:{port};{userName}";
     }
 }

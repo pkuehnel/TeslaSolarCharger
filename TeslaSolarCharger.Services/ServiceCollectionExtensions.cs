@@ -23,5 +23,6 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IResultValueCalculationService, ResultValueCalculationService>()
                 .AddTransient<IMqttConfigurationService, MqttConfigurationService>()
                 .AddSingleton<IMqttClientHandlingService, MqttClientHandlingService>()
+                .AddTransient<IMqttExecutionService, MqttExecutionService>()
             ;
 }

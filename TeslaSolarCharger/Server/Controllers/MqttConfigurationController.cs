@@ -7,11 +7,11 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class MqttConfigurationController(IMqttConfigurationService configurationService, IMqttClientHandlingService clientHandlingService) : ApiBaseController
+public class MqttConfigurationController(IMqttConfigurationService configurationService, IMqttExecutionService mqttExecutionService) : ApiBaseController
 {
     [HttpGet]
-    public List<DtoValueConfigurationOverview> GetMqttValueOverviews() =>
-        clientHandlingService.GetMqttValueOverviews();
+    public Task<List<DtoValueConfigurationOverview>> GetMqttValueOverviews() =>
+        mqttExecutionService.GetMqttValueOverviews();
 
     [HttpGet]
     public Task<DtoMqttConfiguration> GetConfigurationById(int id) =>
@@ -31,8 +31,8 @@ public class MqttConfigurationController(IMqttConfigurationService configuration
     }
 
     [HttpGet]
-    public Task<DtoMqttResultConfiguration> GetResultConfigurationById(int id) =>
-        configurationService.GetResultConfigurationById(id);
+    public Task<DtoMqttResultConfiguration> GetResultConfigurationsByParentId(int parentId) =>
+        configurationService.GetResultConfigurationsByParentId(parentId);
 
     [HttpPost]
     public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoMqttResultConfiguration dtoData)
