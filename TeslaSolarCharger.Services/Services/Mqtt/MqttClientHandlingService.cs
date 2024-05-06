@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
+using MQTTnet.Packets;
+using MQTTnet.Protocol;
 using MQTTnet.Server;
 using System.Text;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
@@ -16,7 +18,8 @@ namespace TeslaSolarCharger.Services.Services.Mqtt;
 public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger,
     IServiceProvider serviceProvider,
     IRestValueExecutionService restValueExecutionService,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    MqttFactory mqttFactory)
     : IMqttClientHandlingService
 {
     private readonly Dictionary<string, IMqttClient> _mqttClients = new();
@@ -69,6 +72,28 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         };
         await mqttClient.ConnectAsync(mqttClientOptions);
         _mqttClients.Add(key, mqttClient);
+
+        var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
+            .Build();
+
+        mqttSubscribeOptions.TopicFilters = GetMqttTopicFilters(resultConfigurations);
+
+        await mqttClient.SubscribeAsync(mqttSubscribeOptions).ConfigureAwait(false);
+    }
+
+    private List<MqttTopicFilter> GetMqttTopicFilters(List<DtoMqttResultConfiguration> resultConfigurations)
+    {
+        var topicFilters = new List<MqttTopicFilter>();
+        foreach (var resultConfiguration in resultConfigurations)
+        {
+            var topicFilter = new MqttTopicFilter
+            {
+                Topic = resultConfiguration.Topic,
+                QualityOfServiceLevel = MqttQualityOfServiceLevel.AtLeastOnce,
+            };
+            topicFilters.Add(topicFilter);
+        }
+        return topicFilters;
     }
 
     public List<DtoValueConfigurationOverview> GetMqttValueOverviews()
