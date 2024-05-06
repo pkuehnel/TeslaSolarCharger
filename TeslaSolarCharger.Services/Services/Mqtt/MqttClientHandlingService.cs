@@ -25,6 +25,12 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
     private readonly Dictionary<string, IMqttClient> _mqttClients = new();
     private readonly Dictionary<int, DtoMqttResult> _mqttResults = new();
 
+    public List<DtoMqttResult> GetMqttValues()
+    {
+        logger.LogTrace("{method}()", nameof(GetMqttValues));
+        return _mqttResults.Values.ToList();
+    }
+
     public async Task ConnectClient(DtoMqttConfiguration mqttConfiguration, List<DtoMqttResultConfiguration> resultConfigurations)
     {
         var key = CreateMqttClientKey(mqttConfiguration.Host, mqttConfiguration.Port, mqttConfiguration.Username);

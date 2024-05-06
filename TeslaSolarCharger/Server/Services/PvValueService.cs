@@ -10,6 +10,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -36,6 +37,7 @@ public class PvValueService : IPvValueService
     private readonly IRestValueConfigurationService _restValueConfigurationService;
     private readonly IModbusValueConfigurationService _modbusValueConfigurationService;
     private readonly IModbusValueExecutionService _modbusValueExecutionService;
+    private readonly IMqttClientHandlingService _mqttClientHandlingService;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
         IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper,
@@ -45,7 +47,8 @@ public class PvValueService : IPvValueService
         IMapperConfigurationFactory mapperConfigurationFactory,
         IRestValueConfigurationService restValueConfigurationService,
         IModbusValueConfigurationService modbusValueConfigurationService,
-        IModbusValueExecutionService modbusValueExecutionService)
+        IModbusValueExecutionService modbusValueExecutionService,
+        IMqttClientHandlingService mqttClientHandlingService)
     {
         _logger = logger;
         _settings = settings;
@@ -60,6 +63,7 @@ public class PvValueService : IPvValueService
         _restValueConfigurationService = restValueConfigurationService;
         _modbusValueConfigurationService = modbusValueConfigurationService;
         _modbusValueExecutionService = modbusValueExecutionService;
+        _mqttClientHandlingService = mqttClientHandlingService;
     }
 
     public async Task ConvertToNewConfiguration()
@@ -574,6 +578,20 @@ public class PvValueService : IPvValueService
                 resultSums[valueUsage] += value;
             }
         }
+
+        var mqttValues = _mqttClientHandlingService.GetMqttValues();
+        foreach (var mqttValue in mqttValues)
+        {
+            if (valueUsages.Contains(mqttValue.UsedFor))
+            {
+                if (!resultSums.ContainsKey(mqttValue.UsedFor))
+                {
+                    resultSums[mqttValue.UsedFor] = 0;
+                }
+                resultSums[mqttValue.UsedFor] += mqttValue.Value;
+            }
+        }
+        
 
 
         _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ? (int?)inverterPower : null;
