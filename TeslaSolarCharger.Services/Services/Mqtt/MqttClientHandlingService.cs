@@ -67,7 +67,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         _mqttClients.Add(key, mqttClient);
     }
 
-    public void RemoveClient(string host, int port, string userName)
+    public void RemoveClient(string host, int port, string? userName)
     {
         logger.LogTrace("{method}({host}, {port}, {userName})", nameof(RemoveClient), host, port, userName);
         var key = CreateMqttClientKey(host, port, userName);

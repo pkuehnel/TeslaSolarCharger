@@ -1,6 +1,7 @@
 ﻿using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Configuration;
 using System.Linq.Expressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -14,7 +15,8 @@ namespace TeslaSolarCharger.Services.Services.Mqtt;
 
 public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
     ITeslaSolarChargerContext context,
-    IMapperConfigurationFactory mapperConfigurationFactory) : IMqttConfigurationService
+    IMapperConfigurationFactory mapperConfigurationFactory,
+    IMqttClientHandlingService mqttClientHandlingService) : IMqttConfigurationService
 {
     public async Task<List<DtoMqttConfiguration>> GetMqttConfigurationsByPredicate(Expression<Func<MqttConfiguration, bool>> predicate)
     {
@@ -48,12 +50,8 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
         });
         if (dtoData.Id != default)
         {
-            //ToDo: handle client reconnection
-            //modbusClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port);
-            //var hostPortCombination = context.ModbusConfigurations.Where(x => x.Id == dtoData.Id)
-            //.Select(x => new { x.Host, x.Port })
-            //    .Single();
-            //modbusClientHandlingService.RemoveClient(hostPortCombination.Host, hostPortCombination.Port);
+            mqttClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port, dtoData.Username);
+            RemoveMqttClientsByConfigurationId(dtoData.Id);
         }
 
         var mapper = mapperConfiguration.CreateMapper();
@@ -67,8 +65,11 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
             context.MqttConfigurations.Update(dbData);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await ConnectMqttClientByConfigurationId(dbData.Id);
         return dbData.Id;
     }
+
+    
 
     public async Task DeleteConfiguration(int id)
     {
@@ -77,6 +78,7 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
             .Include(m => m.MqttResultConfigurations)
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         context.MqttConfigurations.Remove(configuration);
+        RemoveMqttClientsByConfigurationId(configuration.Id);
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
@@ -121,7 +123,9 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
         {
             context.MqttResultConfigurations.Update(dbData);
         }
+        RemoveMqttClientsByConfigurationId(parentId);
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await ConnectMqttClientByConfigurationId(parentId);
         return dbData.Id;
     }
 
@@ -131,6 +135,24 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
         var configuration = await context.MqttResultConfigurations
             .FirstAsync(x => x.Id == id).ConfigureAwait(false);
         context.MqttResultConfigurations.Remove(configuration);
+        RemoveMqttClientsByConfigurationId(configuration.MqttConfigurationId);
         await context.SaveChangesAsync().ConfigureAwait(false);
+        await ConnectMqttClientByConfigurationId(configuration.MqttConfigurationId);
+    }
+
+    private void RemoveMqttClientsByConfigurationId(int id)
+    {
+        var hostPortUserCombination = context.MqttConfigurations.Where(x => x.Id == id)
+            .Select(x => new { x.Host, x.Port, x.Username })
+            .Single();
+        mqttClientHandlingService.RemoveClient(hostPortUserCombination.Host, hostPortUserCombination.Port, hostPortUserCombination.Username);
+    }
+
+    private async Task ConnectMqttClientByConfigurationId(int configurationId)
+    {
+        logger.LogTrace("{method}({configurationId})", nameof(ConnectMqttClientByConfigurationId), configurationId);
+        var configuration = await GetConfigurationById(configurationId);
+        var resultConfigurations = await GetMqttResultConfigurationsByPredicate(x => x.MqttConfigurationId == configurationId);
+        mqttClientHandlingService.ConnectClient(configuration, resultConfigurations);
     }
 }
