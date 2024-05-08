@@ -4,6 +4,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -72,19 +73,19 @@ public class BaseConfigurationService(
 
     public async Task<byte[]> DownloadBackup(string backupFileNameSuffix, string? backupZipDestinationDirectory)
     {
-        var destinationArchiveFileName = await CreateLocalBackupZipFile(backupFileNameSuffix, backupZipDestinationDirectory).ConfigureAwait(false);
+        var destinationArchiveFileName = await CreateLocalBackupZipFile(backupFileNameSuffix, backupZipDestinationDirectory, true).ConfigureAwait(false);
         var bytes = await File.ReadAllBytesAsync(destinationArchiveFileName).ConfigureAwait(false);
         return bytes;
     }
 
-    public async Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory)
+    public async Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup)
     {
         var restartNeeded = false;
         try
         {
             restartNeeded = await jobManager.StopJobs().ConfigureAwait(false);
             var backupCopyDestinationDirectory = configurationWrapper.BackupCopyDestinationDirectory();
-            CreateEmptyDirectory(backupCopyDestinationDirectory);
+            CreateDirectory(backupCopyDestinationDirectory, clearBackupDirectoryBeforeBackup);
 
             //Backup Sqlite database
             using (var source = new SqliteConnection(dbConnectionStringHelper.GetTeslaSolarChargerDbPath()))
@@ -133,14 +134,14 @@ public class BaseConfigurationService(
         try
         {
             var restoreTempDirectory = configurationWrapper.RestoreTempDirectory();
-            CreateEmptyDirectory(restoreTempDirectory);
+            CreateDirectory(restoreTempDirectory, true);
             var restoreFileName = "TSC-Restore.zip";
             var path = Path.Combine(restoreTempDirectory, restoreFileName);
             await using FileStream fs = new(path, FileMode.Create);
             await file.CopyToAsync(fs).ConfigureAwait(false);
             fs.Close();
             var extractedFilesDirectory = Path.Combine(restoreTempDirectory, "RestoredFiles");
-            CreateEmptyDirectory(extractedFilesDirectory);
+            CreateDirectory(extractedFilesDirectory, true);
             ZipFile.ExtractToDirectory(path, extractedFilesDirectory);
             var configFileDirectoryPath = configurationWrapper.ConfigFileDirectory();
             var directoryInfo = new DirectoryInfo(configFileDirectoryPath);
@@ -161,9 +162,26 @@ public class BaseConfigurationService(
         }
     }
 
-    private static void CreateEmptyDirectory(string path)
+    public List<DtoBackupFileInformation> GetAutoBackupFileInformations()
     {
-        if (Directory.Exists(path))
+        var backupZipDirectory = configurationWrapper.AutoBackupsZipDirectory();
+        var backupFiles = Directory.GetFiles(backupZipDirectory, "*.zip");
+        var backupFileInformations = new List<DtoBackupFileInformation>();
+        foreach (var backupFile in backupFiles)
+        {
+            var fileInfo = new FileInfo(backupFile);
+            backupFileInformations.Add(new DtoBackupFileInformation
+            {
+                FileName = fileInfo.Name,
+                CreationDate = fileInfo.CreationTime,
+            });
+        }
+        return backupFileInformations.OrderByDescending(f => f.CreationDate).ToList();
+    }
+
+    private static void CreateDirectory(string path, bool forceRecreation)
+    {
+        if (Directory.Exists(path) && forceRecreation)
         {
             Directory.Delete(path, true);
         }
