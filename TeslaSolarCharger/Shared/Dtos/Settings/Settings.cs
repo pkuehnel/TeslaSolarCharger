@@ -8,7 +8,7 @@ public class Settings : ISettings
     public int? InverterPower { get; set; }
     public int? Overage { get; set; }
     public int? PowerBuffer { get; set; }
-    public List<DtoCar> CarsToManage => Cars.Where(c => c.ShouldBeManaged == true).ToList();
+    public List<DtoCar> CarsToManage => Cars.Where(c => c.ShouldBeManaged == true).OrderBy(c => c.ChargingPriority).ToList();
     public int? HomeBatterySoc { get; set; }
     public int? HomeBatteryPower { get; set; }
     public List<Issue> ActiveIssues { get; set; } = new();
