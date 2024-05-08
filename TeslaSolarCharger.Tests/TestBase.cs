@@ -23,6 +23,7 @@ using Xunit.Abstractions;
 using Constants = TeslaSolarCharger.Shared.Resources.Constants;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Services;
+using TeslaSolarCharger.Services.Services;
 
 namespace TeslaSolarCharger.Tests;
 
