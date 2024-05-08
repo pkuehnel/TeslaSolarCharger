@@ -21,14 +21,6 @@ public class MqttConnectionService(
         {
             logger.LogError(ex, "Error while connecting TeslaMateMqttService");
         }
-        try
-        {
-            await solarMqttService.ConnectClientIfNotConnected().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error while connecting SolarMqttService");
-        }
 
         try
         {
