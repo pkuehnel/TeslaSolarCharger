@@ -2,7 +2,7 @@
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
-namespace TeslaSolarCharger.Services;
+namespace TeslaSolarCharger.Services.Services;
 
 public class ResultValueCalculationService (ILogger<ResultValueCalculationService> logger) : IResultValueCalculationService
 {

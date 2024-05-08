@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Services;
+using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -130,8 +131,10 @@ try
     await configJsonService.AddCarsToSettings().ConfigureAwait(false);
     //This needs to be done after converting old cars to new cars as IDs might change
     await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
-
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
+
+    var carConfigurationService = app.Services.GetRequiredService<ICarConfigurationService>();
+    await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
 
     var pvValueService = app.Services.GetRequiredService<IPvValueService>();
     await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
@@ -146,7 +149,7 @@ try
     }
 
     var jobManager = app.Services.GetRequiredService<JobManager>();
-    if (!Debugger.IsAttached)
+    //if (!Debugger.IsAttached)
     {
         await jobManager.StartJobs().ConfigureAwait(false);
     }
