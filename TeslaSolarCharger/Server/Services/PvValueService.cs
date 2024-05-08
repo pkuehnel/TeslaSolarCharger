@@ -1,11 +1,7 @@
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Web;
@@ -13,16 +9,15 @@ using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Services.Services.Modbus;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
-using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
+using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -43,6 +38,8 @@ public class PvValueService : IPvValueService
     private readonly IRestValueConfigurationService _restValueConfigurationService;
     private readonly IModbusValueConfigurationService _modbusValueConfigurationService;
     private readonly IModbusValueExecutionService _modbusValueExecutionService;
+    private readonly IMqttClientHandlingService _mqttClientHandlingService;
+    private readonly IMqttConfigurationService _mqttConfigurationService;
 
     public PvValueService(ILogger<PvValueService> logger, ISettings settings,
         IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper,
@@ -52,7 +49,9 @@ public class PvValueService : IPvValueService
         IMapperConfigurationFactory mapperConfigurationFactory,
         IRestValueConfigurationService restValueConfigurationService,
         IModbusValueConfigurationService modbusValueConfigurationService,
-        IModbusValueExecutionService modbusValueExecutionService)
+        IModbusValueExecutionService modbusValueExecutionService,
+        IMqttClientHandlingService mqttClientHandlingService,
+        IMqttConfigurationService mqttConfigurationService)
     {
         _logger = logger;
         _settings = settings;
@@ -67,6 +66,8 @@ public class PvValueService : IPvValueService
         _restValueConfigurationService = restValueConfigurationService;
         _modbusValueConfigurationService = modbusValueConfigurationService;
         _modbusValueExecutionService = modbusValueExecutionService;
+        _mqttClientHandlingService = mqttClientHandlingService;
+        _mqttConfigurationService = mqttConfigurationService;
     }
 
     public async Task ConvertToNewConfiguration()
@@ -158,6 +159,188 @@ public class PvValueService : IPvValueService
                 _logger.LogError(e, "Error while converting home battery soc modbus value configuration");
             }
         }
+
+        if (!await _context.MqttConfigurations.AnyAsync())
+        {
+            var solarMqttServer = _configurationWrapper.SolarMqttServer();
+            var solarMqttUser = _configurationWrapper.SolarMqttUsername();
+            var solarMqttPassword = _configurationWrapper.SolarMqttPassword();
+            if (string.IsNullOrEmpty(solarMqttServer))
+            {
+                return;
+            }
+            var mqttServerAndPort = solarMqttServer.Split(":");
+            var mqttHost = mqttServerAndPort.First();
+            int? mqttServerPort = null;
+            if (mqttServerAndPort.Length > 1)
+            {
+                mqttServerPort = Convert.ToInt32(mqttServerAndPort[1]);
+            }
+
+            var mqttConfiguration = new DtoMqttConfiguration()
+            {
+                Host = mqttHost,
+                Port = mqttServerPort ?? 1883,
+                Username = solarMqttUser,
+                Password = solarMqttPassword,
+            };
+            var mqttConfigurationId = await _mqttConfigurationService.SaveConfiguration(mqttConfiguration);
+            try
+            {
+                await ConvertGridMqttConfiguration(mqttConfigurationId);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting mqtt grid value configuration");
+            }
+
+            try
+            {
+                await ConvertInverterMqttConfiguration(mqttConfigurationId);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting mqtt inverter value configuration");
+            }
+
+            try
+            {
+                await ConvertHomeBatteryPowerMqttConfiguration(mqttConfigurationId);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting mqtt home battery power value configuration");
+            }
+
+            try
+            {
+                await ConvertHomeBatterySocMqttConfiguration(mqttConfigurationId);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while converting mqtt home battery soc value configuration");
+            }
+        }
+    }
+
+    private async Task ConvertHomeBatterySocMqttConfiguration(int mqttConfigurationId)
+    {
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var homeBatterySocMqttTopic = _configurationWrapper.HomeBatterySocMqttTopic();
+        if (frontendConfiguration?.HomeBatteryValuesSource != SolarValueSource.Mqtt
+            || string.IsNullOrEmpty(homeBatterySocMqttTopic))
+        {
+            return;
+        }
+        var resultConfiguration = new DtoMqttResultConfiguration()
+        {
+            Topic = homeBatterySocMqttTopic,
+            CorrectionFactor = _configurationWrapper.HomeBatterySocCorrectionFactor(),
+            UsedFor = ValueUsage.HomeBatterySoc,
+        };
+        resultConfiguration.NodePatternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
+        if (resultConfiguration.NodePatternType == NodePatternType.Xml)
+        {
+            resultConfiguration.NodePattern = _configurationWrapper.HomeBatterySocXmlPattern();
+            resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
+            resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
+            resultConfiguration.XmlAttributeValueName = _configurationWrapper.HomeBatterySocXmlAttributeValueName();
+        }
+        else if (resultConfiguration.NodePatternType == NodePatternType.Json)
+        {
+            resultConfiguration.NodePattern = _configurationWrapper.HomeBatterySocJsonPattern();
+        }
+        await _mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
+    }
+
+    private async Task ConvertHomeBatteryPowerMqttConfiguration(int mqttConfigurationId)
+    {
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var homeBatteryPowerMqttTopic = _configurationWrapper.HomeBatteryPowerMqttTopic();
+        if (frontendConfiguration?.HomeBatteryValuesSource != SolarValueSource.Mqtt
+            || string.IsNullOrEmpty(homeBatteryPowerMqttTopic))
+        {
+            return;
+        }
+        var resultConfiguration = new DtoMqttResultConfiguration()
+        {
+            Topic = homeBatteryPowerMqttTopic,
+            CorrectionFactor = _configurationWrapper.HomeBatteryPowerCorrectionFactor(),
+            UsedFor = ValueUsage.HomeBatteryPower,
+        };
+        resultConfiguration.NodePatternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
+        if (resultConfiguration.NodePatternType == NodePatternType.Xml)
+        {
+            resultConfiguration.NodePattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
+            resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
+            resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
+            resultConfiguration.XmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
+        }
+        else if (resultConfiguration.NodePatternType == NodePatternType.Json)
+        {
+            resultConfiguration.NodePattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
+        }
+        await _mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
+    }
+
+    private async Task ConvertInverterMqttConfiguration(int mqttConfigurationId)
+    {
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var currentInverterPowerMqttTopic = _configurationWrapper.CurrentInverterPowerMqttTopic();
+        if (frontendConfiguration?.InverterValueSource != SolarValueSource.Mqtt
+            || string.IsNullOrEmpty(currentInverterPowerMqttTopic))
+        {
+            return;
+        }
+        var resultConfiguration = new DtoMqttResultConfiguration()
+        {
+            Topic = currentInverterPowerMqttTopic,
+            CorrectionFactor = _configurationWrapper.CurrentInverterPowerCorrectionFactor(),
+            UsedFor = ValueUsage.InverterPower,
+        };
+        resultConfiguration.NodePatternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
+        if (resultConfiguration.NodePatternType == NodePatternType.Xml)
+        {
+            resultConfiguration.NodePattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
+            resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
+            resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
+            resultConfiguration.XmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
+        }
+        else if (resultConfiguration.NodePatternType == NodePatternType.Json)
+        {
+            resultConfiguration.NodePattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
+        }
+        await _mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
+    }
+
+    private async Task ConvertGridMqttConfiguration(int mqttConfigurationId)
+    {
+        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var currentPowerToGridMqttTopic = _configurationWrapper.CurrentPowerToGridMqttTopic();
+        if (frontendConfiguration?.GridValueSource != SolarValueSource.Mqtt
+            || string.IsNullOrEmpty(currentPowerToGridMqttTopic))
+        {
+            return;
+        }
+        var resultConfiguration = new DtoMqttResultConfiguration()
+        {
+            Topic = currentPowerToGridMqttTopic,
+            CorrectionFactor = _configurationWrapper.CurrentPowerToGridCorrectionFactor(),
+            UsedFor = ValueUsage.GridPower,
+        };
+        resultConfiguration.NodePatternType = frontendConfiguration.GridPowerNodePatternType ?? NodePatternType.Direct;
+        if (resultConfiguration.NodePatternType == NodePatternType.Xml)
+        {
+            resultConfiguration.NodePattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
+            resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
+            resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
+            resultConfiguration.XmlAttributeValueName = _configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
+        }
+        else if (resultConfiguration.NodePatternType == NodePatternType.Json)
+        {
+            resultConfiguration.NodePattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+        }
+        await _mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
     }
 
     private async Task ConvertGridModbusValueConfiguration()
@@ -582,15 +765,43 @@ public class PvValueService : IPvValueService
             }
         }
 
+        var mqttValues = _mqttClientHandlingService.GetMqttValues();
+        foreach (var mqttValue in mqttValues)
+        {
+            if (valueUsages.Contains(mqttValue.UsedFor))
+            {
+                if (!resultSums.ContainsKey(mqttValue.UsedFor))
+                {
+                    resultSums[mqttValue.UsedFor] = 0;
+                }
+                resultSums[mqttValue.UsedFor] += mqttValue.Value;
+            }
+        }
 
-        _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ? (int?)inverterPower : null;
-        _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ? (int?)gridPower : null;
-        _settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ? (int?)homeBatteryPower : null;
-        _settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ? (int?)homeBatterySoc : null;
+
+
+        _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
+            SafeToInt(inverterPower) : null;
+        _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ?
+            SafeToInt(gridPower) : null;
+        _settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ?
+            SafeToInt(homeBatteryPower) : null;
+        _settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
+            SafeToInt(homeBatterySoc) : null;
         _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
     }
 
-    
+    /// <summary>
+    /// Safely converts a decimal value to an integer, clamping the value within the range of int.MinValue to int.MaxValue.
+    /// </summary>
+    /// <param name="value">The decimal value to convert.</param>
+    /// <returns>An integer value clamped within the legal range of an int.</returns>
+    private static int SafeToInt(decimal value)
+    {
+        return (int)Math.Min(Math.Max(value, int.MinValue), int.MaxValue);
+    }
+
+
 
     private async Task<int?> GetValueByHttpResponse(HttpResponseMessage? httpResponse, string? jsonPattern, string? xmlPattern,
         double correctionFactor, NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)

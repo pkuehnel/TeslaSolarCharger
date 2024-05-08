@@ -63,14 +63,14 @@ public class RestValueConfigurationController(IRestValueConfigurationService ser
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<DtoRestValueResultConfiguration>>> GetResultConfigurationsByConfigurationId(int parentId)
+    public async Task<ActionResult<List<DtoJsonXmlResultConfiguration>>> GetResultConfigurationsByConfigurationId(int parentId)
     {
         var result = await service.GetResultConfigurationsByConfigurationId(parentId);
         return Ok(result);
     }
 
     [HttpPost]
-    public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoRestValueResultConfiguration dtoData)
+    public async Task<ActionResult<DtoValue<int>>> SaveResultConfiguration(int parentId, [FromBody] DtoJsonXmlResultConfiguration dtoData)
     {
         return Ok(new DtoValue<int>(await service.SaveResultConfiguration(parentId, dtoData)));
     }

@@ -130,7 +130,7 @@ else
 
                     @foreach (var editableResultConfig in EditableRestResultConfigurations)
                     {
-                        <EditFormComponent T="DtoRestValueResultConfiguration"
+                        <EditFormComponent T="DtoJsonXmlResultConfiguration"
                                            WrappedElement="editableResultConfig"
                                            HideSubmitButton="true"
                                            @ref="ResultConfigEditFormSetter">
@@ -211,7 +211,7 @@ else
                     }
                     <div class="p-2">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Add"
-                                   OnClick="_ => EditableRestResultConfigurations.Add(new EditableItem<DtoRestValueResultConfiguration>(new()))">Add Result</MudButton>
+                                   OnClick="_ => EditableRestResultConfigurations.Add(new EditableItem<DtoJsonXmlResultConfiguration>(new()))">Add Result</MudButton>
                     </div>
                 </DialogContent>
                 <DialogActions>
@@ -240,13 +240,13 @@ else
 
     private EditableItem<DtoFullRestValueConfiguration>? EditableRestValueConfiguration => RestValueConfiguration == null ? null : new EditableItem<DtoFullRestValueConfiguration>(RestValueConfiguration);
 
-    private List<EditableItem<DtoRestValueResultConfiguration>> EditableRestResultConfigurations { get; set; } = new();
+    private List<EditableItem<DtoJsonXmlResultConfiguration>> EditableRestResultConfigurations { get; set; } = new();
 
     private DtoValue<string>? CurrentRestStringContent { get; set; }
     public bool IsRequestingCurrentRestStringContent { get; set; }
 
-    private Dictionary<string, EditFormComponent<DtoRestValueResultConfiguration>> ResultConfigEditForms { get; set; } = new();
-    public EditFormComponent<DtoRestValueResultConfiguration> ResultConfigEditFormSetter
+    private Dictionary<string, EditFormComponent<DtoJsonXmlResultConfiguration>> ResultConfigEditForms { get; set; } = new();
+    public EditFormComponent<DtoJsonXmlResultConfiguration> ResultConfigEditFormSetter
     {
         set => ResultConfigEditForms[value.WrappedElement.Guid] = value;
     }
@@ -346,8 +346,8 @@ else
         {
             return;
         }
-        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={parentId}");
-        elements ??= new List<DtoRestValueResultConfiguration>();
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoJsonXmlResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={parentId}");
+        elements ??= new List<DtoJsonXmlResultConfiguration>();
         foreach (var element in elements)
         {
             EditableRestResultConfigurations.Add(new(element));
@@ -366,12 +366,12 @@ else
         StateHasChanged();
     }
 
-    private void UpdateOperator(DtoRestValueResultConfiguration editableItemItem, ValueOperator newItem)
+    private void UpdateOperator(DtoJsonXmlResultConfiguration editableItemItem, ValueOperator newItem)
     {
         editableItemItem.Operator = newItem;
     }
 
-    private async Task InvokeDeleteClicked(DtoRestValueResultConfiguration editableItemItem, string guid)
+    private async Task InvokeDeleteClicked(DtoJsonXmlResultConfiguration editableItemItem, string guid)
     {
         if (editableItemItem.Id != default)
         {

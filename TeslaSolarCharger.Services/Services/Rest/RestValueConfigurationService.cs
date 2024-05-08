@@ -48,18 +48,18 @@ public class RestValueConfigurationService(
         return restValueConfigurations;
     }
 
-    public async Task<List<DtoRestValueResultConfiguration>> GetRestResultConfigurationByPredicate(
+    public async Task<List<DtoJsonXmlResultConfiguration>> GetRestResultConfigurationByPredicate(
         Expression<Func<RestValueResultConfiguration, bool>> predicate)
     {
 
         var mapper = mapperConfigurationFactory.Create(cfg =>
         {
-            cfg.CreateMap<RestValueResultConfiguration, DtoRestValueResultConfiguration>()
+            cfg.CreateMap<RestValueResultConfiguration, DtoJsonXmlResultConfiguration>()
                 ;
         });
         var resultConfigurations = await context.RestValueResultConfigurations
             .Where(predicate)
-            .ProjectTo<DtoRestValueResultConfiguration>(mapper)
+            .ProjectTo<DtoJsonXmlResultConfiguration>(mapper)
             .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
     }
@@ -157,26 +157,26 @@ public class RestValueConfigurationService(
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public async Task<List<DtoRestValueResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId)
+    public async Task<List<DtoJsonXmlResultConfiguration>> GetResultConfigurationsByConfigurationId(int parentId)
     {
         logger.LogTrace("{method}({parentId})", nameof(GetResultConfigurationsByConfigurationId), parentId);
         var mapper = mapperConfigurationFactory.Create(cfg =>
         {
-            cfg.CreateMap<RestValueResultConfiguration, DtoRestValueResultConfiguration>()
+            cfg.CreateMap<RestValueResultConfiguration, DtoJsonXmlResultConfiguration>()
                 ;
         });
         return await context.RestValueResultConfigurations
             .Where(x => x.RestValueConfigurationId == parentId)
-            .ProjectTo<DtoRestValueResultConfiguration>(mapper)
+            .ProjectTo<DtoJsonXmlResultConfiguration>(mapper)
             .ToListAsync().ConfigureAwait(false);
     }
 
-    public async Task<int> SaveResultConfiguration(int parentId, DtoRestValueResultConfiguration dtoData)
+    public async Task<int> SaveResultConfiguration(int parentId, DtoJsonXmlResultConfiguration dtoData)
     {
         logger.LogTrace("{method}({@dtoData})", nameof(SaveResultConfiguration), dtoData);
         var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
         {
-            cfg.CreateMap<DtoRestValueResultConfiguration, RestValueResultConfiguration>()
+            cfg.CreateMap<DtoJsonXmlResultConfiguration, RestValueResultConfiguration>()
                 ;
         });
 

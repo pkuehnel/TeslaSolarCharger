@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20240501182042_AddMqttConfiguration")]
+    partial class AddMqttConfiguration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.2");
@@ -378,10 +381,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("Operator")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Topic")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("UsedFor")
                         .HasColumnType("INTEGER");
 
@@ -630,7 +629,7 @@ namespace TeslaSolarCharger.Model.Migrations
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttResultConfiguration", b =>
                 {
                     b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttConfiguration", "MqttConfiguration")
-                        .WithMany("MqttResultConfigurations")
+                        .WithMany()
                         .HasForeignKey("MqttConfigurationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -689,11 +688,6 @@ namespace TeslaSolarCharger.Model.Migrations
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", b =>
                 {
                     b.Navigation("ModbusResultConfigurations");
-                });
-
-            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttConfiguration", b =>
-                {
-                    b.Navigation("MqttResultConfigurations");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfiguration", b =>

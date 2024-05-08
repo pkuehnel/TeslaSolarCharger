@@ -14,7 +14,7 @@
 @foreach(var editableItem in EditableItems)
 {
     <div>
-        <EditFormComponent T="DtoRestValueResultConfiguration"
+        <EditFormComponent T="DtoJsonXmlResultConfiguration"
                            WrappedElement="editableItem"
                            OnValidSubmit="(item) => HandleValidSubmit(item)"
                            HideSubmitButton="true">
@@ -101,7 +101,7 @@
 {
     <RightAlignedButtonComponent ButtonText="Add Result"
                                  IsDisabled="RestValueResultConfigurations.Any(r => r.Id == default)"
-                                 OnButtonClicked="() => RestValueResultConfigurations.Add(new DtoRestValueResultConfiguration())"></RightAlignedButtonComponent>
+                                 OnButtonClicked="() => RestValueResultConfigurations.Add(new DtoJsonXmlResultConfiguration())"></RightAlignedButtonComponent>
 }
 
 @code {
@@ -111,9 +111,9 @@
     [Parameter]
     public NodePatternType NodePatternType { get; set; }
 
-    private List<DtoRestValueResultConfiguration> RestValueResultConfigurations { get; set; } = new();
+    private List<DtoJsonXmlResultConfiguration> RestValueResultConfigurations { get; set; } = new();
 
-    private List<EditableItem<DtoRestValueResultConfiguration>> EditableItems => RestValueResultConfigurations.Select(restValueResultConfiguration => new EditableItem<DtoRestValueResultConfiguration>(restValueResultConfiguration)).ToList();
+    private List<EditableItem<DtoJsonXmlResultConfiguration>> EditableItems => RestValueResultConfigurations.Select(restValueResultConfiguration => new EditableItem<DtoJsonXmlResultConfiguration>(restValueResultConfiguration)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,15 +122,15 @@
 
     private async Task LoadData()
     {
-        var elements = await HttpClient.GetFromJsonAsync<List<DtoRestValueResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={ParentId}");
-        RestValueResultConfigurations = elements ?? new List<DtoRestValueResultConfiguration>();
+        var elements = await HttpClient.GetFromJsonAsync<List<DtoJsonXmlResultConfiguration>>($"api/RestValueConfiguration/GetResultConfigurationsByConfigurationId?parentId={ParentId}");
+        RestValueResultConfigurations = elements ?? new List<DtoJsonXmlResultConfiguration>();
         if (RestValueResultConfigurations.Count == 0)
         {
-            RestValueResultConfigurations.Add(new DtoRestValueResultConfiguration());
+            RestValueResultConfigurations.Add(new DtoJsonXmlResultConfiguration());
         }
     }
 
-    private async Task HandleValidSubmit(DtoRestValueResultConfiguration item)
+    private async Task HandleValidSubmit(DtoJsonXmlResultConfiguration item)
     {
         var result = await HttpClient.PostAsJsonAsync($"/api/RestValueConfiguration/SaveResultConfiguration?parentId={ParentId}", item);
         if (!result.IsSuccessStatusCode)
@@ -148,12 +148,12 @@
         item.Id = resultContent.Value;
     }
 
-    private void UpdateOperator(DtoRestValueResultConfiguration editableItemItem, ValueOperator newItem)
+    private void UpdateOperator(DtoJsonXmlResultConfiguration editableItemItem, ValueOperator newItem)
     {
         editableItemItem.Operator = newItem;
     }
 
-    private async Task InvokeDeleteClicked(DtoRestValueResultConfiguration editableItemItem)
+    private async Task InvokeDeleteClicked(DtoJsonXmlResultConfiguration editableItemItem)
     {
         if(editableItemItem.Id != default)
         {
@@ -169,7 +169,7 @@
         Snackbar.Add("Result configuration deleted", Severity.Success);
     }
 
-    private void UpdateUsedFor(DtoRestValueResultConfiguration editableItemItem, ValueUsage newItem)
+    private void UpdateUsedFor(DtoJsonXmlResultConfiguration editableItemItem, ValueUsage newItem)
     {
         editableItemItem.UsedFor = newItem;
     }

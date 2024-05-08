@@ -1,8 +1,6 @@
-﻿using TeslaSolarCharger.SharedModel.Enums;
+﻿namespace TeslaSolarCharger.Model.BaseClasses;
 
-namespace TeslaSolarCharger.Shared.Dtos.RestValueConfiguration;
-
-public class DtoRestValueResultConfiguration : ValueConfigurationBase
+public abstract class JsonXmlResultConfigurationBase : ResultConfigurationBase
 {
     public string? NodePattern { get; set; }
     public string? XmlAttributeHeaderName { get; set; }
