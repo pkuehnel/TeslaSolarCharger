@@ -70,6 +70,15 @@
             <Columns>
                 <PropertyColumn Property="x => x.FileName"></PropertyColumn>
                 <PropertyColumn Property="x => x.CreationDate"></PropertyColumn>
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudButton Size="@Size.Small"
+                                   Variant="@Variant.Filled"
+                                   Color="@Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Download"
+                                   OnClick="@(_ => DownloadFile(context.Item.FileName))">Download</MudButton>
+                    </CellTemplate>
+                </TemplateColumn>
             </Columns>
         </MudDataGrid>
     </MudExpansionPanel>
@@ -177,6 +186,13 @@
         {
             Snackbar.Add($"Error while refreshing backups: {e.Message}", Severity.Error);
         }
+    }
+
+    private async Task DownloadFile(string itemFileName)
+    {
+        var url = $"api/BaseConfiguration/DownloadAutoBackup?fileName={Uri.EscapeDataString(itemFileName)}";
+        // ReSharper disable once UseConfigureAwaitFalse
+        await JsRuntime.InvokeVoidAsync("triggerFileDownload", itemFileName, url);
     }
 
 }

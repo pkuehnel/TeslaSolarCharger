@@ -13,4 +13,5 @@ public interface IBaseConfigurationService
     Task RestoreBackup(IFormFile file);
     Task<string> CreateLocalBackupZipFile(string backupFileNamePrefix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup);
     List<DtoBackupFileInformation> GetAutoBackupFileInformations();
+    Task<byte[]> DownloadAutoBackup(string fileName);
 }

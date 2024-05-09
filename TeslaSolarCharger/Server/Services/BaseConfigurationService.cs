@@ -179,6 +179,14 @@ public class BaseConfigurationService(
         return backupFileInformations.OrderByDescending(f => f.CreationDate).ToList();
     }
 
+    public async Task<byte[]> DownloadAutoBackup(string fileName)
+    {
+        var directory = configurationWrapper.AutoBackupsZipDirectory();
+        var path = Path.Combine(directory, fileName);
+        var bytes = await File.ReadAllBytesAsync(path).ConfigureAwait(false);
+        return bytes;
+    }
+
     private static void CreateDirectory(string path)
     {
         if (Directory.Exists(path))

@@ -42,5 +42,12 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public List<DtoBackupFileInformation> GetAutoBackupFileInformations() => service.GetAutoBackupFileInformations();
+
+        [HttpGet]
+        public async Task<FileContentResult> DownloadAutoBackup(string fileName)
+        {
+            var bytes = await service.DownloadAutoBackup(fileName).ConfigureAwait(false);
+            return File(bytes, "application/zip", fileName);
+        }
     }
 }
