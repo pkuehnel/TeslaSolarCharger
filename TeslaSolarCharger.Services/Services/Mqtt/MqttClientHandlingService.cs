@@ -67,8 +67,10 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         var mqttClient = serviceProvider.GetRequiredService<IMqttClient>();
         mqttClient.ApplicationMessageReceivedAsync += e =>
         {
-            var resultConfiguration = resultConfigurations.FirstOrDefault(x => x.Topic == e.ApplicationMessage.Topic);
-            if (resultConfiguration == default)
+            var topicResultConfigurations = resultConfigurations
+                .Where(x => x.Topic == e.ApplicationMessage.Topic)
+                .ToList();
+            if (topicResultConfigurations.Count < 1)
             {
                 logger.LogDebug("No result configuration found for topic {topic}", e.ApplicationMessage.Topic);
                 return Task.CompletedTask;
@@ -80,15 +82,18 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
                 return Task.CompletedTask;
             }
             logger.LogDebug("Received value {payloadString} for topic {topic}", payloadString, e.ApplicationMessage.Topic);
-            var value = restValueExecutionService.GetValue(payloadString, resultConfiguration.NodePatternType, resultConfiguration);
-            var mqttResult = new DtoMqttResult
+            foreach (var resultConfiguration in topicResultConfigurations)
             {
-                Value = value,
-                UsedFor = resultConfiguration.UsedFor,
-                TimeStamp = dateTimeProvider.DateTimeOffSetUtcNow(),
-                Key = key,
-            };
-            _mqttResults[resultConfiguration.Id] = mqttResult;
+                var value = restValueExecutionService.GetValue(payloadString, resultConfiguration.NodePatternType, resultConfiguration);
+                var mqttResult = new DtoMqttResult
+                {
+                    Value = value,
+                    UsedFor = resultConfiguration.UsedFor,
+                    TimeStamp = dateTimeProvider.DateTimeOffSetUtcNow(),
+                    Key = key,
+                };
+                _mqttResults[resultConfiguration.Id] = mqttResult;
+            }
             return Task.CompletedTask;
         };
         await mqttClient.ConnectAsync(mqttClientOptions);
