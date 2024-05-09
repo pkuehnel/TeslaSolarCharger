@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -37,6 +38,16 @@ namespace TeslaSolarCharger.Server.Controllers
         public async Task RestoreBackup(IFormFile file)
         {
             await service.RestoreBackup(file).ConfigureAwait(false);
+        }
+
+        [HttpGet]
+        public List<DtoBackupFileInformation> GetAutoBackupFileInformations() => service.GetAutoBackupFileInformations();
+
+        [HttpGet]
+        public async Task<FileContentResult> DownloadAutoBackup(string fileName)
+        {
+            var bytes = await service.DownloadAutoBackup(fileName).ConfigureAwait(false);
+            return File(bytes, "application/zip", fileName);
         }
     }
 }

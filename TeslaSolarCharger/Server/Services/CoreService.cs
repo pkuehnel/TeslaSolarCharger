@@ -104,15 +104,15 @@ public class CoreService : ICoreService
         {
             Directory.CreateDirectory(destinationPath);
         }
-        var backupFileNameSuffix = $"_{currentVersion}";
+        var backupFileNamePrefix = $"{currentVersion}_";
 
-        var resultingFileName = Path.Combine(destinationPath, $"{_constants.BackupZipBaseFileName + backupFileNameSuffix}");
+        var resultingFileName = Path.Combine(destinationPath, $"{backupFileNamePrefix + _constants.BackupZipBaseFileName}");
         if (File.Exists(resultingFileName))
         {
             _logger.LogInformation("Backup for this version already created. No new backup needed.");
             return;
         }
-        await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNameSuffix, destinationPath).ConfigureAwait(false);
+        await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNamePrefix, destinationPath, false).ConfigureAwait(false);
     }
 
     private string GenerateResultFileName(string databaseFileName, string currentVersion)
