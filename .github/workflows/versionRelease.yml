@@ -72,7 +72,7 @@ jobs:
           release_name="Plugins.SmaEnergymeter-$tag-${{ matrix.kind }}"
 
           # Build everything
-          dotnet publish Plugins.SmaEnergymeter/Plugins.SmaEnergymeter.csproj --runtime "${{ matrix.kind }}" -c Release -o "$release_name"
+          dotnet publish Plugins.SmaEnergymeter/Plugins.SmaEnergymeter.csproj --runtime "${{ matrix.kind }}" -c Release -o "$release_name" --self-contained
 
           # Pack files
           tar czvf "${release_name}.tar.gz" "$release_name"
