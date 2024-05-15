@@ -19,7 +19,11 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
         logger.LogTrace("{method}()", nameof(AddAllMissingTeslaMateCars));
         var teslaMateCars = await teslamateContext.Cars.ToListAsync();
         var teslaSolarChargerCars = await teslaSolarChargerContext.Cars.ToListAsync();
-        var highestChargingPriority = teslaSolarChargerCars.Max(c => c.ChargingPriority);
+        var highestChargingPriority = 0;
+        if (teslaSolarChargerCars.Any())
+        {
+            highestChargingPriority = teslaSolarChargerCars.Max(c => c.ChargingPriority);
+        }
         foreach (var teslaMateCar in teslaMateCars)
         {
             var vin = teslaMateCar.Vin;
