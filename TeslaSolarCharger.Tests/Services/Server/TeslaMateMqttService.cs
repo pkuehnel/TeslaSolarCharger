@@ -31,6 +31,7 @@ public class TeslaMateMqttService : TestBase
                 Id = 1,
                     LastSetAmp = 3,
                     ChargerRequestedCurrent = 3,
+                    TeslaMateCarId = 1,
             },
         };
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
