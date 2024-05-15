@@ -218,7 +218,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     internal void UpdateCar(TeslaMateValue value)
     {
         _logger.LogTrace("{method}({@param})", nameof(UpdateCar), value);
-        var car = _settings.Cars.First(c => c.Id == value.CarId);
+        var car = _settings.Cars.First(c => c.TeslaMateCarId == value.CarId);
 
         switch (value.Topic)
         {
