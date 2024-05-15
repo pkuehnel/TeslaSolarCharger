@@ -128,13 +128,14 @@ try
 
     var configJsonService = app.Services.GetRequiredService<IConfigJsonService>();
     await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
-    await configJsonService.AddCarsToSettings().ConfigureAwait(false);
     //This needs to be done after converting old cars to new cars as IDs might change
     await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
     await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
     var carConfigurationService = app.Services.GetRequiredService<ICarConfigurationService>();
     await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
+    await configJsonService.AddCarsToSettings().ConfigureAwait(false);
+
 
     var pvValueService = app.Services.GetRequiredService<IPvValueService>();
     await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
