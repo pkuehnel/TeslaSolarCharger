@@ -195,7 +195,7 @@ public class ConfigJsonService(
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         logger.LogTrace("{method}({carId}, {@carBasicConfiguration})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
-        var databaseCar = teslaSolarChargerContext.Cars.First(c => c.Id == carId);
+        var databaseCar = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carId);
         databaseCar.Name = carBasicConfiguration.Name;
         databaseCar.Vin = carBasicConfiguration.Vin;
         databaseCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
