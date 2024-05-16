@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
 <MudDialogProvider FullWidth="true"
                    MaxWidth="MaxWidth.Medium" />
 <MudSnackbarProvider />
@@ -20,3 +20,18 @@
         </article>
     </main>
 </div>
+
+@code
+{
+    private MudThemeProvider? _mudThemeProvider;
+
+    readonly MudTheme _tscTheme = new MudTheme()
+        {
+            Palette = new PaletteLight()
+            {
+                Primary = "#1b6ec2",
+                Secondary = "#6c757d",
+                AppbarBackground = "#1b6ec2",
+            },
+        };
+}

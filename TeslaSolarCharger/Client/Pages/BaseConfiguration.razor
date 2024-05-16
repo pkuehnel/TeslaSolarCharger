@@ -20,117 +20,114 @@
 else
 {
     <EditForm Model="@_dtoBaseConfiguration" OnValidSubmit="@HandleValidSubmit">
+        <h3>General:</h3>
+        <InputComponent ValueId="maxCombinedCurrent"
+                        LabelText="Max combined current"
+                        UnitText="A"
+                        HelpText="Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.">
+            <InputFragment>
+                <InputNumber id="maxCombinedCurrent" @bind-Value="_dtoBaseConfiguration.MaxCombinedCurrent" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
         <hr />
-        <div class="shadow p-3 mb-5 bg-white rounded">
-            <h3>General:</h3>
-            <InputComponent ValueId="maxCombinedCurrent"
-                            LabelText="Max combined current"
-                            UnitText="A"
-                            HelpText="Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.">
-                <InputFragment>
-                    <InputNumber id="maxCombinedCurrent" @bind-Value="_dtoBaseConfiguration.MaxCombinedCurrent" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
-            <hr />
-            @if (_fleetApiTokenState != FleetApiTokenState.NotNeeded)
+        @if (_fleetApiTokenState != FleetApiTokenState.NotNeeded)
+        {
+            <h3>Tesla Fleet API:</h3>
+            @switch (_fleetApiTokenState)
             {
-                <h3>Tesla Fleet API:</h3>
-                @switch (_fleetApiTokenState)
-                {
-                    case FleetApiTokenState.NotRequested:
-                        <div>
-                            You have to generate a token in order to use the Tesla Fleet API. Important: You have to allow access to all scopes.
-                        </div>
-                        break;
-                    case FleetApiTokenState.NotReceived:
-                        <div>
-                            You already have requested a token but did not receive it yet. It can take up to five minutes to receive the token. If the token did not arrive within five minutes please try again:
-                        </div>
-                        break;
-                    case FleetApiTokenState.TokenRequestExpired:
-                        <div>
-                            Your token request has expired. Please generate a new token:
-                        </div>
-                        break;
-                    case FleetApiTokenState.TokenUnauthorized:
-                        <div>
-                            Your token is unauthorized, Please generate a new token, allow access to all scopes and enable mobile access in your car.
-                        </div>
-                        break;
-                    case FleetApiTokenState.MissingScopes:
-                        <div>
-                            Your token has missing scopes. Remove Tesla Solar Charger from your <a href="https://accounts.tesla.com/account-settings/security?tab=tpty-apps" target="_blank">third party apps</a> as you won't get asked again for the scopes. After that generate a new token and allow access to all scopes.
-                        </div>
-                        break;
-                    case FleetApiTokenState.Expired:
-                        <div>
-                            Your token has expired. This could happen if you changed your Tesla password or did not use TeslaSolarCharger for too long. Please generate a new token:
-                        </div>
-                        break;
-                    case FleetApiTokenState.UpToDate:
-                        <div>
-                            Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:
-                        </div>
-                        break;
-                }
-                <div>
-                    <button class="btn btn-primary" disabled="@_tokenGenerationButtonDisabled" type="button" @onclick="GenerateFleetApiToken">Generate Token</button>
-                </div>
-                <hr />
+                case FleetApiTokenState.NotRequested:
+                    <div>
+                        You have to generate a token in order to use the Tesla Fleet API. Important: You have to allow access to all scopes.
+                    </div>
+                    break;
+                case FleetApiTokenState.NotReceived:
+                    <div>
+                        You already have requested a token but did not receive it yet. It can take up to five minutes to receive the token. If the token did not arrive within five minutes please try again:
+                    </div>
+                    break;
+                case FleetApiTokenState.TokenRequestExpired:
+                    <div>
+                        Your token request has expired. Please generate a new token:
+                    </div>
+                    break;
+                case FleetApiTokenState.TokenUnauthorized:
+                    <div>
+                        Your token is unauthorized, Please generate a new token, allow access to all scopes and enable mobile access in your car.
+                    </div>
+                    break;
+                case FleetApiTokenState.MissingScopes:
+                    <div>
+                        Your token has missing scopes. Remove Tesla Solar Charger from your <a href="https://accounts.tesla.com/account-settings/security?tab=tpty-apps" target="_blank">third party apps</a> as you won't get asked again for the scopes. After that generate a new token and allow access to all scopes.
+                    </div>
+                    break;
+                case FleetApiTokenState.Expired:
+                    <div>
+                        Your token has expired. This could happen if you changed your Tesla password or did not use TeslaSolarCharger for too long. Please generate a new token:
+                    </div>
+                    break;
+                case FleetApiTokenState.UpToDate:
+                    <div>
+                        Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:
+                    </div>
+                    break;
             }
-            <h3>TeslaMate:</h3>
-            <InputComponent ValueId="teslaMateDbUser"
-                            LabelText="TeslaMate Database Username"
-                            UnitText=""
-                            HelpText="">
-                <InputFragment>
-                    <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
-            <InputComponent ValueId="teslaMateDbPassword"
-                            LabelText="TeslaMate Database Server Password"
-                            UnitText=""
-                            HelpText="">
-                <InputFragment>
-                    <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
-            <InputComponent ValueId="geoFence"
-                            LabelText="Home Geofence Name"
-                            UnitText=""
-                            HelpText="You have to add a geofence with the same name in TeslaMate at your home location.">
-                <InputFragment>
-                    <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
-            
-            <InputComponent ValueId="powerBuffer"
-                            LabelText="Power Buffer"
-                            UnitText="W"
-                            HelpText="Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid.">
-                <InputFragment>
-                    <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" placeholder=" " class="form-control" />
-                </InputFragment>
-            </InputComponent>
-            
-            <InputComponent ValueId="homeBatteryMinSoc"
-                            LabelText="Home Battery Minimum SoC"
-                            UnitText="%"
-                            HelpText="Set the SoC your home battery should get charged to before cars start to use full power. Leave emtpy if you do not have a home battery">
-                <InputFragment>
-                    <InputNumber id="homeBatteryMinSoc" @bind-Value="_dtoBaseConfiguration.HomeBatteryMinSoc" placeholder=" " class="form-control" />
-                </InputFragment>
-            </InputComponent>
-            
-            <InputComponent ValueId="homeBatteryMinChargingPower"
-                            LabelText="Home Battery Goal charging power"
-                            UnitText="W"
-                            HelpText="Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave emtpy if you do not have a home battery">
-                <InputFragment>
-                    <InputNumber id="homeBatteryMinChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" placeholder=" " class="form-control" />
-                </InputFragment>
-            </InputComponent>
-        </div>
+            <div>
+                <button class="btn btn-primary" disabled="@_tokenGenerationButtonDisabled" type="button" @onclick="GenerateFleetApiToken">Generate Token</button>
+            </div>
+            <hr />
+        }
+        <h3>TeslaMate:</h3>
+        <InputComponent ValueId="teslaMateDbUser"
+                        LabelText="TeslaMate Database Username"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+        <InputComponent ValueId="teslaMateDbPassword"
+                        LabelText="TeslaMate Database Server Password"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+        <InputComponent ValueId="geoFence"
+                        LabelText="Home Geofence Name"
+                        UnitText=""
+                        HelpText="You have to add a geofence with the same name in TeslaMate at your home location.">
+            <InputFragment>
+                <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+
+        <InputComponent ValueId="powerBuffer"
+                        LabelText="Power Buffer"
+                        UnitText="W"
+                        HelpText="Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid.">
+            <InputFragment>
+                <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" placeholder=" " class="form-control" />
+            </InputFragment>
+        </InputComponent>
+
+        <InputComponent ValueId="homeBatteryMinSoc"
+                        LabelText="Home Battery Minimum SoC"
+                        UnitText="%"
+                        HelpText="Set the SoC your home battery should get charged to before cars start to use full power. Leave emtpy if you do not have a home battery">
+            <InputFragment>
+                <InputNumber id="homeBatteryMinSoc" @bind-Value="_dtoBaseConfiguration.HomeBatteryMinSoc" placeholder=" " class="form-control" />
+            </InputFragment>
+        </InputComponent>
+
+        <InputComponent ValueId="homeBatteryMinChargingPower"
+                        LabelText="Home Battery Goal charging power"
+                        UnitText="W"
+                        HelpText="Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave emtpy if you do not have a home battery">
+            <InputFragment>
+                <InputNumber id="homeBatteryMinChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" placeholder=" " class="form-control" />
+            </InputFragment>
+        </InputComponent>
         
         <RestValueConfigurationComponent />
         <ModbusValueConfigurationComponent />

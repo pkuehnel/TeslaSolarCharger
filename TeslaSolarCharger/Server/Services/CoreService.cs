@@ -188,4 +188,9 @@ public class CoreService : ICoreService
     {
         return _settings.CalculatedRestValues;
     }
+
+    public bool IsStartupCompleted()
+    {
+        return _settings.IsStartupCompleted;
+    }
 }

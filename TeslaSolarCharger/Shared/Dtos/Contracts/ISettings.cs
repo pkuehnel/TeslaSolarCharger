@@ -26,4 +26,5 @@ public interface ISettings
     Dictionary<int, string> RawRestRequestResults { get; set; }
     Dictionary<int, string> RawRestValues { get; set; }
     Dictionary<int, decimal?> CalculatedRestValues { get; set; }
+    bool IsStartupCompleted { get; set; }
 }

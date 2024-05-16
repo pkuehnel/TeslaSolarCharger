@@ -4,7 +4,7 @@
 @inject HttpClient HttpClient
 @inject IStringHelper StringHelper
 
-<h1>HandledChargesList</h1>
+<h1>Handled Charges</h1>
 
 @if (_handledCharges == null)
 {
@@ -13,8 +13,8 @@
 else
 {
     <MudDataGrid Items="_handledCharges" Groupable="true" Filterable="true"
-                 Hover="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
-                 Height="calc(100vh - 13rem);">
+                 Hover="true" Dense="true" Striped="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
+                 Height="calc(100vh - 10rem);" Breakpoint="Breakpoint.Sm">
         <Columns>
             <PropertyColumn Property="x => x.StartTime"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))"></PropertyColumn>
@@ -43,7 +43,7 @@ else
     private AggregateDefinition<DtoHandledCharge> _calculatedPriceAggregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-        DisplayFormat = "Sum: {value}",
+            DisplayFormat = "\u2211: {value}",
     };
 
     private AggregateDefinition<DtoHandledCharge> _pricePerKwhAggregation = new AggregateDefinition<DtoHandledCharge>()
@@ -52,7 +52,7 @@ else
             CustomAggregate = x =>
             {
                 var averagePricePerKwh = x.Average(z => z.PricePerKwh);
-                var resultString = $"Average: {averagePricePerKwh:F3}";
+                var resultString = $"\u2300: {averagePricePerKwh:F3}";
                 return resultString;
             }
         };
@@ -60,13 +60,13 @@ else
     private AggregateDefinition<DtoHandledCharge> _usedSolarEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
         {
             Type = AggregateType.Sum,
-            DisplayFormat = "Sum: {value}",
+            DisplayFormat = "\u2211: {value}",
         };
 
     private AggregateDefinition<DtoHandledCharge> _usedGridEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-        DisplayFormat = "Sum: {value}",
+            DisplayFormat = "\u2211: {value}",
     };
 
     protected override async Task OnInitializedAsync()

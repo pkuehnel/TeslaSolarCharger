@@ -68,5 +68,8 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public Dictionary<int, decimal?> GetCalculatedRestValue() => _coreService.GetCalculatedRestValue();
+
+        [HttpGet]
+        public DtoValue<bool> IsStartupCompleted() => new(_coreService.IsStartupCompleted());
     }
 }
