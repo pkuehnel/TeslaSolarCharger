@@ -23,4 +23,5 @@ public interface ICoreService
     Dictionary<int, string> GetRawRestRequestResults();
     Dictionary<int, string> GetRawRestValue();
     Dictionary<int, decimal?> GetCalculatedRestValue();
+    bool IsStartupCompleted();
 }

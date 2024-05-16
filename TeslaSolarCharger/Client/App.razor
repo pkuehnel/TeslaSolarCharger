@@ -1,12 +1,57 @@
-﻿<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Not found</PageTitle>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+﻿@using TeslaSolarCharger.Shared.Dtos
+@inject HttpClient HttpClient
+
+@if(_isStartupCompleted != false)
+{
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+else
+{
+    <div class="m-2">
+        <div class="alert alert-warning" role="alert">
+            <div>Application starting up</div>
+            <hr />
+            <div>TeslaSolarCharger is starting up. Depending on your device and the size of your database, this can take up to 15 minutes after an update. Do not restart the container as this might damage the database. For further information, check the logs. After the startup is finished, the page will reload automatically.</div>
+        </div>
+    </div>
+    
+    
+}
+
+
+@code
+{
+    private bool? _isStartupCompleted;
+    protected override async Task OnInitializedAsync()
+    {
+        AutoRefreshPageUntilStartupCompleted();
+    }
+
+    private async Task AutoRefreshPageUntilStartupCompleted()
+    {
+        await RefreshIsStartupCompleted();
+        if(_isStartupCompleted != true)
+        {
+            StateHasChanged();
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            await AutoRefreshPageUntilStartupCompleted();
+        }
+        StateHasChanged();
+    }
+
+    private async Task RefreshIsStartupCompleted()
+    {
+        _isStartupCompleted = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsStartupCompleted"))?.Value;
+    }
+}
