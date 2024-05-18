@@ -49,6 +49,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<SpotPriceJob>()
             .AddTransient<FleetApiTokenRefreshJob>()
             .AddTransient<VehicleDataRefreshJob>()
+            .AddTransient<TeslaMateChargeCostUpdateJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -102,6 +103,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
             .AddTransient<IFixedPriceService, FixedPriceService>()
             .AddTransient<IOldTscConfigPriceService, OldTscConfigPriceService>()
+            .AddTransient<ITeslaMateChargeCostUpdateService, TeslaMateChargeCostUpdateService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {
