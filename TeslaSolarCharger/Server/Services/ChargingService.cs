@@ -254,7 +254,16 @@ public class ChargingService : IChargingService
             if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
             {
                 var batteryMinChargingPower = GetBatteryTargetChargingPower();
-                overage -= batteryMinChargingPower - (int)actualHomeBatteryPower;
+                var overageToIncrease = actualHomeBatteryPower.Value - batteryMinChargingPower;
+                //Do not increase overage if battery is charging and consuming power from grid.
+                //Reason for that is: When having a SMA Sunny Tripower Smart Energy AC can create 10kW and still charge home battery with 5kW.
+                //This would lead to grid cosumption as high as the home battery is charging
+                //Do this only if more than 30 Watt grid consumption as otherwise this would probably lead to never increase home battery power.
+                if (overageToIncrease > 0 && _settings.Overage < -30)
+                {
+                    return overage;
+                }
+                overage += overageToIncrease;
             }
         }
 
