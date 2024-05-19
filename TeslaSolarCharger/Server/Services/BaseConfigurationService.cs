@@ -33,22 +33,6 @@ public class BaseConfigurationService(
         {
             await teslaMateMqttService.ConnectClientIfNotConnected().ConfigureAwait(false);
         }
-        if (configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None)
-        {
-            settings.Overage = null;
-            pvValueService.ClearOverageValues();
-        }
-
-        if (configurationWrapper.FrontendConfiguration()?.HomeBatteryValuesSource == SolarValueSource.None)
-        {
-            settings.HomeBatteryPower = null;
-            settings.HomeBatterySoc = null;
-        }
-
-        if (configurationWrapper.FrontendConfiguration()?.InverterValueSource == SolarValueSource.None)
-        {
-            settings.InverterPower = null;
-        }
         settings.PowerBuffer = null;
 
         if (restartNeeded)
