@@ -65,7 +65,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IMqttClient, MqttClient>()
             .AddTransient<MqttFactory>()
             .AddSingleton<ITeslaMateMqttService, TeslaMateMqttService>()
-            .AddSingleton<ISolarMqttService, SolarMqttService>()
             .AddSingleton<IMqttConnectionService, MqttConnectionService>()
             .AddTransient<IPvValueService, PvValueService>()
             .AddTransient<IBaseConfigurationService, BaseConfigurationService>()

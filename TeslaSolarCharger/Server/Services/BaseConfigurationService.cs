@@ -18,7 +18,6 @@ public class BaseConfigurationService(
     IConfigurationWrapper configurationWrapper,
     JobManager jobManager,
     ITeslaMateMqttService teslaMateMqttService,
-    ISolarMqttService solarMqttService,
     ISettings settings,
     IPvValueService pvValueService,
     IDbConnectionStringHelper dbConnectionStringHelper,
@@ -33,23 +32,6 @@ public class BaseConfigurationService(
         if (!configurationWrapper.GetVehicleDataFromTesla())
         {
             await teslaMateMqttService.ConnectClientIfNotConnected().ConfigureAwait(false);
-        }
-        await solarMqttService.ConnectMqttClient().ConfigureAwait(false);
-        if (configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None)
-        {
-            settings.Overage = null;
-            pvValueService.ClearOverageValues();
-        }
-
-        if (configurationWrapper.FrontendConfiguration()?.HomeBatteryValuesSource == SolarValueSource.None)
-        {
-            settings.HomeBatteryPower = null;
-            settings.HomeBatterySoc = null;
-        }
-
-        if (configurationWrapper.FrontendConfiguration()?.InverterValueSource == SolarValueSource.None)
-        {
-            settings.InverterPower = null;
         }
         settings.PowerBuffer = null;
 
