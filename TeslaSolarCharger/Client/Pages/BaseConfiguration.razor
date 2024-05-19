@@ -128,6 +128,15 @@ else
                 <InputNumber id="homeBatteryMinChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" placeholder=" " class="form-control" />
             </InputFragment>
         </InputComponent>
+
+        <InputComponent ValueId="maxInverterAcPower"
+                        LabelText="Max Inverter AC Power"
+                        UnitText="W"
+                        HelpText="If you have a hybrid inverter that has more DC than AC power insert the maximum AC Power here. This is a very rare, so in most cases you can leave this field empty.">
+            <InputFragment>
+                <InputNumber id="maxInverterAcPower" @bind-Value="_dtoBaseConfiguration.MaxInverterAcPower" placeholder=" " class="form-control" />
+            </InputFragment>
+        </InputComponent>
         
         <RestValueConfigurationComponent />
         <ModbusValueConfigurationComponent />

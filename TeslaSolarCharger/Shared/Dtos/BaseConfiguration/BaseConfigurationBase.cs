@@ -89,6 +89,7 @@ public class BaseConfigurationBase
     public int? HomeBatteryMinSoc { get; set; }
     public int? HomeBatteryChargingPower { get; set; }
     public int? MaxCombinedCurrent { get; set; }
+    public int? MaxInverterAcPower { get; set; }
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 
