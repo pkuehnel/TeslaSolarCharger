@@ -29,11 +29,14 @@ public class TeslaMateChargeCostUpdateService (ILogger<TeslaMateChargeCostUpdate
                 .Where(cp => cp.CarId == teslaMateCar.Id)
                 .OrderByDescending(cp => cp.StartDate)
                 .ToList();
+            logger.LogDebug("Update TeslaMate charge costs for car {carId} with TeslaMateCarId {teslaMateCarId}", teslaMateCar.Id, teslaMateCar.TeslaMateCarId);
             foreach (var teslaMateChargingProcess in teslaMateChargingProcesses)
             {
+                logger.LogDebug("Update TeslaMate charge cost for process {processId}", teslaMateChargingProcess.Id);
                 var overlappingTeslaSolarChargerProcesses = teslaSolarChargerChargingProcesses
                     .Where(tscp => tscp.StartDate < teslaMateChargingProcess.EndDate && tscp.EndDate > teslaMateChargingProcess.StartDate)
                     .ToList();
+                logger.LogDebug("Found {count} overlapping TeslaSolarCharger charging processes", overlappingTeslaSolarChargerProcesses.Count);
                 if (overlappingTeslaSolarChargerProcesses.Count == 0)
                 {
                     continue;
@@ -43,6 +46,7 @@ public class TeslaMateChargeCostUpdateService (ILogger<TeslaMateChargeCostUpdate
                 {
                     var overlapDuration = GetOverlapDuration(overlappingTeslaSolarChargerProcess, teslaMateChargingProcess);
                     var tscChargingProcessDuration = overlappingTeslaSolarChargerProcess.EndDate - overlappingTeslaSolarChargerProcess.StartDate;
+                    logger.LogDebug("Overlap duration: {overlapDuration}, TSC charging process duration: {tscChargingProcessDuration}, cost: {cost}", overlapDuration, tscChargingProcessDuration, overlappingTeslaSolarChargerProcess.Cost);
                     if (overlapDuration == default
                         || tscChargingProcessDuration == default
                         || tscChargingProcessDuration == TimeSpan.Zero
@@ -50,7 +54,10 @@ public class TeslaMateChargeCostUpdateService (ILogger<TeslaMateChargeCostUpdate
                     {
                         continue;
                     }
-                    cost += (decimal)(overlapDuration.Value.TotalSeconds / tscChargingProcessDuration.Value.TotalSeconds) * overlappingTeslaSolarChargerProcess.Cost.Value;
+
+                    var overlappingCosts = (decimal)(overlapDuration.Value.TotalSeconds / tscChargingProcessDuration.Value.TotalSeconds) * overlappingTeslaSolarChargerProcess.Cost.Value;
+                    logger.LogDebug("Add overlapping costs of {overlappingCosts} to teslamate charging process {chargingProcessId} ", overlappingCosts, teslaMateChargingProcess.Id);
+                    cost += overlappingCosts;
                 }
                 teslaMateChargingProcess.Cost = cost;
             }
