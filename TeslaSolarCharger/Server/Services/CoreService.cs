@@ -21,7 +21,6 @@ public class CoreService : ICoreService
     private readonly IConfigJsonService _configJsonService;
     private readonly JobManager _jobManager;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
-    private readonly ISolarMqttService _solarMqttService;
     private readonly ISettings _settings;
     private readonly IFixedPriceService _fixedPriceService;
     private readonly ITscConfigurationService _tscConfigurationService;
@@ -30,7 +29,7 @@ public class CoreService : ICoreService
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
-        ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService, ISettings settings,
+        ITeslaMateMqttService teslaMateMqttService, ISettings settings,
         IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService, IBaseConfigurationService baseConfigurationService,
         IConstants constants)
     {
@@ -41,7 +40,6 @@ public class CoreService : ICoreService
         _configJsonService = configJsonService;
         _jobManager = jobManager;
         _teslaMateMqttService = teslaMateMqttService;
-        _solarMqttService = solarMqttService;
         _settings = settings;
         _fixedPriceService = fixedPriceService;
         _tscConfigurationService = tscConfigurationService;
@@ -145,7 +143,6 @@ public class CoreService : ICoreService
     {
         _logger.LogTrace("{method}()", nameof(DisconnectMqttServices));
         await _teslaMateMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
-        await _solarMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
     }
 
     public DtoValue<int> TeslaApiRequestsSinceStartup()

@@ -6,7 +6,6 @@ namespace TeslaSolarCharger.Server.Services;
 public class MqttConnectionService(
     ILogger<MqttConnectionService> logger,
     ITeslaMateMqttService teslaMateMqttService,
-    ISolarMqttService solarMqttService,
     IMqttClientReconnectionService mqttClientReconnectionService)
     : IMqttConnectionService
 {
