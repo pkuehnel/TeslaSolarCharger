@@ -99,4 +99,5 @@ public interface IConfigurationWrapper
     bool LogLocationData();
     bool GetVehicleDataFromTesla();
     bool GetVehicleDataFromTeslaDebug();
+    int? MaxInverterAcPower();
 }

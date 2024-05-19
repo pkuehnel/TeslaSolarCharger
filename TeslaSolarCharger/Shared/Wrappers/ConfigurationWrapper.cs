@@ -455,6 +455,11 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().HomeBatteryChargingPower;
     }
 
+    public int? MaxInverterAcPower()
+    {
+        return GetBaseConfiguration().MaxInverterAcPower;
+    }
+
     public string TeslaMateApiBaseUrl()
     {
         return GetBaseConfiguration().TeslaMateApiBaseUrl;
