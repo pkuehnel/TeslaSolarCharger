@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -60,6 +61,11 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         {
             foreach (var property in entityType.GetProperties())
             {
+                
+                if (entityType.ClrType == typeof(Car) && property.Name == nameof(Car.LatestTimeToReachSoC))
+                {
+                    continue;
+                }
                 if (property.ClrType == typeof(DateTime))
                 {
                     property.SetValueConverter(dateTimeConverter);
@@ -70,6 +76,12 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
                 }
             }
         }
+
+        var converter = new LocalDateTimeConverter();
+
+        modelBuilder.Entity<Car>()
+            .Property(c => c.LatestTimeToReachSoC)
+            .HasConversion(converter);
 
         modelBuilder.Entity<ChargePrice>()
             .Property(c => c.EnergyProvider)

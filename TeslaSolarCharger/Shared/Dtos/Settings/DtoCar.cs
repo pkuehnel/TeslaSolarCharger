@@ -12,7 +12,9 @@ public class DtoCar
     public ChargeMode ChargeMode { get; set; }
 
     public int MinimumSoC { get; set; }
-
+    /// <summary>
+    /// This field is always filled with local time, never with UTC time. The time gets converted to utc when writing to the database.
+    /// </summary>
     public DateTime LatestTimeToReachSoC { get; set; }
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }
