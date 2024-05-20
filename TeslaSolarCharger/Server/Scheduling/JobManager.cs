@@ -89,7 +89,7 @@ public class JobManager
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(_constants.ChargingDetailsAddTriggerEveryXSeconds)).Build();
 
         var finishedChargingProcessFinalizingTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(9)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(118)).Build();
 
         var mqttReconnectionTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(54)).Build();
