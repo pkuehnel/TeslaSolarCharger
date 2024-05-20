@@ -779,9 +779,9 @@ public class PvValueService : IPvValueService
         }
 
 
-
-        _settings.InverterPower = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
+        int? inverterValue = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
             SafeToInt(inverterPower) : null;
+        _settings.InverterPower = inverterValue < 0 ? 0 : inverterValue;
         _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ?
             SafeToInt(gridPower) : null;
         _settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ?
