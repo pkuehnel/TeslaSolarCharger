@@ -30,7 +30,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var openChargingProcesses = await context.ChargingProcesses
             .Where(cp => cp.EndDate == null)
             .ToListAsync().ConfigureAwait(false);
-        var timeSpanToHandleChargingProcessAsCompleted = TimeSpan.FromMinutes(10);
+        var timeSpanToHandleChargingProcessAsCompleted = TimeSpan.FromMinutes(2);
         foreach (var chargingProcess in openChargingProcesses)
         {
             var latestChargingDetail = await context.ChargingDetails
