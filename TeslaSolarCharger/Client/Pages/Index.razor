@@ -10,10 +10,12 @@
 @using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Dtos.Table
 @using System.Diagnostics
+@using TeslaSolarCharger.Shared.Resources.Contracts
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 @inject ToolTipTextKeys ToolTipTextKeys
 @inject NavigationManager NavigationManager
+@inject IConstants Constants
 
 <PageTitle>Tesla Solar Charger</PageTitle>
 
@@ -50,9 +52,7 @@
         @if (_pvValues.InverterPower != null)
         {
             <div class="d-flex align-items-center mb-1">
-                <span class="material-symbols-outlined me-1">
-                    solar_power
-                </span>
+                <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.InverterPower]">
                     @_pvValues.InverterPower W
                 </TooltipComponent>
@@ -62,9 +62,7 @@
         {
             <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
                 <div class="d-flex align-items-center mb-1">
-                    <span class="material-symbols-outlined me-1">
-                        bolt
-                    </span>
+                    <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
                         @Math.Abs((int)_pvValues.GridPower) W
                     </TooltipComponent>
@@ -75,9 +73,7 @@
         @if (_pvValues.HomeBatterySoc != null)
         {
             <div class="d-flex align-items-center mb-1">
-                <span class="material-symbols-outlined me-1">
-                    battery_full
-                </span>
+                <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.Battery4Bar)"></MudIcon>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
                     @_pvValues.HomeBatterySoc %
                 </TooltipComponent>
@@ -87,9 +83,7 @@
         {
             <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
                 <div class="d-flex align-items-center mb-1">
-                    <span class="material-symbols-outlined me-1">
-                        battery_full
-                    </span>
+                    <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.BatteryChargingFull)"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
                         @if (_pvValues.HomeBatteryPower != null)
                         {
@@ -232,25 +226,20 @@ else
 
                 </div>
                 <div class="d-flex align-items-center mb-1">
-                    <span class="material-symbols-outlined me-1">
-                        bolt
-                    </span><TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge) %</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit) %)</TooltipComponent>
+                    <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.Battery4Bar)"></MudIcon>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge) %</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit) %)</TooltipComponent>
                 </div>
                 <div>
                 </div>
 
                 <div class="d-flex align-items-center mb-1">
-                    <span class="material-symbols-outlined me-1">
-                        solar_power
-                    </span>
+                    <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
                         @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.SolarPortionPercent.ToString("0.0") %)
                     </TooltipComponent>
                 </div>
                 <div class="d-flex align-items-center mb-1">
-                    <span class="material-symbols-outlined me-1">
-                        bolt
-                    </span>
+                    <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
                         @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - car.DtoChargeSummary.SolarPortionPercent).ToString("0.0")) %)
                     </TooltipComponent>
