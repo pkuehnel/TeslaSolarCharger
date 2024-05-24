@@ -73,7 +73,7 @@
         @if (_pvValues.HomeBatterySoc != null)
         {
             <div class="d-flex align-items-center mb-1">
-                <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.Battery4Bar)"></MudIcon>
+                <MudIcon Class="mr-1" Icon="@(GetBatteryIconBySoc(_pvValues.HomeBatterySoc))"></MudIcon>
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
                     @_pvValues.HomeBatterySoc %
                 </TooltipComponent>
@@ -226,7 +226,7 @@ else
 
                 </div>
                 <div class="d-flex align-items-center mb-1">
-                    <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.Battery4Bar)"></MudIcon>
+                    <MudIcon Class="mr-1" Icon="@(GetBatteryIconBySoc(car.StateOfCharge))"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge) %</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit) %)</TooltipComponent>
                 </div>
                 <div>
@@ -694,4 +694,36 @@ else
         Snackbar.Add("Do not share the ID with anyone", Severity.Warning);
     }
 
+    private string GetBatteryIconBySoc(int? soc)
+    {
+        if (soc < 10)
+        {
+            return Icons.Material.Filled.Battery0Bar;
+        }
+        if (soc < 25)
+        {
+            return Icons.Material.Filled.Battery1Bar;
+        }
+        if (soc < 40)
+        {
+            return Icons.Material.Filled.Battery2Bar;
+        }
+        if (soc < 60)
+        {
+            return Icons.Material.Filled.Battery3Bar;
+        }
+        if (soc < 75)
+        {
+            return Icons.Material.Filled.Battery4Bar;
+        }
+        if (soc < 90)
+        {
+            return Icons.Material.Filled.Battery5Bar;
+        }
+        if (soc < 100)
+        {
+            return Icons.Material.Filled.Battery6Bar;
+        }
+        return Icons.Material.Filled.BatteryFull;
+    }
 }
