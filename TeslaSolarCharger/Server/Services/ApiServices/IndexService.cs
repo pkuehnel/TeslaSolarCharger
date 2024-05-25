@@ -305,7 +305,7 @@ public class IndexService : IIndexService
     public async Task UpdateCarFleetApiState(int carId, TeslaCarFleetApiState fleetApiState)
     {
         _logger.LogTrace("{method}({carId}, {fleetApiState})", nameof(UpdateCarFleetApiState), carId, fleetApiState);
-        var car = _teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == carId);
+        var car = _teslaSolarChargerContext.Cars.First(c => c.Id == carId);
         car.TeslaFleetApiState = fleetApiState;
         await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }

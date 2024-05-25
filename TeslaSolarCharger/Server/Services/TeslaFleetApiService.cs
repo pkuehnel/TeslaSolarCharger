@@ -187,7 +187,7 @@ public class TeslaFleetApiService(
             await WakeUpCarIfNeeded(carId, inMemoryCar.State).ConfigureAwait(false);
             var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, OpenChargePortDoorRequest, HttpMethod.Post).ConfigureAwait(false);
             var successResult = result?.Response?.Result == true;
-            var car = teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == carId);
+            var car = teslaSolarChargerContext.Cars.First(c => c.Id == carId);
             car.TeslaFleetApiState = successResult ? TeslaCarFleetApiState.Ok : TeslaCarFleetApiState.NotWorking;
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
             return new DtoValue<bool>(successResult);
