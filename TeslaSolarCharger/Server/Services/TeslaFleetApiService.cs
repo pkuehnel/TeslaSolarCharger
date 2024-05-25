@@ -187,7 +187,7 @@ public class TeslaFleetApiService(
             await WakeUpCarIfNeeded(carId, inMemoryCar.State).ConfigureAwait(false);
             var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, OpenChargePortDoorRequest, HttpMethod.Post).ConfigureAwait(false);
             var successResult = result?.Response?.Result == true;
-            var car = teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == carId);
+            var car = teslaSolarChargerContext.Cars.First(c => c.Id == carId);
             car.TeslaFleetApiState = successResult ? TeslaCarFleetApiState.Ok : TeslaCarFleetApiState.NotWorking;
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
             return new DtoValue<bool>(successResult);
@@ -208,11 +208,14 @@ public class TeslaFleetApiService(
         return new DtoValue<bool>(isEnabled);
     }
 
-    public DtoValue<bool> IsFleetApiProxyEnabled()
+    public async Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin)
     {
         logger.LogTrace("{method}", nameof(IsFleetApiProxyEnabled));
-        var isEnabled = configurationWrapper.UseFleetApiProxy();
-        return new DtoValue<bool>(isEnabled);
+        var fleetApiProxyEnabled = await teslaSolarChargerContext.Cars
+            .Where(c => c.Vin == vin)
+            .Select(c => c.VehicleCommandProtocolRequired)
+            .FirstAsync();
+        return new DtoValue<bool>(fleetApiProxyEnabled);
     }
 
     public async Task OpenChargePortDoor(int carId)
@@ -466,8 +469,8 @@ public class TeslaFleetApiService(
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
         var content = new StringContent(contentData, System.Text.Encoding.UTF8, "application/json");
-        
-        var baseUrl = GetFleetApiBaseUrl(accessToken.Region, fleetApiRequest.NeedsProxy);
+        var fleetApiProxyRequired = await IsFleetApiProxyEnabled(vin).ConfigureAwait(false);
+        var baseUrl = GetFleetApiBaseUrl(accessToken.Region, fleetApiRequest.NeedsProxy, fleetApiProxyRequired.Value);
         var requestUri = $"{baseUrl}api/1/vehicles/{vin}/{fleetApiRequest.RequestUrl}";
         settings.TeslaApiRequestCounter++;
         var request = new HttpRequestMessage()
@@ -504,43 +507,32 @@ public class TeslaFleetApiService(
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}")
                     .ConfigureAwait(false);
                 logger.LogError("Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}", fleetApiRequest.RequestUrl, contentData, responseString);
-                await HandleUnsignedCommands(vehicleCommandResult).ConfigureAwait(false);
+                await HandleUnsignedCommands(vehicleCommandResult, vin).ConfigureAwait(false);
             }
         }
         logger.LogDebug("Response: {responseString}", responseString);
         return teslaCommandResultResponse;
     }
 
-    internal async Task HandleUnsignedCommands(DtoVehicleCommandResult vehicleCommandResult)
+    private async Task HandleUnsignedCommands(DtoVehicleCommandResult vehicleCommandResult, string vin)
     {
         if (string.Equals(vehicleCommandResult.Reason, "unsigned_cmds_hardlocked"))
         {
-            settings.FleetApiProxyNeeded = true;
-            //remove post after a few versions as only used for debugging
             await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                     "FleetAPI proxy needed set to true")
                 .ConfigureAwait(false);
-            if (!await IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
+            if (!(await IsFleetApiProxyEnabled(vin).ConfigureAwait(false)).Value)
             {
-                teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
-                {
-                    Key = constants.FleetApiProxyNeeded,
-                    Value = true.ToString(),
-                });
+                var car = teslaSolarChargerContext.Cars.First(c => c.Vin == vin);
+                car.VehicleCommandProtocolRequired = true;
                 await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
             }
-                    
         }
     }
 
-    public async Task<bool> IsFleetApiProxyNeededInDatabase()
+    private string GetFleetApiBaseUrl(TeslaFleetApiRegion region, bool useProxyBaseUrl, bool fleetApiProxyRequired)
     {
-        return await teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == constants.FleetApiProxyNeeded).ConfigureAwait(false);
-    }
-
-    private string GetFleetApiBaseUrl(TeslaFleetApiRegion region, bool useProxyBaseUrl)
-    {
-        if (useProxyBaseUrl && configurationWrapper.UseFleetApiProxy())
+        if (useProxyBaseUrl && fleetApiProxyRequired)
         {
             var configUrl = configurationWrapper.GetFleetApiBaseUrl();
             return configUrl ?? throw new KeyNotFoundException("Could not get Tesla HTTP proxy address");
@@ -791,18 +783,27 @@ public class TeslaFleetApiService(
         }
         else if (statusCode == HttpStatusCode.Forbidden)
         {
-            logger.LogError("You did not select all scopes, so TSC can't send commands to your car. Response: {responseString}", responseString);
-            teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+            if (responseString.Contains("Tesla Vehicle Command Protocol required"))
             {
-                Key = constants.TokenMissingScopes, Value = responseString,
-            });
+                var car = teslaSolarChargerContext.Cars.First(c => c.Vin == vin);
+                car.VehicleCommandProtocolRequired = true;
+            }
+            else
+            {
+                logger.LogError("You did not select all scopes, so TSC can't send commands to your car. Response: {responseString}", responseString);
+                teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+                {
+                    Key = constants.TokenMissingScopes,
+                    Value = responseString,
+                });
+            }
+            
         }
         else if (statusCode == HttpStatusCode.InternalServerError
                  && responseString.Contains("vehicle rejected request: your public key has not been paired with the vehicle"))
         {
             logger.LogError("Vehicle {vin} is not paired with TSC. Add The public key to the vehicle. Response: {responseString}", vin, responseString);
-            var teslaMateCarId = teslamateContext.Cars.First(c => c.Vin == vin).Id;
-            var car = teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == teslaMateCarId);
+            var car = teslaSolarChargerContext.Cars.First(c => c.Vin == vin);
             car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
         }
         else

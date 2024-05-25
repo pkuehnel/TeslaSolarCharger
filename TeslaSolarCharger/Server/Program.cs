@@ -174,16 +174,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var pvValueService = webApplication.Services.GetRequiredService<IPvValueService>();
         await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
-
-
-
-        var teslaFleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
-        var settings = webApplication.Services.GetRequiredService<ISettings>();
-        if (await teslaFleetApiService.IsFleetApiProxyNeededInDatabase().ConfigureAwait(false))
-        {
-            settings.FleetApiProxyNeeded = true;
-        }
-
+        
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {

@@ -146,7 +146,7 @@ else
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
                 </div>
 
-                @if (_usingFleetApi == true && _usingFleetApiProxy == true)
+                @if (_usingFleetApi == true && car.VehicleCommandProtocolRequired)
                 {
                     @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
                     {
@@ -443,7 +443,6 @@ else
     private int? _apiRequestCount;
     private string _installationId = "";
     private bool? _usingFleetApi;
-    private bool? _usingFleetApiProxy;
     private Dictionary<int, bool?> _isFleetApiWorkingForCar = new();
     private readonly HashSet<int> _testingFleetApiCarIds = new();
 
@@ -463,8 +462,6 @@ else
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
         var usingFleetApi = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/FleetApi/IsFleetApiEnabled").ConfigureAwait(false);
         _usingFleetApi = usingFleetApi?.Value;
-        var usingFleetApiProxy = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/FleetApi/IsFleetApiProxyEnabled").ConfigureAwait(false);
-        _usingFleetApiProxy = usingFleetApiProxy?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         _installationId = await HttpClient.GetStringAsync("api/Hello/GetInstallationId").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)

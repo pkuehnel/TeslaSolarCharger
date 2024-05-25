@@ -22,6 +22,7 @@
 
 	<PropertyGroup>
 		<MinVerDefaultPreReleaseIdentifiers>edge</MinVerDefaultPreReleaseIdentifiers>
+		<UserSecretsId>b27b0d7b-1a2e-4df5-a19d-dabef9dee70d</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
