@@ -12,8 +12,7 @@ public interface ITeslaFleetApiService
     Task OpenChargePortDoor(int carId);
     Task<DtoValue<bool>> TestFleetApiAccess(int carId);
     DtoValue<bool> IsFleetApiEnabled();
-    DtoValue<bool> IsFleetApiProxyEnabled();
-    Task<bool> IsFleetApiProxyNeededInDatabase();
+    Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin);
     Task RefreshCarData();
     Task RefreshTokensIfAllowedAndNeeded();
     Task RefreshFleetApiRequestsAreAllowed();

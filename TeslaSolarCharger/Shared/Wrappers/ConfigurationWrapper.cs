@@ -129,17 +129,6 @@ public class ConfigurationWrapper(
         return value;
     }
 
-    public bool UseFleetApiProxy()
-    {
-        if (settings.FleetApiProxyNeeded)
-        {
-            return true;
-        }
-        var environmentVariableName = "UseFleetApiProxy";
-        var value = configuration.GetValue<bool>(environmentVariableName);
-        return value;
-    }
-
     public bool GetVehicleDataFromTesla()
     {
         var environmentVariableName = "GetVehicleDataFromTesla";

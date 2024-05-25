@@ -100,9 +100,10 @@ public class IndexService : IIndexService
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
                     await _chargeTimeCalculationService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
             }
-            var vin = await _teslamateContext.Cars.Where(c => c.Id == enabledCar.TeslaMateCarId).Select(c => c.Vin).FirstOrDefaultAsync().ConfigureAwait(false);
-            dtoCarBaseValues.FleetApiState =
-                await _teslaSolarChargerContext.Cars.Where(c => c.Id == enabledCar.Id).Select(c => c.TeslaFleetApiState).SingleAsync().ConfigureAwait(false);
+
+            var dbCar = await _teslaSolarChargerContext.Cars.Where(c => c.Id == enabledCar.Id).SingleAsync();
+            dtoCarBaseValues.FleetApiState = dbCar.TeslaFleetApiState;
+            dtoCarBaseValues.VehicleCommandProtocolRequired = dbCar.VehicleCommandProtocolRequired;
 
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
 

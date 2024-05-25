@@ -17,7 +17,6 @@ public interface IConstants
     string FleetApiTokenRequested { get; }
     string TokenMissingScopes { get; }
     string BackupZipBaseFileName { get; }
-    string FleetApiProxyNeeded { get; }
     TimeSpan MaxTokenRequestWaitTime { get; }
     TimeSpan MinTokenRestLifetime { get; }
     int MaxTokenUnauthorizedCount { get; }

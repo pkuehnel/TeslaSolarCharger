@@ -17,7 +17,6 @@ public interface ISettings
     int TeslaApiRequestCounter { get; set; }
     bool CrashedOnStartup { get; set; }
     string? StartupCrashMessage { get; set; }
-    bool FleetApiProxyNeeded { get; set; }
     bool AllowUnlimitedFleetApiRequests { get; set; }
     DateTime LastFleetApiRequestAllowedCheck { get; set; }
     List<DtoCar> Cars { get; set; }
