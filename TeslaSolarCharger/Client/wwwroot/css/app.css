@@ -113,6 +113,11 @@ a, .btn-link {
     position: fixed;
 }
 
+.break-word {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
 @media (min-width: 641px) {
     .spinner {
         left: calc(50% - 40px + 250px / 2);

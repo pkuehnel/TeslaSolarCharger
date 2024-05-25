@@ -92,11 +92,11 @@ public interface IConfigurationWrapper
     bool IsDevelopmentEnvironment();
     string GetAwattarBaseUrl();
     string? GetFleetApiBaseUrl();
-    bool UseFleetApiProxy();
     string RestoreTempDirectory();
     string ConfigFileDirectory();
     string AutoBackupsZipDirectory();
     bool LogLocationData();
     bool GetVehicleDataFromTesla();
     bool GetVehicleDataFromTeslaDebug();
+    int? MaxInverterAcPower();
 }

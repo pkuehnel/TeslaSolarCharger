@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -15,7 +17,15 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<TeslaToken> TeslaTokens { get; set; } = null!;
     public DbSet<TscConfiguration> TscConfigurations { get; set; } = null!;
     public DbSet<Car> Cars { get; set; } = null!;
-
+    public DbSet<RestValueConfiguration> RestValueConfigurations { get; set; } = null!;
+    public DbSet<RestValueConfigurationHeader> RestValueConfigurationHeaders { get; set; } = null!;
+    public DbSet<RestValueResultConfiguration> RestValueResultConfigurations { get; set; } = null!;
+    public DbSet<ChargingProcess> ChargingProcesses { get; set; } = null!;
+    public DbSet<ChargingDetail> ChargingDetails { get; set; } = null!;
+    public DbSet<ModbusConfiguration> ModbusConfigurations { get; set; } = null!;
+    public DbSet<ModbusResultConfiguration> ModbusResultConfigurations { get; set; } = null!;
+    public DbSet<MqttConfiguration> MqttConfigurations { get; set; } = null!;
+    public DbSet<MqttResultConfiguration> MqttResultConfigurations { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -41,6 +51,38 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     {
         base.OnModelCreating(modelBuilder);
 
+        var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
+            v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var dateTimeNullableConverter = new ValueConverter<DateTime?, DateTime?>(
+            v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                
+                if (entityType.ClrType == typeof(Car) && property.Name == nameof(Car.LatestTimeToReachSoC))
+                {
+                    continue;
+                }
+                if (property.ClrType == typeof(DateTime))
+                {
+                    property.SetValueConverter(dateTimeConverter);
+                }
+                else if (property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(dateTimeNullableConverter);
+                }
+            }
+        }
+
+        var converter = new LocalDateTimeConverter();
+
+        modelBuilder.Entity<Car>()
+            .Property(c => c.LatestTimeToReachSoC)
+            .HasConversion(converter);
+
         modelBuilder.Entity<ChargePrice>()
             .Property(c => c.EnergyProvider)
             .HasDefaultValue(EnergyProvider.OldTeslaSolarChargerConfig);
@@ -51,6 +93,14 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
         modelBuilder.Entity<Car>()
             .HasIndex(c => c.TeslaMateCarId)
+            .IsUnique();
+
+        modelBuilder.Entity<Car>()
+            .HasIndex(c => c.Vin)
+            .IsUnique();
+
+        modelBuilder.Entity<RestValueConfigurationHeader>()
+            .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
     }
 

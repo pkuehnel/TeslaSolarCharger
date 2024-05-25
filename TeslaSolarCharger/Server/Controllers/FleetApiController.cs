@@ -43,5 +43,5 @@ public class FleetApiController(
     [HttpGet]
     public DtoValue<bool> IsFleetApiEnabled() => fleetApiService.IsFleetApiEnabled();
     [HttpGet]
-    public DtoValue<bool> IsFleetApiProxyEnabled() => fleetApiService.IsFleetApiProxyEnabled();
+    public Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin) => fleetApiService.IsFleetApiProxyEnabled(vin);
 }

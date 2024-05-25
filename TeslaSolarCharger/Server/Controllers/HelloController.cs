@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TeslaSolarCharger.GridPriceProvider.Data;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -59,5 +59,17 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public Task<string> GetInstallationId() => _coreService.GetInstallationId();
+
+        [HttpGet]
+        public Dictionary<int, string> GetRawRestRequestResults() => _coreService.GetRawRestRequestResults();
+
+        [HttpGet]
+        public Dictionary<int, string> GetRawRestValue() => _coreService.GetRawRestValue();
+
+        [HttpGet]
+        public Dictionary<int, decimal?> GetCalculatedRestValue() => _coreService.GetCalculatedRestValue();
+
+        [HttpGet]
+        public DtoValue<bool> IsStartupCompleted() => new(_coreService.IsStartupCompleted());
     }
 }

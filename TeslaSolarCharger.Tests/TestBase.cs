@@ -11,14 +11,19 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System.Linq;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
-using TeslaSolarCharger.Server.MappingExtensions;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
-using TeslaSolarCharger.SharedBackend.Contracts;
+using TeslaSolarCharger.SharedBackend.MappingExtensions;
+using TeslaSolarCharger.Tests.Data;
 using Xunit.Abstractions;
-using Constants = TeslaSolarCharger.SharedBackend.Values.Constants;
+using Constants = TeslaSolarCharger.Shared.Resources.Constants;
+using TeslaSolarCharger.Services.Services.Contracts;
+using TeslaSolarCharger.Services;
+using TeslaSolarCharger.Services.Services;
 
 namespace TeslaSolarCharger.Tests;
 
@@ -60,6 +65,7 @@ public class TestBase : IDisposable
 
         _fake = new AutoFake();
         _fake.Provide<IMapperConfigurationFactory, MapperConfigurationFactory>();
+        _fake.Provide<IResultValueCalculationService, ResultValueCalculationService>();
         _fake.Provide<IConstants, Constants>();
         _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(currentFakeTime));
         _fake.Provide<IConfiguration>(configuration);
@@ -69,6 +75,7 @@ public class TestBase : IDisposable
             {
                 b.Register((_, _) => Context);
                 b.Register((_, _) => _fake.Resolve<IMapperConfigurationFactory>());
+                b.Register((_, _) => _fake.Resolve<IResultValueCalculationService>());
                 b.Register((_, _) => _fake.Resolve<IConstants>());
                 b.Register((_, _) => _fake.Resolve<IConfiguration>());
                 b.RegisterType<FakeDateTimeProvider>();
@@ -110,8 +117,15 @@ public class TestBase : IDisposable
 
         _ctx = _fake.Provide(new TeslaSolarChargerContext(options));
         _ctx.Database.EnsureCreated();
-        //_ctx.InitContextData();
+        _ctx.InitRestValueConfigurations();
         _ctx.SaveChanges();
+        DetachAllEntities();
+    }
+
+    protected void DetachAllEntities()
+    {
+        _ctx.ChangeTracker.Entries().Where(e => e.State != EntityState.Detached).ToList()
+            .ForEach(entry => entry.State = EntityState.Detached);
     }
 
     private static (ILoggerFactory, LoggingLevelSwitch) GetOrCreateLoggerFactory(

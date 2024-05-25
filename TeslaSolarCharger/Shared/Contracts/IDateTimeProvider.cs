@@ -8,4 +8,5 @@ public interface IDateTimeProvider
 
 
     DateTimeOffset DateTimeOffSetNow();
+    DateTimeOffset DateTimeOffSetUtcNow();
 }

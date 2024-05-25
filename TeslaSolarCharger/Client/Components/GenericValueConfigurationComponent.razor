@@ -1,0 +1,138 @@
+﻿@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.SharedModel.Enums
+
+@inject IConstants Constants
+
+<h2>@(SourceName) sources</h2>
+<div class="d-flex flex-wrap justify-content-evenly">
+    @if (ConfigurationOverviews == null)
+    {
+        @for (int i = 0; i < 3; i++)
+        {
+            <div class="align-self-center m-3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudSkeleton Width="95%" Height="42px;" />
+                        <MudSkeleton Width="30%" Height="42px;" />
+                        <MudSkeleton Width="80%" />
+                        <MudSkeleton Width="100%" />
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudSkeleton Width="64px" Height="40px" Class="ml-2" />
+                        <MudSkeleton Width="105px" Height="40px" Class="ml-3" />
+                    </MudCardActions>
+                </MudCard>
+            </div>
+        }
+    }
+    else
+    {
+        @foreach (var restConfigurationOverview in ConfigurationOverviews)
+        {
+            <div class="align-self-center m-3">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <TextShortenComponent InputString="@restConfigurationOverview.Heading"
+                                                      ShouldDisplayTruncatedCharCount="false"
+                                                      MaxLength="25"
+                                                      ShouldDisplayCopyButton="false"
+                                                      TooltipText="@restConfigurationOverview.Heading"></TextShortenComponent>
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudTooltip>
+                                <ChildContent>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="_ => OnRefreshClicked.InvokeAsync(restConfigurationOverview.Id)" />
+                                </ChildContent>
+                                <TooltipContent>
+                                    <div>
+                                        Refresh values
+                                    </div>
+                                </TooltipContent>
+                            </MudTooltip>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @foreach (var restValueResult in restConfigurationOverview.Results)
+                        {
+                            string suffixString;
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-0">
+                                    @switch (restValueResult.UsedFor)
+                                    {
+                                        case ValueUsage.InverterPower:
+                                            <MudIcon Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
+                                            suffixString = "W";
+                                            break;
+                                        case ValueUsage.GridPower:
+                                            <MudIcon Icon="@Constants.GridPoleIcon"></MudIcon>
+                                            suffixString = "W";
+                                            break;
+                                        case ValueUsage.HomeBatteryPower:
+                                            <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull"></MudIcon>
+                                            suffixString = "W";
+                                            break;
+                                        case ValueUsage.HomeBatterySoc:
+                                            <MudIcon Icon="@Icons.Material.Filled.Battery4Bar"></MudIcon>
+                                            suffixString = "%";
+                                            break;
+                                        default:
+                                            throw new ArgumentOutOfRangeException();
+                                    }
+                                </div>
+                                <div class="flex-grow-1">
+                                    <MudChip Text="grey">@(restValueResult.CalculatedValue == null ? "Not available" : Math.Round(restValueResult.CalculatedValue.Value, 2) + $" {suffixString}")</MudChip>
+                                </div>
+                            </div>
+                        }
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(restConfigurationOverview.Id)">Configure</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="_ => OnDeleteClicked.InvokeAsync(restConfigurationOverview.Id)">Delete</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </div>
+        }
+        <div class="align-self-center m-3">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            Add new @(SourceName) source
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <div class="d-flex justify-content-center">
+                        <MudFab StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="_ => OnConfigureClicked.InvokeAsync(null)"></MudFab>
+                    </div>
+
+                </MudCardContent>
+                <MudCardActions>
+                    @* <MudButton Variant="Variant.Text" Color="Color.Primary">Configure</MudButton> *@
+                </MudCardActions>
+            </MudCard>
+        </div>
+    }
+
+</div>
+
+@code {
+    [Parameter]
+    public string SourceName { get; set; }
+
+    [Parameter]
+    public List<DtoValueConfigurationOverview>? ConfigurationOverviews { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnRefreshClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> OnConfigureClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnDeleteClicked { get; set; }
+}

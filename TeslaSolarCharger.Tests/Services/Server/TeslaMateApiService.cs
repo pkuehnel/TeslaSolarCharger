@@ -35,12 +35,9 @@ public class TeslaMateApiService(ITestOutputHelper outputHelper) : TestBase(outp
             //Minutes set to check if is rounding up to next 15 minutes
             new DateTimeOffset(2022, 2, 13, (int)carHourToSet - hourDifference, 51, 0, utcOffset);
 
-        var car = new Car()
+        var car = new DtoCar()
         {
-            CarState = new CarState()
-            {
                 ScheduledChargingStartTime = setChargeStart,
-            },
         };
 
         var isChangeNeeded = teslamateApiService.IsChargingScheduleChangeNeeded(chargeStartToSet, currentDate, car, out var parameters);

@@ -1,110 +1,77 @@
 ﻿using Microsoft.Data.Sqlite;
-using System.IO;
 using System.IO.Compression;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
-using TeslaSolarCharger.SharedBackend.Contracts;
+using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class BaseConfigurationService : IBaseConfigurationService
+public class BaseConfigurationService(
+    ILogger<BaseConfigurationService> logger,
+    IConfigurationWrapper configurationWrapper,
+    JobManager jobManager,
+    ITeslaMateMqttService teslaMateMqttService,
+    ISettings settings,
+    IPvValueService pvValueService,
+    IDbConnectionStringHelper dbConnectionStringHelper,
+    IConstants constants)
+    : IBaseConfigurationService
 {
-    private readonly ILogger<BaseConfigurationService> _logger;
-    private readonly IConfigurationWrapper _configurationWrapper;
-    private readonly JobManager _jobManager;
-    private readonly ITeslaMateMqttService _teslaMateMqttService;
-    private readonly ISolarMqttService _solarMqttService;
-    private readonly ISettings _settings;
-    private readonly IPvValueService _pvValueService;
-    private readonly IDbConnectionStringHelper _dbConnectionStringHelper;
-    private readonly IConstants _constants;
-
-    public BaseConfigurationService(ILogger<BaseConfigurationService> logger, IConfigurationWrapper configurationWrapper,
-        JobManager jobManager, ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService,
-        ISettings settings, IPvValueService pvValueService, IDbConnectionStringHelper dbConnectionStringHelper,
-        IConstants constants)
-    {
-        _logger = logger;
-        _configurationWrapper = configurationWrapper;
-        _jobManager = jobManager;
-        _teslaMateMqttService = teslaMateMqttService;
-        _solarMqttService = solarMqttService;
-        _settings = settings;
-        _pvValueService = pvValueService;
-        _dbConnectionStringHelper = dbConnectionStringHelper;
-        _constants = constants;
-    }
-
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
     {
-        _logger.LogTrace("{method}({@baseConfiguration})", nameof(UpdateBaseConfigurationAsync), baseConfiguration);
-        var restartNeeded = await _jobManager.StopJobs().ConfigureAwait(false);
-        await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
-        if (!_configurationWrapper.GetVehicleDataFromTesla())
+        logger.LogTrace("{method}({@baseConfiguration})", nameof(UpdateBaseConfigurationAsync), baseConfiguration);
+        var restartNeeded = await jobManager.StopJobs().ConfigureAwait(false);
+        await configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
+        if (!configurationWrapper.GetVehicleDataFromTesla())
         {
-            await _teslaMateMqttService.ConnectClientIfNotConnected().ConfigureAwait(false);
+            await teslaMateMqttService.ConnectClientIfNotConnected().ConfigureAwait(false);
         }
-        await _solarMqttService.ConnectMqttClient().ConfigureAwait(false);
-        if (_configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None)
-        {
-            _settings.Overage = null;
-            _pvValueService.ClearOverageValues();
-        }
-
-        if (_configurationWrapper.FrontendConfiguration()?.HomeBatteryValuesSource == SolarValueSource.None)
-        {
-            _settings.HomeBatteryPower = null;
-            _settings.HomeBatterySoc = null;
-        }
-
-        if (_configurationWrapper.FrontendConfiguration()?.InverterValueSource == SolarValueSource.None)
-        {
-            _settings.InverterPower = null;
-        }
-        _settings.PowerBuffer = null;
+        settings.PowerBuffer = null;
 
         if (restartNeeded)
         {
-            await _jobManager.StartJobs().ConfigureAwait(false);
+            await jobManager.StartJobs().ConfigureAwait(false);
         }
     }
 
     public async Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent)
     {
-        var baseConfiguration = await _configurationWrapper.GetBaseConfigurationAsync().ConfigureAwait(false);
+        var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync().ConfigureAwait(false);
         baseConfiguration.MaxCombinedCurrent = maxCombinedCurrent;
-        await _configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
+        await configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
     }
 
     public void UpdatePowerBuffer(int powerBuffer)
     {
-        _settings.PowerBuffer = powerBuffer;
+        settings.PowerBuffer = powerBuffer;
     }
 
-    public async Task<byte[]> DownloadBackup(string backupFileNameSuffix, string? backupZipDestinationDirectory)
+    public async Task<byte[]> DownloadBackup(string backupFileNamePrefix, string? backupZipDestinationDirectory)
     {
-        var destinationArchiveFileName = await CreateLocalBackupZipFile(backupFileNameSuffix, backupZipDestinationDirectory).ConfigureAwait(false);
+        var destinationArchiveFileName = await CreateLocalBackupZipFile(backupFileNamePrefix, backupZipDestinationDirectory, true).ConfigureAwait(false);
         var bytes = await File.ReadAllBytesAsync(destinationArchiveFileName).ConfigureAwait(false);
         return bytes;
     }
 
-    public async Task<string> CreateLocalBackupZipFile(string backupFileNameSuffix, string? backupZipDestinationDirectory)
+    public async Task<string> CreateLocalBackupZipFile(string backupFileNamePrefix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup)
     {
         var restartNeeded = false;
         try
         {
-            restartNeeded = await _jobManager.StopJobs().ConfigureAwait(false);
-            var backupCopyDestinationDirectory = _configurationWrapper.BackupCopyDestinationDirectory();
-            CreateEmptyDirectory(backupCopyDestinationDirectory);
+            restartNeeded = await jobManager.StopJobs().ConfigureAwait(false);
+            var backupCopyDestinationDirectory = configurationWrapper.BackupCopyDestinationDirectory();
+            CreateDirectory(backupCopyDestinationDirectory);
 
             //Backup Sqlite database
-            using (var source = new SqliteConnection(_dbConnectionStringHelper.GetTeslaSolarChargerDbPath()))
-            using (var destination = new SqliteConnection(string.Format($"Data Source={Path.Combine(backupCopyDestinationDirectory, _configurationWrapper.GetSqliteFileNameWithoutPath())};Pooling=False")))
+            using (var source = new SqliteConnection(dbConnectionStringHelper.GetTeslaSolarChargerDbPath()))
+            using (var destination = new SqliteConnection(string.Format($"Data Source={Path.Combine(backupCopyDestinationDirectory, configurationWrapper.GetSqliteFileNameWithoutPath())};Pooling=False")))
             {
                 source.Open();
                 destination.Open();
@@ -112,13 +79,13 @@ public class BaseConfigurationService : IBaseConfigurationService
             }
 
             //Backup config files
-            var baseConfigFileFullName = _configurationWrapper.BaseConfigFileFullName();
+            var baseConfigFileFullName = configurationWrapper.BaseConfigFileFullName();
             File.Copy(baseConfigFileFullName, Path.Combine(backupCopyDestinationDirectory, Path.GetFileName(baseConfigFileFullName)), true);
 
 
-            var backupFileName = _constants.BackupZipBaseFileName + backupFileNameSuffix;
-            var backupZipDirectory = backupZipDestinationDirectory ?? _configurationWrapper.BackupZipDirectory();
-            if (Directory.Exists(backupZipDirectory))
+            var backupFileName = backupFileNamePrefix + constants.BackupZipBaseFileName ;
+            var backupZipDirectory = backupZipDestinationDirectory ?? configurationWrapper.BackupZipDirectory();
+            if (Directory.Exists(backupZipDirectory) && clearBackupDirectoryBeforeBackup)
             {
                 Directory.Delete(backupZipDirectory, true);
             }
@@ -129,14 +96,14 @@ public class BaseConfigurationService : IBaseConfigurationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Couldn't create backup zip file");
+            logger.LogError(ex, "Couldn't create backup zip file");
             throw;
         }
         finally
         {
             if (restartNeeded)
             {
-                await _jobManager.StartJobs().ConfigureAwait(false);
+                await jobManager.StartJobs().ConfigureAwait(false);
             }
         }
     }
@@ -144,21 +111,21 @@ public class BaseConfigurationService : IBaseConfigurationService
 
     public async Task RestoreBackup(IFormFile file)
     {
-        _logger.LogTrace("{method}({file})", nameof(RestoreBackup), file.FileName);
-        var jobsWereRunning = await _jobManager.StopJobs().ConfigureAwait(false);
+        logger.LogTrace("{method}({file})", nameof(RestoreBackup), file.FileName);
+        var jobsWereRunning = await jobManager.StopJobs().ConfigureAwait(false);
         try
         {
-            var restoreTempDirectory = _configurationWrapper.RestoreTempDirectory();
-            CreateEmptyDirectory(restoreTempDirectory);
+            var restoreTempDirectory = configurationWrapper.RestoreTempDirectory();
+            CreateDirectory(restoreTempDirectory);
             var restoreFileName = "TSC-Restore.zip";
             var path = Path.Combine(restoreTempDirectory, restoreFileName);
             await using FileStream fs = new(path, FileMode.Create);
             await file.CopyToAsync(fs).ConfigureAwait(false);
             fs.Close();
             var extractedFilesDirectory = Path.Combine(restoreTempDirectory, "RestoredFiles");
-            CreateEmptyDirectory(extractedFilesDirectory);
+            CreateDirectory(extractedFilesDirectory);
             ZipFile.ExtractToDirectory(path, extractedFilesDirectory);
-            var configFileDirectoryPath = _configurationWrapper.ConfigFileDirectory();
+            var configFileDirectoryPath = configurationWrapper.ConfigFileDirectory();
             var directoryInfo = new DirectoryInfo(configFileDirectoryPath);
             foreach (var fileInfo in directoryInfo.GetFiles())
             {
@@ -168,19 +135,41 @@ public class BaseConfigurationService : IBaseConfigurationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Couldn't restore backup");
+            logger.LogError(ex, "Couldn't restore backup");
             throw;
         }
         finally
         {
-            if (jobsWereRunning)
-            {
-                await _jobManager.StartJobs().ConfigureAwait(false);
-            }
+            settings.RestartNeeded = true;
         }
     }
 
-    private static void CreateEmptyDirectory(string path)
+    public List<DtoBackupFileInformation> GetAutoBackupFileInformations()
+    {
+        var backupZipDirectory = configurationWrapper.AutoBackupsZipDirectory();
+        var backupFiles = Directory.GetFiles(backupZipDirectory, "*.zip");
+        var backupFileInformations = new List<DtoBackupFileInformation>();
+        foreach (var backupFile in backupFiles)
+        {
+            var fileInfo = new FileInfo(backupFile);
+            backupFileInformations.Add(new DtoBackupFileInformation
+            {
+                FileName = fileInfo.Name,
+                CreationDate = fileInfo.CreationTime,
+            });
+        }
+        return backupFileInformations.OrderByDescending(f => f.CreationDate).ToList();
+    }
+
+    public async Task<byte[]> DownloadAutoBackup(string fileName)
+    {
+        var directory = configurationWrapper.AutoBackupsZipDirectory();
+        var path = Path.Combine(directory, fileName);
+        var bytes = await File.ReadAllBytesAsync(path).ConfigureAwait(false);
+        return bytes;
+    }
+
+    private static void CreateDirectory(string path)
     {
         if (Directory.Exists(path))
         {

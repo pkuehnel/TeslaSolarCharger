@@ -1,10 +1,11 @@
 ﻿@page "/CarSettings"
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Client.Wrapper
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
 <PageTitle>Car Settings</PageTitle>
-<h1>CarSettings</h1>
+<h1>Car Settings</h1>
 
 @if (_carBasicConfigurations == null)
 {
@@ -12,102 +13,19 @@
 }
 else
 {
-    <p>Note: New cars are only detected after a restart of TeslaMate followed by a restart of TeslaSolarCharger.</p>
-
     @foreach (var carBasicConfiguration in _carBasicConfigurations)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <h3>@carBasicConfiguration.CarName</h3>
-            <div class ="h4">
-                @carBasicConfiguration.VehicleIdentificationNumber
-            </div>
-            <div class="mb-3">
-                <div class="input-group">
-                    <div class="form-floating flex-grow-1">
-                        <InputNumber id="@($"minAmpere_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.MinimumAmpere" class="form-control" />
-                        <label for="@($"minAmpere_{carBasicConfiguration.CarId}")">Minimum Current</label>
-                    </div>
-                    <span class="input-group-text">A</span>
-                </div>
-                <div col="12">
-                    <small class="form-text text-muted">TSC never sets a current below this value</small>
-                </div>
-            </div>
-            <div class="mb-3">
-                <div class="input-group">
-                    <div class="form-floating flex-grow-1">
-                        <InputNumber id="@($"maxAmpere_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.MaximumAmpere" class="form-control" />
-                        <label for="@($"maxAmpere_{carBasicConfiguration.CarId}")">MaximumAmpere Current</label>
-                    </div>
-                    <span class="input-group-text">A</span>
-                </div>
-                <div col="12">
-                    <small class="form-text text-muted">TSC never sets a current above this value. This value is also chosen in the Max Power charge mode.</small>
-                </div>
-            </div>
-            <div class="mb-3">
-                <div class="input-group">
-                    <div class="form-floating flex-grow-1">
-                        <InputNumber id="@($"usableEnergy_{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.UsableEnergy" class="form-control" />
-                        <label for="@($"usableEnergy{carBasicConfiguration.CarId}")">Usable Car Battery Energy</label>
-                    </div>
-                    <span class="input-group-text">kWh</span>
-                </div>
-                <div col="12">
-                    <small class="form-text text-muted">This value is used to reach a desired SoC in time if on spot price or PVOnly charge mode.</small>
-                </div>
-            </div>
-            <div class="mb-3">
-                <div class="input-group">
-                    <div class="form-floating flex-grow-1">
-                        <InputNumber id="@($"chargingPriority{carBasicConfiguration.CarId}")" @bind-Value="@carBasicConfiguration.ChargingPriority" class="form-control" />
-                        <label for="@($"chargingPriority{carBasicConfiguration.CarId}")">Charging Priority</label>
-                    </div>
-                </div>
-                <div col="12">
-                    <small class="form-text text-muted">If there is not enough power for all cars, the cars will be charged ordered by priority. Cars with the same priority are ordered by their ID.</small>
-                </div>
-            </div>
-            <div class="mb-3">
-                <InputCheckbox class="form-check-input" id="@($"useTeslaSolarCharger{carBasicConfiguration.CarId}")" @bind-Value="carBasicConfiguration.ShouldBeManaged" />
-                <label class="form-check-label" for="@($"useTeslaSolarCharger{carBasicConfiguration.CarId}")">
-                    Use TeslaSolarCharger
-                </label>
-                <div>
-                    <small id="UseSpotPriceHelp" class="form-text text-muted">If disabled, this car will not show up in the overview page and TSC does not manage it.</small>
-                </div>
-            </div>
-            <div class="mb-3">
-                <InputCheckbox class="form-check-input" id="@($"shouldSetChargeStartTimes{carBasicConfiguration.CarId}")" @bind-Value="carBasicConfiguration.ShouldSetChargeStartTimes" />
-                <label class="form-check-label" for="@($"shouldSetChargeStartTimes{carBasicConfiguration.CarId}")">
-                    Autoset charge starts
-                </label>
-                <div>
-                    <small class="form-text text-muted">
-                        <div>
-                            Enable this to use planned charges of your Tesla App. This ensures starting a planned charge even if the car can't be woken up via Tesla App.
-                        </div>
-                        <div>
-                            <strong>Note:</strong> This setting can mess up your planned departure preconditioning or your manually planned charge starts.
-                        </div>
-                    </small>
-                </div>
-            </div>
-            <div class="d-grid gap-2">
-                <button class="btn btn-primary" type="button" @onclick="() => UpdateCarConfiguration(carBasicConfiguration.CarId, carBasicConfiguration)">
-                    @if (_savingCarIds.Any(i => i == carBasicConfiguration.CarId))
-                    {
-                        <span>
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            Loading...
-                        </span>
-                    }
-                    else
-                    {
-                        <span>Save</span>
-                    }
-                </button>
-            </div>
+            <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(new EditableItem<CarBasicConfiguration>(carBasicConfiguration))" OnValidSubmit="_ => UpdateCarConfiguration(carBasicConfiguration.Id, carBasicConfiguration)">
+                <GenericInput For="() => carBasicConfiguration.Name" />
+                <GenericInput For="() => carBasicConfiguration.Vin" />
+                <GenericInput For="() => carBasicConfiguration.MinimumAmpere"/>
+                <GenericInput For="() => carBasicConfiguration.MaximumAmpere" />
+                <GenericInput For="() => carBasicConfiguration.UsableEnergy" />
+                <GenericInput For="() => carBasicConfiguration.ChargingPriority" />
+                <GenericInput For="() => carBasicConfiguration.ShouldBeManaged" />
+                <GenericInput For="() => carBasicConfiguration.ShouldSetChargeStartTimes" />
+            </EditFormComponent>
         </div>
     }
 }

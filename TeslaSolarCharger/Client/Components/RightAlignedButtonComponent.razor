@@ -1,0 +1,35 @@
+﻿<MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+    @if (IsDisabled)
+    {
+        <MudTooltip>
+            <ChildContent>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@StartIcon" Disabled="true" ButtonType="ButtonType.Button">@ButtonText</MudButton>
+            </ChildContent>
+            <TooltipContent>
+                Save basic data before adding
+            </TooltipContent>
+        </MudTooltip>
+    }
+    else
+    {
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@StartIcon" OnClick="AddButtonClicked" ButtonType="ButtonType.Button">@ButtonText</MudButton>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public bool IsDisabled { get; set; }
+    [Parameter]
+    public string ButtonText { get; set; }
+    [Parameter]
+    public string StartIcon { get; set; } = Icons.Material.Filled.Add;
+
+    [Parameter]
+    public EventCallback OnButtonClicked { get; set; }
+
+    private async Task AddButtonClicked()
+    {
+        await OnButtonClicked.InvokeAsync();
+    }
+
+}

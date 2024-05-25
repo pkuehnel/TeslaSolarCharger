@@ -15,7 +15,7 @@ namespace TeslaSolarCharger.Model.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CachedCarState", b =>
                 {
@@ -47,15 +47,93 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ChargeMode")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ChargerActualCurrent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ChargerPhases")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ChargerPilotCurrent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ChargerRequestedCurrent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ChargerVoltage")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ChargingPriority")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("ClimateOn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IgnoreLatestTimeToReachSocDate")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LatestTimeToReachSoC")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("MaximumAmpere")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MinimumAmpere")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MinimumSoc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool?>("PluggedIn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("ShouldBeManaged")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("ShouldSetChargeStartTimes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SoC")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SocLimit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("State")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("TeslaFleetApiState")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("TeslaMateCarId")
+                    b.Property<int?>("TeslaMateCarId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<int>("UsableEnergy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("VehicleCommandProtocolRequired")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Vin")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("TeslaMateCarId")
+                        .IsUnique();
+
+                    b.HasIndex("Vin")
                         .IsUnique();
 
                     b.ToTable("Cars");
@@ -95,6 +173,65 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.ToTable("ChargePrices");
                 });
 
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ChargingProcessId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("GridPower")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SolarPower")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("TimeStamp")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChargingProcessId");
+
+                    b.ToTable("ChargingDetails");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CarId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("Cost")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("OldHandledChargeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("UsedGridEnergyKwh")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("UsedSolarEnergyKwh")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarId");
+
+                    b.ToTable("ChargingProcesses");
+                });
+
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.HandledCharge", b =>
                 {
                     b.Property<int>("Id")
@@ -122,6 +259,149 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("HandledCharges");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ConnectDelayMilliseconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Endianess")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ReadTimeoutMilliseconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UnitIdentifier")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ModbusConfigurations");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Address")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BitStartIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("CorrectionFactor")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("InvertedByModbusResultConfigurationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Length")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ModbusConfigurationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Operator")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RegisterType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UsedFor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ValueType")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvertedByModbusResultConfigurationId");
+
+                    b.HasIndex("ModbusConfigurationId");
+
+                    b.ToTable("ModbusResultConfigurations");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Password")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Username")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MqttConfigurations");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttResultConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("CorrectionFactor")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MqttConfigurationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NodePattern")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("NodePatternType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Operator")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UsedFor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("XmlAttributeHeaderName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("XmlAttributeHeaderValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("XmlAttributeValueName")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MqttConfigurationId");
+
+                    b.ToTable("MqttResultConfigurations");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.PowerDistribution", b =>
@@ -153,6 +433,89 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.HasIndex("HandledChargeId");
 
                     b.ToTable("PowerDistributions");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("HttpMethod")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("NodePatternType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RestValueConfigurations");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfigurationHeader", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RestValueConfigurationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RestValueConfigurationId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("RestValueConfigurationHeaders");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueResultConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("CorrectionFactor")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NodePattern")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Operator")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RestValueConfigurationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UsedFor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("XmlAttributeHeaderName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("XmlAttributeHeaderValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("XmlAttributeValueName")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RestValueConfigurationId");
+
+                    b.ToTable("RestValueResultConfigurations");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.SpotPrice", b =>
@@ -228,6 +591,56 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.ToTable("TscConfigurations");
                 });
 
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingDetail", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess", "ChargingProcess")
+                        .WithMany("ChargingDetails")
+                        .HasForeignKey("ChargingProcessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChargingProcess");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
+                        .WithMany("ChargingProcesses")
+                        .HasForeignKey("CarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Car");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", "InvertedByModbusResultConfiguration")
+                        .WithMany()
+                        .HasForeignKey("InvertedByModbusResultConfigurationId");
+
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", "ModbusConfiguration")
+                        .WithMany("ModbusResultConfigurations")
+                        .HasForeignKey("ModbusConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InvertedByModbusResultConfiguration");
+
+                    b.Navigation("ModbusConfiguration");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttResultConfiguration", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttConfiguration", "MqttConfiguration")
+                        .WithMany("MqttResultConfigurations")
+                        .HasForeignKey("MqttConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MqttConfiguration");
+                });
+
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.PowerDistribution", b =>
                 {
                     b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.HandledCharge", "HandledCharge")
@@ -239,9 +652,58 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Navigation("HandledCharge");
                 });
 
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfigurationHeader", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfiguration", "RestValueConfiguration")
+                        .WithMany("Headers")
+                        .HasForeignKey("RestValueConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RestValueConfiguration");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueResultConfiguration", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfiguration", "RestValueConfiguration")
+                        .WithMany("RestValueResultConfigurations")
+                        .HasForeignKey("RestValueConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RestValueConfiguration");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", b =>
+                {
+                    b.Navigation("ChargingProcesses");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess", b =>
+                {
+                    b.Navigation("ChargingDetails");
+                });
+
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.HandledCharge", b =>
                 {
                     b.Navigation("PowerDistributions");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", b =>
+                {
+                    b.Navigation("ModbusResultConfigurations");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttConfiguration", b =>
+                {
+                    b.Navigation("MqttResultConfigurations");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfiguration", b =>
+                {
+                    b.Navigation("Headers");
+
+                    b.Navigation("RestValueResultConfigurations");
                 });
 #pragma warning restore 612, 618
         }

@@ -3,6 +3,7 @@ using Quartz.Spi;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling;
 
@@ -14,13 +15,14 @@ public class JobManager
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISettings _settings;
+    private readonly IConstants _constants;
 
     private IScheduler? _scheduler;
 
 
 #pragma warning disable CS8618
     public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory,
-        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider, ISettings settings)
+        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider, ISettings settings, IConstants constants)
 #pragma warning restore CS8618
     {
         _logger = logger;
@@ -29,14 +31,21 @@ public class JobManager
         _configurationWrapper = configurationWrapper;
         _dateTimeProvider = dateTimeProvider;
         _settings = settings;
+        _constants = constants;
     }
 
     public async Task StartJobs()
     {
         _logger.LogTrace("{Method}()", nameof(StartJobs));
+        if (_settings.RestartNeeded)
+        {
+            _logger.LogError("Do not start jobs as application restart is needed.");
+            return;
+        }
         if (_settings.CrashedOnStartup)
         {
             _logger.LogError("Do not start jobs as application crashed during startup.");
+            return;
         }
         _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
         _scheduler.JobFactory = _jobFactory;
@@ -44,13 +53,14 @@ public class JobManager
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
         var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().Build();
         var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
-        var powerDistributionAddJob = JobBuilder.Create<PowerDistributionAddJob>().Build();
-        var handledChargeFinalizingJob = JobBuilder.Create<HandledChargeFinalizingJob>().Build();
+        var chargingDetailsAddJob = JobBuilder.Create<ChargingDetailsAddJob>().Build();
+        var finishedChargingProcessFinalizingJob = JobBuilder.Create<FinishedChargingProcessFinalizingJob>().Build();
         var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
         var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
         var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
         var fleetApiTokenRefreshJob = JobBuilder.Create<FleetApiTokenRefreshJob>().Build();
         var vehicleDataRefreshJob = JobBuilder.Create<VehicleDataRefreshJob>().Build();
+        var teslaMateChargeCostUpdateJob = JobBuilder.Create<TeslaMateChargeCostUpdateJob>().Build();
 
         var currentDate = _dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -75,11 +85,11 @@ public class JobManager
         var carStateCachingTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
-        var powerDistributionAddTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(16)).Build();
+        var chargingDetailsAddTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(_constants.ChargingDetailsAddTriggerEveryXSeconds)).Build();
 
-        var handledChargeFinalizingTrigger = TriggerBuilder.Create()
-            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(9)).Build();
+        var finishedChargingProcessFinalizingTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(118)).Build();
 
         var mqttReconnectionTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(54)).Build();
@@ -96,18 +106,22 @@ public class JobManager
         var vehicleDataRefreshTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
 
+        var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create()
+            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
             {carStateCachingJob, new HashSet<ITrigger> {carStateCachingTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
-            {powerDistributionAddJob, new HashSet<ITrigger> {powerDistributionAddTrigger}},
-            {handledChargeFinalizingJob, new HashSet<ITrigger> {handledChargeFinalizingTrigger}},
+            {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
+            {finishedChargingProcessFinalizingJob, new HashSet<ITrigger> {finishedChargingProcessFinalizingTrigger}},
             {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
             {fleetApiTokenRefreshJob, new HashSet<ITrigger> {fleetApiTokenRefreshTrigger}},
             {vehicleDataRefreshJob, new HashSet<ITrigger> {vehicleDataRefreshTrigger}},
+            {teslaMateChargeCostUpdateJob, new HashSet<ITrigger> {teslaMateChargeCostUpdateTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

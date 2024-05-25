@@ -1,16 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
-using TeslaSolarCharger.GridPriceProvider.Data;
-using TeslaSolarCharger.GridPriceProvider.Services.Interfaces;
-using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -23,7 +21,6 @@ public class CoreService : ICoreService
     private readonly IConfigJsonService _configJsonService;
     private readonly JobManager _jobManager;
     private readonly ITeslaMateMqttService _teslaMateMqttService;
-    private readonly ISolarMqttService _solarMqttService;
     private readonly ISettings _settings;
     private readonly IFixedPriceService _fixedPriceService;
     private readonly ITscConfigurationService _tscConfigurationService;
@@ -32,7 +29,7 @@ public class CoreService : ICoreService
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
-        ITeslaMateMqttService teslaMateMqttService, ISolarMqttService solarMqttService, ISettings settings,
+        ITeslaMateMqttService teslaMateMqttService, ISettings settings,
         IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService, IBaseConfigurationService baseConfigurationService,
         IConstants constants)
     {
@@ -43,7 +40,6 @@ public class CoreService : ICoreService
         _configJsonService = configJsonService;
         _jobManager = jobManager;
         _teslaMateMqttService = teslaMateMqttService;
-        _solarMqttService = solarMqttService;
         _settings = settings;
         _fixedPriceService = fixedPriceService;
         _tscConfigurationService = tscConfigurationService;
@@ -106,15 +102,15 @@ public class CoreService : ICoreService
         {
             Directory.CreateDirectory(destinationPath);
         }
-        var backupFileNameSuffix = $"_{currentVersion}";
+        var backupFileNamePrefix = $"{currentVersion}_";
 
-        var resultingFileName = Path.Combine(destinationPath, $"{_constants.BackupZipBaseFileName + backupFileNameSuffix}");
+        var resultingFileName = Path.Combine(destinationPath, $"{backupFileNamePrefix + _constants.BackupZipBaseFileName}");
         if (File.Exists(resultingFileName))
         {
             _logger.LogInformation("Backup for this version already created. No new backup needed.");
             return;
         }
-        await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNameSuffix, destinationPath).ConfigureAwait(false);
+        await _baseConfigurationService.CreateLocalBackupZipFile(backupFileNamePrefix, destinationPath, false).ConfigureAwait(false);
     }
 
     private string GenerateResultFileName(string databaseFileName, string currentVersion)
@@ -147,7 +143,6 @@ public class CoreService : ICoreService
     {
         _logger.LogTrace("{method}()", nameof(DisconnectMqttServices));
         await _teslaMateMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
-        await _solarMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
     }
 
     public DtoValue<int> TeslaApiRequestsSinceStartup()
@@ -174,5 +169,25 @@ public class CoreService : ICoreService
     {
         var installationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         return installationId.ToString();
+    }
+
+    public Dictionary<int, string> GetRawRestRequestResults()
+    {
+        return _settings.RawRestRequestResults;
+    }
+
+    public Dictionary<int, string> GetRawRestValue()
+    {
+        return _settings.RawRestValues;
+    }
+
+    public Dictionary<int, decimal?> GetCalculatedRestValue()
+    {
+        return _settings.CalculatedRestValues;
+    }
+
+    public bool IsStartupCompleted()
+    {
+        return _settings.IsStartupCompleted;
     }
 }

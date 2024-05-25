@@ -1,5 +1,6 @@
 ﻿@page "/backupAndRestore"
 @using System.Net.Http.Headers
+@using TeslaSolarCharger.Shared.Dtos
 
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
@@ -27,7 +28,9 @@
 
 <hr />
 <h2>Restore</h2>
-
+<div class="alert alert-warning" role="alert">
+    After the restore process you need to restart the TSC container.
+</div>
 <div class="mb-2">
     <MudFileUpload T="IBrowserFile" FilesChanged="SelectFile" Accept=".zip" MaximumFileCount="1">
         <ButtonTemplate Context="fileUploadContext">
@@ -61,14 +64,36 @@
     }
 </MudButton>
 
+<MudExpansionPanels>
+    <MudExpansionPanel Text="Automatically created backups before each update" IsExpandedChanged="RefreshBackups">
+        <MudDataGrid Items="_backupFiles">
+            <Columns>
+                <PropertyColumn Property="x => x.FileName"></PropertyColumn>
+                <PropertyColumn Property="x => x.CreationDate"></PropertyColumn>
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudButton Size="@Size.Small"
+                                   Variant="@Variant.Filled"
+                                   Color="@Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Download"
+                                   OnClick="@(_ => DownloadFile(context.Item.FileName))">Download</MudButton>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
 
 @code {
     private bool _processingBackup;
     private bool _processingRestore;
     private readonly long _maxFileSize = 1024 * 1024 * 1024; // 1024 MB
 
-    private IBrowserFile? _file;
+    private List<DtoBackupFileInformation> _backupFiles = new List<DtoBackupFileInformation>();
 
+
+    private IBrowserFile? _file;
 
     private async Task StartBackup()
     {
@@ -137,6 +162,37 @@
         }
 
         _processingRestore = false;
+    }
+
+    private async Task RefreshBackups(bool arg)
+    {
+        if (!arg)
+        {
+            return;
+        }
+        try
+        {
+            var backupFiles = await HttpClient.GetFromJsonAsync<List<DtoBackupFileInformation>>("api/BaseConfiguration/GetAutoBackupFileInformations");
+            if (backupFiles != null)
+            {
+                _backupFiles = backupFiles;
+            }
+            else
+            {
+                Snackbar.Add("No backups found", Severity.Info);
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Error while refreshing backups: {e.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DownloadFile(string itemFileName)
+    {
+        var url = $"api/BaseConfiguration/DownloadAutoBackup?fileName={Uri.EscapeDataString(itemFileName)}";
+        // ReSharper disable once UseConfigureAwaitFalse
+        await JsRuntime.InvokeVoidAsync("triggerFileDownload", itemFileName, url);
     }
 
 }

@@ -4,9 +4,11 @@
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
 @using TeslaSolarCharger.Shared.Enums
+@using Newtonsoft.Json
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject IDateTimeProvider DateTimeProvider
+@inject ISnackbar Snackbar
 
 <button class="btn btn-primary" @onclick="NavigateToList">All Charge costs</button>
 <h1>ChargePriceDetail</h1>
@@ -68,10 +70,10 @@ else
             </InputFragment>
         </InputComponent>
 
-        @if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice && ChargePrice.FixedPrices != null)
+        @if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice && FixedPrices != null)
         {
             <div>You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used.</div>
-            @foreach (var fixedPrice in ChargePrice.FixedPrices)
+            @foreach (var fixedPrice in FixedPrices)
             {
                 <div class="row mt-3">
                     <div class="col-auto">
@@ -150,11 +152,17 @@ else
 
     private bool SubmitIsLoading { get; set; }
 
+    private List<FixedPrice>? FixedPrices { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         if (ChargeCostId != null)
         {
             ChargePrice = await HttpClient.GetFromJsonAsync<DtoChargePrice>($"api/ChargingCost/GetChargePriceById?id={ChargeCostId}").ConfigureAwait(false);
+            if(ChargePrice is { EnergyProviderConfiguration: not null, EnergyProvider: EnergyProvider.FixedPrice })
+            {
+                FixedPrices = JsonConvert.DeserializeObject<List<FixedPrice>>(ChargePrice.EnergyProviderConfiguration);
+            }
         }
         else
         {
@@ -176,6 +184,19 @@ else
     private async Task SaveChargePrice()
     {
         SubmitIsLoading = true;
+        if(ChargePrice == null)
+        {
+            Snackbar.Add("Charge price is null and can not be saved. Try reloading the page.", Severity.Error);
+            return;
+        }
+        if(ChargePrice.EnergyProvider == EnergyProvider.FixedPrice)
+        {
+            ChargePrice.EnergyProviderConfiguration = JsonConvert.SerializeObject(FixedPrices);
+        }
+        else
+        {
+            ChargePrice.EnergyProviderConfiguration = null;
+        }
         await HttpClient.PostAsJsonAsync("api/ChargingCost/UpdateChargePrice", ChargePrice).ConfigureAwait(false);
         SubmitIsLoading = false;
         NavigateToList();
@@ -188,16 +209,12 @@ else
             return;
         }
         ChargePrice.EnergyProvider = energyProvider;
-        ChargePrice.FixedPrices = energyProvider == EnergyProvider.FixedPrice ? new List<FixedPrice>() : null;
+        FixedPrices = energyProvider == EnergyProvider.FixedPrice ? new List<FixedPrice>() : null;
     }
 
     private void AddFixedPrice()
     {
-        if(ChargePrice?.FixedPrices == null)
-        {
-            return;
-        }
-        ChargePrice.FixedPrices.Add(new FixedPrice()
+        FixedPrices?.Add(new FixedPrice()
         {
             ValidOnDays = new List<DayOfWeek>(),
         });
@@ -205,11 +222,7 @@ else
 
     private void DeleteFixedPrice(FixedPrice fixedPrice)
     {
-        if(ChargePrice?.FixedPrices == null)
-        {
-            return;
-        }
-        ChargePrice.FixedPrices.Remove(fixedPrice);
+        FixedPrices?.Remove(fixedPrice);
     }
 
 }

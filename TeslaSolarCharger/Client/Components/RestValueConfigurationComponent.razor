@@ -1,0 +1,74 @@
+﻿@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.SharedModel.Enums
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
+@using TeslaSolarCharger.Client.Dialogs
+@inject HttpClient HttpClient
+@inject IConstants Constants
+@inject IStringHelper StringHelper
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<GenericValueConfigurationComponent
+    SourceName="REST"
+    ConfigurationOverviews="_restConfigurationOverviews"
+    OnRefreshClicked="RefreshRequestResults"
+    OnConfigureClicked="id => OpenRestValueConfigurationDialog(id)"
+    OnDeleteClicked="id => DeleteRestValueConfiguration(id)"></GenericValueConfigurationComponent>
+
+@code {
+    private List<DtoValueConfigurationOverview>? _restConfigurationOverviews;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshRequestResults();
+    }
+
+    private async Task RefreshRequestResults()
+    {
+        _restConfigurationOverviews = await HttpClient.GetFromJsonAsync<List<DtoValueConfigurationOverview>>("api/RestValueConfiguration/GetRestValueConfigurations") ?? new List<DtoValueConfigurationOverview>();
+    }
+
+    private async Task OpenRestValueConfigurationDialog(int? id)
+    {
+        var options = new DialogOptions()
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+            };
+        var parameters = new DialogParameters<RestValueConfigurationDialog>
+        {
+            { x => x.RestValueConfigurationId, id },
+        };
+        var title = id == default ? "Add" : "Edit";
+        var dialog = await DialogService.ShowAsync<RestValueConfigurationDialog>($"{title} REST config", parameters, options);
+        var result = await dialog.Result;
+
+        await RefreshRequestResults();
+    }
+
+    private async Task DeleteRestValueConfiguration(int id)
+    {
+        var options = new DialogOptions()
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+        };
+        var parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.ElementName, "the REST configuration" },
+        };
+        var dialog = await DialogService.ShowAsync<DeleteDialog>($"Delete REST config?", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await HttpClient.DeleteAsync($"api/RestValueConfiguration/DeleteRestValueConfiguration?id={id}");
+            Snackbar.Add("Rest value configuration deleted.", Severity.Success);
+            await RefreshRequestResults();
+        }
+    }
+
+}
