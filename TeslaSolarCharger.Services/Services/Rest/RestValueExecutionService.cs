@@ -40,7 +40,7 @@ public class RestValueExecutionService(
             httpClientHandler.ServerCertificateCustomValidationCallback = MyRemoteCertificateValidationCallback;
         }
         using var client = new HttpClient(httpClientHandler);
-        client.Timeout = TimeSpan.FromSeconds(1);
+        client.Timeout = TimeSpan.FromSeconds(10);
         var request = new HttpRequestMessage(new HttpMethod(config.HttpMethod.ToString()), config.Url);
         foreach (var header in config.Headers)
         {
