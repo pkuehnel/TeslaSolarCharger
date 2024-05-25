@@ -793,6 +793,8 @@ public class TeslaFleetApiService(
         {
             if (responseString.Contains("Tesla Vehicle Command Protocol required"))
             {
+                var car = teslaSolarChargerContext.Cars.First(c => c.Vin == vin);
+                car.VehicleCommandProtocolRequired = true;
             }
             else
             {
@@ -809,8 +811,7 @@ public class TeslaFleetApiService(
                  && responseString.Contains("vehicle rejected request: your public key has not been paired with the vehicle"))
         {
             logger.LogError("Vehicle {vin} is not paired with TSC. Add The public key to the vehicle. Response: {responseString}", vin, responseString);
-            var teslaMateCarId = teslamateContext.Cars.First(c => c.Vin == vin).Id;
-            var car = teslaSolarChargerContext.Cars.First(c => c.TeslaMateCarId == teslaMateCarId);
+            var car = teslaSolarChargerContext.Cars.First(c => c.Vin == vin);
             car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
         }
         else
