@@ -791,11 +791,19 @@ public class TeslaFleetApiService(
         }
         else if (statusCode == HttpStatusCode.Forbidden)
         {
-            logger.LogError("You did not select all scopes, so TSC can't send commands to your car. Response: {responseString}", responseString);
-            teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+            if (responseString.Contains("Tesla Vehicle Command Protocol required"))
             {
-                Key = constants.TokenMissingScopes, Value = responseString,
-            });
+            }
+            else
+            {
+                logger.LogError("You did not select all scopes, so TSC can't send commands to your car. Response: {responseString}", responseString);
+                teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+                {
+                    Key = constants.TokenMissingScopes,
+                    Value = responseString,
+                });
+            }
+            
         }
         else if (statusCode == HttpStatusCode.InternalServerError
                  && responseString.Contains("vehicle rejected request: your public key has not been paired with the vehicle"))
