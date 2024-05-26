@@ -49,15 +49,24 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
         Connect();
     }
 
-    public void Connect(IPEndPoint ipEndPoint, ModbusEndianess endianess, TimeSpan connectTimeout)
+    public async Task Connect(IPEndPoint ipEndPoint, ModbusEndianess endianess, TimeSpan connectTimeout)
     {
-        var fluentEndianness = endianess switch
+        await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
+        try
         {
-            ModbusEndianess.BigEndian => ModbusEndianness.BigEndian,
-            ModbusEndianess.LittleEndian => ModbusEndianness.LittleEndian,
-            _ => throw new ArgumentOutOfRangeException(nameof(endianess), endianess, "Endianess not known"),
-        };
-        ConnectTimeout = (int)connectTimeout.TotalMilliseconds;
-        base.Connect(ipEndPoint, fluentEndianness);
+            var fluentEndianness = endianess switch
+            {
+                ModbusEndianess.BigEndian => ModbusEndianness.BigEndian,
+                ModbusEndianess.LittleEndian => ModbusEndianness.LittleEndian,
+                _ => throw new ArgumentOutOfRangeException(nameof(endianess), endianess, "Endianess not known"),
+            };
+            ConnectTimeout = (int)connectTimeout.TotalMilliseconds;
+            base.Connect(ipEndPoint, fluentEndianness);
+        }
+        finally
+        {
+            _semaphoreSlim.Release();
+        }
+
     }
 }

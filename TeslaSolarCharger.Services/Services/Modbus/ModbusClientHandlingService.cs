@@ -78,15 +78,15 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         }
 
         var client = serviceProvider.GetRequiredService<IModbusTcpClient>();
-        await ConnectModbusClient(client, ipAddress, port, endianess, connectDelay, connectTimeout);
         _modbusClients.Add(key, client);
+        await ConnectModbusClient(client, ipAddress, port, endianess, connectDelay, connectTimeout);
         return client;
     }
 
     private async Task ConnectModbusClient(IModbusTcpClient modbusClient, IPAddress ipAddress, int port, ModbusEndianess endianess,
         TimeSpan connectDelay, TimeSpan connectTimeout)
     {
-        modbusClient.Connect(new IPEndPoint(ipAddress, port), endianess, connectTimeout);
+        await modbusClient.Connect(new IPEndPoint(ipAddress, port), endianess, connectTimeout);
         await Task.Delay(connectDelay).ConfigureAwait(false);
     }
 
