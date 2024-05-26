@@ -18,12 +18,14 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
         try
         {
             ReadTimeout = (int)readTimeout.TotalMilliseconds;
+            logger.LogTrace("ReadTimeout: {ReadTimeout}", ReadTimeout);
             var result = await base.ReadHoldingRegistersAsync(unitIdentifier, startingAddress, quantity);
             return result.ToArray();
         }
         finally
         {
             _semaphoreSlim.Release();
+            logger.LogTrace("Semaphore released");
         }
     }
 
@@ -35,12 +37,14 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
         try
         {
             ReadTimeout = (int)readTimeout.TotalMilliseconds;
+            logger.LogTrace("ReadTimeout: {ReadTimeout}", ReadTimeout);
             var result = await base.ReadInputRegistersAsync(unitIdentifier, startingAddress, quantity);
             return result.ToArray();
         }
         finally
         {
             _semaphoreSlim.Release();
+            logger.LogTrace("Semaphore released");
         }
     }
 
@@ -51,6 +55,7 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
 
     public async Task Connect(IPEndPoint ipEndPoint, ModbusEndianess endianess, TimeSpan connectTimeout)
     {
+        logger.LogTrace("{method}({ipEndPoint}, {endianess}, {connectTimeout})", nameof(Connect), ipEndPoint, endianess, connectTimeout);
         await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -61,11 +66,13 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
                 _ => throw new ArgumentOutOfRangeException(nameof(endianess), endianess, "Endianess not known"),
             };
             ConnectTimeout = (int)connectTimeout.TotalMilliseconds;
+            logger.LogTrace("ConnectTimeout: {ConnectTimeout}", ConnectTimeout);
             base.Connect(ipEndPoint, fluentEndianness);
         }
         finally
         {
             _semaphoreSlim.Release();
+            logger.LogTrace("Semaphore relesed");
         }
 
     }
