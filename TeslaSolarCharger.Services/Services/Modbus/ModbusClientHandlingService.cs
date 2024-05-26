@@ -86,6 +86,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     private async Task ConnectModbusClient(IModbusTcpClient modbusClient, IPAddress ipAddress, int port, ModbusEndianess endianess,
         TimeSpan connectDelay, TimeSpan connectTimeout)
     {
+        logger.LogTrace("{method}(modbusClient, {ipAddress}, {port}, {endianess}, {connectDelay}, {connectTimeout})", nameof(ConnectModbusClient), ipAddress, port, endianess, connectDelay, connectTimeout);
         await modbusClient.Connect(new IPEndPoint(ipAddress, port), endianess, connectTimeout);
         await Task.Delay(connectDelay).ConfigureAwait(false);
     }

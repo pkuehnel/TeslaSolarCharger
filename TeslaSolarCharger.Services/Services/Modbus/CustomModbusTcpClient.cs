@@ -51,6 +51,7 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
 
     public async Task Connect(IPEndPoint ipEndPoint, ModbusEndianess endianess, TimeSpan connectTimeout)
     {
+        logger.LogTrace("{method}({ipEndPoint}, {endianess}, {connectTimeout})", nameof(Connect), ipEndPoint, endianess, connectTimeout);
         await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
         try
         {
