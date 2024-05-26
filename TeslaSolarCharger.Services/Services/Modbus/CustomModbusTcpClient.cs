@@ -49,7 +49,7 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
         Connect();
     }
 
-    public void Connect(IPEndPoint ipEndPoint, ModbusEndianess endianess)
+    public void Connect(IPEndPoint ipEndPoint, ModbusEndianess endianess, TimeSpan connectTimeout)
     {
         var fluentEndianness = endianess switch
         {
@@ -57,6 +57,7 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
             ModbusEndianess.LittleEndian => ModbusEndianness.LittleEndian,
             _ => throw new ArgumentOutOfRangeException(nameof(endianess), endianess, "Endianess not known"),
         };
+        ConnectTimeout = (int)connectTimeout.TotalMilliseconds;
         base.Connect(ipEndPoint, fluentEndianness);
     }
 }

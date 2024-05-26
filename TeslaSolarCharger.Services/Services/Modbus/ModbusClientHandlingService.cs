@@ -16,7 +16,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     {
         logger.LogTrace("{method}({unitIdentifier}, {host}, {port}, {endianess}, {connectDelay}, {readTimeout}, {registerType}, {address}, {length})",
                        nameof(GetByteArray), unitIdentifier, host, port, endianess, connectDelay, readTimeout, registerType, address, length);
-        var client = await GetConnectedModbusTcpClient(host, port, endianess, connectDelay);
+        var client = await GetConnectedModbusTcpClient(host, port, endianess, connectDelay, readTimeout);
         byte[] byteArray;
         if (registerType == ModbusRegisterType.HoldingRegister)
         {
@@ -62,7 +62,8 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         return tempArray;
     }
 
-    private async Task<IModbusTcpClient> GetConnectedModbusTcpClient(string host, int port, ModbusEndianess endianess, TimeSpan connectDelay)
+    private async Task<IModbusTcpClient> GetConnectedModbusTcpClient(string host, int port, ModbusEndianess endianess,
+        TimeSpan connectDelay, TimeSpan connectTimeout)
     {
         logger.LogTrace("{method}({host}, {port})", nameof(GetConnectedModbusTcpClient), host, port);
         var ipAddress = GetIpAddressFromHost(host);
@@ -71,21 +72,21 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         {
             if (!modbusClient.IsConnected)
             {
-                await ConnectModbusClient(modbusClient, ipAddress, port, endianess, connectDelay);
+                await ConnectModbusClient(modbusClient, ipAddress, port, endianess, connectDelay, connectTimeout);
             }
             return modbusClient;
         }
 
         var client = serviceProvider.GetRequiredService<IModbusTcpClient>();
-        await ConnectModbusClient(client, ipAddress, port, endianess, connectDelay);
+        await ConnectModbusClient(client, ipAddress, port, endianess, connectDelay, connectTimeout);
         _modbusClients.Add(key, client);
         return client;
     }
 
     private async Task ConnectModbusClient(IModbusTcpClient modbusClient, IPAddress ipAddress, int port, ModbusEndianess endianess,
-        TimeSpan connectDelay)
+        TimeSpan connectDelay, TimeSpan connectTimeout)
     {
-        modbusClient.Connect(new IPEndPoint(ipAddress, port), endianess);
+        modbusClient.Connect(new IPEndPoint(ipAddress, port), endianess, connectTimeout);
         await Task.Delay(connectDelay).ConfigureAwait(false);
     }
 
