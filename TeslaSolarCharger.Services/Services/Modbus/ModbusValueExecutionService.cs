@@ -20,7 +20,7 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
     {
         logger.LogTrace("{method}({modbusConfig})", nameof(GetResult), modbusConfig);
         var byteArray = await modbusClientHandlingService.GetByteArray((byte)modbusConfig.UnitIdentifier!, modbusConfig.Host,
-            modbusConfig.Port, modbusConfig.Endianess, TimeSpan.FromSeconds(modbusConfig.ConnectDelayMilliseconds),
+            modbusConfig.Port, modbusConfig.Endianess, TimeSpan.FromMilliseconds(modbusConfig.ConnectDelayMilliseconds),
             TimeSpan.FromMilliseconds(modbusConfig.ReadTimeoutMilliseconds), resultConfiguration.RegisterType,
             (ushort)resultConfiguration.Address, (ushort)resultConfiguration.Length);
         return byteArray;
