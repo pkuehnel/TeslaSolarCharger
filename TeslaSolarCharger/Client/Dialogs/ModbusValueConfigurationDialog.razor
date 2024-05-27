@@ -35,7 +35,7 @@ else
                                    Variant="Variant.Outlined"
                                    Value="@EditableValueConfiguration.Item.Endianess"
                                    ValueChanged="(newItem) => UpdateEndianess(EditableValueConfiguration.Item, newItem)"
-                                   Label="HTTP Method"
+                                   Label="Endianess"
                                    Margin="Constants.InputMargin">
                             @foreach (ModbusEndianess item in Enum.GetValues(typeof(ModbusEndianess)))
                             {
