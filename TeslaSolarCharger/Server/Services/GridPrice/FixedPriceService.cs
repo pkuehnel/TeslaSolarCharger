@@ -50,7 +50,7 @@ public class FixedPriceService : IFixedPriceService
                     var validFrom = new DateTimeOffset(day.AddHours(fixedPrice.FromHour).AddMinutes(fixedPrice.FromMinute)).ToUniversalTime();
                     var validTo = new DateTimeOffset(day.AddHours(fixedPrice.ToHour).AddMinutes(fixedPrice.ToMinute)).ToUniversalTime();
 
-                    if (validTo.TimeOfDay == TimeSpan.Zero)
+                    if (fixedPrice is { ToHour: 0, ToMinute: 0 })
                     {
                         validTo = validTo.AddDays(1);
                     }
