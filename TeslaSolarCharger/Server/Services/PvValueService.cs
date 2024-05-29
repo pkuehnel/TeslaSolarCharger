@@ -448,7 +448,10 @@ public class PvValueService : IPvValueService
         }
         else
         {
-            resultConfiguration.BitStartIndex = int.Parse(startIndex);
+            var startIndexInt = int.Parse(startIndex);
+            //needs correction as was reversed in old Modbus plugin
+            startIndexInt = 15 - startIndexInt;
+            resultConfiguration.BitStartIndex = startIndexInt;
             resultConfiguration.ValueType = ModbusValueType.Bool;
         }
         var addressString = GetQueryParameterValue(uri, "startingAddress");
