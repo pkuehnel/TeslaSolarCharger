@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Shared.Enums;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 
@@ -46,7 +45,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
 
     private static byte[] ConvertToCorrectEndianess(ModbusEndianess endianess, byte[] byteArray)
     {
-        var tempArray = endianess == ModbusEndianess.LittleEndian ? byteArray : byteArray.Reverse().ToArray();
+        var tempArray = byteArray.Reverse().ToArray();
         if (endianess == ModbusEndianess.LittleEndian && tempArray.Length % 4 == 0)
         {
             var swappedByteArray = new byte[tempArray.Length];
