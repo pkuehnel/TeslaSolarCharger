@@ -60,9 +60,7 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
                 if (resultConfig.BitStartIndex == null)
                     throw new ArgumentException("BitStartIndex must be set for ValueType Bool", nameof(ModbusResultConfiguration.BitStartIndex));
                 var binaryString = GetBinaryString(byteArray);
-                logger.LogInformation("BinaryString: {binaryString}", binaryString);
                 var bitChar = binaryString[resultConfig.BitStartIndex.Value];
-                logger.LogInformation("BitChar {bitChar}", bitChar);
                 rawValue = bitChar == '1' ? 1 : 0;
                 return rawValue;
             default:
@@ -89,7 +87,6 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
         var valueConfiguration = valueConfigurations.Single();
         var byteArray = await GetResult(valueConfiguration, resultConfiguration);
         var inversionValue = await GetValue(byteArray, resultConfiguration);
-        logger.LogInformation("Inversion value: {inversionValue}", inversionValue);
         return inversionValue == 0 ? rawValue : -rawValue;
     }
 
