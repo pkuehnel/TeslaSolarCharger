@@ -67,7 +67,7 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
             };
             ConnectTimeout = (int)connectTimeout.TotalMilliseconds;
             logger.LogTrace("ConnectTimeout: {ConnectTimeout}", ConnectTimeout);
-            base.Connect(ipEndPoint, fluentEndianness);
+            base.Connect(ipEndPoint, ModbusEndianness.BigEndian);
         }
         finally
         {
