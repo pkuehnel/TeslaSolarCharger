@@ -29,8 +29,11 @@ public class OldTscConfigPriceService (ILogger<OldTscConfigPriceService> logger,
                 },
             };
         }
+
+        var fromDateTime = from.UtcDateTime;
+        var toDateTime = to.UtcDateTime;
         var spotPrices = await teslaSolarChargerContext.SpotPrices
-            .Where(p => p.EndDate >= from && p.StartDate <= to)
+            .Where(p => p.EndDate >= fromDateTime && p.StartDate <= toDateTime)
             .OrderBy(p => p.StartDate)
             .ToListAsync();
         var result = new List<Price>();
