@@ -61,6 +61,7 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
                     throw new ArgumentException("BitStartIndex must be set for ValueType Bool", nameof(ModbusResultConfiguration.BitStartIndex));
                 var binaryString = GetBinaryString(byteArray);
                 var bitChar = binaryString[resultConfig.BitStartIndex.Value];
+                logger.LogDebug("Bit value: {bitChar}", bitChar);
                 rawValue = bitChar == '1' ? 1 : 0;
                 return rawValue;
             default:
@@ -73,6 +74,7 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
 
     private async Task<decimal> InvertValueOnExistingInversionRegister(decimal rawValue, int? resultConfigInvertedByModbusResultConfigurationId)
     {
+        logger.LogTrace("{method}({rawValue}, {resultConfigInvertedByModbusResultConfigurationId})", nameof(InvertValueOnExistingInversionRegister), rawValue, resultConfigInvertedByModbusResultConfigurationId);;
         if (resultConfigInvertedByModbusResultConfigurationId == default)
         {
             return rawValue;
@@ -86,11 +88,13 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
             c.ModbusResultConfigurations.Any(r => r.Id == resultConfigInvertedByModbusResultConfigurationId.Value));
         var valueConfiguration = valueConfigurations.Single();
         var byteArray = await GetResult(valueConfiguration, resultConfiguration);
+        logger.LogDebug("Inversion bits: {byteArray}", GetBinaryString(byteArray));
         var inversionValue = await GetValue(byteArray, resultConfiguration);
+        logger.LogDebug("Inversion value: {inversionValue}", inversionValue);
         return inversionValue == 0 ? rawValue : -rawValue;
     }
 
-    private string GetBinaryString(byte[] byteArray)
+    public string GetBinaryString(byte[] byteArray)
     {
         var stringbuilder = new StringBuilder();
         foreach (var byteValue in byteArray)
