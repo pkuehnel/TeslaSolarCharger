@@ -752,12 +752,18 @@ public class PvValueService : IPvValueService
         var modbusConfigurations = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
         foreach (var modbusConfiguration in modbusConfigurations)
         {
+            _logger.LogDebug("Get Modbus results for modbus Configuration {host}:{port}", modbusConfiguration.Host,
+                modbusConfiguration.Port);
             var modbusResultConfigurations =
                 await _modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
                     r.ModbusConfigurationId == modbusConfiguration.Id);
             foreach (var resultConfiguration in modbusResultConfigurations)
             {
+                _logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
+                    modbusConfiguration.Port, resultConfiguration.Address);
                 var byteArry = await _modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration);
+                _logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
+                                       modbusConfiguration.Port, resultConfiguration.Address, _modbusValueExecutionService.GetBinaryString(byteArry));
                 var value = await _modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
                 var valueUsage = resultConfiguration.UsedFor;
                 if (!resultSums.ContainsKey(valueUsage))
