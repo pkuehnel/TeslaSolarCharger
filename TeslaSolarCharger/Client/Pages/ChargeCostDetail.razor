@@ -5,6 +5,7 @@
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
 @using TeslaSolarCharger.Shared.Enums
 @using Newtonsoft.Json
+@using TeslaSolarCharger.Shared.Dtos
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject IDateTimeProvider DateTimeProvider
@@ -127,7 +128,13 @@ else
         }
         
         <br/>
-        <button type="submit" class="btn btn-primary">
+        @if(ChargePricesUpdateText != null)
+        {
+            <div class="alert alert-warning" role="alert">
+                @ChargePricesUpdateText
+            </div>
+        }
+        <button type="submit" class="btn btn-primary" disabled="@(ChargePricesUpdateText != null)">
             @if (SubmitIsLoading)
             {
                 <span>
@@ -140,6 +147,9 @@ else
                 <span>Save</span>
             }
         </button>
+        <div>
+            <small class="form-text text-muted">Note: updating charge prices can take a significant ammount of time as the price of all previous charges is updated</small>
+        </div>
     </EditForm>
 }
 
@@ -154,8 +164,11 @@ else
 
     private List<FixedPrice>? FixedPrices { get; set; }
 
+    public string? ChargePricesUpdateText { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
+        ChargePricesUpdateText = (await HttpClient.GetFromJsonAsync<DtoValue<string?>>($"api/ChargingCost/GetChargePricesUpdateText").ConfigureAwait(false))?.Value;
         if (ChargeCostId != null)
         {
             ChargePrice = await HttpClient.GetFromJsonAsync<DtoChargePrice>($"api/ChargingCost/GetChargePriceById?id={ChargeCostId}").ConfigureAwait(false);
@@ -197,8 +210,7 @@ else
         {
             ChargePrice.EnergyProviderConfiguration = null;
         }
-        await HttpClient.PostAsJsonAsync("api/ChargingCost/UpdateChargePrice", ChargePrice).ConfigureAwait(false);
-        SubmitIsLoading = false;
+        HttpClient.PostAsJsonAsync("api/ChargingCost/UpdateChargePrice", ChargePrice).ConfigureAwait(false);
         NavigateToList();
     }
 
