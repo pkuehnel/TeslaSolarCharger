@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
@@ -6,7 +7,9 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared;
@@ -62,7 +65,6 @@ var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper
 var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
 await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
 await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
-
 DoStartupStuff(app, logger, configurationWrapper);
 
 // Configure the HTTP request pipeline.
@@ -174,7 +176,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var pvValueService = webApplication.Services.GetRequiredService<IPvValueService>();
         await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
-        
+
+        var spotPriceService = webApplication.Services.GetRequiredService<ISpotPriceService>();
+        await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
+
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {

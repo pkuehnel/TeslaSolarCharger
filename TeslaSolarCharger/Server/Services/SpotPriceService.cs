@@ -34,7 +34,40 @@ public class SpotPriceService : ISpotPriceService
             getPricesFrom = latestKnownSpotPriceTime;
         }
 
-        var awattarPrices = await GetAwattarPrices(getPricesFrom).ConfigureAwait(false);
+        var awattarPrices = await GetAwattarPrices(getPricesFrom, null).ConfigureAwait(false);
+        await AddAwattarPricesToDatabase(awattarPrices);
+    }
+
+    public async Task GetSpotPricesSinceFirstChargeDetail()
+    {
+        _logger.LogTrace("{method}()", nameof(GetSpotPricesSinceFirstChargeDetail));
+
+        var firstChargeDetail = await _teslaSolarChargerContext.ChargingDetails
+            .OrderBy(cd => cd.TimeStamp)
+            .Select(cd => cd.TimeStamp)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (firstChargeDetail == default)
+        {
+            _logger.LogInformation("No chargingdetails found so gettings spotprices is not needed");
+            return;
+        }
+        var firstSpotPrice = await _teslaSolarChargerContext.SpotPrices
+            .OrderBy(sp => sp.StartDate)
+            .Select(sp => sp.StartDate)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (firstSpotPrice != default && firstSpotPrice < firstChargeDetail)
+        {
+            _logger.LogInformation("Spotprices already exist for all chargingdetails");
+            return;
+        }
+        var getPricesFrom = new DateTimeOffset(firstChargeDetail.AddDays(-1), TimeSpan.Zero);
+        var getPricesTo = new DateTimeOffset(firstSpotPrice == default ? _dateTimeProvider.UtcNow() : firstSpotPrice, TimeSpan.Zero);
+        var awattarPrices = await GetAwattarPrices(getPricesFrom, getPricesTo).ConfigureAwait(false);
+        await AddAwattarPricesToDatabase(awattarPrices);
+    }
+
+    private async Task AddAwattarPricesToDatabase(DtoAwattarPrices? awattarPrices)
+    {
         if (awattarPrices == null)
         {
             _logger.LogWarning("Clould not get awattar prices");
@@ -71,21 +104,24 @@ public class SpotPriceService : ISpotPriceService
         return spotPrice;
     }
 
-    internal string GenerateAwattarUrl(DateTimeOffset? fromDate)
+    internal string GenerateAwattarUrl(DateTimeOffset? fromDate, DateTimeOffset? toDate)
     {
         var url = _configurationWrapper.GetAwattarBaseUrl();
         //var url = "https://api.awattar.de/v1/marketdata";
         if (fromDate != null)
         {
-            var toDate = _dateTimeProvider.DateTimeOffSetNow().AddHours(48);
-            url += $"?start={fromDate.Value.ToUnixTimeMilliseconds()}&end={toDate.ToUnixTimeMilliseconds()}";
+            if (toDate == null)
+            {
+                toDate = _dateTimeProvider.DateTimeOffSetNow().AddHours(48);
+            }
+            url += $"?start={fromDate.Value.ToUnixTimeMilliseconds()}&end={toDate.Value.ToUnixTimeMilliseconds()}";
         }
         return url;
     }
 
-    private async Task<DtoAwattarPrices?> GetAwattarPrices(DateTimeOffset? fromDate)
+    private async Task<DtoAwattarPrices?> GetAwattarPrices(DateTimeOffset? fromDate, DateTimeOffset? toDate)
     {
-        var url = GenerateAwattarUrl(fromDate);
+        var url = GenerateAwattarUrl(fromDate, toDate);
         using var httpClient = new HttpClient();
         var awattarPrices = await httpClient.GetFromJsonAsync<DtoAwattarPrices>(url)
             .ConfigureAwait(false);
