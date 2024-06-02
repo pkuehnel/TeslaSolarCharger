@@ -98,14 +98,21 @@ public class RestValueConfigurationService(
         foreach (var dtoHeader in dtoData.Headers)
         {
             var dbHeader = headerMapper.Map<RestValueConfigurationHeader>(dtoHeader);
-            dbHeader.RestValueConfigurationId = dbData.Id;
-            if (dbHeader.Id == default)
+            if (dbData.Id == default)
             {
-                context.RestValueConfigurationHeaders.Add(dbHeader);
+                dbData.Headers.Add(dbHeader);
             }
             else
             {
-                context.RestValueConfigurationHeaders.Update(dbHeader);
+                dbHeader.RestValueConfigurationId = dbData.Id;
+                if (dbHeader.Id == default)
+                {
+                    context.RestValueConfigurationHeaders.Add(dbHeader);
+                }
+                else
+                {
+                    context.RestValueConfigurationHeaders.Update(dbHeader);
+                }
             }
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
