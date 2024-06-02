@@ -5,6 +5,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
@@ -18,7 +19,8 @@ public class ChargingCostService(
     IMapperConfigurationFactory mapperConfigurationFactory,
     IServiceProvider serviceProvider,
     IConstants constants,
-    ITscOnlyChargingCostService tscOnlyChargingCostService)
+    ITscOnlyChargingCostService tscOnlyChargingCostService,
+    ISettings settings)
     : IChargingCostService
 {
     public async Task ConvertToNewChargingProcessStructure()
@@ -116,6 +118,11 @@ public class ChargingCostService(
     {
         logger.LogTrace("{method}({@dtoChargePrice})",
             nameof(UpdateChargePrice), dtoChargePrice);
+        if (!string.IsNullOrEmpty(settings.ChargePricesUpdateText))
+        {
+            logger.LogWarning("Can not update charge price as currently updating due to previous change");
+            return;
+        }
         ChargePrice chargePrice;
         if (dtoChargePrice.Id == null)
         {

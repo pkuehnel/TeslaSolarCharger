@@ -13,6 +13,7 @@ using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
@@ -162,6 +163,15 @@ public class PvValueService : IPvValueService
 
         if (!await _context.MqttConfigurations.AnyAsync())
         {
+            var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+            if (frontendConfiguration == default ||
+                (frontendConfiguration.GridValueSource != SolarValueSource.Mqtt
+                && frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.Mqtt
+                && frontendConfiguration.InverterValueSource != SolarValueSource.Mqtt))
+            {
+                _logger.LogDebug("Do not convert MQTT as no value source is on MQTT.");
+                return;
+            }
             var solarMqttServer = _configurationWrapper.SolarMqttServer();
             var solarMqttUser = _configurationWrapper.SolarMqttUsername();
             var solarMqttPassword = _configurationWrapper.SolarMqttPassword();
@@ -752,12 +762,18 @@ public class PvValueService : IPvValueService
         var modbusConfigurations = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
         foreach (var modbusConfiguration in modbusConfigurations)
         {
+            _logger.LogDebug("Get Modbus results for modbus Configuration {host}:{port}", modbusConfiguration.Host,
+                modbusConfiguration.Port);
             var modbusResultConfigurations =
                 await _modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
                     r.ModbusConfigurationId == modbusConfiguration.Id);
             foreach (var resultConfiguration in modbusResultConfigurations)
             {
+                _logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
+                    modbusConfiguration.Port, resultConfiguration.Address);
                 var byteArry = await _modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration);
+                _logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
+                                       modbusConfiguration.Port, resultConfiguration.Address, _modbusValueExecutionService.GetBinaryString(byteArry));
                 var value = await _modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
                 var valueUsage = resultConfiguration.UsedFor;
                 if (!resultSums.ContainsKey(valueUsage))

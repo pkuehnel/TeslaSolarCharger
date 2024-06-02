@@ -63,8 +63,11 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var openChargingProcesses = await context.ChargingProcesses
             .Where(cp => cp.EndDate != null)
             .ToListAsync().ConfigureAwait(false);
+        var failedCounter = 0;
         foreach (var chargingProcess in openChargingProcesses)
         {
+            settings.ChargePricesUpdateText =
+                $"Updating price of charging process {openChargingProcesses.IndexOf(chargingProcess)}/{openChargingProcesses.Count} ({failedCounter} failed)";
             try
             {
                 await FinalizeChargingProcess(chargingProcess);
@@ -72,8 +75,10 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error while updating charge prices of charging process with ID {chargingProcessId}.", chargingProcess.Id);
+                failedCounter++;
             }
         }
+        settings.ChargePricesUpdateText = null;
     }
 
     public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()

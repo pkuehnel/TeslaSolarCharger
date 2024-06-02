@@ -8,4 +8,5 @@ public interface IModbusValueExecutionService
     Task<byte[]> GetResult(DtoModbusConfiguration modbusConfig, DtoModbusValueResultConfiguration resultConfiguration);
     Task<decimal> GetValue(byte[] byteArray, DtoModbusValueResultConfiguration resultConfig);
     Task<List<DtoValueConfigurationOverview>> GetModbusValueOverviews();
+    string GetBinaryString(byte[] byteArray);
 }
