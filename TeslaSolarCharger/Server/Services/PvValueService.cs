@@ -170,6 +170,7 @@ public class PvValueService : IPvValueService
                 && frontendConfiguration.InverterValueSource != SolarValueSource.Mqtt))
             {
                 _logger.LogDebug("Do not convert MQTT as no value source is on MQTT.");
+                return;
             }
             var solarMqttServer = _configurationWrapper.SolarMqttServer();
             var solarMqttUser = _configurationWrapper.SolarMqttUsername();
