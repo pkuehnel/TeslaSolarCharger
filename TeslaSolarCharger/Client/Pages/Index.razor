@@ -241,7 +241,7 @@ else
                 @if (car.DtoChargeSummary.ChargedHomeBatteryEnergy > 0)
                 {
                     <div class="d-flex align-items-center mb-1">
-                        <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
+                        <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.BatteryFull"></MudIcon>
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedHomeBatteryEnergy]">
                             @car.DtoChargeSummary.ChargedHomeBatteryEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.HomeBatteryPortionPercent.ToString("0.0") %)
                         </TooltipComponent>
