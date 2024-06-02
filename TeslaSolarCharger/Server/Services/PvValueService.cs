@@ -13,6 +13,7 @@ using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
@@ -162,6 +163,14 @@ public class PvValueService : IPvValueService
 
         if (!await _context.MqttConfigurations.AnyAsync())
         {
+            var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+            if (frontendConfiguration == default ||
+                (frontendConfiguration.GridValueSource != SolarValueSource.Mqtt
+                && frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.Mqtt
+                && frontendConfiguration.InverterValueSource != SolarValueSource.Mqtt))
+            {
+                _logger.LogDebug("Do not convert MQTT as no value source is on MQTT.");
+            }
             var solarMqttServer = _configurationWrapper.SolarMqttServer();
             var solarMqttUser = _configurationWrapper.SolarMqttUsername();
             var solarMqttPassword = _configurationWrapper.SolarMqttPassword();
