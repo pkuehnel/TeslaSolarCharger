@@ -6,5 +6,6 @@ public class DtoHandledCharge
     public decimal CalculatedPrice { get; set; }
     public decimal PricePerKwh { get; set; }
     public decimal UsedGridEnergy { get; set; }
+    public decimal UsedHomeBatteryEnergy { get; set; }
     public decimal UsedSolarEnergy { get; set; }
 }

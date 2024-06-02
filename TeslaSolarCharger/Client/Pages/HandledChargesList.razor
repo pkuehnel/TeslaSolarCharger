@@ -28,10 +28,13 @@ else
                             AggregateDefinition="_pricePerKwhAggregation"></PropertyColumn>
             <PropertyColumn Property="x => x.UsedGridEnergy"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedGridEnergy))"
-                            AggregateDefinition="_usedGridEnergyAggrregation"></PropertyColumn>
+                            AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
+            <PropertyColumn Property="x => x.UsedHomeBatteryEnergy"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedHomeBatteryEnergy))"
+                            AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
             <PropertyColumn Property="x => x.UsedSolarEnergy"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedSolarEnergy))"
-                            AggregateDefinition="_usedSolarEnergyAggrregation"></PropertyColumn>
+                            AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
         </Columns>
     </MudDataGrid>
 }
@@ -63,13 +66,7 @@ else
             }
         };
 
-    private AggregateDefinition<DtoHandledCharge> _usedSolarEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
-        {
-            Type = AggregateType.Sum,
-            DisplayFormat = "\u2211: {value}",
-        };
-
-    private AggregateDefinition<DtoHandledCharge> _usedGridEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
+    private AggregateDefinition<DtoHandledCharge> _usedEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
             DisplayFormat = "\u2211: {value}",
