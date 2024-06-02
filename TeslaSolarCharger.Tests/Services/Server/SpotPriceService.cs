@@ -46,7 +46,7 @@ public class SpotPriceService : TestBase
         var endFutureMilliseconds = currentDate.AddHours(48).ToUnixTimeMilliseconds();
 
         var spotPriceService = Mock.Create<TeslaSolarCharger.Server.Services.SpotPriceService>();
-        var url = spotPriceService.GenerateAwattarUrl(dateTimeOffset);
+        var url = spotPriceService.GenerateAwattarUrl(dateTimeOffset, null);
         Assert.Equal($"https://api.awattar.de/v1/marketdata?start=1674511200000&end={endFutureMilliseconds}", url);
     }
 
@@ -57,7 +57,7 @@ public class SpotPriceService : TestBase
         Mock.Mock<IConfigurationWrapper>()
             .Setup(c => c.GetAwattarBaseUrl())
             .Returns("https://api.awattar.de/v1/marketdata");
-        var url = spotPriceService.GenerateAwattarUrl(null);
+        var url = spotPriceService.GenerateAwattarUrl(null, null);
         Assert.Equal("https://api.awattar.de/v1/marketdata", url);
     }
 }

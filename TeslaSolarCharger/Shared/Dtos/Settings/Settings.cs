@@ -33,4 +33,6 @@ public class Settings : ISettings
     public Dictionary<int, decimal?> CalculatedRestValues { get; set; } = new();
 
     public bool IsStartupCompleted { get; set; }
+
+    public string? ChargePricesUpdateText { get; set; }
 }

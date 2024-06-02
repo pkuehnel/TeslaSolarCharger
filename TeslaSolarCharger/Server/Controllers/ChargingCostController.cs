@@ -2,14 +2,17 @@
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
     public class ChargingCostController(
         IChargingCostService chargingCostService,
-        ITscOnlyChargingCostService tscOnlyChargingCostService)
+        ITscOnlyChargingCostService tscOnlyChargingCostService,
+        ISettings settings)
         : ApiBaseController
     {
         [HttpGet]
@@ -58,6 +61,12 @@ namespace TeslaSolarCharger.Server.Controllers
         public Task UpdateChargePrice([FromBody] DtoChargePrice chargePrice)
         {
             return chargingCostService.UpdateChargePrice(chargePrice);
+        }
+
+        [HttpGet]
+        public DtoValue<string?> GetChargePricesUpdateText()
+        {
+            return new DtoValue<string?>(settings.ChargePricesUpdateText);
         }
     }
 }
