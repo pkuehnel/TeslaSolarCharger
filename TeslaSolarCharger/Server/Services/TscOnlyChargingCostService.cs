@@ -112,6 +112,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 .ForMember(d => d.StartTime, opt => opt.MapFrom(h => h.StartDate.ToLocalTime()))
                 .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.Cost == null ? 0m : Math.Round(h.Cost.Value, 2)))
                 .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergyKwh == null ? 0m : Math.Round(h.UsedGridEnergyKwh.Value, 2)))
+                .ForMember(d => d.UsedHomeBatteryEnergy, opt => opt.MapFrom(h => h.UsedHomeBatteryEnergyKwh == null ? 0m : Math.Round(h.UsedHomeBatteryEnergyKwh.Value, 2)))
                 .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergyKwh == null ? 0m : Math.Round(h.UsedSolarEnergyKwh.Value, 2)))
                 ;
         });
@@ -122,10 +123,10 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .ProjectTo<DtoHandledCharge>(mapper)
             .ToListAsync().ConfigureAwait(false);
 
-        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy) < 0.1m);
+        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy + c.UsedHomeBatteryEnergy) < 0.1m);
         foreach (var dtoHandledCharge in handledCharges)
         {
-            dtoHandledCharge.PricePerKwh = Math.Round(dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy), 3);
+            dtoHandledCharge.PricePerKwh = Math.Round(dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy + dtoHandledCharge.UsedHomeBatteryEnergy), 3);
         }
         return handledCharges;
     }
@@ -137,6 +138,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         {
             chargeSummary.ChargeCost += chargingProcess.Cost ?? 0;
             chargeSummary.ChargedGridEnergy += chargingProcess.UsedGridEnergyKwh ?? 0;
+            chargeSummary.ChargedHomeBatteryEnergy += chargingProcess.UsedHomeBatteryEnergyKwh ?? 0;
             chargeSummary.ChargedSolarEnergy += chargingProcess.UsedSolarEnergyKwh ?? 0;
         }
 

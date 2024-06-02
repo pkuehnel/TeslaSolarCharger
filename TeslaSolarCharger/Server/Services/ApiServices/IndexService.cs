@@ -222,6 +222,7 @@ public class IndexService : IIndexService
             { _toolTipTextKeys.CarSocLimit, "SoC Limit (configured in the car or in the Tesla App)" },
             { _toolTipTextKeys.CarChargingPowerHome, "Power your car is currently charging at home" },
             { _toolTipTextKeys.CarChargedSolarEnergy, "Total charged solar energy" },
+            { _toolTipTextKeys.CarChargedHomeBatteryEnergy, "Total charged home battery energy" },
             { _toolTipTextKeys.CarChargedGridEnergy, "Total charged grid energy" },
             { _toolTipTextKeys.CarChargeCost, "Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed." },
             { _toolTipTextKeys.CarAtHome, "Your car is in your defined GeoFence" },
