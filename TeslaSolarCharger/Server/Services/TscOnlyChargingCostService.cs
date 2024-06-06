@@ -239,6 +239,10 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var powerBuffer = configurationWrapper.PowerBuffer(true);
         var overage = settings.Overage ?? (settings.InverterPower - (powerBuffer < 0 ? 0 : powerBuffer));
         var homeBatteryDischargingPower =  (- settings.HomeBatteryPower) ?? 0;
+        if (homeBatteryDischargingPower < 0)
+        {
+            homeBatteryDischargingPower = 0;
+        }
         var gridPower = (overage < 0) ? (-overage.Value) : 0;
         var solarPower = overage ?? 0;
         logger.LogTrace("SolarPower: {solarPower}", solarPower);
