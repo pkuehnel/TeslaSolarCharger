@@ -86,6 +86,7 @@ public class ConfigJsonService(
                     MinimumSoC = configuration.MinimumSoC,
                     LatestTimeToReachSoC = configuration.LatestTimeToReachSoC,
                     IgnoreLatestTimeToReachSocDate = configuration.IgnoreLatestTimeToReachSocDate,
+                    IgnoreLatestTimeToReachSocDateOnWeekdays = configuration.IgnoreLatestTimeToReachSocDateOnWeekdays,
                     MaximumAmpere = configuration.MaximumAmpere,
                     MinimumAmpere = configuration.MinimumAmpere,
                     UsableEnergy = configuration.UsableEnergy,
@@ -155,12 +156,15 @@ public class ConfigJsonService(
         databaseCar.MinimumSoc = carBaseSettings.MinimumStateOfCharge;
         databaseCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
         databaseCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
+        databaseCar.IgnoreLatestTimeToReachSocDateOnWeekdays = carBaseSettings.IgnoreLatestTimeToReachSocDateOnWeekdays;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var settingsCar = settings.Cars.First(c => c.Id == carBaseSettings.CarId);
         settingsCar.ChargeMode = carBaseSettings.ChargeMode;
         settingsCar.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
         settingsCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
         settingsCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
+        settingsCar.IgnoreLatestTimeToReachSocDateOnWeekdays = carBaseSettings.IgnoreLatestTimeToReachSocDateOnWeekdays;
+
 
     }
 
@@ -236,6 +240,7 @@ public class ConfigJsonService(
         entity.MinimumSoc = car.MinimumSoC;
         entity.LatestTimeToReachSoC = car.LatestTimeToReachSoC;
         entity.IgnoreLatestTimeToReachSocDate = car.IgnoreLatestTimeToReachSocDate;
+        entity.IgnoreLatestTimeToReachSocDateOnWeekdays = car.IgnoreLatestTimeToReachSocDateOnWeekdays;
         entity.MaximumAmpere = car.MaximumAmpere;
         entity.MinimumAmpere = car.MinimumAmpere;
         entity.UsableEnergy = car.UsableEnergy;
