@@ -218,7 +218,15 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     internal void UpdateCar(TeslaMateValue value)
     {
         _logger.LogTrace("{method}({@param})", nameof(UpdateCar), value);
-        var car = _settings.Cars.First(c => c.TeslaMateCarId == value.CarId);
+        var car = _settings.Cars.FirstOrDefault(c => c.TeslaMateCarId == value.CarId);
+
+        if (car == null)
+        {
+            // Logge einen Fehler oder handle den Fall, dass kein Auto gefunden wurde
+            _logger.LogError($"No car found with TeslaMateCarId {value.CarId}");
+            return; // oder andere geeignete Maﬂnahme
+        }
+
 
         switch (value.Topic)
         {

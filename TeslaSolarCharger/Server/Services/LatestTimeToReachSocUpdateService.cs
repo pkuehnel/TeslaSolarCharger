@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Model.Contracts;
+﻿using CsvHelper.Configuration;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -42,7 +43,41 @@ public class LatestTimeToReachSocUpdateService(
         logger.LogTrace("{method}({@param})", nameof(GetNewLatestTimeToReachSoc), car);
 
         var dateTimeOffSetNow = dateTimeProvider.DateTimeOffSetNow();
-        if (car.IgnoreLatestTimeToReachSocDate)
+        if (car.IgnoreLatestTimeToReachSocDateOnWeekdays)
+        {
+
+            var dateToSet = dateTimeOffSetNow.DateTime.Date;
+
+            //Mo - Thu
+            if (dateToSet.DayOfWeek == DayOfWeek.Monday || dateToSet.DayOfWeek == DayOfWeek.Tuesday || dateToSet.DayOfWeek == DayOfWeek.Wednesday || dateToSet.DayOfWeek == DayOfWeek.Thursday)
+            {
+                if (car.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
+                {
+                    dateToSet = dateTimeOffSetNow.DateTime.AddDays(1).Date;
+                }
+            }
+            //Fr
+            else if (dateToSet.DayOfWeek == DayOfWeek.Friday)
+            {
+                if (car.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)
+                {
+                    dateToSet = dateTimeOffSetNow.DateTime.AddDays(3).Date;
+                }
+
+            }
+            //Sa
+            else if (dateToSet.DayOfWeek == DayOfWeek.Saturday)
+            {
+                dateToSet = dateTimeOffSetNow.DateTime.AddDays(2).Date;
+            }
+            //Su
+            else if (dateToSet.DayOfWeek == DayOfWeek.Sunday)
+            {
+                dateToSet = dateTimeOffSetNow.DateTime.AddDays(1).Date;
+            }
+            car.LatestTimeToReachSoC = dateToSet + car.LatestTimeToReachSoC.TimeOfDay;
+        }
+        else if (car.IgnoreLatestTimeToReachSocDate)
         {
             var dateToSet = dateTimeOffSetNow.DateTime.Date;
             if (car.LatestTimeToReachSoC.TimeOfDay <= dateTimeOffSetNow.ToLocalTime().TimeOfDay)

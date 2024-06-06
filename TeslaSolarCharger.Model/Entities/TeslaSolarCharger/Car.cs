@@ -15,6 +15,7 @@ public class Car
     public DateTime LatestTimeToReachSoC { get; set; }
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }
+    public bool IgnoreLatestTimeToReachSocDateOnWeekdays { get; set; }
 
     public int MaximumAmpere { get; set; }
 
