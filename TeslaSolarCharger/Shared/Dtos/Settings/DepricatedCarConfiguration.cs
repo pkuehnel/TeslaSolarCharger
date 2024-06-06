@@ -1,4 +1,4 @@
-﻿using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -17,7 +17,7 @@ public class DepricatedCarConfiguration
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }
 
-    public bool IgnoreLatestTimeToReachSocDateOnWeekend { get; set; }
+    public bool IgnoreLatestTimeToReachSocDateOnWeekdays { get; set; }
 
     public int MaximumAmpere { get; set; }
 

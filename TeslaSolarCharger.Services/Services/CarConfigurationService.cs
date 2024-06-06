@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks.Sources;
 using TeslaSolarCharger.Model.Contracts;
@@ -46,7 +46,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                 MinimumSoc = 10,
                 LatestTimeToReachSoC = dateTimeProvider.UtcNow(),
                 IgnoreLatestTimeToReachSocDate = false,
-                IgnoreLatestTimeToReachSocDateOnWeekend = false,
+                IgnoreLatestTimeToReachSocDateOnWeekdays = false,
                 MaximumAmpere = 16,
                 MinimumAmpere = 6,
                 UsableEnergy = 75,

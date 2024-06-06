@@ -1,4 +1,4 @@
-﻿using CsvHelper.Configuration;
+using CsvHelper.Configuration;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -43,7 +43,7 @@ public class LatestTimeToReachSocUpdateService(
         logger.LogTrace("{method}({@param})", nameof(GetNewLatestTimeToReachSoc), car);
 
         var dateTimeOffSetNow = dateTimeProvider.DateTimeOffSetNow();
-        if (car.IgnoreLatestTimeToReachSocDateOnWeekend)
+        if (car.IgnoreLatestTimeToReachSocDateOnWeekdays)
         {
 
             var dateToSet = dateTimeOffSetNow.DateTime.Date;
@@ -63,6 +63,7 @@ public class LatestTimeToReachSocUpdateService(
                 {
                     dateToSet = dateTimeOffSetNow.DateTime.AddDays(3).Date;
                 }
+
             }
             //Sa
             else if (dateToSet.DayOfWeek == DayOfWeek.Saturday)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.TimeProviding;
@@ -20,7 +20,7 @@ public class LatestTimeToReachSocUpdateService : TestBase
         var car = new DtoCar()
         {
             IgnoreLatestTimeToReachSocDate = shouldIgnoreDate,
-            IgnoreLatestTimeToReachSocDateOnWeekend = shouldIgnoreDateOnWeekend,
+            IgnoreLatestTimeToReachSocDateOnWeekdays = shouldIgnoreDateOnWeekend,
             LatestTimeToReachSoC = configuredDate,
         };
 
