@@ -15,11 +15,12 @@ public class LatestTimeToReachSocUpdateService : TestBase
     }
 
     [Theory, MemberData(nameof(CorrectData))]
-    public void Correctly_Updates_LatestTimeToReachSoc(bool shouldIgnoreDate, DateTime currentDate, DateTime configuredDate, DateTime expectedDate)
+    public void Correctly_Updates_LatestTimeToReachSoc(bool shouldIgnoreDate, bool shouldIgnoreDateOnWeekend, DateTime currentDate, DateTime configuredDate, DateTime expectedDate)
     {
         var car = new DtoCar()
         {
             IgnoreLatestTimeToReachSocDate = shouldIgnoreDate,
+            IgnoreLatestTimeToReachSocDateOnWeekdays = shouldIgnoreDateOnWeekend,
             LatestTimeToReachSoC = configuredDate,
         };
 
