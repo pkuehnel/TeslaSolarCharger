@@ -63,11 +63,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var openChargingProcesses = await context.ChargingProcesses
             .Where(cp => cp.EndDate != null)
             .ToListAsync().ConfigureAwait(false);
-        var failedCounter = 0;
         foreach (var chargingProcess in openChargingProcesses)
         {
-            settings.ChargePricesUpdateText =
-                $"Updating price of charging process {openChargingProcesses.IndexOf(chargingProcess)}/{openChargingProcesses.Count} ({failedCounter} failed)";
             try
             {
                 await FinalizeChargingProcess(chargingProcess);
@@ -75,10 +72,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error while updating charge prices of charging process with ID {chargingProcessId}.", chargingProcess.Id);
-                failedCounter++;
             }
         }
-        settings.ChargePricesUpdateText = null;
     }
 
     public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
@@ -117,6 +112,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 .ForMember(d => d.StartTime, opt => opt.MapFrom(h => h.StartDate.ToLocalTime()))
                 .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.Cost == null ? 0m : Math.Round(h.Cost.Value, 2)))
                 .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergyKwh == null ? 0m : Math.Round(h.UsedGridEnergyKwh.Value, 2)))
+                .ForMember(d => d.UsedHomeBatteryEnergy, opt => opt.MapFrom(h => h.UsedHomeBatteryEnergyKwh == null ? 0m : Math.Round(h.UsedHomeBatteryEnergyKwh.Value, 2)))
                 .ForMember(d => d.UsedSolarEnergy, opt => opt.MapFrom(h => h.UsedSolarEnergyKwh == null ? 0m : Math.Round(h.UsedSolarEnergyKwh.Value, 2)))
                 ;
         });
@@ -127,10 +123,10 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .ProjectTo<DtoHandledCharge>(mapper)
             .ToListAsync().ConfigureAwait(false);
 
-        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy) < 0.1m);
+        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy + c.UsedHomeBatteryEnergy) < 0.1m);
         foreach (var dtoHandledCharge in handledCharges)
         {
-            dtoHandledCharge.PricePerKwh = Math.Round(dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy), 3);
+            dtoHandledCharge.PricePerKwh = Math.Round(dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy + dtoHandledCharge.UsedHomeBatteryEnergy), 3);
         }
         return handledCharges;
     }
@@ -142,6 +138,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         {
             chargeSummary.ChargeCost += chargingProcess.Cost ?? 0;
             chargeSummary.ChargedGridEnergy += chargingProcess.UsedGridEnergyKwh ?? 0;
+            chargeSummary.ChargedHomeBatteryEnergy += chargingProcess.UsedHomeBatteryEnergyKwh ?? 0;
             chargeSummary.ChargedSolarEnergy += chargingProcess.UsedSolarEnergyKwh ?? 0;
         }
 
@@ -157,6 +154,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .OrderBy(cd => cd.TimeStamp)
             .ToListAsync().ConfigureAwait(false);
         decimal usedSolarEnergyWh = 0;
+        decimal usedHomeBatteryEnergyWh = 0;
         decimal usedGridEnergyWh = 0;
         decimal cost = 0;
         chargingProcess.EndDate = chargingDetails.Last().TimeStamp;
@@ -166,6 +164,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         for (var index = 1; index < chargingDetails.Count; index++)
         {
             var price = GetPriceByTimeStamp(prices, chargingDetails[index].TimeStamp);
+            logger.LogTrace("Price for timestamp {timeStamp}: {@price}", chargingDetails[index].TimeStamp, price);
             var chargingDetail = chargingDetails[index];
             var timeSpanSinceLastDetail = chargingDetail.TimeStamp - chargingDetails[index - 1].TimeStamp;
             
@@ -176,12 +175,16 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             }
             var usedSolarWhSinceLastChargingDetail = (decimal)(chargingDetail.SolarPower * timeSpanSinceLastDetail.TotalHours);
             usedSolarEnergyWh += usedSolarWhSinceLastChargingDetail;
+            var usedHomeBatteryWhSinceLastChargingDetail = (decimal)(chargingDetail.HomeBatteryPower * timeSpanSinceLastDetail.TotalHours);
+            usedHomeBatteryEnergyWh += usedHomeBatteryWhSinceLastChargingDetail;
             var usedGridPowerSinceLastChargingDetail = (decimal)(chargingDetail.GridPower * timeSpanSinceLastDetail.TotalHours);
             usedGridEnergyWh += usedGridPowerSinceLastChargingDetail;
             cost += usedGridPowerSinceLastChargingDetail * price.Value;
             cost += usedSolarWhSinceLastChargingDetail * price.SolarPrice;
+            cost += usedHomeBatteryWhSinceLastChargingDetail * price.SolarPrice;
         }
         chargingProcess.UsedSolarEnergyKwh = usedSolarEnergyWh / 1000m;
+        chargingProcess.UsedHomeBatteryEnergyKwh = usedHomeBatteryEnergyWh / 1000m;
         chargingProcess.UsedGridEnergyKwh = usedGridEnergyWh / 1000m;
         chargingProcess.Cost = cost / 1000m;
         await context.SaveChangesAsync().ConfigureAwait(false);
@@ -233,72 +236,95 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     public async Task AddChargingDetailsForAllCars()
     {
         logger.LogTrace("{method}()", nameof(AddChargingDetailsForAllCars));
-        var overage = GetOverage();
-        var solarPower = overage;
-        foreach (var car in settings.Cars)
+        var powerBuffer = configurationWrapper.PowerBuffer(true);
+        var overage = settings.Overage ?? (settings.InverterPower - (powerBuffer < 0 ? 0 : powerBuffer));
+        var homeBatteryDischargingPower =  (- settings.HomeBatteryPower) ?? 0;
+        if (homeBatteryDischargingPower < 0)
         {
-            if (car.ChargingPowerAtHome != default)
+            homeBatteryDischargingPower = 0;
+        }
+        var gridPower = (overage < 0) ? (-overage.Value) : 0;
+        var solarPower = overage ?? 0;
+        logger.LogTrace("SolarPower: {solarPower}", solarPower);
+        logger.LogTrace("HomeBatteryDischargingPower: {homeBatteryDischargingPower}", homeBatteryDischargingPower);
+        var combinedChargingPowerAtHome = settings.CarsToManage.Sum(c => c.ChargingPowerAtHome ?? 0);
+        var usedGridPower = 0;
+        var usedHomeBatteryPower = 0;
+        var usedSolarPower = 0;
+        if (combinedChargingPowerAtHome == 0)
+        {
+            logger.LogTrace("No car is charging at home so no charging detail to create.");
+            return;
+        }
+        logger.LogTrace("Combined charging power at home: {combinedChargingPowerAtHome}", combinedChargingPowerAtHome);
+        if (gridPower > combinedChargingPowerAtHome)
+        {
+            logger.LogTrace("Grid power is enough for all cars.");
+            usedGridPower = combinedChargingPowerAtHome;
+        }
+        else
+        {
+            usedGridPower = gridPower;
+            combinedChargingPowerAtHome -= gridPower;
+            logger.LogTrace("Using {usedGridPower} W from grid", usedGridPower);
+            if (homeBatteryDischargingPower > combinedChargingPowerAtHome)
             {
-                solarPower += car.ChargingPowerAtHome.Value;
+                logger.LogTrace("Home battery power is enough for all cars.");
+                usedHomeBatteryPower = combinedChargingPowerAtHome;
+            }
+            else
+            {
+                usedHomeBatteryPower = homeBatteryDischargingPower;
+                logger.LogTrace("Using {usedHomeBatteryPower} W from home battery", usedHomeBatteryPower);
+                combinedChargingPowerAtHome -= homeBatteryDischargingPower;
+                usedSolarPower = combinedChargingPowerAtHome;
+                logger.LogTrace("Using {usedSolarPower} W from solar", usedSolarPower);
             }
         }
-        foreach (var car in settings.CarsToManage.OrderBy(c => c.ChargingPriority))
+        foreach (var car in settings.CarsToManage.OrderByDescending(c => c.ChargingPriority))
         {
             var chargingPowerAtHome = car.ChargingPowerAtHome ?? 0;
             if (chargingPowerAtHome < 1)
             {
-                logger.LogTrace("Car with ID {carId} 0 Watt chargingPower at home", car.Id);
+                logger.LogTrace("Car with ID {carId} currently not charging at home so no charging detail to create.", car.Id);
                 continue;
             }
             var chargingDetail = await GetAttachedChargingDetail(car.Id);
-            if (solarPower - chargingPowerAtHome > 0)
+            if (chargingPowerAtHome < usedGridPower)
             {
-                chargingDetail.SolarPower = chargingPowerAtHome;
-                chargingDetail.GridPower = 0;
+                logger.LogTrace("Grid power is enough for car with ID {carId}.", car.Id);
+                chargingDetail.GridPower = chargingPowerAtHome;
+                usedGridPower -= chargingPowerAtHome;
+                logger.LogTrace("Grid power after charging detail: {gridPower}", usedGridPower);
             }
             else
             {
-                chargingDetail.SolarPower = (solarPower < 0 ? 0 : solarPower);
-                if (solarPower < 0)
+                chargingDetail.GridPower = usedGridPower;
+                usedGridPower = 0;
+                chargingPowerAtHome -= chargingDetail.GridPower;
+                logger.LogTrace("Remaining charging power after using gridPower for car {carId}: {chargingPowerAtHome}", car.Id, chargingPowerAtHome);
+                if (chargingPowerAtHome < usedHomeBatteryPower)
                 {
-                    chargingDetail.GridPower = chargingPowerAtHome;
+                    logger.LogTrace("Home battery power is enough for car with ID {carId}.", car.Id);
+                    chargingDetail.HomeBatteryPower = chargingPowerAtHome;
+                    usedHomeBatteryPower -= chargingPowerAtHome;
+                    logger.LogTrace("Home battery power after charging detail: {homeBatteryDischargingPower}", usedHomeBatteryPower);
                 }
                 else
                 {
-                    chargingDetail.GridPower = chargingPowerAtHome - solarPower;
+                    chargingDetail.HomeBatteryPower = usedHomeBatteryPower;
+                    usedHomeBatteryPower = 0;
+                    chargingPowerAtHome -= chargingDetail.HomeBatteryPower;
+                    logger.LogTrace("Remaining charging power after using home battery power for car {carId}: {chargingPowerAtHome}", car.Id, chargingPowerAtHome);
+                    chargingDetail.SolarPower = chargingPowerAtHome;
                 }
             }
-            solarPower -= chargingDetail.SolarPower;
-            if (solarPower < 0)
-            {
-                solarPower = 0;
-            }
+            logger.LogTrace("Solar power after charging detail: {solarPower}", usedSolarPower);
+            logger.LogTrace("Home battery power after charging detail: {homeBatteryDischargingPower}", usedHomeBatteryPower);
+            logger.LogTrace("Grid power after charging detail: {gridPower}", usedGridPower);
+            logger.LogTrace("Created charging detail: {@chargingDetail}", chargingDetail);
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-    private int GetOverage()
-    {
-        var overage = settings.Overage;
-        if (settings.HomeBatteryPower != default)
-        {
-            overage += settings.HomeBatteryPower;
-        }
-        if (overage == default && settings.InverterPower != default)
-        {
-            //no grid meter available, so we have to calculate the power by using the inverter power and the power buffer
-            var powerBuffer = configurationWrapper.PowerBuffer(true);
-            overage = settings.InverterPower
-                         //if powerBuffer is negative, it will be subtracted as it should be expected home power usage when no grid meter is available
-                         - (powerBuffer > 0 ? powerBuffer : 0);
-        }
-
-        if (overage == default)
-        {
-            logger.LogInformation("No solar power available, using 0 as default.");
-            return 0;
-        }
-        return (int)overage;
     }
 
     private async Task<ChargingDetail> GetAttachedChargingDetail(int carId)
