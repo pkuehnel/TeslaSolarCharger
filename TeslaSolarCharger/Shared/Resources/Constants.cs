@@ -10,6 +10,9 @@ public class Constants : IConstants
     public int MinSocLimit => 50;
     public int DefaultOverage => -1000000;
     public int MinimumSocDifference => 2;
+
+    public string NextAllowedTeslaApiRequest => "NextAllowedTeslaApiRequest";
+
     public string BackupZipBaseFileName => "TSC-Backup.zip";
     public string DefaultMargin => "mb-4";
     public Margin InputMargin => Margin.Dense;

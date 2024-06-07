@@ -145,6 +145,18 @@ else
                     </TooltipComponent>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
                 </div>
+                
+                @if (DateTime.UtcNow < car.RateLimitedUntil)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        <div>Car currently rate limited.</div>
+                        <hr/>
+                        <p>
+                            Your car is rate limited by Tesla and TSC won't be able to set the charging power until @(car.RateLimitedUntil.Value.ToLocalTime().ToString("g")). For now there is no solution to this as Tesla implemented the rate limits without an option to pay for more. So even after the rate limit is over, TSC only has 50 requests. After the 50 requests within 24 hours, the rate limit is present again for the next 24 hours.<br/>
+                        </p>
+
+                    </div>
+                }
 
                 @if (_usingFleetApi == true && car.VehicleCommandProtocolRequired)
                 {

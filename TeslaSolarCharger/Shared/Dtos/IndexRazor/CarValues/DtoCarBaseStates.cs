@@ -24,5 +24,6 @@ public class DtoCarBaseStates
     public bool VehicleCommandProtocolRequired { get; set; }
     public List<DtoChargeInformation> ChargeInformation { get; set; } = new();
     public CarStateEnum? State { get; set; }
+    public DateTime? RateLimitedUntil { get; set; }
     public List<DtoChargingSlot> ChargingSlots { get; set; } = new();
 }
