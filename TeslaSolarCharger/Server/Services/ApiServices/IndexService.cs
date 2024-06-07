@@ -178,7 +178,7 @@ public class IndexService : IIndexService
         {
             result.Add(new DtoChargeInformation()
             {
-                InfoText = $"SoC Limit is at least {_constants.MinimumSocDifference + 1}% higher than acutal SoC",
+                InfoText = $"SoC Limit is at least {_constants.MinimumSocDifference + 1}% higher than actual SoC",
                 TimeToDisplay = default,
             });
         }

@@ -486,7 +486,7 @@ public class TeslaFleetApiService(
             await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                 $"Logged Response string: {responseString}").ConfigureAwait(false);
         }
-        
+        logger.LogTrace("Response string: {responseString}", responseString);
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(responseString);
         if (response.IsSuccessStatusCode)
         {
