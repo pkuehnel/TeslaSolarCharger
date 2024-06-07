@@ -104,6 +104,7 @@ public class IndexService : IIndexService
             var dbCar = await _teslaSolarChargerContext.Cars.Where(c => c.Id == enabledCar.Id).SingleAsync();
             dtoCarBaseValues.FleetApiState = dbCar.TeslaFleetApiState;
             dtoCarBaseValues.VehicleCommandProtocolRequired = dbCar.VehicleCommandProtocolRequired;
+            dtoCarBaseValues.RateLimitedUntil = dbCar.RateLimitedUntil;
 
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
 
