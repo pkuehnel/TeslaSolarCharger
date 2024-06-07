@@ -16,6 +16,7 @@ public interface IConstants
     string InstallationIdKey { get; }
     string FleetApiTokenRequested { get; }
     string TokenMissingScopes { get; }
+    string NextAllowedTeslaApiRequest { get; }
     string BackupZipBaseFileName { get; }
     TimeSpan MaxTokenRequestWaitTime { get; }
     TimeSpan MinTokenRestLifetime { get; }

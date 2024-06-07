@@ -104,6 +104,7 @@ public class IndexService : IIndexService
             var dbCar = await _teslaSolarChargerContext.Cars.Where(c => c.Id == enabledCar.Id).SingleAsync();
             dtoCarBaseValues.FleetApiState = dbCar.TeslaFleetApiState;
             dtoCarBaseValues.VehicleCommandProtocolRequired = dbCar.VehicleCommandProtocolRequired;
+            dtoCarBaseValues.RateLimitedUntil = dbCar.RateLimitedUntil;
 
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
 
@@ -178,7 +179,7 @@ public class IndexService : IIndexService
         {
             result.Add(new DtoChargeInformation()
             {
-                InfoText = $"SoC Limit is at least {_constants.MinimumSocDifference + 1}% higher than acutal SoC",
+                InfoText = $"SoC Limit is at least {_constants.MinimumSocDifference + 1}% higher than actual SoC",
                 TimeToDisplay = default,
             });
         }

@@ -469,6 +469,13 @@ public class TeslaFleetApiService(
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
         var content = new StringContent(contentData, System.Text.Encoding.UTF8, "application/json");
+        var rateLimitedUntil = await RateLimitedUntil(vin).ConfigureAwait(false);
+        var currentDate = dateTimeProvider.UtcNow();
+        if (currentDate < rateLimitedUntil)
+        {
+            logger.LogError("Car with VIN {vin} rate limited until {rateLimitedUntil}. Skipping command.", vin, rateLimitedUntil);
+            return null;
+        }
         var fleetApiProxyRequired = await IsFleetApiProxyEnabled(vin).ConfigureAwait(false);
         var baseUrl = GetFleetApiBaseUrl(accessToken.Region, fleetApiRequest.NeedsProxy, fleetApiProxyRequired.Value);
         var requestUri = $"{baseUrl}api/1/vehicles/{vin}/{fleetApiRequest.RequestUrl}";
@@ -486,8 +493,9 @@ public class TeslaFleetApiService(
             await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                 $"Logged Response string: {responseString}").ConfigureAwait(false);
         }
-        
-        var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(responseString);
+        logger.LogTrace("Response status code: {statusCode}", response.StatusCode);
+        logger.LogTrace("Response string: {responseString}", responseString);
+        logger.LogTrace("Response headers: {@headers}", response.Headers);
         if (response.IsSuccessStatusCode)
         {
         }
@@ -498,7 +506,7 @@ public class TeslaFleetApiService(
             logger.LogError("Sending command to Tesla API resulted in non succes status code: {statusCode} : Command name:{commandName}, Content data:{contentData}. Response string: {responseString}", response.StatusCode, fleetApiRequest.RequestUrl, contentData, responseString);
             await HandleNonSuccessTeslaApiStatusCodes(response.StatusCode, accessToken, responseString, vin).ConfigureAwait(false);
         }
-
+        var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(responseString);
         if (response.IsSuccessStatusCode && (teslaCommandResultResponse?.Response is DtoVehicleCommandResult vehicleCommandResult))
         {
             if (vehicleCommandResult.Result != true)
@@ -512,6 +520,16 @@ public class TeslaFleetApiService(
         }
         logger.LogDebug("Response: {responseString}", responseString);
         return teslaCommandResultResponse;
+    }
+
+    private async Task<DateTime?> RateLimitedUntil(string vin)
+    {
+        logger.LogTrace("{method}", nameof(RateLimitedUntil));
+        var rateLimitedUntil = await teslaSolarChargerContext.Cars
+            .Where(c => c.Vin == vin)
+            .Select(c => c.RateLimitedUntil)
+            .FirstAsync();
+        return rateLimitedUntil;
     }
 
     private async Task HandleUnsignedCommands(DtoVehicleCommandResult vehicleCommandResult, string vin)
@@ -806,6 +824,13 @@ public class TeslaFleetApiService(
             var car = teslaSolarChargerContext.Cars.First(c => c.Vin == vin);
             car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
         }
+        else if (statusCode == HttpStatusCode.TooManyRequests)
+        {
+            logger.LogWarning("Too many requests to Tesla API for car {vin}. {responseString}", vin, responseString);
+            var car = teslaSolarChargerContext.Cars.First(c => c.Vin == vin);
+            var nextAllowedUtcTime = GetUtcTimeFromRetryInSeconds(responseString);
+            car.RateLimitedUntil = nextAllowedUtcTime;
+        }
         else
         {
             logger.LogWarning(
@@ -815,5 +840,29 @@ public class TeslaFleetApiService(
         }
 
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private DateTime GetUtcTimeFromRetryInSeconds(string responseString)
+    {
+        logger.LogTrace("{method}({responseString})", nameof(GetUtcTimeFromRetryInSeconds), responseString);
+
+        var retryInSeconds = RetryInSeconds(responseString);
+        var nextAllowedUtcTime = dateTimeProvider.UtcNow().AddSeconds(retryInSeconds);
+        return nextAllowedUtcTime;
+    }
+
+    internal int RetryInSeconds(string responseString)
+    {
+        logger.LogTrace("{method}({responseString})", nameof(RetryInSeconds), responseString);
+        try
+        {
+            var retryInSeconds = int.Parse(responseString.Split("Retry in ")[1].Split(" seconds")[0]);
+            return retryInSeconds;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not parse retry in seconds from response string: {responseString}", responseString);
+            return 0;
+        }
     }
 }
