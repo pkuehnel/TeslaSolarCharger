@@ -486,7 +486,14 @@ public class TeslaFleetApiService(
             await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                 $"Logged Response string: {responseString}").ConfigureAwait(false);
         }
+        logger.LogTrace("Response status code: {statusCode}", response.StatusCode);
         logger.LogTrace("Response string: {responseString}", responseString);
+        logger.LogTrace("Response headers: {@headers}", response.Headers);
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+        {
+            logger.LogWarning("Too many requests. {responseString}", responseString);
+            throw new HttpRequestException(responseString);
+        }
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(responseString);
         if (response.IsSuccessStatusCode)
         {
