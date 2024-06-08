@@ -169,6 +169,13 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public string BleBaseUrl()
+    {
+        var environmentVariableName = "BleBaseUrl";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        return value;
+    }
+
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
         var minimum = TimeSpan.FromSeconds(20);

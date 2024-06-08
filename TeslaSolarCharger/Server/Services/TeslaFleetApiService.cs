@@ -33,23 +33,27 @@ public class TeslaFleetApiService(
     ITscConfigurationService tscConfigurationService,
     IBackendApiService backendApiService,
     ISettings settings,
-    IConfigJsonService configJsonService)
+    IConfigJsonService configJsonService,
+    IBleService bleService)
     : ITeslaService, ITeslaFleetApiService
 {
     private DtoFleetApiRequest ChargeStartRequest => new()
     {
         RequestUrl = "command/charge_start",
         NeedsProxy = true,
+        BleCompatible = true,
     };
     private DtoFleetApiRequest ChargeStopRequest => new()
     {
         RequestUrl = "command/charge_stop",
         NeedsProxy = true,
+        BleCompatible = true,
     };
     private DtoFleetApiRequest SetChargingAmpsRequest => new()
     {
         RequestUrl = "command/set_charging_amps",
         NeedsProxy = true,
+        BleCompatible = true,
     };
     private DtoFleetApiRequest SetScheduledChargingRequest => new()
     {
@@ -128,19 +132,8 @@ public class TeslaFleetApiService(
         }
         var vin = GetVinByCarId(carId);
         var commandData = $"{{\"charging_amps\":{amps}}}";
-        var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, HttpMethod.Post, commandData).ConfigureAwait(false);
-        if (amps < 5 && car.LastSetAmp >= 5
-            || amps >= 5 && car.LastSetAmp < 5)
-        {
-            logger.LogDebug("Double set amp to be able to jump over or below 5A");
-            await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
-            result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, HttpMethod.Post, commandData).ConfigureAwait(false);
-        }
-
-        if (result?.Response?.Result == true)
-        {
-            car.LastSetAmp = amps;
-        }
+        var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, HttpMethod.Post, commandData, amps).ConfigureAwait(false);
+        car.LastSetAmp = amps;
     }
 
     public async Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
@@ -462,9 +455,37 @@ public class TeslaFleetApiService(
         }
     }
 
-    private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, HttpMethod httpMethod, string contentData = "{}") where T : class
+    private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, HttpMethod httpMethod, string contentData = "{}", int? amp = null) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {contentData})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, contentData);
+        if (fleetApiRequest.BleCompatible)
+        {
+            var isCarBleEnabled = await teslaSolarChargerContext.Cars
+                .Where(c => c.Vin == vin)
+                .Select(c => c.UseBle)
+                .FirstAsync();
+            if (isCarBleEnabled)
+            {
+                var bleAddress = configurationWrapper.BleBaseUrl();
+                if (!string.IsNullOrEmpty(bleAddress))
+                {
+                    if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+                    {
+                        await bleService.StartCharging(vin);
+                    }
+                    else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+                    {
+                        await bleService.StopCharging(vin);
+                    }
+                    else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
+                    {
+                        await bleService.SetAmp(vin, amp!.Value);
+                    }
+
+                    return new DtoGenericTeslaResponse<T>(){};
+                }
+            }
+        }
         var accessToken = await GetAccessToken().ConfigureAwait(false);
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
