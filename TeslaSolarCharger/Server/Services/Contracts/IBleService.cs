@@ -7,4 +7,5 @@ public interface IBleService
     Task StartCharging(string vin);
     Task StopCharging(string vin);
     Task SetAmp(string vin, int amps);
+    Task<string> PairKey(string vin);
 }

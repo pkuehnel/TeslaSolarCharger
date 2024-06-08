@@ -52,6 +52,30 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var result = await SendCommandToBle(request).ConfigureAwait(false);
     }
 
+    public async Task<string> PairKey(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(PairKey), vin);
+        var bleBaseUrl = configurationWrapper.BleBaseUrl();
+        if (!bleBaseUrl.EndsWith("/"))
+        {
+            bleBaseUrl += "/";
+        }
+        bleBaseUrl += "Pairing/PairCar";
+        var queryString = HttpUtility.ParseQueryString(string.Empty);
+        queryString.Add("vin", vin);
+        var url = $"{bleBaseUrl}?{queryString}";
+        logger.LogTrace("Ble Url: {bleUrl}", url);
+        using var client = new HttpClient();
+        var response = await client.GetAsync(url).ConfigureAwait(false);
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
+            throw new InvalidOperationException();
+        }
+        return responseContent;
+    }
+
     public Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
     {
         throw new NotImplementedException();

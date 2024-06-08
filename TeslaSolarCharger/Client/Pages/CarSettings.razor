@@ -27,6 +27,16 @@ else
                 <GenericInput For="() => carBasicConfiguration.ShouldSetChargeStartTimes" />
                 <GenericInput For="() => carBasicConfiguration.UseBle" />
             </EditFormComponent>
+            <div>
+                Note: Before TSC can update charge speed via BLE you must pair the car with TSC.
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="_ => PairCar(carBasicConfiguration.Vin)">Ble Pair</MudButton>
+            <div>
+                @if (_pairingResults.ContainsKey(carBasicConfiguration.Vin))
+                {
+                    @_pairingResults[carBasicConfiguration.Vin]
+                }
+            </div>
         </div>
     }
 }
@@ -34,6 +44,8 @@ else
 @code {
     private List<CarBasicConfiguration>? _carBasicConfigurations;
     private readonly List<int> _savingCarIds = new();
+
+    private Dictionary<string, string> _pairingResults = new Dictionary<string, string>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -54,4 +66,11 @@ else
         }
         _savingCarIds.RemoveAll(i => i == carId);
     }
+
+    private async Task PairCar(string vin)
+    {
+        var result = await HttpClient.GetStringAsync($"/api/Ble/PairKey?vin={vin}").ConfigureAwait(false);
+        _pairingResults[vin] = result;
+    }
+
 }

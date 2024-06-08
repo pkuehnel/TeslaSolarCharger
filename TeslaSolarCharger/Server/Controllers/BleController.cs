@@ -4,8 +4,11 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class BleTestController (IBleService bleService) : ApiBaseController
+public class BleController (IBleService bleService) : ApiBaseController
 {
+    [HttpGet]
+    public Task<string> PairKey(string vin) => bleService.PairKey(vin);
+
     [HttpGet]
     public Task StartCharging(string vin) => bleService.StartCharging(vin);
 
