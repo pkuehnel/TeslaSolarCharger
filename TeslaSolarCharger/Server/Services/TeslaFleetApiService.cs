@@ -121,6 +121,7 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({carId}, {amps})", nameof(SetAmp), carId, amps);
         var car = settings.Cars.First(c => c.Id == carId);
+        car.LastSetAmp = amps;
         if (car.ChargerRequestedCurrent == amps)
         {
             logger.LogDebug("Correct charging amp already set.");
