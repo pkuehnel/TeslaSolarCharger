@@ -71,7 +71,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var bleBaseUrl = configurationWrapper.BleBaseUrl();
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
-            return new DtoBleResult() { Message = "BLE Base Url is not set.", StatusCode = HttpStatusCode.BadRequest, Success = false, };
+            return new DtoBleResult() { Message = "BLE Base URL is not set. Set a BLE URL in your base configuration.", StatusCode = HttpStatusCode.BadRequest, Success = false, };
         }
         
         bleBaseUrl += "Pairing/PairCar";
@@ -119,7 +119,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             return new DtoBleResult()
             {
                 Success = false,
-                Message = "BLE Base Url is not set. Set a BLE Url in your base configuration.",
+                Message = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
                 StatusCode = HttpStatusCode.BadRequest,
             };
         }
