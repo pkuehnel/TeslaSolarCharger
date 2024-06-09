@@ -102,6 +102,7 @@ else
 
     private async Task PairCar(string vin)
     {
+        _pairingResults.Remove(vin);
         _loadingVins.Add(vin);
         var result = await HttpClient.GetStringAsync($"/api/Ble/PairKey?vin={vin}").ConfigureAwait(false);
         var resultJson = JsonConvert.DeserializeObject<DtoBleResult>(result);
@@ -111,6 +112,7 @@ else
 
     private async Task TestBle(string vin)
     {
+        _bleTestResults.Remove(vin);
         _loadingVins.Add(vin);
         var result = await HttpClient.GetFromJsonAsync<DtoBleResult>($"/api/Ble/FlashLights?vin={vin}").ConfigureAwait(false) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
         if(result.Success && string.IsNullOrWhiteSpace(result.Message))
