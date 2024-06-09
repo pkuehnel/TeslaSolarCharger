@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
@@ -7,7 +9,7 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class BleController (IBleService bleService) : ApiBaseController
 {
     [HttpGet]
-    public Task<string> PairKey(string vin) => bleService.PairKey(vin);
+    public Task<DtoBleResult> PairKey(string vin) => bleService.PairKey(vin);
 
     [HttpGet]
     public Task StartCharging(string vin) => bleService.StartCharging(vin);
@@ -17,4 +19,7 @@ public class BleController (IBleService bleService) : ApiBaseController
 
     [HttpGet]
     public Task SetAmp(string vin, int amps) => bleService.SetAmp(vin, amps);
+
+    [HttpGet]
+    public Task<DtoBleResult> FlashLights(string vin) => bleService.FlashLights(vin);
 }

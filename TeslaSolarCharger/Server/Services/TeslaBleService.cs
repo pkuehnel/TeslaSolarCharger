@@ -5,6 +5,7 @@ using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -53,13 +54,24 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var result = await SendCommandToBle(request).ConfigureAwait(false);
     }
 
-    public async Task<string> PairKey(string vin)
+    public async Task<DtoBleResult> FlashLights(string vin)
+    {
+        var request = new DtoBleRequest
+        {
+            Vin = vin,
+            CommandName = "flash-lights",
+        };
+        var result = await SendCommandToBle(request).ConfigureAwait(false);
+        return result;
+    }
+
+    public async Task<DtoBleResult> PairKey(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(PairKey), vin);
         var bleBaseUrl = configurationWrapper.BleBaseUrl();
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
-            throw new InvalidOperationException("BLE Base Url is not set.");
+            return new DtoBleResult() { Message = "BLE Base Url is not set.", StatusCode = HttpStatusCode.BadRequest, Success = false, };
         }
         if (!bleBaseUrl.EndsWith("/"))
         {
@@ -75,10 +87,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
-            throw new InvalidOperationException();
+            return new DtoBleResult() { Message = responseContent, StatusCode = response.StatusCode, Success = false, };
         }
-        return responseContent;
+        // Success is unknown as the response is not known
+        return new DtoBleResult() {Message = responseContent, StatusCode = response.StatusCode, Success = false};
     }
 
     public Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
