@@ -16,7 +16,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
   - [Setting up TeslaMate including TeslaSolarCharger](#Setting-up-TeslaMate-including-TeslaSolarCharger)
     - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
-    - [Setup BLE API](#setup-ble-api)
+    - [Install and setup BLE API](#install-and-setup-ble-api)
 - [Often used optional settings](#often-used-optional-settings)
   - [Power Buffer](#power-buffer)
   - [Home Battery](#home-battery)
