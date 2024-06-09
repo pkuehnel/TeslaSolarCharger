@@ -108,6 +108,10 @@ else
     private async Task TestBle(string vin)
     {
         var result = await HttpClient.GetFromJsonAsync<DtoBleResult>($"/api/Ble/FlashLights?vin={vin}").ConfigureAwait(false) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
+        if(result.Success && string.IsNullOrWhiteSpace(result.Message))
+        {
+            result.Message = "Ble success seems to work. Please double check if lights were flashing.";
+        }
         _bleTestResults[vin] = result;
     }
 

@@ -73,24 +73,31 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             return new DtoBleResult() { Message = "BLE Base Url is not set.", StatusCode = HttpStatusCode.BadRequest, Success = false, };
         }
-        if (!bleBaseUrl.EndsWith("/"))
-        {
-            bleBaseUrl += "/";
-        }
+        
         bleBaseUrl += "Pairing/PairCar";
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add("vin", vin);
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         using var client = new HttpClient();
-        var response = await client.GetAsync(url).ConfigureAwait(false);
-        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            return new DtoBleResult() { Message = responseContent, StatusCode = response.StatusCode, Success = false, };
+            var response = await client.GetAsync(url).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return new DtoBleResult() { Message = responseContent, StatusCode = response.StatusCode, Success = false, };
+            }
+
+            // Success is unknown as the response is not known
+            return new DtoBleResult() { Message = responseContent, StatusCode = response.StatusCode, Success = false };
         }
-        // Success is unknown as the response is not known
-        return new DtoBleResult() {Message = responseContent, StatusCode = response.StatusCode, Success = false};
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to pair key.");
+            return new DtoBleResult() { Message = ex.Message, StatusCode = HttpStatusCode.InternalServerError, Success = false, };
+        }
+        
     }
 
     public Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
@@ -116,10 +123,6 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 StatusCode = HttpStatusCode.BadRequest,
             };
         }
-        if (!bleBaseUrl.EndsWith("/"))
-        {
-            bleBaseUrl += "/";
-        }
         bleBaseUrl += "Command/ExecuteCommand";
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add("vin", request.Vin);
@@ -128,15 +131,24 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         logger.LogTrace("Ble Url: {bleUrl}", url);
         logger.LogTrace("Parameters: {@parameters}", request.Parameters);
         using var client = new HttpClient();
-        var response = await client.PostAsJsonAsync(url, request.Parameters).ConfigureAwait(false);
-        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
-            throw new InvalidOperationException();
+            var response = await client.PostAsJsonAsync(url, request.Parameters).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
+                throw new InvalidOperationException();
+            }
+            var result = JsonConvert.DeserializeObject<DtoBleResult>(responseContent);
+            return result ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleResult)}");
         }
-        var result = JsonConvert.DeserializeObject<DtoBleResult>(responseContent);
-        return result ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleResult)}");
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send ble command.");
+            return new DtoBleResult() { Message = ex.Message, StatusCode = HttpStatusCode.InternalServerError, Success = false, };
+        }
+        
     }
 
     private async Task WakeUpCarIfNeeded(int carId, CarStateEnum? carState)
