@@ -28,7 +28,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
 
 ## How to install
 
-You can either install the software in a Docker container or download the binaries and deploy it on any server. In June 2024 Tesla implemented rate limits to their API so there is a BLE (Bluetooth Low Energy, implemented since Bluetooth Version 4.0) capable device needed near the car. You can find details on how to set up BLE [here](#setup-ble-api).
+You can either install the software in a Docker container or download the binaries and deploy it on any server. In June 2024, Tesla implemented rate limits to their API, so there is a BLE (Bluetooth Low Energy, implemented since Bluetooth Version 4.0) capable device needed near the car. You can find details on how to set up BLE [here](#setup-ble-api).
 
 ### Docker compose
 
@@ -931,10 +931,10 @@ Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverte
 **Note:** These values are not needed. They are just used to show additional information.
 
 #### Install and setup BLE API
-To go around Teslas API limitations you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on or by using a separate device. Note: The device needs to be placed near the car.
+To go around Teslas API limitations, you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on, or by using a separate device. Note: The device needs to be placed near the car.
 
 ##### Install BLE API on the same device as TSC
-To setup the BLE API on the same device as your TSC is running on, you need to add the following lines to your docker-compose.yml:
+To set up the BLE API on the same device as your TSC is running on, you need to add the following lines to your docker-compose.yml:
 
 ```yaml
 services:
@@ -1082,7 +1082,7 @@ volumes:
 </details>
 
 ##### Install BLE API on a separate device
-To setup a separate device for the BLE API, you need to install Docker on the device like described [here](#docker-compose). After that, you can use the following docker-compose.yml and start the container with `docker compose up -d`:
+To set up a separate device for the BLE API, you need to install Docker on the device, like described [here](#docker-compose). Thereafter, you can use the following docker-compose.yml and start the container with `docker compose up -d`:
 
 ```yaml
 services:
@@ -1103,9 +1103,9 @@ volumes:
 ```
 
 ##### Setup BLE (same device and separate device)
-After starting the BLE API you need to add the BLE API Base URL to your TeslaSolarCharger configuration. The URL is `http://<IP of device with BLE API running>:7210/`
+After starting the BLE API, you need to add the BLE API Base URL to your TeslaSolarCharger configuration. The URL is `http://<IP of device with BLE API running>:7210/`
 
-Now you can pair each car by going to the `Car Settings` enable "Use BLE", click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeed, you can test the API by clicking on the `Set to 7A`. Note: The car needs to be awake during the pairing and test process.
+Now you can pair each car by going to the `Car Settings` enable "Use BLE", click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeded, you can test the API by clicking on the `Set to 7A`. Note: The car needs to be awake during the pairing and test process.
 
 
 
