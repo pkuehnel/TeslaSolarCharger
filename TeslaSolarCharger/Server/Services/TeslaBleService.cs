@@ -119,7 +119,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             return new DtoBleResult()
             {
                 Success = false,
-                Message = "BLE Base Url is not set.",
+                Message = "BLE Base Url is not set. Set a BLE Url in your base configuration.",
                 StatusCode = HttpStatusCode.BadRequest,
             };
         }
