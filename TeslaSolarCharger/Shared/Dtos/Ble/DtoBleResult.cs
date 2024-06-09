@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace TeslaSolarCharger.Server.Dtos.Ble;
+namespace TeslaSolarCharger.Shared.Dtos.Ble;
 
 public class DtoBleResult
 {
