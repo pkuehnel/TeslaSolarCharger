@@ -118,7 +118,7 @@ else
         var result = JsonConvert.DeserializeObject<DtoBleResult>(resultString) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
         if(result.Success && string.IsNullOrWhiteSpace(result.Message))
         {
-            result.Message = "Ble success seems to work. Please double check if the charge current was set to 7A.";
+            result.Message = "Ble success seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.";
         }
         _bleTestResults[vin] = result;
         _loadingVins.Remove(vin);
