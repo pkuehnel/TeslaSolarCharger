@@ -16,7 +16,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     ITeslamateApiService teslamateApiService,
     ISettings settings) : IBleService
 {
-    public async Task StartCharging(string vin)
+    public async Task<DtoBleResult> StartCharging(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(StartCharging), vin);
         var request = new DtoBleRequest
@@ -25,6 +25,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             CommandName = "charging-start",
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
+        return result;
     }
 
     public Task WakeUpCar(int carId)
@@ -32,7 +33,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         throw new NotImplementedException();
     }
 
-    public async Task StopCharging(string vin)
+    public async Task<DtoBleResult> StopCharging(string vin)
     {
         var request = new DtoBleRequest
         {
@@ -40,9 +41,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             CommandName = "charging-stop",
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
+        return result;
     }
 
-    public async Task SetAmp(string vin, int amps)
+    public async Task<DtoBleResult> SetAmp(string vin, int amps)
     {
         logger.LogTrace("{method}({vin}, {amps})", nameof(SetAmp), vin, amps);
         var request = new DtoBleRequest
@@ -52,6 +54,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             Parameters = new List<string> { amps.ToString() },
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
+        return result;
     }
 
     public async Task<DtoBleResult> FlashLights(string vin)
@@ -71,7 +74,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var bleBaseUrl = configurationWrapper.BleBaseUrl();
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
-            return new DtoBleResult() { Message = "BLE Base Url is not set.", StatusCode = HttpStatusCode.BadRequest, Success = false, };
+            return new DtoBleResult() { Message = "BLE Base URL is not set. Set a BLE URL in your base configuration.", StatusCode = HttpStatusCode.BadRequest, Success = false, };
         }
         
         bleBaseUrl += "Pairing/PairCar";
@@ -119,7 +122,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             return new DtoBleResult()
             {
                 Success = false,
-                Message = "BLE Base Url is not set.",
+                Message = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
                 StatusCode = HttpStatusCode.BadRequest,
             };
         }

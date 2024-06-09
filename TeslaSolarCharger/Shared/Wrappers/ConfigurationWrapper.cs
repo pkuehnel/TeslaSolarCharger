@@ -171,8 +171,12 @@ public class ConfigurationWrapper(
 
     public string? BleBaseUrl()
     {
-        var environmentVariableName = "BleBaseUrl";
-        var value = configuration.GetValue<string?>(environmentVariableName);
+        var value = GetBaseConfiguration().BleApiBaseUrl;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            var environmentVariableName = "BleBaseUrl";
+            value = configuration.GetValue<string?>(environmentVariableName);
+        }
         if (!string.IsNullOrWhiteSpace(value))
         {
             if (!value.EndsWith("/"))

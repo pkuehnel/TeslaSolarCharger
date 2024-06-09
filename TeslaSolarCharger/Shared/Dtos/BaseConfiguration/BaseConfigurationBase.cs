@@ -90,6 +90,7 @@ public class BaseConfigurationBase
     public int? HomeBatteryChargingPower { get; set; }
     public int? MaxCombinedCurrent { get; set; }
     public int? MaxInverterAcPower { get; set; }
+    public string? BleApiBaseUrl { get; set; }
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 
