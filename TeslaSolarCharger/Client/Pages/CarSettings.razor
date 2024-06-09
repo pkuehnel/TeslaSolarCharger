@@ -48,13 +48,13 @@ else
             <div>
                 Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device.
             </div>
-            <RightAlignedButtonComponent OnButtonClicked="_ => PairCar(carBasicConfiguration.Vin)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
+            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Vin)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
             <h5>Test BLE access</h5>
             <div>
                 Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new "phone key" on the car's screen.
             </div>
             <div>
-                After clicking the test button the front lights should flash.
+                After clicking the test button the front lights should flash. Note: The car needs to be awake for this test.
             </div>
             @if (_bleTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleResult))
             {
@@ -64,7 +64,7 @@ else
                     </p>
                 </div>
             }
-            <RightAlignedButtonComponent OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Flash lights"></RightAlignedButtonComponent>
+            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Flash lights"></RightAlignedButtonComponent>
             
             </div>
     }
@@ -77,6 +77,8 @@ else
     private Dictionary<string, string> _pairingResults = new();
 
     private Dictionary<string, DtoBleResult> _bleTestResults = new();
+
+    private HashSet<string> _loadingVins = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,19 +102,25 @@ else
 
     private async Task PairCar(string vin)
     {
+        _pairingResults.Remove(vin);
+        _loadingVins.Add(vin);
         var result = await HttpClient.GetStringAsync($"/api/Ble/PairKey?vin={vin}").ConfigureAwait(false);
         var resultJson = JsonConvert.DeserializeObject<DtoBleResult>(result);
         _pairingResults[vin] = resultJson?.Message ?? result;
+        _loadingVins.Remove(vin);
     }
 
     private async Task TestBle(string vin)
     {
+        _bleTestResults.Remove(vin);
+        _loadingVins.Add(vin);
         var result = await HttpClient.GetFromJsonAsync<DtoBleResult>($"/api/Ble/FlashLights?vin={vin}").ConfigureAwait(false) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
         if(result.Success && string.IsNullOrWhiteSpace(result.Message))
         {
             result.Message = "Ble success seems to work. Please double check if lights were flashing.";
         }
         _bleTestResults[vin] = result;
+        _loadingVins.Remove(vin);
     }
 
 }

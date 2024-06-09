@@ -140,8 +140,14 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
                 throw new InvalidOperationException();
             }
-            var result = JsonConvert.DeserializeObject<DtoBleResult>(responseContent);
-            return result ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleResult)}");
+            var commandResult = JsonConvert.DeserializeObject<DtoCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoCommandResult)}"); ;
+            var result = new DtoBleResult
+            {
+                StatusCode = response.StatusCode,
+                Message = commandResult.ResultMessage ?? string.Empty,
+                Success = commandResult.Success,
+            };
+            return result;
         }
         catch (Exception ex)
         {
