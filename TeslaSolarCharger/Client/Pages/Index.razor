@@ -152,7 +152,7 @@ else
                         <div>Car currently rate limited.</div>
                         <hr/>
                         <p>
-                            Your car is rate limited by Tesla and TSC won't be able to set the charging power until @(car.RateLimitedUntil.Value.ToLocalTime().ToString("g")). For now there is no solution to this as Tesla implemented the rate limits without an option to pay for more. So even after the rate limit is over, TSC only has 50 requests. After the 50 requests within 24 hours, the rate limit is present again for the next 24 hours. As a workaround you can go to basic configuration, scroll down to advanced settings and set the Car power adjustment intervall to 1800 seconds. This leads to 50 calls per day max.<br/>
+                            Your car is rate limited by Tesla and TSC won't be able to set the charging power until @(car.RateLimitedUntil.Value.ToLocalTime().ToString("g")). For now, the only solution for this is to set up a BLE device (see <a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#setup-ble-api" target="_blank">here</a>). Currently there is no option from Tesla's side to pay for more requests per day. So even after the rate limit is over, TSC only has 50 requests for the next day. After the 50 requests within 24 hours, the rate limit is present again for the next 24 hours. Despite setting up the BLE API as a workaround, you can go to basic configuration, scroll down to advanced settings and set the Car power adjustment interval to 1800 seconds. This leads to 50 calls per day max but also means TSC can only adjust the charging power every 30 minutes.<br />
                         </p>
 
                     </div>
