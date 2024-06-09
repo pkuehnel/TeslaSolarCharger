@@ -169,10 +169,10 @@ public class ConfigurationWrapper(
         return value;
     }
 
-    public string BleBaseUrl()
+    public string? BleBaseUrl()
     {
         var environmentVariableName = "BleBaseUrl";
-        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        var value = configuration.GetValue<string?>(environmentVariableName);
         return value;
     }
 

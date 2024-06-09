@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Net;
 using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -56,6 +57,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     {
         logger.LogTrace("{method}({vin})", nameof(PairKey), vin);
         var bleBaseUrl = configurationWrapper.BleBaseUrl();
+        if (string.IsNullOrWhiteSpace(bleBaseUrl))
+        {
+            throw new InvalidOperationException("BLE Base Url is not set.");
+        }
         if (!bleBaseUrl.EndsWith("/"))
         {
             bleBaseUrl += "/";
@@ -90,6 +95,15 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     {
         logger.LogTrace("{method}({@request})", nameof(SendCommandToBle), request);
         var bleBaseUrl = configurationWrapper.BleBaseUrl();
+        if (string.IsNullOrWhiteSpace(bleBaseUrl))
+        {
+            return new DtoBleResult()
+            {
+                Success = false,
+                Message = "BLE Base Url is not set.",
+                StatusCode = HttpStatusCode.BadRequest,
+            };
+        }
         if (!bleBaseUrl.EndsWith("/"))
         {
             bleBaseUrl += "/";
