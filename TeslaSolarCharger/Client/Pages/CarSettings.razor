@@ -117,7 +117,7 @@ else
         var result = await HttpClient.GetFromJsonAsync<DtoBleResult>($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
         if(result.Success && string.IsNullOrWhiteSpace(result.Message))
         {
-            result.Message = "Ble success seems to work. Please double check if lights were flashing.";
+            result.Message = "Ble success seems to work. Please double check if the charge current was set to 7A.";
         }
         _bleTestResults[vin] = result;
         _loadingVins.Remove(vin);

@@ -1105,7 +1105,7 @@ volumes:
 ##### Setup BLE (same device and separate device)
 After starting the BLE API you need to add the BLE API Base URL to your TeslaSolarCharger configuration. The URL is `http://<IP of device with BLE API running>:7210/`
 
-Now you can pair each car by going to the `Car Settings` enable "Use BLE", click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeed, you can test the API by clicking on the flash lights button. Note: The car needs to be awake during the pairing and test process.
+Now you can pair each car by going to the `Car Settings` enable "Use BLE", click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeed, you can test the API by clicking on the `Set to 7A`. Note: The car needs to be awake during the pairing and test process.
 
 
 
