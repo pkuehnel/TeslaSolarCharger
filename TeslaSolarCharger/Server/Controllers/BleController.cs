@@ -12,13 +12,13 @@ public class BleController (IBleService bleService) : ApiBaseController
     public Task<DtoBleResult> PairKey(string vin) => bleService.PairKey(vin);
 
     [HttpGet]
-    public Task StartCharging(string vin) => bleService.StartCharging(vin);
+    public Task<DtoBleResult> StartCharging(string vin) => bleService.StartCharging(vin);
 
     [HttpGet]
-    public Task StopCharging(string vin) => bleService.StopCharging(vin);
+    public Task<DtoBleResult> StopCharging(string vin) => bleService.StopCharging(vin);
 
     [HttpGet]
-    public Task SetAmp(string vin, int amps) => bleService.SetAmp(vin, amps);
+    public Task<DtoBleResult> SetAmp(string vin, int amps) => bleService.SetAmp(vin, amps);
 
     [HttpGet]
     public Task<DtoBleResult> FlashLights(string vin) => bleService.FlashLights(vin);

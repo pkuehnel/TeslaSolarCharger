@@ -16,6 +16,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
   - [Setting up TeslaMate including TeslaSolarCharger](#Setting-up-TeslaMate-including-TeslaSolarCharger)
     - [docker-compose.yml content](#docker-composeyml-content)
     - [First startup of the application](#first-startup-of-the-application)
+    - [Setup BLE API](#setup-ble-api)
 - [Often used optional settings](#often-used-optional-settings)
   - [Power Buffer](#power-buffer)
   - [Home Battery](#home-battery)
@@ -27,7 +28,7 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current u
 
 ## How to install
 
-You can either install the software in a Docker container or download the binaries and deploy it on any server.
+You can either install the software in a Docker container or download the binaries and deploy it on any server. In June 2024, Tesla implemented rate limits to their API, so there is a BLE (Bluetooth Low Energy, implemented since Bluetooth Version 4.0) capable device needed near the car. You can find details on how to set up BLE [here](#setup-ble-api).
 
 ### Docker compose
 
@@ -928,6 +929,185 @@ Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverte
 ```
 
 **Note:** These values are not needed. They are just used to show additional information.
+
+#### Install and setup BLE API
+To go around Teslas API limitations, you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on, or by using a separate device. Note: The device needs to be placed near the car.
+
+##### Install BLE API on the same device as TSC
+To set up the BLE API on the same device as your TSC is running on, you need to add the following lines to your docker-compose.yml:
+
+```yaml
+services:
+#here are all the other services like TeslaMate, TSC, etc.
+  bleapi:
+    image: ghcr.io/pkuehnel/teslasolarchargerbleapi:latest
+    container_name: TeslaSolarChargerBleApi
+    privileged: true
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - ASPNETCORE_URLS=http://+:7210
+    volumes:
+      - tscbleapi:/externalFiles
+      - /var/run/dbus:/var/run/dbus
+
+volumes:
+  #here are all the other volumes like teslamate-db, teslamate-grafana-data, etc.
+  tscbleapi:
+```
+
+You can also copy the complete content from here:
+<details>
+  <summary>Complete file including BLE API</summary>
+
+```yaml
+version: '3.3'
+
+services:
+  teslamate:
+    image: teslamate/teslamate:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 4000:4000
+    volumes:
+      - ./import:/opt/app/import
+    cap_drop:
+      - all
+
+  database:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=teslamate
+      - POSTGRES_PASSWORD=secret ##You can change your password here
+      - POSTGRES_DB=teslamate
+    volumes:
+      - teslamate-db:/var/lib/postgresql/data
+
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3100:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    #ports:
+    #  - 1883:1883
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
+  teslamateapi:
+    image: tobiasehlert/teslamateapi:latest
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    restart: always
+    depends_on:
+      - database
+    environment:
+      - DATABASE_USER=teslamate
+      - DATABASE_PASS=secret ##You can change your password here
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+      - TZ=Europe/Berlin ##You can change your Timezone here
+      - ENABLE_COMMANDS=true
+      - COMMANDS_ALL=true
+      - API_TOKEN_DISABLE=true
+      - ENCRYPTION_KEY=supersecret ##You can change your encryption key here
+    #ports:
+    #  - 8080:8080
+
+  teslasolarcharger:
+    image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "100m"
+    restart: always
+    depends_on:
+      - teslamateapi
+    environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 7190:80
+    volumes:
+      - teslasolarcharger-configs:/app/configs
+  
+  bleapi:
+    image: ghcr.io/pkuehnel/teslasolarchargerbleapi:latest
+    container_name: TeslaSolarChargerBleApi
+    privileged: true
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - ASPNETCORE_URLS=http://+:7210
+    volumes:
+      - tscbleapi:/externalFiles
+      - /var/run/dbus:/var/run/dbus
+
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
+  teslasolarcharger-configs:
+  tscbleapi:
+```
+  
+</details>
+
+##### Install BLE API on a separate device
+To set up a separate device for the BLE API, you need to install Docker on the device, like described [here](#docker-compose). Thereafter, you can use the following docker-compose.yml and start the container with `docker compose up -d`:
+
+```yaml
+services:
+  bleapi:
+    image: ghcr.io/pkuehnel/teslasolarchargerbleapi:latest
+    container_name: TeslaSolarChargerBleApi
+    privileged: true
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - ASPNETCORE_URLS=http://+:7210
+    volumes:
+      - tscbleapi:/externalFiles
+      - /var/run/dbus:/var/run/dbus
+
+volumes:
+  tscbleapi:
+```
+
+##### Setup BLE (same device and separate device)
+After starting the BLE API, you need to add the BLE API Base URL to your TeslaSolarCharger configuration. The URL is `http://<IP of device with BLE API running>:7210/`
+
+Now you can pair each car by going to the `Car Settings` enable "Use BLE", click Save and then click on Pair Car. Note: It could take up to three tries to pair the car. After you get a message that pairing succeeded, you can test the API by clicking on the `Set to 7A`. Note: The car needs to be awake during the pairing and test process.
+
+
 
 ## Often used optional settings
 

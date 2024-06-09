@@ -32,7 +32,7 @@ else
             <hr />
             <h3>BLE Pairing and test</h3>
             <div>
-                TSC can use BLE instead of the Fleet API. This is useful to come around rate limits.
+                To come around rate limits TSC can use BLE instead of the Fleet API. This requires <a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#setup-ble-api" target="_blank">setting up a BLE API</a>.
             </div>
             @if (_pairingResults.TryGetValue(carBasicConfiguration.Vin, out var result))
             {
@@ -54,7 +54,7 @@ else
                 Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new "phone key" on the car's screen.
             </div>
             <div>
-                After clicking the test button the front lights should flash. Note: The car needs to be awake for this test.
+                After clicking the test button the car 's current should be set to 7A. Note: The car needs to be awake for this test.
             </div>
             @if (_bleTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleResult))
             {
@@ -64,7 +64,7 @@ else
                     </p>
                 </div>
             }
-            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Flash lights"></RightAlignedButtonComponent>
+            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
             
             </div>
     }
@@ -114,10 +114,11 @@ else
     {
         _bleTestResults.Remove(vin);
         _loadingVins.Add(vin);
-        var result = await HttpClient.GetFromJsonAsync<DtoBleResult>($"/api/Ble/FlashLights?vin={vin}").ConfigureAwait(false) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
+        var resultString = await HttpClient.GetStringAsync($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false);
+        var result = JsonConvert.DeserializeObject<DtoBleResult>(resultString) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
         if(result.Success && string.IsNullOrWhiteSpace(result.Message))
         {
-            result.Message = "Ble success seems to work. Please double check if lights were flashing.";
+            result.Message = "Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.";
         }
         _bleTestResults[vin] = result;
         _loadingVins.Remove(vin);
