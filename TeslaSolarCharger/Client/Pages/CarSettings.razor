@@ -114,7 +114,8 @@ else
     {
         _bleTestResults.Remove(vin);
         _loadingVins.Add(vin);
-        var result = await HttpClient.GetFromJsonAsync<DtoBleResult>($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
+        var resultString = await HttpClient.GetStringAsync($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false);
+        var result = JsonConvert.DeserializeObject<DtoBleResult>(resultString) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
         if(result.Success && string.IsNullOrWhiteSpace(result.Message))
         {
             result.Message = "Ble success seems to work. Please double check if the charge current was set to 7A.";
