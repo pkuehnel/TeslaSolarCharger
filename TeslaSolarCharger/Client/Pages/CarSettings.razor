@@ -1,6 +1,8 @@
 ﻿@page "/CarSettings"
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.Ble
+@using Newtonsoft.Json
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
@@ -27,17 +29,44 @@ else
                 <GenericInput For="() => carBasicConfiguration.ShouldSetChargeStartTimes" />
                 <GenericInput For="() => carBasicConfiguration.UseBle" />
             </EditFormComponent>
+            <hr />
+            <h3>BLE Pairing and test</h3>
             <div>
-                Note: Before TSC can update charge speed via BLE you must pair the car with TSC.
+                TSC can use BLE instead of the Fleet API. This is useful to come around rate limits.
             </div>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="_ => PairCar(carBasicConfiguration.Vin)">Ble Pair</MudButton>
+            @if (_pairingResults.TryGetValue(carBasicConfiguration.Vin, out var result))
+            {
+
+                <div class="alert alert-info" role="alert">
+                    <p>
+                        @result
+                    </p>
+
+                </div>
+                    
+            }
             <div>
-                @if (_pairingResults.ContainsKey(carBasicConfiguration.Vin))
-                {
-                    @_pairingResults[carBasicConfiguration.Vin]
-                }
+                Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device.
             </div>
-        </div>
+            <RightAlignedButtonComponent OnButtonClicked="_ => PairCar(carBasicConfiguration.Vin)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
+            <h5>Test BLE access</h5>
+            <div>
+                Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new "phone key" on the car's screen.
+            </div>
+            <div>
+                After clicking the test button the front lights should flash.
+            </div>
+            @if (_bleTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleResult))
+            {
+                <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
+                    <p>
+                        @bleResult.Message
+                    </p>
+                </div>
+            }
+            <RightAlignedButtonComponent OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Flash lights"></RightAlignedButtonComponent>
+            
+            </div>
     }
 }
 
@@ -45,7 +74,9 @@ else
     private List<CarBasicConfiguration>? _carBasicConfigurations;
     private readonly List<int> _savingCarIds = new();
 
-    private Dictionary<string, string> _pairingResults = new Dictionary<string, string>();
+    private Dictionary<string, string> _pairingResults = new();
+
+    private Dictionary<string, DtoBleResult> _bleTestResults = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,7 +101,18 @@ else
     private async Task PairCar(string vin)
     {
         var result = await HttpClient.GetStringAsync($"/api/Ble/PairKey?vin={vin}").ConfigureAwait(false);
-        _pairingResults[vin] = result;
+        var resultJson = JsonConvert.DeserializeObject<DtoBleResult>(result);
+        _pairingResults[vin] = resultJson?.Message ?? result;
+    }
+
+    private async Task TestBle(string vin)
+    {
+        var result = await HttpClient.GetFromJsonAsync<DtoBleResult>($"/api/Ble/FlashLights?vin={vin}").ConfigureAwait(false) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
+        if(result.Success && string.IsNullOrWhiteSpace(result.Message))
+        {
+            result.Message = "Ble success seems to work. Please double check if lights were flashing.";
+        }
+        _bleTestResults[vin] = result;
     }
 
 }

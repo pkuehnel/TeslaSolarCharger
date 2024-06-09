@@ -99,5 +99,5 @@ public interface IConfigurationWrapper
     bool GetVehicleDataFromTesla();
     bool GetVehicleDataFromTeslaDebug();
     int? MaxInverterAcPower();
-    string BleBaseUrl();
+    string? BleBaseUrl();
 }
