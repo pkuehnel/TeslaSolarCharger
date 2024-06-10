@@ -38,6 +38,8 @@ public class CarBasicConfiguration
     public bool ShouldBeManaged { get; set; } = true;
     [HelperText("Enable this to use planned charges of your Tesla App. This ensures starting a planned charge even if the car can't be woken up via Tesla App.")]
     public bool ShouldSetChargeStartTimes { get; set; }
+    [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g. Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near your car.")]
+    public bool UseBle { get; set; }
 
     
 }

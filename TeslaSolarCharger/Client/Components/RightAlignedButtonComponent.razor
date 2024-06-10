@@ -12,7 +12,18 @@
     }
     else
     {
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@StartIcon" OnClick="AddButtonClicked" ButtonType="ButtonType.Button">@ButtonText</MudButton>
+        <MudButton Disabled="IsLoading" Color="Color.Primary" Variant="Variant.Filled" StartIcon="@StartIcon" OnClick="AddButtonClicked" ButtonType="ButtonType.Button">
+            @if (IsLoading)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                <MudText Class="ms-2">Processing</MudText>
+            }
+            else
+            {
+                <MudText>@ButtonText</MudText>
+            }
+            
+        </MudButton>
     }
 </MudPaper>
 
@@ -22,7 +33,10 @@
     [Parameter]
     public string ButtonText { get; set; }
     [Parameter]
-    public string StartIcon { get; set; } = Icons.Material.Filled.Add;
+    public string StartIcon { get; set; }
+
+    [Parameter]
+    public bool IsLoading { get; set; }
 
     [Parameter]
     public EventCallback OnButtonClicked { get; set; }

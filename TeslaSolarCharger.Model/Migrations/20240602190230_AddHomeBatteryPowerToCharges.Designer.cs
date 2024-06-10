@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20240602190230_AddHomeBatteryPowerToCharges")]
+    partial class AddHomeBatteryPowerToCharges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
@@ -98,9 +101,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<bool?>("PluggedIn")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime?>("RateLimitedUntil")
-                        .HasColumnType("TEXT");
-
                     b.Property<bool?>("ShouldBeManaged")
                         .HasColumnType("INTEGER");
 
@@ -123,9 +123,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("UsableEnergy")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("UseBle")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("VehicleCommandProtocolRequired")

@@ -169,6 +169,28 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public string? BleBaseUrl()
+    {
+        var value = GetBaseConfiguration().BleApiBaseUrl;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            var environmentVariableName = "BleBaseUrl";
+            value = configuration.GetValue<string?>(environmentVariableName);
+        }
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            if (!value.EndsWith("/"))
+            {
+                value += "/";
+            }
+            if (!value.EndsWith("/api/"))
+            {
+                value += "api/";
+            }
+        }
+        return value;
+    }
+
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
         var minimum = TimeSpan.FromSeconds(20);

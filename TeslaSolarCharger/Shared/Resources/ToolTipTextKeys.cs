@@ -12,6 +12,7 @@ public class ToolTipTextKeys
     public string CarSocLimit => "CarSocLimit";
     public string CarChargingPowerHome => "CarHomeChargingPower";
     public string CarChargedSolarEnergy => "CarChargedSolarEnergy";
+    public string CarChargedHomeBatteryEnergy => "CarChargedHomeBatteryEnergy";
     public string CarChargedGridEnergy => "CarChargedGridEnergy";
     public string CarChargeCost => "CarChargeCost";
     public string CarAtHome => "CarAtHome";

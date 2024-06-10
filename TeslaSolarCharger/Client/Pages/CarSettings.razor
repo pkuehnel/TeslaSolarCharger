@@ -1,6 +1,8 @@
 ﻿@page "/CarSettings"
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.Ble
+@using Newtonsoft.Json
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
@@ -25,14 +27,58 @@ else
                 <GenericInput For="() => carBasicConfiguration.ChargingPriority" />
                 <GenericInput For="() => carBasicConfiguration.ShouldBeManaged" />
                 <GenericInput For="() => carBasicConfiguration.ShouldSetChargeStartTimes" />
+                <GenericInput For="() => carBasicConfiguration.UseBle" />
             </EditFormComponent>
-        </div>
+            <hr />
+            <h3>BLE Pairing and test</h3>
+            <div>
+                To come around rate limits TSC can use BLE instead of the Fleet API. This requires <a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">setting up a BLE API</a>.
+            </div>
+            @if (_pairingResults.TryGetValue(carBasicConfiguration.Vin, out var result))
+            {
+
+                <div class="alert alert-info" role="alert">
+                    <p>
+                        @result
+                    </p>
+
+                </div>
+                    
+            }
+            <div>
+                Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device.
+            </div>
+            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Vin)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
+            <h5>Test BLE access</h5>
+            <div>
+                Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new "phone key" on the car's screen.
+            </div>
+            <div>
+                After clicking the test button the car 's current should be set to 7A. Note: The car needs to be awake for this test.
+            </div>
+            @if (_bleTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleResult))
+            {
+                <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
+                    <p>
+                        @bleResult.Message
+                    </p>
+                </div>
+            }
+            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
+            
+            </div>
     }
 }
 
 @code {
     private List<CarBasicConfiguration>? _carBasicConfigurations;
     private readonly List<int> _savingCarIds = new();
+
+    private Dictionary<string, string> _pairingResults = new();
+
+    private Dictionary<string, DtoBleResult> _bleTestResults = new();
+
+    private HashSet<string> _loadingVins = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -53,4 +99,29 @@ else
         }
         _savingCarIds.RemoveAll(i => i == carId);
     }
+
+    private async Task PairCar(string vin)
+    {
+        _pairingResults.Remove(vin);
+        _loadingVins.Add(vin);
+        var result = await HttpClient.GetStringAsync($"/api/Ble/PairKey?vin={vin}").ConfigureAwait(false);
+        var resultJson = JsonConvert.DeserializeObject<DtoBleResult>(result);
+        _pairingResults[vin] = resultJson?.Message ?? result;
+        _loadingVins.Remove(vin);
+    }
+
+    private async Task TestBle(string vin)
+    {
+        _bleTestResults.Remove(vin);
+        _loadingVins.Add(vin);
+        var resultString = await HttpClient.GetStringAsync($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false);
+        var result = JsonConvert.DeserializeObject<DtoBleResult>(resultString) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
+        if(result.Success && string.IsNullOrWhiteSpace(result.Message))
+        {
+            result.Message = "Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.";
+        }
+        _bleTestResults[vin] = result;
+        _loadingVins.Remove(vin);
+    }
+
 }

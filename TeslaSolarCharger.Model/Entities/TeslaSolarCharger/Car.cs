@@ -42,6 +42,8 @@ public class Car
     public double? Longitude { get; set; }
     public CarStateEnum? State { get; set; }
     public bool VehicleCommandProtocolRequired { get; set; }
+    public DateTime? RateLimitedUntil { get; set; }
+    public bool UseBle { get; set; }
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
 }
