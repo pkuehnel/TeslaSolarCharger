@@ -933,6 +933,11 @@ Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverte
 #### Install and setup BLE API
 To go around Teslas API limitations, you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on, or by using a separate device. Note: The device needs to be placed near the car.
 
+Confirmed working hardware:
+* Raspberry Pi Zero 2W (only capable when used as separate device)
+* Raspberry Pi 4
+* Raspberry Pi 5
+
 ##### Install BLE API on the same device as TSC
 To set up the BLE API on the same device as your TSC is running on, you need to add the following lines to your docker-compose.yml:
 
