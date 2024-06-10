@@ -533,15 +533,15 @@ else
                 </div>
                 <div class="mb-3 form-check">
                     <input class="form-check-input" type="checkbox"
-                           checked="@_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDateOnWeekdays"
-                           id="@($"car{car.CarId}IgnoreLatestTimeToReachSocDateOnWeekdays")"
-                           @onchange="@(e => UpdateCheckBoxState(car.CarId, "IgnoreLatestTimeToReachSocDateOnWeekdays", (bool)((ChangeEventArgs)e).Value))">
-                    <label class="form-check-label" for="@($"car{car.CarId}IgnoreLatestTimeToReachSocDateOnWeekdays")">
+                           checked="@_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDateOnWeekend"
+                           id="@($"car{car.CarId}IgnoreLatestTimeToReachSocDateOnWeekend")"
+                           @onchange="@(e => UpdateCheckBoxState(car.CarId, "IgnoreLatestTimeToReachSocDateOnWeekend", (bool)((ChangeEventArgs)e).Value))">
+                    <label class="form-check-label" for="@($"car{car.CarId}IgnoreLatestTimeToReachSocDateOnWeekend")">
                         Charge every weekday
                     </label>
                 </div>
 
-                @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate && !_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDateOnWeekdays)
+                @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate && !_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDateOnWeekend)
                 {
                     <InputComponent ValueId="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")"
                                     LabelText="Date"
@@ -987,12 +987,12 @@ else
             _carBaseSettings[carId].IgnoreLatestTimeToReachSocDate = isChecked;
             if (isChecked)
             {
-                _carBaseSettings[carId].IgnoreLatestTimeToReachSocDateOnWeekdays = false;
+                _carBaseSettings[carId].IgnoreLatestTimeToReachSocDateOnWeekend = false;
             }
         }
-        else if (checkboxName == "IgnoreLatestTimeToReachSocDateOnWeekdays")
+        else if (checkboxName == "IgnoreLatestTimeToReachSocDateOnWeekend")
         {
-            _carBaseSettings[carId].IgnoreLatestTimeToReachSocDateOnWeekdays = isChecked;
+            _carBaseSettings[carId].IgnoreLatestTimeToReachSocDateOnWeekend = isChecked;
             if (isChecked)
             {
                 _carBaseSettings[carId].IgnoreLatestTimeToReachSocDate = false;

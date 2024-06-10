@@ -20,7 +20,7 @@ public class LatestTimeToReachSocUpdateService : TestBase
         var car = new DtoCar()
         {
             IgnoreLatestTimeToReachSocDate = shouldIgnoreDate,
-            IgnoreLatestTimeToReachSocDateOnWeekdays = shouldIgnoreDateOnWeekend,
+            IgnoreLatestTimeToReachSocDateOnWeekend = shouldIgnoreDateOnWeekend,
             LatestTimeToReachSoC = configuredDate,
         };
 

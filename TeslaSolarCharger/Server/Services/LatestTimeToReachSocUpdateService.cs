@@ -43,7 +43,7 @@ public class LatestTimeToReachSocUpdateService(
         logger.LogTrace("{method}({@param})", nameof(GetNewLatestTimeToReachSoc), car);
 
         var dateTimeOffSetNow = dateTimeProvider.DateTimeOffSetNow();
-        if (car.IgnoreLatestTimeToReachSocDateOnWeekdays)
+        if (car.IgnoreLatestTimeToReachSocDateOnWeekend)
         {
 
             var dateToSet = dateTimeOffSetNow.DateTime.Date;
