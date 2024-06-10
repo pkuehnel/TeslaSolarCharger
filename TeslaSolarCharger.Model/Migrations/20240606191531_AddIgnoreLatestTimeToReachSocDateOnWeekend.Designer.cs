@@ -11,8 +11,8 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    [Migration("20240606191531_AddIgnoreLatestTimeToReachSocDateOnWeekdays")]
-    partial class AddIgnoreLatestTimeToReachSocDateOnWeekdays
+    [Migration("20240606191531_AddIgnoreLatestTimeToReachSocDateOnWeekend")]
+    partial class AddIgnoreLatestTimeToReachSocDateOnWeekend
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -77,7 +77,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<bool>("IgnoreLatestTimeToReachSocDate")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IgnoreLatestTimeToReachSocDateOnWeekdays")
+                    b.Property<bool>("IgnoreLatestTimeToReachSocDateOnWeekend")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("LatestTimeToReachSoC")

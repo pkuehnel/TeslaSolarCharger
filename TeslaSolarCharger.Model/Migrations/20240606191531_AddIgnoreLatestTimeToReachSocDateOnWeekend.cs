@@ -5,13 +5,13 @@
 namespace TeslaSolarCharger.Model.Migrations
 {
     /// <inheritdoc />
-    public partial class AddIgnoreLatestTimeToReachSocDateOnWeekdays : Migration
+    public partial class AddIgnoreLatestTimeToReachSocDateOnWeekend : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
-                name: "IgnoreLatestTimeToReachSocDateOnWeekdays",
+                name: "IgnoreLatestTimeToReachSocDateOnWeekend",
                 table: "Cars",
                 type: "INTEGER",
                 nullable: false,
@@ -22,7 +22,7 @@ namespace TeslaSolarCharger.Model.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "IgnoreLatestTimeToReachSocDateOnWeekdays",
+                name: "IgnoreLatestTimeToReachSocDateOnWeekend",
                 table: "Cars");
         }
     }

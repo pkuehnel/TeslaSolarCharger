@@ -202,7 +202,7 @@ public class IndexService : IIndexService
             MinimumStateOfCharge = enabledCar.MinimumSoC,
             LatestTimeToReachStateOfCharge = enabledCar.LatestTimeToReachSoC,
             IgnoreLatestTimeToReachSocDate = enabledCar.IgnoreLatestTimeToReachSocDate,
-            IgnoreLatestTimeToReachSocDateOnWeekdays = enabledCar.IgnoreLatestTimeToReachSocDateOnWeekdays,
+            IgnoreLatestTimeToReachSocDateOnWeekend = enabledCar.IgnoreLatestTimeToReachSocDateOnWeekend,
         });
     }
 
