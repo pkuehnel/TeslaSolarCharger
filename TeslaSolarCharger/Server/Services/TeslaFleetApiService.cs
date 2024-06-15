@@ -107,6 +107,7 @@ public class TeslaFleetApiService(
         {
             var car = settings.Cars.First(c => c.Id == carId);
             car.State = CarStateEnum.Charging;
+            car.ChargerActualCurrent = startAmp;
         }
     }
 
@@ -507,6 +508,7 @@ public class TeslaFleetApiService(
                         if (result.Success)
                         {
                             car.State = CarStateEnum.Charging;
+                            car.ChargerActualCurrent = car.ChargerRequestedCurrent;
                         }
                     }
                     else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
