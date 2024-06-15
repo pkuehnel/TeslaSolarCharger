@@ -13,6 +13,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -481,20 +482,33 @@ public class TeslaFleetApiService(
                 var bleAddress = configurationWrapper.BleBaseUrl();
                 if (!string.IsNullOrEmpty(bleAddress))
                 {
+                    var result = new DtoBleResult();
                     if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
                     {
-                        await bleService.StartCharging(vin);
+                        result = await bleService.StartCharging(vin);
                     }
                     else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
                     {
-                        await bleService.StopCharging(vin);
+                        result = await bleService.StopCharging(vin);
                     }
                     else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
                     {
-                        await bleService.SetAmp(vin, amp!.Value);
+                        result = await bleService.SetAmp(vin, amp!.Value);
                     }
 
-                    return new DtoGenericTeslaResponse<T>(){};
+                    if (typeof(T) == typeof(DtoVehicleCommandResult))
+                    {
+                        var comamndResult = new DtoGenericTeslaResponse<T>() { };
+                        comamndResult.Response = (T)(object) new DtoVehicleCommandResult()
+                        {
+                            Result = result.Success,
+                            Reason = result.Message,
+                        };
+                        return comamndResult;
+                    }
+
+                    return new DtoGenericTeslaResponse<T>();
+
                 }
             }
         }
