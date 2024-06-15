@@ -244,34 +244,34 @@ public class TeslaFleetApiService(
             }
             try
             {
-                var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest, HttpMethod.Get).ConfigureAwait(false);
-                var vehicleResult = vehicle?.Response;
-                logger.LogTrace("Got vehicle {@vehicle}", vehicle);
-                if (vehicleResult == default)
-                {
-                    await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(RefreshCarData),
-                                               $"Could not deserialize vehicle: {JsonConvert.SerializeObject(vehicle)}").ConfigureAwait(false);
-                    logger.LogError("Could not deserialize vehicle for car {carId}: {@vehicle}", carId, vehicle);
-                    continue;
-                }
-                var vehicleState = vehicleResult.State;
-                if (configurationWrapper.GetVehicleDataFromTesla())
-                {
-                    if (vehicleState == "asleep")
-                    {
-                        car.State = CarStateEnum.Asleep;
-                    }
-                    else if (vehicleState == "offline")
-                    {
-                        car.State = CarStateEnum.Offline;
-                    }
-                }
+                //var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest, HttpMethod.Get).ConfigureAwait(false);
+                //var vehicleResult = vehicle?.Response;
+                //logger.LogTrace("Got vehicle {@vehicle}", vehicle);
+                //if (vehicleResult == default)
+                //{
+                //    await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(RefreshCarData),
+                //                               $"Could not deserialize vehicle: {JsonConvert.SerializeObject(vehicle)}").ConfigureAwait(false);
+                //    logger.LogError("Could not deserialize vehicle for car {carId}: {@vehicle}", carId, vehicle);
+                //    continue;
+                //}
+                //var vehicleState = vehicleResult.State;
+                //if (configurationWrapper.GetVehicleDataFromTesla())
+                //{
+                //    if (vehicleState == "asleep")
+                //    {
+                //        car.State = CarStateEnum.Asleep;
+                //    }
+                //    else if (vehicleState == "offline")
+                //    {
+                //        car.State = CarStateEnum.Offline;
+                //    }
+                //}
 
-                if (vehicleState is "asleep" or "offline")
-                {
-                    logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
-                    continue;
-                }
+                //if (vehicleState is "asleep" or "offline")
+                //{
+                //    logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
+                //    continue;
+                //}
                 var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(car.Vin, VehicleDataRequest, HttpMethod.Get)
                     .ConfigureAwait(false);
                 logger.LogTrace("Got vehicleData {@vehicleData}", vehicleData);
