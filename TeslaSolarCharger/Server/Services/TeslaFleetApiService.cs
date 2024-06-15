@@ -290,6 +290,10 @@ public class TeslaFleetApiService(
                 car.LastApiDataRefresh = currentUtcDate;
                 logger.LogTrace("Got vehicleData {@vehicleData}", vehicleData);
                 var vehicleDataResult = vehicleData?.Response;
+                if (vehicleData?.Error?.Contains("offline") == true)
+                {
+                    car.State = CarStateEnum.Offline;
+                }
                 if (vehicleDataResult == default)
                 {
                     await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(RefreshCarData),
