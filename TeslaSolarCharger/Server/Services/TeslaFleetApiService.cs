@@ -221,19 +221,24 @@ public class TeslaFleetApiService(
     public async Task RefreshCarData()
     {
         logger.LogTrace("{method}()", nameof(RefreshCarData));
-        if ((!configurationWrapper.GetVehicleDataFromTesla()) && (!configurationWrapper.GetVehicleDataFromTeslaDebug()))
+        if ((!configurationWrapper.GetVehicleDataFromTesla()))
         {
             logger.LogDebug("Vehicle Data are coming from TeslaMate. Do not refresh car states via Fleet API");
             return;
         }
-        logger.LogTrace("Actually refreshing car data");
         var carIds = settings.CarsToManage.Select(c => c.Id).ToList();
         foreach (var carId in carIds)
         {
-            var vin = GetVinByCarId(carId);
+            var car = settings.Cars.First(c => c.Id == carId);
+            var currentUtcDate = dateTimeProvider.DateTimeOffSetUtcNow();
+            if (car.LastApiDataRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) > currentUtcDate)
+            {
+                logger.LogDebug("Do not refresh car data for car {carId} to prevent rate limits", car.Id);
+                continue;
+            }
             try
             {
-                var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(vin, VehicleRequest, HttpMethod.Get).ConfigureAwait(false);
+                var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest, HttpMethod.Get).ConfigureAwait(false);
                 var vehicleResult = vehicle?.Response;
                 logger.LogTrace("Got vehicle {@vehicle}", vehicle);
                 if (vehicleResult == default)
@@ -248,11 +253,11 @@ public class TeslaFleetApiService(
                 {
                     if (vehicleState == "asleep")
                     {
-                        settings.Cars.First(c => c.Id == carId).State = CarStateEnum.Asleep;
+                        car.State = CarStateEnum.Asleep;
                     }
                     else if (vehicleState == "offline")
                     {
-                        settings.Cars.First(c => c.Id == carId).State = CarStateEnum.Offline;
+                        car.State = CarStateEnum.Offline;
                     }
                 }
 
@@ -261,7 +266,7 @@ public class TeslaFleetApiService(
                     logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
                     continue;
                 }
-                var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(vin, VehicleDataRequest, HttpMethod.Get)
+                var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(car.Vin, VehicleDataRequest, HttpMethod.Get)
                     .ConfigureAwait(false);
                 logger.LogTrace("Got vehicleData {@vehicleData}", vehicleData);
                 var vehicleDataResult = vehicleData?.Response;
@@ -275,7 +280,7 @@ public class TeslaFleetApiService(
 
                 if (configurationWrapper.GetVehicleDataFromTesla())
                 {
-                    var car = settings.Cars.First(c => c.Id == carId);
+                    
                     car.Name = vehicleDataResult.VehicleState.VehicleName;
                     car.SoC = vehicleDataResult.ChargeState.BatteryLevel;
                     car.SocLimit = vehicleDataResult.ChargeState.ChargeLimitSoc;
@@ -509,11 +514,6 @@ public class TeslaFleetApiService(
         };
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        if (configurationWrapper.GetVehicleDataFromTeslaDebug())
-        {
-            await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                $"Logged Response string: {responseString}").ConfigureAwait(false);
-        }
         logger.LogTrace("Response status code: {statusCode}", response.StatusCode);
         logger.LogTrace("Response string: {responseString}", responseString);
         logger.LogTrace("Response headers: {@headers}", response.Headers);

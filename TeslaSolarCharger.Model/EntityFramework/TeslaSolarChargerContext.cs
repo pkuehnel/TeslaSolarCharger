@@ -102,6 +102,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<RestValueConfigurationHeader>()
             .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
+
+        modelBuilder.Entity<Car>()
+            .Property(c => c.ApiRefreshIntervalSeconds)
+            .HasDefaultValue(500);
     }
 
 #pragma warning disable CS8618

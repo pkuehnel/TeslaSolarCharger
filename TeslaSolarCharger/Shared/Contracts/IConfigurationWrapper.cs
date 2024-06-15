@@ -97,7 +97,6 @@ public interface IConfigurationWrapper
     string AutoBackupsZipDirectory();
     bool LogLocationData();
     bool GetVehicleDataFromTesla();
-    bool GetVehicleDataFromTeslaDebug();
     int? MaxInverterAcPower();
     string? BleBaseUrl();
 }

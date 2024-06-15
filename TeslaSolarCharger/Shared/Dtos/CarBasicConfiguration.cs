@@ -40,6 +40,11 @@ public class CarBasicConfiguration
     public bool ShouldSetChargeStartTimes { get; set; }
     [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g. Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near your car.")]
     public bool UseBle { get; set; }
+    [HelperText("Limits requests to car as getting values is rate limited.")]
+    [Postfix("s")]
+    [Range(11, int.MaxValue)]
+    public int ApiRefreshIntervalSeconds { get; set; }
 
-    
+
+
 }
