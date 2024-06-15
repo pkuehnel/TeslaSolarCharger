@@ -74,17 +74,6 @@ public class ChargingService : IChargingService
 
         LogErrorForCarsWithUnknownSocLimit(_settings.CarsToManage);
 
-        //Set to maximum current so will charge on full speed on auto wakeup
-        foreach (var car in _settings.CarsToManage)
-        {
-            if (car is { IsHomeGeofence: true, State: CarStateEnum.Online }
-                && car.ChargerRequestedCurrent != car.MaximumAmpere
-                && car.ChargeMode != ChargeMode.DoNothing)
-            {
-                await _teslaService.SetAmp(car.Id, car.MaximumAmpere).ConfigureAwait(false);
-            }
-        }
-
         var relevantCarIds = GetRelevantCarIds();
         _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
 
@@ -336,6 +325,7 @@ public class ChargingService : IChargingService
     private async Task<int> ChangeCarAmp(DtoCar dtoCar, int ampToChange, DtoValue<int> maxAmpIncrease)
     {
         _logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(ChangeCarAmp), dtoCar.Id, ampToChange, maxAmpIncrease.Value);
+        var actualCurrent = dtoCar.ChargerActualCurrent;
         if (maxAmpIncrease.Value < ampToChange)
         {
             _logger.LogDebug("Reduce current increase from {ampToChange}A to {maxAmpIncrease}A due to limited combined charging current.",
@@ -343,16 +333,16 @@ public class ChargingService : IChargingService
             ampToChange = maxAmpIncrease.Value;
         }
         //This might happen if only climate is running or car nearly full which means full power is not needed.
-        if (ampToChange > 0 && dtoCar.ChargerRequestedCurrent > dtoCar.ChargerActualCurrent && dtoCar.ChargerActualCurrent > 0)
+        if (ampToChange > 0 && dtoCar.ChargerRequestedCurrent > actualCurrent && actualCurrent > 0)
         {
             //ampToChange = 0;
             _logger.LogWarning("Car does not use full request.");
         }
         var finalAmpsToSet = (dtoCar.ChargerRequestedCurrent ?? 0) + ampToChange;
 
-        if (dtoCar.ChargerActualCurrent == 0)
+        if (actualCurrent == 0)
         {
-            finalAmpsToSet = (int)(dtoCar.ChargerActualCurrent + ampToChange);
+            finalAmpsToSet = (int)(actualCurrent + ampToChange);
         }
 
         _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
@@ -386,7 +376,7 @@ public class ChargingService : IChargingService
                 dtoCar.ChargeMode, dtoCar.AutoFullSpeedCharge);
             if (dtoCar.ChargerRequestedCurrent != maxAmpPerCar || dtoCar.State != CarStateEnum.Charging || maxAmpIncrease.Value < 0)
             {
-                var ampToSet = (maxAmpPerCar - dtoCar.ChargerRequestedCurrent) > maxAmpIncrease.Value ? ((dtoCar.ChargerActualCurrent ?? 0) + maxAmpIncrease.Value) : maxAmpPerCar;
+                var ampToSet = (maxAmpPerCar - dtoCar.ChargerRequestedCurrent) > maxAmpIncrease.Value ? ((actualCurrent ?? 0) + maxAmpIncrease.Value) : maxAmpPerCar;
                 _logger.LogDebug("Set current to {ampToSet} after considering max car Current {maxAmpPerCar} and maxAmpIncrease {maxAmpIncrease}", ampToSet, maxAmpPerCar, maxAmpIncrease.Value);
                 if (dtoCar.State != CarStateEnum.Charging)
                 {
@@ -399,12 +389,12 @@ public class ChargingService : IChargingService
                     }
                     _logger.LogDebug("Charging schould start.");
                     await _teslaService.StartCharging(dtoCar.Id, ampToSet, dtoCar.State).ConfigureAwait(false);
-                    ampChange += ampToSet - (dtoCar.ChargerActualCurrent ?? 0);
+                    ampChange += ampToSet - (actualCurrent ?? 0);
                 }
                 else
                 {
                     await _teslaService.SetAmp(dtoCar.Id, ampToSet).ConfigureAwait(false);
-                    ampChange += ampToSet - (dtoCar.ChargerActualCurrent ?? 0);
+                    ampChange += ampToSet - (actualCurrent ?? 0);
                 }
 
             }
@@ -419,18 +409,18 @@ public class ChargingService : IChargingService
             {
                 _logger.LogDebug("Can not stop charging: earliest Switch Off: {earliestSwitchOff}",
                     dtoCar.EarliestSwitchOff);
-                if (dtoCar.ChargerActualCurrent != minAmpPerCar)
+                if (actualCurrent != minAmpPerCar)
                 {
                     await _teslaService.SetAmp(dtoCar.Id, minAmpPerCar).ConfigureAwait(false);
                 }
-                ampChange += minAmpPerCar - (dtoCar.ChargerActualCurrent ?? 0);
+                ampChange += minAmpPerCar - (actualCurrent ?? 0);
             }
             //Laden Stoppen
             else
             {
                 _logger.LogDebug("Stop Charging");
                 await _teslaService.StopCharging(dtoCar.Id).ConfigureAwait(false);
-                ampChange -= dtoCar.ChargerActualCurrent ?? 0;
+                ampChange -= actualCurrent ?? 0;
             }
         }
         //Falls Laden beendet ist und beendet bleiben soll
@@ -459,7 +449,7 @@ public class ChargingService : IChargingService
             if (ampToSet != dtoCar.ChargerRequestedCurrent)
             {
                 await _teslaService.SetAmp(dtoCar.Id, ampToSet).ConfigureAwait(false);
-                ampChange += ampToSet - (dtoCar.ChargerActualCurrent ?? 0);
+                ampChange += ampToSet - (actualCurrent ?? 0);
             }
             else
             {
