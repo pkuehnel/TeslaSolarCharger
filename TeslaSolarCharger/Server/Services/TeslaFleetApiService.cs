@@ -131,6 +131,7 @@ public class TeslaFleetApiService(
         {
             var car = settings.Cars.First(c => c.Id == carId);
             car.State = CarStateEnum.Online;
+            car.ChargerActualCurrent = 0;
         }
     }
 
@@ -514,6 +515,7 @@ public class TeslaFleetApiService(
                         if (result.Success)
                         {
                             car.State = CarStateEnum.Online;
+                            car.ChargerActualCurrent = 0;
                         }
                     }
                     else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
