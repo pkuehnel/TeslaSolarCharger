@@ -134,6 +134,12 @@ public class TeslaFleetApiService(
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, HttpMethod.Post, commandData, amps).ConfigureAwait(false);
         car.LastSetAmp = amps;
+        if (result?.Response?.Result == true)
+        {
+            car.ChargerRequestedCurrent = amps;
+            car.ChargerActualCurrent = car.State == CarStateEnum.Charging ? amps : 0;
+        }
+        
     }
 
     public async Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
