@@ -205,6 +205,7 @@ public class ConfigJsonService(
         databaseCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         databaseCar.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
         databaseCar.UseBle = carBasicConfiguration.UseBle;
+        databaseCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var settingsCar = settings.Cars.First(c => c.Id == carId);
         settingsCar.Name = carBasicConfiguration.Name;
