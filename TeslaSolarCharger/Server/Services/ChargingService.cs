@@ -78,10 +78,10 @@ public class ChargingService : IChargingService
         foreach (var car in _settings.CarsToManage)
         {
             if (car is { IsHomeGeofence: true, State: CarStateEnum.Online }
-                && car.ChargerRequestedCurrent != car.MaximumAmpere
+                && car.ChargerRequestedCurrent != car.MinimumAmpere
                 && car.ChargeMode != ChargeMode.DoNothing)
             {
-                await _teslaService.SetAmp(car.Id, car.MaximumAmpere).ConfigureAwait(false);
+                await _teslaService.SetAmp(car.Id, car.MinimumAmpere).ConfigureAwait(false);
             }
         }
 
