@@ -43,6 +43,7 @@ public class Car
     public bool VehicleCommandProtocolRequired { get; set; }
     public DateTime? RateLimitedUntil { get; set; }
     public bool UseBle { get; set; }
+    public int ApiRefreshIntervalSeconds { get; set; }
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
 }
