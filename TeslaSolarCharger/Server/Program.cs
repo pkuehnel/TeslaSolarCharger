@@ -167,6 +167,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
         //This needs to be done after converting old cars to new cars as IDs might change
         await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
+        await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
