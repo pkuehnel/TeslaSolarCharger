@@ -12,4 +12,5 @@ public interface IChargingCostService
     Task DeleteDuplicatedHandleCharges();
     Task<List<SpotPrice>> GetSpotPrices();
     Task ConvertToNewChargingProcessStructure();
+    Task AddFirstChargePrice();
 }

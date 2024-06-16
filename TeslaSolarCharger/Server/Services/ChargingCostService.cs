@@ -147,6 +147,28 @@ public class ChargingCostService(
         await tscOnlyChargingCostService.UpdateChargePricesOfAllChargingProcesses().ConfigureAwait(false);
     }
 
+    public async Task AddFirstChargePrice()
+    {
+        logger.LogTrace("{method}()", nameof(AddFirstChargePrice));
+        var chargePrices = await teslaSolarChargerContext.ChargePrices
+            .ToListAsync().ConfigureAwait(false);
+        if (chargePrices.Any(c => c.ValidSince < new DateTime(2022, 2, 1)))
+        {
+            return;
+        }
+        var chargePrice = new DtoChargePrice()
+        {
+            GridPrice = 0.25m,
+            SolarPrice = 0.25m,
+            ValidSince = DateTime.SpecifyKind(new DateTime(2020, 1, 1), DateTimeKind.Utc),
+            EnergyProvider = EnergyProvider.OldTeslaSolarChargerConfig,
+            AddSpotPriceToGridPrice = false,
+            SpotPriceSurcharge = 0.19m,
+            EnergyProviderConfiguration = null,
+        };
+        await UpdateChargePrice(chargePrice).ConfigureAwait(false);
+    }
+
     public async Task DeleteChargePriceById(int id)
     {
         var chargePrice = await teslaSolarChargerContext.ChargePrices
