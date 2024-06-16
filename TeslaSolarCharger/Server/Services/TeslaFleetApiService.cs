@@ -295,6 +295,7 @@ public class TeslaFleetApiService(
                 if (vehicleData?.Error?.Contains("offline") == true)
                 {
                     car.State = CarStateEnum.Offline;
+                    car.ChargerActualCurrent = 0;
                 }
                 if (vehicleDataResult == default)
                 {
