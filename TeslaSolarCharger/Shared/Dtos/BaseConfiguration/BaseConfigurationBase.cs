@@ -91,6 +91,7 @@ public class BaseConfigurationBase
     public int? MaxCombinedCurrent { get; set; }
     public int? MaxInverterAcPower { get; set; }
     public string? BleApiBaseUrl { get; set; }
+    public bool UseTeslaMateAsDataSource { get; set; }
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 
