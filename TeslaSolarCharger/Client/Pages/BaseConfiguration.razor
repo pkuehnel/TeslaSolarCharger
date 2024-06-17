@@ -86,6 +86,15 @@ else
             <hr />
         }
         <h3>TeslaMate:</h3>
+        <div class="mb-3">
+            <InputCheckbox class="form-check-input" id="useTeslaMateAsDataSource" @bind-Value="_dtoBaseConfiguration.UseTeslaMateAsDataSource" />
+            <label class="form-check-label" for="useTeslaMateAsDataSource">
+                Use TeslaMate as car data source
+            </label>
+            <div>
+                <small id="useTeslaMateAsDataSourceHelp" class="form-text text-muted">If enabled TeslaMate MQTT is used as datasource. If disabled Tesla API is directly called.</small>
+            </div>
+        </div>
         <InputComponent ValueId="teslaMateDbUser"
                         LabelText="TeslaMate Database Username"
                         UnitText=""

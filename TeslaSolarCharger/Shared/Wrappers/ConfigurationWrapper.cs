@@ -131,9 +131,8 @@ public class ConfigurationWrapper(
 
     public bool GetVehicleDataFromTesla()
     {
-        var environmentVariableName = "GetVehicleDataFromTesla";
-        var value = configuration.GetValue<bool>(environmentVariableName);
-        return value;
+        var value = GetBaseConfiguration().UseTeslaMateAsDataSource;
+        return !value;
     }
     public bool GetVehicleDataFromTeslaDebug()
     {
