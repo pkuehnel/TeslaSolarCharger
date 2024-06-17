@@ -935,7 +935,8 @@ To go around Teslas API limitations, you can use Bluetooth (BLE) to control your
 
 Confirmed working hardware:
 * Raspberry Pi Zero 2W (only capable when used as separate device)
-* Raspberry Pi 4
+* Raspberry Pi 3 Model B
+* Raspberry Pi 4 Model B
 * Raspberry Pi 5
 
 ##### Install BLE API on the same device as TSC
