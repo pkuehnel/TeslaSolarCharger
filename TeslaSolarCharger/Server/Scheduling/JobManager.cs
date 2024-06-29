@@ -61,6 +61,7 @@ public class JobManager
         var fleetApiTokenRefreshJob = JobBuilder.Create<FleetApiTokenRefreshJob>().Build();
         var vehicleDataRefreshJob = JobBuilder.Create<VehicleDataRefreshJob>().Build();
         var teslaMateChargeCostUpdateJob = JobBuilder.Create<TeslaMateChargeCostUpdateJob>().Build();
+        var apiCallCounterResetJob = JobBuilder.Create<ApiCallCounterResetJob>().Build();
 
         var currentDate = _dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -109,6 +110,10 @@ public class JobManager
         var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
+        var apiCallCounterResetTrigger = TriggerBuilder.Create()
+            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 0)) // Run every day at 0:00 UTC
+            .Build();
+
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
             {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
@@ -122,6 +127,7 @@ public class JobManager
             {fleetApiTokenRefreshJob, new HashSet<ITrigger> {fleetApiTokenRefreshTrigger}},
             {vehicleDataRefreshJob, new HashSet<ITrigger> {vehicleDataRefreshTrigger}},
             {teslaMateChargeCostUpdateJob, new HashSet<ITrigger> {teslaMateChargeCostUpdateTrigger}},
+            {apiCallCounterResetJob, new HashSet<ITrigger> {apiCallCounterResetTrigger}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

@@ -601,6 +601,21 @@ public class TeslaFleetApiService(
         return teslaCommandResultResponse;
     }
 
+    public void ResetApiRequestCounters()
+    {
+        logger.LogTrace("{method}()", nameof(ResetApiRequestCounters));
+        foreach (var car in settings.Cars)
+        {
+            car.WakeUpCalls.Clear();
+            car.VehicleDataCalls.Clear();
+            car.VehicleCalls.Clear();
+            car.ChargeStartCalls.Clear();
+            car.ChargeStopCalls.Clear();
+            car.SetChargingAmpsCall.Clear();
+            car.OtherCommandCalls.Clear();
+        }
+    }
+
     private void AddRequestToCar(string vin, DtoFleetApiRequest fleetApiRequest)
     {
         logger.LogTrace("{method}({@fleetApiRequest})", nameof(AddRequestToCar), fleetApiRequest);

@@ -17,4 +17,5 @@ public interface ITeslaFleetApiService
     Task RefreshTokensIfAllowedAndNeeded();
     Task RefreshFleetApiRequestsAreAllowed();
 
+    void ResetApiRequestCounters();
 }
