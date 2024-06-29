@@ -145,18 +145,6 @@ public class CoreService : ICoreService
         await _teslaMateMqttService.DisconnectClient("Application shutdown").ConfigureAwait(false);
     }
 
-    public DtoValue<int> TeslaApiRequestsSinceStartup()
-    {
-        _logger.LogTrace("{method}()", nameof(TeslaApiRequestsSinceStartup));
-        return new DtoValue<int>(_settings.TeslaApiRequestCounter);
-    }
-
-    public DtoValue<bool> ShouldDisplayApiRequestCounter()
-    {
-        _logger.LogTrace("{method}()", nameof(TeslaApiRequestsSinceStartup));
-        return new DtoValue<bool>(_configurationWrapper.ShouldDisplayApiRequestCounter());
-    }
-
     public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to)
     {
         _logger.LogTrace("{method}({from}, {to})", nameof(GetPriceData), from, to);

@@ -260,34 +260,34 @@ public class TeslaFleetApiService(
             }
             try
             {
-                //var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest, HttpMethod.Get).ConfigureAwait(false);
-                //var vehicleResult = vehicle?.Response;
-                //logger.LogTrace("Got vehicle {@vehicle}", vehicle);
-                //if (vehicleResult == default)
-                //{
-                //    await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(RefreshCarData),
-                //                               $"Could not deserialize vehicle: {JsonConvert.SerializeObject(vehicle)}").ConfigureAwait(false);
-                //    logger.LogError("Could not deserialize vehicle for car {carId}: {@vehicle}", carId, vehicle);
-                //    continue;
-                //}
-                //var vehicleState = vehicleResult.State;
-                //if (configurationWrapper.GetVehicleDataFromTesla())
-                //{
-                //    if (vehicleState == "asleep")
-                //    {
-                //        car.State = CarStateEnum.Asleep;
-                //    }
-                //    else if (vehicleState == "offline")
-                //    {
-                //        car.State = CarStateEnum.Offline;
-                //    }
-                //}
+                var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest, HttpMethod.Get).ConfigureAwait(false);
+                var vehicleResult = vehicle?.Response;
+                logger.LogTrace("Got vehicle {@vehicle}", vehicle);
+                if (vehicleResult == default)
+                {
+                    await backendApiService.PostErrorInformation(nameof(TeslaFleetApiService), nameof(RefreshCarData),
+                                               $"Could not deserialize vehicle: {JsonConvert.SerializeObject(vehicle)}").ConfigureAwait(false);
+                    logger.LogError("Could not deserialize vehicle for car {carId}: {@vehicle}", carId, vehicle);
+                    continue;
+                }
+                var vehicleState = vehicleResult.State;
+                if (configurationWrapper.GetVehicleDataFromTesla())
+                {
+                    if (vehicleState == "asleep")
+                    {
+                        car.State = CarStateEnum.Asleep;
+                    }
+                    else if (vehicleState == "offline")
+                    {
+                        car.State = CarStateEnum.Offline;
+                    }
+                }
 
-                //if (vehicleState is "asleep" or "offline")
-                //{
-                //    logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
-                //    continue;
-                //}
+                if (vehicleState is "asleep" or "offline")
+                {
+                    logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
+                    continue;
+                }
                 var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(car.Vin, VehicleDataRequest, HttpMethod.Get)
                     .ConfigureAwait(false);
                 car.LastApiDataRefresh = currentUtcDate;
@@ -491,6 +491,7 @@ public class TeslaFleetApiService(
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, HttpMethod httpMethod, string contentData = "{}", int? amp = null) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {contentData})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, contentData);
+        AddRequestToCar(vin, fleetApiRequest);
         if (fleetApiRequest.BleCompatible)
         {
             var isCarBleEnabled = await teslaSolarChargerContext.Cars
@@ -563,7 +564,6 @@ public class TeslaFleetApiService(
         var fleetApiProxyRequired = await IsFleetApiProxyEnabled(vin).ConfigureAwait(false);
         var baseUrl = GetFleetApiBaseUrl(accessToken.Region, fleetApiRequest.NeedsProxy, fleetApiProxyRequired.Value);
         var requestUri = $"{baseUrl}api/1/vehicles/{vin}/{fleetApiRequest.RequestUrl}";
-        settings.TeslaApiRequestCounter++;
         var request = new HttpRequestMessage()
         {
             Content = content,
@@ -599,6 +599,53 @@ public class TeslaFleetApiService(
         }
         logger.LogDebug("Response: {responseString}", responseString);
         return teslaCommandResultResponse;
+    }
+
+    private void AddRequestToCar(string vin, DtoFleetApiRequest fleetApiRequest)
+    {
+        var car = settings.Cars.FirstOrDefault(c => c.Vin == vin);
+        if (car == default)
+        {
+            logger.LogError("Could find car for request logging");
+            return;
+        }
+        var currentDate = dateTimeProvider.UtcNow();
+        if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+        {
+            car.ChargeStartCalls.Add(currentDate);
+        }
+        else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+        {
+            car.ChargeStopCalls.Add(currentDate);
+        }
+        else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
+        {
+            car.SetChargingAmpsCall.Add(currentDate);
+        }
+        else if (fleetApiRequest.RequestUrl == SetScheduledChargingRequest.RequestUrl)
+        {
+            car.OtherCommandCalls.Add(currentDate);
+        }
+        else if (fleetApiRequest.RequestUrl == SetChargeLimitRequest.RequestUrl)
+        {
+            car.OtherCommandCalls.Add(currentDate);
+        }
+        else if (fleetApiRequest.RequestUrl == OpenChargePortDoorRequest.RequestUrl)
+        {
+            car.OtherCommandCalls.Add(currentDate);
+        }
+        else if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
+        {
+            car.WakeUpCalls.Add(currentDate);
+        }
+        else if (fleetApiRequest.RequestUrl == VehicleRequest.RequestUrl)
+        {
+            car.VehicleCalls.Add(currentDate);
+        }
+        else if (fleetApiRequest.RequestUrl == VehicleDataRequest.RequestUrl)
+        {
+            car.VehicleDataCalls.Add(currentDate);
+        }
     }
 
     private async Task<DateTime?> RateLimitedUntil(string vin)

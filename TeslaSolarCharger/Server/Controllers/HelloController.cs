@@ -49,12 +49,6 @@ namespace TeslaSolarCharger.Server.Controllers
         }
 
         [HttpGet]
-        public Task<DtoValue<int>> TeslaApiRequestsSinceStartup() => Task.FromResult(_coreService.TeslaApiRequestsSinceStartup());
-
-        [HttpGet]
-        public Task<DtoValue<bool>> ShouldDisplayApiRequestCounter() => Task.FromResult(_coreService.ShouldDisplayApiRequestCounter());
-
-        [HttpGet]
         public Task<IEnumerable<Price>> GetPriceData(DateTimeOffset from, DateTimeOffset to) => _coreService.GetPriceData(from, to);
 
         [HttpGet]

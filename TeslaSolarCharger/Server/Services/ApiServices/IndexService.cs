@@ -258,7 +258,17 @@ public class IndexService : IIndexService
             {
                 continue;
             }
-            if (property.PropertyType == typeof(DateTimeOffset?)
+
+            if (property.PropertyType == typeof(List<DateTime>))
+            {
+                var list = (List<DateTime>?) property.GetValue(carState, null);
+                dtoCarTopicValues.NonDateValues.Add(new DtoCarTopicValue()
+                {
+                    Topic = AddSpacesBeforeCapitalLetters(property.Name),
+                    Value = list?.Count.ToString(),
+                });
+            }
+            else if (property.PropertyType == typeof(DateTimeOffset?)
                 || property.PropertyType == typeof(DateTimeOffset))
             {
                 dtoCarTopicValues.DateValues.Add(new DtoCarDateTopics()
@@ -285,6 +295,7 @@ public class IndexService : IIndexService
                 });
             }
         }
+
         return dtoCarTopicValues;
     }
 

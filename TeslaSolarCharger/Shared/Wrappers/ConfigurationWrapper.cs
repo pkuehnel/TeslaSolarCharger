@@ -852,9 +852,4 @@ public class ConfigurationWrapper(
 
         await UpdateJsonFile(BaseConfigFileFullName(), baseConfigurationJsonString).ConfigureAwait(false);
     }
-
-    public bool ShouldDisplayApiRequestCounter()
-    {
-        return configuration.GetValue<bool>("DisplayApiRequestCounter");
-    }
 }
