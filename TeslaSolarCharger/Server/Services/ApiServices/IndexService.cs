@@ -55,8 +55,7 @@ public class IndexService : IIndexService
     {
         _logger.LogTrace("{method}()", nameof(GetPvValues));
         int? powerBuffer = _configurationWrapper.PowerBuffer(true);
-        if (_configurationWrapper.FrontendConfiguration()?.InverterValueSource == SolarValueSource.None
-            && _configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None)
+        if (_settings.InverterPower == null && _settings.Overage == null)
         {
             powerBuffer = null;
         }
