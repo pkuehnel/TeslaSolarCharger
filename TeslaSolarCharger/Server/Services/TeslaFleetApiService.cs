@@ -603,6 +603,7 @@ public class TeslaFleetApiService(
 
     private void AddRequestToCar(string vin, DtoFleetApiRequest fleetApiRequest)
     {
+        logger.LogTrace("{method}({@fleetApiRequest})", nameof(AddRequestToCar), fleetApiRequest);
         var car = settings.Cars.FirstOrDefault(c => c.Vin == vin);
         if (car == default)
         {
