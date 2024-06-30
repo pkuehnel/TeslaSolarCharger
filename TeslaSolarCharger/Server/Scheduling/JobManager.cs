@@ -110,8 +110,12 @@ public class JobManager
         var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create()
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
+        var random = new Random();
+        var hour = random.Next(0, 5);
+        var minute = random.Next(0, 59);
+
         var apiCallCounterResetTrigger = TriggerBuilder.Create()
-            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 0).InTimeZone(TimeZoneInfo.Utc))// Run every day at 0:00 UTC
+            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour, minute).InTimeZone(TimeZoneInfo.Utc))// Run every day at 0:00 UTC
             .StartNow()
             .Build();
 
