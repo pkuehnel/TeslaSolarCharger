@@ -54,6 +54,15 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             Parameters = new List<string> { amps.ToString() },
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
+
+        var car = settings.Cars.First(c => c.Vin == vin);
+        // Double send if over or under 5 amps as Tesla does not change immedediatly
+        if (car.ChargerRequestedCurrent >= 5 && amps < 5 || car.ChargerRequestedCurrent < 5 && amps >= 5)
+        {
+            await Task.Delay(5000).ConfigureAwait(false);
+            result = await SendCommandToBle(request).ConfigureAwait(false);
+        }
+
         return result;
     }
 
@@ -136,6 +145,8 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         using var client = new HttpClient();
         try
         {
+            //Default timeout of Tesla Command CLI is 21 seconds.
+            client.Timeout = TimeSpan.FromSeconds(22);
             var response = await client.PostAsJsonAsync(url, request.Parameters).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
