@@ -17,6 +17,8 @@ public class DepricatedCarConfiguration
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }
 
+    public bool IgnoreLatestTimeToReachSocDateOnWeekend { get; set; }
+
     public int MaximumAmpere { get; set; }
 
     public int MinimumAmpere { get; set; }
