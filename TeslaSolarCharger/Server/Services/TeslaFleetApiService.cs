@@ -604,15 +604,16 @@ public class TeslaFleetApiService(
     public void ResetApiRequestCounters()
     {
         logger.LogTrace("{method}()", nameof(ResetApiRequestCounters));
+        var currentUtcDate = dateTimeProvider.UtcNow().Date;
         foreach (var car in settings.Cars)
         {
-            car.WakeUpCalls.Clear();
-            car.VehicleDataCalls.Clear();
-            car.VehicleCalls.Clear();
-            car.ChargeStartCalls.Clear();
-            car.ChargeStopCalls.Clear();
-            car.SetChargingAmpsCall.Clear();
-            car.OtherCommandCalls.Clear();
+            car.WakeUpCalls.RemoveAll(d => d < currentUtcDate);
+            car.VehicleDataCalls.RemoveAll(d => d < currentUtcDate);
+            car.VehicleCalls.RemoveAll(d => d < currentUtcDate);
+            car.ChargeStartCalls.RemoveAll(d => d < currentUtcDate);
+            car.ChargeStopCalls.RemoveAll(d => d < currentUtcDate);
+            car.SetChargingAmpsCall.RemoveAll(d => d < currentUtcDate);
+            car.OtherCommandCalls.RemoveAll(d => d < currentUtcDate);
         }
     }
 

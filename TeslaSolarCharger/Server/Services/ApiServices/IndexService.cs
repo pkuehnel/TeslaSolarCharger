@@ -262,10 +262,11 @@ public class IndexService : IIndexService
             if (property.PropertyType == typeof(List<DateTime>))
             {
                 var list = (List<DateTime>?) property.GetValue(carState, null);
+                var currentDate = _dateTimeProvider.UtcNow().Date;
                 dtoCarTopicValues.NonDateValues.Add(new DtoCarTopicValue()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    Value = list?.Count.ToString(),
+                    Value = list?.Where(d => d > currentDate).Count().ToString(),
                 });
             }
             else if (property.PropertyType == typeof(DateTimeOffset?)
