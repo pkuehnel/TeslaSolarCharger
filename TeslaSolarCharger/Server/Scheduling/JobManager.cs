@@ -111,7 +111,8 @@ public class JobManager
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
         var apiCallCounterResetTrigger = TriggerBuilder.Create()
-            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 0)) // Run every day at 0:00 UTC
+            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 0))
+            .StartNow()// Run every day at 0:00 UTC
             .Build();
 
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
