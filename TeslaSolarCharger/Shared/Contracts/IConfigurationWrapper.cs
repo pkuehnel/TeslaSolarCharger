@@ -81,7 +81,6 @@ public interface IConfigurationWrapper
 
     FrontendConfiguration? FrontendConfiguration();
     bool AllowCors();
-    bool ShouldDisplayApiRequestCounter();
     bool ShouldIgnoreSslErrors();
     string BackupCopyDestinationDirectory();
     string GetSqliteFileNameWithoutPath();
@@ -99,4 +98,5 @@ public interface IConfigurationWrapper
     bool GetVehicleDataFromTesla();
     int? MaxInverterAcPower();
     string? BleBaseUrl();
+    bool SendTeslaApiStatsToBackend();
 }

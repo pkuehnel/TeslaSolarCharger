@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.Contracts;
 
@@ -21,10 +22,11 @@ public class BackendApiService : IBackendApiService
     private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
     private readonly IConstants _constants;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISettings _settings;
 
     public BackendApiService(ILogger<BackendApiService> logger, ITscConfigurationService tscConfigurationService,
         IConfigurationWrapper configurationWrapper, ITeslaSolarChargerContext teslaSolarChargerContext, IConstants constants,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider, ISettings settings)
     {
         _logger = logger;
         _tscConfigurationService = tscConfigurationService;
@@ -32,6 +34,7 @@ public class BackendApiService : IBackendApiService
         _teslaSolarChargerContext = teslaSolarChargerContext;
         _constants = constants;
         _dateTimeProvider = dateTimeProvider;
+        _settings = settings;
     }
 
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
@@ -136,5 +139,60 @@ public class BackendApiService : IBackendApiService
         var assembly = Assembly.GetExecutingAssembly();
         var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
         return Task.FromResult(fileVersionInfo.ProductVersion);
+    }
+
+    public async Task PostTeslaApiCallStatistics()
+    {
+        _logger.LogTrace("{method}()", nameof(PostTeslaApiCallStatistics));
+        var shouldTransferDate = _configurationWrapper.SendTeslaApiStatsToBackend();
+        var currentDate = _dateTimeProvider.UtcNow().Date;
+        if (!shouldTransferDate)
+        {
+            _logger.LogWarning("You manually disabled tesla API stats transfer to the backend. This means your usage won't be considered in future optimizations.");
+            return;
+        }
+
+        if (_settings.StartupTime > currentDate.AddDays(-1))
+        {
+            _logger.LogWarning("Startup time is newer than yesterday. This means the statistics are not yet available.");
+            return;
+        }
+        Func<DateTime, bool> predicate = d => d > (currentDate.AddDays(-1)) && (d < currentDate);
+        var cars = _settings.Cars.Where(c => c.WakeUpCalls.Count(predicate) > 0
+                                             || c.VehicleDataCalls.Count(predicate) > 0
+                                             || c.VehicleCalls.Count(predicate) > 0
+                                             || c.ChargeStartCalls.Count(predicate) > 0
+                                             || c.ChargeStopCalls.Count(predicate) > 0
+                                             || c.SetChargingAmpsCall.Count(predicate) > 0
+                                             || c.OtherCommandCalls.Count(predicate) > 0).ToList();
+        foreach (var car in cars)
+        {
+            var statistics = new DtoTeslaApiCallStatistic
+            {
+                Date = DateOnly.FromDateTime(currentDate.AddDays(-1)),
+                InstallationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false),
+                Vin = car.Vin,
+                WakeUpCalls = car.WakeUpCalls.Where(predicate).ToList(),
+                VehicleDataCalls = car.VehicleDataCalls.Where(predicate).ToList(),
+                VehicleCalls = car.VehicleCalls.Where(predicate).ToList(),
+                ChargeStartCalls = car.ChargeStartCalls.Where(predicate).ToList(),
+                ChargeStopCalls = car.ChargeStopCalls.Where(predicate).ToList(),
+                SetChargingAmpsCall = car.SetChargingAmpsCall.Where(predicate).ToList(),
+                OtherCommandCalls = car.OtherCommandCalls.Where(predicate).ToList(),
+            };
+            var url = _configurationWrapper.BackendApiBaseUrl() + "Tsc/NotifyTeslaApiCallStatistics";
+            try
+            {
+                using var httpClient = new HttpClient();
+                httpClient.Timeout = TimeSpan.FromSeconds(10);
+                var response = await httpClient.PostAsJsonAsync(url, statistics).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Could not post tesla api call statistics");
+            }
+            
+        }
+
     }
 }

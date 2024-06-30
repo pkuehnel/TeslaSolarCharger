@@ -14,7 +14,6 @@ public interface ISettings
     bool IsNewVersionAvailable { get; set; }
     DateTimeOffset LastPvValueUpdate { get; set; }
     int? AverageHomeGridVoltage { get; set; }
-    int TeslaApiRequestCounter { get; set; }
     bool CrashedOnStartup { get; set; }
     string? StartupCrashMessage { get; set; }
     bool AllowUnlimitedFleetApiRequests { get; set; }
@@ -27,4 +26,5 @@ public interface ISettings
     Dictionary<int, decimal?> CalculatedRestValues { get; set; }
     bool IsStartupCompleted { get; set; }
     string? ChargePricesUpdateText { get; set; }
+    DateTime StartupTime { get; set; }
 }
