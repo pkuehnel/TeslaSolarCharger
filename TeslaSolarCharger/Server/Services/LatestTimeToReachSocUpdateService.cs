@@ -63,7 +63,6 @@ public class LatestTimeToReachSocUpdateService(
                 {
                     dateToSet = dateTimeOffSetNow.DateTime.AddDays(3).Date;
                 }
-
             }
             //Sa
             else if (dateToSet.DayOfWeek == DayOfWeek.Saturday)
