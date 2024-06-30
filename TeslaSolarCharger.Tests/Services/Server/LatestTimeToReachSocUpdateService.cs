@@ -36,12 +36,14 @@ public class LatestTimeToReachSocUpdateService : TestBase
         new object[]
         {
             true,
+            false,
             new DateTime(2023,2,2, 8, 0, 0),
             new DateTime(2023,1,15, 14, 0, 0),
             new DateTime(2023, 2, 2, 14, 0, 0),
         },
         new object[]
         {
+            false,
             false,
             new DateTime(2023,2,2, 8, 0, 0),
             new DateTime(2023,1,15, 14, 0, 0),
@@ -50,12 +52,14 @@ public class LatestTimeToReachSocUpdateService : TestBase
         new object[]
         {
             true,
+            false,
             new DateTime(2023,2,2, 8, 0, 0),
             new DateTime(2023,2,15, 14, 0, 0),
             new DateTime(2023, 2, 2, 14, 0, 0),
         },
         new object[]
         {
+            false,
             false,
             new DateTime(2023,2,2, 8, 0, 0),
             new DateTime(2023,2,15, 14, 0, 0),
@@ -64,6 +68,7 @@ public class LatestTimeToReachSocUpdateService : TestBase
         new object[]
         {
             false,
+            false,
             new DateTime(2023,2,16, 17, 0, 0),
             new DateTime(2023,2,17, 14, 0, 0),
             new DateTime(2023, 2, 17, 14, 0, 0),
@@ -71,9 +76,50 @@ public class LatestTimeToReachSocUpdateService : TestBase
         new object[]
         {
             true,
+            false,
             new DateTime(2023,2,2, 8, 0, 0),
             new DateTime(2023,2,2, 6, 0, 0),
             new DateTime(2023, 2, 3, 6, 0, 0),
+        },
+        new object[]
+        {
+            false,
+            true,
+            new DateTime(2023,2,2, 8, 0, 0),
+            new DateTime(2023,1,15, 14, 0, 0),
+            new DateTime(2023, 2, 2, 14, 0, 0),
+        },
+        new object[]
+        {
+            false,
+            true,
+            new DateTime(2023,2,3, 8, 0, 0),
+            new DateTime(2023,1,15, 10, 0, 0),
+            new DateTime(2023, 2, 3, 10, 0, 0),
+        },
+        new object[]
+        {
+            false,
+            true,
+            new DateTime(2023,2,3, 8, 0, 0),
+            new DateTime(2023,1,15, 6, 0, 0),
+            new DateTime(2023, 2, 6, 6, 0, 0),
+        },
+        new object[]
+        {
+            false,
+            true,
+            new DateTime(2023,2,4, 8, 0, 0),
+            new DateTime(2023,1,15, 10, 0, 0),
+            new DateTime(2023, 2, 6, 10, 0, 0),
+        },
+        new object[]
+        {
+            false,
+            true,
+            new DateTime(2023,2,5, 8, 0, 0),
+            new DateTime(2023,1,15, 6, 0, 0),
+            new DateTime(2023, 2, 6, 6, 0, 0),
         },
     };
 }
