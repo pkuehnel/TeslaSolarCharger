@@ -148,6 +148,13 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool SendTeslaApiStatsToBackend()
+    {
+        var environmentVariableName = "SendTeslaApiStatsToBackend";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public string BackendApiBaseUrl()
     {
         var environmentVariableName = "BackendApiBaseUrl";

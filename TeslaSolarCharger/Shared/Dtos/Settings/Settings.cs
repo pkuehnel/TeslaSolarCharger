@@ -33,5 +33,7 @@ public class Settings : ISettings
 
     public bool IsStartupCompleted { get; set; }
 
+    public DateTime StartupTime { get; set; }
+
     public string? ChargePricesUpdateText { get; set; }
 }
