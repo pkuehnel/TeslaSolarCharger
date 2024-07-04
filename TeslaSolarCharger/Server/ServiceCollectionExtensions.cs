@@ -50,6 +50,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<FleetApiTokenRefreshJob>()
             .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<TeslaMateChargeCostUpdateJob>()
+            .AddTransient<ApiCallCounterResetJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()

@@ -216,6 +216,8 @@ public class ConfigJsonService(
         settingsCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
         settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         settingsCar.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
+        settingsCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
+        settingsCar.UseBle = carBasicConfiguration.UseBle;
     }
 
     public Task UpdateCarConfiguration(int carId, DepricatedCarConfiguration carConfiguration)
