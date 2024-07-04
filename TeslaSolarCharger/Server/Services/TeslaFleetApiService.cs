@@ -494,16 +494,13 @@ public class TeslaFleetApiService(
         AddRequestToCar(vin, fleetApiRequest);
         if (fleetApiRequest.BleCompatible)
         {
-            var isCarBleEnabled = await teslaSolarChargerContext.Cars
-                .Where(c => c.Vin == vin)
-                .Select(c => c.UseBle)
-                .FirstAsync();
+            var car = settings.Cars.First(c => c.Vin == vin);
+            var isCarBleEnabled = car.UseBle;
             if (isCarBleEnabled)
             {
                 var bleAddress = configurationWrapper.BleBaseUrl();
                 if (!string.IsNullOrEmpty(bleAddress))
                 {
-                    var car = settings.Cars.First(c => c.Vin == vin);
                     var result = new DtoBleResult();
                     if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
                     {

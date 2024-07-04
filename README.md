@@ -1221,3 +1221,4 @@ As the new Tesla Fleet API requires a domain and external Token creation from ve
 - Error and warning logs
 - Your VIN and if using the Fleet API the data for each request (e.g. change-charging-amp to 7A)
 - A statistic of your Fleet API and BLE API usage (e.g. changed car amps 58 times including Timestamps of the request)
+- Your configuration regarding using BLE API, the configured Fleet API Refresh Interval, if getting Data from TeslaMate is enabled

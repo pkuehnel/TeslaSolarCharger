@@ -152,11 +152,6 @@ public class BackendApiService : IBackendApiService
             return;
         }
 
-        if (_settings.StartupTime > currentDate.AddDays(-1))
-        {
-            _logger.LogWarning("Startup time is newer than yesterday. This means the statistics are not yet available.");
-            return;
-        }
         Func<DateTime, bool> predicate = d => d > (currentDate.AddDays(-1)) && (d < currentDate);
         var cars = _settings.Cars.Where(c => c.WakeUpCalls.Count(predicate) > 0
                                              || c.VehicleDataCalls.Count(predicate) > 0
@@ -165,12 +160,18 @@ public class BackendApiService : IBackendApiService
                                              || c.ChargeStopCalls.Count(predicate) > 0
                                              || c.SetChargingAmpsCall.Count(predicate) > 0
                                              || c.OtherCommandCalls.Count(predicate) > 0).ToList();
+
+        var getVehicleDataFromTesla = _configurationWrapper.GetVehicleDataFromTesla();
         foreach (var car in cars)
         {
             var statistics = new DtoTeslaApiCallStatistic
             {
                 Date = DateOnly.FromDateTime(currentDate.AddDays(-1)),
                 InstallationId = await _tscConfigurationService.GetInstallationId().ConfigureAwait(false),
+                StartupTime = _settings.StartupTime,
+                GetDataFromTesla = getVehicleDataFromTesla,
+                ApiRefreshInterval = car.ApiRefreshIntervalSeconds,
+                UseBle = car.UseBle,
                 Vin = car.Vin,
                 WakeUpCalls = car.WakeUpCalls.Where(predicate).ToList(),
                 VehicleDataCalls = car.VehicleDataCalls.Where(predicate).ToList(),
