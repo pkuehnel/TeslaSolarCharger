@@ -80,7 +80,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     public async Task<DtoBleResult> PairKey(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(PairKey), vin);
-        var bleBaseUrl = configurationWrapper.BleBaseUrl();
+        var bleBaseUrl = GetBleBaseUrl(vin);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
             return new DtoBleResult() { Message = "BLE Base URL is not set. Set a BLE URL in your base configuration.", StatusCode = HttpStatusCode.BadRequest, Success = false, };
@@ -125,7 +125,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     private async Task<DtoBleResult> SendCommandToBle(DtoBleRequest request)
     {
         logger.LogTrace("{method}({@request})", nameof(SendCommandToBle), request);
-        var bleBaseUrl = configurationWrapper.BleBaseUrl();
+        var bleBaseUrl = GetBleBaseUrl(request.Vin);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
             return new DtoBleResult()
@@ -188,6 +188,25 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 }
                 break;
         }
+    }
+
+    private string? GetBleBaseUrl(string vin)
+    {
+        var car = settings.Cars.First(c => c.Vin == vin);
+        var bleUrl = car.BleApiBaseUrl;
+        if (string.IsNullOrWhiteSpace(bleUrl))
+        {
+            return null;
+        }
+        if (!bleUrl.EndsWith("/"))
+        {
+            bleUrl += "/";
+        }
+        if (!bleUrl.EndsWith("/api/"))
+        {
+            bleUrl += "api/";
+        }
+        return bleUrl;
     }
 
     private string GetVinByCarId(int carId)

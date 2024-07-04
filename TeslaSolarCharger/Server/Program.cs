@@ -165,6 +165,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var configJsonService = webApplication.Services.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
+        await configJsonService.AddBleBaseUrlToAllCars().ConfigureAwait(false);
         //This needs to be done after converting old cars to new cars as IDs might change
         await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);

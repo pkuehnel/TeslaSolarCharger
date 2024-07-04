@@ -18,4 +18,5 @@ public interface IConfigJsonService
     Task<List<CarBasicConfiguration>> GetCarBasicConfigurations();
     ISettings GetSettings();
     Task AddCarsToSettings();
+    Task AddBleBaseUrlToAllCars();
 }

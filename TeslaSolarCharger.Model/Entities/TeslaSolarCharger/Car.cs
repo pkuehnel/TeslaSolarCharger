@@ -44,6 +44,7 @@ public class Car
     public DateTime? RateLimitedUntil { get; set; }
     public bool UseBle { get; set; }
     public int ApiRefreshIntervalSeconds { get; set; }
+    public string? BleApiBaseUrl { get; set; }
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
 }
