@@ -498,53 +498,51 @@ public class TeslaFleetApiService(
             var isCarBleEnabled = car.UseBle;
             if (isCarBleEnabled)
             {
-                var bleAddress = configurationWrapper.BleBaseUrl();
-                if (!string.IsNullOrEmpty(bleAddress))
+                
+                var result = new DtoBleResult();
+                if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
                 {
-                    var result = new DtoBleResult();
-                    if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+                    result = await bleService.StartCharging(vin);
+                    if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
                     {
-                        result = await bleService.StartCharging(vin);
-                        if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
-                        {
-                            car.State = CarStateEnum.Charging;
-                            car.ChargerActualCurrent = car.ChargerRequestedCurrent;
-                            car.ChargerVoltage = settings.AverageHomeGridVoltage ?? 230;
-                        }
+                        car.State = CarStateEnum.Charging;
+                        car.ChargerActualCurrent = car.ChargerRequestedCurrent;
+                        car.ChargerVoltage = settings.AverageHomeGridVoltage ?? 230;
                     }
-                    else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
-                    {
-                        result = await bleService.StopCharging(vin);
-                        if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
-                        {
-                            car.State = CarStateEnum.Online;
-                            car.ChargerActualCurrent = 0;
-                        }
-                    }
-                    else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
-                    {
-                        result = await bleService.SetAmp(vin, amp!.Value);
-                        if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
-                        {
-                            car.ChargerRequestedCurrent = amp!.Value;
-                            car.ChargerActualCurrent = car.State == CarStateEnum.Charging ? amp!.Value : 0;
-                        }
-                    }
-
-                    if (typeof(T) == typeof(DtoVehicleCommandResult))
-                    {
-                        var comamndResult = new DtoGenericTeslaResponse<T>() { };
-                        comamndResult.Response = (T)(object) new DtoVehicleCommandResult()
-                        {
-                            Result = result.Success,
-                            Reason = result.Message,
-                        };
-                        return comamndResult;
-                    }
-
-                    return new DtoGenericTeslaResponse<T>();
-
                 }
+                else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+                {
+                    result = await bleService.StopCharging(vin);
+                    if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
+                    {
+                        car.State = CarStateEnum.Online;
+                        car.ChargerActualCurrent = 0;
+                    }
+                }
+                else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
+                {
+                    result = await bleService.SetAmp(vin, amp!.Value);
+                    if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
+                    {
+                        car.ChargerRequestedCurrent = amp!.Value;
+                        car.ChargerActualCurrent = car.State == CarStateEnum.Charging ? amp!.Value : 0;
+                    }
+                }
+
+                if (typeof(T) == typeof(DtoVehicleCommandResult))
+                {
+                    var comamndResult = new DtoGenericTeslaResponse<T>() { };
+                    comamndResult.Response = (T)(object) new DtoVehicleCommandResult()
+                    {
+                        Result = result.Success,
+                        Reason = result.Message,
+                    };
+                    return comamndResult;
+                }
+
+                return new DtoGenericTeslaResponse<T>();
+
+                
             }
         }
         var accessToken = await GetAccessToken().ConfigureAwait(false);

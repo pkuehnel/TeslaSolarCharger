@@ -44,7 +44,7 @@ public class CarBasicConfiguration
     [Postfix("s")]
     [Range(11, int.MaxValue)]
     public int ApiRefreshIntervalSeconds { get; set; }
-
-
+    [HelperText("Needed to send commands via BLE to the car. An example value would be `http://raspible:7210/`")]
+    public string? BleApiBaseUrl { get; set; }
 
 }

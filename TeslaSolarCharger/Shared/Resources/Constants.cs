@@ -14,6 +14,7 @@ public class Constants : IConstants
     public string NextAllowedTeslaApiRequest => "NextAllowedTeslaApiRequest";
 
     public string BackupZipBaseFileName => "TSC-Backup.zip";
+
     public string DefaultMargin => "mb-4";
     public Margin InputMargin => Margin.Dense;
 
@@ -22,6 +23,7 @@ public class Constants : IConstants
     public string TokenRefreshUnauthorized => "TokenRefreshUnauthorized";
     public string TokenMissingScopes => "TokenMissingScopes";
     public string CarConfigurationsConverted => "CarConfigurationsConverted";
+    public string BleBaseUrlConverted => "BleBaseUrlConverted";
     public string HandledChargesCarIdsConverted => "HandledChargesCarIdsConverted";
     public string HandledChargesConverted => "HandledChargesConverted";
     public TimeSpan MaxTokenRequestWaitTime => TimeSpan.FromMinutes(5);
