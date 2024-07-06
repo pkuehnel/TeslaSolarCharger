@@ -168,6 +168,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await configJsonService.AddBleBaseUrlToAllCars().ConfigureAwait(false);
         //This needs to be done after converting old cars to new cars as IDs might change
         await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
+        await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 

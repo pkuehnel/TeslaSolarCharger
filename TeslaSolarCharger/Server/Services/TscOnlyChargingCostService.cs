@@ -60,11 +60,12 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     public async Task UpdateChargePricesOfAllChargingProcesses()
     {
         logger.LogTrace("{method}()", nameof(UpdateChargePricesOfAllChargingProcesses));
-        var openChargingProcesses = await context.ChargingProcesses
+        var finalizedChargingProcesses = await context.ChargingProcesses
             .Where(cp => cp.EndDate != null)
             .ToListAsync().ConfigureAwait(false);
-        foreach (var chargingProcess in openChargingProcesses)
+        foreach (var chargingProcess in finalizedChargingProcesses)
         {
+            settings.ChargePricesUpdateText = $"Updating charging processes {finalizedChargingProcesses.IndexOf(chargingProcess)}/{finalizedChargingProcesses.Count}";
             try
             {
                 await FinalizeChargingProcess(chargingProcess);
@@ -74,6 +75,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 logger.LogError(ex, "Error while updating charge prices of charging process with ID {chargingProcessId}.", chargingProcess.Id);
             }
         }
+
+        settings.ChargePricesUpdateText = null;
     }
 
     public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
