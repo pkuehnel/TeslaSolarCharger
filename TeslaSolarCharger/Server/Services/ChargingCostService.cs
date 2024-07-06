@@ -152,7 +152,7 @@ public class ChargingCostService(
         logger.LogTrace("{method}()", nameof(AddFirstChargePrice));
         var chargePrices = await teslaSolarChargerContext.ChargePrices
             .ToListAsync().ConfigureAwait(false);
-        if (chargePrices.Any(c => c.ValidSince < new DateTime(2022, 2, 1)))
+        if (IsFirstChargePriceSet(chargePrices))
         {
             return;
         }
@@ -167,6 +167,38 @@ public class ChargingCostService(
             EnergyProviderConfiguration = null,
         };
         await UpdateChargePrice(chargePrice).ConfigureAwait(false);
+    }
+
+    private static bool IsFirstChargePriceSet(List<ChargePrice> chargePrices)
+    {
+        return chargePrices.Any(c => c.ValidSince < new DateTime(2022, 2, 1));
+    }
+
+    public async Task FixConvertedChargingDetailSolarPower()
+    {
+        logger.LogTrace("{method}()", nameof(FixConvertedChargingDetailSolarPower));
+        var convertedChargingProcesses = await teslaSolarChargerContext.ChargingProcesses
+            .Where(c => c.OldHandledChargeId != null)
+            .ToListAsync().ConfigureAwait(false);
+
+        foreach (var convertedChargingProcess in convertedChargingProcesses)
+        {
+            var scope = serviceProvider.CreateScope();
+            var scopedTscContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+            var chargingDetails = await scopedTscContext.ChargingDetails
+                .Where(cd => cd.ChargingProcessId == convertedChargingProcess.Id)
+                .ToListAsync().ConfigureAwait(false);
+            foreach (var chargingDetail in chargingDetails)
+            {
+                if (chargingDetail.SolarPower < 0)
+                {
+                    chargingDetail.GridPower += chargingDetail.SolarPower;
+                    chargingDetail.SolarPower = 0;
+                }
+            }
+            await scopedTscContext.SaveChangesAsync().ConfigureAwait(false);
+        }
+        
     }
 
     public async Task DeleteChargePriceById(int id)

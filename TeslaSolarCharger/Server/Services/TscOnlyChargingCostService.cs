@@ -60,10 +60,10 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     public async Task UpdateChargePricesOfAllChargingProcesses()
     {
         logger.LogTrace("{method}()", nameof(UpdateChargePricesOfAllChargingProcesses));
-        var openChargingProcesses = await context.ChargingProcesses
+        var finalizedChargingProcesses = await context.ChargingProcesses
             .Where(cp => cp.EndDate != null)
             .ToListAsync().ConfigureAwait(false);
-        foreach (var chargingProcess in openChargingProcesses)
+        foreach (var chargingProcess in finalizedChargingProcesses)
         {
             try
             {
