@@ -177,6 +177,12 @@ public class ChargingCostService(
     public async Task FixConvertedChargingDetailSolarPower()
     {
         logger.LogTrace("{method}()", nameof(FixConvertedChargingDetailSolarPower));
+        var chargingProcessesConverted =
+            await teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == constants.ChargingDetailsSolarPowerShareFixed).ConfigureAwait(false);
+        if (chargingProcessesConverted)
+        {
+            return;
+        }
         var convertedChargingProcesses = await teslaSolarChargerContext.ChargingProcesses
             .Where(c => c.OldHandledChargeId != null)
             .ToListAsync().ConfigureAwait(false);
@@ -188,6 +194,7 @@ public class ChargingCostService(
             var chargingDetails = await scopedTscContext.ChargingDetails
                 .Where(cd => cd.ChargingProcessId == convertedChargingProcess.Id)
                 .ToListAsync().ConfigureAwait(false);
+            logger.LogDebug("Fix solar power share for charging processe {chargingProcessId}", convertedChargingProcess.Id);
             foreach (var chargingDetail in chargingDetails)
             {
                 if (chargingDetail.SolarPower < 0)
@@ -198,7 +205,14 @@ public class ChargingCostService(
             }
             await scopedTscContext.SaveChangesAsync().ConfigureAwait(false);
         }
-        
+
+        teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+        {
+            Key = constants.ChargingDetailsSolarPowerShareFixed,
+            Value = "true",
+        });
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+
     }
 
     public async Task DeleteChargePriceById(int id)
