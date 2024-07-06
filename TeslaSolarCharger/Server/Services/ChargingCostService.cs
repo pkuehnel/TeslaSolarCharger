@@ -215,6 +215,24 @@ public class ChargingCostService(
 
     }
 
+    public async Task UpdateChargingProcessesAfterChargingDetailsFix()
+    {
+        logger.LogTrace("{method}()", nameof(UpdateChargingProcessesAfterChargingDetailsFix));
+        var chargingProcessesConverted =
+            await teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == constants.ChargingDetailsSolarPowerShareFixed).ConfigureAwait(false);
+        if (chargingProcessesConverted)
+        {
+            return;
+        }
+        await tscOnlyChargingCostService.UpdateChargePricesOfAllChargingProcesses().ConfigureAwait(false);
+        teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+        {
+            Key = constants.ChargingDetailsSolarPowerShareFixed,
+            Value = "true",
+        });
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
     public async Task DeleteChargePriceById(int id)
     {
         var chargePrice = await teslaSolarChargerContext.ChargePrices

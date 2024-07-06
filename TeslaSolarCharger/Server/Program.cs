@@ -170,6 +170,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
         await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
+        await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
         await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
