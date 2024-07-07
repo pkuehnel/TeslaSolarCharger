@@ -183,4 +183,35 @@ public class BackendApiService(
         }
 
     }
+
+    public async Task GetNewBackendNotifications()
+    {
+        logger.LogTrace("{method}()", nameof(GetNewBackendNotifications));
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+        var lastKnownNotificationId = await teslaSolarChargerContext.BackendNotifications
+            .OrderByDescending(n => n.BackendIssueId)
+            .Select(n => n.BackendIssueId)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        var url = configurationWrapper.BackendApiBaseUrl() + $"Tsc/GetBackendNotifications?installationId={installationId}&lastKnownNotificationId={lastKnownNotificationId}";
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var response = await httpClient.GetStringAsync(url).ConfigureAwait(false);
+        var notifications = JsonConvert.DeserializeObject<List<DtoBackendNotification>>(response) ?? throw new InvalidDataException("Could not parse notifications");
+
+        foreach (var dtoBackendNotification in notifications)
+        {
+            teslaSolarChargerContext.BackendNotifications.Add(new BackendNotification
+            {
+                BackendIssueId = dtoBackendNotification.Id,
+                Type = dtoBackendNotification.Type,
+                Headline = dtoBackendNotification.Headline,
+                DetailText = dtoBackendNotification.DetailText,
+                ValidFromDate = dtoBackendNotification.ValidFromDate,
+                ValidToDate = dtoBackendNotification.ValidToDate,
+                ValidFromVersion = dtoBackendNotification.ValidFromVersion,
+                ValidToVersion = dtoBackendNotification.ValidToVersion,
+            });
+        }
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
 }

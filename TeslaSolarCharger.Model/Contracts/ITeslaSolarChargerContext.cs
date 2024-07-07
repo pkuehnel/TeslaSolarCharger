@@ -27,5 +27,6 @@ public interface ITeslaSolarChargerContext
     DbSet<ModbusResultConfiguration> ModbusResultConfigurations { get; set; }
     DbSet<MqttConfiguration> MqttConfigurations { get; set; }
     DbSet<MqttResultConfiguration> MqttResultConfigurations { get; set; }
+    DbSet<BackendNotification> BackendNotifications { get; set; }
     void RejectChanges();
 }
