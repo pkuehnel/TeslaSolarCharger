@@ -205,14 +205,6 @@ public class ChargingCostService(
             }
             await scopedTscContext.SaveChangesAsync().ConfigureAwait(false);
         }
-
-        teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
-        {
-            Key = constants.ChargingDetailsSolarPowerShareFixed,
-            Value = "true",
-        });
-        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-
     }
 
     public async Task UpdateChargingProcessesAfterChargingDetailsFix()
