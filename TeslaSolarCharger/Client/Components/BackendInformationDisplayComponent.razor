@@ -4,11 +4,6 @@
 
 @inject HttpClient HttpClient
 
-
-@if (_backendNotifications.Any())
-{
-    <h3>Developer's information</h3>
-}
 @foreach(var notification in _backendNotifications)
 {
     <div class="mb-2">
