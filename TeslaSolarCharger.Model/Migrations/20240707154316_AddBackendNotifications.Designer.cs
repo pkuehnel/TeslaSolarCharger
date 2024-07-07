@@ -11,7 +11,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    [Migration("20240707133318_AddBackendNotifications")]
+    [Migration("20240707154316_AddBackendNotifications")]
     partial class AddBackendNotifications
     {
         /// <inheritdoc />
@@ -37,7 +37,7 @@ namespace TeslaSolarCharger.Model.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsAcknowledged")
+                    b.Property<bool>("IsConfirmed")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Type")

@@ -34,7 +34,7 @@ namespace TeslaSolarCharger.Model.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsAcknowledged")
+                    b.Property<bool>("IsConfirmed")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Type")

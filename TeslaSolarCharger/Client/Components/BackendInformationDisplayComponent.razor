@@ -1,0 +1,44 @@
+﻿@using TeslaSolarCharger.Shared.Dtos
+
+@inject HttpClient HttpClient
+
+
+@if (_backendNotifications.Any())
+{
+    <h3>Info from developer</h3>
+}
+@foreach(var notification in _backendNotifications)
+{
+    <div class="alert alert-@(notification.Type switch
+                                    {
+                                        TeslaSolarCharger.Shared.Enums.BackendNotificationType.Error => "danger",
+                                        TeslaSolarCharger.Shared.Enums.BackendNotificationType.Warning => "warning",
+                                        _ => "info",
+                                    })" role="alert">
+        <h4 class="alert-heading">@notification.Headline</h4>
+        <p>
+            @((MarkupString)notification.DetailText)
+        </p>
+        <MudButton>Test</MudButton>
+    </div>
+}
+
+@code {
+    private List<DtoBackendNotification> _backendNotifications = new List<DtoBackendNotification>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadNotifications();
+    }
+
+    private async Task ReloadNotifications()
+    {
+        var notifications = await HttpClient.GetFromJsonAsync<List<DtoBackendNotification>>("api/BackendNotification/GetRelevantBackendNotifications");
+        if(notifications == null)
+        {
+            _backendNotifications = new List<DtoBackendNotification>();
+            return;
+        }
+        _backendNotifications = notifications;
+    }
+}

@@ -1,6 +1,6 @@
 ﻿using TeslaSolarCharger.Shared.Enums;
 
-namespace TeslaSolarCharger.Server.Dtos.TscBackend;
+namespace TeslaSolarCharger.Shared.Dtos;
 
 public class DtoBackendNotification
 {

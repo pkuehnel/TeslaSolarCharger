@@ -13,5 +13,5 @@ public class BackendNotification
     public DateTime? ValidToDate { get; set; }
     public string? ValidFromVersion { get; set; }
     public string? ValidToVersion { get; set; }
-    public bool IsAcknowledged { get; set; }
+    public bool IsConfirmed { get; set; }
 }

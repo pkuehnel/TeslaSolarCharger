@@ -25,7 +25,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     ValidToDate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     ValidFromVersion = table.Column<string>(type: "TEXT", nullable: true),
                     ValidToVersion = table.Column<string>(type: "TEXT", nullable: true),
-                    IsAcknowledged = table.Column<bool>(type: "INTEGER", nullable: false)
+                    IsConfirmed = table.Column<bool>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
