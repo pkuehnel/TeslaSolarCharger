@@ -15,10 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Remove="Components\BackendInformationDisplayComponent.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="Components\TooltipComponent.razor.css" />
   </ItemGroup>
 
@@ -49,15 +45,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <UpToDateCheckInput Remove="Components\BackendInformationDisplayComponent.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <_ContentIncludedByDefault Remove="Components\BackendInformationDisplayComponent.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="Components\BackendInformationDisplayComponent.razor" />
+    <Content Update="Components\BackendInformationDisplayComponent.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
   </ItemGroup>
 
 </Project>

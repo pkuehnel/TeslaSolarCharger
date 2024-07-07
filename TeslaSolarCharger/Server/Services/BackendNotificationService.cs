@@ -73,12 +73,12 @@ public class BackendNotificationService (ILogger<BackendNotificationService> log
     public async Task MarkBackendNotificationAsConfirmed(int id)
     {
         logger.LogTrace("{method}({id})", nameof(MarkBackendNotificationAsConfirmed), id);
-        var notification = context.BackendNotifications.Find(id);
+        var notification = await context.BackendNotifications.FindAsync(id).ConfigureAwait(false);
         if (notification == null)
         {
             throw new ArgumentException("Notification not found.");
         }
         notification.IsConfirmed = true;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 }
