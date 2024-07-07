@@ -69,13 +69,15 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         var key = CreateModbusTcpClientKey(ipAddress.ToString(), port);
         if(_modbusClients.TryGetValue(key, out var modbusClient))
         {
+            logger.LogTrace("Found Modbus client, check if connected.");
             if (!modbusClient.IsConnected)
             {
+                logger.LogTrace("Modbus client not connected, try to connect.");
                 await ConnectModbusClient(modbusClient, ipAddress, port, endianess, connectDelay, connectTimeout);
             }
             return modbusClient;
         }
-
+        logger.LogTrace("Did not find Modbus client, create new one.");
         var client = serviceProvider.GetRequiredService<IModbusTcpClient>();
         _modbusClients.Add(key, client);
         await ConnectModbusClient(client, ipAddress, port, endianess, connectDelay, connectTimeout);

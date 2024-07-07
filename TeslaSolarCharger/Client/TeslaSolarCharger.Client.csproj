@@ -44,4 +44,10 @@
     <Folder Include="Wrapper\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="Components\BackendInformationDisplayComponent.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -15,6 +15,7 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
+using System;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -192,6 +193,38 @@ public class ConfigJsonService(
         settings.Cars = await GetCars().ConfigureAwait(false);
     }
 
+    public async Task AddBleBaseUrlToAllCars()
+    {
+        logger.LogTrace("{method}()", nameof(AddBleBaseUrlToAllCars));
+        var bleBaseUrlConverted =
+            await teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == constants.BleBaseUrlConverted).ConfigureAwait(false);
+        if (bleBaseUrlConverted)
+        {
+            return;
+        }
+        var baseUrl = configurationWrapper.BleBaseUrl();
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            return;
+        }
+        if (baseUrl.EndsWith("api/"))
+        {
+            baseUrl = baseUrl.Substring(0, baseUrl.Length - "api/".Length);
+        }
+        var databaseCars = await teslaSolarChargerContext.Cars.ToListAsync().ConfigureAwait(false);
+        foreach (var car in databaseCars)
+        {
+            car.BleApiBaseUrl = baseUrl;
+        }
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
+        {
+            Key = constants.BleBaseUrlConverted,
+            Value = "true",
+        });
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         logger.LogTrace("{method}({carId}, {@carBasicConfiguration})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
@@ -206,6 +239,7 @@ public class ConfigJsonService(
         databaseCar.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
         databaseCar.UseBle = carBasicConfiguration.UseBle;
         databaseCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
+        databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var settingsCar = settings.Cars.First(c => c.Id == carId);
         settingsCar.Name = carBasicConfiguration.Name;
@@ -216,6 +250,9 @@ public class ConfigJsonService(
         settingsCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
         settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         settingsCar.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
+        settingsCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
+        settingsCar.UseBle = carBasicConfiguration.UseBle;
+        settingsCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
     }
 
     public Task UpdateCarConfiguration(int carId, DepricatedCarConfiguration carConfiguration)

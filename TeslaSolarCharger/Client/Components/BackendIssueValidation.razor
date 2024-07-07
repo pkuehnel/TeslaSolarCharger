@@ -57,7 +57,7 @@
     private async Task UpdateIssues()
     {
         var timeZoneOffset = TimeZoneInfo.Local.GetUtcOffset(DateTimeProvider.Now());
-        _issues = await HttpClient.GetFromJsonAsync<List<Issue>>($"api/Issue/RefreshIssues?utcTimeZoneOffset={timeZoneOffset}").ConfigureAwait(false);
+        _issues = await HttpClient.GetFromJsonAsync<List<Issue>>($"api/Issue/RefreshIssues?utcTimeZoneOffset={timeZoneOffset}");
         this.StateHasChanged();
     }
 

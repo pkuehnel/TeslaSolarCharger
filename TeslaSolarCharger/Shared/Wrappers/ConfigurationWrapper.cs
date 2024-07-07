@@ -148,6 +148,13 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool SendTeslaApiStatsToBackend()
+    {
+        var environmentVariableName = "SendTeslaApiStatsToBackend";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public string BackendApiBaseUrl()
     {
         var environmentVariableName = "BackendApiBaseUrl";
@@ -171,11 +178,6 @@ public class ConfigurationWrapper(
     public string? BleBaseUrl()
     {
         var value = GetBaseConfiguration().BleApiBaseUrl;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            var environmentVariableName = "BleBaseUrl";
-            value = configuration.GetValue<string?>(environmentVariableName);
-        }
         if (!string.IsNullOrWhiteSpace(value))
         {
             if (!value.EndsWith("/"))
@@ -851,10 +853,5 @@ public class ConfigurationWrapper(
         var baseConfigurationJsonString = JsonConvert.SerializeObject(baseConfigurationJson);
 
         await UpdateJsonFile(BaseConfigFileFullName(), baseConfigurationJsonString).ConfigureAwait(false);
-    }
-
-    public bool ShouldDisplayApiRequestCounter()
-    {
-        return configuration.GetValue<bool>("DisplayApiRequestCounter");
     }
 }

@@ -13,4 +13,6 @@ public interface IChargingCostService
     Task<List<SpotPrice>> GetSpotPrices();
     Task ConvertToNewChargingProcessStructure();
     Task AddFirstChargePrice();
+    Task FixConvertedChargingDetailSolarPower();
+    Task UpdateChargingProcessesAfterChargingDetailsFix();
 }

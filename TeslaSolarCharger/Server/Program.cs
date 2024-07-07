@@ -165,9 +165,12 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var configJsonService = webApplication.Services.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
+        await configJsonService.AddBleBaseUrlToAllCars().ConfigureAwait(false);
         //This needs to be done after converting old cars to new cars as IDs might change
         await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
+        await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
+        await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
         await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
@@ -202,5 +205,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     {
         var settings = webApplication.Services.GetRequiredService<ISettings>();
         settings.IsStartupCompleted = true;
+        var dateTimeProvider = webApplication.Services.GetRequiredService<IDateTimeProvider>();
+        settings.StartupTime = dateTimeProvider.UtcNow();
     }
 }

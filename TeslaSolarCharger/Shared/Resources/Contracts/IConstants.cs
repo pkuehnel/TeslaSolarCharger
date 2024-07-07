@@ -22,10 +22,12 @@ public interface IConstants
     TimeSpan MinTokenRestLifetime { get; }
     int MaxTokenUnauthorizedCount { get; }
     string CarConfigurationsConverted { get; }
+    string BleBaseUrlConverted { get; }
     string DefaultMargin { get; }
     Margin InputMargin { get; }
     string HandledChargesCarIdsConverted { get; }
     string HandledChargesConverted { get; }
     string GridPoleIcon { get; }
     int ChargingDetailsAddTriggerEveryXSeconds { get; }
+    string ChargingDetailsSolarPowerShareFixed { get; }
 }

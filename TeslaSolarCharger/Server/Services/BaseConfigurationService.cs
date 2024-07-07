@@ -28,6 +28,7 @@ public class BaseConfigurationService(
     {
         logger.LogTrace("{method}({@baseConfiguration})", nameof(UpdateBaseConfigurationAsync), baseConfiguration);
         var restartNeeded = await jobManager.StopJobs().ConfigureAwait(false);
+        await teslaMateMqttService.DisconnectClient("configuration change").ConfigureAwait(false);
         await configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
         if (!configurationWrapper.GetVehicleDataFromTesla())
         {

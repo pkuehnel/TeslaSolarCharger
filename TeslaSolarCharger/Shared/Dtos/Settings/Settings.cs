@@ -15,7 +15,6 @@ public class Settings : ISettings
     public bool ControlledACarAtLastCycle { get; set; }
     public DateTimeOffset LastPvValueUpdate { get; set; }
     public int? AverageHomeGridVoltage { get; set; }
-    public int TeslaApiRequestCounter { get; set; } = 0;
 
     public bool CrashedOnStartup { get; set; }
     public string? StartupCrashMessage { get; set; }
@@ -33,6 +32,8 @@ public class Settings : ISettings
     public Dictionary<int, decimal?> CalculatedRestValues { get; set; } = new();
 
     public bool IsStartupCompleted { get; set; }
+
+    public DateTime StartupTime { get; set; }
 
     public string? ChargePricesUpdateText { get; set; }
 }

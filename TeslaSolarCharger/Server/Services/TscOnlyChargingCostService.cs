@@ -60,11 +60,12 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     public async Task UpdateChargePricesOfAllChargingProcesses()
     {
         logger.LogTrace("{method}()", nameof(UpdateChargePricesOfAllChargingProcesses));
-        var openChargingProcesses = await context.ChargingProcesses
+        var finalizedChargingProcesses = await context.ChargingProcesses
             .Where(cp => cp.EndDate != null)
             .ToListAsync().ConfigureAwait(false);
-        foreach (var chargingProcess in openChargingProcesses)
+        foreach (var chargingProcess in finalizedChargingProcesses)
         {
+            settings.ChargePricesUpdateText = $"Updating charging processes {finalizedChargingProcesses.IndexOf(chargingProcess)}/{finalizedChargingProcesses.Count}";
             try
             {
                 await FinalizeChargingProcess(chargingProcess);
@@ -74,6 +75,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 logger.LogError(ex, "Error while updating charge prices of charging process with ID {chargingProcessId}.", chargingProcess.Id);
             }
         }
+
+        settings.ChargePricesUpdateText = null;
     }
 
     public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
@@ -158,8 +161,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         decimal usedGridEnergyWh = 0;
         decimal cost = 0;
         chargingProcess.EndDate = chargingDetails.Last().TimeStamp;
-        var prices = await GetPricesInTimeSpan(chargingProcess.StartDate, chargingProcess.EndDate.Value);
-        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
+        var prices = await GetPricesInTimeSpan(chargingDetails.First().TimeStamp, chargingProcess.EndDate.Value);        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
         var maxChargingDetailsDuration = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds).Add(TimeSpan.FromSeconds(10));
         for (var index = 1; index < chargingDetails.Count; index++)
         {
@@ -215,6 +217,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             case EnergyProvider.FixedPrice:
                 priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
                 prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
+                prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
+
                 return prices;
             case EnergyProvider.Awattar:
                 break;
@@ -231,6 +235,52 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 throw new ArgumentOutOfRangeException();
         }
         throw new NotImplementedException($"Energyprovider {chargePrice.EnergyProvider} is not implemented.");
+    }
+
+    private List<Price> AddDefaultChargePrices(List<Price> prices, DateTimeOffset from, DateTimeOffset to, decimal defaultValue, decimal defaultSolarPrice)
+    {
+        var updatedPrices = new List<Price>();
+
+        // Sort the list by ValidFrom
+        prices = prices.OrderBy(p => p.ValidFrom).ToList();
+
+        // Initialize the start of the uncovered period
+        var currentStart = from;
+
+        foreach (var price in prices)
+        {
+            // If there's a gap between currentStart and the next price.ValidFrom
+            if (currentStart < price.ValidFrom)
+            {
+                updatedPrices.Add(new Price
+                {
+                    Value = defaultValue,
+                    SolarPrice = defaultSolarPrice,
+                    ValidFrom = currentStart,
+                    ValidTo = price.ValidFrom,
+                });
+            }
+
+            // Update currentStart to the end of the current price's ValidTo
+            currentStart = price.ValidTo;
+        }
+
+        // Check for a gap after the last price.ValidTo to the 'to' date
+        if (currentStart < to)
+        {
+            updatedPrices.Add(new Price
+            {
+                Value = defaultValue,
+                SolarPrice = defaultSolarPrice,
+                ValidFrom = currentStart,
+                ValidTo = to,
+            });
+        }
+
+        // Add all original prices to the updated list
+        updatedPrices.AddRange(prices);
+
+        return updatedPrices.OrderBy(p => p.ValidFrom).ToList();
     }
 
     public async Task AddChargingDetailsForAllCars()
