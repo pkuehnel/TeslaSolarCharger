@@ -1,0 +1,63 @@
+﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
+
+@inject HttpClient HttpClient
+
+
+@if (_backendNotifications.Any())
+{
+    <h3>Developer's information</h3>
+}
+@foreach(var notification in _backendNotifications)
+{
+    <div class="mb-2">
+        <MudAlert Severity="GetSeverity(notification.Type)"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left"
+                  ShowCloseIcon="true"
+                  CloseIconClicked="@(_ => ConfirmNotifiaction(notification.Id))">
+            <h4>@notification.Headline</h4>
+            @((MarkupString)notification.DetailText)
+        </MudAlert>
+    </div>
+}
+
+
+
+@code {
+    private List<DtoBackendNotification> _backendNotifications = new List<DtoBackendNotification>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadNotifications();
+    }
+
+    private async Task ReloadNotifications()
+    {
+        var notifications = await HttpClient.GetFromJsonAsync<List<DtoBackendNotification>>("api/BackendNotification/GetRelevantBackendNotifications");
+        if(notifications == null)
+        {
+            _backendNotifications = new List<DtoBackendNotification>();
+            return;
+        }
+        _backendNotifications = notifications;
+    }
+
+    private Severity GetSeverity(BackendNotificationType notificationType)
+    {
+        return notificationType switch
+        {
+            BackendNotificationType.Warning => Severity.Error,
+            BackendNotificationType.Error => Severity.Error,
+            _ => Severity.Info
+        };
+    }
+
+    private async Task ConfirmNotifiaction(int notificationId)
+    {
+        _backendNotifications.RemoveAll(n => n.Id == notificationId);
+        await HttpClient.PostAsync($"api/BackendNotification/MarkBackendNotificationAsConfirmed?id={notificationId}", null);
+    }
+
+}

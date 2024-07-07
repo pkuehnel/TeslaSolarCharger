@@ -10,5 +10,6 @@ public class ApiCallCounterResetJob(ILogger<ApiCallCounterResetJob> logger, ITes
         logger.LogTrace("{method}({context})", nameof(Execute), context);
         await backendApiService.PostTeslaApiCallStatistics().ConfigureAwait(false);
         service.ResetApiRequestCounters();
+        await backendApiService.GetNewBackendNotifications().ConfigureAwait(false);
     }
 }

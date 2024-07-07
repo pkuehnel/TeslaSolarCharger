@@ -105,6 +105,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IOldTscConfigPriceService, OldTscConfigPriceService>()
             .AddTransient<ITeslaMateChargeCostUpdateService, TeslaMateChargeCostUpdateService>()
             .AddTransient<IBleService, TeslaBleService>()
+            .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

@@ -15,49 +15,32 @@ using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class IssueValidationService : IIssueValidationService
+public class IssueValidationService(
+    ILogger<IssueValidationService> logger,
+    ISettings settings,
+    ITeslaMateMqttService teslaMateMqttService,
+    IPossibleIssues possibleIssues,
+    IssueKeys issueKeys,
+    IConfigurationWrapper configurationWrapper,
+    ITeslamateContext teslamateContext,
+    IConstants constants,
+    IDateTimeProvider dateTimeProvider,
+    ITeslaFleetApiService teslaFleetApiService)
+    : IIssueValidationService
 {
-    private readonly ILogger<IssueValidationService> _logger;
-    private readonly ISettings _settings;
-    private readonly ITeslaMateMqttService _teslaMateMqttService;
-    private readonly IPossibleIssues _possibleIssues;
-    private readonly IssueKeys _issueKeys;
-    private readonly IConfigurationWrapper _configurationWrapper;
-    private readonly ITeslamateContext _teslamateContext;
-    private readonly IConstants _constants;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ITeslaFleetApiService _teslaFleetApiService;
-
-    public IssueValidationService(ILogger<IssueValidationService> logger, ISettings settings,
-        ITeslaMateMqttService teslaMateMqttService, IPossibleIssues possibleIssues, IssueKeys issueKeys,
-        IConfigurationWrapper configurationWrapper, ITeslamateContext teslamateContext,
-        IConstants constants, IDateTimeProvider dateTimeProvider, ITeslaFleetApiService teslaFleetApiService)
-    {
-        _logger = logger;
-        _settings = settings;
-        _teslaMateMqttService = teslaMateMqttService;
-        _possibleIssues = possibleIssues;
-        _issueKeys = issueKeys;
-        _configurationWrapper = configurationWrapper;
-        _teslamateContext = teslamateContext;
-        _constants = constants;
-        _dateTimeProvider = dateTimeProvider;
-        _teslaFleetApiService = teslaFleetApiService;
-    }
-
     public async Task<List<Issue>> RefreshIssues(TimeSpan clientTimeZoneId)
     {
-        _logger.LogTrace("{method}()", nameof(RefreshIssues));
+        logger.LogTrace("{method}()", nameof(RefreshIssues));
         var issueList = new List<Issue>();
-        if (_settings.RestartNeeded)
+        if (settings.RestartNeeded)
         {
-            issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.RestartNeeded));
+            issueList.Add(possibleIssues.GetIssueByKey(issueKeys.RestartNeeded));
             return issueList;
         }
-        if (_settings.CrashedOnStartup)
+        if (settings.CrashedOnStartup)
         {
-            var crashedOnStartupIssue = _possibleIssues.GetIssueByKey(_issueKeys.CrashedOnStartup);
-            crashedOnStartupIssue.PossibleSolutions.Add($"Exeption Message: <code>{_settings.StartupCrashMessage}</code>");
+            var crashedOnStartupIssue = possibleIssues.GetIssueByKey(issueKeys.CrashedOnStartup);
+            crashedOnStartupIssue.PossibleSolutions.Add($"Exeption Message: <code>{settings.StartupCrashMessage}</code>");
             issueList.Add(crashedOnStartupIssue);
             return issueList;
         }
@@ -68,37 +51,37 @@ public class IssueValidationService : IIssueValidationService
         }
         issueList.AddRange(GetMqttIssues());
         issueList.AddRange(PvValueIssues());
-        if (!_configurationWrapper.UseFleetApi())
+        if (!configurationWrapper.UseFleetApi())
         {
             issueList.AddRange(await GetTeslaMateApiIssues().ConfigureAwait(false));
         }
         else
         {
-            var tokenState = (await _teslaFleetApiService.GetFleetApiTokenState().ConfigureAwait(false)).Value;
+            var tokenState = (await teslaFleetApiService.GetFleetApiTokenState().ConfigureAwait(false)).Value;
             switch (tokenState)
             {
                 case FleetApiTokenState.NotNeeded:
                     break;
                 case FleetApiTokenState.NotRequested:
-                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenNotRequested));
+                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNotRequested));
                     break;
                 case FleetApiTokenState.TokenRequestExpired:
-                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenRequestExpired));
+                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenRequestExpired));
                     break;
                 case FleetApiTokenState.TokenUnauthorized:
-                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenUnauthorized));
+                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenUnauthorized));
                     break;
                 case FleetApiTokenState.MissingScopes:
-                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenMissingScopes));
+                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenMissingScopes));
                     break;
                 case FleetApiTokenState.NotReceived:
-                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenNotReceived));
+                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNotReceived));
                     break;
                 case FleetApiTokenState.Expired:
-                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenExpired));
+                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenExpired));
                     break;
                 case FleetApiTokenState.NoApiRequestsAllowed:
-                    issueList.Add(_possibleIssues.GetIssueByKey(_issueKeys.FleetApiTokenNoApiRequestsAllowed));
+                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNoApiRequestsAllowed));
                     break;
                 case FleetApiTokenState.UpToDate:
                     break;
@@ -114,16 +97,16 @@ public class IssueValidationService : IIssueValidationService
 
     public async Task<DtoValue<int>> ErrorCount()
     {
-        _logger.LogTrace("{method}()", nameof(ErrorCount));
-        var issues = await RefreshIssues(TimeZoneInfo.Local.GetUtcOffset(_dateTimeProvider.Now())).ConfigureAwait(false);
+        logger.LogTrace("{method}()", nameof(ErrorCount));
+        var issues = await RefreshIssues(TimeZoneInfo.Local.GetUtcOffset(dateTimeProvider.Now())).ConfigureAwait(false);
         var errorIssues = issues.Where(i => i.IssueType == IssueType.Error).ToList();
         return new DtoValue<int>(errorIssues.Count);
     }
 
     public async Task<DtoValue<int>> WarningCount()
     {
-        _logger.LogTrace("{method}()", nameof(WarningCount));
-        var issues = await RefreshIssues(TimeZoneInfo.Local.GetUtcOffset(_dateTimeProvider.Now())).ConfigureAwait(false);
+        logger.LogTrace("{method}()", nameof(WarningCount));
+        var issues = await RefreshIssues(TimeZoneInfo.Local.GetUtcOffset(dateTimeProvider.Now())).ConfigureAwait(false);
         var warningIssues = issues.Where(i => i.IssueType == IssueType.Warning).ToList();
         var warningCount = new DtoValue<int>(warningIssues.Count);
         return warningCount;
@@ -131,24 +114,24 @@ public class IssueValidationService : IIssueValidationService
 
     private async Task<List<Issue>> GetDatabaseIssues()
     {
-        _logger.LogTrace("{method}()", nameof(GetDatabaseIssues));
+        logger.LogTrace("{method}()", nameof(GetDatabaseIssues));
         var issues = new List<Issue>();
         try
         {
             // ReSharper disable once UnusedVariable
-            var carIds = await _teslamateContext.Cars.Select(car => car.Id).ToListAsync().ConfigureAwait(false);
+            var carIds = await teslamateContext.Cars.Select(car => car.Id).ToListAsync().ConfigureAwait(false);
         }
         catch (Exception)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.DatabaseNotAvailable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.DatabaseNotAvailable));
             return issues;
         }
 
-        var geofenceNames = _teslamateContext.Geofences.Select(ge => ge.Name).ToList();
-        var configuredGeofence = _configurationWrapper.GeoFence();
+        var geofenceNames = teslamateContext.Geofences.Select(ge => ge.Name).ToList();
+        var configuredGeofence = configurationWrapper.GeoFence();
         if (!geofenceNames.Any(g => g == configuredGeofence))
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.GeofenceNotAvailable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.GeofenceNotAvailable));
         }
 
         return issues;
@@ -156,9 +139,9 @@ public class IssueValidationService : IIssueValidationService
 
     private async Task<List<Issue>> GetTeslaMateApiIssues()
     {
-        _logger.LogTrace("{method}()", nameof(GetTeslaMateApiIssues));
+        logger.LogTrace("{method}()", nameof(GetTeslaMateApiIssues));
         var issues = new List<Issue>();
-        var teslaMateBaseUrl = _configurationWrapper.TeslaMateApiBaseUrl();
+        var teslaMateBaseUrl = configurationWrapper.TeslaMateApiBaseUrl();
         var getAllCarsUrl = $"{teslaMateBaseUrl}/api/v1/cars";
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromSeconds(1);
@@ -167,33 +150,33 @@ public class IssueValidationService : IIssueValidationService
             var resultString = await httpClient.GetStringAsync(getAllCarsUrl).ConfigureAwait(false);
             if (string.IsNullOrEmpty(resultString))
             {
-                issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.TeslaMateApiNotAvailable));
+                issues.Add(possibleIssues.GetIssueByKey(issueKeys.TeslaMateApiNotAvailable));
             }
         }
         catch (Exception)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.TeslaMateApiNotAvailable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.TeslaMateApiNotAvailable));
         }
         return issues;
     }
 
     private List<Issue> GetMqttIssues()
     {
-        _logger.LogTrace("{method}()", nameof(GetMqttIssues));
+        logger.LogTrace("{method}()", nameof(GetMqttIssues));
         var issues = new List<Issue>();
-        if (!_teslaMateMqttService.IsMqttClientConnected && !_configurationWrapper.GetVehicleDataFromTesla())
+        if (!teslaMateMqttService.IsMqttClientConnected && !configurationWrapper.GetVehicleDataFromTesla())
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.MqttNotConnected));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.MqttNotConnected));
         }
 
-        if (_settings.CarsToManage.Any(c => (c.SocLimit == null || c.SocLimit < _constants.MinSocLimit)))
+        if (settings.CarsToManage.Any(c => (c.SocLimit == null || c.SocLimit < constants.MinSocLimit)))
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocLimitNotReadable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.CarSocLimitNotReadable));
         }
 
-        if (_settings.CarsToManage.Any(c => c.SoC == null))
+        if (settings.CarsToManage.Any(c => c.SoC == null))
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CarSocNotReadable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.CarSocNotReadable));
         }
 
         return issues;
@@ -201,44 +184,44 @@ public class IssueValidationService : IIssueValidationService
 
     private List<Issue> PvValueIssues()
     {
-        _logger.LogTrace("{method}()", nameof(GetMqttIssues));
+        logger.LogTrace("{method}()", nameof(GetMqttIssues));
         var issues = new List<Issue>();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration() ?? new FrontendConfiguration();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration() ?? new FrontendConfiguration();
 
         var isGridPowerConfigured = frontendConfiguration.GridValueSource != SolarValueSource.None;
-        if (isGridPowerConfigured && _settings.Overage == null)
+        if (isGridPowerConfigured && settings.Overage == null)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.GridPowerNotAvailable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.GridPowerNotAvailable));
         }
         var isInverterPowerConfigured = frontendConfiguration.InverterValueSource != SolarValueSource.None;
-        if (isInverterPowerConfigured && _settings.InverterPower == null)
+        if (isInverterPowerConfigured && settings.InverterPower == null)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.InverterPowerNotAvailable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.InverterPowerNotAvailable));
         }
 
         var isHomeBatteryConfigured = frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None;
-        if (isHomeBatteryConfigured && _settings.HomeBatterySoc == null)
+        if (isHomeBatteryConfigured && settings.HomeBatterySoc == null)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotAvailable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.HomeBatterySocNotAvailable));
         }
-        if (isHomeBatteryConfigured && _settings.HomeBatterySoc is > 100 or < 0)
+        if (isHomeBatteryConfigured && settings.HomeBatterySoc is > 100 or < 0)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatterySocNotPlausible));
-        }
-
-        if (isHomeBatteryConfigured && _settings.HomeBatteryPower == null)
-        {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryPowerNotAvailable));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.HomeBatterySocNotPlausible));
         }
 
-        if (isHomeBatteryConfigured && (_configurationWrapper.HomeBatteryMinSoc() == null))
+        if (isHomeBatteryConfigured && settings.HomeBatteryPower == null)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryMinimumSocNotConfigured));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.HomeBatteryPowerNotAvailable));
         }
 
-        if (isHomeBatteryConfigured && (_configurationWrapper.HomeBatteryChargingPower() == null))
+        if (isHomeBatteryConfigured && (configurationWrapper.HomeBatteryMinSoc() == null))
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.HomeBatteryChargingPowerNotConfigured));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.HomeBatteryMinimumSocNotConfigured));
+        }
+
+        if (isHomeBatteryConfigured && (configurationWrapper.HomeBatteryChargingPower() == null))
+        {
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.HomeBatteryChargingPowerNotConfigured));
         }
 
         return issues;
@@ -247,9 +230,9 @@ public class IssueValidationService : IIssueValidationService
     private List<Issue> SofwareIssues()
     {
         var issues = new List<Issue>();
-        if (_settings.IsNewVersionAvailable)
+        if (settings.IsNewVersionAvailable)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.VersionNotUpToDate));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.VersionNotUpToDate));
         }
 
         return issues;
@@ -259,13 +242,13 @@ public class IssueValidationService : IIssueValidationService
     {
         var issues = new List<Issue>();
 
-        if (_configurationWrapper.CurrentPowerToGridCorrectionFactor() == (decimal)0.0
-            || _configurationWrapper.HomeBatteryPowerCorrectionFactor() == (decimal)0.0
-            || _configurationWrapper.HomeBatterySocCorrectionFactor() == (decimal)0.0
-            || _configurationWrapper.CurrentInverterPowerCorrectionFactor() == (decimal)0.0
+        if (configurationWrapper.CurrentPowerToGridCorrectionFactor() == (decimal)0.0
+            || configurationWrapper.HomeBatteryPowerCorrectionFactor() == (decimal)0.0
+            || configurationWrapper.HomeBatterySocCorrectionFactor() == (decimal)0.0
+            || configurationWrapper.CurrentInverterPowerCorrectionFactor() == (decimal)0.0
            )
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.CorrectionFactorZero));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.CorrectionFactorZero));
         }
         return issues;
     }
@@ -273,10 +256,10 @@ public class IssueValidationService : IIssueValidationService
     private List<Issue> GetServerConfigurationIssues(TimeSpan clientTimeUtcOffset)
     {
         var issues = new List<Issue>();
-        var serverTimeUtcOffset = TimeZoneInfo.Local.GetUtcOffset(_dateTimeProvider.Now());
+        var serverTimeUtcOffset = TimeZoneInfo.Local.GetUtcOffset(dateTimeProvider.Now());
         if (clientTimeUtcOffset != serverTimeUtcOffset)
         {
-            issues.Add(_possibleIssues.GetIssueByKey(_issueKeys.ServerTimeZoneDifferentFromClient));
+            issues.Add(possibleIssues.GetIssueByKey(issueKeys.ServerTimeZoneDifferentFromClient));
         }
 
         return issues;

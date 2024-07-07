@@ -114,9 +114,14 @@ public class JobManager
         var hour = random.Next(0, 5);
         var minute = random.Next(0, 59);
 
-        var apiCallCounterResetTrigger = TriggerBuilder.Create()
+        var triggerAtNight = TriggerBuilder.Create()
             .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour, minute).InTimeZone(TimeZoneInfo.Utc))// Run every day at 0:00 UTC
             .StartNow()
+            .Build();
+
+        var triggerNow = TriggerBuilder
+            .Create()
+            .StartAt(DateTimeOffset.Now.AddSeconds(15))
             .Build();
 
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
@@ -132,7 +137,7 @@ public class JobManager
             {fleetApiTokenRefreshJob, new HashSet<ITrigger> {fleetApiTokenRefreshTrigger}},
             {vehicleDataRefreshJob, new HashSet<ITrigger> {vehicleDataRefreshTrigger}},
             {teslaMateChargeCostUpdateJob, new HashSet<ITrigger> {teslaMateChargeCostUpdateTrigger}},
-            {apiCallCounterResetJob, new HashSet<ITrigger> {apiCallCounterResetTrigger}},
+            {apiCallCounterResetJob, new HashSet<ITrigger> {triggerAtNight, triggerNow}},
         };
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);

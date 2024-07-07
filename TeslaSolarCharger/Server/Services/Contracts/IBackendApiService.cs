@@ -9,4 +9,5 @@ public interface IBackendApiService
     Task PostErrorInformation(string source, string methodName, string message, string? stackTrace = null);
     Task<string?> GetCurrentVersion();
     Task PostTeslaApiCallStatistics();
+    Task GetNewBackendNotifications();
 }
