@@ -178,19 +178,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
-        //not needed for debugging
-        try
+        if (!configurationWrapper.ShouldUseFakeSolarValues())
         {
             await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
             await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Could not add TeslaMate cars");
-            if (!Debugger.IsAttached)
-            {
-                throw;
-            }
         }
         await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 
