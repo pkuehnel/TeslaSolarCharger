@@ -721,6 +721,41 @@ public class PvValueService : IPvValueService
     public async Task UpdatePvValues()
     {
         _logger.LogTrace("{method}()", nameof(UpdatePvValues));
+
+        if (_configurationWrapper.ShouldUseFakeSolarValues())
+        {
+            _logger.LogWarning("Fake solar values are used.");
+            var random = new Random();
+            var fakeInverterPower = random.Next(0, 30000);
+            var fakeHousePower = random.Next(500, 25000);
+            var fakeOverage = fakeInverterPower - fakeHousePower;
+            var fakeHomeBatteryPower = 0;
+            if (Math.Abs(fakeOverage) < 7000)
+            {
+                var deviation = random.Next(-150, 150);
+                fakeHomeBatteryPower = fakeOverage - deviation;
+                fakeOverage = -deviation;
+            }
+            else
+            {
+                if (fakeOverage > 0)
+                {
+                    fakeHomeBatteryPower = 7000;
+                }
+                else
+                {
+                    fakeHomeBatteryPower = -7000;
+                }
+                fakeOverage -= fakeHomeBatteryPower;
+            }
+            _settings.InverterPower = fakeInverterPower;
+            _settings.Overage = fakeOverage;
+            _settings.HomeBatteryPower = fakeHomeBatteryPower;
+            _settings.HomeBatterySoc = 82;
+            _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
+            return;
+        }
+
         var valueUsages = new HashSet<ValueUsage>
         {
             ValueUsage.InverterPower,

@@ -122,6 +122,13 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool ShouldUseFakeSolarValues()
+    {
+        var environmentVariableName = "ShouldUseFakeSolarValues";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public bool UseFleetApi()
     {
         var environmentVariableName = "UseFleetApi";

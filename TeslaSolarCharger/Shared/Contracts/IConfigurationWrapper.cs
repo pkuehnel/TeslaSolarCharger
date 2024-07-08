@@ -102,4 +102,5 @@ public interface IConfigurationWrapper
     decimal HomeGeofenceLongitude();
     decimal HomeGeofenceLatitude();
     int HomeGeofenceRadius();
+    bool ShouldUseFakeSolarValues();
 }
