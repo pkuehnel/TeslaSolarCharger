@@ -174,7 +174,18 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
-        await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
+        try
+        {
+            await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not add TeslaMate cars");
+            if (!Debugger.IsAttached)
+            {
+                throw;
+            }
+        }
         await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 
 
@@ -183,6 +194,24 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var spotPriceService = webApplication.Services.GetRequiredService<ISpotPriceService>();
         await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
+
+        var homeGeofenceName = configurationWrapper.GeoFence();
+        if (!string.IsNullOrEmpty(homeGeofenceName))
+        {
+            var homeGeofence = await teslaMateContext.Geofences.Where(g => g.Name == homeGeofenceName).FirstOrDefaultAsync();
+            if (homeGeofence != null)
+            {
+                var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
+                if (baseConfiguration is { HomeGeofenceLatitude: 0, HomeGeofenceLongitude: 0 })
+                {
+                    baseConfiguration.HomeGeofenceLatitude = homeGeofence.Latitude;
+                    baseConfiguration.HomeGeofenceLongitude = homeGeofence.Longitude;
+                    baseConfiguration.HomeGeofenceRadius = homeGeofence.Radius;
+                    var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
+                    await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
+                }
+            }
+        }
 
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)

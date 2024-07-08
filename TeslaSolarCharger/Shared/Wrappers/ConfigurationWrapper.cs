@@ -134,10 +134,22 @@ public class ConfigurationWrapper(
         var value = GetBaseConfiguration().UseTeslaMateAsDataSource;
         return !value;
     }
-    public bool GetVehicleDataFromTeslaDebug()
+
+    public decimal HomeGeofenceLongitude()
     {
-        var environmentVariableName = "GetVehicleDataFromTeslaDebug";
-        var value = configuration.GetValue<bool>(environmentVariableName);
+        var value = GetBaseConfiguration().HomeGeofenceLongitude;
+        return value;
+    }
+
+    public decimal HomeGeofenceLatitude()
+    {
+        var value = GetBaseConfiguration().HomeGeofenceLatitude;
+        return value;
+    }
+
+    public int HomeGeofenceRadius()
+    {
+        var value = GetBaseConfiguration().HomeGeofenceRadius;
         return value;
     }
 

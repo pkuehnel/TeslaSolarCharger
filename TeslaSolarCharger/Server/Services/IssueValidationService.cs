@@ -127,13 +127,6 @@ public class IssueValidationService(
             return issues;
         }
 
-        var geofenceNames = teslamateContext.Geofences.Select(ge => ge.Name).ToList();
-        var configuredGeofence = configurationWrapper.GeoFence();
-        if (!geofenceNames.Any(g => g == configuredGeofence))
-        {
-            issues.Add(possibleIssues.GetIssueByKey(issueKeys.GeofenceNotAvailable));
-        }
-
         return issues;
     }
 
