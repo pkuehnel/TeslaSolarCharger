@@ -89,7 +89,6 @@ public class IssueValidationService(
                     throw new ArgumentOutOfRangeException();
             }
         }
-        issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
         issueList.AddRange(SofwareIssues());
         issueList.AddRange(ConfigurationIssues());
         return issueList;

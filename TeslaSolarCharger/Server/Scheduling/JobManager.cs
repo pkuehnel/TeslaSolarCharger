@@ -126,19 +126,23 @@ public class JobManager
 
         var triggersAndJobs = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>
         {
-            {chargingValueJob,  new HashSet<ITrigger> { chargingValueTrigger }},
-            {carStateCachingJob, new HashSet<ITrigger> {carStateCachingTrigger}},
             {pvValueJob, new HashSet<ITrigger> {pvValueTrigger}},
             {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
-            {finishedChargingProcessFinalizingJob, new HashSet<ITrigger> {finishedChargingProcessFinalizingTrigger}},
-            {mqttReconnectionJob, new HashSet<ITrigger> {mqttReconnectionTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
-            {fleetApiTokenRefreshJob, new HashSet<ITrigger> {fleetApiTokenRefreshTrigger}},
-            {vehicleDataRefreshJob, new HashSet<ITrigger> {vehicleDataRefreshTrigger}},
-            {teslaMateChargeCostUpdateJob, new HashSet<ITrigger> {teslaMateChargeCostUpdateTrigger}},
-            {apiCallCounterResetJob, new HashSet<ITrigger> {triggerAtNight, triggerNow}},
         };
+
+        if (!_configurationWrapper.ShouldUseFakeSolarValues())
+        {
+            triggersAndJobs.Add(chargingValueJob, new HashSet<ITrigger> { chargingValueTrigger });
+            triggersAndJobs.Add(carStateCachingJob, new HashSet<ITrigger> { carStateCachingTrigger });
+            triggersAndJobs.Add(finishedChargingProcessFinalizingJob, new HashSet<ITrigger> { finishedChargingProcessFinalizingTrigger });
+            triggersAndJobs.Add(mqttReconnectionJob, new HashSet<ITrigger> { mqttReconnectionTrigger });
+            triggersAndJobs.Add(fleetApiTokenRefreshJob, new HashSet<ITrigger> { fleetApiTokenRefreshTrigger });
+            triggersAndJobs.Add(vehicleDataRefreshJob, new HashSet<ITrigger> { vehicleDataRefreshTrigger });
+            triggersAndJobs.Add(teslaMateChargeCostUpdateJob, new HashSet<ITrigger> { teslaMateChargeCostUpdateTrigger });
+            triggersAndJobs.Add(apiCallCounterResetJob, new HashSet<ITrigger> { triggerAtNight, triggerNow });
+        }
 
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);
 

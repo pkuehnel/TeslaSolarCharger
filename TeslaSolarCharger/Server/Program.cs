@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
+using TeslaSolarCharger.Client.Pages;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
@@ -110,18 +111,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var shouldRetry = false;
         var teslaMateContext = webApplication.Services.GetRequiredService<ITeslamateContext>();
-        try
-        {
-            var geofences = await teslaMateContext.Geofences.ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            shouldRetry = true;
-            logger1.LogError(ex, "TeslaMate Database not ready yet. Waiting for 20 seconds.");
-            await Task.Delay(20000);
-        }
-
-        if (shouldRetry)
+        if (!Debugger.IsAttached)
         {
             try
             {
@@ -129,10 +119,25 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             }
             catch (Exception ex)
             {
-                logger1.LogError(ex, "TeslaMate Database still not ready. Throwing exception.");
-                throw new Exception("TeslaMate database is not available. Check the database and restart TSC.");
+                shouldRetry = true;
+                logger1.LogError(ex, "TeslaMate Database not ready yet. Waiting for 20 seconds.");
+                await Task.Delay(20000);
+            }
+
+            if (shouldRetry)
+            {
+                try
+                {
+                    var geofences = await teslaMateContext.Geofences.ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    logger1.LogError(ex, "TeslaMate Database still not ready. Throwing exception.");
+                    throw new Exception("TeslaMate database is not available. Check the database and restart TSC.");
+                }
             }
         }
+
 
 
         var tscConfigurationService = webApplication.Services.GetRequiredService<ITscConfigurationService>();
@@ -171,11 +176,12 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
-        await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
+        //not needed for debugging
         try
         {
+            await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
             await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -196,20 +202,17 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
         var homeGeofenceName = configurationWrapper.GeoFence();
-        if (!string.IsNullOrEmpty(homeGeofenceName))
+        var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
+        if (!string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 0, HomeGeofenceLongitude: 0 })
         {
             var homeGeofence = await teslaMateContext.Geofences.Where(g => g.Name == homeGeofenceName).FirstOrDefaultAsync();
             if (homeGeofence != null)
             {
-                var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
-                if (baseConfiguration is { HomeGeofenceLatitude: 0, HomeGeofenceLongitude: 0 })
-                {
-                    baseConfiguration.HomeGeofenceLatitude = homeGeofence.Latitude;
-                    baseConfiguration.HomeGeofenceLongitude = homeGeofence.Longitude;
-                    baseConfiguration.HomeGeofenceRadius = homeGeofence.Radius;
-                    var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
-                    await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
-                }
+                baseConfiguration.HomeGeofenceLatitude = homeGeofence.Latitude;
+                baseConfiguration.HomeGeofenceLongitude = homeGeofence.Longitude;
+                baseConfiguration.HomeGeofenceRadius = homeGeofence.Radius;
+                var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
+                await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
             }
         }
 
