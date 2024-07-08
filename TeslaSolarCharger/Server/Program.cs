@@ -111,7 +111,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var shouldRetry = false;
         var teslaMateContext = webApplication.Services.GetRequiredService<ITeslamateContext>();
-        if (!Debugger.IsAttached)
+        if (!configurationWrapper1.ShouldUseFakeSolarValues())
         {
             try
             {
