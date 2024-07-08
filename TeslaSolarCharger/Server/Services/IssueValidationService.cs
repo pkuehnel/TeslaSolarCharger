@@ -89,6 +89,11 @@ public class IssueValidationService(
                     throw new ArgumentOutOfRangeException();
             }
         }
+
+        if (!configurationWrapper.ShouldUseFakeSolarValues())
+        {
+            issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
+        }
         issueList.AddRange(SofwareIssues());
         issueList.AddRange(ConfigurationIssues());
         return issueList;
