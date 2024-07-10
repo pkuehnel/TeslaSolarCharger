@@ -519,14 +519,7 @@ public class TeslaFleetApiService(
             {
                 case CarStateEnum.Offline or CarStateEnum.Asleep:
                     logger.LogInformation("Wakeup car.");
-                    if (car.UseBleForWakeUp)
-                    {
-                        await bleService.WakeUpCar(car.Vin).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await WakeUpCar(carId).ConfigureAwait(false);
-                    }
+                    await WakeUpCar(carId).ConfigureAwait(false);
                     break;
                 case CarStateEnum.Suspended:
                     logger.LogInformation("Resume logging as is suspended");
@@ -544,9 +537,10 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {contentData})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, contentData);
         AddRequestToCar(vin, fleetApiRequest);
-        if (fleetApiRequest.BleCompatible)
+        var car = settings.Cars.First(c => c.Vin == vin);
+        if (fleetApiRequest.BleCompatible || (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl && car.UseBleForWakeUp))
         {
-            var car = settings.Cars.First(c => c.Vin == vin);
+            
             var isCarBleEnabled = car.UseBle;
             if (isCarBleEnabled)
             {
@@ -563,6 +557,10 @@ public class TeslaFleetApiService(
                 else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
                 {
                     result = await bleService.SetAmp(vin, amp!.Value);
+                }
+                else if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
+                {
+                    result = await bleService.WakeUpCar(vin);
                 }
 
                 if (typeof(T) == typeof(DtoVehicleCommandResult))
