@@ -72,7 +72,6 @@ else
             <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
             @if (carBasicConfiguration.UseBleForWakeUp)
             {
-                <hr />
                 <h5>Test Wakeup via BLE</h5>
                 <div>
                     After this test the car should wake up.
