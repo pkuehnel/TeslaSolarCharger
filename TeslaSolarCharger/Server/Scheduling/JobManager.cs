@@ -84,6 +84,7 @@ public class JobManager
             .Build();
 
         var carStateCachingTrigger = TriggerBuilder.Create()
+            .StartAt(currentDate.AddMinutes(3))
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
         var chargingDetailsAddTrigger = TriggerBuilder.Create()

@@ -115,13 +115,6 @@ public class TeslaFleetApiService(
         await SetAmp(carId, startAmp).ConfigureAwait(false);
 
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, ChargeStartRequest, HttpMethod.Post).ConfigureAwait(false);
-        if (result?.Response?.Result == true && configurationWrapper.GetVehicleDataFromTesla())
-        {
-            var car = settings.Cars.First(c => c.Id == carId);
-            car.State = CarStateEnum.Charging;
-            car.ChargerActualCurrent = startAmp;
-            car.ChargerVoltage = settings.AverageHomeGridVoltage ?? 230;
-        }
     }
 
 
@@ -132,8 +125,6 @@ public class TeslaFleetApiService(
         var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(vin, WakeUpRequest, HttpMethod.Post).ConfigureAwait(false);
         await teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
         await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
-        var car = settings.Cars.First(c => c.Id == carId);
-        car.State = CarStateEnum.Online;
     }
 
     public async Task StopCharging(int carId)
@@ -141,12 +132,6 @@ public class TeslaFleetApiService(
         logger.LogTrace("{method}({carId})", nameof(StopCharging), carId);
         var vin = GetVinByCarId(carId);
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, ChargeStopRequest, HttpMethod.Post).ConfigureAwait(false);
-        if (result?.Response?.Result == true && configurationWrapper.GetVehicleDataFromTesla())
-        {
-            var car = settings.Cars.First(c => c.Id == carId);
-            car.State = CarStateEnum.Online;
-            car.ChargerActualCurrent = 0;
-        }
     }
 
     public async Task SetAmp(int carId, int amps)
@@ -162,12 +147,6 @@ public class TeslaFleetApiService(
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, HttpMethod.Post, commandData, amps).ConfigureAwait(false);
         car.LastSetAmp = amps;
-        if (result?.Response?.Result == true && configurationWrapper.GetVehicleDataFromTesla())
-        {
-            car.ChargerRequestedCurrent = amps;
-            car.ChargerActualCurrent = car.State == CarStateEnum.Charging ? amps : 0;
-        }
-        
     }
 
     public async Task SetScheduledCharging(int carId, DateTimeOffset? chargingStartTime)
@@ -265,7 +244,7 @@ public class TeslaFleetApiService(
         {
             var car = settings.Cars.First(c => c.Id == carId);
             var currentUtcDate = dateTimeProvider.DateTimeOffSetUtcNow();
-            if (car.LastApiDataRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) > currentUtcDate)
+            if (!IsCarDataRefreshNeeded(car))
             {
                 logger.LogDebug("Do not refresh car data for car {carId} to prevent rate limits", car.Id);
                 continue;
@@ -300,9 +279,9 @@ public class TeslaFleetApiService(
                     logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
                     continue;
                 }
+
                 var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(car.Vin, VehicleDataRequest, HttpMethod.Get)
                     .ConfigureAwait(false);
-                car.LastApiDataRefresh = currentUtcDate;
                 logger.LogTrace("Got vehicleData {@vehicleData}", vehicleData);
                 var vehicleDataResult = vehicleData?.Response;
                 if (vehicleData?.Error?.Contains("offline") == true)
@@ -364,6 +343,49 @@ public class TeslaFleetApiService(
                     $"Error getting vehicle data: {ex.Message} {ex.StackTrace}").ConfigureAwait(false);
             }
         }
+    }
+
+    private bool IsCarDataRefreshNeeded(DtoCar car)
+    {
+        var latestRefresh = car.VehicleDataCalls.OrderByDescending(c => c).FirstOrDefault();
+        var currentUtcDate = dateTimeProvider.UtcNow();
+        var homeGeofenceDistance = car.DistanceToHomeGeofence;
+        var earliestHomeArrival =
+            // ReSharper disable once PossibleLossOfFraction
+            latestRefresh.AddSeconds((homeGeofenceDistance ?? 0) / configurationWrapper.MaxTravelSpeedMetersPerSecond());
+        car.EarliestHomeArrival = earliestHomeArrival;
+        if (earliestHomeArrival > currentUtcDate)
+        {
+            logger.LogInformation("Do not refresh data for car {vin} as ealiest calculated home arrival is {ealiestHomeArrival}", car.Vin, earliestHomeArrival);
+            return false;
+        }
+
+        var latestCommandTimeStamp = car.WakeUpCalls
+            .Concat(car.ChargeStartCalls)
+            .Concat(car.ChargeStopCalls)
+            .Concat(car.SetChargingAmpsCall)
+            .Concat(car.OtherCommandCalls)
+            .OrderByDescending(c => c)
+            .FirstOrDefault();
+
+        //Do not waste a request if the latest command was in the last few seconds. Request the next time instead
+        if (latestCommandTimeStamp > currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds()))
+        {
+            return false;
+        }
+
+        //Note: This needs to be after request waste check
+        if (latestCommandTimeStamp > latestRefresh)
+        {
+            return true;
+        }
+
+        if(latestRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) < currentUtcDate)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private CarStateEnum? DetermineCarState(string teslaCarStateString, string? teslaCarShiftState, string teslaCarSoftwareUpdateState, string chargingState)
@@ -515,30 +537,14 @@ public class TeslaFleetApiService(
                 if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
                 {
                     result = await bleService.StartCharging(vin);
-                    if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
-                    {
-                        car.State = CarStateEnum.Charging;
-                        car.ChargerActualCurrent = car.ChargerRequestedCurrent;
-                        car.ChargerVoltage = settings.AverageHomeGridVoltage ?? 230;
-                    }
                 }
                 else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
                 {
                     result = await bleService.StopCharging(vin);
-                    if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
-                    {
-                        car.State = CarStateEnum.Online;
-                        car.ChargerActualCurrent = 0;
-                    }
                 }
                 else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
                 {
                     result = await bleService.SetAmp(vin, amp!.Value);
-                    if (result.Success && configurationWrapper.GetVehicleDataFromTesla())
-                    {
-                        car.ChargerRequestedCurrent = amp!.Value;
-                        car.ChargerActualCurrent = car.State == CarStateEnum.Charging ? amp!.Value : 0;
-                    }
                 }
 
                 if (typeof(T) == typeof(DtoVehicleCommandResult))

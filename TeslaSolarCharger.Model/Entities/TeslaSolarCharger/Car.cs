@@ -50,5 +50,13 @@ public class Car
     public int ApiRefreshIntervalSeconds { get; set; }
     public string? BleApiBaseUrl { get; set; }
 
+    public string? WakeUpCalls { get; set; }
+    public string? VehicleDataCalls { get; set; }
+    public string? VehicleCalls { get; set; }
+    public string? ChargeStartCalls { get; set; }
+    public string? ChargeStopCalls { get; set; }
+    public string? SetChargingAmpsCall { get; set; }
+    public string? OtherCommandCalls { get; set; }
+
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
 }
