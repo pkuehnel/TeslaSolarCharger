@@ -103,4 +103,6 @@ public interface IConfigurationWrapper
     decimal HomeGeofenceLatitude();
     int HomeGeofenceRadius();
     bool ShouldUseFakeSolarValues();
+    int MaxTravelSpeedMetersPerSecond();
+    int CarRefreshAfterCommandSeconds();
 }

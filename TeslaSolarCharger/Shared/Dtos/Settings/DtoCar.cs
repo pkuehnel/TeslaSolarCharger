@@ -86,10 +86,10 @@ public class DtoCar
     public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
-    public DateTimeOffset LastApiDataRefresh { get; set; }
     public int ApiRefreshIntervalSeconds { get; set; }
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
+    public DateTime? EarliestHomeArrival { get; set; }
     public List<DtoChargingSlot> PlannedChargingSlots { get; set; } = new List<DtoChargingSlot>();
     public List<DateTime> WakeUpCalls { get; set; } = new List<DateTime>();
     public List<DateTime> VehicleDataCalls { get; set; } = new List<DateTime>();

@@ -136,6 +136,20 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public int MaxTravelSpeedMetersPerSecond()
+    {
+        var environmentVariableName = "MaxTravelSpeedMetersPerSecond";
+        var value = configuration.GetValue<int>(environmentVariableName);
+        return value;
+    }
+
+    public int CarRefreshAfterCommandSeconds()
+    {
+        var environmentVariableName = "CarRefreshAfterCommandSeconds";
+        var value = configuration.GetValue<int>(environmentVariableName);
+        return value;
+    }
+
     public bool GetVehicleDataFromTesla()
     {
         var value = GetBaseConfiguration().UseTeslaMateAsDataSource;

@@ -265,7 +265,7 @@ public class TeslaFleetApiService(
         {
             var car = settings.Cars.First(c => c.Id == carId);
             var currentUtcDate = dateTimeProvider.DateTimeOffSetUtcNow();
-            if (car.LastApiDataRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) > currentUtcDate)
+            if (!IsCarDataRefreshNeeded(car))
             {
                 logger.LogDebug("Do not refresh car data for car {carId} to prevent rate limits", car.Id);
                 continue;
@@ -300,9 +300,9 @@ public class TeslaFleetApiService(
                     logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
                     continue;
                 }
+
                 var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(car.Vin, VehicleDataRequest, HttpMethod.Get)
                     .ConfigureAwait(false);
-                car.LastApiDataRefresh = currentUtcDate;
                 logger.LogTrace("Got vehicleData {@vehicleData}", vehicleData);
                 var vehicleDataResult = vehicleData?.Response;
                 if (vehicleData?.Error?.Contains("offline") == true)
@@ -364,6 +364,49 @@ public class TeslaFleetApiService(
                     $"Error getting vehicle data: {ex.Message} {ex.StackTrace}").ConfigureAwait(false);
             }
         }
+    }
+
+    private bool IsCarDataRefreshNeeded(DtoCar car)
+    {
+        var latestRefresh = car.VehicleDataCalls.OrderByDescending(c => c).FirstOrDefault();
+        var currentUtcDate = dateTimeProvider.UtcNow();
+        var homeGeofenceDistance = car.DistanceToHomeGeofence;
+        var earliestHomeArrival =
+            // ReSharper disable once PossibleLossOfFraction
+            latestRefresh.AddSeconds((homeGeofenceDistance ?? 0) / configurationWrapper.MaxTravelSpeedMetersPerSecond());
+        car.EarliestHomeArrival = earliestHomeArrival;
+        if (earliestHomeArrival > currentUtcDate)
+        {
+            logger.LogInformation("Do not refresh data for car {vin} as ealiest calculated home arrival is {ealiestHomeArrival}", car.Vin, earliestHomeArrival);
+            return false;
+        }
+
+        var latestCommandTimeStamp = car.WakeUpCalls
+            .Concat(car.ChargeStartCalls)
+            .Concat(car.ChargeStopCalls)
+            .Concat(car.SetChargingAmpsCall)
+            .Concat(car.OtherCommandCalls)
+            .OrderByDescending(c => c)
+            .FirstOrDefault();
+
+        //Do not waste a request if the latest command was in the last few seconds. Request the next time instead
+        if (latestCommandTimeStamp > currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds()))
+        {
+            return false;
+        }
+
+        //Note: This needs to be after request waste check
+        if (latestCommandTimeStamp > latestRefresh)
+        {
+            return true;
+        }
+
+        if(latestRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) < currentUtcDate)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private CarStateEnum? DetermineCarState(string teslaCarStateString, string? teslaCarShiftState, string teslaCarSoftwareUpdateState, string chargingState)
