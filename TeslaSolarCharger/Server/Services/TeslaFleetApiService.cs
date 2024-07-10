@@ -121,9 +121,12 @@ public class TeslaFleetApiService(
     public async Task WakeUpCar(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(WakeUpCar), carId);
-        var vin = GetVinByCarId(carId);
-        var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(vin, WakeUpRequest, HttpMethod.Post).ConfigureAwait(false);
-        await teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
+        var car = settings.Cars.First(c => c.Id == carId);
+        var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(car.Vin, WakeUpRequest, HttpMethod.Post).ConfigureAwait(false);
+        if (car.TeslaMateCarId != default)
+        {
+            await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
+        }
         await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
     }
 
@@ -509,17 +512,32 @@ public class TeslaFleetApiService(
 
     private async Task WakeUpCarIfNeeded(int carId, CarStateEnum? carState)
     {
-        switch (carState)
+        if (carState is CarStateEnum.Asleep or CarStateEnum.Offline or CarStateEnum.Suspended)
         {
-            case CarStateEnum.Offline or CarStateEnum.Asleep:
-                logger.LogInformation("Wakeup car.");
-                await WakeUpCar(carId).ConfigureAwait(false);
-                break;
-            case CarStateEnum.Suspended:
-                logger.LogInformation("Resume logging as is suspended");
-                await teslamateApiService.ResumeLogging(carId).ConfigureAwait(false);
-                break;
+            var car = settings.Cars.First(c => c.Id == carId);
+            switch (carState)
+            {
+                case CarStateEnum.Offline or CarStateEnum.Asleep:
+                    logger.LogInformation("Wakeup car.");
+                    if (car.UseBleForWakeUp)
+                    {
+                        await bleService.WakeUpCar(car.Vin).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await WakeUpCar(carId).ConfigureAwait(false);
+                    }
+                    break;
+                case CarStateEnum.Suspended:
+                    logger.LogInformation("Resume logging as is suspended");
+                    if (car.TeslaMateCarId != default)
+                    {
+                        await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
+                    }
+                    break;
+            }
         }
+        
     }
 
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, HttpMethod httpMethod, string contentData = "{}", int? amp = null) where T : class

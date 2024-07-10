@@ -2,5 +2,5 @@
 
 public interface ITeslamateApiService
 {
-    Task ResumeLogging(int carId);
+    Task ResumeLogging(int teslaMateCarId);
 }

@@ -40,11 +40,12 @@ public class CarBasicConfiguration
     public bool ShouldSetChargeStartTimes { get; set; }
     [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g. Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near your car.")]
     public bool UseBle { get; set; }
+    [HelperText("When enabling this setting, you need to delete the TSC Key in the car (is listed in Controls \u2192 Lock and should be called `unknown key`, do NOT delete the www.teslasolarcharger.de key) and execute BLE Pair again. Note: For now, this leads to a security leak where the BLE key has full control over your car, including unlocking and starting to drive, so if someone gets access to your BLE Device (either remote or physical) he could steal your car. This issue will be resolved in a future vehicle firmware update by Tesla. Currently, it is not known when this will be released.")]
+    public bool UseBleForWakeUp { get; set; }
     [HelperText("Limits requests to car as getting values is rate limited.")]
     [Postfix("s")]
     [Range(11, int.MaxValue)]
     public int ApiRefreshIntervalSeconds { get; set; }
     [HelperText("Needed to send commands via BLE to the car. An example value would be `http://raspible:7210/`")]
     public string? BleApiBaseUrl { get; set; }
-
 }
