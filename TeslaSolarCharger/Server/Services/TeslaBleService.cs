@@ -146,8 +146,11 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         bleBaseUrl += "Command/ExecuteCommand";
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add("vin", request.Vin);
-        queryString.Add("domain", request.Domain);
         queryString.Add("command", request.CommandName);
+        if (!string.IsNullOrEmpty(request.Domain))
+        {
+            queryString.Add("domain", request.Domain);
+        }
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         logger.LogTrace("Parameters: {@parameters}", request.Parameters);
