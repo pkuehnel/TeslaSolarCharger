@@ -77,7 +77,7 @@ else
                 <div>
                     After this test the car should wake up.
                 </div>
-                @if (_bleTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleWakeUpResult))
+                @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleWakeUpResult))
                 {
                     <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
                         <p>
@@ -152,7 +152,7 @@ else
 
     private async Task WakeCar(string vin)
     {
-        _bleTestResults.Remove(vin);
+        _bleWakeUpTestResults.Remove(vin);
         _loadingVins.Add(vin);
         var resultString = await HttpClient.GetStringAsync($"/api/Ble/WakeUp?vin={vin}").ConfigureAwait(false);
         var result = JsonConvert.DeserializeObject<DtoBleResult>(resultString) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
@@ -160,7 +160,7 @@ else
         {
             result.Message = "The car accepted the wake call.";
         }
-        _bleTestResults[vin] = result;
+        _bleWakeUpTestResults[vin] = result;
         _loadingVins.Remove(vin);
     }
 
