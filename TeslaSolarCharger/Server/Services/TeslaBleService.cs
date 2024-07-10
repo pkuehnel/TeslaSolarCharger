@@ -33,7 +33,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var request = new DtoBleRequest
         {
             Vin = vin,
-            CommandName = "charging-start",
+            CommandName = "wake",
             Domain = "vcsec",
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
