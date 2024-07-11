@@ -246,7 +246,6 @@ public class TeslaFleetApiService(
         foreach (var carId in carIds)
         {
             var car = settings.Cars.First(c => c.Id == carId);
-            var currentUtcDate = dateTimeProvider.DateTimeOffSetUtcNow();
             if (!IsCarDataRefreshNeeded(car))
             {
                 logger.LogDebug("Do not refresh car data for car {carId} to prevent rate limits", car.Id);
@@ -350,16 +349,19 @@ public class TeslaFleetApiService(
 
     private bool IsCarDataRefreshNeeded(DtoCar car)
     {
+        logger.LogTrace("{method}({vin})", nameof(IsCarDataRefreshNeeded), car.Vin);
         var latestRefresh = car.VehicleDataCalls.OrderByDescending(c => c).FirstOrDefault();
+        logger.LogDebug("Latest car refresh: {latestRefresh}", latestRefresh);
         var currentUtcDate = dateTimeProvider.UtcNow();
         var homeGeofenceDistance = car.DistanceToHomeGeofence;
         var earliestHomeArrival =
             // ReSharper disable once PossibleLossOfFraction
             latestRefresh.AddSeconds((homeGeofenceDistance ?? 0) / configurationWrapper.MaxTravelSpeedMetersPerSecond());
+        logger.LogDebug("Earliest Home arrival: {earliestHomeArrival}", earliestHomeArrival);
         car.EarliestHomeArrival = earliestHomeArrival;
         if (earliestHomeArrival > currentUtcDate)
         {
-            logger.LogInformation("Do not refresh data for car {vin} as ealiest calculated home arrival is {ealiestHomeArrival}", car.Vin, earliestHomeArrival);
+            logger.LogDebug("Do not refresh data for car {vin} as ealiest calculated home arrival is {ealiestHomeArrival}", car.Vin, earliestHomeArrival);
             return false;
         }
 
@@ -370,24 +372,28 @@ public class TeslaFleetApiService(
             .Concat(car.OtherCommandCalls)
             .OrderByDescending(c => c)
             .FirstOrDefault();
+        logger.LogDebug("Latest command Timestamp: {latestCommandTimeStamp}", latestCommandTimeStamp);
 
         //Do not waste a request if the latest command was in the last few seconds. Request the next time instead
         if (latestCommandTimeStamp > currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds()))
         {
+            logger.LogDebug("Do not refresh data as on {latestCommandTimeStamp} there was a command sent to the car.", latestCommandTimeStamp);
             return false;
         }
 
         //Note: This needs to be after request waste check
         if (latestCommandTimeStamp > latestRefresh)
         {
+            logger.LogDebug("Send a request now as more than {carResfreshAfterCommand} s ago there was a command request", configurationWrapper.CarRefreshAfterCommandSeconds());
             return true;
         }
 
         if(latestRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) < currentUtcDate)
         {
+            logger.LogDebug("Refresh car data as time intervall of {seconds} s is over", car.ApiRefreshIntervalSeconds);
             return true;
         }
-
+        logger.LogDebug("Refresh of vehicle Data is not needed.");
         return false;
     }
 
