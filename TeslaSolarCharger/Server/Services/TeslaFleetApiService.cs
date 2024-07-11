@@ -351,6 +351,10 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({vin})", nameof(IsCarDataRefreshNeeded), car.Vin);
         var latestRefresh = car.VehicleDataCalls.OrderByDescending(c => c).FirstOrDefault();
+        if (latestRefresh == default)
+        {
+            latestRefresh = dateTimeProvider.UtcNow().AddDays(-1);
+        }
         logger.LogDebug("Latest car refresh: {latestRefresh}", latestRefresh);
         var currentUtcDate = dateTimeProvider.UtcNow();
         var homeGeofenceDistance = car.DistanceToHomeGeofence;
@@ -372,6 +376,11 @@ public class TeslaFleetApiService(
             .Concat(car.OtherCommandCalls)
             .OrderByDescending(c => c)
             .FirstOrDefault();
+        if (latestCommandTimeStamp == default)
+        {
+            latestCommandTimeStamp = dateTimeProvider.UtcNow().AddDays(-1);
+        }
+
         logger.LogDebug("Latest command Timestamp: {latestCommandTimeStamp}", latestCommandTimeStamp);
 
         //Do not waste a request if the latest command was in the last few seconds. Request the next time instead
