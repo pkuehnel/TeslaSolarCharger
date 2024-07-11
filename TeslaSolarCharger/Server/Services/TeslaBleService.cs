@@ -28,9 +28,16 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public Task WakeUpCar(int carId)
+    public async Task<DtoBleResult> WakeUpCar(string vin)
     {
-        throw new NotImplementedException();
+        var request = new DtoBleRequest
+        {
+            Vin = vin,
+            CommandName = "wake",
+            Domain = "vcsec",
+        };
+        var result = await SendCommandToBle(request).ConfigureAwait(false);
+        return result;
     }
 
     public async Task<DtoBleResult> StopCharging(string vin)
@@ -77,9 +84,9 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public async Task<DtoBleResult> PairKey(string vin)
+    public async Task<DtoBleResult> PairKey(string vin, string apiRole)
     {
-        logger.LogTrace("{method}({vin})", nameof(PairKey), vin);
+        logger.LogTrace("{method}({vin}, {apiRole})", nameof(PairKey), vin, apiRole);
         var bleBaseUrl = GetBleBaseUrl(vin);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
@@ -89,6 +96,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         bleBaseUrl += "Pairing/PairCar";
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add("vin", vin);
+        queryString.Add("apiRole", apiRole);
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         using var client = new HttpClient();
@@ -139,6 +147,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add("vin", request.Vin);
         queryString.Add("command", request.CommandName);
+        if (!string.IsNullOrEmpty(request.Domain))
+        {
+            queryString.Add("domain", request.Domain);
+        }
         var url = $"{bleBaseUrl}?{queryString}";
         logger.LogTrace("Ble Url: {bleUrl}", url);
         logger.LogTrace("Parameters: {@parameters}", request.Parameters);
@@ -169,25 +181,6 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             return new DtoBleResult() { Message = ex.Message, StatusCode = HttpStatusCode.InternalServerError, Success = false, };
         }
         
-    }
-
-    private async Task WakeUpCarIfNeeded(int carId, CarStateEnum? carState)
-    {
-        switch (carState)
-        {
-            case CarStateEnum.Offline or CarStateEnum.Asleep:
-                logger.LogInformation("Wakeup car.");
-                await WakeUpCar(carId).ConfigureAwait(false);
-                break;
-            case CarStateEnum.Suspended:
-                logger.LogInformation("Resume logging as is suspended");
-                var teslaMateCarId = settings.Cars.First(c => c.Id == carId).TeslaMateCarId;
-                if (teslaMateCarId != default)
-                {
-                    await teslamateApiService.ResumeLogging(teslaMateCarId.Value).ConfigureAwait(false);
-                }
-                break;
-        }
     }
 
     private string? GetBleBaseUrl(string vin)

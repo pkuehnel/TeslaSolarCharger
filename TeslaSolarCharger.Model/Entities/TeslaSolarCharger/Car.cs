@@ -47,6 +47,7 @@ public class Car
     public DateTime? WakeUpRateLimitedUntil { get; set; }
     public DateTime? ChargingCommandsRateLimitedUntil { get; set; }
     public bool UseBle { get; set; }
+    public bool UseBleForWakeUp { get; set; }
     public int ApiRefreshIntervalSeconds { get; set; }
     public string? BleApiBaseUrl { get; set; }
 

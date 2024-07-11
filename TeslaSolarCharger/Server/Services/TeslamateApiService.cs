@@ -236,10 +236,10 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         return chargingStartTime;
     }
 
-    public async Task ResumeLogging(int carId)
+    public async Task ResumeLogging(int teslaMateCarId)
     {
-        _logger.LogTrace("{method}({param1})", nameof(ResumeLogging), carId);
-        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{carId}/logging/resume";
+        _logger.LogTrace("{method}({param1})", nameof(ResumeLogging), teslaMateCarId);
+        var url = $"{_teslaMateBaseUrl}/api/v1/cars/{teslaMateCarId}/logging/resume";
         using var httpClient = new HttpClient();
         var response = await httpClient.PutAsync(url, null).ConfigureAwait(false);
     }
