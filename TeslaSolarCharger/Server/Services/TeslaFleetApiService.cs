@@ -551,7 +551,6 @@ public class TeslaFleetApiService(
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, HttpMethod httpMethod, string contentData = "{}", int? amp = null) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {contentData})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, contentData);
-        AddRequestToCar(vin, fleetApiRequest);
         var car = settings.Cars.First(c => c.Vin == vin);
         if (fleetApiRequest.BleCompatible || (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl && car.UseBleForWakeUp))
         {
@@ -576,6 +575,11 @@ public class TeslaFleetApiService(
                 else if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
                 {
                     result = await bleService.WakeUpCar(vin);
+                }
+
+                if (result.Success == true)
+                {
+                    AddRequestToCar(vin, fleetApiRequest);
                 }
 
                 if (typeof(T) == typeof(DtoVehicleCommandResult))
@@ -621,6 +625,7 @@ public class TeslaFleetApiService(
         logger.LogTrace("Response headers: {@headers}", response.Headers);
         if (response.IsSuccessStatusCode)
         {
+            AddRequestToCar(vin, fleetApiRequest);
         }
         else
         {
