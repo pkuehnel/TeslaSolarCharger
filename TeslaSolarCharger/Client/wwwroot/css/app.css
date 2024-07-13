@@ -137,3 +137,9 @@ a, .btn-link {
 .material-symbols-outlined {
     vertical-align: middle !important;
 }
+
+@media (max-width: 640px) {
+    .auto-scroll {
+        overflow-x: scroll;
+    }
+}
