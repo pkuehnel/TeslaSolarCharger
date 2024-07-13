@@ -133,3 +133,7 @@ a, .btn-link {
         transform: rotate(360deg)
     }
 }
+
+.material-symbols-outlined {
+    vertical-align: middle !important;
+}
