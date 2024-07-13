@@ -158,14 +158,17 @@
                 </div>
             }
             <div class="clear"></div>
-            @if (_pvValues.PowerBuffer != null)
+            @{
+                var homePower = CalculateHomePower();
+            }
+            @if (homePower != null)
             {
                 <div id="node">
                     <span class="material-symbols-outlined me-1">
-                        instant_mix
+                        home
                     </span>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.PowerBuffer]">
-                        @_pvValues.PowerBuffer W
+                        @(homePower) W
                     </TooltipComponent>
                 </div>
                 <div class="clear"></div>
@@ -757,6 +760,28 @@ else
     private void ShowInstallationIdWarning()
     {
         Snackbar.Add("Do not share the ID with anyone", Severity.Warning);
+    }
+
+    private int? CalculateHomePower()
+    {
+        if (_pvValues == null)
+        {
+            return null;
+        }
+
+        if (_pvValues.InverterPower == null)
+        {
+            return null;
+        }
+
+        if (_pvValues.GridPower == null)
+        {
+            return null;
+        }
+        var homeBatteryPower = _pvValues.HomeBatteryPower ?? 0;
+        var chargingPower = _pvValues.CarCombinedChargingPowerAtHome ?? 0;
+        var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
+        return homePower;
     }
 
     private string GetBatteryIconBySoc(int? soc)
