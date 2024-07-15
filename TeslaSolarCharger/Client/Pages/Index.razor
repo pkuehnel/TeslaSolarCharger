@@ -53,7 +53,7 @@
         <div id="power-container">
             @if (_pvValues.InverterPower != null)
             {
-                <div id="solar-power">
+                <div id="node">
                     <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
                     <br />
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.InverterPower]">
@@ -64,7 +64,7 @@
             }
             @if (_pvValues.GridPower != null)
             {
-                <div id="grid-power">
+                <div id="left-child-node">
                     <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
                         <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
                         <br />
@@ -73,48 +73,45 @@
                         </TooltipComponent>
                     </div>
                 </div>
+                <div id="line1">
+                    @for (int i = 0; i <= animatedSliderCount; i++)
+                    {
+                        var delay = $"delay{i}";
+                        <div class="downArrowSliding @delay">
+                            <div class="down-arrow"></div>
+                        </div>
+                    }
+                </div>
             }
-            <div id="solar-to-home-line" class="@(IsVisibleSolarToHomeLine() is true ? "show" : "hide")">
-                @for (int i = 0; i <= animatedSliderCount; i++)
-                {
-                    var delay = $"delay{i}";
-                    <div class="downArrowSliding @delay">
-                        <div class="down-arrow"></div>
-                    </div>
-                }
-            </div>
             @if (_pvValues.HomeBatteryPower != null)
             {
-                <div id="battery-power">
+                <div id="right-child-node">
                     <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
-                        <div class="row">
-                            <div class="col-3 m-auto pe-0 text-right">
-                                <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.BatteryChargingFull)"></MudIcon>
-                            </div>
-                            <div class="col-9 text-left">
-                                @if (_pvValues.HomeBatterySoc != null)
-                                {
-                                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
-                                        @_pvValues.HomeBatterySoc %
-                                    </TooltipComponent>
-                                    <br />
-                                }
-                                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
-                                    @if (_pvValues.HomeBatteryPower != null)
-                                    {
-                                        @Math.Abs((int)_pvValues.HomeBatteryPower)
-                                    }
-                                    W
-                                </TooltipComponent>
-                            </div>
-                        </div>
+                        <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.BatteryChargingFull)"></MudIcon>
+                        <br />
+                        <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
+                            @if (_pvValues.HomeBatteryPower != null)
+                            {
+                                @Math.Abs((int)_pvValues.HomeBatteryPower)
+                            }
+                            W
+                        </TooltipComponent>
                     </div>
+
+                    @if (_pvValues.HomeBatterySoc != null)
+                    {
+                        <div class="mt-1">
+                            <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
+                                @_pvValues.HomeBatterySoc %
+                            </TooltipComponent>
+                        </div>
+                    }
                 </div>
             }
             <div class="clear"></div>
-            @if (IsVisibleSolarToGridLine())
+            @if (_pvValues.GridPower != null && _pvValues.GridPower > 0)
             {
-                <div id="solar-to-grid-horizontal-line">
+                <div id="line5-left">
                     @for (int i = 0; i <= animatedSliderCount - 2; i++)
                     {
                         var delay = $"delay{i}";
@@ -123,57 +120,45 @@
                         </div>
                     }
                 </div>
-                <div id="solar-to-grid-vertical-line">
+                <div id="line5">
                     @for (int i = 0; i <= animatedSliderCount - 1; i++)
                     {
                         var delay = $"delay{i}";
                         <div class="childDownArrowSliding @delay">
-                            <div class="solar-to-grid-vertical-line-down-arrow"></div>
+                            <div class="line5-down-arrow"></div>
                         </div>
                     }
                 </div>
             }
-            @if (IsVisibleGridToHomeLine())
+            else if (_pvValues.GridPower != null)
             {
-                <div id="grid-to-home-horizontal-line"></div>
-                <div id="grid-to-home-vertical-line">
+                <div id="line3-left"></div>
+                <div id="line3">
                     @for (int i = 0; i <= animatedSliderCount - 1; i++)
                     {
                         var delay = $"delay{i}";
                         <div class="childDownArrowSliding @delay">
-                            <div class="grid-to-home-vertical-line-down-arrow"></div>
+                            <div class="child-down-arrow"></div>
                         </div>
                     }
                 </div>
             }
-            @if (IsVisibleBatteryToHomeLine())
+            @if (_pvValues.HomeBatteryPower != null && _pvValues.HomeBatteryPower < 0)
             {
-                <div id="battery-to-home-horizontal-line"></div>
-                <div id="battery-to-home-vertical-line">
+                <div id="line4-right"></div>
+                <div id="line4">
                     @for (int i = 0; i <= animatedSliderCount - 1; i++)
                     {
                         var delay = $"delay{i}";
                         <div class="childDownArrowSliding @delay">
-                            <div class="battery-to-home-vertical-line-down-arrow"></div>
+                            <div class="child-down-arrow"></div>
                         </div>
                     }
                 </div>
             }
-            @if (IsVisibleBatteryToGridLine())
+            else if (_pvValues.HomeBatteryPower != null)
             {
-                <div id="battery-to-grid-horizontal-line">
-                    @for (int i = 0; i <= animatedSliderCount - 2; i++)
-                    {
-                        var delay = $"delay{i}";
-                        <div class="leftArrowSliding @delay">
-                            <div class="left-arrow"></div>
-                        </div>
-                    }
-                </div>
-            }
-            @if (IsVisibleSolarToBatteryLine())
-            {
-                <div id="solar-to-battery-horizontal-line">
+                <div id="line6-right">
                     @for (int i = 0; i <= animatedSliderCount - 2; i++)
                     {
                         var delay = $"delay{i}";
@@ -182,12 +167,12 @@
                         </div>
                     }
                 </div>
-                <div id="solar-to-battery-vertical-line">
+                <div id="line6">
                     @for (int i = 0; i <= animatedSliderCount - 1; i++)
                     {
                         var delay = $"delay{i}";
                         <div class="childDownArrowSliding @delay">
-                            <div class="solar-to-battery-vertical-line-down-arrow"></div>
+                            <div class="line6-down-arrow"></div>
                         </div>
                     }
                 </div>
@@ -198,7 +183,7 @@
             }
             @if (homePower != null)
             {
-                <div id="home-power">
+                <div id="node">
                     <span class="material-symbols-outlined me-1">
                         home
                     </span>
@@ -208,10 +193,10 @@
                     </TooltipComponent>
                 </div>
             }
-            @if (IsVisibleHomeToEvStationLine())
+            @if (homePower != null && _pvValues.CarCombinedChargingPowerAtHome > 0)
             {
                 <div class="clear"></div>
-                <div id="home-to-ev-station-vertical-line">
+                <div id="line2">
                     @for (int i = 0; i <= animatedSliderCount - 1; i++)
                     {
                         var delay = $"delay{i}";
@@ -222,7 +207,7 @@
                 </div>
             }
             <div class="clear"></div>
-            <div id="ev-station-power" class="@(IsVisibleHomeToEvStationLine() is false ? "mt-3" : "")">
+            <div id="node" class="@(_pvValues.CarCombinedChargingPowerAtHome <= 0 ? "mt-3" : "")">
                 <span class="material-symbols-outlined me-1">
                     ev_station
                 </span>
@@ -862,72 +847,4 @@ else
         }
         return Icons.Material.Filled.BatteryFull;
     }
-
-
-    #region Electricity Flow Control Methods
-
-    private bool IsVisibleSolarToHomeLine()
-    {
-        if (_pvValues?.InverterPower > 0 && CalculateHomePower() > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleSolarToGridLine()
-    {
-        if (_pvValues?.InverterPower > 0 && _pvValues?.GridPower > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleSolarToBatteryLine()
-    {
-        if (_pvValues?.InverterPower > 0 && _pvValues?.HomeBatteryPower > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleGridToHomeLine()
-    {
-        if (CalculateHomePower() > 0 && _pvValues?.GridPower < 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleBatteryToHomeLine()
-    {
-        if (CalculateHomePower() > 0 && _pvValues?.HomeBatteryPower < 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleBatteryToGridLine()
-    {
-        if (_pvValues?.GridPower > 0 && _pvValues?.HomeBatteryPower < 0 && _pvValues?.InverterPower <= 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleHomeToEvStationLine()
-    {
-        if (CalculateHomePower() > 0 && _pvValues?.CarCombinedChargingPowerAtHome > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    #endregion
 }
