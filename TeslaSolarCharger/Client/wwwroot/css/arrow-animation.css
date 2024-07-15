@@ -5,29 +5,28 @@
         overflow-x: hidden !important;
     }
 
-    #node {
-        display: inline;
-        border: 1px solid #000;
+    #solar-power, #home-power, #ev-station-power {
         margin-left: 117px;
-        float: left;
     }
 
-    #node,
-    #left-child-node,
-    #right-child-node {
+    #solar-power,
+    #grid-power,
+    #battery-power,
+    #home-power,
+    #ev-station-power {
+        display: inline;
+        border: 1px solid #000;
         width: 100px;
         height: 60px;
         padding: 5px;
-    }
-
-    #left-child-node, #right-child-node {
-        display: inline;
-        border: 1px solid #000;
-        margin-top: 45px;
         float: left;
     }
 
-    #line1 {
+    #grid-power, #battery-power {
+        margin-top: 45px;
+    }
+
+    #solar-to-home-line {
         margin: 0 64px;
         display: inline;
         width: 3px;
@@ -37,7 +36,7 @@
         float: left;
     }
 
-    #line3 {
+    #grid-to-home-vertical-line {
         position: absolute;
         display: inline;
         width: 2px;
@@ -48,7 +47,7 @@
         margin-left: -27px;
     }
 
-    #line3-left {
+    #grid-to-home-horizontal-line {
         position: absolute;
         display: inline;
         width: 40px;
@@ -59,7 +58,7 @@
         margin-left: -67px;
     }
 
-    #line4 {
+    #battery-to-home-vertical-line {
         position: absolute;
         display: inline;
         width: 2px;
@@ -67,10 +66,10 @@
         color: #fff;
         background-color: #000;
         margin-top: -75px;
-        margin-left: 24px;
+        margin-left: 27px;
     }
 
-    #line4-right {
+    #battery-to-home-horizontal-line {
         position: absolute;
         display: inline;
         width: 40px;
@@ -78,10 +77,21 @@
         color: #fff;
         background-color: #000;
         margin-top: -75px;
-        margin-left: 25px;
+        margin-left: 27px;
     }
 
-    #line5 {
+    #battery-to-grid-horizontal-line {
+        position: absolute;
+        display: inline;
+        width: 130px;
+        height: 2px;
+        color: #fff;
+        background-color: #000;
+        margin-top: -75px;
+        margin-left: -65px;
+    }
+
+    #solar-to-grid-vertical-line {
         position: absolute;
         display: inline;
         width: 2px;
@@ -92,7 +102,7 @@
         margin-left: -27px;
     }
 
-    #line5-left {
+    #solar-to-grid-horizontal-line {
         position: absolute;
         display: inline;
         width: 40px;
@@ -103,7 +113,7 @@
         margin-left: -67px;
     }
 
-    #line6 {
+    #solar-to-battery-vertical-line {
         position: absolute;
         display: inline;
         width: 2px;
@@ -114,7 +124,7 @@
         margin-left: 27px;
     }
 
-    #line6-right {
+    #solar-to-battery-horizontal-line {
         position: absolute;
         display: inline;
         width: 40px;
@@ -122,18 +132,10 @@
         color: #fff;
         background-color: #000;
         margin-top: -77px;
-        margin-left: 26px;
+        margin-left: 27px;
     }
 
-    .line1-down-arrow {
-        border-left: 15px solid transparent;
-        border-right: 15px solid transparent;
-        border-top: 15px solid #2f2f2f;
-        margin-top: 185px;
-        margin-left: -11px;
-    }
-
-    #line2 {
+    #home-to-ev-station-vertical-line {
         font-size: 0;
         display: inline;
         width: 2px;
@@ -142,10 +144,6 @@
         background-color: #000;
         float: left;
         margin-left: 165px;
-    }
-
-    .clear {
-        clear: both;
     }
 
     .left-arrow {
@@ -179,28 +177,6 @@
         margin-top: 140px;
         margin-left: -3.5px;
     }
-
-    .line-2-down-arrow {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        border-top: 2px solid #000;
-        border-right: 2px solid #000;
-        transform: rotate(135deg);
-        margin-top: 30px;
-        margin-left: -3.5px;
-    }
-
-    .child-down-arrow, .line5-down-arrow, .line6-down-arrow {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        border-top: 2px solid #000;
-        border-right: 2px solid #000;
-        transform: rotate(135deg);
-        margin-top: 65px;
-        margin-left: -3.9px;
-    }
 }
 
 @media screen and (min-width: 641px) {
@@ -210,29 +186,28 @@
         margin: auto;
     }
 
-    #node {
-        display: inline;
-        border: 1px solid #000;
+    #solar-power, #home-power, #ev-station-power {
         margin-left: 180px;
-        float: left;
     }
 
-    #node,
-    #left-child-node,
-    #right-child-node {
+    #solar-power,
+    #grid-power,
+    #battery-power,
+    #home-power,
+    #ev-station-power {
+        display: inline;
+        border: 1px solid #000;
         width: 160px;
         height: 60px;
         padding: 5px;
-    }
-
-    #left-child-node, #right-child-node {
-        display: inline;
-        border: 1px solid #000;
-        margin-top: 45px;
         float: left;
     }
 
-    #line1 {
+    #grid-power, #battery-power {
+        margin-top: 45px;
+    }
+
+    #solar-to-home-line {
         margin: 0 100px;
         display: inline;
         width: 3px;
@@ -242,7 +217,7 @@
         float: left;
     }
 
-    #line3 {
+    #grid-to-home-vertical-line {
         position: absolute;
         display: inline;
         width: 2px;
@@ -253,7 +228,7 @@
         margin-left: -90px;
     }
 
-    #line3-left {
+    #grid-to-home-horizontal-line {
         position: absolute;
         display: inline;
         width: 62px;
@@ -264,7 +239,7 @@
         margin-left: -151px;
     }
 
-    #line4 {
+    #battery-to-home-vertical-line {
         position: absolute;
         display: inline;
         width: 2px;
@@ -275,7 +250,7 @@
         margin-left: -8px;
     }
 
-    #line4-right {
+    #battery-to-home-horizontal-line {
         position: absolute;
         display: inline;
         width: 62px;
@@ -286,7 +261,18 @@
         margin-left: -8px;
     }
 
-    #line5 {
+    #battery-to-grid-horizontal-line {
+        position: absolute;
+        display: inline;
+        width: 205px;
+        height: 2px;
+        color: #fff;
+        background-color: #000;
+        margin-top: -75px;
+        margin-left: -150px;
+    }
+
+    #solar-to-grid-vertical-line {
         position: absolute;
         display: inline;
         width: 2px;
@@ -297,7 +283,7 @@
         margin-left: -90px;
     }
 
-    #line5-left {
+    #solar-to-grid-horizontal-line {
         position: absolute;
         display: inline;
         width: 62px;
@@ -308,7 +294,7 @@
         margin-left: -151px;
     }
 
-    #line6 {
+    #solar-to-battery-vertical-line {
         position: absolute;
         display: inline;
         width: 2px;
@@ -319,7 +305,7 @@
         margin-left: -8px;
     }
 
-    #line6-right {
+    #solar-to-battery-horizontal-line {
         position: absolute;
         display: inline;
         width: 62px;
@@ -330,7 +316,7 @@
         margin-left: -8px;
     }
 
-    #line2 {
+    #home-to-ev-station-vertical-line {
         font-size: 0;
         display: inline;
         width: 3px;
@@ -339,10 +325,6 @@
         background-color: #000;
         float: left;
         margin-left: 260px;
-    }
-
-    .clear {
-        clear: both;
     }
 
     .left-arrow {
@@ -376,39 +358,32 @@
         margin-top: 140px;
         margin-left: -3.5px;
     }
+}
 
-    .line-2-down-arrow {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        border-top: 3px solid #000;
-        border-right: 3px solid #000;
-        transform: rotate(135deg);
-        margin-top: 40px;
-        margin-left: -3.5px;
-    }
+.clear {
+    clear: both;
+}
 
-    .child-down-arrow {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        border-top: 2px solid #000;
-        border-right: 2px solid #000;
-        transform: rotate(135deg);
-        margin-top: 65px;
-        margin-left: -3.9px;
-    }
+.solar-to-grid-vertical-line-down-arrow,
+.solar-to-battery-vertical-line-down-arrow,
+.grid-to-home-vertical-line-down-arrow,
+.battery-to-home-vertical-line-down-arrow {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid #000;
+    border-right: 2px solid #000;
+    transform: rotate(135deg);
+    margin-top: 65px;
+    margin-left: -3.9px;
+}
 
-    .line5-down-arrow, .line6-down-arrow {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        border-top: 2px solid #000;
-        border-right: 2px solid #000;
-        transform: rotate(135deg);
-        margin-top: 63px;
-        margin-left: -3.9px;
-    }
+.show {
+    visibility: visible;
+}
+
+.hide {
+    visibility: hidden;
 }
 
 .leftArrowSliding {
