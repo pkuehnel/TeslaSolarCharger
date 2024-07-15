@@ -55,7 +55,6 @@
             {
                 <div id="node">
                     <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
-                    <br />
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.InverterPower]">
                         @_pvValues.InverterPower W
                     </TooltipComponent>
@@ -67,7 +66,6 @@
                 <div id="left-child-node">
                     <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
                         <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
-                        <br />
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
                             @Math.Abs((int)_pvValues.GridPower) W
                         </TooltipComponent>
@@ -88,7 +86,6 @@
                 <div id="right-child-node">
                     <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
                         <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.BatteryChargingFull)"></MudIcon>
-                        <br />
                         <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
                             @if (_pvValues.HomeBatteryPower != null)
                             {
@@ -100,28 +97,19 @@
 
                     @if (_pvValues.HomeBatterySoc != null)
                     {
-                        <div class="mt-1">
-                            <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
-                                @_pvValues.HomeBatterySoc %
-                            </TooltipComponent>
-                        </div>
+                        <br />
+                        <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
+                            @_pvValues.HomeBatterySoc %
+                        </TooltipComponent>
                     }
                 </div>
             }
             <div class="clear"></div>
             @if (_pvValues.GridPower != null && _pvValues.GridPower > 0)
             {
-                <div id="line5-left">
-                    @for (int i = 0; i <= animatedSliderCount - 2; i++)
-                    {
-                        var delay = $"delay{i}";
-                        <div class="leftArrowSliding @delay">
-                            <div class="left-arrow"></div>
-                        </div>
-                    }
-                </div>
+                <div id="line5-left"></div>
                 <div id="line5">
-                    @for (int i = 0; i <= animatedSliderCount - 1; i++)
+                    @for (int i = 0; i <= animatedSliderCount; i++)
                     {
                         var delay = $"delay{i}";
                         <div class="childDownArrowSliding @delay">
@@ -134,7 +122,7 @@
             {
                 <div id="line3-left"></div>
                 <div id="line3">
-                    @for (int i = 0; i <= animatedSliderCount - 1; i++)
+                    @for (int i = 0; i <= animatedSliderCount; i++)
                     {
                         var delay = $"delay{i}";
                         <div class="childDownArrowSliding @delay">
@@ -147,7 +135,7 @@
             {
                 <div id="line4-right"></div>
                 <div id="line4">
-                    @for (int i = 0; i <= animatedSliderCount - 1; i++)
+                    @for (int i = 0; i <= animatedSliderCount; i++)
                     {
                         var delay = $"delay{i}";
                         <div class="childDownArrowSliding @delay">
@@ -158,17 +146,9 @@
             }
             else if (_pvValues.HomeBatteryPower != null)
             {
-                <div id="line6-right">
-                    @for (int i = 0; i <= animatedSliderCount - 2; i++)
-                    {
-                        var delay = $"delay{i}";
-                        <div class="rightArrowSliding @delay">
-                            <div class="right-arrow"></div>
-                        </div>
-                    }
-                </div>
+                <div id="line6-right"></div>
                 <div id="line6">
-                    @for (int i = 0; i <= animatedSliderCount - 1; i++)
+                    @for (int i = 0; i <= animatedSliderCount; i++)
                     {
                         var delay = $"delay{i}";
                         <div class="childDownArrowSliding @delay">
@@ -187,31 +167,20 @@
                     <span class="material-symbols-outlined me-1">
                         home
                     </span>
-                    <br />
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.PowerBuffer]">
                         @(homePower) W
                     </TooltipComponent>
                 </div>
-            }
-            @if (homePower != null && _pvValues.CarCombinedChargingPowerAtHome > 0)
-            {
                 <div class="clear"></div>
                 <div id="line2">
-                    @for (int i = 0; i <= animatedSliderCount - 1; i++)
-                    {
-                        var delay = $"delay{i}";
-                        <div class="childDownArrowSliding @delay">
-                            <div class="line-2-down-arrow"></div>
-                        </div>
-                    }
+                    <div class="line-2-down-arrow"></div>
                 </div>
             }
             <div class="clear"></div>
-            <div id="node" class="@(_pvValues.CarCombinedChargingPowerAtHome <= 0 ? "mt-3" : "")">
+            <div id="node">
                 <span class="material-symbols-outlined me-1">
                     ev_station
                 </span>
-                <br />
                 <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CombinedChargingPower]">
                     @_pvValues.CarCombinedChargingPowerAtHome W
                 </TooltipComponent>
@@ -489,7 +458,7 @@ else
         </div>
     }
 
-    <div class="shadow p-3 mb-5 bg-white rounded auto-scroll">
+    <div class="shadow p-3 mb-5 bg-white rounded">
         @if (_serverTimeZoneDisplayName != default)
         {
             <div>
