@@ -41,15 +41,17 @@
 
 @if (_pvValues != null)
 {
+    @if (_couldNotRefreshStates == true)
+    {
+        <small class="form-text text-muted">States could not be refreshed. Are you currently offline?</small>
+    }
+    @if (_isSolarEdgeInstallation == true)
+    {
+        <small class="form-text text-muted">As you are using SolarEdge which is rate limited, these values might be delayed or grid power and batterypower might be displayed as zero or your configured Home Battery charging power (W). This is nothing to worry about, it is just a way to handle the rate limitation.</small>
+    }
     <div class="shadow p-3 mb-5 bg-white rounded d-flex">
-        @if (_couldNotRefreshStates == true)
-        {
-            <small class="form-text text-muted">States could not be refreshed. Are you currently offline?</small>
-        }
-        @if (_isSolarEdgeInstallation == true)
-        {
-            <small class="form-text text-muted">As you are using SolarEdge which is rate limited, these values might be delayed or grid power and batterypower might be displayed as zero or your configured Home Battery charging power (W). This is nothing to worry about, it is just a way to handle the rate limitation.</small>
-        }
+        
+        
         <div id="power-container">
             @if (_pvValues.InverterPower != null)
             {
