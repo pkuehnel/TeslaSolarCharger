@@ -61,7 +61,7 @@
         }
         @if (_pvValues.GridPower != null)
         {
-            <div class="@(_pvValues.GridPower > 0 ? "text-success" : "text-danger")">
+            <div class="@(_pvValues.GridPower > 0 ? "text-success" : (_pvValues.GridPower < 0 ? "text-danger" : ""))">
                 <div class="d-flex align-items-center mb-1">
                     <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.GridPower]">
@@ -82,7 +82,7 @@
         }
         @if (_pvValues.HomeBatteryPower != null)
         {
-            <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
+            <div class="@(_pvValues.HomeBatteryPower > 0 ? "text-success" : (_pvValues.HomeBatteryPower < 0 ? "text-danger" : ""))">
                 <div class="d-flex align-items-center mb-1">
                     <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.BatteryChargingFull)"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
