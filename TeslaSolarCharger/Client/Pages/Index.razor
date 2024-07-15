@@ -71,77 +71,26 @@
             </div>
         }
 
-                    @if (_pvValues.HomeBatterySoc != null)
-                    {
-                        <br />
-                        <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
-                            @_pvValues.HomeBatterySoc %
-                        </TooltipComponent>
-                    }
-                </div>
-            }
-            <div class="clear"></div>
-            @if (_pvValues.GridPower != null && _pvValues.GridPower > 0)
-            {
-                <div id="line5-left"></div>
-                <div id="line5">
-                    @for (int i = 0; i <= animatedSliderCount; i++)
-                    {
-                        var delay = $"delay{i}";
-                        <div class="childDownArrowSliding @delay">
-                            <div class="line5-down-arrow"></div>
-                        </div>
-                    }
-                </div>
-            }
-            else if (_pvValues.GridPower != null)
-            {
-                <div id="line3-left"></div>
-                <div id="line3">
-                    @for (int i = 0; i <= animatedSliderCount; i++)
-                    {
-                        var delay = $"delay{i}";
-                        <div class="childDownArrowSliding @delay">
-                            <div class="child-down-arrow"></div>
-                        </div>
-                    }
-                </div>
-            }
-            @if (_pvValues.HomeBatteryPower != null && _pvValues.HomeBatteryPower < 0)
-            {
-                <div id="line4-right"></div>
-                <div id="line4">
-                    @for (int i = 0; i <= animatedSliderCount; i++)
-                    {
-                        var delay = $"delay{i}";
-                        <div class="childDownArrowSliding @delay">
-                            <div class="child-down-arrow"></div>
-                        </div>
-                    }
-                </div>
-            }
-            else if (_pvValues.HomeBatteryPower != null)
-            {
-                <div id="line6-right"></div>
-                <div id="line6">
-                    @for (int i = 0; i <= animatedSliderCount; i++)
-                    {
-                        var delay = $"delay{i}";
-                        <div class="childDownArrowSliding @delay">
-                            <div class="line6-down-arrow"></div>
-                        </div>
-                    }
-                </div>
-            }
-            <div class="clear"></div>
-            @if (_pvValues.PowerBuffer != null)
-            {
-                <div id="node">
-                    <span class="material-symbols-outlined me-1">
-                        instant_mix
-                    </span>
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.PowerBuffer]">
-                        @_pvValues.PowerBuffer W
+        @if (_pvValues.HomeBatterySoc != null)
+        {
+            <div class="d-flex align-items-center mb-1">
+                <MudIcon Class="mr-1" Icon="@(GetBatteryIconBySoc(_pvValues.HomeBatterySoc))"></MudIcon>
+                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatterySoC]">
+                    @_pvValues.HomeBatterySoc %
+                </TooltipComponent>
+            </div>
+        }
+        @if (_pvValues.HomeBatteryPower != null)
+        {
+            <div class="@(_pvValues.HomeBatteryPower < 0 ? "text-danger" : "text-success")">
+                <div class="d-flex align-items-center mb-1">
+                    <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.BatteryChargingFull)"></MudIcon>
+                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.HomeBatteryPower]">
+                        @if (_pvValues.HomeBatteryPower != null)
+                        {
+                            @Math.Abs((int)_pvValues.HomeBatteryPower)
+                        }
+                        W
                     </TooltipComponent>
                 </div>
             </div>
@@ -191,12 +140,12 @@ else
                     </TooltipComponent>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
                 </div>
-                
+
                 @if (DateTime.UtcNow < car.RateLimitedUntil)
                 {
                     <div class="alert alert-danger" role="alert">
                         <div>Car currently rate limited.</div>
-                        <hr/>
+                        <hr />
                         <p>
                             Your car is rate limited by Tesla and TSC won't be able to set the charging power until @(car.RateLimitedUntil.Value.ToLocalTime().ToString("g")). For now, the only solution for this is to set up a BLE device (see <a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">here</a>). Currently there is no option from Tesla's side to pay for more requests per day. So even after the rate limit is over, TSC only has 50 requests for the next day. After the 50 requests within 24 hours, the rate limit is present again for the next 24 hours. Despite setting up the BLE API as a workaround, you can go to basic configuration, scroll down to advanced settings and set the Car power adjustment interval to 1800 seconds. This leads to 50 calls per day max but also means TSC can only adjust the charging power every 30 minutes.<br />
                         </p>
@@ -227,9 +176,9 @@ else
                             {
                                 <div class="alert alert-danger" role="alert">
                                     <div>API access is not working.</div>
-                                    <hr/>
+                                    <hr />
                                     <p>
-                                        Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>. <br/>
+                                        Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>. <br />
                                         If it still does not work, go to your car and under Controls -> Locks you can check if a key named "www.teslasolarcharger.de" is present. If not try adding the key again by clicking <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button>.
                                     </p>
 
@@ -241,7 +190,7 @@ else
                             @if (car.FleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
                             {
                                 <div class="alert alert-danger" role="alert">
-                                    TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button> to register the car. <br/>
+                                    TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button> to register the car. <br />
                                     Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
                                 </div>
                             }
@@ -305,7 +254,7 @@ else
                         </TooltipComponent>
                     </div>
                 }
-                
+
                 <div class="d-flex align-items-center mb-1">
                     <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
@@ -345,7 +294,7 @@ else
                                 UnitText="%"
                                 HelpText="">
                     <InputFragment>
-                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" "/>
+                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
             }
@@ -405,7 +354,7 @@ else
             @if (car.ChargeInformation.Count > 0)
             {
                 <p>
-                    Car will @((car.State == CarStateEnum.Charging && car.IsHome) ? "stop" : "start") charging when following conditions are met:<br/>
+                    Car will @((car.State == CarStateEnum.Charging && car.IsHome) ? "stop" : "start") charging when following conditions are met:<br />
                     <ul>
                         @foreach (var chargeInfo in car.ChargeInformation)
                         {
@@ -468,12 +417,11 @@ else
         }
         <div>
             <b>Installation ID</b>:
-            <TextShortenComponent
-                InputString="@_installationId"
-                MaxLength="18"
-                ShouldDisplayTruncatedCharCount="true"
-                TooltipText="Do not share the complete ID with anyone"
-                OnCopyClicked="ShowInstallationIdWarning"></TextShortenComponent>
+            <TextShortenComponent InputString="@_installationId"
+                                  MaxLength="18"
+                                  ShouldDisplayTruncatedCharCount="true"
+                                  TooltipText="Do not share the complete ID with anyone"
+                                  OnCopyClicked="ShowInstallationIdWarning"></TextShortenComponent>
         </div>
         <div>
             <b>Language settings</b>: @CultureInfo.CurrentCulture
@@ -486,9 +434,9 @@ else
 
     <form action="https://www.paypal.com/donate" method="post" target="_blank">
         <div style="text-align:center">
-            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ"/>
-            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button"/>
-            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1"/>
+            <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
+            <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+            <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
         </div>
     </form>
 }
@@ -603,39 +551,39 @@ else
             foreach (var dateValue in dtoCarTopicValues.DateValues)
             {
                 dataRows.Add(new DtoTableRow()
-                {
-                    Elements = new List<string?>()
+                    {
+                        Elements = new List<string?>()
                     {
                         dateValue.Topic,
                         dateValue.DateTime?.ToString("g"),
                     },
-                });
+                    });
             }
 
             foreach (var nonDateValue in dtoCarTopicValues.NonDateValues)
             {
                 dataRows.Add(new DtoTableRow()
-                {
-                    Elements = new List<string?>()
+                    {
+                        Elements = new List<string?>()
                     {
                         nonDateValue.Topic,
                         nonDateValue.Value,
                     },
-                });
+                    });
             }
 
             var tableContent = new DtoTableContent()
-            {
-                TableHeader = new DtoTableRow()
                 {
-                    Elements = new List<string?>()
+                    TableHeader = new DtoTableRow()
+                    {
+                        Elements = new List<string?>()
                     {
                         "Topic",
                         "Value",
                     },
-                },
-                TableData = dataRows,
-            };
+                    },
+                    TableData = dataRows,
+                };
             _newCarDetailStates[carId] = tableContent;
         }
     }
@@ -670,30 +618,30 @@ else
     private DtoTableContent GeneratePlannedChargingSlotsTableContent(List<DtoChargingSlot> chargingSlots)
     {
         var table = new DtoTableContent()
-        {
-            TableHeader = new DtoTableRow()
             {
-                Elements = new List<string?>()
+                TableHeader = new DtoTableRow()
+                {
+                    Elements = new List<string?>()
                 {
                     "Start",
                     "End",
                     "Duration",
                 },
-            },
-            TableData = new List<DtoTableRow>(),
-        };
+                },
+                TableData = new List<DtoTableRow>(),
+            };
         foreach (var chargingSlot in chargingSlots)
         {
             table.TableData.Add(new DtoTableRow()
-            {
-                Elements = new List<string?>()
+                {
+                    Elements = new List<string?>()
                 {
                     chargingSlot.ChargeStart.ToLocalTime().DateTime.ToString("g"),
                     chargingSlot.ChargeEnd.ToLocalTime().DateTime.ToString("g"),
                     chargingSlot.ChargeDuration < TimeSpan.FromDays(1) ? chargingSlot.ChargeDuration.ToString(@"hh\:mm") : string.Empty,
                 },
-                IsActive = chargingSlot.IsActive,
-            });
+                    IsActive = chargingSlot.IsActive,
+                });
         }
 
         return table;
@@ -739,28 +687,6 @@ else
     private void ShowInstallationIdWarning()
     {
         Snackbar.Add("Do not share the ID with anyone", Severity.Warning);
-    }
-
-    private int? CalculateHomePower()
-    {
-        if (_pvValues == null)
-        {
-            return null;
-        }
-
-        if (_pvValues.InverterPower == null)
-        {
-            return null;
-        }
-
-        if (_pvValues.GridPower == null)
-        {
-            return null;
-        }
-        var homeBatteryPower = _pvValues.HomeBatteryPower ?? 0;
-        var chargingPower = _pvValues.CarCombinedChargingPowerAtHome ?? 0;
-        var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
-        return homePower;
     }
 
     private string GetBatteryIconBySoc(int? soc)
