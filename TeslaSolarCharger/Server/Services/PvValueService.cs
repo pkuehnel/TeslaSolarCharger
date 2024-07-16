@@ -725,34 +725,162 @@ public class PvValueService : IPvValueService
         if (_configurationWrapper.ShouldUseFakeSolarValues())
         {
             _logger.LogWarning("Fake solar values are used.");
-            var random = new Random();
-            var fakeInverterPower = random.Next(0, 30000);
-            var fakeHousePower = random.Next(500, 25000);
-            var fakeOverage = fakeInverterPower - fakeHousePower;
-            var fakeHomeBatteryPower = 0;
-            if (Math.Abs(fakeOverage) < 7000)
+            if (true)
             {
-                var deviation = random.Next(-150, 150);
-                fakeHomeBatteryPower = fakeOverage - deviation;
-                fakeOverage = -deviation;
-            }
-            else
-            {
-                if (fakeOverage > 0)
+                foreach (var car in _settings.CarsToManage)
                 {
-                    fakeHomeBatteryPower = 7000;
+                    car.ChargerActualCurrent = 1;
+                    car.ChargerVoltage = 1;
+                    car.ChargerPhases = 1;
+                }
+                if (((_settings.LastPvDemoCase / 16) % 2) == 0)
+                {
+                    foreach (var dtoCar in _settings.CarsToManage)
+                    {
+                        dtoCar.IsHomeGeofence = true;
+                    }
                 }
                 else
                 {
-                    fakeHomeBatteryPower = -7000;
+                    foreach (var dtoCar in _settings.CarsToManage)
+                    {
+                        dtoCar.IsHomeGeofence = false;
+                    }
                 }
-                fakeOverage -= fakeHomeBatteryPower;
+                switch ((_settings.LastPvDemoCase++ % 16))
+                {
+                    case 0:
+                        _settings.InverterPower = null;
+                        _settings.Overage = null;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 1:
+                        _settings.InverterPower = null;
+                        _settings.Overage = 200;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 8:
+                        _settings.InverterPower = null;
+                        _settings.Overage = -200;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 9:
+                        _settings.InverterPower = null;
+                        _settings.Overage = 0;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 2:
+                        _settings.InverterPower = 500;
+                        _settings.Overage = null;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 5:
+                        _settings.InverterPower = 0;
+                        _settings.Overage = null;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 3:
+                        _settings.InverterPower = 500;
+                        _settings.Overage = 300;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 4:
+                        _settings.InverterPower = 500;
+                        _settings.Overage = -300;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 6:
+                        _settings.InverterPower = 0;
+                        _settings.Overage = -300;
+                        _settings.HomeBatteryPower = null;
+                        _settings.HomeBatterySoc = null;
+                        break;
+                    case 7:
+                        _settings.InverterPower = 0;
+                        _settings.Overage = -300;
+                        _settings.HomeBatteryPower = 0;
+                        _settings.HomeBatterySoc = 0;
+                        break;
+                    case 10:
+                        _settings.InverterPower = 0;
+                        _settings.Overage = -300;
+                        _settings.HomeBatteryPower = -500;
+                        _settings.HomeBatterySoc = 20;
+                        break;
+                    case 11:
+                        _settings.InverterPower = 0;
+                        _settings.Overage = 300;
+                        _settings.HomeBatteryPower = -500;
+                        _settings.HomeBatterySoc = 20;
+                        break;
+                    case 12:
+                        _settings.InverterPower = 1000;
+                        _settings.Overage = 300;
+                        _settings.HomeBatteryPower = 500;
+                        _settings.HomeBatterySoc = 20;
+                        break;
+                    case 13:
+                        _settings.InverterPower = 1000;
+                        _settings.Overage = -20;
+                        _settings.HomeBatteryPower = 500;
+                        _settings.HomeBatterySoc = 20;
+                        break;
+                    case 14:
+                        _settings.InverterPower = 10;
+                        _settings.Overage = -200;
+                        _settings.HomeBatteryPower = 100;
+                        _settings.HomeBatterySoc = 20;
+                        break;
+                    case 15:
+                        _settings.InverterPower = 10;
+                        _settings.Overage = -500;
+                        _settings.HomeBatteryPower = 100;
+                        _settings.HomeBatterySoc = 20;
+                        break;
+
+                }
             }
-            _settings.InverterPower = fakeInverterPower;
-            _settings.Overage = fakeOverage;
-            _settings.HomeBatteryPower = fakeHomeBatteryPower;
-            _settings.HomeBatterySoc = 82;
-            _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
+            else
+            {
+                var random = new Random();
+                var fakeInverterPower = random.Next(0, 30000);
+                var fakeHousePower = random.Next(500, 25000);
+                var fakeOverage = fakeInverterPower - fakeHousePower;
+                var fakeHomeBatteryPower = 0;
+                if (Math.Abs(fakeOverage) < 7000)
+                {
+                    var deviation = random.Next(-150, 150);
+                    fakeHomeBatteryPower = fakeOverage - deviation;
+                    fakeOverage = -deviation;
+                }
+                else
+                {
+                    if (fakeOverage > 0)
+                    {
+                        fakeHomeBatteryPower = 7000;
+                    }
+                    else
+                    {
+                        fakeHomeBatteryPower = -7000;
+                    }
+                    fakeOverage -= fakeHomeBatteryPower;
+                }
+                _settings.InverterPower = fakeInverterPower;
+                _settings.Overage = fakeOverage;
+                _settings.HomeBatteryPower = fakeHomeBatteryPower;
+                _settings.HomeBatterySoc = 82;
+                _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
+            }
+            
+            
             return;
         }
 
