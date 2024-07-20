@@ -54,6 +54,8 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     public async Task<DtoBleResult> SetAmp(string vin, int amps)
     {
         logger.LogTrace("{method}({vin}, {amps})", nameof(SetAmp), vin, amps);
+        var car = settings.Cars.First(c => c.Vin == vin);
+        var initialRequestedCurrent = car.ChargerRequestedCurrent;
         var request = new DtoBleRequest
         {
             Vin = vin,
@@ -62,10 +64,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
 
-        var car = settings.Cars.First(c => c.Vin == vin);
         // Double send if over or under 5 amps as Tesla does not change immedediatly
-        if (car.ChargerRequestedCurrent >= 5 && amps < 5 || car.ChargerRequestedCurrent < 5 && amps >= 5)
+        if (initialRequestedCurrent >= 5 && amps < 5 || initialRequestedCurrent < 5 && amps >= 5)
         {
+            logger.LogDebug("Send charging amp command again");
             await Task.Delay(5000).ConfigureAwait(false);
             result = await SendCommandToBle(request).ConfigureAwait(false);
         }
