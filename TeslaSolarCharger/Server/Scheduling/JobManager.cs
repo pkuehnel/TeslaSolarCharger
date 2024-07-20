@@ -118,13 +118,13 @@ public class JobManager
         var hour = random.Next(0, 5);
         var minute = random.Next(0, 59);
 
-        var triggerAtNight = TriggerBuilder.Create()
+        var triggerAtNight = TriggerBuilder.Create().WithIdentity("triggerAtNight")
             .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour, minute).InTimeZone(TimeZoneInfo.Utc))// Run every day at 0:00 UTC
             .StartNow()
             .Build();
 
         var triggerNow = TriggerBuilder
-            .Create()
+            .Create().WithIdentity("triggerNow")
             .StartAt(DateTimeOffset.Now.AddSeconds(15))
             .Build();
 
