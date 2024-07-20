@@ -50,18 +50,18 @@ public class JobManager
         _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
         _scheduler.JobFactory = _jobFactory;
 
-        var chargingValueJob = JobBuilder.Create<ChargingValueJob>().Build();
-        var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().Build();
-        var pvValueJob = JobBuilder.Create<PvValueJob>().Build();
-        var chargingDetailsAddJob = JobBuilder.Create<ChargingDetailsAddJob>().Build();
-        var finishedChargingProcessFinalizingJob = JobBuilder.Create<FinishedChargingProcessFinalizingJob>().Build();
-        var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().Build();
-        var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().Build();
-        var spotPriceJob = JobBuilder.Create<SpotPriceJob>().Build();
-        var fleetApiTokenRefreshJob = JobBuilder.Create<FleetApiTokenRefreshJob>().Build();
-        var vehicleDataRefreshJob = JobBuilder.Create<VehicleDataRefreshJob>().Build();
-        var teslaMateChargeCostUpdateJob = JobBuilder.Create<TeslaMateChargeCostUpdateJob>().Build();
-        var apiCallCounterResetJob = JobBuilder.Create<ApiCallCounterResetJob>().Build();
+        var chargingValueJob = JobBuilder.Create<ChargingValueJob>().WithIdentity(nameof(ChargingValueJob)).Build();
+        var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().WithIdentity(nameof(CarStateCachingJob)).Build();
+        var pvValueJob = JobBuilder.Create<PvValueJob>().WithIdentity(nameof(PvValueJob)).Build();
+        var chargingDetailsAddJob = JobBuilder.Create<ChargingDetailsAddJob>().WithIdentity(nameof(ChargingDetailsAddJob)).Build();
+        var finishedChargingProcessFinalizingJob = JobBuilder.Create<FinishedChargingProcessFinalizingJob>().WithIdentity(nameof(FinishedChargingProcessFinalizingJob)).Build();
+        var mqttReconnectionJob = JobBuilder.Create<MqttReconnectionJob>().WithIdentity(nameof(MqttReconnectionJob)).Build();
+        var newVersionCheckJob = JobBuilder.Create<NewVersionCheckJob>().WithIdentity(nameof(NewVersionCheckJob)).Build();
+        var spotPriceJob = JobBuilder.Create<SpotPriceJob>().WithIdentity(nameof(SpotPriceJob)).Build();
+        var fleetApiTokenRefreshJob = JobBuilder.Create<FleetApiTokenRefreshJob>().WithIdentity(nameof(FleetApiTokenRefreshJob)).Build();
+        var vehicleDataRefreshJob = JobBuilder.Create<VehicleDataRefreshJob>().WithIdentity(nameof(VehicleDataRefreshJob)).Build();
+        var teslaMateChargeCostUpdateJob = JobBuilder.Create<TeslaMateChargeCostUpdateJob>().WithIdentity(nameof(TeslaMateChargeCostUpdateJob)).Build();
+        var apiCallCounterResetJob = JobBuilder.Create<ApiCallCounterResetJob>().WithIdentity(nameof(ApiCallCounterResetJob)).Build();
 
         var currentDate = _dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -70,6 +70,7 @@ public class JobManager
         var chargingValueJobUpdateIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
 
         var chargingValueTrigger = TriggerBuilder.Create()
+            .WithIdentity("chargingValueTrigger")
             .StartAt(chargingTriggerStartTime)
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)chargingValueJobUpdateIntervall.TotalSeconds))
             .Build();
@@ -79,36 +80,38 @@ public class JobManager
         _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
 
         var pvValueTrigger = TriggerBuilder.Create()
+            .WithIdentity("pvValueTrigger")
             .StartAt(pvTriggerStartTime)
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever((int)pvValueJobIntervall.TotalSeconds))
             .Build();
 
         var carStateCachingTrigger = TriggerBuilder.Create()
+            .WithIdentity("carStateCachingTrigger")
             .StartAt(currentDate.AddMinutes(3))
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
-        var chargingDetailsAddTrigger = TriggerBuilder.Create()
+        var chargingDetailsAddTrigger = TriggerBuilder.Create().WithIdentity("chargingDetailsAddTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(_constants.ChargingDetailsAddTriggerEveryXSeconds)).Build();
 
-        var finishedChargingProcessFinalizingTrigger = TriggerBuilder.Create()
+        var finishedChargingProcessFinalizingTrigger = TriggerBuilder.Create().WithIdentity("finishedChargingProcessFinalizingTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(118)).Build();
 
-        var mqttReconnectionTrigger = TriggerBuilder.Create()
+        var mqttReconnectionTrigger = TriggerBuilder.Create().WithIdentity("mqttReconnectionTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(54)).Build();
 
-        var newVersionCheckTrigger = TriggerBuilder.Create()
+        var newVersionCheckTrigger = TriggerBuilder.Create().WithIdentity("newVersionCheckTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(47)).Build();
 
-        var spotPricePlanningTrigger = TriggerBuilder.Create()
+        var spotPricePlanningTrigger = TriggerBuilder.Create().WithIdentity("spotPricePlanningTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(1)).Build();
 
-        var fleetApiTokenRefreshTrigger = TriggerBuilder.Create()
+        var fleetApiTokenRefreshTrigger = TriggerBuilder.Create().WithIdentity("fleetApiTokenRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
 
-        var vehicleDataRefreshTrigger = TriggerBuilder.Create()
+        var vehicleDataRefreshTrigger = TriggerBuilder.Create().WithIdentity("vehicleDataRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
 
-        var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create()
+        var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create().WithIdentity("teslaMateChargeCostUpdateTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
         var random = new Random();
