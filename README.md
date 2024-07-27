@@ -930,6 +930,22 @@ Assuming the `Measurement` node with `Type` `AC_Power` is the power your inverte
 
 **Note:** These values are not needed. They are just used to show additional information.
 
+#### Correction Factors
+The correction factor is used to *multiply* the input value so that the results correspond with what TeslaSolarCharger expects.
+
+|Input|Expected Value|
+|-----|--------------|
+|Inverter Power|A measurement of solar power generated as a positive number in Watts (W)|
+|Grid Power| A measurement of grid power export/ import in Watts (W). A export to the grid should be positive and an import from the grid should be negative.|
+|Home Battery Power|A measurement of home battery power charge/ discharge in Watts (W). If the battery is charging, this should be positive and if it is discharging this should be negative.|
+|Home Battery SoC|A measurement of the percentage charge of your home battery from 0-100%|
+
+You can use the correction factors to scale/ correct these values as appropriate. For example:
+
+- Grid Power input expresses a positive integer as an import and a negative as an export: Select negative for the operator and 1 for the correction factor (this multiplies by -1).
+- Inverter Power is expressed as kW instead of W: Select positive for the operator and 1000 for the correction factor (this multiplies by 1000).
+- Home Battery expresses its state of charge as an absolute value in kWh: Select positive for the operator and a correction factor of  1/(Full Charge Capacity) e.g. if the battery has a full charge capacity of 100kWh the correction factor is 1/100 or 0.01
+
 #### Install and setup BLE API
 To go around Teslas API limitations, you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on, or by using a separate device. Note: The device needs to be placed near the car.
 
