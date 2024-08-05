@@ -15,12 +15,20 @@ public class CustomModbusTcpClient (ILogger<CustomModbusTcpClient> logger) : Mod
     {
         logger.LogTrace("{method}({unitIdentifier}, {startingAddress}, {quantity})", nameof(GetByteArrayFromHoldingRegisters), unitIdentifier, startingAddress, quantity);
         await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
+        using var cts = new CancellationTokenSource((int)readTimeout.TotalMilliseconds);
         try
         {
             ReadTimeout = (int)readTimeout.TotalMilliseconds;
             logger.LogTrace("ReadTimeout: {ReadTimeout}", ReadTimeout);
-            var result = await base.ReadHoldingRegistersAsync(unitIdentifier, startingAddress, quantity);
+            var result = await base.ReadHoldingRegistersAsync(unitIdentifier, startingAddress, quantity, cts.Token);
             return result.ToArray();
+        }
+        catch (OperationCanceledException ex)
+        {
+            logger.LogWarning(ex, "Read operation for {unitIdentifier}, {startingAddress}, {quantity} was canceled due to timeout. Disconnecting modbus client.", unitIdentifier, startingAddress, quantity);
+            Disconnect();
+            logger.LogDebug("Modbus Client disconnected.");
+            throw;
         }
         finally
         {
