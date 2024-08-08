@@ -1,4 +1,3 @@
-﻿using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -15,6 +14,7 @@ public class Car
     public DateTime LatestTimeToReachSoC { get; set; }
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }
+    public bool IgnoreLatestTimeToReachSocDateOnWeekend { get; set; }
 
     public int MaximumAmpere { get; set; }
 
