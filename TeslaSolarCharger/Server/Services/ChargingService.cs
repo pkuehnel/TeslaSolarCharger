@@ -154,21 +154,14 @@ public class ChargingService : IChargingService
     private async Task UpdateChargingRelevantValues()
     {
         UpdateChargeTimes();
-        await CalculateGeofences().ConfigureAwait(false);
+        CalculateGeofences();
         await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
         await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
     }
 
-    private async Task CalculateGeofences()
+    private void CalculateGeofences()
     {
         _logger.LogTrace("{method}()", nameof(CalculateGeofences));
-        var geofence = await _teslamateContext.Geofences
-            .FirstOrDefaultAsync(g => g.Name == _configurationWrapper.GeoFence()).ConfigureAwait(false);
-        if (geofence == null)
-        {
-            _logger.LogError("Specified geofence does not exist.");
-            return;
-        }
         foreach (var car in _settings.Cars)
         {
             if (car.Longitude == null || car.Latitude == null)
@@ -177,10 +170,11 @@ public class ChargingService : IChargingService
             }
 
             var distance = GetDistance(car.Longitude.Value, car.Latitude.Value,
-                (double)geofence.Longitude, (double)geofence.Latitude);
+                (double)_configurationWrapper.HomeGeofenceLongitude(), (double)_configurationWrapper.HomeGeofenceLatitude());
             _logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
-            car.IsHomeGeofence = distance < geofence.Radius;
-            car.DistanceToHomeGeofence = (int)distance - geofence.Radius;
+            var radius = _configurationWrapper.HomeGeofenceRadius();
+            car.IsHomeGeofence = distance < radius;
+            car.DistanceToHomeGeofence = (int)distance - radius;
         }
     }
 

@@ -9,9 +9,6 @@ public interface IConfigJsonService
 {
     Task CacheCarStates();
     Task UpdateAverageGridVoltage();
-    Task SaveOrUpdateCar(DtoCar car);
-    Task<List<DtoCar>> GetCars();
-    Task<List<DtoCar>> GetCarById(int id);
     Task ConvertOldCarsToNewCar();
     Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings);
     Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration);

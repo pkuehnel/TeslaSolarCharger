@@ -307,7 +307,12 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             return;
         }
         logger.LogTrace("Combined charging power at home: {combinedChargingPowerAtHome}", combinedChargingPowerAtHome);
-        if (gridPower > combinedChargingPowerAtHome)
+        if (overage == default)
+        {
+            logger.LogTrace("Overage and inverterpower unknown using int max as usedGridPower.");
+            usedGridPower = int.MaxValue;
+        }
+        else if (gridPower > combinedChargingPowerAtHome)
         {
             logger.LogTrace("Grid power is enough for all cars.");
             usedGridPower = combinedChargingPowerAtHome;

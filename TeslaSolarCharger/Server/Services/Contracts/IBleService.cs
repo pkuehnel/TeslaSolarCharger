@@ -10,5 +10,6 @@ public interface IBleService
     Task<DtoBleResult> StopCharging(string vin);
     Task<DtoBleResult> SetAmp(string vin, int amps);
     Task<DtoBleResult> FlashLights(string vin);
-    Task<DtoBleResult> PairKey(string vin);
+    Task<DtoBleResult> PairKey(string vin, string role);
+    Task<DtoBleResult> WakeUpCar(string vin);
 }

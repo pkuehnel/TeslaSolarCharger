@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,52 +11,14 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20240606191531_AddIgnoreLatestTimeToReachSocDateOnWeekend")]
+    partial class AddIgnoreLatestTimeToReachSocDateOnWeekend
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
-
-            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.BackendNotification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BackendIssueId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DetailText")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Headline")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsConfirmed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("ValidFromDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ValidFromVersion")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("ValidToDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ValidToVersion")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("BackendNotifications");
-                });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CachedCarState", b =>
                 {
@@ -87,22 +50,8 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ApiRefreshIntervalSeconds")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(500);
-
-                    b.Property<string>("BleApiBaseUrl")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("ChargeMode")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("ChargeStartCalls")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ChargeStopCalls")
-                        .HasColumnType("TEXT");
 
                     b.Property<int?>("ChargerActualCurrent")
                         .HasColumnType("INTEGER");
@@ -119,19 +68,16 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int?>("ChargerVoltage")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime?>("ChargingCommandsRateLimitedUntil")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("ChargingPriority")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool?>("ClimateOn")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime?>("CommandsRateLimitedUntil")
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("IgnoreLatestTimeToReachSocDate")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IgnoreLatestTimeToReachSocDateOnWeekend")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("LatestTimeToReachSoC")
@@ -155,14 +101,8 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("OtherCommandCalls")
-                        .HasColumnType("TEXT");
-
                     b.Property<bool?>("PluggedIn")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("SetChargingAmpsCall")
-                        .HasColumnType("TEXT");
 
                     b.Property<bool?>("ShouldBeManaged")
                         .HasColumnType("INTEGER");
@@ -188,34 +128,10 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("UsableEnergy")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("UseBle")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("UseBleForWakeUp")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("VehicleCalls")
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("VehicleCommandProtocolRequired")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("VehicleDataCalls")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("VehicleDataRateLimitedUntil")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("VehicleRateLimitedUntil")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Vin")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("WakeUpCalls")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("WakeUpRateLimitedUntil")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -275,9 +191,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("GridPower")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("HomeBatteryPower")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("SolarPower")
                         .HasColumnType("INTEGER");
 
@@ -313,9 +226,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal?>("UsedGridEnergyKwh")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal?>("UsedHomeBatteryEnergyKwh")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal?>("UsedSolarEnergyKwh")

@@ -133,3 +133,21 @@ a, .btn-link {
         transform: rotate(360deg)
     }
 }
+
+.material-symbols-outlined {
+    vertical-align: middle !important;
+}
+
+@media (max-width: 640px) {
+    .auto-scroll {
+        overflow-x: scroll;
+    }
+}
+
+.text-left {
+    text-align: left !important;
+}
+
+.text-right {
+    text-align: right !important;
+}

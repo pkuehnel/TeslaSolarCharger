@@ -89,7 +89,11 @@ public class IssueValidationService(
                     throw new ArgumentOutOfRangeException();
             }
         }
-        issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
+
+        if (!configurationWrapper.ShouldUseFakeSolarValues())
+        {
+            issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
+        }
         issueList.AddRange(SofwareIssues());
         issueList.AddRange(ConfigurationIssues());
         return issueList;
@@ -125,13 +129,6 @@ public class IssueValidationService(
         {
             issues.Add(possibleIssues.GetIssueByKey(issueKeys.DatabaseNotAvailable));
             return issues;
-        }
-
-        var geofenceNames = teslamateContext.Geofences.Select(ge => ge.Name).ToList();
-        var configuredGeofence = configurationWrapper.GeoFence();
-        if (!geofenceNames.Any(g => g == configuredGeofence))
-        {
-            issues.Add(possibleIssues.GetIssueByKey(issueKeys.GeofenceNotAvailable));
         }
 
         return issues;

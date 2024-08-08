@@ -27,4 +27,5 @@ public interface ISettings
     bool IsStartupCompleted { get; set; }
     string? ChargePricesUpdateText { get; set; }
     DateTime StartupTime { get; set; }
+    int LastPvDemoCase { get; set; }
 }

@@ -36,4 +36,5 @@ public class Settings : ISettings
     public DateTime StartupTime { get; set; }
 
     public string? ChargePricesUpdateText { get; set; }
+    public int LastPvDemoCase { get; set; }
 }

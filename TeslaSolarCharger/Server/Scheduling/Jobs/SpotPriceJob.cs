@@ -3,6 +3,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
+[DisallowConcurrentExecution]
 public class SpotPriceJob : IJob
 {
     private readonly ILogger<SpotPriceJob> _logger;
@@ -18,6 +19,6 @@ public class SpotPriceJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         _logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await Task.Run(() => _service.UpdateSpotPrices()).ConfigureAwait(false);
+        await _service.UpdateSpotPrices().ConfigureAwait(false);
     }
 }

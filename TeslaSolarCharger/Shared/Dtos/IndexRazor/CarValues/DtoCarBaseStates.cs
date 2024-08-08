@@ -24,6 +24,26 @@ public class DtoCarBaseStates
     public bool VehicleCommandProtocolRequired { get; set; }
     public List<DtoChargeInformation> ChargeInformation { get; set; } = new();
     public CarStateEnum? State { get; set; }
-    public DateTime? RateLimitedUntil { get; set; }
     public List<DtoChargingSlot> ChargingSlots { get; set; } = new();
+
+    public DateTime? VehicleRateLimitedUntil { get; set; }
+    public DateTime? VehicleDataRateLimitedUntil { get; set; }
+    public DateTime? CommandsRateLimitedUntil { get; set; }
+    public DateTime? ChargingCommandsRateLimitedUntil { get; set; }
+    public DateTime? WakeUpRateLimitedUntil { get; set; }
+
+    public DateTime? RateLimitedUntil
+    {
+        get
+        {
+            return new List<DateTime?>
+            {
+                VehicleRateLimitedUntil,
+                VehicleDataRateLimitedUntil,
+                CommandsRateLimitedUntil,
+                ChargingCommandsRateLimitedUntil,
+                WakeUpRateLimitedUntil,
+            }.Max();
+        }
+    }
 }

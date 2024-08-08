@@ -99,4 +99,10 @@ public interface IConfigurationWrapper
     int? MaxInverterAcPower();
     string? BleBaseUrl();
     bool SendTeslaApiStatsToBackend();
+    decimal HomeGeofenceLongitude();
+    decimal HomeGeofenceLatitude();
+    int HomeGeofenceRadius();
+    bool ShouldUseFakeSolarValues();
+    int MaxTravelSpeedMetersPerSecond();
+    int CarRefreshAfterCommandSeconds();
 }

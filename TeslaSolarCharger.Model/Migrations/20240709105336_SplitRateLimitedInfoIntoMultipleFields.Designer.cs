@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20240709105336_SplitRateLimitedInfoIntoMultipleFields")]
+    partial class SplitRateLimitedInfoIntoMultipleFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
@@ -98,12 +101,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("ChargeMode")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ChargeStartCalls")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ChargeStopCalls")
-                        .HasColumnType("TEXT");
-
                     b.Property<int?>("ChargerActualCurrent")
                         .HasColumnType("INTEGER");
 
@@ -155,14 +152,8 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("OtherCommandCalls")
-                        .HasColumnType("TEXT");
-
                     b.Property<bool?>("PluggedIn")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("SetChargingAmpsCall")
-                        .HasColumnType("TEXT");
 
                     b.Property<bool?>("ShouldBeManaged")
                         .HasColumnType("INTEGER");
@@ -191,17 +182,8 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<bool>("UseBle")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("UseBleForWakeUp")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("VehicleCalls")
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("VehicleCommandProtocolRequired")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("VehicleDataCalls")
-                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("VehicleDataRateLimitedUntil")
                         .HasColumnType("TEXT");
@@ -210,9 +192,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Vin")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("WakeUpCalls")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("WakeUpRateLimitedUntil")

@@ -102,12 +102,31 @@ else
                 <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
-        <InputComponent ValueId="geoFence"
-                        LabelText="Home Geofence Name"
+
+        <InputComponent ValueId="HomeGeofenceLongitude"
+                        LabelText="Home Longitude"
                         UnitText=""
-                        HelpText="You have to add a geofence with the same name in TeslaMate at your home location.">
+                        HelpText="">
             <InputFragment>
-                <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" class="form-control" placeholder=" " />
+                <InputNumber id="HomeGeofenceLongitude" @bind-Value="_dtoBaseConfiguration.HomeGeofenceLongitude" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+
+        <InputComponent ValueId="HomeGeofenceLatitude"
+                        LabelText="Home Latitude"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputNumber id="HomeGeofenceLatitude" @bind-Value="_dtoBaseConfiguration.HomeGeofenceLatitude" class="form-control" placeholder=" " />
+            </InputFragment>
+        </InputComponent>
+
+        <InputComponent ValueId="HomeGeofenceRadius"
+                        LabelText="Home Radius"
+                        UnitText=""
+                        HelpText="">
+            <InputFragment>
+                <InputNumber id="HomeGeofenceRadius" @bind-Value="_dtoBaseConfiguration.HomeGeofenceRadius" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
 

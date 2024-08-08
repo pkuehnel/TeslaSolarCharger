@@ -9,7 +9,7 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class BleController (IBleService bleService) : ApiBaseController
 {
     [HttpGet]
-    public Task<DtoBleResult> PairKey(string vin) => bleService.PairKey(vin);
+    public Task<DtoBleResult> PairKey(string vin, string apiRole) => bleService.PairKey(vin, apiRole);
 
     [HttpGet]
     public Task<DtoBleResult> StartCharging(string vin) => bleService.StartCharging(vin);
@@ -22,4 +22,7 @@ public class BleController (IBleService bleService) : ApiBaseController
 
     [HttpGet]
     public Task<DtoBleResult> FlashLights(string vin) => bleService.FlashLights(vin);
+
+    [HttpGet]
+    public Task<DtoBleResult> WakeUp(string vin) => bleService.WakeUpCar(vin);
 }
