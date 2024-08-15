@@ -43,7 +43,7 @@
 	<ItemGroup>
 		<PackageReference Include="AutoMapper" Version="13.0.1" />
 		<PackageReference Include="GraphQL.Client" Version="6.1.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.7" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.8" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.8" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4">
 		  <PrivateAssets>all</PrivateAssets>
