@@ -19,7 +19,6 @@ namespace TeslaSolarCharger.Server.Services.ApiServices;
 public class IndexService(
     ILogger<IndexService> logger,
     ISettings settings,
-    ITeslamateContext teslamateContext,
     ToolTipTextKeys toolTipTextKeys,
     ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
     IConfigJsonService configJsonService,
@@ -31,8 +30,6 @@ public class IndexService(
     ITscOnlyChargingCostService tscOnlyChargingCostService)
     : IIndexService
 {
-    private readonly ITeslamateContext _teslamateContext = teslamateContext;
-
     public DtoPvValues GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
