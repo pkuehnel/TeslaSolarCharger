@@ -51,7 +51,6 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                 MinimumAmpere = 6,
                 UsableEnergy = 75,
                 ShouldBeManaged = true,
-                ShouldSetChargeStartTimes = false,
                 ChargingPriority = ++highestChargingPriority,
             };
             teslaSolarChargerContext.Cars.Add(teslaSolarChargerCar);

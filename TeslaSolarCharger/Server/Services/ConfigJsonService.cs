@@ -92,7 +92,6 @@ public class ConfigJsonService(
                     MinimumAmpere = configuration.MinimumAmpere,
                     UsableEnergy = configuration.UsableEnergy,
                     ShouldBeManaged = configuration.ShouldBeManaged,
-                    ShouldSetChargeStartTimes = configuration.ShouldSetChargeStartTimes,
                     ChargingPriority = configuration.ChargingPriority,
                 });
             }
@@ -240,7 +239,6 @@ public class ConfigJsonService(
         databaseCar.UsableEnergy = carBasicConfiguration.UsableEnergy;
         databaseCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
         databaseCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
-        databaseCar.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
         databaseCar.UseBle = carBasicConfiguration.UseBle;
         databaseCar.UseBleForWakeUp = carBasicConfiguration.UseBleForWakeUp;
         databaseCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
@@ -254,7 +252,6 @@ public class ConfigJsonService(
         settingsCar.UsableEnergy = carBasicConfiguration.UsableEnergy;
         settingsCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
         settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
-        settingsCar.ShouldSetChargeStartTimes = carBasicConfiguration.ShouldSetChargeStartTimes;
         settingsCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
         settingsCar.UseBle = carBasicConfiguration.UseBle;
         settingsCar.UseBleForWakeUp = carBasicConfiguration.UseBleForWakeUp;
@@ -284,7 +281,6 @@ public class ConfigJsonService(
         entity.MinimumAmpere = car.MinimumAmpere;
         entity.UsableEnergy = car.UsableEnergy;
         entity.ShouldBeManaged = car.ShouldBeManaged ?? true;
-        entity.ShouldSetChargeStartTimes = car.ShouldSetChargeStartTimes ?? true;
         entity.ChargingPriority = car.ChargingPriority;
         entity.SoC = car.SoC;
         entity.SocLimit = car.SocLimit;

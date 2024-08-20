@@ -36,8 +36,6 @@ public class CarBasicConfiguration
     public int ChargingPriority { get; set; }
     [HelperText("If disabled, this car will not show up in the overview page and TSC does not manage it.")]
     public bool ShouldBeManaged { get; set; } = true;
-    [HelperText("Enable this to use planned charges of your Tesla App. This ensures starting a planned charge even if the car can't be woken up via Tesla App.")]
-    public bool ShouldSetChargeStartTimes { get; set; }
     [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g. Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near your car.")]
     public bool UseBle { get; set; }
     [HelperText("When enabling this setting, you need to delete the TSC Key in the car (is listed in Controls \u2192 Lock and should be called `unknown key`, do NOT delete the www.teslasolarcharger.de key) and execute BLE Pair again. Note: For now, this leads to a security leak where the BLE key has full control over your car, including unlocking and starting to drive, so if someone gets access to your BLE Device (either remote or physical) he could steal your car. This issue will be resolved in a future vehicle firmware update by Tesla. Currently, it is not known when this will be released.")]

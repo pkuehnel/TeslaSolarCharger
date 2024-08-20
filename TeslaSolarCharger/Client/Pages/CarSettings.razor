@@ -1,4 +1,4 @@
-﻿@page "/CarSettings"
+@page "/CarSettings"
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Ble
@@ -26,7 +26,6 @@ else
                 <GenericInput For="() => carBasicConfiguration.UsableEnergy" />
                 <GenericInput For="() => carBasicConfiguration.ChargingPriority" />
                 <GenericInput For="() => carBasicConfiguration.ShouldBeManaged" />
-                <GenericInput For="() => carBasicConfiguration.ShouldSetChargeStartTimes" />
                 <GenericInput For="() => carBasicConfiguration.ApiRefreshIntervalSeconds" />
                 <GenericInput For="() => carBasicConfiguration.UseBle" />
                 <GenericInput T="bool"
