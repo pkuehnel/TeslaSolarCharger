@@ -1,16 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaMateChargeCostUpdateService (ILogger<TeslaMateChargeCostUpdateService> logger,
     ITeslamateContext teslamateContext,
-    ITeslaSolarChargerContext teslaSolarChargerContext) : ITeslaMateChargeCostUpdateService
+    ITeslaSolarChargerContext teslaSolarChargerContext,
+    ISettings settings) : ITeslaMateChargeCostUpdateService
 {
     public async Task UpdateTeslaMateChargeCosts()
     {
         logger.LogTrace("{method}()", nameof(UpdateTeslaMateChargeCosts));
+        if (!settings.UseTeslaMate)
+        {
+            return;
+        }
         var teslaMateCars = await teslaSolarChargerContext.Cars
             .Select(c => new
             {

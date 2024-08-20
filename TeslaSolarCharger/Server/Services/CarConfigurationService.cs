@@ -6,6 +6,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using ZXing;
@@ -16,12 +17,17 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     ITeslamateContext teslamateContext,
     IDateTimeProvider dateTimeProvider,
-    ITeslaFleetApiService teslaFleetApiService) : ICarConfigurationService
+    ITeslaFleetApiService teslaFleetApiService,
+    ISettings settings) : ICarConfigurationService
 {
     public async Task AddAllMissingTeslaMateCars()
     {
         logger.LogTrace("{method}()", nameof(AddAllMissingTeslaMateCars));
-        var teslaMateCars = await teslamateContext.Cars.ToListAsync();
+        var teslaMateCars = new List<Model.Entities.TeslaMate.Car>();
+        if (settings.UseTeslaMate)
+        {
+            teslaMateCars = await teslamateContext.Cars.ToListAsync();
+        }
         var teslaAccountCarsResult = await teslaFleetApiService.GetAllCarsFromAccount().ConfigureAwait(false);
         var teslaAccountCars = teslaAccountCarsResult.Match(
             Succ: dtosList => dtosList,

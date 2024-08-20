@@ -1,7 +1,4 @@
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
-using System.Net.Sockets;
-using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -11,7 +8,6 @@ using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -22,7 +18,6 @@ public class IssueValidationService(
     IPossibleIssues possibleIssues,
     IssueKeys issueKeys,
     IConfigurationWrapper configurationWrapper,
-    ITeslamateContext teslamateContext,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
     ITeslaFleetApiService teslaFleetApiService)
@@ -89,11 +84,6 @@ public class IssueValidationService(
                     throw new ArgumentOutOfRangeException();
             }
         }
-
-        if (!configurationWrapper.ShouldUseFakeSolarValues())
-        {
-            issueList.AddRange(await GetDatabaseIssues().ConfigureAwait(false));
-        }
         issueList.AddRange(SofwareIssues());
         issueList.AddRange(ConfigurationIssues());
         return issueList;
@@ -114,24 +104,6 @@ public class IssueValidationService(
         var warningIssues = issues.Where(i => i.IssueType == IssueType.Warning).ToList();
         var warningCount = new DtoValue<int>(warningIssues.Count);
         return warningCount;
-    }
-
-    private async Task<List<Issue>> GetDatabaseIssues()
-    {
-        logger.LogTrace("{method}()", nameof(GetDatabaseIssues));
-        var issues = new List<Issue>();
-        try
-        {
-            // ReSharper disable once UnusedVariable
-            var carIds = await teslamateContext.Cars.Select(car => car.Id).ToListAsync().ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            issues.Add(possibleIssues.GetIssueByKey(issueKeys.DatabaseNotAvailable));
-            return issues;
-        }
-
-        return issues;
     }
 
     private async Task<List<Issue>> GetTeslaMateApiIssues()

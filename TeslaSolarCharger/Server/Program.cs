@@ -91,6 +91,7 @@ app.Run();
 
 async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger1, IConfigurationWrapper configurationWrapper1)
 {
+    var settings = webApplication.Services.GetRequiredService<ISettings>();
     try
     {
         //Do nothing before these lines as database is created here.
@@ -120,8 +121,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 }
                 catch (Exception ex)
                 {
-                    logger1.LogError(ex, "TeslaMate Database still not ready. Throwing exception.");
-                    throw new Exception("TeslaMate database is not available. Check the database and restart TSC.");
+                    logger1.LogError(ex, "TeslaMate is not available. Use TSC without TeslaMate integration");
+                    settings.UseTeslaMate = false;
                 }
             }
         }
@@ -211,7 +212,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     catch (Exception ex)
     {
         logger1.LogCritical(ex, "Crashed on startup");
-        var settings = webApplication.Services.GetRequiredService<ISettings>();
         settings.CrashedOnStartup = true;
         settings.StartupCrashMessage = ex.Message;
         var backendApiService = webApplication.Services.GetRequiredService<IBackendApiService>();
@@ -221,7 +221,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     }
     finally
     {
-        var settings = webApplication.Services.GetRequiredService<ISettings>();
         settings.IsStartupCompleted = true;
         var dateTimeProvider = webApplication.Services.GetRequiredService<IDateTimeProvider>();
         settings.StartupTime = dateTimeProvider.UtcNow();

@@ -60,7 +60,7 @@ public class ConfigJsonService(
             .Where(c => c.Key == constants.CarConfigurationKey)
             .ToListAsync().ConfigureAwait(false);
 
-        if (oldCarConfiguration.Count > 0)
+        if (oldCarConfiguration.Count > 0 && settings.UseTeslaMate)
         {
             foreach (var databaseCarConfiguration in oldCarConfiguration)
             {
@@ -70,7 +70,7 @@ public class ConfigJsonService(
                 {
                     continue;
                 }
-
+                
                 var teslaMateDatabaseCar = await teslamateContext.Cars.FirstOrDefaultAsync(c => c.Id == databaseCarConfiguration.CarId)
                     .ConfigureAwait(false);
                 if (teslaMateDatabaseCar == default)
@@ -268,8 +268,12 @@ public class ConfigJsonService(
         var entity = teslaSolarChargerContext.Cars.FirstOrDefault(c => c.TeslaMateCarId == car.TeslaMateCarId) ?? new Car()
         {
             Id = car.Id,
-            TeslaMateCarId = teslamateContext.Cars.FirstOrDefault(c => c.Vin == car.Vin)?.Id ?? default,
+            
         };
+        if (settings.UseTeslaMate)
+        {
+            entity.TeslaMateCarId = teslamateContext.Cars.FirstOrDefault(c => c.Vin == car.Vin)?.Id ?? default;
+        }
         entity.Name = car.Name;
         entity.Vin = car.Vin;
         entity.ChargeMode = car.ChargeMode;
@@ -403,6 +407,10 @@ public class ConfigJsonService(
         try
         {
             //ToDo: needs to be updated to charging processes
+            if (!settings.UseTeslaMate)
+            {
+                return;
+            }
             var chargerVoltages = await teslamateContext
                 .Charges
                 .Where(c => c.ChargingProcess.Geofence != null

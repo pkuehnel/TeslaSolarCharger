@@ -35,7 +35,6 @@ public class TeslaFleetApiService(
     ILogger<TeslaFleetApiService> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IDateTimeProvider dateTimeProvider,
-    ITeslamateContext teslamateContext,
     IConfigurationWrapper configurationWrapper,
     ITeslamateApiService teslamateApiService,
     IConstants constants,
