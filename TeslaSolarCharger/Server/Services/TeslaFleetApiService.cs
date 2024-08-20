@@ -1,5 +1,9 @@
+using LanguageExt;
+using LanguageExt.Common;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -16,6 +20,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
+using TeslaSolarCharger.Shared.Dtos.Car;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
@@ -1085,6 +1090,75 @@ public class TeslaFleetApiService(
         var retryInSeconds = RetryInSeconds(responseString);
         var nextAllowedUtcTime = dateTimeProvider.UtcNow().AddSeconds(retryInSeconds);
         return nextAllowedUtcTime;
+    }
+
+    public async Task<Fin<List<DtoTesla>>> GetNewCarsInAccount()
+    {
+        logger.LogTrace("{method}()", nameof(GetNewCarsInAccount));
+        var result = await GetAllCarsFromAccount();
+        return result.Map(carList =>
+        {
+            // Filter the list for new cars
+            var newCars = carList
+                .Where(c => settings.Cars.Any(sc => string.Equals(sc.Vin, c.Vin, StringComparison.CurrentCultureIgnoreCase)))
+                .ToList();
+            return newCars;
+        });
+    }
+
+    private async Task<Fin<List<DtoTesla>>> GetAllCarsFromAccount()
+    {
+        logger.LogTrace("{method}()", nameof(GetAllCarsFromAccount));
+        var accessToken = await GetAccessToken().ConfigureAwait(false);
+        var baseUrl = GetFleetApiBaseUrl(accessToken.Region, false, false);
+        using var httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
+        var requestUri = $"{baseUrl}api/1/vehicles";
+        var request = new HttpRequestMessage()
+        {
+            RequestUri = new Uri(requestUri),
+            Method = HttpMethod.Get,
+        };
+        try
+        {
+            var response = await httpClient.SendAsync(request);
+            var responseBodyString = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogError("Error while getting all cars from account: Status code: {statusCode}; Response Body: {responseBodyString}", response.StatusCode, responseBodyString);
+                var excpetion = new HttpRequestException($"Requesting {requestUri} returned following body: {responseBodyString}", null,
+                    response.StatusCode);
+                return Fin<List<DtoTesla>>.Fail(Error.New(excpetion));
+            }
+
+            
+            var vehicles = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<List<DtoVehicleResult>>>(responseBodyString);
+
+            if (vehicles?.Response == null)
+            {
+                logger.LogError("Could not deserialize vehicle list response body {responseBodyString}", responseBodyString);
+                return Fin<List<DtoTesla>>.Fail($"Could not deserialize response body {responseBodyString}");
+            }
+
+            // Convert TeslaVehicle to DtoTesla
+            var dtos = vehicles.Response.Select(v => new DtoTesla { Name = v.DisplayName, Vin = v.Vin }).ToList();
+            return Fin<List<DtoTesla>>.Succ(dtos);
+        }
+        catch (HttpRequestException e)
+        {
+            logger.LogError(e,"An HTTP request error occured");
+            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+        }
+        catch (JsonException e)
+        {
+            logger.LogError(e, "Failed to parse JSON response");
+            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "An unexpected error occurred");
+            return Fin<List<DtoTesla>>.Fail(Error.New(e));
+        }
     }
 
     internal int RetryInSeconds(string responseString)

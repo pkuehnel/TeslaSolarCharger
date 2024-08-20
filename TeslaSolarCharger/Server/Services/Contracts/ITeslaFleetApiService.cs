@@ -1,5 +1,7 @@
-﻿using TeslaSolarCharger.Server.Dtos.TscBackend;
+﻿using LanguageExt;
+using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Car;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
@@ -18,4 +20,5 @@ public interface ITeslaFleetApiService
     Task RefreshFleetApiRequestsAreAllowed();
 
     void ResetApiRequestCounters();
+    Task<Fin<List<DtoTesla>>> GetNewCarsInAccount();
 }
