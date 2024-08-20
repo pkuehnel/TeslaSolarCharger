@@ -1,4 +1,4 @@
-﻿using AutoMapper.QueryableExtensions;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
@@ -87,6 +87,7 @@ public class ConfigJsonService(
                     MinimumSoC = configuration.MinimumSoC,
                     LatestTimeToReachSoC = configuration.LatestTimeToReachSoC,
                     IgnoreLatestTimeToReachSocDate = configuration.IgnoreLatestTimeToReachSocDate,
+                    IgnoreLatestTimeToReachSocDateOnWeekend = configuration.IgnoreLatestTimeToReachSocDateOnWeekend,
                     MaximumAmpere = configuration.MaximumAmpere,
                     MinimumAmpere = configuration.MinimumAmpere,
                     UsableEnergy = configuration.UsableEnergy,
@@ -155,12 +156,15 @@ public class ConfigJsonService(
         databaseCar.MinimumSoc = carBaseSettings.MinimumStateOfCharge;
         databaseCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
         databaseCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
+        databaseCar.IgnoreLatestTimeToReachSocDateOnWeekend = carBaseSettings.IgnoreLatestTimeToReachSocDateOnWeekend;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var settingsCar = settings.Cars.First(c => c.Id == carBaseSettings.CarId);
         settingsCar.ChargeMode = carBaseSettings.ChargeMode;
         settingsCar.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
         settingsCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
         settingsCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
+        settingsCar.IgnoreLatestTimeToReachSocDateOnWeekend = carBaseSettings.IgnoreLatestTimeToReachSocDateOnWeekend;
+
 
     }
 
@@ -236,6 +240,7 @@ public class ConfigJsonService(
         databaseCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
         databaseCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         databaseCar.UseBle = carBasicConfiguration.UseBle;
+        databaseCar.UseBleForWakeUp = carBasicConfiguration.UseBleForWakeUp;
         databaseCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -249,6 +254,7 @@ public class ConfigJsonService(
         settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         settingsCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
         settingsCar.UseBle = carBasicConfiguration.UseBle;
+        settingsCar.UseBleForWakeUp = carBasicConfiguration.UseBleForWakeUp;
         settingsCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
     }
 
@@ -270,6 +276,7 @@ public class ConfigJsonService(
         entity.MinimumSoc = car.MinimumSoC;
         entity.LatestTimeToReachSoC = car.LatestTimeToReachSoC;
         entity.IgnoreLatestTimeToReachSocDate = car.IgnoreLatestTimeToReachSocDate;
+        entity.IgnoreLatestTimeToReachSocDateOnWeekend = car.IgnoreLatestTimeToReachSocDateOnWeekend;
         entity.MaximumAmpere = car.MaximumAmpere;
         entity.MinimumAmpere = car.MinimumAmpere;
         entity.UsableEnergy = car.UsableEnergy;
@@ -294,38 +301,25 @@ public class ConfigJsonService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public async Task<List<DtoCar>> GetCarById(int id)
-    {
-        logger.LogTrace("{method}({id})", nameof(GetCarById), id);
-        var mapper = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<Car, DtoCar>()
-                ;
-        });
-        var cars = await teslaSolarChargerContext.Cars
-            .ProjectTo<DtoCar>(mapper)
-            .ToListAsync().ConfigureAwait(false);
-        return cars;
-    }
-
-    public async Task<List<DtoCar>> GetCars()
+    private async Task<List<DtoCar>> GetCars()
     {
         logger.LogTrace("{method}()", nameof(GetCars));
         var mapper = mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<Car, DtoCar>()
+                .ForMember(d => d.WakeUpCalls, opt => opt.MapFrom(s => s.WakeUpCalls == null ? new List<DateTime>() : JsonConvert.DeserializeObject<List<DateTime>>(s.WakeUpCalls)))
+                .ForMember(d => d.VehicleDataCalls, opt => opt.MapFrom(s => s.VehicleDataCalls == null ? new List<DateTime>() : JsonConvert.DeserializeObject<List<DateTime>>(s.VehicleDataCalls)))
+                .ForMember(d => d.VehicleCalls, opt => opt.MapFrom(s => s.VehicleCalls == null ? new List<DateTime>() : JsonConvert.DeserializeObject<List<DateTime>>(s.VehicleCalls)))
+                .ForMember(d => d.ChargeStartCalls, opt => opt.MapFrom(s => s.ChargeStartCalls == null ? new List<DateTime>() : JsonConvert.DeserializeObject<List<DateTime>>(s.ChargeStartCalls)))
+                .ForMember(d => d.ChargeStopCalls, opt => opt.MapFrom(s => s.ChargeStopCalls == null ? new List<DateTime>() : JsonConvert.DeserializeObject<List<DateTime>>(s.ChargeStopCalls)))
+                .ForMember(d => d.SetChargingAmpsCall, opt => opt.MapFrom(s => s.SetChargingAmpsCall == null ? new List<DateTime>() : JsonConvert.DeserializeObject<List<DateTime>>(s.SetChargingAmpsCall)))
+                .ForMember(d => d.OtherCommandCalls, opt => opt.MapFrom(s => s.OtherCommandCalls == null ? new List<DateTime>() : JsonConvert.DeserializeObject<List<DateTime>>(s.OtherCommandCalls)))
                 ;
         });
         var cars = await teslaSolarChargerContext.Cars
             .ProjectTo<DtoCar>(mapper)
             .ToListAsync().ConfigureAwait(false);
         return cars;
-    }
-
-    private async Task<string> GetCarConfigurationFileContent()
-    {
-        var fileContent = await File.ReadAllTextAsync(configurationWrapper.CarConfigFileFullName()).ConfigureAwait(false);
-        return fileContent;
     }
 
     public async Task CacheCarStates()
@@ -351,6 +345,15 @@ public class ConfigJsonService(
             dbCar.Latitude = car.Latitude;
             dbCar.Longitude = car.Longitude;
             dbCar.State = car.State;
+            dbCar.WakeUpCalls = JsonConvert.SerializeObject(car.WakeUpCalls);
+            dbCar.VehicleDataCalls = JsonConvert.SerializeObject(car.VehicleDataCalls);
+            dbCar.VehicleCalls = JsonConvert.SerializeObject(car.VehicleCalls);
+            dbCar.ChargeStartCalls = JsonConvert.SerializeObject(car.ChargeStartCalls);
+            dbCar.ChargeStopCalls = JsonConvert.SerializeObject(car.ChargeStopCalls);
+            dbCar.SetChargingAmpsCall = JsonConvert.SerializeObject(car.SetChargingAmpsCall);
+            dbCar.OtherCommandCalls = JsonConvert.SerializeObject(car.OtherCommandCalls);
+
+
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);

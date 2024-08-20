@@ -1,4 +1,3 @@
-﻿using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -15,6 +14,7 @@ public class Car
     public DateTime LatestTimeToReachSoC { get; set; }
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }
+    public bool IgnoreLatestTimeToReachSocDateOnWeekend { get; set; }
 
     public int MaximumAmpere { get; set; }
 
@@ -40,10 +40,23 @@ public class Car
     public double? Longitude { get; set; }
     public CarStateEnum? State { get; set; }
     public bool VehicleCommandProtocolRequired { get; set; }
-    public DateTime? RateLimitedUntil { get; set; }
+    public DateTime? VehicleRateLimitedUntil { get; set; }
+    public DateTime? VehicleDataRateLimitedUntil { get; set; }
+    public DateTime? CommandsRateLimitedUntil { get; set; }
+    public DateTime? WakeUpRateLimitedUntil { get; set; }
+    public DateTime? ChargingCommandsRateLimitedUntil { get; set; }
     public bool UseBle { get; set; }
+    public bool UseBleForWakeUp { get; set; }
     public int ApiRefreshIntervalSeconds { get; set; }
     public string? BleApiBaseUrl { get; set; }
+
+    public string? WakeUpCalls { get; set; }
+    public string? VehicleDataCalls { get; set; }
+    public string? VehicleCalls { get; set; }
+    public string? ChargeStartCalls { get; set; }
+    public string? ChargeStopCalls { get; set; }
+    public string? SetChargingAmpsCall { get; set; }
+    public string? OtherCommandCalls { get; set; }
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
 }

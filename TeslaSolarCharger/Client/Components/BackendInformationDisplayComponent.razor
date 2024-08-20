@@ -4,11 +4,6 @@
 
 @inject HttpClient HttpClient
 
-
-@if (_backendNotifications.Any())
-{
-    <h3>Developer's information</h3>
-}
 @foreach(var notification in _backendNotifications)
 {
     <div class="mb-2">
@@ -48,9 +43,9 @@
     {
         return notificationType switch
         {
-            BackendNotificationType.Warning => Severity.Error,
+            BackendNotificationType.Warning => Severity.Warning,
             BackendNotificationType.Error => Severity.Error,
-            _ => Severity.Info
+            _ => Severity.Info,
         };
     }
 
