@@ -1,0 +1,11 @@
+﻿@for (var i = 0; i < Count; i++)
+{
+    <MudSkeleton />
+}
+
+@code {
+
+    [Parameter]
+    public int Count { get; set; } = 1;
+
+}

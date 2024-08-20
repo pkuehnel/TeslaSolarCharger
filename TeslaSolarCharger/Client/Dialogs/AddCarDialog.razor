@@ -1,0 +1,44 @@
+﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
+
+@inject HttpClient HttpClient
+
+<h3>AddCarDialog</h3>
+
+@if (_fleetApiTokenState == default)
+{
+    <PlaceholderComponent Count="10"></PlaceholderComponent>
+}
+else if (_fleetApiTokenState != FleetApiTokenState.UpToDate)
+{
+    <MudAlert Severity="Severity.Error"
+              NoIcon="true"
+              ContentAlignment="HorizontalAlignment.Left">
+        <h4>Tesla Fleet API Token is not valid.</h4>
+        Go to <MudLink Href="/BaseConfiguration">Base Configuration</MudLink> and Generate a Tesla Fleet API Token.
+    </MudAlert>
+}
+else
+{
+
+}
+
+@code {
+
+
+    private FleetApiTokenState? _fleetApiTokenState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshFleetApiTokenState();
+    }
+
+    public async Task RefreshFleetApiTokenState()
+    {
+        var value = await HttpClient.GetFromJsonAsync<DtoValue<FleetApiTokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
+        if (value != null)
+        {
+            _fleetApiTokenState = value.Value;
+        }
+    }
+}
