@@ -66,38 +66,6 @@ public class ChargeTimeCalculationService(
         foreach (var car in carsToPlan)
         {
             await UpdatePlannedChargingSlots(car).ConfigureAwait(false);
-            if (car.ShouldSetChargeStartTimes != true || car.IsHomeGeofence != true)
-            {
-                continue;
-            }
-#pragma warning disable CS4014
-            SetChargeStartIfNeeded(car).ContinueWith(t =>
-                logger.LogError(t.Exception, "Could not set planned charge start for car {carId}.", car.Id), TaskContinuationOptions.OnlyOnFaulted);
-#pragma warning restore CS4014
-        }
-    }
-
-    private async Task SetChargeStartIfNeeded(DtoCar dtoCar)
-    {
-        logger.LogTrace("{method}({carId})", nameof(SetChargeStartIfNeeded), dtoCar.Id);
-        if (dtoCar.State == CarStateEnum.Charging)
-        {
-            logger.LogTrace("Do not set charge start in TeslaApp as car is currently charging");
-            return;
-        }
-        try
-        {
-            var nextPlannedCharge = dtoCar.PlannedChargingSlots.MinBy(c => c.ChargeStart);
-            if (nextPlannedCharge == default || nextPlannedCharge.ChargeStart <= dateTimeProvider.DateTimeOffSetNow() || nextPlannedCharge.IsActive)
-            {
-                await teslaService.SetScheduledCharging(dtoCar.Id, null).ConfigureAwait(false);
-                return;
-            }
-            await teslaService.SetScheduledCharging(dtoCar.Id, nextPlannedCharge.ChargeStart).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Could not set planned charge start for car {carId}.", dtoCar.Id);
         }
     }
 
