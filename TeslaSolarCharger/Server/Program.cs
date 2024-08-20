@@ -169,7 +169,14 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         if (!configurationWrapper.ShouldUseFakeSolarValues())
         {
             await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
-            await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
+            try
+            {
+                await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore this error as this could result in never taking the first token
+            }
         }
         await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 

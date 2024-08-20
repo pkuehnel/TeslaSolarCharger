@@ -1106,7 +1106,7 @@ public class TeslaFleetApiService(
         });
     }
 
-    private async Task<Fin<List<DtoTesla>>> GetAllCarsFromAccount()
+    public async Task<Fin<List<DtoTesla>>> GetAllCarsFromAccount()
     {
         logger.LogTrace("{method}()", nameof(GetAllCarsFromAccount));
         var accessToken = await GetAccessToken().ConfigureAwait(false);

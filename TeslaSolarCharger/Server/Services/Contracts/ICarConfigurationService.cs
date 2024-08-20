@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.Services.Services.Contracts;
+﻿namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface ICarConfigurationService
 {

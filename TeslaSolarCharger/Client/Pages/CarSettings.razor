@@ -3,13 +3,34 @@
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Ble
 @using Newtonsoft.Json
+@using TeslaSolarCharger.Shared.Enums
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
 <PageTitle>Car Settings</PageTitle>
 <h1>Car Settings</h1>
-<RightAlignedButtonComponent ButtonText="Add car"
-                             StartIcon="@Icons.Material.Filled.Add"></RightAlignedButtonComponent>
+
+<div class="mb-3">
+    @if (_fleetApiTokenState != null && _fleetApiTokenState != FleetApiTokenState.UpToDate)
+    {
+        <MudAlert Severity="Severity.Error"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <h4>Create Token.</h4>
+            Go to <MudLink Href="/BaseConfiguration">Base Configuration</MudLink>, Generate a Tesla Fleet API Token and restart TSC to see cars here.
+        </MudAlert>
+    }
+    @if (_fleetApiTokenState == FleetApiTokenState.UpToDate)
+    {
+        <MudAlert Severity="Severity.Info"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <h5>Restart TSC to add new cars</h5>
+            If you recently added a car to your Tesla account, restart TSC for it to be displayed here.
+        </MudAlert>
+    }
+</div>
+
 
 @if (_carBasicConfigurations == null)
 {
@@ -97,6 +118,7 @@ else
 @code {
     private List<CarBasicConfiguration>? _carBasicConfigurations;
     private readonly List<int> _savingCarIds = new();
+    private FleetApiTokenState? _fleetApiTokenState;
 
     private Dictionary<string, string> _pairingResults = new();
 
@@ -107,7 +129,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await RefreshFleetApiTokenState();
         _carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
+    }
+
+    public async Task RefreshFleetApiTokenState()
+    {
+        var value = await HttpClient.GetFromJsonAsync<DtoValue<FleetApiTokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
+        if (value != null)
+        {
+            _fleetApiTokenState = value.Value;
+        }
     }
 
     private async Task UpdateCarConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
