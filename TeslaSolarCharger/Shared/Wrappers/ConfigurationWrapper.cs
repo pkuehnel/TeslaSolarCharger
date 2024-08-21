@@ -152,6 +152,10 @@ public class ConfigurationWrapper(
 
     public bool GetVehicleDataFromTesla()
     {
+        if (!settings.UseTeslaMate)
+        {
+            return true;
+        }
         var value = GetBaseConfiguration().UseTeslaMateAsDataSource;
         return !value;
     }
