@@ -28,4 +28,5 @@ public interface ISettings
     string? ChargePricesUpdateText { get; set; }
     DateTime StartupTime { get; set; }
     int LastPvDemoCase { get; set; }
+    bool UseTeslaMate { get; set; }
 }

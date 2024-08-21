@@ -60,7 +60,7 @@ public class ConfigJsonService(
             .Where(c => c.Key == constants.CarConfigurationKey)
             .ToListAsync().ConfigureAwait(false);
 
-        if (oldCarConfiguration.Count > 0)
+        if (oldCarConfiguration.Count > 0 && settings.UseTeslaMate)
         {
             foreach (var databaseCarConfiguration in oldCarConfiguration)
             {
@@ -70,7 +70,7 @@ public class ConfigJsonService(
                 {
                     continue;
                 }
-
+                
                 var teslaMateDatabaseCar = await teslamateContext.Cars.FirstOrDefaultAsync(c => c.Id == databaseCarConfiguration.CarId)
                     .ConfigureAwait(false);
                 if (teslaMateDatabaseCar == default)
@@ -268,8 +268,12 @@ public class ConfigJsonService(
         var entity = teslaSolarChargerContext.Cars.FirstOrDefault(c => c.TeslaMateCarId == car.TeslaMateCarId) ?? new Car()
         {
             Id = car.Id,
-            TeslaMateCarId = teslamateContext.Cars.FirstOrDefault(c => c.Vin == car.Vin)?.Id ?? default,
+            
         };
+        if (settings.UseTeslaMate)
+        {
+            entity.TeslaMateCarId = teslamateContext.Cars.FirstOrDefault(c => c.Vin == car.Vin)?.Id ?? default;
+        }
         entity.Name = car.Name;
         entity.Vin = car.Vin;
         entity.ChargeMode = car.ChargeMode;
@@ -402,22 +406,40 @@ public class ConfigJsonService(
         const int lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
         try
         {
-            //ToDo: needs to be updated to charging processes
-            var chargerVoltages = await teslamateContext
-                .Charges
-                .Where(c => c.ChargingProcess.Geofence != null
-                            && c.ChargingProcess.Geofence.Name == homeGeofence
-                            && c.ChargerVoltage > lowestGridVoltageToSearchFor)
-                .OrderByDescending(c => c.Id)
-                .Select(c => c.ChargerVoltage)
-                .Take(1000)
-                .ToListAsync().ConfigureAwait(false);
-            if (chargerVoltages.Count > 10)
+            if (settings.UseTeslaMate)
             {
-                var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
-                logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
-                settings.AverageHomeGridVoltage = averageValue;
+                var chargerVoltages = await teslamateContext
+                    .Charges
+                    .Where(c => c.ChargingProcess.Geofence != null
+                                && c.ChargingProcess.Geofence.Name == homeGeofence
+                                && c.ChargerVoltage > lowestGridVoltageToSearchFor)
+                    .OrderByDescending(c => c.Id)
+                    .Select(c => c.ChargerVoltage)
+                    .Take(1000)
+                    .ToListAsync().ConfigureAwait(false);
+                if (chargerVoltages.Count > 10)
+                {
+                    var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
+                    logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
+                    settings.AverageHomeGridVoltage = averageValue;
+                }
             }
+            else
+            {
+                var chargerVoltages = await teslaSolarChargerContext.ChargingDetails
+                    .Where(c => c.ChargerVoltage != null)
+                    .OrderByDescending(c => c.Id)
+                    .Select(c => c.ChargerVoltage)
+                    .Take(1000)
+                    .ToListAsync().ConfigureAwait(false);
+                if (chargerVoltages.Count > 10)
+                {
+                    var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
+                    logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
+                    settings.AverageHomeGridVoltage = averageValue;
+                }
+            }
+            
         }
         catch (Exception ex)
         {

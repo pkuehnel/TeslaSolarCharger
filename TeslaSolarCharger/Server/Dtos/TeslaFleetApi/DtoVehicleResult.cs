@@ -9,6 +9,8 @@ public class DtoVehicleResult
 
     [JsonProperty("vehicle_id")]
     public long VehicleId { get; set; }
+    [JsonProperty("display_name")]
+    public string? DisplayName { get; set; }
 
     [JsonProperty("vin")]
     public string Vin { get; set; }
