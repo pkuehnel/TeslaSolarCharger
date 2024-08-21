@@ -26,7 +26,7 @@
                   NoIcon="true"
                   ContentAlignment="HorizontalAlignment.Left">
             <h5>Restart TSC to add new cars</h5>
-            If you recently added a car to your Tesla account, restart TSC for it to be displayed here.
+            If you do not see all cars here that are available in your Tesla account, restart TSC.
         </MudAlert>
     }
 </div>
@@ -133,7 +133,7 @@ else
         _carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
     }
 
-    public async Task RefreshFleetApiTokenState()
+    private async Task RefreshFleetApiTokenState()
     {
         var value = await HttpClient.GetFromJsonAsync<DtoValue<FleetApiTokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
         if (value != null)
