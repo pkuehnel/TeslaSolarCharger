@@ -100,6 +100,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var shouldRetry = false;
         var teslaMateContext = webApplication.Services.GetRequiredService<ITeslamateContext>();
+        var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
+        var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
         if (!configurationWrapper1.ShouldUseFakeSolarValues())
         {
             try
@@ -123,6 +125,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 {
                     logger1.LogError(ex, "TeslaMate is not available. Use TSC without TeslaMate integration");
                     settings.UseTeslaMate = false;
+                    baseConfiguration.UseTeslaMateAsDataSource = false;
+                    await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
                 }
             }
         }
@@ -189,8 +193,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
         var homeGeofenceName = configurationWrapper.GeoFence();
-        var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
-        if (!string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 0, HomeGeofenceLongitude: 0 })
+        
+        if (settings.UseTeslaMate && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 0, HomeGeofenceLongitude: 0 })
         {
             var homeGeofence = await teslaMateContext.Geofences.Where(g => g.Name == homeGeofenceName).FirstOrDefaultAsync();
             if (homeGeofence != null)
@@ -198,7 +202,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 baseConfiguration.HomeGeofenceLatitude = homeGeofence.Latitude;
                 baseConfiguration.HomeGeofenceLongitude = homeGeofence.Longitude;
                 baseConfiguration.HomeGeofenceRadius = homeGeofence.Radius;
-                var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
                 await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
             }
         }
