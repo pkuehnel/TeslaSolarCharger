@@ -12,7 +12,12 @@ public class FleetApiTokenRefreshJob(ILogger<FleetApiTokenRefreshJob> logger,
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
         await service.RefreshFleetApiRequestsAreAllowed().ConfigureAwait(false);
-        await service.GetNewTokenFromBackend().ConfigureAwait(false);
+        var newTokenReceived = await service.GetNewTokenFromBackend().ConfigureAwait(false);
+        if (newTokenReceived)
+        {
+            logger.LogInformation("A new Tesla Token was received.");
+
+        }
         await service.RefreshTokensIfAllowedAndNeeded().ConfigureAwait(false);
     }
 }

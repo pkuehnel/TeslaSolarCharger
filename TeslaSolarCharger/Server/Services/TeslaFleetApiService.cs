@@ -788,41 +788,48 @@ public class TeslaFleetApiService(
         return $"https://fleet-api.prd.{regionCode}.vn.cloud.tesla.com/";
     }
 
-    public async Task GetNewTokenFromBackend()
+    /// <summary>
+    /// Get a new Token from TSC Backend
+    /// </summary>
+    /// <returns>True if a new Token was received</returns>
+    /// <exception cref="InvalidDataException">Token could not be extracted from result string</exception>
+    public async Task<bool> GetNewTokenFromBackend()
     {
         logger.LogTrace("{method}()", nameof(GetNewTokenFromBackend));
         //As all tokens get deleted when requesting a new one, we can assume that there is no token in the database.
         var token = await teslaSolarChargerContext.TeslaTokens.FirstOrDefaultAsync().ConfigureAwait(false);
-        if (token == null)
+        if (token != null)
         {
-            var tokenRequestedDate = await GetTokenRequestedDate().ConfigureAwait(false);
-            if (tokenRequestedDate == null)
-            {
-                logger.LogError("Token has not been requested. Fleet API currently not working");
-                return;
-            }
-            if (tokenRequestedDate < dateTimeProvider.UtcNow().Subtract(constants.MaxTokenRequestWaitTime))
-            {
-                logger.LogError("Last token request is too old. Request a new token.");
-                return;
-            }
-            using var httpClient = new HttpClient();
-            var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-            var url = configurationWrapper.BackendApiBaseUrl() + $"Tsc/DeliverAuthToken?installationId={installationId}";
-            var response = await httpClient.GetAsync(url).ConfigureAwait(false);
-            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogError("Error getting token from TSC Backend. Response status code: {statusCode}, Response string: {responseString}",
-                    response.StatusCode, responseString);
-            }
-            else
-            {
-                var newToken = JsonConvert.DeserializeObject<DtoTeslaTscDeliveryToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
-                await AddNewTokenAsync(newToken).ConfigureAwait(false);
-            }
-            
+            return false;
         }
+
+        var tokenRequestedDate = await GetTokenRequestedDate().ConfigureAwait(false);
+        if (tokenRequestedDate == null)
+        {
+            logger.LogError("Token has not been requested. Fleet API currently not working");
+            return false;
+        }
+        if (tokenRequestedDate < dateTimeProvider.UtcNow().Subtract(constants.MaxTokenRequestWaitTime))
+        {
+            logger.LogError("Last token request is too old. Request a new token.");
+            return false;
+        }
+        using var httpClient = new HttpClient();
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+        var url = configurationWrapper.BackendApiBaseUrl() + $"Tsc/DeliverAuthToken?installationId={installationId}";
+        var response = await httpClient.GetAsync(url).ConfigureAwait(false);
+        var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError("Error getting token from TSC Backend. Response status code: {statusCode}, Response string: {responseString}",
+                response.StatusCode, responseString);
+            return false;
+
+        }
+
+        var newToken = JsonConvert.DeserializeObject<DtoTeslaTscDeliveryToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
+        await AddNewTokenAsync(newToken).ConfigureAwait(false);
+        return true;
     }
 
     public async Task RefreshTokensIfAllowedAndNeeded()
