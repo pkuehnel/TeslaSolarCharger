@@ -345,6 +345,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 continue;
             }
             var chargingDetail = await GetAttachedChargingDetail(car.Id);
+            chargingDetail.ChargerVoltage = car.ChargerVoltage;
             if (chargingPowerAtHome < usedGridPower)
             {
                 logger.LogTrace("Grid power is enough for car with ID {carId}.", car.Id);

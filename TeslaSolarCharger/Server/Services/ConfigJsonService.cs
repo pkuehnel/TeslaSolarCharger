@@ -406,26 +406,40 @@ public class ConfigJsonService(
         const int lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
         try
         {
-            //ToDo: needs to be updated to charging processes
-            if (!settings.UseTeslaMate)
+            if (settings.UseTeslaMate)
             {
-                return;
+                var chargerVoltages = await teslamateContext
+                    .Charges
+                    .Where(c => c.ChargingProcess.Geofence != null
+                                && c.ChargingProcess.Geofence.Name == homeGeofence
+                                && c.ChargerVoltage > lowestGridVoltageToSearchFor)
+                    .OrderByDescending(c => c.Id)
+                    .Select(c => c.ChargerVoltage)
+                    .Take(1000)
+                    .ToListAsync().ConfigureAwait(false);
+                if (chargerVoltages.Count > 10)
+                {
+                    var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
+                    logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
+                    settings.AverageHomeGridVoltage = averageValue;
+                }
             }
-            var chargerVoltages = await teslamateContext
-                .Charges
-                .Where(c => c.ChargingProcess.Geofence != null
-                            && c.ChargingProcess.Geofence.Name == homeGeofence
-                            && c.ChargerVoltage > lowestGridVoltageToSearchFor)
-                .OrderByDescending(c => c.Id)
-                .Select(c => c.ChargerVoltage)
-                .Take(1000)
-                .ToListAsync().ConfigureAwait(false);
-            if (chargerVoltages.Count > 10)
+            else
             {
-                var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
-                logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
-                settings.AverageHomeGridVoltage = averageValue;
+                var chargerVoltages = await teslaSolarChargerContext.ChargingDetails
+                    .Where(c => c.ChargerVoltage != null)
+                    .OrderByDescending(c => c.Id)
+                    .Select(c => c.ChargerVoltage)
+                    .Take(1000)
+                    .ToListAsync().ConfigureAwait(false);
+                if (chargerVoltages.Count > 10)
+                {
+                    var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
+                    logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
+                    settings.AverageHomeGridVoltage = averageValue;
+                }
             }
+            
         }
         catch (Exception ex)
         {
