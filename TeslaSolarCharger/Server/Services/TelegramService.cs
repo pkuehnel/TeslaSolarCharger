@@ -6,32 +6,25 @@ using TeslaSolarCharger.Shared.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class TelegramService : ITelegramService
+public class TelegramService(ILogger<TelegramService> logger,
+    IConfigurationWrapper configurationWrapper)
+    : ITelegramService
 {
-    private readonly ILogger<TelegramService> _logger;
-    private readonly IConfigurationWrapper _configurationWrapper;
-
-    public TelegramService(ILogger<TelegramService> logger, IConfigurationWrapper configurationWrapper)
-    {
-        _logger = logger;
-        _configurationWrapper = configurationWrapper;
-    }
-
     public async Task<HttpStatusCode> SendMessage(string message)
     {
-        _logger.LogTrace("{method}({param})", nameof(SendMessage), message);
+        logger.LogTrace("{method}({param})", nameof(SendMessage), message);
         using var httpClient = new HttpClient();
-        var botKey = _configurationWrapper.TelegramBotKey();
-        var channel = _configurationWrapper.TelegramChannelId();
+        var botKey = configurationWrapper.TelegramBotKey();
+        var channel = configurationWrapper.TelegramChannelId();
         if (botKey.IsNullOrWhiteSpace())
         {
-            _logger.LogInformation("Can not send Telegram Message because botkey is empty.");
+            logger.LogInformation("Can not send Telegram Message because botkey is empty.");
             return HttpStatusCode.Unauthorized;
         }
 
         if (channel.IsNullOrWhiteSpace())
         {
-            _logger.LogInformation("Can not send Telegram Message because channel is empty.");
+            logger.LogInformation("Can not send Telegram Message because channel is empty.");
             return HttpStatusCode.Unauthorized;
         }
 
@@ -49,13 +42,13 @@ public class TelegramService : ITelegramService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not send Telegram message.");
+            logger.LogError(ex, "Could not send Telegram message.");
             return HttpStatusCode.GatewayTimeout;
         }
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Can not send Telegram message: {statusCode}, {reasonphrase}, {body}", response.StatusCode, response.ReasonPhrase, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+            logger.LogError("Can not send Telegram message: {statusCode}, {reasonphrase}, {body}", response.StatusCode, response.ReasonPhrase, await response.Content.ReadAsStringAsync().ConfigureAwait(false));
         }
 
         return response.StatusCode;
