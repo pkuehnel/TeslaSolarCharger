@@ -23,10 +23,10 @@ public class IssueValidationService(
     ITeslaFleetApiService teslaFleetApiService)
     : IIssueValidationService
 {
-    public async Task<List<Issue>> RefreshIssues(TimeSpan clientTimeZoneId)
+    public async Task<List<DtoIssue>> RefreshIssues(TimeSpan clientTimeZoneId)
     {
         logger.LogTrace("{method}()", nameof(RefreshIssues));
-        var issueList = new List<Issue>();
+        var issueList = new List<DtoIssue>();
         if (settings.RestartNeeded)
         {
             issueList.Add(possibleIssues.GetIssueByKey(issueKeys.RestartNeeded));
@@ -106,10 +106,10 @@ public class IssueValidationService(
         return warningCount;
     }
 
-    private async Task<List<Issue>> GetTeslaMateApiIssues()
+    private async Task<List<DtoIssue>> GetTeslaMateApiIssues()
     {
         logger.LogTrace("{method}()", nameof(GetTeslaMateApiIssues));
-        var issues = new List<Issue>();
+        var issues = new List<DtoIssue>();
         var teslaMateBaseUrl = configurationWrapper.TeslaMateApiBaseUrl();
         var getAllCarsUrl = $"{teslaMateBaseUrl}/api/v1/cars";
         using var httpClient = new HttpClient();
@@ -129,10 +129,10 @@ public class IssueValidationService(
         return issues;
     }
 
-    private List<Issue> GetMqttIssues()
+    private List<DtoIssue> GetMqttIssues()
     {
         logger.LogTrace("{method}()", nameof(GetMqttIssues));
-        var issues = new List<Issue>();
+        var issues = new List<DtoIssue>();
         if (!teslaMateMqttService.IsMqttClientConnected && !configurationWrapper.GetVehicleDataFromTesla())
         {
             issues.Add(possibleIssues.GetIssueByKey(issueKeys.MqttNotConnected));
@@ -151,10 +151,10 @@ public class IssueValidationService(
         return issues;
     }
 
-    private List<Issue> PvValueIssues()
+    private List<DtoIssue> PvValueIssues()
     {
         logger.LogTrace("{method}()", nameof(GetMqttIssues));
-        var issues = new List<Issue>();
+        var issues = new List<DtoIssue>();
         var frontendConfiguration = configurationWrapper.FrontendConfiguration() ?? new FrontendConfiguration();
 
         var isGridPowerConfigured = frontendConfiguration.GridValueSource != SolarValueSource.None;
@@ -196,9 +196,9 @@ public class IssueValidationService(
         return issues;
     }
 
-    private List<Issue> SofwareIssues()
+    private List<DtoIssue> SofwareIssues()
     {
-        var issues = new List<Issue>();
+        var issues = new List<DtoIssue>();
         if (settings.IsNewVersionAvailable)
         {
             issues.Add(possibleIssues.GetIssueByKey(issueKeys.VersionNotUpToDate));
@@ -207,9 +207,9 @@ public class IssueValidationService(
         return issues;
     }
 
-    private List<Issue> ConfigurationIssues()
+    private List<DtoIssue> ConfigurationIssues()
     {
-        var issues = new List<Issue>();
+        var issues = new List<DtoIssue>();
 
         if (configurationWrapper.CurrentPowerToGridCorrectionFactor() == (decimal)0.0
             || configurationWrapper.HomeBatteryPowerCorrectionFactor() == (decimal)0.0
@@ -222,9 +222,9 @@ public class IssueValidationService(
         return issues;
     }
 
-    private List<Issue> GetServerConfigurationIssues(TimeSpan clientTimeUtcOffset)
+    private List<DtoIssue> GetServerConfigurationIssues(TimeSpan clientTimeUtcOffset)
     {
-        var issues = new List<Issue>();
+        var issues = new List<DtoIssue>();
         var serverTimeUtcOffset = TimeZoneInfo.Local.GetUtcOffset(dateTimeProvider.Now());
         if (clientTimeUtcOffset != serverTimeUtcOffset)
         {

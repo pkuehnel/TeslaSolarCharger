@@ -6,11 +6,11 @@ namespace TeslaSolarCharger.Server.Resources.PossibleIssues;
 
 public class PossibleIssues : IPossibleIssues
 {
-    private readonly Dictionary<string, Issue> _issues;
+    private readonly Dictionary<string, DtoIssue> _issues;
 
     public PossibleIssues(IssueKeys issueKeys)
     {
-        _issues = new Dictionary<string, Issue>
+        _issues = new Dictionary<string, DtoIssue>
         {
             {
                 issueKeys.MqttNotConnected, CreateIssue("Mqtt Client is not connected",
@@ -195,9 +195,9 @@ public class PossibleIssues : IPossibleIssues
         };
     }
 
-    private Issue CreateIssue(string issueMessage, IssueType issueType, params string[] possibleSolutions)
+    private DtoIssue CreateIssue(string issueMessage, IssueType issueType, params string[] possibleSolutions)
     {
-        return new Issue()
+        return new DtoIssue()
         {
             IssueMessage = issueMessage,
             IssueType = issueType,
@@ -205,7 +205,7 @@ public class PossibleIssues : IPossibleIssues
         };
     }
 
-    public Issue GetIssueByKey(string key)
+    public DtoIssue GetIssueByKey(string key)
     {
         return _issues[key];
     }

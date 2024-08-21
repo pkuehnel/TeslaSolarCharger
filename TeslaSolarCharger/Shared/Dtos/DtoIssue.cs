@@ -2,9 +2,9 @@
 
 namespace TeslaSolarCharger.Shared.Dtos;
 
-public class Issue
+public class DtoIssue
 {
-    public Issue()
+    public DtoIssue()
     {
         IssueMessage = string.Empty;
     }
