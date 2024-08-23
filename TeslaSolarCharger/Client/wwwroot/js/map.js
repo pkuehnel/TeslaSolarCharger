@@ -27,8 +27,8 @@ window.updateCircle = (lat, lng, radius) => {
         map.removeLayer(circle);
     }
     circle = L.circle([lat, lng], {
-        color: 'red',
-        fillColor: '#f03',
+        color: '#1b6ec2',
+        fillColor: '#1b6ec2',
         fillOpacity: 0.5,
         radius: radius
     }).addTo(map);

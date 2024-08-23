@@ -94,7 +94,7 @@ public class BaseConfigurationBase
     public bool UseTeslaMateAsDataSource { get; set; }
     public double HomeGeofenceLongitude { get; set; }
     public double HomeGeofenceLatitude { get; set; }
-    public int HomeGeofenceRadius { get; set; }
+    public int HomeGeofenceRadius { get; set; } = 50;
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 
