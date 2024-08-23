@@ -1,13 +1,13 @@
 ﻿let map;
 let circle;
 let dotNetHelper;
+let markers = [];
 
 window.initializeMap = (helper) => {
     dotNetHelper = helper;
     if (typeof L !== 'undefined') {
         createMap();
     } else {
-        // If Leaflet is not loaded yet, wait for it
         document.addEventListener('DOMContentLoaded', createMap);
     }
 };
@@ -33,5 +33,12 @@ function onMapClick(e) {
         }).addTo(map);
 
         dotNetHelper.invokeMethodAsync('UpdateSelection', e.latlng.lat, e.latlng.lng, parseFloat(radius));
+        dotNetHelper.invokeMethodAsync('AddCoordinateFromMap', e.latlng.lat, e.latlng.lng);
     }
 }
+
+window.addMarker = (lat, lng) => {
+    const marker = L.marker([lat, lng]).addTo(map);
+    markers.push(marker);
+    map.setView([lat, lng], 10);
+};

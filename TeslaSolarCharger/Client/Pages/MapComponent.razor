@@ -8,9 +8,26 @@
 <p>Center: @centerPoint</p>
 <p>Radius: @radius meters</p>
 
+<h4>Coordinates List</h4>
+<ul>
+    @foreach (var coord in coordinates)
+    {
+        <li>@coord.Lat, @coord.Lng</li>
+    }
+</ul>
+
+<div>
+    <input @bind="newLat" type="number" step="0.000001" placeholder="Latitude" />
+    <input @bind="newLng" type="number" step="0.000001" placeholder="Longitude" />
+    <button @onclick="AddCoordinate">Add Coordinate</button>
+</div>
+
 @code {
     private string centerPoint = "Not selected";
     private double radius = 0;
+    private List<Coordinate> coordinates = new List<Coordinate>();
+    private double newLat;
+    private double newLng;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -26,5 +43,28 @@
         centerPoint = $"Lat: {lat:F6}, Lng: {lng:F6}";
         radius = radiusInMeters;
         StateHasChanged();
+    }
+
+    private async Task AddCoordinate()
+    {
+        var newCoord = new Coordinate { Lat = newLat, Lng = newLng };
+        coordinates.Add(newCoord);
+        await JSRuntime.InvokeVoidAsync("addMarker", newCoord.Lat, newCoord.Lng);
+        newLat = 0;
+        newLng = 0;
+    }
+
+    [JSInvokable]
+    public async Task AddCoordinateFromMap(double lat, double lng)
+    {
+        var newCoord = new Coordinate { Lat = lat, Lng = lng };
+        coordinates.Add(newCoord);
+        StateHasChanged();
+    }
+
+    public class Coordinate
+    {
+        public double Lat { get; set; }
+        public double Lng { get; set; }
     }
 }
