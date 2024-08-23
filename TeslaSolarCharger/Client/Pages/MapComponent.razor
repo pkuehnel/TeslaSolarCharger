@@ -8,6 +8,11 @@
 <p>Center: @centerPoint</p>
 <p>Radius: @radius meters</p>
 
+<div>
+    <label for="radiusInput">Radius (meters): </label>
+    <input id="radiusInput" @bind="radius" type="number" step="10" min="0" />
+</div>
+
 <h4>Coordinates List</h4>
 <ul>
     @foreach (var coord in coordinates)
@@ -24,7 +29,7 @@
 
 @code {
     private string centerPoint = "Not selected";
-    private double radius = 0;
+    private double radius = 1000; // Default radius
     private List<Coordinate> coordinates = new List<Coordinate>();
     private double newLat;
     private double newLng;
@@ -38,10 +43,11 @@
     }
 
     [JSInvokable]
-    public void UpdateSelection(double lat, double lng, double radiusInMeters)
+    public async Task UpdateSelection(double lat, double lng)
     {
         centerPoint = $"Lat: {lat:F6}, Lng: {lng:F6}";
-        radius = radiusInMeters;
+        await JSRuntime.InvokeVoidAsync("updateCircle", lat, lng, radius);
+        await AddCoordinateFromMap(lat, lng);
         StateHasChanged();
     }
 
@@ -54,8 +60,7 @@
         newLng = 0;
     }
 
-    [JSInvokable]
-    public async Task AddCoordinateFromMap(double lat, double lng)
+    private async Task AddCoordinateFromMap(double lat, double lng)
     {
         var newCoord = new Coordinate { Lat = lat, Lng = lng };
         coordinates.Add(newCoord);

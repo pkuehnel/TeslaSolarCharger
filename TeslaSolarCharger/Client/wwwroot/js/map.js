@@ -19,23 +19,21 @@ function createMap() {
 }
 
 function onMapClick(e) {
+    dotNetHelper.invokeMethodAsync('UpdateSelection', e.latlng.lat, e.latlng.lng);
+}
+
+window.updateCircle = (lat, lng, radius) => {
     if (circle) {
         map.removeLayer(circle);
     }
-
-    const radius = prompt("Enter radius in meters:", "1000");
-    if (radius) {
-        circle = L.circle(e.latlng, {
-            color: 'red',
-            fillColor: '#f03',
-            fillOpacity: 0.5,
-            radius: parseFloat(radius)
-        }).addTo(map);
-
-        dotNetHelper.invokeMethodAsync('UpdateSelection', e.latlng.lat, e.latlng.lng, parseFloat(radius));
-        dotNetHelper.invokeMethodAsync('AddCoordinateFromMap', e.latlng.lat, e.latlng.lng);
-    }
-}
+    circle = L.circle([lat, lng], {
+        color: 'red',
+        fillColor: '#f03',
+        fillOpacity: 0.5,
+        radius: radius
+    }).addTo(map);
+    map.setView([lat, lng], 10);
+};
 
 window.addMarker = (lat, lng) => {
     const marker = L.marker([lat, lng]).addTo(map);
