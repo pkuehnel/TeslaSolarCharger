@@ -44,7 +44,7 @@ window.updateCircle = (lat, lng, radius) => {
 
 function getZoomForRadius(radius) {
     // These values can be adjusted based on your preferences
-    if (radius < 100) return 15;
+    if (radius < 100) return 17;
     if (radius < 500) return 14;
     if (radius < 1000) return 13;
     if (radius < 5000) return 12;

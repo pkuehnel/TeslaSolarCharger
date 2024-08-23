@@ -199,8 +199,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             var homeGeofence = await teslaMateContext.Geofences.Where(g => g.Name == homeGeofenceName).FirstOrDefaultAsync();
             if (homeGeofence != null)
             {
-                baseConfiguration.HomeGeofenceLatitude = homeGeofence.Latitude;
-                baseConfiguration.HomeGeofenceLongitude = homeGeofence.Longitude;
+                baseConfiguration.HomeGeofenceLatitude = Convert.ToDouble(homeGeofence.Latitude);
+                baseConfiguration.HomeGeofenceLongitude = Convert.ToDouble(homeGeofence.Longitude);
                 baseConfiguration.HomeGeofenceRadius = homeGeofence.Radius;
                 await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
             }

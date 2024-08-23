@@ -102,29 +102,22 @@ else
                 <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
+        
+        <h3>Home Geofence</h3>
+        <div class="mb-3">
+            <MapComponent Longitude="_dtoBaseConfiguration.HomeGeofenceLongitude"
+                          Latitude="_dtoBaseConfiguration.HomeGeofenceLatitude"
+                          Radius="_dtoBaseConfiguration.HomeGeofenceRadius"
+                          LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.HomeGeofenceLatitude = newLatitude)"
+                          LongitudeChanged="@(newLongitude => _dtoBaseConfiguration.HomeGeofenceLongitude = newLongitude)"></MapComponent>
 
-        <InputComponent ValueId="HomeGeofenceLongitude"
-                        LabelText="Home Longitude"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputNumber id="HomeGeofenceLongitude" @bind-Value="_dtoBaseConfiguration.HomeGeofenceLongitude" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
-
-        <InputComponent ValueId="HomeGeofenceLatitude"
-                        LabelText="Home Latitude"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputNumber id="HomeGeofenceLatitude" @bind-Value="_dtoBaseConfiguration.HomeGeofenceLatitude" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
+            <small class="form-text text-muted">Within that area TSC will regulate charging power</small>
+        </div>
 
         <InputComponent ValueId="HomeGeofenceRadius"
                         LabelText="Home Radius"
-                        UnitText=""
-                        HelpText="">
+                        UnitText="m"
+                        HelpText="Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended">
             <InputFragment>
                 <InputNumber id="HomeGeofenceRadius" @bind-Value="_dtoBaseConfiguration.HomeGeofenceRadius" class="form-control" placeholder=" " />
             </InputFragment>
