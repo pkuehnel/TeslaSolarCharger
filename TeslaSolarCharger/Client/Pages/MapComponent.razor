@@ -10,7 +10,7 @@
 
 <div>
     <label for="radiusInput">Radius (meters): </label>
-    <input id="radiusInput" @bind="radius" type="number" step="10" min="0" />
+    <input id="radiusInput" @bind="radius" @bind:event="oninput" @onchange="RadiusChanged" type="number" step="10" min="0" />
 </div>
 
 <h4>Coordinates List</h4>
@@ -33,6 +33,8 @@
     private List<Coordinate> coordinates = new List<Coordinate>();
     private double newLat;
     private double newLng;
+    private double? lastLat;
+    private double? lastLng;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -45,10 +47,20 @@
     [JSInvokable]
     public async Task UpdateSelection(double lat, double lng)
     {
+        lastLat = lat;
+        lastLng = lng;
         centerPoint = $"Lat: {lat:F6}, Lng: {lng:F6}";
         await JSRuntime.InvokeVoidAsync("updateCircle", lat, lng, radius);
         await AddCoordinateFromMap(lat, lng);
         StateHasChanged();
+    }
+
+    private async Task RadiusChanged()
+    {
+        if (lastLat.HasValue && lastLng.HasValue)
+        {
+            await JSRuntime.InvokeVoidAsync("updateCircle", lastLat.Value, lastLng.Value, radius);
+        }
     }
 
     private async Task AddCoordinate()
