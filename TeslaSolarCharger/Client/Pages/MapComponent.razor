@@ -1,0 +1,30 @@
+﻿@page "/map"
+@inject IJSRuntime JSRuntime
+
+<h3>Map Selection</h3>
+
+<div id="map" style="height: 400px;"></div>
+
+<p>Center: @centerPoint</p>
+<p>Radius: @radius meters</p>
+
+@code {
+    private string centerPoint = "Not selected";
+    private double radius = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initializeMap", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateSelection(double lat, double lng, double radiusInMeters)
+    {
+        centerPoint = $"Lat: {lat:F6}, Lng: {lng:F6}";
+        radius = radiusInMeters;
+        StateHasChanged();
+    }
+}
