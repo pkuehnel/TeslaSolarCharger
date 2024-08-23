@@ -92,9 +92,9 @@ public class BaseConfigurationBase
     public int? MaxInverterAcPower { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public bool UseTeslaMateAsDataSource { get; set; }
-    public decimal HomeGeofenceLongitude { get; set; }
-    public decimal HomeGeofenceLatitude { get; set; }
-    public int HomeGeofenceRadius { get; set; }
+    public double HomeGeofenceLongitude { get; set; }
+    public double HomeGeofenceLatitude { get; set; }
+    public int HomeGeofenceRadius { get; set; } = 50;
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 

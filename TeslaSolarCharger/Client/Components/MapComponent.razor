@@ -1,0 +1,79 @@
+@page "/map"
+@inject IJSRuntime JsRuntime
+
+<div id="map" style="height: 400px;"></div>
+
+@code {
+    [Parameter]
+    public int Radius { get; set; } = 50; // Default radius
+    [Parameter]
+    public double? Latitude { get; set; }
+    [Parameter]
+    public double? Longitude { get; set; }
+
+    [Parameter]
+    public EventCallback<double> LatitudeChanged { get; set; }
+    [Parameter]
+    public EventCallback<double> LongitudeChanged { get; set; }
+
+    private double? _lastLatitude;
+    private double? _lastLongitude;
+    private int? _lastRadius;
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JsRuntime.InvokeVoidAsync("initializeMap", DotNetObjectReference.Create(this));
+            if (Latitude.HasValue && Longitude.HasValue)
+            {
+                await JsRuntime.InvokeVoidAsync("updateCircle", Latitude.Value, Longitude.Value, Radius);
+                _lastLatitude = Latitude;
+                _lastLongitude = Longitude;
+                _lastRadius = Radius;
+            }
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Latitude.HasValue && Longitude.HasValue && _lastRadius.HasValue && Radius != _lastRadius)
+        {
+            await JsRuntime.InvokeVoidAsync("updateCircle", Latitude.Value, Longitude.Value, Radius);
+            _lastRadius = Radius;
+
+        }
+    }
+
+    [JSInvokable]
+    public async Task UpdateSelection(double lat, double lng)
+    {
+        _lastLatitude = lat;
+        _lastLongitude = lng;
+        await JsRuntime.InvokeVoidAsync("updateCircle", lat, lng, Radius);
+        _ = LatitudeChanged.InvokeAsync(lat);
+        _ = LongitudeChanged.InvokeAsync(lng);
+        StateHasChanged();
+    }
+
+    private async Task RadiusChanged()
+    {
+        if (_lastLatitude.HasValue && _lastLongitude.HasValue)
+        {
+            await JsRuntime.InvokeVoidAsync("updateCircle", _lastLatitude.Value, _lastLongitude.Value, Radius);
+        }
+    }
+
+    public async Task AddCoordinate(double latitude, double longitude)
+    {
+        var newCoord = new Coordinate { Lat = latitude, Lng = longitude };
+        await JsRuntime.InvokeVoidAsync("addMarker", newCoord.Lat, newCoord.Lng);
+    }
+
+    public class Coordinate
+    {
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+    }
+}

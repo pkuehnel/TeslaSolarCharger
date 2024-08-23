@@ -160,13 +160,13 @@ public class ConfigurationWrapper(
         return !value;
     }
 
-    public decimal HomeGeofenceLongitude()
+    public double HomeGeofenceLongitude()
     {
         var value = GetBaseConfiguration().HomeGeofenceLongitude;
         return value;
     }
 
-    public decimal HomeGeofenceLatitude()
+    public double HomeGeofenceLatitude()
     {
         var value = GetBaseConfiguration().HomeGeofenceLatitude;
         return value;
