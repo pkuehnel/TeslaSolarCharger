@@ -184,7 +184,7 @@
                         EndX = GridLocation.X,
                         EndY = GridLocation.Y,
                         Color = "orange",
-                        Duration = $"{CalculateDuration(InverterLocation, GridLocation)}s",
+                        Duration = CalculateDuration(InverterLocation, GridLocation).ToString("0.00") + "s",
                     });
                 }
                 if (HomeLocation != default)
@@ -196,7 +196,7 @@
                             EndX = HomeLocation.X,
                             EndY = HomeLocation.Y,
                             Color = "orange",
-                            Duration = $"{CalculateDuration(InverterLocation, HomeLocation)}s",
+                            Duration = CalculateDuration(InverterLocation, HomeLocation).ToString("0.00") + "s",
                         });
                 }
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
@@ -205,10 +205,10 @@
                     {
                         StartX = InverterLocation.X,
                         StartY = InverterLocation.Y,
-                            EndX = BatteryLocation.X,
-                            EndY = BatteryLocation.Y,
+                        EndX = BatteryLocation.X,
+                        EndY = BatteryLocation.Y,
                         Color = "orange",
-                            Duration = $"{CalculateDuration(InverterLocation, BatteryLocation)}s",
+                        Duration = CalculateDuration(InverterLocation, BatteryLocation).ToString("0.00") + "s",
                     });
                 }
             }
@@ -228,21 +228,21 @@
                         EndX = HomeLocation.X,
                         EndY = HomeLocation.Y,
                         Color = "lightblue",
-                        Duration = $"{CalculateDuration(GridLocation, HomeLocation)}s",
+                        Duration = CalculateDuration(GridLocation, HomeLocation).ToString("0.00") + "s",
                     });
                 }
 
                 if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
                 {
                     Balls.Add(new Ball
-                        {
-                            StartX = GridLocation.X,
-                            StartY = GridLocation.Y,
-                            EndX = BatteryLocation.X,
-                            EndY = BatteryLocation.Y,
-                            Color = "lightblue",
-                            Duration = $"{CalculateDuration(GridLocation, BatteryLocation)}s",
-                        });
+                    {
+                        StartX = GridLocation.X,
+                        StartY = GridLocation.Y,
+                        EndX = BatteryLocation.X,
+                        EndY = BatteryLocation.Y,
+                        Color = "lightblue",
+                        Duration = CalculateDuration(GridLocation, BatteryLocation).ToString("0.00") + "s",
+                    });
                 }
             }
         }
@@ -261,7 +261,7 @@
                         EndX = HomeLocation.X,
                         EndY = HomeLocation.Y,
                         Color = "lightgreen",
-                        Duration = $"{CalculateDuration(BatteryLocation, HomeLocation)}s",
+                        Duration = CalculateDuration(BatteryLocation, HomeLocation).ToString("0.00") + "s",
                     });
                 }
                 if (GridLocation != default && _pvValues.GridPower > 0)
@@ -273,7 +273,7 @@
                         EndX = GridLocation.X,
                         EndY = GridLocation.Y,
                         Color = "lightgreen",
-                        Duration = $"{CalculateDuration(BatteryLocation, GridLocation)}s",
+                        Duration = CalculateDuration(BatteryLocation, GridLocation).ToString("0.00") + "s",
                     });
                 }
             }
