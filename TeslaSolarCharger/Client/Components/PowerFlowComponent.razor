@@ -9,474 +9,93 @@
 @inject IConstants Constants
 
 
-@if (_pvValues != null)
-{
-    <div class="shadow p-3 mb-5 bg-white rounded">
-        @if (_couldNotRefreshStates == true)
-        {
-            <small class="form-text text-muted">States could not be refreshed. Are you currently offline?</small>
-        }
-        @if (_isSolarEdgeInstallation == true)
-        {
-            <small class="form-text text-muted">As you are using SolarEdge which is rate limited, these values might be delayed or grid power and batterypower might be displayed as zero or your configured Home Battery charging power (W). This is nothing to worry about, it is just a way to handle the rate limitation.</small>
-        }
-        @{
-            var homePower = CalculateHomePower();
-        }
-        @if (homePower != null)
-        {
-            <div class="container power-container pt-4 pb-4 ps-lg-5 pe-lg-5">
-                <div class="row">
-                    <div class="offset-4 col-4 ps-0 pe-0">
-                        @if (_pvValues.InverterPower != null)
-                        {
-                            <div id="solar-power">
-                                <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
-                                <br />
-                                <TooltipComponent Text="Power your inverter currently delivers.">
-                                    @_pvValues.InverterPower W
-                                </TooltipComponent>
-                            </div>
-                        }
-                    </div>
-                    <div class="col-4">
-                    </div>
-                    <div class="col-4 ps-0 pe-0">
-                        @if (_pvValues.GridPower != null)
-                        {
-                            <div id="grid-power">
-                                <div class="@(_pvValues.GridPower > 0 ? "text-success" : (_pvValues.GridPower < 0 ? "text-danger" : ""))">
-                                    <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
-                                    <br />
-                                    <TooltipComponent Text="Power at your grid point. Green: Power feeding into grid; Red: Power consuming from grid">
-                                        @Math.Abs((int)_pvValues.GridPower) W
-                                    </TooltipComponent>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                    <div class="col-4 ps-0 pe-0">
-                        <div class="row">
-                            @* <div class="col-12">
-                    @if (IsVisibleBatteryToGridLine())
-                    {
-                    <div id="battery-to-grid-horizontal-line">
-                    @for (int i = 0; i <= animatedSliderCount - 2; i++)
-                    {
-                    var delay = $"delay{i}";
-                    <div class="leftArrowSliding @delay">
-                    <div class="left-arrow"></div>
-                    </div>
-                    }
-                    </div>
-                    }
-                    </div> *@
-                            <div class="col-5">
-                                <div class="flow-div">
-                                    @if (IsVisibleSolarToGridLine())
-                                    {
-                                        <div id="solar-to-grid-vertical-line">
-                                            @for (int i = 0; i <= animatedSliderCount - 1; i++)
-                                            {
-                                                var delay = $"delay{i}";
-                                                <div class="childDownArrowSliding @delay">
-                                                    <div class="solar-to-grid-vertical-line-down-arrow"></div>
-                                                </div>
-                                            }
-                                        </div>
-                                        <div id="solar-to-grid-horizontal-line">
-                                            @for (int i = 0; i <= animatedSliderCount - 2; i++)
-                                            {
-                                                var delay = $"delay{i}";
-                                                <div class="leftArrowSliding @delay">
-                                                    <div class="left-arrow"></div>
-                                                </div>
-                                            }
-                                        </div>
-                                        <div class="clear"></div>
-                                    }
-                                </div>
-                                <div class="flow-div">
-                                    @if (IsVisibleGridToHomeLine())
-                                    {
-                                        <div id="grid-to-home-horizontal-line"></div>
-                                        <div id="grid-to-home-vertical-line">
-                                            @for (int i = 0; i <= animatedSliderCount - 1; i++)
-                                            {
-                                                var delay = $"delay{i}";
-                                                <div class="childDownArrowSliding @delay">
-                                                    <div class="grid-to-home-vertical-line-down-arrow"></div>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                            <div class="col-2 ps-0 pe-0">
-                                <div id="solar-to-home-line" class="@(IsVisibleSolarToHomeLine() is true ? "show" : "hide")">
-                                    @for (int i = 0; i <= animatedSliderCount; i++)
-                                    {
-                                        var delay = $"delay{i}";
-                                        <div class="downArrowSliding @delay">
-                                            <div class="down-arrow"></div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                            <div class="col-5">
-                                <div class="flow-div">
-                                    @if (IsVisibleSolarToBatteryLine())
-                                    {
-                                        <div id="solar-to-battery-vertical-line">
-                                            @for (int i = 0; i <= animatedSliderCount - 1; i++)
-                                            {
-                                                var delay = $"delay{i}";
-                                                <div class="childDownArrowSliding @delay">
-                                                    <div class="solar-to-battery-vertical-line-down-arrow"></div>
-                                                </div>
-                                            }
-                                        </div>
-                                        <div id="solar-to-battery-horizontal-line">
-                                            @for (int i = 0; i <= animatedSliderCount - 2; i++)
-                                            {
-                                                var delay = $"delay{i}";
-                                                <div class="rightArrowSliding @delay">
-                                                    <div class="right-arrow"></div>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                                <div class="flow-div">
-                                    @if (IsVisibleBatteryToHomeLine())
-                                    {
-                                        <div id="battery-to-home-horizontal-line"></div>
-                                        <div id="battery-to-home-vertical-line">
-                                            @for (int i = 0; i <= animatedSliderCount - 1; i++)
-                                            {
-                                                var delay = $"delay{i}";
-                                                <div class="childDownArrowSliding @delay">
-                                                    <div class="battery-to-home-vertical-line-down-arrow"></div>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4 ps-0 pe-0">
-                        @if (_pvValues.HomeBatteryPower != null)
-                        {
-                            <div id="battery-power">
-                                <div class="@(_pvValues.HomeBatteryPower > 0 ? "text-success" : (_pvValues.HomeBatteryPower < 0 ? "text-danger" : ""))">
-                                    <div class="row">
-                                        <div class="col-3 m-auto pe-0 text-right">
-                                            <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.BatteryChargingFull)"></MudIcon>
-                                        </div>
-                                        <div class="col-9 text-left">
-                                            @if (_pvValues.HomeBatterySoc != null)
-                                            {
-                                                <TooltipComponent Text="State of charge of your home battery.">
-                                                    @_pvValues.HomeBatterySoc %
-                                                </TooltipComponent>
-                                                <br />
-                                            }
-                                            <TooltipComponent Text="Power of your home battery. Green: Battery is charging; Red: Battery is discharging">
-                                                @if (_pvValues.HomeBatteryPower != null)
-                                                {
-                                                    @Math.Abs((int)_pvValues.HomeBatteryPower)
-                                                }
-                                                W
-                                            </TooltipComponent>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                    <div class="col-4 offset-4 ps-0 pe-0">
-                        @if (homePower != null)
-                        {
-                            <div id="home-power">
-                                <span class="material-symbols-outlined me-1">
-                                    home
-                                </span>
-                                <br />
-                                <TooltipComponent Text="Configured Power Buffer">
-                                    @(homePower) W
-                                </TooltipComponent>
-                            </div>
-                        }
-                        @if (IsVisibleHomeToEvStationLine())
-                        {
-                            <div id="home-to-ev-station-vertical-line">
-                                @for (int i = 0; i <= animatedSliderCount - 1; i++)
-                                {
-                                    var delay = $"delay{i}";
-                                    <div class="childDownArrowSliding @delay">
-                                        <div class="home-to-ev-station-line-down-arrow"></div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                    <div class="col-4">
-                    </div>
-                    <div class="col-4 offset-4 ps-0 pe-0 @(IsVisibleHomeToEvStationLine() is false ? "mt-3" : "")">
-                        <div id="ev-station-power">
-                            <span class="material-symbols-outlined me-1">
-                                ev_station
-                            </span>
-                            <br />
-                            <TooltipComponent Text="Power sum of all cars charging at home.">
-                                @_pvValues.CarCombinedChargingPowerAtHome W
-                            </TooltipComponent>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                    </div>
-                </div>
-            </div>
-        }
-        else
-        {
-            @if (_pvValues.InverterPower != null)
-            {
-                <div class="d-flex align-items-center mb-1">
-                    <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
-                    <TooltipComponent Text="Power your inverter currently delivers.">
-                        @_pvValues.InverterPower W
-                    </TooltipComponent>
-                </div>
-            }
-            @if (_pvValues.GridPower != null)
-            {
-                <div class="@(_pvValues.GridPower > 0 ? "text-success" : (_pvValues.GridPower < 0 ? "text-danger" : ""))">
-                    <div class="d-flex align-items-center mb-1">
-                        <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
-                        <TooltipComponent Text="Power at your grid point. Green: Power feeding into grid; Red: Power consuming from grid">
-                            @Math.Abs((int)_pvValues.GridPower) W
-                        </TooltipComponent>
-                    </div>
-                </div>
-            }
+<svg width="600" height="400" viewBox="0 0 600 400">
+    <!-- Lines -->
+    <line x1="100" y1="200" x2="300" y2="100" stroke="black" />
+    <line x1="100" y1="200" x2="300" y2="300" stroke="black" />
+    <line x1="300" y1="100" x2="500" y2="200" stroke="black" />
+    <line x1="300" y1="300" x2="500" y2="200" stroke="black" />
 
-            @if (_pvValues.HomeBatterySoc != null)
-            {
-                <div class="d-flex align-items-center mb-1">
-                    <MudIcon Class="mr-1" Icon="@(GetBatteryIconBySoc(_pvValues.HomeBatterySoc))"></MudIcon>
-                    <TooltipComponent Text="State of charge of your home battery.">
-                        @_pvValues.HomeBatterySoc %
-                    </TooltipComponent>
-                </div>
-            }
-            @if (_pvValues.HomeBatteryPower != null)
-            {
-                <div class="@(_pvValues.HomeBatteryPower > 0 ? "text-success" : (_pvValues.HomeBatteryPower < 0 ? "text-danger" : ""))">
-                    <div class="d-flex align-items-center mb-1">
-                        <MudIcon Class="mr-1" Icon="@(Icons.Material.Filled.BatteryChargingFull)"></MudIcon>
-                        <TooltipComponent Text="Power of your home battery. Green: Battery is charging; Red: Battery is discharging">
-                            @if (_pvValues.HomeBatteryPower != null)
-                            {
-                                @Math.Abs((int)_pvValues.HomeBatteryPower)
-                            }
-                            W
-                        </TooltipComponent>
-                    </div>
-                </div>
-            }
-            @if (_pvValues.PowerBuffer != null)
-            {
-                <div class="d-flex align-items-center mb-1">
-                    <span class="material-symbols-outlined me-1">
-                        instant_mix
-                    </span>
-                    <TooltipComponent Text="Configured Power Buffer">
-                        @_pvValues.PowerBuffer W
-                    </TooltipComponent>
-                </div>
-            }
-            <div class="d-flex align-items-center mb-1">
-                <span class="material-symbols-outlined me-1">
-                    ev_station
-                </span>
-                <TooltipComponent Text="Power sum of all cars charging at home.">
-                    @_pvValues.CarCombinedChargingPowerAtHome W
-                </TooltipComponent>
-            </div>
-        }
-    </div>
-}
+    <!-- Circles -->
+    <circle cx="100" cy="200" r="40" fill="lightblue" />
+    <circle cx="300" cy="100" r="40" fill="orange" />
+    <circle cx="300" cy="300" r="40" fill="pink" />
+    <circle cx="500" cy="200" r="40" fill="lightgreen" />
+
+    <!-- Text -->
+    <text x="100" y="205" text-anchor="middle">Grid @GridPower W</text>
+    <text x="300" y="105" text-anchor="middle">Solar @SolarPower W</text>
+    <text x="300" y="305" text-anchor="middle">Battery @BatteryPower W</text>
+    <text x="500" y="205" text-anchor="middle">House @HousePower W</text>
+
+    <!-- Animated balls -->
+    @foreach (var ball in Balls)
+    {
+        <circle cx="@ball.X" cy="@ball.Y" r="5" fill="@ball.Color">
+            <animate attributeName="cx" from="@ball.StartX" to="@ball.EndX" dur="@ball.Duration" repeatCount="indefinite" />
+            <animate attributeName="cy" from="@ball.StartY" to="@ball.EndY" dur="@ball.Duration" repeatCount="indefinite" />
+        </circle>
+    }
+</svg>
 
 @code {
+    public int GridPower { get; set; } = 16;
+    public int SolarPower { get; set; } = 7311;
+    public int BatteryPower { get; set; } = 3810;
+    public int HousePower { get; set; } = 3485;
 
-    private DtoPvValues? _pvValues;
-    private bool? _isSolarEdgeInstallation;
-    private bool? _couldNotRefreshStates;
-    private int animatedSliderCount = 3;
-
-    private Timer? _timer;
+    private List<Ball> Balls { get; set; } = new List<Ball>();
+    private Timer _timer;
 
 
-    protected override async Task OnInitializedAsync()
+
+    protected override void OnInitialized()
     {
-        var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
-        _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
-
-        _timer = new Timer();
-        _timer.Interval = Debugger.IsAttached ? 1000 : 5000;
-        _timer.Elapsed += async (_, _) => await RefreshPvValues().ConfigureAwait(false);
+        _timer = new Timer(1000);
+        _timer.Elapsed += (sender, e) => UpdateBalls();
         _timer.Start();
     }
 
-    private async Task RefreshPvValues()
+    private void UpdateBalls()
     {
-        try
+        Balls.Clear();
+
+        if (SolarPower > 0)
         {
-            _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
-            _couldNotRefreshStates = false;
-            StateHasChanged();
+            Balls.Add(new Ball { StartX = 300, StartY = 100, EndX = 500, EndY = 200, Color = "yellow", Duration = "2s" });
         }
-        catch (Exception ex)
+
+        if (GridPower > 0)
         {
-            _couldNotRefreshStates = true;
-            StateHasChanged();
+            Balls.Add(new Ball { StartX = 100, StartY = 200, EndX = 500, EndY = 200, Color = "blue", Duration = "3s" });
         }
+
+        if (BatteryPower < 0)
+        {
+            Balls.Add(new Ball { StartX = 300, StartY = 300, EndX = 500, EndY = 200, Color = "red", Duration = "2.5s" });
+        }
+        else if (BatteryPower > 0)
+        {
+            Balls.Add(new Ball { StartX = 300, StartY = 100, EndX = 300, EndY = 300, Color = "green", Duration = "2.5s" });
+        }
+
+        InvokeAsync(StateHasChanged);
     }
 
-
-    private string GetBatteryIconBySoc(int? soc)
+    public class Ball
     {
-        if (soc < 10)
-        {
-            return Icons.Material.Filled.Battery0Bar;
-        }
-        if (soc < 25)
-        {
-            return Icons.Material.Filled.Battery1Bar;
-        }
-        if (soc < 40)
-        {
-            return Icons.Material.Filled.Battery2Bar;
-        }
-        if (soc < 60)
-        {
-            return Icons.Material.Filled.Battery3Bar;
-        }
-        if (soc < 75)
-        {
-            return Icons.Material.Filled.Battery4Bar;
-        }
-        if (soc < 90)
-        {
-            return Icons.Material.Filled.Battery5Bar;
-        }
-        if (soc < 100)
-        {
-            return Icons.Material.Filled.Battery6Bar;
-        }
-        return Icons.Material.Filled.BatteryFull;
+        public int StartX { get; set; }
+        public int StartY { get; set; }
+        public int EndX { get; set; }
+        public int EndY { get; set; }
+        public string Color { get; set; }
+        public string Duration { get; set; }
+        public int X => StartX;
+        public int Y => StartY;
     }
 
-
-    private int? CalculateHomePower()
+    public void Dispose()
     {
-        if (_pvValues == null)
-        {
-            return null;
-        }
-
-        if (_pvValues.InverterPower == null)
-        {
-            return null;
-        }
-
-        if (_pvValues.GridPower == null)
-        {
-            return null;
-        }
-        var homeBatteryPower = _pvValues.HomeBatteryPower ?? 0;
-        var chargingPower = _pvValues.CarCombinedChargingPowerAtHome ?? 0;
-        var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
-        return homePower;
+        _timer?.Dispose();
     }
-
-
-    #region Electricity Flow Control Methods
-
-    private bool IsVisibleSolarToHomeLine()
-    {
-        if (_pvValues?.InverterPower > 0 && CalculateHomePower() > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleSolarToGridLine()
-    {
-        if (_pvValues?.InverterPower > 0 && _pvValues?.GridPower > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleSolarToBatteryLine()
-    {
-        if (_pvValues?.InverterPower > 0 && _pvValues?.HomeBatteryPower > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleGridToHomeLine()
-    {
-        if (CalculateHomePower() > 0 && _pvValues?.GridPower < 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleBatteryToHomeLine()
-    {
-        if (CalculateHomePower() > 0 && _pvValues?.HomeBatteryPower < 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleBatteryToGridLine()
-    {
-        if (_pvValues?.GridPower > 0 && _pvValues?.HomeBatteryPower < 0 && _pvValues?.InverterPower <= 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleGridToBatteryLine()
-    {
-        if (_pvValues?.GridPower < 0 && _pvValues?.HomeBatteryPower > 0 && _pvValues?.InverterPower <= 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private bool IsVisibleHomeToEvStationLine()
-    {
-        if (CalculateHomePower() > 0 && _pvValues?.CarCombinedChargingPowerAtHome > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    #endregion
-
 }
