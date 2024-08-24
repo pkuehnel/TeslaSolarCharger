@@ -16,6 +16,15 @@
         <line x1="210" y1="100" x2="350" y2="200" stroke="black" />
         <line x1="210" y1="300" x2="350" y2="200" stroke="black" />
 
+        <!-- Animated balls -->
+        @foreach (var ball in Balls)
+        {
+            <circle cx="@ball.X" cy="@ball.Y" r="5" fill="@ball.Color">
+                <animate attributeName="cx" from="@ball.StartX" to="@ball.EndX" dur="@ball.Duration" repeatCount="indefinite" />
+                <animate attributeName="cy" from="@ball.StartY" to="@ball.EndY" dur="@ball.Duration" repeatCount="indefinite" />
+            </circle>
+        }
+
         <!-- Circles -->
         <circle cx="70" cy="200" r="40" fill="lightblue" />
         <circle cx="210" cy="100" r="40" fill="orange" />
@@ -51,20 +60,13 @@
             </div>
         </foreignObject>
 
-        <!-- Animated balls -->
-        @foreach (var ball in Balls)
-        {
-            <circle cx="@ball.X" cy="@ball.Y" r="5" fill="@ball.Color">
-                <animate attributeName="cx" from="@ball.StartX" to="@ball.EndX" dur="@ball.Duration" repeatCount="indefinite" />
-                <animate attributeName="cy" from="@ball.StartY" to="@ball.EndY" dur="@ball.Duration" repeatCount="indefinite" />
-            </circle>
-        }
+        
     </svg>
 }
 
 
 @code {
-    private List<Ball> Balls { get; set; } = new List<Ball>();
+    private List<Ball> Balls { get; set; } = new();
     private Timer? _ballUpdateTimer;
 
     private DtoPvValues? _pvValues;
