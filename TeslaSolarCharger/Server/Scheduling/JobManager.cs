@@ -99,6 +99,9 @@ public class JobManager(
         var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create().WithIdentity("teslaMateChargeCostUpdateTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
+        var issueValidationTrigger = TriggerBuilder.Create().WithIdentity("issueValidationTrigger")
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(62)).Build();
+
         var random = new Random();
         var hour = random.Next(0, 5);
         var minute = random.Next(0, 59);
