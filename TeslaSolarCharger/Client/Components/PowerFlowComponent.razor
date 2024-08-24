@@ -106,7 +106,7 @@
         }
         @if (BatteryLocation != default)
         {
-            <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+            <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
                 <div style="text-align: center;">
                     <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
                     <div>@_pvValues.HomeBatteryPower W</div>
