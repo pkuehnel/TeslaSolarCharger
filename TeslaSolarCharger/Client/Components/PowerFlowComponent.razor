@@ -9,12 +9,41 @@
 
 @if (_pvValues != default)
 {
+
     <svg width="420" height="400" viewBox="0 0 420 400">
         <!-- Lines -->
-        <line x1="70" y1="200" x2="210" y2="100" stroke="black" />
-        <line x1="70" y1="200" x2="210" y2="300" stroke="black" />
-        <line x1="210" y1="100" x2="350" y2="200" stroke="black" />
-        <line x1="210" y1="300" x2="350" y2="200" stroke="black" />
+        <!-- Grid to Solar -->
+        @if (GridLocation != default && InverterLocation != default)
+        {
+            <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@InverterLocation.X" y2="@InverterLocation.Y" stroke="black" />
+        }
+        <!-- Grid to House -->
+        @if (GridLocation != default && HomeLocation != default)
+        {
+            <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="black" />
+        }
+        <!-- Solar to House -->
+        @if (InverterLocation != default && HomeLocation != default)
+        {
+            <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="black" />
+        }
+        
+        <!-- Solar to Home Battery -->
+        @if (InverterLocation != default && BatteryLocation != default)
+        {
+            <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+        }
+        <!-- Home Battery to House -->
+        @if (HomeLocation != default && BatteryLocation != default)
+        {
+            <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+        }
+        <!-- Grid to Home Battery -->
+        @if (GridLocation != default && BatteryLocation != default)
+        {
+            <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+        }
+        
 
         <!-- Animated balls -->
         @foreach (var ball in Balls)
@@ -26,41 +55,64 @@
         }
 
         <!-- Circles -->
-        <circle cx="70" cy="200" r="40" fill="lightblue" />
-        <circle cx="210" cy="100" r="40" fill="orange" />
-        <circle cx="210" cy="300" r="40" fill="pink" />
-        <circle cx="350" cy="200" r="40" fill="lightgreen" />
+        <!-- Grid -->
+        @if (GridLocation != default)
+        {
+            <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40" fill="lightblue" />
+        }
+        <!-- Solar -->
+        @if (InverterLocation != default)
+        {
+            <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40" fill="orange" />
+        }
+        <!-- House -->
+        @if (HomeLocation != default)
+        {
+            <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40" fill="pink" />
+        }
+        <!-- Home Battery -->
+        @if (BatteryLocation != default)
+        {
+            <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40" fill="lightgreen" />
+        }
 
         <!-- Text -->
-        <foreignObject x="35" y="160" width="70" height="80">
-            <div style="text-align: center;">
-                <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Large" />
-                <div>@_pvValues.GridPower W</div>
-            </div>
-        </foreignObject>
-
-        <foreignObject x="175" y="60" width="70" height="80">
-            <div style="text-align: center;">
-                <MudIcon Icon="@Icons.Material.Filled.WbSunny" Size="Size.Large" />
-                <div>@_pvValues.InverterPower W</div>
-            </div>
-        </foreignObject>
-
-        <foreignObject x="175" y="260" width="70" height="80">
-            <div style="text-align: center;">
-                <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Large" />
-                <div>@CalculateHomePower() W</div>
-            </div>
-        </foreignObject>
-
-        <foreignObject x="315" y="170" width="70" height="80">
-            <div style="text-align: center;">
-                <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
-                <div>@_pvValues.HomeBatteryPower W</div>
-            </div>
-        </foreignObject>
-
-        
+        @if (GridLocation != default)
+        {
+            <foreignObject x="@(GridLocation.X - CircleContentLocationDifference)" y="@(GridLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+                <div style="text-align: center;">
+                    <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Large" />
+                    <div>@_pvValues.GridPower W</div>
+                </div>
+            </foreignObject>
+        }
+        @if (InverterLocation != default)
+        {
+            <foreignObject x="@(InverterLocation.X - CircleContentLocationDifference)" y="@(InverterLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+                <div style="text-align: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.WbSunny" Size="Size.Large" />
+                    <div>@_pvValues.InverterPower W</div>
+                </div>
+            </foreignObject>
+        }
+        @if (HomeLocation != default)
+        {
+            <foreignObject x="@(HomeLocation.X - CircleContentLocationDifference)" y="@(HomeLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+                <div style="text-align: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Large" />
+                    <div>@CalculateHomePower() W</div>
+                </div>
+            </foreignObject>
+        }
+        @if (BatteryLocation != default)
+        {
+            <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+                <div style="text-align: center;">
+                    <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
+                    <div>@_pvValues.HomeBatteryPower W</div>
+                </div>
+            </foreignObject>
+        }
     </svg>
 }
 
@@ -74,6 +126,8 @@
     private bool? _couldNotRefreshStates;
 
     private Timer? _pvValueUpdateTimer;
+
+
 
 
     protected override async Task OnInitializedAsync()
@@ -119,24 +173,236 @@
 
         if (_pvValues.InverterPower > 0)
         {
-            Balls.Add(new Ball { StartX = 210, StartY = 100, EndX = 350, EndY = 200, Color = "yellow", Duration = "2s" });
+            if (InverterLocation != default)
+            {
+                if (GridLocation != default && _pvValues.GridPower > 0)
+                {
+                    Balls.Add(new Ball
+                    {
+                        StartX = InverterLocation.X,
+                        StartY = InverterLocation.Y,
+                        EndX = GridLocation.X,
+                        EndY = GridLocation.Y,
+                        Color = "orange",
+                        Duration = $"{CalculateDuration(InverterLocation, GridLocation)}s",
+                    });
+                }
+                if (HomeLocation != default)
+                {
+                    Balls.Add(new Ball
+                        {
+                            StartX = InverterLocation.X,
+                            StartY = InverterLocation.Y,
+                            EndX = HomeLocation.X,
+                            EndY = HomeLocation.Y,
+                            Color = "orange",
+                            Duration = $"{CalculateDuration(InverterLocation, HomeLocation)}s",
+                        });
+                }
+                if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
+                {
+                    Balls.Add(new Ball
+                    {
+                        StartX = InverterLocation.X,
+                        StartY = InverterLocation.Y,
+                            EndX = BatteryLocation.X,
+                            EndY = BatteryLocation.Y,
+                        Color = "orange",
+                            Duration = $"{CalculateDuration(InverterLocation, BatteryLocation)}s",
+                    });
+                }
+            }
         }
 
-        if (_pvValues.GridPower > 0)
+        // Grid power flow
+        if (_pvValues.GridPower < 0)
         {
-            Balls.Add(new Ball { StartX = 70, StartY = 200, EndX = 350, EndY = 200, Color = "blue", Duration = "3s" });
+            if (GridLocation != default)
+            {
+                if (HomeLocation != default && _pvValues.HomeBatteryPower + _pvValues.CarCombinedChargingPowerAtHome > 0)
+                {
+                    Balls.Add(new Ball
+                    {
+                        StartX = GridLocation.X,
+                        StartY = GridLocation.Y,
+                        EndX = HomeLocation.X,
+                        EndY = HomeLocation.Y,
+                        Color = "lightblue",
+                        Duration = $"{CalculateDuration(GridLocation, HomeLocation)}s",
+                    });
+                }
+
+                if (BatteryLocation != default && _pvValues.HomeBatteryPower > 0)
+                {
+                    Balls.Add(new Ball
+                        {
+                            StartX = GridLocation.X,
+                            StartY = GridLocation.Y,
+                            EndX = BatteryLocation.X,
+                            EndY = BatteryLocation.Y,
+                            Color = "lightblue",
+                            Duration = $"{CalculateDuration(GridLocation, BatteryLocation)}s",
+                        });
+                }
+            }
         }
 
-        if (_pvValues.HomeBatteryPower < 0)
+        // Home Battery power flow
+        if (_pvValues.HomeBatteryPower < 0)  // Battery discharging
         {
-            Balls.Add(new Ball { StartX = 210, StartY = 300, EndX = 350, EndY = 200, Color = "red", Duration = "2.5s" });
-        }
-        else if (_pvValues.HomeBatteryPower > 0)
-        {
-            Balls.Add(new Ball { StartX = 210, StartY = 100, EndX = 210, EndY = 300, Color = "green", Duration = "2.5s" });
+            if (BatteryLocation != default)
+            {
+                if (HomeLocation != default && _pvValues.HomeBatteryPower + _pvValues.CarCombinedChargingPowerAtHome > 0)
+                {
+                    Balls.Add(new Ball
+                    {
+                        StartX = BatteryLocation.X,
+                        StartY = BatteryLocation.Y,
+                        EndX = HomeLocation.X,
+                        EndY = HomeLocation.Y,
+                        Color = "lightgreen",
+                        Duration = $"{CalculateDuration(BatteryLocation, HomeLocation)}s",
+                    });
+                }
+                if (GridLocation != default && _pvValues.GridPower > 0)
+                {
+                    Balls.Add(new Ball
+                    {
+                        StartX = BatteryLocation.X,
+                        StartY = BatteryLocation.Y,
+                        EndX = GridLocation.X,
+                        EndY = GridLocation.Y,
+                        Color = "lightgreen",
+                        Duration = $"{CalculateDuration(BatteryLocation, GridLocation)}s",
+                    });
+                }
+            }
         }
 
         InvokeAsync(StateHasChanged);
+    }
+
+    private float CalculateDuration(Location start, Location end)
+    {
+        var deltaX = start.X - end.X;
+        var deltaY = start.Y - end.Y;
+        var distance = (float)Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+        return distance / 100;
+    }
+
+    private Location? InverterLocation
+    {
+        get
+        {
+            if (_pvValues?.InverterPower != default)
+            {
+                return new Location()
+                {
+                    X = SecondColumnX,
+                    Y = FirstLineY,
+                };
+            }
+            return null;
+        }
+    }
+
+    private Location? GridLocation
+    {
+        get
+        {
+            if (_pvValues?.GridPower == default)
+            {
+                return null;
+            }
+
+            var y = SecondLineY;
+            if (_pvValues?.InverterPower == default)
+            {
+                y = FirstLineY;
+            }
+
+            return new Location()
+            {
+                X = FirstColumnX,
+                Y = y,
+            };
+        }
+    }
+
+    private Location? BatteryLocation
+    {
+        get
+        {
+            if (_pvValues?.HomeBatteryPower == default)
+            {
+                return null;
+            }
+            var y = SecondLineY;
+            if (_pvValues?.InverterPower == default)
+            {
+                y = FirstLineY;
+            }
+            return new Location()
+            {
+                X = ThirdColumnX,
+                Y = y,
+            };
+        }
+    }
+
+    private Location? HomeLocation
+    {
+        get
+        {
+            var homePower = CalculateHomePower();
+            if (homePower == default || _pvValues == default)
+            {
+                return null;
+            }
+            var lineNumber = 1;
+            if (_pvValues.InverterPower != default)
+            {
+                lineNumber++;
+            }
+            if (_pvValues.GridPower != default && _pvValues.HomeBatteryPower != default)
+            {
+                lineNumber++;
+            }
+
+            var yCoordinate = lineNumber switch
+            {
+                1 => FirstLineY,
+                2 => SecondLineY,
+                3 => ThirdLineY,
+                _ => throw new ArgumentOutOfRangeException(nameof(lineNumber), lineNumber, "Value must be 1, 2 or 3.")
+            };
+            var xCoordinate = SecondColumnX;
+            if (_pvValues.GridPower == default)
+            {
+                xCoordinate = ThirdColumnX;
+            }
+            return new Location()
+                {
+                    X = xCoordinate,
+                    Y = yCoordinate,
+                };
+        }
+    }
+
+    private const int FirstLineY = 100;
+    private const int SecondLineY = 200;
+    private const int ThirdLineY = 300;
+
+    private const int FirstColumnX = 70;
+    private const int SecondColumnX = 210;
+    private const int ThirdColumnX = 350;
+
+    private const int CircleContentLocationDifference = 35;
+
+    public class Location
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
     }
 
     public class Ball
