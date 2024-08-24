@@ -219,7 +219,7 @@
         {
             if (GridLocation != default)
             {
-                if (HomeLocation != default && _pvValues.HomeBatteryPower + _pvValues.CarCombinedChargingPowerAtHome > 0)
+                if (HomeLocation != default && CalculateHomePower() + _pvValues.CarCombinedChargingPowerAtHome > 0)
                 {
                     Balls.Add(new Ball
                     {
@@ -252,7 +252,7 @@
         {
             if (BatteryLocation != default)
             {
-                if (HomeLocation != default && _pvValues.HomeBatteryPower + _pvValues.CarCombinedChargingPowerAtHome > 0)
+                if (HomeLocation != default && CalculateHomePower() + _pvValues.CarCombinedChargingPowerAtHome > 0)
                 {
                     Balls.Add(new Ball
                     {
