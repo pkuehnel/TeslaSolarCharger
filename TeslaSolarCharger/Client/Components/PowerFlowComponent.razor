@@ -23,10 +23,10 @@
     <circle cx="500" cy="200" r="40" fill="lightgreen" />
 
     <!-- Text -->
-    <text x="100" y="205" text-anchor="middle">Grid @GridPower W</text>
-    <text x="300" y="105" text-anchor="middle">Solar @SolarPower W</text>
-    <text x="300" y="305" text-anchor="middle">Battery @BatteryPower W</text>
-    <text x="500" y="205" text-anchor="middle">House @HousePower W</text>
+    <text x="100" y="205" text-anchor="middle">Grid @_pvValues.GridPower W</text>
+    <text x="300" y="105" text-anchor="middle">Solar @_pvValues.InverterPower W</text>
+    <text x="300" y="305" text-anchor="middle">Battery @_pvValues.HomeBatteryPower W</text>
+    <text x="500" y="205" text-anchor="middle">House @ W</text>
 
     <!-- Animated balls -->
     @foreach (var ball in Balls)
@@ -39,21 +39,47 @@
 </svg>
 
 @code {
-    public int GridPower { get; set; } = 16;
-    public int SolarPower { get; set; } = 7311;
-    public int BatteryPower { get; set; } = 3810;
-    public int HousePower { get; set; } = 3485;
-
     private List<Ball> Balls { get; set; } = new List<Ball>();
-    private Timer _timer;
+    private Timer? _ballUpdateTimer;
+
+    private DtoPvValues? _pvValues;
+    private bool? _isSolarEdgeInstallation;
+    private bool? _couldNotRefreshStates;
+
+    private Timer? _pvValueUpdateTimer;
 
 
+    protected override async Task OnInitializedAsync()
+    {
+        var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
+        _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
+
+        _pvValueUpdateTimer = new Timer();
+        _pvValueUpdateTimer.Interval = Debugger.IsAttached ? 1000 : 5000;
+        _pvValueUpdateTimer.Elapsed += async (_, _) => await RefreshPvValues().ConfigureAwait(false);
+        _pvValueUpdateTimer.Start();
+    }
+
+    private async Task RefreshPvValues()
+    {
+        try
+        {
+            _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
+            _couldNotRefreshStates = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _couldNotRefreshStates = true;
+            StateHasChanged();
+        }
+    }
 
     protected override void OnInitialized()
     {
-        _timer = new Timer(1000);
-        _timer.Elapsed += (sender, e) => UpdateBalls();
-        _timer.Start();
+        _ballUpdateTimer = new Timer(1000);
+        _ballUpdateTimer.Elapsed += (sender, e) => UpdateBalls();
+        _ballUpdateTimer.Start();
     }
 
     private void UpdateBalls()
@@ -96,6 +122,6 @@
 
     public void Dispose()
     {
-        _timer?.Dispose();
+        _ballUpdateTimer?.Dispose();
     }
 }
