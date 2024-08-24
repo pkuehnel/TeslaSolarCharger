@@ -1,42 +1,67 @@
 ﻿@using System.Diagnostics
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
-@using TeslaSolarCharger.Shared.Resources
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using System.Timers
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
 
+@if (_pvValues != default)
+{
+    <svg width="420" height="400" viewBox="0 0 420 400">
+        <!-- Lines -->
+        <line x1="70" y1="200" x2="210" y2="100" stroke="black" />
+        <line x1="70" y1="200" x2="210" y2="300" stroke="black" />
+        <line x1="210" y1="100" x2="350" y2="200" stroke="black" />
+        <line x1="210" y1="300" x2="350" y2="200" stroke="black" />
 
-<svg width="600" height="400" viewBox="0 0 600 400">
-    <!-- Lines -->
-    <line x1="100" y1="200" x2="300" y2="100" stroke="black" />
-    <line x1="100" y1="200" x2="300" y2="300" stroke="black" />
-    <line x1="300" y1="100" x2="500" y2="200" stroke="black" />
-    <line x1="300" y1="300" x2="500" y2="200" stroke="black" />
+        <!-- Circles -->
+        <circle cx="70" cy="200" r="40" fill="lightblue" />
+        <circle cx="210" cy="100" r="40" fill="orange" />
+        <circle cx="210" cy="300" r="40" fill="pink" />
+        <circle cx="350" cy="200" r="40" fill="lightgreen" />
 
-    <!-- Circles -->
-    <circle cx="100" cy="200" r="40" fill="lightblue" />
-    <circle cx="300" cy="100" r="40" fill="orange" />
-    <circle cx="300" cy="300" r="40" fill="pink" />
-    <circle cx="500" cy="200" r="40" fill="lightgreen" />
+        <!-- Text -->
+        <foreignObject x="35" y="160" width="70" height="80">
+            <div style="text-align: center;">
+                <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Large" />
+                <div>@_pvValues.GridPower W</div>
+            </div>
+        </foreignObject>
 
-    <!-- Text -->
-    <text x="100" y="205" text-anchor="middle">Grid @_pvValues.GridPower W</text>
-    <text x="300" y="105" text-anchor="middle">Solar @_pvValues.InverterPower W</text>
-    <text x="300" y="305" text-anchor="middle">Battery @_pvValues.HomeBatteryPower W</text>
-    <text x="500" y="205" text-anchor="middle">House @ W</text>
+        <foreignObject x="175" y="60" width="70" height="80">
+            <div style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.WbSunny" Size="Size.Large" />
+                <div>@_pvValues.InverterPower W</div>
+            </div>
+        </foreignObject>
 
-    <!-- Animated balls -->
-    @foreach (var ball in Balls)
-    {
-        <circle cx="@ball.X" cy="@ball.Y" r="5" fill="@ball.Color">
-            <animate attributeName="cx" from="@ball.StartX" to="@ball.EndX" dur="@ball.Duration" repeatCount="indefinite" />
-            <animate attributeName="cy" from="@ball.StartY" to="@ball.EndY" dur="@ball.Duration" repeatCount="indefinite" />
-        </circle>
-    }
-</svg>
+        <foreignObject x="175" y="260" width="70" height="80">
+            <div style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Large" />
+                <div>@CalculateHomePower() W</div>
+            </div>
+        </foreignObject>
+
+        <foreignObject x="315" y="170" width="70" height="80">
+            <div style="text-align: center;">
+                <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
+                <div>@_pvValues.HomeBatteryPower W</div>
+            </div>
+        </foreignObject>
+
+        <!-- Animated balls -->
+        @foreach (var ball in Balls)
+        {
+            <circle cx="@ball.X" cy="@ball.Y" r="5" fill="@ball.Color">
+                <animate attributeName="cx" from="@ball.StartX" to="@ball.EndX" dur="@ball.Duration" repeatCount="indefinite" />
+                <animate attributeName="cy" from="@ball.StartY" to="@ball.EndY" dur="@ball.Duration" repeatCount="indefinite" />
+            </circle>
+        }
+    </svg>
+}
+
 
 @code {
     private List<Ball> Balls { get; set; } = new List<Ball>();
@@ -84,25 +109,29 @@
 
     private void UpdateBalls()
     {
+        if (_pvValues == default)
+        {
+            return;
+        }
         Balls.Clear();
 
-        if (SolarPower > 0)
+        if (_pvValues.InverterPower > 0)
         {
-            Balls.Add(new Ball { StartX = 300, StartY = 100, EndX = 500, EndY = 200, Color = "yellow", Duration = "2s" });
+            Balls.Add(new Ball { StartX = 210, StartY = 100, EndX = 350, EndY = 200, Color = "yellow", Duration = "2s" });
         }
 
-        if (GridPower > 0)
+        if (_pvValues.GridPower > 0)
         {
-            Balls.Add(new Ball { StartX = 100, StartY = 200, EndX = 500, EndY = 200, Color = "blue", Duration = "3s" });
+            Balls.Add(new Ball { StartX = 70, StartY = 200, EndX = 350, EndY = 200, Color = "blue", Duration = "3s" });
         }
 
-        if (BatteryPower < 0)
+        if (_pvValues.HomeBatteryPower < 0)
         {
-            Balls.Add(new Ball { StartX = 300, StartY = 300, EndX = 500, EndY = 200, Color = "red", Duration = "2.5s" });
+            Balls.Add(new Ball { StartX = 210, StartY = 300, EndX = 350, EndY = 200, Color = "red", Duration = "2.5s" });
         }
-        else if (BatteryPower > 0)
+        else if (_pvValues.HomeBatteryPower > 0)
         {
-            Balls.Add(new Ball { StartX = 300, StartY = 100, EndX = 300, EndY = 300, Color = "green", Duration = "2.5s" });
+            Balls.Add(new Ball { StartX = 210, StartY = 100, EndX = 210, EndY = 300, Color = "green", Duration = "2.5s" });
         }
 
         InvokeAsync(StateHasChanged);
@@ -123,5 +152,27 @@
     public void Dispose()
     {
         _ballUpdateTimer?.Dispose();
+    }
+
+    private int? CalculateHomePower()
+    {
+        if (_pvValues == null)
+        {
+            return null;
+        }
+
+        if (_pvValues.InverterPower == null)
+        {
+            return null;
+        }
+
+        if (_pvValues.GridPower == null)
+        {
+            return null;
+        }
+        var homeBatteryPower = _pvValues.HomeBatteryPower ?? 0;
+        var chargingPower = _pvValues.CarCombinedChargingPowerAtHome ?? 0;
+        var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
+        return homePower;
     }
 }
