@@ -52,7 +52,8 @@ public class CoreService : ICoreService
         _logger.LogTrace("{method}()", nameof(GetCurrentVersion));
         var assembly = Assembly.GetExecutingAssembly();
         var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-        return Task.FromResult(fileVersionInfo.ProductVersion);
+        var productVersion = fileVersionInfo.ProductVersion;
+        return Task.FromResult(productVersion);
     }
 
     public DtoValue<int> NumberOfRelevantCars()
