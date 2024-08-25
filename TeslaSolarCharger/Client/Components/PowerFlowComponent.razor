@@ -83,27 +83,37 @@
         <!-- Grid -->
         @if (GridLocation != default)
         {
-            <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40" fill="lightblue" />
+            <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40"
+                    fill="@(_pvValues.GridPower == 0 ? "white" : (_pvValues.GridPower > 0 ? "green" : "red"))"
+                    stroke="lightblue" stroke-width="4" />
         }
         <!-- Solar -->
         @if (InverterLocation != default)
         {
-            <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40" fill="orange" />
+            <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40"
+                    fill="@(_pvValues.InverterPower == 0 ? "white" : "orange")"
+                    stroke="orange" stroke-width="4" />
         }
         <!-- Home Battery -->
         @if (BatteryLocation != default)
         {
-            <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40" fill="lightgreen" />
+            <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40"
+                    fill="@(_pvValues.HomeBatteryPower == 0 ? "white" : (_pvValues.HomeBatteryPower > 0 ? "green" : "red"))"
+                    stroke="lightgreen" stroke-width="4" />
         }
         <!-- House -->
         @if (HomeLocation != default)
         {
-            <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40" fill="pink" />
+            <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40"
+                    fill="@(CalculateHomePower() == 0 ? "white" : "pink")"
+                    stroke="pink" stroke-width="4" />
         }
         <!-- EVCharger -->
         @if (EvChargerLocation != default)
         {
-            <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40" fill="lightgrey" />
+            <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40"
+                    fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "white" : "lightgrey")"
+                    stroke="lightgrey" stroke-width="4" />
         }
 
         <!-- Text -->
@@ -112,7 +122,7 @@
             <foreignObject x="@(GridLocation.X - CircleContentLocationDifference)" y="@(GridLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                 <div style="text-align: center;">
                     <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Large" />
-                    <div>@_pvValues.GridPower W</div>
+                    <div>@(Math.Abs(_pvValues.GridPower ?? 0)) W</div>
                 </div>
             </foreignObject>
         }
@@ -130,7 +140,7 @@
             <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
                 <div style="text-align: center;">
                     <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
-                    <div>@_pvValues.HomeBatteryPower W</div>
+                    <div>@Math.Abs(_pvValues.HomeBatteryPower ?? 0) W</div>
                 </div>
             </foreignObject>
         }
@@ -416,7 +426,7 @@
                 size = EvChargerLocation.Y;
             }
 
-            return size + 50;
+            return size > 0 ? size + 60 : 0;
         }
     }
 
@@ -577,9 +587,9 @@
             };
     }
 
-    private const int FirstLineY = 40;
-    private const int SecondLineY = 140;
-    private const int ThirdLineY = 240;
+    private const int FirstLineY = 45;
+    private const int SecondLineY = 145;
+    private const int ThirdLineY = 245;
 
     private const int FirstColumnX = 70;
     private const int SecondColumnX = 210;
