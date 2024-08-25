@@ -1,4 +1,11 @@
 ﻿@inherits LayoutComponentBase
+@using System.Diagnostics
+@using System.Timers
+@implements IDisposable
+
+@inject IJSRuntime JsRuntime
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
 <MudDialogProvider FullWidth="true"
@@ -25,6 +32,10 @@
 {
     private MudThemeProvider? _mudThemeProvider;
 
+    private string? _version;
+
+    private Timer? _timer;
+
     readonly MudTheme _tscTheme = new MudTheme()
         {
             Palette = new PaletteLight()
@@ -34,4 +45,35 @@
                 AppbarBackground = "#1b6ec2",
             },
         };
+
+
+    protected override void OnInitialized()
+    {
+        _timer = new Timer();
+        _timer.Interval = Debugger.IsAttached ? 5000 : 30000;
+        _timer.Elapsed += async (_, _) => await CheckVersion();
+        _timer.Start();
+    }
+
+    private async Task CheckVersion()
+    {
+        var version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
+        if (!string.IsNullOrEmpty(_version) && version != _version)
+        {
+            Snackbar.Add($"Reload. old: {_version} new:{version}", Severity.Warning);
+            await Task.Delay(5000);
+            await JsRuntime.InvokeVoidAsync("location.reload");
+        }
+        else
+        {
+            Snackbar.Add($"No reload needed as version is not new. Old: {_version} new: {version}");
+        }
+
+        _version = version;
+    }
+
+    public void Dispose()
+    {
+        // TODO release managed resources here
+    }
 }
