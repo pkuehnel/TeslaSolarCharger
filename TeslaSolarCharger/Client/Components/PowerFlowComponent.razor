@@ -65,15 +65,20 @@
         {
             <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40" fill="orange" />
         }
+        <!-- Home Battery -->
+        @if (BatteryLocation != default)
+        {
+            <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40" fill="lightgreen" />
+        }
         <!-- House -->
         @if (HomeLocation != default)
         {
             <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40" fill="pink" />
         }
-        <!-- Home Battery -->
-        @if (BatteryLocation != default)
+        <!-- EVCharger -->
+        @if (EvChargerLocation != default)
         {
-            <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40" fill="lightgreen" />
+            <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40" fill="lightgrey" />
         }
 
         <!-- Text -->
@@ -95,6 +100,15 @@
                 </div>
             </foreignObject>
         }
+        @if (BatteryLocation != default)
+        {
+            <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
+                <div style="text-align: center;">
+                    <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
+                    <div>@_pvValues.HomeBatteryPower W</div>
+                </div>
+            </foreignObject>
+        }
         @if (HomeLocation != default)
         {
             <foreignObject x="@(HomeLocation.X - CircleContentLocationDifference)" y="@(HomeLocation.Y - CircleContentLocationDifference)" width="70" height="80">
@@ -104,12 +118,12 @@
                 </div>
             </foreignObject>
         }
-        @if (BatteryLocation != default)
+        @if (EvChargerLocation != default)
         {
-            <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
+            <foreignObject x="@(EvChargerLocation.X - CircleContentLocationDifference)" y="@(EvChargerLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                 <div style="text-align: center;">
-                    <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
-                    <div>@_pvValues.HomeBatteryPower W</div>
+                    <MudIcon Icon="@Icons.Material.Filled.EvStation" Size="Size.Large" />
+                    <div>@_pvValues.CarCombinedChargingPowerAtHome W</div>
                 </div>
             </foreignObject>
         }
@@ -313,6 +327,10 @@
             {
                 size = HomeLocation.Y;
             }
+            if (EvChargerLocation?.Y > size)
+            {
+                size = EvChargerLocation.Y;
+            }
 
             return size + 50;
         }
@@ -387,34 +405,92 @@
             {
                 return null;
             }
-            var lineNumber = 1;
-            if (_pvValues.InverterPower != default)
+            var location = GetFreePlaceAfterSolarGridAndBattery();
+            if (location?.Y == ThirdLineY)
             {
-                lineNumber++;
-            }
-            if (_pvValues.GridPower != default && _pvValues.HomeBatteryPower != default)
-            {
-                lineNumber++;
+                location.X = (SecondColumnX - FirstColumnX) / 2 + FirstColumnX;
             }
 
-            var yCoordinate = lineNumber switch
-            {
-                1 => FirstLineY,
-                2 => SecondLineY,
-                3 => ThirdLineY,
-                _ => throw new ArgumentOutOfRangeException(nameof(lineNumber), lineNumber, "Value must be 1, 2 or 3."),
-            };
-            var xCoordinate = SecondColumnX;
-            if (_pvValues.GridPower == default)
-            {
-                xCoordinate = ThirdColumnX;
-            }
-            return new Location()
-                {
-                    X = xCoordinate,
-                    Y = yCoordinate,
-                };
+            return location;
         }
+    }
+
+    private Location? EvChargerLocation
+    {
+        get
+        {
+            if (_pvValues == default)
+            {
+                return null;
+            }
+            var homeLocation = HomeLocation;
+            if (homeLocation == default)
+            {
+                return GetFreePlaceAfterSolarGridAndBattery();
+            }
+
+            if (homeLocation.Y == SecondLineY)
+            {
+                if (homeLocation.X == SecondColumnX)
+                {
+                    return new Location()
+                    {
+                        X = ThirdColumnX,
+                        Y = SecondLineY,
+                    };
+                }
+                else
+                {
+                    return new Location()
+                    {
+                        X = SecondColumnX,
+                        Y = ThirdLineY,
+                    };
+                }
+                
+            }
+
+            return new Location()
+            {
+                X = (ThirdColumnX - SecondColumnX) / 2 + SecondColumnX,
+                Y = ThirdLineY,
+            };
+        }
+    }
+
+    private Location? GetFreePlaceAfterSolarGridAndBattery()
+    {
+        var lineNumber = 1;
+        if (_pvValues == default)
+        {
+            return null;
+        }
+        if (_pvValues.InverterPower != default)
+        {
+            lineNumber++;
+        }
+        if (_pvValues.GridPower != default && _pvValues.HomeBatteryPower != default)
+        {
+            lineNumber++;
+        }
+
+        var yCoordinate = lineNumber switch
+        {
+            1 => FirstLineY,
+            2 => SecondLineY,
+            3 => ThirdLineY,
+            _ => throw new ArgumentOutOfRangeException(nameof(lineNumber), lineNumber, "Value must be 1, 2 or 3."),
+        };
+        var xCoordinate = SecondColumnX;
+        if (_pvValues.GridPower == default)
+        {
+            xCoordinate = ThirdColumnX;
+        }
+        return new Location()
+        {
+            X = xCoordinate,
+            Y = yCoordinate,
+        };
     }
 
     private const int FirstLineY = 40;
