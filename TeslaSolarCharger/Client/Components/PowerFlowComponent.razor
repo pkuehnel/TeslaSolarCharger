@@ -84,7 +84,7 @@
         @if (GridLocation != default)
         {
             <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40"
-                    fill="@(_pvValues.GridPower == 0 ? "white" : (_pvValues.GridPower > 0 ? "green" : "red"))"
+                    fill="@(_pvValues.GridPower == 0 ? "white" : (_pvValues.GridPower > 0 ? "lightgreen" : "#ff3030"))"
                     stroke="lightblue" stroke-width="4" />
         }
         <!-- Solar -->
@@ -98,8 +98,8 @@
         @if (BatteryLocation != default)
         {
             <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40"
-                    fill="@(_pvValues.HomeBatteryPower == 0 ? "white" : (_pvValues.HomeBatteryPower > 0 ? "green" : "red"))"
-                    stroke="lightgreen" stroke-width="4" />
+                    fill="@(_pvValues.HomeBatteryPower == 0 ? "white" : (_pvValues.HomeBatteryPower > 0 ? "lightgreen" : "#ff3030"))"
+                    stroke="lightsalmon" stroke-width="4" />
         }
         <!-- House -->
         @if (HomeLocation != default)
@@ -311,7 +311,7 @@
                             StartY = BatteryLocation.Y,
                             EndX = HomeLocation.X,
                             EndY = HomeLocation.Y,
-                            Color = "lightgreen",
+                            Color = "lightsalmon",
                             Duration = CalculateDuration(BatteryLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -323,7 +323,7 @@
                             StartY = BatteryLocation.Y,
                             EndX = GridLocation.X,
                             EndY = GridLocation.Y,
-                            Color = "lightgreen",
+                            Color = "lightsalmon",
                             Duration = CalculateDuration(BatteryLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -382,7 +382,7 @@
                         StartY = BatteryLocation.Y,
                             EndX = EvChargerLocation.X,
                             EndY = EvChargerLocation.Y,
-                        Color = "lightgreen",
+                        Color = "lightsalmon",
                             Duration = CalculateDuration(BatteryLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
                 }
