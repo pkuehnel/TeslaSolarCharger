@@ -43,6 +43,31 @@
         {
             <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
         }
+
+        <!-- Home to Charger -->
+        @if (HomeLocation != default && EvChargerLocation != default)
+        {
+            <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+        }
+        
+        @if (HomeLocation == default)
+        {
+            <!-- Grid to EvCharger -->
+            @if (GridLocation != default && EvChargerLocation != default)
+            {
+                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+            }
+            <!-- Solar to EVCharger -->
+            @if (InverterLocation != default && EvChargerLocation != default)
+            {
+                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+            }
+            <!-- Home Battery to EVCharger -->
+            @if (EvChargerLocation != default && BatteryLocation != default)
+            {
+                <line x1="@EvChargerLocation.X" y1="@EvChargerLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+            }
+        }
         
 
         <!-- Animated balls -->
