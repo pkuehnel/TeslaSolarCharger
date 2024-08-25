@@ -196,11 +196,6 @@ public class IndexService(
     {
         return new Dictionary<string, string>()
         {
-            { toolTipTextKeys.InverterPower, "Power your inverter currently delivers." },
-            { toolTipTextKeys.GridPower, "Power at your grid point. Green: Power feeding into grid; Red: Power consuming from grid" },
-            { toolTipTextKeys.HomeBatterySoC, "State of charge of your home battery." },
-            { toolTipTextKeys.HomeBatteryPower, "Power of your home battery. Green: Battery is charging; Red: Battery is discharging" },
-            { toolTipTextKeys.CombinedChargingPower, "Power sum of all cars charging at home." },
             { toolTipTextKeys.CarName, "Name configured in your car (or VIN if no name defined)." },
             { toolTipTextKeys.CarSoc, "State of charge" },
             { toolTipTextKeys.CarSocLimit, "SoC Limit (configured in the car or in the Tesla App)" },
@@ -215,7 +210,6 @@ public class IndexService(
             { toolTipTextKeys.CarChargeMode, "ChargeMode of your car. Click <a href=\"https://github.com/pkuehnel/TeslaSolarCharger#charge-modes\"  target=\"_blank\">here</a> for details."},
             { toolTipTextKeys.ServerTime, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time." },
             { toolTipTextKeys.ServerTimeZone, "This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" },
-            { toolTipTextKeys.PowerBuffer, "Configured Power Buffer" },
         };
     }
 
