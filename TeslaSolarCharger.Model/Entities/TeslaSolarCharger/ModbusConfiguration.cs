@@ -1,5 +1,4 @@
-﻿using TeslaSolarCharger.Model.BaseClasses;
-using TeslaSolarCharger.Shared.Enums;
+﻿using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
