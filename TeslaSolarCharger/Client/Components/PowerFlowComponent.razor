@@ -134,6 +134,8 @@
     {
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
+        await RefreshPvValues();
+
 
         _pvValueUpdateTimer = new Timer();
         _pvValueUpdateTimer.Interval = Debugger.IsAttached ? 1000 : 5000;
