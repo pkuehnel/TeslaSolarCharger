@@ -11,6 +11,10 @@
 @using TeslaSolarCharger.Shared.Dtos.Table
 @using System.Diagnostics
 @using TeslaSolarCharger.Shared.Resources.Contracts
+
+@implements IDisposable
+
+
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 @inject ToolTipTextKeys ToolTipTextKeys
@@ -676,7 +680,9 @@ else
     }
 
 
-
-
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
 
 }
