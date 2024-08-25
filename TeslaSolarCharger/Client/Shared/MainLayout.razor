@@ -57,15 +57,25 @@
 
     private async Task CheckVersion()
     {
-        var version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
-        if (!string.IsNullOrEmpty(_version) && version != _version)
+        try
         {
-            var reloadTimeout = TimeSpan.FromSeconds(10);
-            Snackbar.Add($"New backend version detected. Page will autoreload in {reloadTimeout.TotalSeconds} seconds", Severity.Warning, config => { config.VisibleStateDuration = (int)reloadTimeout.TotalMilliseconds;});
-            await Task.Delay(reloadTimeout);
-            await JsRuntime.InvokeVoidAsync("location.reload");
+            var version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
+            if (!string.IsNullOrEmpty(_version) && version != _version)
+            {
+                var reloadTimeout = TimeSpan.FromSeconds(10);
+                Snackbar.Add($"New backend version detected. Page will autoreload in {reloadTimeout.TotalSeconds} seconds", Severity.Warning, config => { config.VisibleStateDuration = (int)reloadTimeout.TotalMilliseconds; });
+                await Task.Delay(reloadTimeout);
+                await JsRuntime.InvokeVoidAsync("location.reload");
+            }
+
+            _version = version;
         }
-        _version = version;
+        catch (Exception ex)
+        {
+            return;
+        }
+
+        
     }
 
     public void Dispose()
