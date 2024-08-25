@@ -60,15 +60,11 @@
         var version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
         if (!string.IsNullOrEmpty(_version) && version != _version)
         {
-            Snackbar.Add($"Reload. old: {_version} new:{version}", Severity.Warning);
-            await Task.Delay(5000);
+            var reloadTimeout = TimeSpan.FromSeconds(10);
+            Snackbar.Add($"New backend version detected. Page will autoreload in {reloadTimeout.TotalSeconds} seconds", Severity.Warning, config => { config.VisibleStateDuration = (int)reloadTimeout.TotalMilliseconds;});
+            await Task.Delay(reloadTimeout);
             await JsRuntime.InvokeVoidAsync("location.reload");
         }
-        else
-        {
-            Snackbar.Add($"No reload needed as version is not new. Old: {_version} new: {version}");
-        }
-
         _version = version;
     }
 
