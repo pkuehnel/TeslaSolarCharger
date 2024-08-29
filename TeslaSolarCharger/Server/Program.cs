@@ -7,6 +7,7 @@ using TeslaSolarCharger.Client.Pages;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -218,8 +219,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         settings.CrashedOnStartup = true;
         settings.StartupCrashMessage = ex.Message;
         var backendApiService = webApplication.Services.GetRequiredService<IBackendApiService>();
+        var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
         await backendApiService.PostErrorInformation(nameof(Program), "Startup",
-                $"Exception Message: {ex.Message} StackTrace: {ex.StackTrace}")
+                $"Exception Message: {ex.Message}", issueKeys.CrashedOnStartup, null, ex.StackTrace)
             .ConfigureAwait(false);
     }
     finally

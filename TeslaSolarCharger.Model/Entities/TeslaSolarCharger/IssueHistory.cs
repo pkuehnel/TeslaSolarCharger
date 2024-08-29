@@ -7,4 +7,6 @@ public class IssueHistory
     public DateTime? EndTimeStamp { get; set; }
     public string IssueKey { get; set; }
     public int? CarId { get; set; }
+    public bool TelegramNotificationSent { get; set; }
+    public bool TelegramResolvedMessageSent { get; set; }
 }

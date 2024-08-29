@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -14,9 +14,8 @@ namespace TeslaSolarCharger.Server.Services;
 public class IssueValidationService(
     ILogger<IssueValidationService> logger,
     ISettings settings,
-    ITeslaMateMqttService teslaMateMqttService,
     IPossibleIssues possibleIssues,
-    IssueKeys issueKeys,
+    IIssueKeys issueKeys,
     IConfigurationWrapper configurationWrapper,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
@@ -44,48 +43,39 @@ public class IssueValidationService(
         {
             //return issueList;
         }
-        issueList.AddRange(GetMqttIssues());
         issueList.AddRange(PvValueIssues());
-        if (!configurationWrapper.UseFleetApi())
+        var tokenState = (await teslaFleetApiService.GetFleetApiTokenState().ConfigureAwait(false)).Value;
+        switch (tokenState)
         {
-            issueList.AddRange(await GetTeslaMateApiIssues().ConfigureAwait(false));
-        }
-        else
-        {
-            var tokenState = (await teslaFleetApiService.GetFleetApiTokenState().ConfigureAwait(false)).Value;
-            switch (tokenState)
-            {
-                case FleetApiTokenState.NotNeeded:
-                    break;
-                case FleetApiTokenState.NotRequested:
-                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNotRequested));
-                    break;
-                case FleetApiTokenState.TokenRequestExpired:
-                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenRequestExpired));
-                    break;
-                case FleetApiTokenState.TokenUnauthorized:
-                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenUnauthorized));
-                    break;
-                case FleetApiTokenState.MissingScopes:
-                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenMissingScopes));
-                    break;
-                case FleetApiTokenState.NotReceived:
-                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNotReceived));
-                    break;
-                case FleetApiTokenState.Expired:
-                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenExpired));
-                    break;
-                case FleetApiTokenState.NoApiRequestsAllowed:
-                    issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNoApiRequestsAllowed));
-                    break;
-                case FleetApiTokenState.UpToDate:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            case FleetApiTokenState.NotNeeded:
+                break;
+            case FleetApiTokenState.NotRequested:
+                issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNotRequested));
+                break;
+            case FleetApiTokenState.TokenRequestExpired:
+                issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenRequestExpired));
+                break;
+            case FleetApiTokenState.TokenUnauthorized:
+                issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenUnauthorized));
+                break;
+            case FleetApiTokenState.MissingScopes:
+                issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenMissingScopes));
+                break;
+            case FleetApiTokenState.NotReceived:
+                issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNotReceived));
+                break;
+            case FleetApiTokenState.Expired:
+                issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenExpired));
+                break;
+            case FleetApiTokenState.NoApiRequestsAllowed:
+                issueList.Add(possibleIssues.GetIssueByKey(issueKeys.FleetApiTokenNoApiRequestsAllowed));
+                break;
+            case FleetApiTokenState.UpToDate:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
         issueList.AddRange(SofwareIssues());
-        issueList.AddRange(ConfigurationIssues());
         return issueList;
     }
 
@@ -93,7 +83,7 @@ public class IssueValidationService(
     {
         logger.LogTrace("{method}()", nameof(ErrorCount));
         var issues = await RefreshIssues(TimeZoneInfo.Local.GetUtcOffset(dateTimeProvider.Now())).ConfigureAwait(false);
-        var errorIssues = issues.Where(i => i.IssueType == IssueType.Error).ToList();
+        var errorIssues = issues.Where(i => i.IssueSeverity == IssueSeverity.Error).ToList();
         return new DtoValue<int>(errorIssues.Count);
     }
 
@@ -101,59 +91,14 @@ public class IssueValidationService(
     {
         logger.LogTrace("{method}()", nameof(WarningCount));
         var issues = await RefreshIssues(TimeZoneInfo.Local.GetUtcOffset(dateTimeProvider.Now())).ConfigureAwait(false);
-        var warningIssues = issues.Where(i => i.IssueType == IssueType.Warning).ToList();
+        var warningIssues = issues.Where(i => i.IssueSeverity == IssueSeverity.Warning).ToList();
         var warningCount = new DtoValue<int>(warningIssues.Count);
         return warningCount;
     }
 
-    private async Task<List<DtoIssue>> GetTeslaMateApiIssues()
-    {
-        logger.LogTrace("{method}()", nameof(GetTeslaMateApiIssues));
-        var issues = new List<DtoIssue>();
-        var teslaMateBaseUrl = configurationWrapper.TeslaMateApiBaseUrl();
-        var getAllCarsUrl = $"{teslaMateBaseUrl}/api/v1/cars";
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(1);
-        try
-        {
-            var resultString = await httpClient.GetStringAsync(getAllCarsUrl).ConfigureAwait(false);
-            if (string.IsNullOrEmpty(resultString))
-            {
-                issues.Add(possibleIssues.GetIssueByKey(issueKeys.TeslaMateApiNotAvailable));
-            }
-        }
-        catch (Exception)
-        {
-            issues.Add(possibleIssues.GetIssueByKey(issueKeys.TeslaMateApiNotAvailable));
-        }
-        return issues;
-    }
-
-    private List<DtoIssue> GetMqttIssues()
-    {
-        logger.LogTrace("{method}()", nameof(GetMqttIssues));
-        var issues = new List<DtoIssue>();
-        if (!teslaMateMqttService.IsMqttClientConnected && !configurationWrapper.GetVehicleDataFromTesla())
-        {
-            issues.Add(possibleIssues.GetIssueByKey(issueKeys.MqttNotConnected));
-        }
-
-        if (settings.CarsToManage.Any(c => (c.SocLimit == null || c.SocLimit < constants.MinSocLimit)))
-        {
-            issues.Add(possibleIssues.GetIssueByKey(issueKeys.CarSocLimitNotReadable));
-        }
-
-        if (settings.CarsToManage.Any(c => c.SoC == null))
-        {
-            issues.Add(possibleIssues.GetIssueByKey(issueKeys.CarSocNotReadable));
-        }
-
-        return issues;
-    }
-
     private List<DtoIssue> PvValueIssues()
     {
-        logger.LogTrace("{method}()", nameof(GetMqttIssues));
+        logger.LogTrace("{method}()", nameof(PvValueIssues));
         var issues = new List<DtoIssue>();
         var frontendConfiguration = configurationWrapper.FrontendConfiguration() ?? new FrontendConfiguration();
 
@@ -204,21 +149,6 @@ public class IssueValidationService(
             issues.Add(possibleIssues.GetIssueByKey(issueKeys.VersionNotUpToDate));
         }
 
-        return issues;
-    }
-
-    private List<DtoIssue> ConfigurationIssues()
-    {
-        var issues = new List<DtoIssue>();
-
-        if (configurationWrapper.CurrentPowerToGridCorrectionFactor() == (decimal)0.0
-            || configurationWrapper.HomeBatteryPowerCorrectionFactor() == (decimal)0.0
-            || configurationWrapper.HomeBatterySocCorrectionFactor() == (decimal)0.0
-            || configurationWrapper.CurrentInverterPowerCorrectionFactor() == (decimal)0.0
-           )
-        {
-            issues.Add(possibleIssues.GetIssueByKey(issueKeys.CorrectionFactorZero));
-        }
         return issues;
     }
 

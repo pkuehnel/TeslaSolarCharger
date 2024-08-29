@@ -12,6 +12,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
@@ -90,7 +91,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ICoreService, CoreService>()
             .AddTransient<INewVersionCheckService, NewVersionCheckService>()
             .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
-            .AddSingleton<IssueKeys>()
+            .AddSingleton<IIssueKeys, IssueKeys>()
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()

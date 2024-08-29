@@ -11,10 +11,10 @@
         <h3>Issues:</h3>
         @foreach (var issue in _issues)
         {
-            <div class="alert alert-@(issue.IssueType switch
+            <div class="alert alert-@(issue.IssueSeverity switch
                                     {
-                                        IssueType.Error => "danger",
-                                        IssueType.Warning => "warning",
+                                        IssueSeverity.Error => "danger",
+                                        IssueSeverity.Warning => "warning",
                                         _ => "info",
                                     })" role="alert">
                 <div>@issue.IssueMessage</div>

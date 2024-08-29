@@ -93,7 +93,8 @@ public class BackendApiService(
 
     }
 
-    public async Task PostErrorInformation(string source, string methodName, string message, string? stackTrace = null)
+    public async Task PostErrorInformation(string source, string methodName, string message, string issueKey, string? vin,
+        string? stackTrace)
     {
         try
         {
