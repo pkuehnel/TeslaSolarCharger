@@ -28,8 +28,6 @@ public class TelegramService(ILogger<TelegramService> logger,
             return HttpStatusCode.Unauthorized;
         }
 
-        Debug.Assert(botKey != null, nameof(botKey) + " != null");
-        Debug.Assert(channel != null, nameof(channel) + " != null");
         var requestUri = CreateRequestUri(message, botKey, channel);
 
         httpClient.Timeout = TimeSpan.FromSeconds(1);

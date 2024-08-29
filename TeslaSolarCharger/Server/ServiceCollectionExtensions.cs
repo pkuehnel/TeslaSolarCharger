@@ -108,6 +108,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IBleService, TeslaBleService>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
+            .AddTransient<IErrorHandlingService, ErrorHandlingService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

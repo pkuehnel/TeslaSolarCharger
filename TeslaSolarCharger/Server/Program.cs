@@ -212,15 +212,19 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
+        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
+        await errorHandlingService.HandleErrorResolved(issueKeys.CrashedOnStartup, null)
+            .ConfigureAwait(false);
     }
     catch (Exception ex)
     {
         logger1.LogCritical(ex, "Crashed on startup");
         settings.CrashedOnStartup = true;
         settings.StartupCrashMessage = ex.Message;
-        var backendApiService = webApplication.Services.GetRequiredService<IBackendApiService>();
+        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
         var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
-        await backendApiService.PostErrorInformation(nameof(Program), "Startup",
+        await errorHandlingService.HandleError(nameof(Program), "Startup",
                 $"Exception Message: {ex.Message}", issueKeys.CrashedOnStartup, null, ex.StackTrace)
             .ConfigureAwait(false);
     }

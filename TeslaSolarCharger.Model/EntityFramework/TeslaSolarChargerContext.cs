@@ -27,6 +27,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<MqttConfiguration> MqttConfigurations { get; set; } = null!;
     public DbSet<MqttResultConfiguration> MqttResultConfigurations { get; set; } = null!;
     public DbSet<BackendNotification> BackendNotifications { get; set; } = null!;
+    public DbSet<LoggedError> LoggedErrors { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
