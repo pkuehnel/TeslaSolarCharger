@@ -135,7 +135,7 @@ else
         <InputComponent ValueId="homeBatteryMinSoc"
                         LabelText="Home Battery Minimum SoC"
                         UnitText="%"
-                        HelpText="Set the SoC your home battery should get charged to before cars start to use full power. Leave emtpy if you do not have a home battery">
+                        HelpText="Set the SoC your home battery should get charged to before cars start to use full power. Leave empty if you do not have a home battery">
             <InputFragment>
                 <InputNumber id="homeBatteryMinSoc" @bind-Value="_dtoBaseConfiguration.HomeBatteryMinSoc" placeholder=" " class="form-control" />
             </InputFragment>
@@ -144,7 +144,7 @@ else
         <InputComponent ValueId="homeBatteryMinChargingPower"
                         LabelText="Home Battery Goal charging power"
                         UnitText="W"
-                        HelpText="Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave emtpy if you do not have a home battery">
+                        HelpText="Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery">
             <InputFragment>
                 <InputNumber id="homeBatteryMinChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" placeholder=" " class="form-control" />
             </InputFragment>
