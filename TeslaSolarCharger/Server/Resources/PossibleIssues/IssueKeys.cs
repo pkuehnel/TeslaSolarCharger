@@ -31,4 +31,5 @@ public class IssueKeys : IIssueKeys
     public string UnsignedCommand => "UnsignedCommand";
     public string FleetApiTokenRefreshNonSuccessStatusCode => "FleetApiTokenRefreshNonSuccessStatusCode";
     public string CarRateLimited => "CarRateLimited";
+    public string BleCommandNoSuccess => "BleCommandNoSuccess_";
 }

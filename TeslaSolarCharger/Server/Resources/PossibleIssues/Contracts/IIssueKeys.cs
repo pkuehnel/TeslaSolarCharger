@@ -29,4 +29,5 @@ public interface IIssueKeys
     string UnsignedCommand { get; }
     string FleetApiTokenRefreshNonSuccessStatusCode { get; }
     string CarRateLimited { get; }
+    string BleCommandNoSuccess { get; }
 }

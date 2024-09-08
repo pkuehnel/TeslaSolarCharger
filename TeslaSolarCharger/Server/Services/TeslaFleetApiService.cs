@@ -589,10 +589,19 @@ public class TeslaFleetApiService(
                     result = await bleService.WakeUpCar(vin);
                 }
 
-                if (result.Success == true)
+                if (result.Success)
                 {
                     AddRequestToCar(vin, fleetApiRequest);
+                    await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
                 }
+                else
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                        $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.Message}",
+                        issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
+                }
+                
+                
 
                 if (typeof(T) == typeof(DtoVehicleCommandResult))
                 {
