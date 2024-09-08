@@ -7,7 +7,7 @@
                            Variant="Variant.Filled"
                            StartIcon="@StartIcon"
                            Disabled="true"
-                           ButtonType="ButtonType.Button">@ButtonText</MudButton>
+                           ButtonType="ButtonType">@ButtonText</MudButton>
             </ChildContent>
             <TooltipContent>
                 @DisableToolTipText
@@ -21,7 +21,7 @@
                    Variant="Variant.Filled"
                    StartIcon="@StartIcon"
                    OnClick="AddButtonClicked"
-                   ButtonType="ButtonType.Button">
+                   ButtonType="ButtonType">
             @if (IsLoading)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
@@ -45,9 +45,11 @@
     public string StartIcon { get; set; }
     [Parameter]
     public string? DisableToolTipText { get; set; }
-
     [Parameter]
     public bool IsLoading { get; set; }
+
+    [Parameter]
+    public ButtonType ButtonType { get; set; } = ButtonType.Button;
 
     [Parameter]
     public EventCallback OnButtonClicked { get; set; }

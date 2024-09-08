@@ -582,7 +582,13 @@ else
         </MudExpansionPanels>
         <DataAnnotationsValidator />
         <ValidationSummary />
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <div class="mt-3 mb-4">
+            <RightAlignedButtonComponent ButtonText="Submit"
+                                         IsLoading="_submitLoading"
+                                         IsDisabled="_telegramSettingsChanged"
+                                         ButtonType="ButtonType.Submit"></RightAlignedButtonComponent>
+        </div>
+        
     </EditForm>
 }
 
@@ -594,6 +600,7 @@ else
     private bool _tokenGenerationButtonDisabled;
 
     private bool _telegramSettingsChanged;
+    private bool _submitLoading;
 
     protected override async Task OnInitializedAsync()
     {
@@ -607,6 +614,7 @@ else
 
     private async Task HandleValidSubmit()
     {
+        _submitLoading = true;
         var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
@@ -617,6 +625,8 @@ else
         {
             Snackbar.Add("Error updating base configuration", Severity.Error);
         }
+
+        _submitLoading = false;
     }
 
     private async Task GenerateFleetApiToken()
