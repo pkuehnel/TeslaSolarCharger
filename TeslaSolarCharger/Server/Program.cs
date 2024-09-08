@@ -160,7 +160,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await configurationWrapper1.TryAutoFillUrls().ConfigureAwait(false);
 
         var telegramService = webApplication.Services.GetRequiredService<ITelegramService>();
-        await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
+        await telegramService.SendMessage("Error messages via Telegram enabled. Note: Error and error resolved messages are only sent every five minutes.").ConfigureAwait(false);
 
         var configJsonService = webApplication.Services.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);

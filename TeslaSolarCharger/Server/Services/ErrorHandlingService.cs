@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Net;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -32,32 +31,15 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             return;
         }
 
-        var telegramMessageSent = false;
-        if (TelegramEnabledIssueKeys.Any(i => issueKey.StartsWith(i)))
-        {
-            var errorText = $"Error with key {issueKey} ";
-            if (!string.IsNullOrEmpty(vin))
-            {
-                errorText += $"for car {vin} ";
-            }
-            errorText += $"in {source}.{methodName}: {message}";
-            if (!string.IsNullOrEmpty(stackTrace))
-            {
-                errorText += $"\r\nStack Trace: {stackTrace}";
-            }
-            var statusCode = await telegramService.SendMessage(errorText);
-            if (((int)statusCode >= 200) && ((int)statusCode <= 299))
-            {
-                telegramMessageSent = true;
-            }
-        }
-
         var error = new LoggedError()
         {
             StartTimeStamp = dateTimeProvider.UtcNow(),
             IssueKey = issueKey,
             Vin = vin,
-            TelegramNotificationSent = telegramMessageSent,
+            Source = source,
+            MethodName = methodName,
+            Message = message,
+            StackTrace = stackTrace,
         };
         context.LoggedErrors.Add(error);
         await context.SaveChangesAsync().ConfigureAwait(false);
@@ -75,6 +57,60 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             return;
         }
         openError.EndTimeStamp = dateTimeProvider.UtcNow();
+        await context.SaveChangesAsync();
+    }
+
+    public async Task SendTelegramMessages()
+    {
+        var openErrors = await context.LoggedErrors
+            .Where(e => e.EndTimeStamp == null && e.TelegramNotificationSent == false)
+            .ToListAsync();
+        foreach (var error in openErrors)
+        {
+            if (!TelegramEnabledIssueKeys.Any(i => error.IssueKey.StartsWith(i)))
+            {
+                continue;
+            }
+
+            var errorText = $"[{error.StartTimeStamp}] Error with key {error.IssueKey} ";
+            if (!string.IsNullOrEmpty(error.Vin))
+            {
+                errorText += $"for car {error.Vin} ";
+            }
+            errorText += $"in {error.Source}.{error.MethodName}: {error.Message}";
+            if (!string.IsNullOrEmpty(error.StackTrace))
+            {
+                errorText += $"\r\nStack Trace: {error.StackTrace}";
+            }
+            var statusCode = await telegramService.SendMessage(errorText);
+            if (((int)statusCode >= 200) && ((int)statusCode <= 299))
+            {
+                error.TelegramNotificationSent = true;
+            }
+        }
+        var closedErrors = await context.LoggedErrors
+            .Where(e => e.EndTimeStamp != null && e.TelegramResolvedMessageSent == false)
+            .ToListAsync();
+        foreach (var error in closedErrors)
+        {
+            if (!TelegramEnabledIssueKeys.Any(i => error.IssueKey.StartsWith(i)))
+            {
+                continue;
+            }
+
+            var resolvedText = $"Error with key {error.IssueKey} ";
+            if (string.IsNullOrEmpty(error.Vin))
+            {
+                resolvedText += $"and VIN {error.Vin} ";
+            }
+            resolvedText += $"from {error.StartTimeStamp} has been resolved at {error.EndTimeStamp}";
+            var statusCode = await telegramService.SendMessage(resolvedText);
+            if (((int)statusCode >= 200) && ((int)statusCode <= 299))
+            {
+                error.TelegramResolvedMessageSent = true;
+            }
+        }
+
         await context.SaveChangesAsync();
     }
 

@@ -6,4 +6,5 @@ public interface IErrorHandlingService
         string? stackTrace);
 
     Task HandleErrorResolved(string issueKey, string? vin);
+    Task SendTelegramMessages();
 }

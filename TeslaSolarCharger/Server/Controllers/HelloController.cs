@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
+using TeslaSolarCharger.SharedBackend.Extensions;
 
 namespace TeslaSolarCharger.Server.Controllers
 {
@@ -12,7 +13,8 @@ namespace TeslaSolarCharger.Server.Controllers
         private readonly ICoreService _coreService;
         private readonly ITscConfigurationService _tscConfigurationService;
 
-        public HelloController(ICoreService coreService, ITscConfigurationService tscConfigurationService)
+        public HelloController(ICoreService coreService,
+            ITscConfigurationService tscConfigurationService)
         {
             _coreService = coreService;
             _tscConfigurationService = tscConfigurationService;
@@ -65,5 +67,13 @@ namespace TeslaSolarCharger.Server.Controllers
 
         [HttpGet]
         public DtoValue<bool> IsStartupCompleted() => new(_coreService.IsStartupCompleted());
+
+        [HttpGet]
+        public async Task<IActionResult> SendTestTelegramMessage()
+        {
+            var result = await _coreService.SendTestTelegramMessage().ConfigureAwait(false);
+            return result.ToOk();
+            
+        }
     }
 }

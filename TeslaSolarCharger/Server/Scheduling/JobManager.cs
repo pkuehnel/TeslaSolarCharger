@@ -47,6 +47,7 @@ public class JobManager(
         var vehicleDataRefreshJob = JobBuilder.Create<VehicleDataRefreshJob>().WithIdentity(nameof(VehicleDataRefreshJob)).Build();
         var teslaMateChargeCostUpdateJob = JobBuilder.Create<TeslaMateChargeCostUpdateJob>().WithIdentity(nameof(TeslaMateChargeCostUpdateJob)).Build();
         var apiCallCounterResetJob = JobBuilder.Create<ApiCallCounterResetJob>().WithIdentity(nameof(ApiCallCounterResetJob)).Build();
+        var errorMessagingJob = JobBuilder.Create<ErrorMessagingJob>().WithIdentity(nameof(ErrorMessagingJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -102,6 +103,9 @@ public class JobManager(
         var issueValidationTrigger = TriggerBuilder.Create().WithIdentity("issueValidationTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(62)).Build();
 
+        var errorMessagingTrigger = TriggerBuilder.Create().WithIdentity("errorMessagingTrigger")
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(300)).Build();
+
         var random = new Random();
         var hour = random.Next(0, 5);
         var minute = random.Next(0, 59);
@@ -122,6 +126,7 @@ public class JobManager(
             {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
+            {errorMessagingJob, new HashSet<ITrigger> {errorMessagingTrigger}},
         };
 
         if (!configurationWrapper.ShouldUseFakeSolarValues())

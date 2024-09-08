@@ -1,5 +1,6 @@
 ﻿@page "/BaseConfiguration"
 @using System.Globalization
+@using Microsoft.AspNetCore.Mvc
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
@@ -162,6 +163,21 @@ else
         <RestValueConfigurationComponent />
         <ModbusValueConfigurationComponent />
         <MqttValueConfigurationComponent />
+        
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            <h3>Telegram:</h3>
+            <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
+            <GenericInput T="string?"
+                          For="() => _dtoBaseConfiguration.TelegramBotKey"
+                          OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
+            <GenericInput T="string?"
+                          For="() => _dtoBaseConfiguration.TelegramChannelId"
+                          OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
+            <RightAlignedButtonComponent ButtonText="Send test message"
+                                         IsDisabled="_telegramSettingsChanged"
+                                         DisableToolTipText="You need to save the configuration before testing it."
+                                         OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
+        </div>
         
         <MudExpansionPanels>
             <MudExpansionPanel Text="Old configurations. These values are not used anymore. If you used TSC before v 2.25 you can look up your settings here.">
@@ -464,27 +480,6 @@ else
                         </InputComponent>
                     }
                 </div>
-                <div class="shadow p-3 mb-5 bg-white rounded">
-                    <h3>Telegram:</h3>
-                    <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
-                    <InputComponent ValueId="telegramBotKey"
-                                    LabelText="Telegram Bot Key"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputText id="telegramBotKey" @bind-Value="_dtoBaseConfiguration.TelegramBotKey" placeholder=" " class="form-control" />
-                        </InputFragment>
-                    </InputComponent>
-
-                    <InputComponent ValueId="telegramChannelId"
-                                    LabelText="Telegram Channel ID"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputText id="telegramChannelId" @bind-Value="_dtoBaseConfiguration.TelegramChannelId" placeholder=" " class="form-control" />
-                        </InputFragment>
-                    </InputComponent>
-                </div>
             </MudExpansionPanel>
             <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
                 <InputComponent ValueId="updateIntervalSeconds"
@@ -598,6 +593,8 @@ else
 
     private bool _tokenGenerationButtonDisabled;
 
+    private bool _telegramSettingsChanged;
+
     protected override async Task OnInitializedAsync()
     {
         _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
@@ -613,6 +610,7 @@ else
         var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
+            _telegramSettingsChanged = false;
             Snackbar.Add("Base Configuration updated", Severity.Success);
         }
         else
@@ -635,4 +633,40 @@ else
 
 
     private string _correctionFactorHelpText = "Use this to correct the returned value. E.g. if the returned value is 1 but should bei -1 insert -1";
+
+    private async Task SendTelegramTestMessage()
+    {
+        try
+        {
+            var response = await HttpClient.GetAsync("api/Hello/SendTestTelegramMessage");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(content, Severity.Success);
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+            {
+                var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+                var message = problemDetails != null ? $"Error: {problemDetails.Detail}" : "An error occurred";
+                Snackbar.Add(message, Severity.Error);
+            }
+            else
+            {
+                var message = $"Unexpected error: {response.StatusCode}";
+                Snackbar.Add(message, Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            var message = $"Network error: {ex.Message}";
+            Snackbar.Add(message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            var message = $"Unexpected error: {ex.Message}";
+            Snackbar.Add(message, Severity.Error);
+        }
+    }
+
 }
