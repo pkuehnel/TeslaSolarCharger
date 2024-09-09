@@ -1165,6 +1165,7 @@ In this section you learn how to create the Telegram Bot Key and where you get t
 
 ![newbot](https://user-images.githubusercontent.com/35361981/233468050-b996475a-fe3a-4131-805e-0fe4c60ce603.jpg)
 
+- Click on the link starting with `t.me/` (second line of `BotFarther`'s answer in the chat) and send any message to your newly created bot. The reason for that is, that a chat exists, where TSC can send messages to.
 - Copy the Bot token as Telegram Bot Key to your TSC
 
 ![BotToken](https://user-images.githubusercontent.com/35361981/233468177-620b0c2f-d9fa-46de-9f87-2eb7b6562553.jpg)
