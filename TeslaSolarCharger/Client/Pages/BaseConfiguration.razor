@@ -167,6 +167,7 @@ else
         <div class="shadow p-3 mb-5 bg-white rounded">
             <h3>Telegram:</h3>
             <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
+            <div>Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,...</div>
             <GenericInput T="string?"
                           For="() => _dtoBaseConfiguration.TelegramBotKey"
                           OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
