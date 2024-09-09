@@ -89,7 +89,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             }
         }
         var closedErrors = await context.LoggedErrors
-            .Where(e => e.EndTimeStamp != null && e.TelegramResolvedMessageSent == false)
+            .Where(e => e.EndTimeStamp != null && e.TelegramResolvedMessageSent == false && e.TelegramNotificationSent)
             .ToListAsync();
         foreach (var error in closedErrors)
         {
