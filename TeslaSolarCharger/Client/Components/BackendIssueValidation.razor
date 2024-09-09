@@ -4,6 +4,7 @@
 @using TeslaSolarCharger.Shared.Contracts
 @inject HttpClient HttpClient
 @inject IDateTimeProvider DateTimeProvider
+@implements IDisposable
 
 @if (_issues?.Count > 0)
 {
@@ -59,6 +60,12 @@
         var timeZoneOffset = TimeZoneInfo.Local.GetUtcOffset(DateTimeProvider.Now());
         _issues = await HttpClient.GetFromJsonAsync<List<DtoIssue>>($"api/Issue/RefreshIssues?utcTimeZoneOffset={timeZoneOffset}");
         this.StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _timer?.Stop();
+        _timer?.Dispose();
     }
 
 }
