@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -72,7 +73,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 continue;
             }
 
-            var errorText = $"[{error.StartTimeStamp}] Error with key {error.IssueKey} ";
+            var errorText = $"[{error.StartTimeStamp.ToLocalTime()}] Error with key {error.IssueKey} ";
             if (!string.IsNullOrEmpty(error.Vin))
             {
                 errorText += $"for car {error.Vin} ";
@@ -103,7 +104,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             {
                 resolvedText += $"and VIN {error.Vin} ";
             }
-            resolvedText += $"from {error.StartTimeStamp} has been resolved at {error.EndTimeStamp}";
+            resolvedText += $"from {error.StartTimeStamp.ToLocalTime()} has been resolved at {error.EndTimeStamp?.ToLocalTime()}";
             var statusCode = await telegramService.SendMessage(resolvedText);
             if (((int)statusCode >= 200) && ((int)statusCode <= 299))
             {
