@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -108,6 +109,16 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<Car>()
             .Property(c => c.ApiRefreshIntervalSeconds)
             .HasDefaultValue(500);
+
+        var timeListToString = new ValueConverter<List<DateTime>, string?>(
+            v => JsonConvert.SerializeObject(v),
+            v => v == null ? new() : JsonConvert.DeserializeObject<List<DateTime>>(v) ?? new List<DateTime>()
+        );
+
+        modelBuilder.Entity<LoggedError>()
+            .Property(e => e.FurtherOccurrences)
+            .HasConversion(timeListToString);
+
     }
 
 #pragma warning disable CS8618

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System.Globalization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -22,27 +23,31 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         logger.LogTrace("{method}({source}, {methodName}, {message}, {issueKey}, {vin}, {stackTrace})",
             nameof(HandleError), source, methodName, message, issueKey, vin, stackTrace);
         await backendApiService.PostErrorInformation(source, methodName, message, issueKey, vin, stackTrace);
-        var isErrorOpen = await context.LoggedErrors
+        var existingError = await context.LoggedErrors
             .Where(e => e.IssueKey == issueKey
                         && e.Vin == vin
                         && e.EndTimeStamp == null)
-            .AnyAsync();
-        if (isErrorOpen)
+            .FirstOrDefaultAsync();
+        if (existingError == default)
         {
-            return;
+            var error = new LoggedError()
+            {
+                StartTimeStamp = dateTimeProvider.UtcNow(),
+                IssueKey = issueKey,
+                Vin = vin,
+                Source = source,
+                MethodName = methodName,
+                Message = message,
+                StackTrace = stackTrace,
+            };
+            context.LoggedErrors.Add(error);
+        }
+        else
+        {
+            existingError.FurtherOccurrences.Add(dateTimeProvider.UtcNow());
         }
 
-        var error = new LoggedError()
-        {
-            StartTimeStamp = dateTimeProvider.UtcNow(),
-            IssueKey = issueKey,
-            Vin = vin,
-            Source = source,
-            MethodName = methodName,
-            Message = message,
-            StackTrace = stackTrace,
-        };
-        context.LoggedErrors.Add(error);
+        
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
@@ -104,7 +109,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             {
                 resolvedText += $"and VIN {error.Vin} ";
             }
-            resolvedText += $"from {error.StartTimeStamp.ToLocalTime()} has been resolved at {error.EndTimeStamp?.ToLocalTime()}";
+            resolvedText += $"from {error.StartTimeStamp.ToLocalTime()} has been resolved after {error.FurtherOccurrences.Count + 1} occurrences at {error.EndTimeStamp?.ToLocalTime()}";
             var statusCode = await telegramService.SendMessage(resolvedText);
             if (((int)statusCode >= 200) && ((int)statusCode <= 299))
             {
