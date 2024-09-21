@@ -15,7 +15,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     IIssueKeys issueKeys,
     ITelegramService telegramService,
     ITeslaSolarChargerContext context,
-    IDateTimeProvider dateTimeProvider) : IErrorHandlingService
+    IDateTimeProvider dateTimeProvider,
+    IConfigurationWrapper configurationWrapper) : IErrorHandlingService
 {
     public async Task HandleError(string source, string methodName, string message, string issueKey, string? vin,
         string? stackTrace)
@@ -84,7 +85,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 errorText += $"for car {error.Vin} ";
             }
             errorText += $"in {error.Source}.{error.MethodName}: {error.Message}";
-            if (!string.IsNullOrEmpty(error.StackTrace))
+            if (configurationWrapper.SendStackTraceToTelegram() && !string.IsNullOrEmpty(error.StackTrace))
             {
                 errorText += $"\r\nStack Trace: {error.StackTrace}";
             }

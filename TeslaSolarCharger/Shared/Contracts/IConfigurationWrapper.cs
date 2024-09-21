@@ -105,4 +105,5 @@ public interface IConfigurationWrapper
     bool ShouldUseFakeSolarValues();
     int MaxTravelSpeedMetersPerSecond();
     int CarRefreshAfterCommandSeconds();
+    bool SendStackTraceToTelegram();
 }

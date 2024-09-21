@@ -568,7 +568,12 @@ public class ConfigurationWrapper(
     {
         return GetBaseConfiguration().TelegramChannelId;
     }
-    
+
+    public bool SendStackTraceToTelegram()
+    {
+        return GetBaseConfiguration().SendStackTraceToTelegram;
+    }
+
     public FrontendConfiguration? FrontendConfiguration()
     {
         return GetBaseConfiguration().FrontendConfiguration;

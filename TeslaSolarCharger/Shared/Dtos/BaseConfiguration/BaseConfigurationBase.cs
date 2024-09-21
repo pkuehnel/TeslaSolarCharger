@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using TeslaSolarCharger.Shared.Attributes;
 
 namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
@@ -55,6 +56,8 @@ public class BaseConfigurationBase
     public decimal HomeBatteryPowerCorrectionFactor { get; set; } = 1;
     public string? TelegramBotKey { get; set; }
     public string? TelegramChannelId { get; set; }
+    [HelperText("If enabled detailed error information are sent via Telegram so developers can find the root cause. This is not needed for normal usage.")]
+    public bool SendStackTraceToTelegram { get; set; }
     [Required]
     public string TeslaMateDbServer { get; set; } = "database";
     [Required]
