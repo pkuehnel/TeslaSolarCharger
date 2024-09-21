@@ -155,6 +155,11 @@ public class TeslamateApiService : ITeslaService, ITeslamateApiService
         throw new NotImplementedException();
     }
 
+    public Task SetSentryMode(int carId, bool active)
+    {
+        throw new NotImplementedException();
+    }
+
     internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, DtoCar dtoCar, out Dictionary<string, string> parameters)
     {
         _logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, dtoCar.Id, nameof(parameters));

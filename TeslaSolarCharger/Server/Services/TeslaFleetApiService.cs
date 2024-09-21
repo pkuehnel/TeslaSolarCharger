@@ -81,6 +81,12 @@ public class TeslaFleetApiService(
         NeedsProxy = true,
         TeslaApiRequestType = TeslaApiRequestType.Command,
     };
+    private DtoFleetApiRequest SetSentryModeRequest => new()
+    {
+        RequestUrl = "command/set_sentry_mode",
+        NeedsProxy = true,
+        TeslaApiRequestType = TeslaApiRequestType.Command,
+    };
     private DtoFleetApiRequest OpenChargePortDoorRequest => new()
     {
         RequestUrl = "command/charge_port_door_open",
@@ -191,6 +197,19 @@ public class TeslaFleetApiService(
             { "percent", limitSoC },
         };
         await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargeLimitRequest, HttpMethod.Post, JsonConvert.SerializeObject(parameters)).ConfigureAwait(false);
+    }
+
+    public async Task SetSentryMode(int carId, bool active)
+    {
+        logger.LogTrace("{method}({param1}, {param2})", nameof(SetSentryMode), carId, active);
+        var vin = GetVinByCarId(carId);
+        var car = settings.Cars.First(c => c.Id == carId);
+        await WakeUpCarIfNeeded(carId, car.State).ConfigureAwait(false);
+        var parameters = new Dictionary<string, int>()
+        {
+            { "on", active ? 1 : 0 },
+        };
+        await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetSentryModeRequest, HttpMethod.Post, JsonConvert.SerializeObject(parameters)).ConfigureAwait(false);
     }
 
     public async Task<DtoValue<bool>> TestFleetApiAccess(int carId)

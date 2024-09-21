@@ -42,6 +42,20 @@ public class FleetApiController(
         return teslaService.SetChargeLimit(carId, percent);
     }
 
+    /// <summary>
+    /// Note: This endpoint is only available in development environment
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Is thrown when not beeing in dev Mode</exception>
+    [HttpGet]
+    public Task SetSentryMode(int carId, bool active)
+    {
+        if (!configurationWrapper.IsDevelopmentEnvironment())
+        {
+            throw new InvalidOperationException("This method is only available in development environment");
+        }
+        return teslaService.SetSentryMode(carId, active);
+    }
+
     [HttpGet]
     public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => fleetApiService.TestFleetApiAccess(carId);
     [HttpGet]
