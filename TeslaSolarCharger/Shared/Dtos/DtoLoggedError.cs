@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.Server.Dtos;
+﻿namespace TeslaSolarCharger.Shared.Dtos;
 
 public class DtoLoggedError
 {
