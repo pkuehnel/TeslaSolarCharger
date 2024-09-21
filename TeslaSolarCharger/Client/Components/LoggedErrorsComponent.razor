@@ -13,40 +13,44 @@
 }
 else
 {
-    <div class="my-2">
-        <MudExpansionPanels>
-            <MudExpansionPanel IsInitiallyExpanded="false">
-                <TitleContent>
-                    <div class="d-flex">
-                        <div class="flex-grow-0">
-                            <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
-                                <MudText Class="mt-1">Errors</MudText>
-                            </MudBadge>
+    if (_errors.Count > 0)
+    {
+        <div class="my-2">
+            <MudExpansionPanels>
+                <MudExpansionPanel IsInitiallyExpanded="false">
+                    <TitleContent>
+                        <div class="d-flex">
+                            <div class="flex-grow-0">
+                                <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
+                                    <MudText Class="mt-1">Errors</MudText>
+                                </MudBadge>
                             
-                        </div>
-                        <div class="mt-1 ml-2 flex-grow-0">
+                            </div>
+                            <div class="mt-1 ml-2 flex-grow-0">
                             
+                            </div>
                         </div>
-                    </div>
-                </TitleContent>
-                <ChildContent>
-                    @foreach (var error in _errors)
-                    {
-                        <div class="mb-2">
-                            <MudAlert Severity="Severity.Error"
-                                      NoIcon="true"
-                                      ContentAlignment="HorizontalAlignment.Left"
-                                      ShowCloseIcon="false">
-                                <h4>@error.Vin</h4>
-                                @(error.Message)
-                            </MudAlert>
-                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @foreach (var error in _errors)
+                        {
+                            <div class="mb-2">
+                                <MudAlert Severity="Severity.Error"
+                                          NoIcon="true"
+                                          ContentAlignment="HorizontalAlignment.Left"
+                                          ShowCloseIcon="false">
+                                    <h4>@error.Vin</h4>
+                                    @(error.Message)
+                                </MudAlert>
+                            </div>
 
-                    }
-                </ChildContent>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
-    </div>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </div>
+    }
+    
 }
 
 

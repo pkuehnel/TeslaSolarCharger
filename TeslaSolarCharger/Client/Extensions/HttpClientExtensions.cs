@@ -35,7 +35,6 @@ public static class HttpClientExtensions
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                snackbar.Add("Request successful", Severity.Success);
 
                 if (typeof(T) != typeof(object))
                 {
