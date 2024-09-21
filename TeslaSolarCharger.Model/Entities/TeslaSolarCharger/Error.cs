@@ -5,7 +5,7 @@ public class LoggedError
     public int Id { get; set; }
     public DateTime StartTimeStamp { get; set; }
     public DateTime? EndTimeStamp { get; set; }
-    public List<DateTime> FurtherOccurrences { get; set; }
+    public List<DateTime> FurtherOccurrences { get; set; } = new();
     public string IssueKey { get; set; }
     public string? Vin { get; set; }
     public string Source { get; set; }
