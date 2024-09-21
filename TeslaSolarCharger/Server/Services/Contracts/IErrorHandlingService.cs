@@ -1,4 +1,7 @@
-﻿namespace TeslaSolarCharger.Server.Services.Contracts;
+﻿using LanguageExt;
+using TeslaSolarCharger.Server.Dtos;
+
+namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IErrorHandlingService
 {
@@ -7,4 +10,5 @@ public interface IErrorHandlingService
 
     Task HandleErrorResolved(string issueKey, string? vin);
     Task SendTelegramMessages();
+    Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors();
 }

@@ -1,12 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper.QueryableExtensions;
+using LanguageExt;
+using LanguageExt.Common;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Globalization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -16,8 +22,33 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     ITelegramService telegramService,
     ITeslaSolarChargerContext context,
     IDateTimeProvider dateTimeProvider,
-    IConfigurationWrapper configurationWrapper) : IErrorHandlingService
+    IConfigurationWrapper configurationWrapper,
+    IMapperConfigurationFactory mapperConfigurationFactory) : IErrorHandlingService
 {
+    public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
+    {
+        logger.LogTrace("{method}()", nameof(GetActiveLoggedErrors));
+        var mapper = mapperConfigurationFactory.Create(cfg =>
+        {
+            cfg.CreateMap<LoggedError, DtoLoggedError>()
+                .ForMember(d => d.Occurrences, opt => opt.MapFrom(s => new List<DateTime>(){s.StartTimeStamp}.Concat(s.FurtherOccurrences)))
+                ;
+        });
+        try
+        {
+            var errors = await context.LoggedErrors
+                .Where(e => e.EndTimeStamp == default)
+                .ProjectTo<DtoLoggedError>(mapper)
+                .ToListAsync();
+            return Fin<List<DtoLoggedError>>.Succ(errors);
+        }
+        catch (Exception ex)
+        {
+            return Fin<List<DtoLoggedError>>.Fail(Error.New(ex));
+        }
+
+    }
+
     public async Task HandleError(string source, string methodName, string message, string issueKey, string? vin,
         string? stackTrace)
     {
@@ -121,7 +152,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await context.SaveChangesAsync();
     }
 
-    private HashSet<string> TelegramEnabledIssueKeys =>
+    private System.Collections.Generic.HashSet<string> TelegramEnabledIssueKeys =>
     [
         issueKeys.GridPowerNotAvailable,
         issueKeys.InverterPowerNotAvailable,
