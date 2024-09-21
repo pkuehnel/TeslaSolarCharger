@@ -50,6 +50,11 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
     }
 
+    public Task DetectErrors()
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task HandleError(string source, string methodName, string message, string issueKey, string? vin,
         string? stackTrace)
     {

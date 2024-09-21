@@ -12,4 +12,5 @@ public interface IErrorHandlingService
     Task HandleErrorResolved(string issueKey, string? vin);
     Task SendTelegramMessages();
     Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors();
+    Task DetectErrors();
 }

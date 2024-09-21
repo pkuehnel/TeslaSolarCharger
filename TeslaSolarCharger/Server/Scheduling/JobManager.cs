@@ -48,10 +48,13 @@ public class JobManager(
         var teslaMateChargeCostUpdateJob = JobBuilder.Create<TeslaMateChargeCostUpdateJob>().WithIdentity(nameof(TeslaMateChargeCostUpdateJob)).Build();
         var apiCallCounterResetJob = JobBuilder.Create<ApiCallCounterResetJob>().WithIdentity(nameof(ApiCallCounterResetJob)).Build();
         var errorMessagingJob = JobBuilder.Create<ErrorMessagingJob>().WithIdentity(nameof(ErrorMessagingJob)).Build();
+        var errorDetectionJob = JobBuilder.Create<ErrorDetectionJob>().WithIdentity(nameof(ErrorDetectionJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
         var pvTriggerStartTime = currentDate.AddSeconds(3);
+
+        var latestTriggerStartTime = chargingTriggerStartTime;
 
         var chargingValueJobUpdateIntervall = configurationWrapper.ChargingValueJobUpdateIntervall();
 
@@ -100,11 +103,13 @@ public class JobManager(
         var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create().WithIdentity("teslaMateChargeCostUpdateTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
-        var issueValidationTrigger = TriggerBuilder.Create().WithIdentity("issueValidationTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(62)).Build();
-
         var errorMessagingTrigger = TriggerBuilder.Create().WithIdentity("errorMessagingTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(300)).Build();
+
+        var errorDetectionTrigger = TriggerBuilder.Create()
+            .WithIdentity("errorDetectionTrigger")
+            .StartAt(latestTriggerStartTime.Add(TimeSpan.FromSeconds(5)))
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(62)).Build();
 
         var random = new Random();
         var hour = random.Next(0, 5);
@@ -127,6 +132,7 @@ public class JobManager(
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
             {errorMessagingJob, new HashSet<ITrigger> {errorMessagingTrigger}},
+            {errorDetectionJob, new HashSet<ITrigger> {errorDetectionTrigger}},
         };
 
         if (!configurationWrapper.ShouldUseFakeSolarValues())
