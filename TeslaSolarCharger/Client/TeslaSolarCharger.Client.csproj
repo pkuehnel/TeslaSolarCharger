@@ -42,6 +42,7 @@
 
   <ItemGroup>
     <Folder Include="Enums\" />
+    <Folder Include="Extensions\" />
     <Folder Include="Wrapper\" />
   </ItemGroup>
 

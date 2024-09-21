@@ -1,6 +1,6 @@
 ﻿@page "/BaseConfiguration"
 @using System.Globalization
-@using Microsoft.AspNetCore.Mvc
+@using TeslaSolarCharger.Client.Extensions
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
@@ -647,37 +647,7 @@ else
 
     private async Task SendTelegramTestMessage()
     {
-        try
-        {
-            var response = await HttpClient.GetAsync("api/Hello/SendTestTelegramMessage");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                Snackbar.Add(content, Severity.Success);
-            }
-            else if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
-            {
-                var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-                var message = problemDetails != null ? $"Error: {problemDetails.Detail}" : "An error occurred";
-                Snackbar.Add(message, Severity.Error);
-            }
-            else
-            {
-                var message = $"Unexpected error: {response.StatusCode}";
-                Snackbar.Add(message, Severity.Error);
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            var message = $"Network error: {ex.Message}";
-            Snackbar.Add(message, Severity.Error);
-        }
-        catch (Exception ex)
-        {
-            var message = $"Unexpected error: {ex.Message}";
-            Snackbar.Add(message, Severity.Error);
-        }
+        await HttpClient.SendGetRequestWithSnackbarAsync("api/Hello/SendTestTelegramMessage", Snackbar);
     }
 
 }
