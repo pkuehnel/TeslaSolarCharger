@@ -12,6 +12,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
@@ -51,6 +52,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<TeslaMateChargeCostUpdateJob>()
             .AddTransient<ApiCallCounterResetJob>()
+            .AddTransient<ErrorMessagingJob>()
+            .AddTransient<ErrorDetectionJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -84,13 +87,12 @@ public static class ServiceCollectionExtensions
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
             .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
             .AddTransient<IPossibleIssues, PossibleIssues>()
-            .AddTransient<IIssueValidationService, IssueValidationService>()
             .AddTransient<IChargingCostService, ChargingCostService>()
             .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
             .AddTransient<ICoreService, CoreService>()
             .AddTransient<INewVersionCheckService, NewVersionCheckService>()
             .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
-            .AddSingleton<IssueKeys>()
+            .AddSingleton<IIssueKeys, IssueKeys>()
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
@@ -107,6 +109,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IBleService, TeslaBleService>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
+            .AddTransient<IErrorHandlingService, ErrorHandlingService>()
             .AddSharedBackendDependencies();
         if (useFleetApi)
         {

@@ -1,0 +1,81 @@
+﻿@using System.Timers
+@using TeslaSolarCharger.Client.Extensions
+@using TeslaSolarCharger.Shared.Dtos
+
+@implements IDisposable
+@inject ISnackbar Snackar
+@inject HttpClient HttpClient
+
+
+@if (_errors == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else
+{
+    if (_errors.Count > 0)
+    {
+        <div class="my-2">
+            <MudExpansionPanels>
+                <MudExpansionPanel IsInitiallyExpanded="true">
+                    <TitleContent>
+                        <div class="d-flex">
+                            <div class="flex-grow-0">
+                                <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
+                                    <MudText Class="mt-1">Errors</MudText>
+                                </MudBadge>
+                            
+                            </div>
+                            <div class="mt-1 ml-2 flex-grow-0">
+                            
+                            </div>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @foreach (var error in _errors)
+                        {
+                            <div class="mb-2">
+                                <MudAlert Severity="Severity.Error"
+                                          NoIcon="true"
+                                          ContentAlignment="HorizontalAlignment.Left"
+                                          ShowCloseIcon="false">
+                                    <h4>@error.Vin</h4>
+                                    @((MarkupString)error.Message)
+                                </MudAlert>
+                            </div>
+
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </div>
+    }
+    
+}
+
+
+@code {
+    private Timer? _errorRefreshTimer;
+    private List<DtoLoggedError>? _errors;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _errorRefreshTimer = new Timer();
+        _errorRefreshTimer.Interval = 60000;
+        _errorRefreshTimer.Elapsed += async (_, _) => await RefreshErrors();
+        _errorRefreshTimer.Start();
+        await RefreshErrors();
+    }
+
+    private async Task RefreshErrors()
+    {
+        _errors = await HttpClient.SendGetRequestWithSnackbarAsync<List<DtoLoggedError>>("api/LoggedErrors/GetActiveLoggedErrors", Snackar);
+    }
+
+    public void Dispose()
+    {
+        _errorRefreshTimer?.Stop();
+        _errorRefreshTimer?.Dispose();
+    }
+}

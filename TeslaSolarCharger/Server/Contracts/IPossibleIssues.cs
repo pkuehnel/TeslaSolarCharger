@@ -4,5 +4,5 @@ namespace TeslaSolarCharger.Server.Contracts;
 
 public interface IPossibleIssues
 {
-    Issue GetIssueByKey(string key);
+    DtoIssue GetIssueByKey(string key);
 }

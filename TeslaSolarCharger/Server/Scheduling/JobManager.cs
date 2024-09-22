@@ -7,48 +7,33 @@ using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling;
 
-public class JobManager
+public class JobManager(
+    ILogger<JobManager> logger,
+    IJobFactory jobFactory,
+    ISchedulerFactory schedulerFactory,
+    IConfigurationWrapper configurationWrapper,
+    IDateTimeProvider dateTimeProvider,
+    ISettings settings,
+    IConstants constants)
 {
-    private readonly ILogger<JobManager> _logger;
-    private readonly IJobFactory _jobFactory;
-    private readonly ISchedulerFactory _schedulerFactory;
-    private readonly IConfigurationWrapper _configurationWrapper;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ISettings _settings;
-    private readonly IConstants _constants;
-
     private IScheduler? _scheduler;
 
 
-#pragma warning disable CS8618
-    public JobManager(ILogger<JobManager> logger, IJobFactory jobFactory, ISchedulerFactory schedulerFactory,
-        IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider, ISettings settings, IConstants constants)
-#pragma warning restore CS8618
-    {
-        _logger = logger;
-        _jobFactory = jobFactory;
-        _schedulerFactory = schedulerFactory;
-        _configurationWrapper = configurationWrapper;
-        _dateTimeProvider = dateTimeProvider;
-        _settings = settings;
-        _constants = constants;
-    }
-
     public async Task StartJobs()
     {
-        _logger.LogTrace("{Method}()", nameof(StartJobs));
-        if (_settings.RestartNeeded)
+        logger.LogTrace("{Method}()", nameof(StartJobs));
+        if (settings.RestartNeeded)
         {
-            _logger.LogError("Do not start jobs as application restart is needed.");
+            logger.LogError("Do not start jobs as application restart is needed.");
             return;
         }
-        if (_settings.CrashedOnStartup)
+        if (settings.CrashedOnStartup)
         {
-            _logger.LogError("Do not start jobs as application crashed during startup.");
+            logger.LogError("Do not start jobs as application crashed during startup.");
             return;
         }
-        _scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        _scheduler.JobFactory = _jobFactory;
+        _scheduler = schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+        _scheduler.JobFactory = jobFactory;
 
         var chargingValueJob = JobBuilder.Create<ChargingValueJob>().WithIdentity(nameof(ChargingValueJob)).Build();
         var carStateCachingJob = JobBuilder.Create<CarStateCachingJob>().WithIdentity(nameof(CarStateCachingJob)).Build();
@@ -62,12 +47,16 @@ public class JobManager
         var vehicleDataRefreshJob = JobBuilder.Create<VehicleDataRefreshJob>().WithIdentity(nameof(VehicleDataRefreshJob)).Build();
         var teslaMateChargeCostUpdateJob = JobBuilder.Create<TeslaMateChargeCostUpdateJob>().WithIdentity(nameof(TeslaMateChargeCostUpdateJob)).Build();
         var apiCallCounterResetJob = JobBuilder.Create<ApiCallCounterResetJob>().WithIdentity(nameof(ApiCallCounterResetJob)).Build();
+        var errorMessagingJob = JobBuilder.Create<ErrorMessagingJob>().WithIdentity(nameof(ErrorMessagingJob)).Build();
+        var errorDetectionJob = JobBuilder.Create<ErrorDetectionJob>().WithIdentity(nameof(ErrorDetectionJob)).Build();
 
-        var currentDate = _dateTimeProvider.DateTimeOffSetNow();
+        var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
         var pvTriggerStartTime = currentDate.AddSeconds(3);
 
-        var chargingValueJobUpdateIntervall = _configurationWrapper.ChargingValueJobUpdateIntervall();
+        var latestTriggerStartTime = chargingTriggerStartTime;
+
+        var chargingValueJobUpdateIntervall = configurationWrapper.ChargingValueJobUpdateIntervall();
 
         var chargingValueTrigger = TriggerBuilder.Create()
             .WithIdentity("chargingValueTrigger")
@@ -76,8 +65,8 @@ public class JobManager
             .Build();
 
 
-        var pvValueJobIntervall = _configurationWrapper.PvValueJobUpdateIntervall();
-        _logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
+        var pvValueJobIntervall = configurationWrapper.PvValueJobUpdateIntervall();
+        logger.LogTrace("PvValue Job intervall is {pvValueJobIntervall}", pvValueJobIntervall);
 
         var pvValueTrigger = TriggerBuilder.Create()
             .WithIdentity("pvValueTrigger")
@@ -91,7 +80,7 @@ public class JobManager
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(3)).Build();
 
         var chargingDetailsAddTrigger = TriggerBuilder.Create().WithIdentity("chargingDetailsAddTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(_constants.ChargingDetailsAddTriggerEveryXSeconds)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(constants.ChargingDetailsAddTriggerEveryXSeconds)).Build();
 
         var finishedChargingProcessFinalizingTrigger = TriggerBuilder.Create().WithIdentity("finishedChargingProcessFinalizingTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(118)).Build();
@@ -114,6 +103,14 @@ public class JobManager
         var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create().WithIdentity("teslaMateChargeCostUpdateTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
+        var errorMessagingTrigger = TriggerBuilder.Create().WithIdentity("errorMessagingTrigger")
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(300)).Build();
+
+        var errorDetectionTrigger = TriggerBuilder.Create()
+            .WithIdentity("errorDetectionTrigger")
+            .StartAt(latestTriggerStartTime.Add(TimeSpan.FromSeconds(5)))
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(62)).Build();
+
         var random = new Random();
         var hour = random.Next(0, 5);
         var minute = random.Next(0, 59);
@@ -134,9 +131,11 @@ public class JobManager
             {chargingDetailsAddJob, new HashSet<ITrigger> {chargingDetailsAddTrigger}},
             {newVersionCheckJob, new HashSet<ITrigger> {newVersionCheckTrigger}},
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
+            {errorMessagingJob, new HashSet<ITrigger> {errorMessagingTrigger}},
+            {errorDetectionJob, new HashSet<ITrigger> {errorDetectionTrigger}},
         };
 
-        if (!_configurationWrapper.ShouldUseFakeSolarValues())
+        if (!configurationWrapper.ShouldUseFakeSolarValues())
         {
             triggersAndJobs.Add(chargingValueJob, new HashSet<ITrigger> { chargingValueTrigger });
             triggersAndJobs.Add(carStateCachingJob, new HashSet<ITrigger> { carStateCachingTrigger });
@@ -155,10 +154,10 @@ public class JobManager
 
     public async Task<bool> StopJobs()
     {
-        _logger.LogTrace("{method}()", nameof(StopJobs));
+        logger.LogTrace("{method}()", nameof(StopJobs));
         if (_scheduler == null)
         {
-            _logger.LogInformation("Jobs were not running, yet, so stop is not needed.");
+            logger.LogInformation("Jobs were not running, yet, so stop is not needed.");
             return false;
         }
         await _scheduler.Shutdown(true).ConfigureAwait(false);

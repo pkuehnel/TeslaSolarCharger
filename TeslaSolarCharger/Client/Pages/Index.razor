@@ -41,7 +41,8 @@
 }
 
 <BackendInformationDisplayComponent></BackendInformationDisplayComponent>
-<BackendIssueValidation></BackendIssueValidation>
+<LoggedErrorsComponent></LoggedErrorsComponent>
+
 <div class="d-flex justify-content-center align-items-center">
     <PowerFlowComponent></PowerFlowComponent>
 </div>
@@ -682,6 +683,7 @@ else
 
     public void Dispose()
     {
+        _timer?.Stop();
         _timer?.Dispose();
     }
 

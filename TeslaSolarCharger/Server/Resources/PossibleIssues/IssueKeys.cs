@@ -1,10 +1,9 @@
-﻿namespace TeslaSolarCharger.Server.Resources.PossibleIssues;
+﻿using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 
-public class IssueKeys
+namespace TeslaSolarCharger.Server.Resources.PossibleIssues;
+
+public class IssueKeys : IIssueKeys
 {
-    public string MqttNotConnected => "MqttNotConnected";
-    public string CarSocLimitNotReadable => "CarSocLimitNotReadable";
-    public string CarSocNotReadable => "CarSocNotReadable";
     public string GridPowerNotAvailable => "GridPowerNotAvailable";
     public string InverterPowerNotAvailable => "InverterPowerNotAvailable";
     public string HomeBatterySocNotAvailable => "HomeBatterySocNotAvailable";
@@ -12,12 +11,7 @@ public class IssueKeys
     public string HomeBatteryPowerNotAvailable => "HomeBatteryPowerNotAvailable";
     public string HomeBatteryMinimumSocNotConfigured => "HomeBatteryMinimumSocNotConfigured";
     public string HomeBatteryChargingPowerNotConfigured => "HomeBatteryChargingPowerNotConfigured";
-    public string TeslaMateApiNotAvailable => "TeslaMateApiNotAvailable";
-    public string DatabaseNotAvailable => "DatabaseNotAvailable";
-    public string GeofenceNotAvailable => "GeofenceNotAvailable";
-    public string CarIdNotAvailable => "CarIdNotAvailable";
     public string VersionNotUpToDate => "VersionNotUpToDate";
-    public string CorrectionFactorZero => "CorrectionFactorZero";
     public string ServerTimeZoneDifferentFromClient => "ServerTimeZoneDifferentFromClient";
     public string FleetApiTokenNotRequested => "FleetApiTokenNotRequested";
     public string FleetApiTokenUnauthorized => "FleetApiTokenUnauthorized";
@@ -28,4 +22,15 @@ public class IssueKeys
     public string FleetApiTokenNoApiRequestsAllowed => "FleetApiRequestsNotAllowed";
     public string CrashedOnStartup => "CrashedOnStartup";
     public string RestartNeeded => "RestartNeeded";
+    public string GetVehicle => "GetVehicle";
+    public string GetVehicleData => "GetVehicleData";
+    public string CarStateUnknown => "CarStateUnknown";
+    public string UnhandledCarStateRefresh => "UnhandledCarStateRefresh";
+    public string FleetApiNonSuccessStatusCode => "FleetApiNonSuccessStatusCode_";
+    public string FleetApiNonSuccessResult => "FleetApiNonSuccessResult_";
+    public string UnsignedCommand => "UnsignedCommand";
+    public string FleetApiTokenRefreshNonSuccessStatusCode => "FleetApiTokenRefreshNonSuccessStatusCode";
+    public string CarRateLimited => "CarRateLimited";
+    public string BleCommandNoSuccess => "BleCommandNoSuccess_";
+    public string SolarValuesNotAvailable => "SolarValuesNotAvailable";
 }

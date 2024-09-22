@@ -11,7 +11,7 @@ public class Settings : ISettings
     public List<DtoCar> CarsToManage => Cars.Where(c => c.ShouldBeManaged == true).OrderBy(c => c.ChargingPriority).ToList();
     public int? HomeBatterySoc { get; set; }
     public int? HomeBatteryPower { get; set; }
-    public List<Issue> ActiveIssues { get; set; } = new();
+    public List<DtoIssue> ActiveIssues { get; set; } = new();
     public bool ControlledACarAtLastCycle { get; set; }
     public DateTimeOffset LastPvValueUpdate { get; set; }
     public int? AverageHomeGridVoltage { get; set; }

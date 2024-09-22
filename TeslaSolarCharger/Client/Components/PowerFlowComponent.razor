@@ -6,6 +6,7 @@
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
+@implements IDisposable
 
 @if (_pvValues != default)
 {
@@ -187,7 +188,7 @@
 
 
         _pvValueUpdateTimer = new Timer();
-        _pvValueUpdateTimer.Interval = Debugger.IsAttached ? 1000 : 5000;
+        _pvValueUpdateTimer.Interval = 5000;
         _pvValueUpdateTimer.Elapsed += async (_, _) => await RefreshPvValues().ConfigureAwait(false);
         _pvValueUpdateTimer.Start();
     }
@@ -617,7 +618,10 @@
 
     public void Dispose()
     {
+        _ballUpdateTimer?.Stop();
         _ballUpdateTimer?.Dispose();
+        _pvValueUpdateTimer?.Stop();
+        _pvValueUpdateTimer?.Dispose();
     }
 
     private int? CalculateHomePower()

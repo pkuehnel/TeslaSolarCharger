@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20240829220344_AddLoggedErrors")]
+    partial class AddLoggedErrors
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
@@ -369,31 +372,8 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<DateTime?>("EndTimeStamp")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("FurtherOccurrences")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Headline")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("IssueKey")
                         .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MethodName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StackTrace")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("StartTimeStamp")

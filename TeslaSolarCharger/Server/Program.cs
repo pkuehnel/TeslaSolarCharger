@@ -7,6 +7,7 @@ using TeslaSolarCharger.Client.Pages;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -159,7 +160,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await configurationWrapper1.TryAutoFillUrls().ConfigureAwait(false);
 
         var telegramService = webApplication.Services.GetRequiredService<ITelegramService>();
-        await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
+        await telegramService.SendMessage("Error messages via Telegram enabled. Note: Error and error resolved messages are only sent every five minutes.").ConfigureAwait(false);
 
         var configJsonService = webApplication.Services.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
@@ -211,15 +212,20 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
+        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
+        await errorHandlingService.HandleErrorResolved(issueKeys.CrashedOnStartup, null)
+            .ConfigureAwait(false);
     }
     catch (Exception ex)
     {
         logger1.LogCritical(ex, "Crashed on startup");
         settings.CrashedOnStartup = true;
         settings.StartupCrashMessage = ex.Message;
-        var backendApiService = webApplication.Services.GetRequiredService<IBackendApiService>();
-        await backendApiService.PostErrorInformation(nameof(Program), "Startup",
-                $"Exception Message: {ex.Message} StackTrace: {ex.StackTrace}")
+        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
+        await errorHandlingService.HandleError(nameof(Program), "Startup", "TSC crashed on startup",
+                $"Exception Message: {ex.Message}", issueKeys.CrashedOnStartup, null, ex.StackTrace)
             .ConfigureAwait(false);
     }
     finally

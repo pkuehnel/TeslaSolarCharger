@@ -9,7 +9,7 @@ public interface ISettings
     int? PowerBuffer { get; set; }
     int? HomeBatterySoc { get; set; }
     int? HomeBatteryPower { get; set; }
-    List<Issue> ActiveIssues { get; set; }
+    List<DtoIssue> ActiveIssues { get; set; }
     bool ControlledACarAtLastCycle { get; set; }
     bool IsNewVersionAvailable { get; set; }
     DateTimeOffset LastPvValueUpdate { get; set; }

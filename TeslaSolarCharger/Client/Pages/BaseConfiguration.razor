@@ -1,5 +1,6 @@
 ﻿@page "/BaseConfiguration"
 @using System.Globalization
+@using TeslaSolarCharger.Client.Extensions
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
@@ -162,6 +163,23 @@ else
         <RestValueConfigurationComponent />
         <ModbusValueConfigurationComponent />
         <MqttValueConfigurationComponent />
+        
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            <h3>Telegram:</h3>
+            <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
+            <div>Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,...</div>
+            <GenericInput T="string?"
+                          For="() => _dtoBaseConfiguration.TelegramBotKey"
+                          OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
+            <GenericInput T="string?"
+                          For="() => _dtoBaseConfiguration.TelegramChannelId"
+                          OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
+            <GenericInput For="() => _dtoBaseConfiguration.SendStackTraceToTelegram"></GenericInput>
+            <RightAlignedButtonComponent ButtonText="Send test message"
+                                         IsDisabled="_telegramSettingsChanged"
+                                         DisableToolTipText="You need to save the configuration before testing it."
+                                         OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
+        </div>
         
         <MudExpansionPanels>
             <MudExpansionPanel Text="Old configurations. These values are not used anymore. If you used TSC before v 2.25 you can look up your settings here.">
@@ -464,27 +482,6 @@ else
                         </InputComponent>
                     }
                 </div>
-                <div class="shadow p-3 mb-5 bg-white rounded">
-                    <h3>Telegram:</h3>
-                    <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
-                    <InputComponent ValueId="telegramBotKey"
-                                    LabelText="Telegram Bot Key"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputText id="telegramBotKey" @bind-Value="_dtoBaseConfiguration.TelegramBotKey" placeholder=" " class="form-control" />
-                        </InputFragment>
-                    </InputComponent>
-
-                    <InputComponent ValueId="telegramChannelId"
-                                    LabelText="Telegram Channel ID"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputText id="telegramChannelId" @bind-Value="_dtoBaseConfiguration.TelegramChannelId" placeholder=" " class="form-control" />
-                        </InputFragment>
-                    </InputComponent>
-                </div>
             </MudExpansionPanel>
             <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
                 <InputComponent ValueId="updateIntervalSeconds"
@@ -587,7 +584,12 @@ else
         </MudExpansionPanels>
         <DataAnnotationsValidator />
         <ValidationSummary />
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <div class="mt-3 mb-4">
+            <RightAlignedButtonComponent ButtonText="Save"
+                                         IsLoading="_submitLoading"
+                                         ButtonType="ButtonType.Submit"></RightAlignedButtonComponent>
+        </div>
+        
     </EditForm>
 }
 
@@ -597,6 +599,9 @@ else
     private FleetApiTokenState? _fleetApiTokenState;
 
     private bool _tokenGenerationButtonDisabled;
+
+    private bool _telegramSettingsChanged;
+    private bool _submitLoading;
 
     protected override async Task OnInitializedAsync()
     {
@@ -610,15 +615,19 @@ else
 
     private async Task HandleValidSubmit()
     {
+        _submitLoading = true;
         var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
+            _telegramSettingsChanged = false;
             Snackbar.Add("Base Configuration updated", Severity.Success);
         }
         else
         {
             Snackbar.Add("Error updating base configuration", Severity.Error);
         }
+
+        _submitLoading = false;
     }
 
     private async Task GenerateFleetApiToken()
@@ -635,4 +644,10 @@ else
 
 
     private string _correctionFactorHelpText = "Use this to correct the returned value. E.g. if the returned value is 1 but should bei -1 insert -1";
+
+    private async Task SendTelegramTestMessage()
+    {
+        await HttpClient.SendGetRequestWithSnackbarAsync("api/Hello/SendTestTelegramMessage", Snackbar);
+    }
+
 }

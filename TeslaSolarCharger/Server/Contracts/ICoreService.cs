@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+﻿using LanguageExt;
+using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Contracts;
@@ -22,4 +23,5 @@ public interface ICoreService
     Dictionary<int, string> GetRawRestValue();
     Dictionary<int, decimal?> GetCalculatedRestValue();
     bool IsStartupCompleted();
+    Task<Fin<string>> SendTestTelegramMessage();
 }
