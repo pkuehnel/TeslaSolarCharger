@@ -284,7 +284,7 @@ public class TeslaFleetApiService(
                 logger.LogTrace("Got vehicle {@vehicle}", vehicle);
                 if (vehicleResult == default)
                 {
-                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData),
+                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while getting vehicle info for car {car.Vin}",
                                                $"Could not deserialize vehicle: {JsonConvert.SerializeObject(vehicle)}", issueKeys.GetVehicle, car.Vin, null).ConfigureAwait(false);
                     logger.LogError("Could not deserialize vehicle for car {carId}: {@vehicle}", carId, vehicle);
                     continue;
@@ -320,7 +320,7 @@ public class TeslaFleetApiService(
                 }
                 if (vehicleDataResult == default)
                 {
-                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData),
+                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while getting vehicle data for car {car.Vin}",
                         $"Could not deserialize vehicle data: {JsonConvert.SerializeObject(vehicleData)}", issueKeys.GetVehicleData, car.Vin, null).ConfigureAwait(false);
                     logger.LogError("Could not deserialize vehicle data for car {carId}: {@vehicleData}", carId, vehicleData);
                     continue;
@@ -352,7 +352,7 @@ public class TeslaFleetApiService(
                     car.State = DetermineCarState(teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
                     if (car.State == CarStateEnum.Unknown)
                     {
-                        await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData),
+                        await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error determining car state for car {car.Vin}",
                             $"Could not determine car state. TeslaCarStateString: {teslaCarStateString}, TeslaCarShiftState: {teslaCarShiftState}, TeslaCarSoftwareUpdateState: {teslaCarSoftwareUpdateState}, ChargingState: {chargingState}", issueKeys.CarStateUnknown, car.Vin, null).ConfigureAwait(false);
                     }
                     else
@@ -372,7 +372,7 @@ public class TeslaFleetApiService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Could not get vehicle data for car {carId}", carId);
-                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData),
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while refreshing car data for car {car.Vin}",
                     $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.UnhandledCarStateRefresh, car.Vin, ex.StackTrace).ConfigureAwait(false);
             }
         }
@@ -615,7 +615,7 @@ public class TeslaFleetApiService(
                 }
                 else
                 {
-                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
                         $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.Message}",
                         issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
                 }
@@ -647,7 +647,7 @@ public class TeslaFleetApiService(
         if (currentDate < rateLimitedUntil)
         {
             logger.LogError("Car with VIN {vin} rate limited until {rateLimitedUntil}. Skipping command.", vin, rateLimitedUntil);
-            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Car {car.Vin} is rate limited",
                 $"Car is rate limited until {rateLimitedUntil}", issueKeys.CarRateLimited, car.Vin, null);
             return null;
         }
@@ -673,7 +673,7 @@ public class TeslaFleetApiService(
         }
         else
         {
-            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error while sending command to car {car.Vin}",
                 $"Sending command to Tesla API resulted in non succes status code: {response.StatusCode} : Command name:{fleetApiRequest.RequestUrl}, Content data:{contentData}. Response string: {responseString}",
                 issueKeys.FleetApiNonSuccessStatusCode + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
             logger.LogError("Sending command to Tesla API resulted in non succes status code: {statusCode} : Command name:{commandName}, Content data:{contentData}. Response string: {responseString}", response.StatusCode, fleetApiRequest.RequestUrl, contentData, responseString);
@@ -684,7 +684,7 @@ public class TeslaFleetApiService(
         {
             if (vehicleCommandResult.Result != true)
             {
-                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Car {car.Vin} could not handle command",
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}",
                         issueKeys.FleetApiNonSuccessResult + fleetApiRequest.RequestUrl, car.Vin, null)
                     .ConfigureAwait(false);
@@ -801,7 +801,7 @@ public class TeslaFleetApiService(
     {
         if (string.Equals(vehicleCommandResult.Reason, "unsigned_cmds_hardlocked"))
         {
-            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Car {vin} needs a fleet key",
                     "FleetAPI proxy needed set to true", issueKeys.UnsignedCommand, vin, null)
                 .ConfigureAwait(false);
             if (!(await IsFleetApiProxyEnabled(vin).ConfigureAwait(false)).Value)
@@ -932,7 +932,7 @@ public class TeslaFleetApiService(
             }
             else
             {
-                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), "Tesla Fleet API token could not be refreshed",
                     $"Refreshing token did result in non success status code. Response status code: {response.StatusCode} Response string: {responseString}",
                     issueKeys.FleetApiTokenRefreshNonSuccessStatusCode, null, null).ConfigureAwait(false);
                 logger.LogError("Refreshing token did result in non success status code. Response status code: {statusCode} Response string: {responseString}", response.StatusCode, responseString);

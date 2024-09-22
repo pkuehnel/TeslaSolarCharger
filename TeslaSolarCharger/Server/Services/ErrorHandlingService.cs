@@ -2,17 +2,15 @@
 using LanguageExt;
 using LanguageExt.Common;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using System.Globalization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
-using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -24,7 +22,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     ITeslaSolarChargerContext context,
     IDateTimeProvider dateTimeProvider,
     IConfigurationWrapper configurationWrapper,
-    IMapperConfigurationFactory mapperConfigurationFactory) : IErrorHandlingService
+    IMapperConfigurationFactory mapperConfigurationFactory,
+    ISettings settings) : IErrorHandlingService
 {
     public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
     {
@@ -50,12 +49,44 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
     }
 
-    public Task DetectErrors()
+    public async Task DetectErrors()
     {
-        throw new NotImplementedException();
+        var activeErrors = await context.LoggedErrors
+            .Where(e => e.EndTimeStamp == default)
+            .ToListAsync().ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.RestartNeeded, "TSC restart needed",
+            "Due to configuration changes a restart of TSC is needed.", settings.RestartNeeded).ConfigureAwait(false);
+
+        await AddOrRemoveErrors(activeErrors, issueKeys.CrashedOnStartup, "TSC crashed on startup",
+            $"Exeption Message: <code>{settings.StartupCrashMessage}</code>", settings.CrashedOnStartup).ConfigureAwait(false);
+
+
+        var pvValueUpdateAge = dateTimeProvider.DateTimeOffSetUtcNow() - settings.LastPvValueUpdate;
+        var solarValuesTooOld = (pvValueUpdateAge > (configurationWrapper.PvValueJobUpdateIntervall() * 3)) &&(
+                                await context.ModbusConfigurations.AnyAsync().ConfigureAwait(false)
+                              || await context.RestValueConfigurations.AnyAsync().ConfigureAwait(false)
+                              || await context.MqttConfigurations.AnyAsync().ConfigureAwait(false));
+        await AddOrRemoveErrors(activeErrors, issueKeys.SolarValuesNotAvailable, "Solar values are not available",
+            $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", solarValuesTooOld).ConfigureAwait(false);
+
+        await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
+            "Update TSC to the latest version.", solarValuesTooOld).ConfigureAwait(false);
+
     }
 
-    public async Task HandleError(string source, string methodName, string message, string issueKey, string? vin,
+    public async Task<DtoValue<int>> ErrorCount()
+    {
+        var count = await context.LoggedErrors.Where(e => e.EndTimeStamp == null).CountAsync().ConfigureAwait(false);
+        return new(count);
+    }
+
+    public async Task<DtoValue<int>> WarningCount()
+    {
+        //ToDo: need to differencitate between warnings and errors
+        return await ErrorCount().ConfigureAwait(false);
+    }
+
+    public async Task HandleError(string source, string methodName, string headline, string message, string issueKey, string? vin,
         string? stackTrace)
     {
         logger.LogTrace("{method}({source}, {methodName}, {message}, {issueKey}, {vin}, {stackTrace})",
@@ -75,6 +106,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 Vin = vin,
                 Source = source,
                 MethodName = methodName,
+                Headline = headline,
                 Message = message,
                 StackTrace = stackTrace,
             };
@@ -158,13 +190,35 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await context.SaveChangesAsync();
     }
 
+    private async Task AddOrRemoveErrors(List<LoggedError> activeErrors, string issueKey, string headline, string message, bool shouldBeActive)
+    {
+        var filteredErrors = activeErrors.Where(e => e.IssueKey == issueKey).ToList();
+        if (shouldBeActive && filteredErrors.Count < 1)
+        {
+            var loggedError = new LoggedError()
+            {
+                StartTimeStamp = dateTimeProvider.UtcNow(),
+                IssueKey = issueKeys.RestartNeeded,
+                Source = nameof(ErrorHandlingService),
+                MethodName = nameof(DetectErrors),
+                Headline = headline,
+                Message = message,
+            };
+            context.LoggedErrors.Add(loggedError);
+        }
+        else if (!shouldBeActive && filteredErrors.Count > 0)
+        {
+            foreach (var filteredError in filteredErrors)
+            {
+                filteredError.EndTimeStamp = dateTimeProvider.UtcNow();
+            }
+        }
+
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
     private System.Collections.Generic.HashSet<string> TelegramEnabledIssueKeys =>
     [
-        issueKeys.GridPowerNotAvailable,
-        issueKeys.InverterPowerNotAvailable,
-        issueKeys.HomeBatterySocNotAvailable,
-        issueKeys.HomeBatterySocNotPlausible,
-        issueKeys.HomeBatteryPowerNotAvailable,
         issueKeys.FleetApiTokenNotRequested,
         issueKeys.FleetApiTokenUnauthorized,
         issueKeys.FleetApiTokenMissingScopes,
@@ -180,5 +234,6 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         issueKeys.FleetApiNonSuccessResult,
         issueKeys.UnsignedCommand,
         issueKeys.FleetApiTokenRefreshNonSuccessStatusCode,
+        issueKeys.SolarValuesNotAvailable,
     ];
 }

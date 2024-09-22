@@ -843,7 +843,7 @@ public class PvValueService(
                 settings.Overage = fakeOverage;
                 settings.HomeBatteryPower = fakeHomeBatteryPower;
                 settings.HomeBatterySoc = 82;
-                settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetNow();
+                settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
             }
             
             
@@ -936,7 +936,7 @@ public class PvValueService(
             SafeToInt(homeBatteryPower) : null;
         settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
             SafeToInt(homeBatterySoc) : null;
-        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetNow();
+        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
     }
 
     /// <summary>

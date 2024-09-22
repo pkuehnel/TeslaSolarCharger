@@ -224,7 +224,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         settings.StartupCrashMessage = ex.Message;
         var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
         var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
-        await errorHandlingService.HandleError(nameof(Program), "Startup",
+        await errorHandlingService.HandleError(nameof(Program), "Startup", "TSC crashed on startup",
                 $"Exception Message: {ex.Message}", issueKeys.CrashedOnStartup, null, ex.StackTrace)
             .ConfigureAwait(false);
     }

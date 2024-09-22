@@ -14,41 +14,6 @@ public class PossibleIssues : IPossibleIssues
         _issues = new Dictionary<string, DtoIssue>
         {
             {
-                issueKeys.GridPowerNotAvailable, CreateIssue("Grid Power is not available",
-                    IssueSeverity.Error,
-                    "Are all settings related to grid power (url, extraction patterns, headers,...) correct?",
-                    "Are there any firewall related issues preventing reading the grid power value?"
-                )
-            },
-            {
-                issueKeys.InverterPowerNotAvailable, CreateIssue("Inverter power is not available",
-                    IssueSeverity.Warning,
-                    "Does your inverter currently produce energy? Some inverters do not return any value if solar power is not available and you can ignore this issue.",
-                    "Are all settings related to inverter power (url, extraction patterns, headers,...) correct?",
-                    "Are there any firewall related issues preventing reading the inverter power value?"
-                )
-            },
-            {
-                issueKeys.HomeBatterySocNotAvailable, CreateIssue("Home battery soc is not available",
-                    IssueSeverity.Error,
-                    "Are all settings related to home battery soc (url, extraction patterns, headers,...) correct?",
-                    "Are there any firewall related issues preventing reading the home battery soc value?"
-                )
-            },
-            {
-                issueKeys.HomeBatterySocNotPlausible, CreateIssue("Home battery soc is not plausible",
-                    IssueSeverity.Error,
-                    "Change the correction factor. Soc needs to be a value between 0 and 100."
-                )
-            },
-            {
-                issueKeys.HomeBatteryPowerNotAvailable, CreateIssue("Home battery power is not available",
-                    IssueSeverity.Error,
-                    "Are all settings related to home battery power (url, extraction patterns, headers,...) correct?",
-                    "Are there any firewall related issues preventing reading the home battery power value?"
-                )
-            },
-            {
                 issueKeys.HomeBatteryMinimumSocNotConfigured, CreateIssue("Home Battery Minimum Soc (%) is not set.",
                     IssueSeverity.Error,
                     "Set the Home Battery Minimum Soc (%) in your Base Configuration"

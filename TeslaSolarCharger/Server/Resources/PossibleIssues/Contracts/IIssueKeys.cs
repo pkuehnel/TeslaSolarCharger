@@ -2,11 +2,6 @@
 
 public interface IIssueKeys
 {
-    string GridPowerNotAvailable { get; }
-    string InverterPowerNotAvailable { get; }
-    string HomeBatterySocNotAvailable { get; }
-    string HomeBatterySocNotPlausible { get; }
-    string HomeBatteryPowerNotAvailable { get; }
     string HomeBatteryMinimumSocNotConfigured { get; }
     string HomeBatteryChargingPowerNotConfigured { get; }
     string VersionNotUpToDate { get; }
@@ -30,4 +25,5 @@ public interface IIssueKeys
     string FleetApiTokenRefreshNonSuccessStatusCode { get; }
     string CarRateLimited { get; }
     string BleCommandNoSuccess { get; }
+    string SolarValuesNotAvailable { get; }
 }

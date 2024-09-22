@@ -6,11 +6,13 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IErrorHandlingService
 {
-    Task HandleError(string source, string methodName, string message, string issueKey, string? vin,
+    Task HandleError(string source, string methodName, string headline, string message, string issueKey, string? vin,
         string? stackTrace);
 
     Task HandleErrorResolved(string issueKey, string? vin);
     Task SendTelegramMessages();
     Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors();
     Task DetectErrors();
+    Task<DtoValue<int>> ErrorCount();
+    Task<DtoValue<int>> WarningCount();
 }

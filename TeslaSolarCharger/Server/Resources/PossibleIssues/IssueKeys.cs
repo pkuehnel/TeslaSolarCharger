@@ -32,4 +32,5 @@ public class IssueKeys : IIssueKeys
     public string FleetApiTokenRefreshNonSuccessStatusCode => "FleetApiTokenRefreshNonSuccessStatusCode";
     public string CarRateLimited => "CarRateLimited";
     public string BleCommandNoSuccess => "BleCommandNoSuccess_";
+    public string SolarValuesNotAvailable => "SolarValuesNotAvailable";
 }
