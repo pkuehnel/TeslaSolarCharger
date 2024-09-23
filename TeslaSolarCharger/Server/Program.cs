@@ -99,6 +99,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var teslaSolarChargerContext = webApplication.Services.GetRequiredService<ITeslaSolarChargerContext>();
         await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
+        var teslaFleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
+        await teslaFleetApiService.RefreshFleetApiRequestsAreAllowed();
+        await teslaFleetApiService.RefreshTokensIfAllowedAndNeeded();
+
         var shouldRetry = false;
         var teslaMateContext = webApplication.Services.GetRequiredService<ITeslamateContext>();
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();

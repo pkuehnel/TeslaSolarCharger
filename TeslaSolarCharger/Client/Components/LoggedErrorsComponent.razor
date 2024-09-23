@@ -38,7 +38,8 @@ else
                                 <MudAlert Severity="Severity.Error"
                                           NoIcon="true"
                                           ContentAlignment="HorizontalAlignment.Left"
-                                          ShowCloseIcon="false">
+                                          ShowCloseIcon="true"
+                                          CloseIconClicked="@(_ => DismissError(error.Id))">
                                     <h4>@error.Vin</h4>
                                     @((MarkupString)error.Message)
                                 </MudAlert>
@@ -78,4 +79,15 @@ else
         _errorRefreshTimer?.Stop();
         _errorRefreshTimer?.Dispose();
     }
+
+    private async Task DismissError(int errorId)
+    {
+        var idToRemove = await HttpClient.SendPostRequestWithSnackbarAsync<int>("api/LoggedErrors/DismissError", new DtoValue<int>(errorId), Snackar);
+        if (_errors == default)
+        {
+            return;
+        }
+        _errors.RemoveAll(e => e.Id == idToRemove);
+    }
+
 }

@@ -12,7 +12,7 @@ public static class HttpClientExtensions
         string url,
         ISnackbar snackbar)
     {
-        return await SendGetRequestWithSnackbarInternalAsync<T>(httpClient, url, snackbar);
+        return await SendRequestWithSnackbarInternalAsync<T>(httpClient, HttpMethod.Get, url, null, snackbar);
     }
 
     public static async Task SendGetRequestWithSnackbarAsync(
@@ -20,32 +20,63 @@ public static class HttpClientExtensions
         string url,
         ISnackbar snackbar)
     {
-        await SendGetRequestWithSnackbarInternalAsync<object>(httpClient, url, snackbar);
+        await SendRequestWithSnackbarInternalAsync<object>(httpClient, HttpMethod.Get, url, null, snackbar);
     }
 
-    private static async Task<T?> SendGetRequestWithSnackbarInternalAsync<T>(
-        HttpClient httpClient,
+    public static async Task<T?> SendPostRequestWithSnackbarAsync<T>(
+        this HttpClient httpClient,
         string url,
+        object content,
+        ISnackbar snackbar)
+    {
+        return await SendRequestWithSnackbarInternalAsync<T>(httpClient, HttpMethod.Post, url, content, snackbar);
+    }
+
+    public static async Task SendPostRequestWithSnackbarAsync(
+        this HttpClient httpClient,
+        string url,
+        object content,
+        ISnackbar snackbar)
+    {
+        await SendRequestWithSnackbarInternalAsync<object>(httpClient, HttpMethod.Post, url, content, snackbar);
+    }
+
+    private static async Task<T?> SendRequestWithSnackbarInternalAsync<T>(
+        HttpClient httpClient,
+        HttpMethod method,
+        string url,
+        object? content,
         ISnackbar snackbar)
     {
         try
         {
-            var response = await httpClient.GetAsync(url);
+            HttpResponseMessage response;
+            if (method == HttpMethod.Get)
+            {
+                response = await httpClient.GetAsync(url);
+            }
+            else if (method == HttpMethod.Post)
+            {
+                var jsonContent = new StringContent(JsonConvert.SerializeObject(content), System.Text.Encoding.UTF8, "application/json");
+                response = await httpClient.PostAsync(url, jsonContent);
+            }
+            else
+            {
+                throw new ArgumentException("Unsupported HTTP method", nameof(method));
+            }
 
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-
+                var responseContent = await response.Content.ReadAsStringAsync();
                 if (typeof(T) != typeof(object))
                 {
-                    var deserializedObject = JsonConvert.DeserializeObject<T>(content);
+                    var deserializedObject = JsonConvert.DeserializeObject<T>(responseContent);
                     if (deserializedObject == null)
                     {
-                        snackbar.Add("The string could not be deserialized to the obejct type.", Severity.Error);
+                        snackbar.Add("The string could not be deserialized to the object type.", Severity.Error);
                     }
                     return deserializedObject;
                 }
-
                 snackbar.Add("The specified object type is not supported", Severity.Error);
                 return default;
             }
@@ -71,7 +102,6 @@ public static class HttpClientExtensions
             var message = $"Unexpected error: {ex.Message}";
             snackbar.Add(message, Severity.Error);
         }
-
         return default;
     }
 }
