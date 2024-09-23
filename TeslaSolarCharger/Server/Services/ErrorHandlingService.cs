@@ -76,7 +76,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", solarValuesTooOld).ConfigureAwait(false);
 
         await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
-            "Update TSC to the latest version.", solarValuesTooOld).ConfigureAwait(false);
+            "Update TSC to the latest version.", settings.IsNewVersionAvailable).ConfigureAwait(false);
 
     }
 
