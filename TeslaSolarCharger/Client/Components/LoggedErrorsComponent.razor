@@ -1,6 +1,7 @@
 ﻿@using System.Timers
 @using TeslaSolarCharger.Client.Extensions
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
 
 @implements IDisposable
 @inject ISnackbar Snackar
@@ -35,7 +36,7 @@ else
                         @foreach (var error in _errors)
                         {
                             <div class="mb-2">
-                                <MudAlert Severity="Severity.Error"
+                                <MudAlert Severity="GetSeverity(error.Severity)"
                                           NoIcon="true"
                                           ContentAlignment="HorizontalAlignment.Left"
                                           ShowCloseIcon="true"
@@ -90,4 +91,13 @@ else
         _errors.RemoveAll(e => e.Id == idToRemove);
     }
 
+    private Severity GetSeverity(IssueSeverity issueSeverity)
+    {
+        return issueSeverity switch
+        {
+            IssueSeverity.Warning => Severity.Warning,
+            IssueSeverity.Error => Severity.Error,
+            _ => Severity.Info,
+        };
+    }
 }

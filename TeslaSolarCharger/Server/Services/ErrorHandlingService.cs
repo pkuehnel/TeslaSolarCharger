@@ -34,6 +34,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         {
             cfg.CreateMap<LoggedError, DtoLoggedError>()
                 .ForMember(d => d.Occurrences, opt => opt.MapFrom(s => new List<DateTime>(){s.StartTimeStamp}.Concat(s.FurtherOccurrences)))
+                .ForMember(d => d.Severity, opt => opt.MapFrom(s => GetSeverity(s.IssueKey)))
                 ;
         });
         var mapper = mappingConfiguration.CreateMapper();
@@ -82,15 +83,27 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
     public async Task<DtoValue<int>> ErrorCount()
     {
-        var count = await context.LoggedErrors.Where(e => e.EndTimeStamp == null).CountAsync().ConfigureAwait(false);
+        var count = await GetActiveIssueCountBySeverity(IssueSeverity.Error).ConfigureAwait(false);
         return new(count);
     }
 
     public async Task<DtoValue<int>> WarningCount()
     {
-        //ToDo: need to differencitate between warnings and errors
-        return await ErrorCount().ConfigureAwait(false);
+        var count = await GetActiveIssueCountBySeverity(IssueSeverity.Warning).ConfigureAwait(false);
+        return new(count);
     }
+
+    private async Task<int> GetActiveIssueCountBySeverity(IssueSeverity severity)
+    {
+        var activeIssueKeys = await context.LoggedErrors
+            .Where(e => e.EndTimeStamp == null)
+            .Select(e => e.IssueKey)
+            .ToListAsync().ConfigureAwait(false);
+
+        return activeIssueKeys.Count(activeIssueKey => GetSeverity(activeIssueKey) == severity);
+    }
+
+    
 
     public async Task<Fin<int>> DismissError(int errorIdValue)
     {
@@ -242,6 +255,16 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         }
 
         await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private IssueSeverity GetSeverity(string issueKey)
+    {
+        if (issueKey == issueKeys.VersionNotUpToDate
+            || issueKey == issueKeys.FleetApiTokenNotReceived)
+        {
+            return IssueSeverity.Warning;
+        }
+        return IssueSeverity.Error;
     }
 
     private System.Collections.Generic.HashSet<string> TelegramEnabledIssueKeys =>
