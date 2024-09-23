@@ -38,7 +38,7 @@ public class CarBasicConfiguration
     [HelperText("If disabled, this car will not show up in the overview page and TSC does not manage it.")]
     public bool ShouldBeManaged { get; set; } = true;
     [DisplayName("Use BLE")]
-    [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g. Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near your car.")]
+    [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g., Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near (max 4 meters without any walls in between) your car.")]
     public bool UseBle { get; set; }
     [DisplayName("Use BLE for wake up")]
     [HelperText("The car needs to be at least on version 2024.32.3 to support wake up via BLE.")]
