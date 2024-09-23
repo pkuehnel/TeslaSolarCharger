@@ -1,6 +1,7 @@
 ﻿@using System.Timers
 @using TeslaSolarCharger.Client.Extensions
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
 
 @implements IDisposable
 @inject ISnackbar Snackar
@@ -26,8 +27,10 @@ else
                                 </MudBadge>
                             
                             </div>
+                            <div class="mt-1 ml-2 flex-grow-1">
+                            </div>
                             <div class="mt-1 ml-2 flex-grow-0">
-                            
+                                <small>The list is only updated once per minute</small>
                             </div>
                         </div>
                     </TitleContent>
@@ -35,12 +38,12 @@ else
                         @foreach (var error in _errors)
                         {
                             <div class="mb-2">
-                                <MudAlert Severity="Severity.Error"
+                                <MudAlert Severity="GetSeverity(error.Severity)"
                                           NoIcon="true"
                                           ContentAlignment="HorizontalAlignment.Left"
                                           ShowCloseIcon="true"
                                           CloseIconClicked="@(_ => DismissError(error.Id))">
-                                    <h4>@error.Vin</h4>
+                                    <h4>@error.Headline</h4>
                                     @((MarkupString)error.Message)
                                 </MudAlert>
                             </div>
@@ -90,4 +93,13 @@ else
         _errors.RemoveAll(e => e.Id == idToRemove);
     }
 
+    private Severity GetSeverity(IssueSeverity issueSeverity)
+    {
+        return issueSeverity switch
+        {
+            IssueSeverity.Warning => Severity.Warning,
+            IssueSeverity.Error => Severity.Error,
+            _ => Severity.Info,
+        };
+    }
 }

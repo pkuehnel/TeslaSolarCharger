@@ -1,21 +1,15 @@
 using LanguageExt;
-using LanguageExt.Common;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System;
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
-using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -27,7 +21,6 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.SharedBackend.Dtos;
 using TeslaSolarCharger.SharedBackend.Enums;
 using Error = LanguageExt.Common.Error;
@@ -45,7 +38,8 @@ public class TeslaFleetApiService(
     IErrorHandlingService errorHandlingService,
     ISettings settings,
     IBleService bleService,
-    IIssueKeys issueKeys)
+    IIssueKeys issueKeys,
+    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper)
     : ITeslaService, ITeslaFleetApiService
 {
     private DtoFleetApiRequest ChargeStartRequest => new()
@@ -639,6 +633,11 @@ public class TeslaFleetApiService(
             }
         }
         var accessToken = await GetAccessToken().ConfigureAwait(false);
+        if (accessToken == default)
+        {
+            logger.LogError("Access token not found do not send command");
+            return null;
+        }
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
         var content = new StringContent(contentData, System.Text.Encoding.UTF8, "application/json");
@@ -853,7 +852,7 @@ public class TeslaFleetApiService(
             return false;
         }
 
-        var tokenRequestedDate = await GetTokenRequestedDate().ConfigureAwait(false);
+        var tokenRequestedDate = await teslaFleetApiTokenHelper.GetTokenRequestedDate().ConfigureAwait(false);
         if (tokenRequestedDate == null)
         {
             logger.LogError("Token has not been requested. Fleet API currently not working");
@@ -1001,65 +1000,19 @@ public class TeslaFleetApiService(
 
     public async Task<DtoValue<FleetApiTokenState>> GetFleetApiTokenState()
     {
-        if (!configurationWrapper.UseFleetApi())
-        {
-            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotNeeded);
-        }
-
-        if (!settings.AllowUnlimitedFleetApiRequests)
-        {
-            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NoApiRequestsAllowed);
-        }
-        var hasCurrentTokenMissingScopes = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.TokenMissingScopes)
-            .AnyAsync().ConfigureAwait(false);
-        if (hasCurrentTokenMissingScopes)
-        {
-            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.MissingScopes);
-        }
-        var token = await teslaSolarChargerContext.TeslaTokens.FirstOrDefaultAsync().ConfigureAwait(false);
-        if (token != null)
-        {
-            if (token.UnauthorizedCounter > constants.MaxTokenUnauthorizedCount)
-            {
-                return new DtoValue<FleetApiTokenState>(FleetApiTokenState.TokenUnauthorized);
-            }
-            return new DtoValue<FleetApiTokenState>(token.ExpiresAtUtc < dateTimeProvider.UtcNow() ? FleetApiTokenState.Expired : FleetApiTokenState.UpToDate);
-        }
-        var tokenRequestedDate = await GetTokenRequestedDate().ConfigureAwait(false);
-        if (tokenRequestedDate == null)
-        {
-            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotRequested);
-        }
-        var currentDate = dateTimeProvider.UtcNow();
-        if (tokenRequestedDate < (currentDate - constants.MaxTokenRequestWaitTime))
-        {
-            return new DtoValue<FleetApiTokenState>(FleetApiTokenState.TokenRequestExpired);
-        }
-        return new DtoValue<FleetApiTokenState>(FleetApiTokenState.NotReceived);
+        var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
+        return new(tokenState);
     }
 
-    private async Task<DateTime?> GetTokenRequestedDate()
-    {
-        var tokenRequestedDateString = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.FleetApiTokenRequested)
-            .Select(c => c.Value)
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        if (tokenRequestedDateString == null)
-        {
-            return null;
-        }
-        var tokenRequestedDate = DateTime.Parse(tokenRequestedDateString, null, DateTimeStyles.RoundtripKind);
-        return tokenRequestedDate;
-    }
+    
 
-    private async Task<TeslaToken> GetAccessToken()
+    private async Task<TeslaToken?> GetAccessToken()
     {
         logger.LogTrace("{method}()", nameof(GetAccessToken));
         var token = await teslaSolarChargerContext.TeslaTokens
             .OrderByDescending(t => t.ExpiresAtUtc)
-            .FirstAsync().ConfigureAwait(false);
-        if (token.UnauthorizedCounter > constants.MaxTokenUnauthorizedCount)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (token != default && token.UnauthorizedCounter > constants.MaxTokenUnauthorizedCount)
         {
             logger.LogError("Token unauthorized counter is too high. Request a new token.");
             throw new InvalidOperationException("Token unauthorized counter is too high. Request a new token.");
@@ -1168,6 +1121,11 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}()", nameof(GetAllCarsFromAccount));
         var accessToken = await GetAccessToken().ConfigureAwait(false);
+        if (accessToken == default || accessToken.ExpiresAtUtc < dateTimeProvider.UtcNow())
+        {
+            logger.LogError("Can not add cars to TSC as no Tesla Token was found");
+            return Fin<List<DtoTesla>>.Fail("No Tesla token found or existing token expired."); ;
+        }
         var baseUrl = GetFleetApiBaseUrl(accessToken.Region, false, false);
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.AccessToken);
