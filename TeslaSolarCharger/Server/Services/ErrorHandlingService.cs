@@ -1,6 +1,7 @@
 ﻿using AutoMapper.QueryableExtensions;
 using LanguageExt;
 using LanguageExt.Common;
+using Microsoft.AspNetCore.Mvc.Formatters.Xml;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -28,18 +29,22 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
     {
         logger.LogTrace("{method}()", nameof(GetActiveLoggedErrors));
-        var mapper = mapperConfigurationFactory.Create(cfg =>
+        var mappingConfiguration = mapperConfigurationFactory.Create(cfg =>
         {
             cfg.CreateMap<LoggedError, DtoLoggedError>()
                 .ForMember(d => d.Occurrences, opt => opt.MapFrom(s => new List<DateTime>(){s.StartTimeStamp}.Concat(s.FurtherOccurrences)))
                 ;
         });
+        var mapper = mappingConfiguration.CreateMapper();
         try
         {
-            var errors = await context.LoggedErrors
+            var loggedErrors = await context.LoggedErrors
                 .Where(e => e.EndTimeStamp == default)
-                .ProjectTo<DtoLoggedError>(mapper)
                 .ToListAsync();
+            var errors = loggedErrors
+                .Where(e => e.DismissedAt == default || (e.FurtherOccurrences.Any() && e.DismissedAt < e.FurtherOccurrences.Max()))
+                .Select(e => mapper.Map<DtoLoggedError>(e))
+                .ToList();
             return Fin<List<DtoLoggedError>>.Succ(errors);
         }
         catch (Exception ex)
@@ -84,6 +89,27 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     {
         //ToDo: need to differencitate between warnings and errors
         return await ErrorCount().ConfigureAwait(false);
+    }
+
+    public async Task<Fin<int>> DismissError(int errorIdValue)
+    {
+        logger.LogTrace("{method}({errorId})", nameof(DismissError), errorIdValue);
+        var error = await context.LoggedErrors.FindAsync(errorIdValue);
+        if (error == default)
+        {
+            return Fin<int>.Fail(Error.New(new KeyNotFoundException("Could not find error with specified ID")));
+        }
+
+        error.DismissedAt = dateTimeProvider.UtcNow();
+        try
+        {
+            await context.SaveChangesAsync();
+            return Fin<int>.Succ(errorIdValue);
+        }
+        catch (Exception ex)
+        {
+            return Fin<int>.Fail(Error.New(ex));
+        }
     }
 
     public async Task HandleError(string source, string methodName, string headline, string message, string issueKey, string? vin,

@@ -13,6 +13,7 @@ public class LoggedError
     public string MethodName { get; set; }
     public string Message { get; set; }
     public string? StackTrace { get; set; }
+    public DateTime? DismissedAt { get; set; }
     public bool TelegramNotificationSent { get; set; }
     public bool TelegramResolvedMessageSent { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 using TeslaSolarCharger.SharedBackend.Extensions;
 
@@ -14,5 +15,12 @@ public class LoggedErrorsController(IErrorHandlingService service) : ApiBaseCont
         var result = await service.GetActiveLoggedErrors().ConfigureAwait(false);
         return result.ToOk();
 
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> DismissError([FromBody] DtoValue<int> errorId)
+    {
+        var result = await service.DismissError(errorId.Value);
+        return result.ToOk();
     }
 }
