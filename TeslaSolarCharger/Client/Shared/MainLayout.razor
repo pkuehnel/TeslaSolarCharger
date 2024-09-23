@@ -1,5 +1,4 @@
 ﻿@inherits LayoutComponentBase
-@using System.Diagnostics
 @using System.Timers
 @implements IDisposable
 
@@ -50,7 +49,7 @@
     protected override void OnInitialized()
     {
         _timer = new Timer();
-        _timer.Interval = Debugger.IsAttached ? 5000 : 30000;
+        _timer.Interval = 30000;
         _timer.Elapsed += async (_, _) => await CheckVersion();
         _timer.Start();
     }
