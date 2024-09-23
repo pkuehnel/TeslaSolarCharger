@@ -161,7 +161,7 @@ else
     {
         _pairingResults.Remove(car.Vin);
         _loadingVins.Add(car.Vin);
-        var url = $"/api/Ble/PairKey?vin={car.Vin}&apiRole={(car.UseBleForWakeUp ? "driver" : "charging_manager")}";
+        var url = $"/api/Ble/PairKey?vin={car.Vin}&apiRole=charging_manager";
         var result = await HttpClient.GetStringAsync(url).ConfigureAwait(false);
         var resultJson = JsonConvert.DeserializeObject<DtoBleResult>(result);
         _pairingResults[car.Vin] = resultJson?.Message ?? result;
