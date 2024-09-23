@@ -25,7 +25,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     IDateTimeProvider dateTimeProvider,
     IConfigurationWrapper configurationWrapper,
     IMapperConfigurationFactory mapperConfigurationFactory,
-    ISettings settings) : IErrorHandlingService
+    ISettings settings,
+    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper) : IErrorHandlingService
 {
     public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
     {
@@ -78,7 +79,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
         await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
             "Update TSC to the latest version.", settings.IsNewVersionAvailable).ConfigureAwait(false);
-
+        await DetectTokenStateIssues(activeErrors);
     }
 
     public async Task<DtoValue<int>> ErrorCount()
@@ -92,19 +93,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         var count = await GetActiveIssueCountBySeverity(IssueSeverity.Warning).ConfigureAwait(false);
         return new(count);
     }
-
-    private async Task<int> GetActiveIssueCountBySeverity(IssueSeverity severity)
-    {
-        var activeIssueKeys = await context.LoggedErrors
-            .Where(e => e.EndTimeStamp == null)
-            .Select(e => e.IssueKey)
-            .ToListAsync().ConfigureAwait(false);
-
-        return activeIssueKeys.Count(activeIssueKey => GetSeverity(activeIssueKey) == severity);
-    }
-
     
-
     public async Task<Fin<int>> DismissError(int errorIdValue)
     {
         logger.LogTrace("{method}({errorId})", nameof(DismissError), errorIdValue);
@@ -230,6 +219,56 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await context.SaveChangesAsync();
     }
 
+    private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)
+    {
+        logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
+        var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNotRequested, "Fleet API token not requested",
+            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            tokenState == FleetApiTokenState.NotRequested).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
+            "You recently changed your password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            tokenState == FleetApiTokenState.TokenUnauthorized).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
+            "Remove Tesla Solar Charger from your <a href=\"https://accounts.tesla.com/account-settings/security?tab=tpty-apps\" target=\"_blank\">third party apps</a> as you won't get asked again for the scopes. After that request a new token in the <a href=\"/BaseConfiguration\">Base Configuration</a> and select all available scopes.",
+            tokenState == FleetApiTokenState.MissingScopes).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNotReceived, "Waiting for Tesla Token",
+            "Waiting for the Tesla Token from the TSC backend. This might take up to five minutes. If after five minutes this error is still displayed, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            tokenState == FleetApiTokenState.NotReceived).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenRequestExpired, "Tesla Token could not be received",
+            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            tokenState == FleetApiTokenState.TokenRequestExpired).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Tesla Token expired",
+            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            tokenState == FleetApiTokenState.Expired).ConfigureAwait(false);
+
+        //Remove all token related issue keys on token error because very likely it is because of the underlaying token issue.
+        if (tokenState != FleetApiTokenState.UpToDate && tokenState != FleetApiTokenState.NotNeeded)
+        {
+            foreach (var activeError in activeErrors.Where(activeError => activeError.IssueKey.StartsWith(issueKeys.GetVehicleData)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.CarStateUnknown)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.UnhandledCarStateRefresh)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.FleetApiNonSuccessStatusCode)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.FleetApiNonSuccessResult)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.UnsignedCommand)))
+            {
+                activeError.EndTimeStamp = dateTimeProvider.UtcNow();
+            }
+
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private async Task<int> GetActiveIssueCountBySeverity(IssueSeverity severity)
+    {
+        var activeIssueKeys = await context.LoggedErrors
+            .Where(e => e.EndTimeStamp == null)
+            .Select(e => e.IssueKey)
+            .ToListAsync().ConfigureAwait(false);
+
+        return activeIssueKeys.Count(activeIssueKey => GetSeverity(activeIssueKey) == severity);
+    }
+
     private async Task AddOrRemoveErrors(List<LoggedError> activeErrors, string issueKey, string headline, string message, bool shouldBeActive)
     {
         var filteredErrors = activeErrors.Where(e => e.IssueKey == issueKey).ToList();
@@ -238,7 +277,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             var loggedError = new LoggedError()
             {
                 StartTimeStamp = dateTimeProvider.UtcNow(),
-                IssueKey = issueKeys.RestartNeeded,
+                IssueKey = issueKey,
                 Source = nameof(ErrorHandlingService),
                 MethodName = nameof(DetectErrors),
                 Headline = headline,

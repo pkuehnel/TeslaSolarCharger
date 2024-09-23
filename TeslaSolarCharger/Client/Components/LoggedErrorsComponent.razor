@@ -27,8 +27,10 @@ else
                                 </MudBadge>
                             
                             </div>
+                            <div class="mt-1 ml-2 flex-grow-1">
+                            </div>
                             <div class="mt-1 ml-2 flex-grow-0">
-                            
+                                <small>The list is only updated once per minute</small>
                             </div>
                         </div>
                     </TitleContent>
@@ -41,7 +43,7 @@ else
                                           ContentAlignment="HorizontalAlignment.Left"
                                           ShowCloseIcon="true"
                                           CloseIconClicked="@(_ => DismissError(error.Id))">
-                                    <h4>@error.Vin</h4>
+                                    <h4>@error.Headline</h4>
                                     @((MarkupString)error.Message)
                                 </MudAlert>
                             </div>
