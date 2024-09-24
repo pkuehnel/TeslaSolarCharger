@@ -77,6 +77,11 @@ public static class HttpClientExtensions
                     }
                     return deserializedObject;
                 }
+
+                if (content == null)
+                {
+                    return default;
+                }
                 snackbar.Add("The specified object type is not supported", Severity.Error);
                 return default;
             }
