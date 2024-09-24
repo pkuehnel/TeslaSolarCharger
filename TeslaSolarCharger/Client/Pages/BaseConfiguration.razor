@@ -647,7 +647,14 @@ else
 
     private async Task SendTelegramTestMessage()
     {
-        await HttpClient.SendGetRequestWithSnackbarAsync("api/Hello/SendTestTelegramMessage", Snackbar);
+        var result = await HttpClient.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Hello/SendTestTelegramMessage", Snackbar);
+        if (result == default)
+        {
+            Snackbar.Add("Could not get result", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(result.Value, Severity.Success);
     }
 
 }

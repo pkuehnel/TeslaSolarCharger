@@ -23,5 +23,5 @@ public interface ICoreService
     Dictionary<int, string> GetRawRestValue();
     Dictionary<int, decimal?> GetCalculatedRestValue();
     bool IsStartupCompleted();
-    Task<Fin<string>> SendTestTelegramMessage();
+    Task<Fin<DtoValue<string>>> SendTestTelegramMessage();
 }
