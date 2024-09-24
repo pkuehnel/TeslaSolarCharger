@@ -78,7 +78,7 @@ public static class HttpClientExtensions
                     return deserializedObject;
                 }
 
-                if (content == null)
+                if (string.IsNullOrEmpty(responseContent))
                 {
                     return default;
                 }

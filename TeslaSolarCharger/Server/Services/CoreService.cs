@@ -189,14 +189,14 @@ public class CoreService : ICoreService
         return _settings.IsStartupCompleted;
     }
 
-    public async Task<Fin<string>> SendTestTelegramMessage()
+    public async Task<Fin<DtoValue<string>>> SendTestTelegramMessage()
     {
         _logger.LogTrace("{method}()", nameof(SendTestTelegramMessage));
         var statusCode = await _telegramService.SendMessage("TeslaSolarCharger test message");
         if (((int)statusCode >= 200) && ((int)statusCode <= 299))
         {
-            return Fin<string>.Succ("Sending message succeeded");
+            return Fin<DtoValue<string>>.Succ(new("Sending message succeeded"));
         }
-        return Fin<string>.Fail($"Sending error message failed with status code {statusCode}");
+        return Fin<DtoValue<string>>.Fail($"Sending error message failed with status code {statusCode}");
     }
 }
