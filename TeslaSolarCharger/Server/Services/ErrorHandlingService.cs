@@ -174,7 +174,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             .ToListAsync();
         foreach (var error in openErrors)
         {
-            if (!possibleIssues.GetIssueByKey(error.IssueKey).IsTelegramEnabled)
+            if ((!possibleIssues.GetIssueByKey(error.IssueKey).IsTelegramEnabled) || ((error.FurtherOccurrences.Count + 1) < possibleIssues.GetIssueByKey(error.IssueKey).ShowErrorAfterOccurrences))
             {
                 continue;
             }
