@@ -1,7 +1,5 @@
-﻿using AutoMapper.QueryableExtensions;
-using LanguageExt;
+﻿using LanguageExt;
 using LanguageExt.Common;
-using Microsoft.AspNetCore.Mvc.Formatters.Xml;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -26,7 +24,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     IConfigurationWrapper configurationWrapper,
     IMapperConfigurationFactory mapperConfigurationFactory,
     ISettings settings,
-    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper) : IErrorHandlingService
+    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper,
+    IPossibleIssues possibleIssues) : IErrorHandlingService
 {
     public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
     {
@@ -35,7 +34,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         {
             cfg.CreateMap<LoggedError, DtoLoggedError>()
                 .ForMember(d => d.Occurrences, opt => opt.MapFrom(s => new List<DateTime>(){s.StartTimeStamp}.Concat(s.FurtherOccurrences)))
-                .ForMember(d => d.Severity, opt => opt.MapFrom(s => GetSeverity(s.IssueKey)))
+                .ForMember(d => d.Severity, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).IssueSeverity))
                 ;
         });
         var mapper = mappingConfiguration.CreateMapper();
@@ -48,6 +47,9 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 .Where(e => e.DismissedAt == default || (e.FurtherOccurrences.Any() && e.DismissedAt < e.FurtherOccurrences.Max()))
                 .Select(e => mapper.Map<DtoLoggedError>(e))
                 .ToList();
+
+            var removedErrorCount = errors.RemoveAll(e => e.Occurrences.Count < possibleIssues.GetIssueByKey(e.IssueKey).ShowErrorAfterOccurrences);
+            logger.LogDebug("{removedErrorsCount} errors removed as did not reach minimum error count", removedErrorCount);
             return Fin<List<DtoLoggedError>>.Succ(errors);
         }
         catch (Exception ex)
@@ -172,7 +174,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             .ToListAsync();
         foreach (var error in openErrors)
         {
-            if (!TelegramEnabledIssueKeys.Any(i => error.IssueKey.StartsWith(i)))
+            if (!possibleIssues.GetIssueByKey(error.IssueKey).IsTelegramEnabled)
             {
                 continue;
             }
@@ -198,7 +200,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             .ToListAsync();
         foreach (var error in closedErrors)
         {
-            if (!TelegramEnabledIssueKeys.Any(i => error.IssueKey.StartsWith(i)))
+            if (!possibleIssues.GetIssueByKey(error.IssueKey).IsTelegramEnabled)
             {
                 continue;
             }
@@ -266,7 +268,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             .Select(e => e.IssueKey)
             .ToListAsync().ConfigureAwait(false);
 
-        return activeIssueKeys.Count(activeIssueKey => GetSeverity(activeIssueKey) == severity);
+        return activeIssueKeys.Count(activeIssueKey => possibleIssues.GetIssueByKey(activeIssueKey).IssueSeverity == severity);
     }
 
     private async Task AddOrRemoveErrors(List<LoggedError> activeErrors, string issueKey, string headline, string message, bool shouldBeActive)
@@ -285,6 +287,21 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             };
             context.LoggedErrors.Add(loggedError);
         }
+        else if (shouldBeActive)
+        {
+            for (var i = 0; i < activeErrors.Count; i++)
+            {
+                if (i == 0)
+                {
+                    filteredErrors[i].FurtherOccurrences.Add(dateTimeProvider.UtcNow());
+                }
+                else
+                {
+                    logger.LogWarning("More than one error with issue key {issueKey} was active", issueKey);
+                    filteredErrors[i].EndTimeStamp = dateTimeProvider.UtcNow();
+                }
+            }
+        }
         else if (!shouldBeActive && filteredErrors.Count > 0)
         {
             foreach (var filteredError in filteredErrors)
@@ -295,34 +312,4 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
-
-    private IssueSeverity GetSeverity(string issueKey)
-    {
-        if (issueKey == issueKeys.VersionNotUpToDate
-            || issueKey == issueKeys.FleetApiTokenNotReceived)
-        {
-            return IssueSeverity.Warning;
-        }
-        return IssueSeverity.Error;
-    }
-
-    private System.Collections.Generic.HashSet<string> TelegramEnabledIssueKeys =>
-    [
-        issueKeys.FleetApiTokenNotRequested,
-        issueKeys.FleetApiTokenUnauthorized,
-        issueKeys.FleetApiTokenMissingScopes,
-        issueKeys.FleetApiTokenRequestExpired,
-        issueKeys.FleetApiTokenNotReceived,
-        issueKeys.FleetApiTokenExpired,
-        issueKeys.FleetApiTokenNoApiRequestsAllowed,
-        issueKeys.GetVehicle,
-        issueKeys.GetVehicleData,
-        issueKeys.CarStateUnknown,
-        issueKeys.UnhandledCarStateRefresh,
-        issueKeys.FleetApiNonSuccessStatusCode,
-        issueKeys.FleetApiNonSuccessResult,
-        issueKeys.UnsignedCommand,
-        issueKeys.FleetApiTokenRefreshNonSuccessStatusCode,
-        issueKeys.SolarValuesNotAvailable,
-    ];
 }

@@ -1086,7 +1086,7 @@ public class TeslaFleetApiService(
         else
         {
             logger.LogWarning(
-                "Staus Code {statusCode} is currently not handled, look into https://developer.tesla.com/docs/fleet-api#response-codes to check status code information. Response: {responseString}",
+                "Status Code {statusCode} is currently not handled, look into https://developer.tesla.com/docs/fleet-api#response-codes to check status code information. Response: {responseString}",
                 statusCode, responseString);
             return;
         }
