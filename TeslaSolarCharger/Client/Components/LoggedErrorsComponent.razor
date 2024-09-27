@@ -43,7 +43,7 @@ else
                                           ContentAlignment="HorizontalAlignment.Left"
                                           ShowCloseIcon="true"
                                           CloseIconClicked="@(_ => DismissError(error.Id))">
-                                    <h4>@error.Headline</h4>
+                                    <h4>@(error.Headline + $" occured {error.Occurrences.Count} time(s)")</h4>
                                     @((MarkupString)error.Message)
                                 </MudAlert>
                             </div>
