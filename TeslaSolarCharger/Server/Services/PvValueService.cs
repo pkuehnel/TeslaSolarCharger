@@ -687,7 +687,7 @@ public class PvValueService(
     public async Task UpdatePvValues()
     {
         logger.LogTrace("{method}()", nameof(UpdatePvValues));
-
+        var errorWhileUpdatingPvValues = false;
         if (configurationWrapper.ShouldUseFakeSolarValues())
         {
             logger.LogWarning("Fake solar values are used.");
@@ -885,6 +885,7 @@ public class PvValueService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
+                errorWhileUpdatingPvValues = true;
             }
         }
 
@@ -936,7 +937,10 @@ public class PvValueService(
             SafeToInt(homeBatteryPower) : null;
         settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
             SafeToInt(homeBatterySoc) : null;
-        settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        if (!errorWhileUpdatingPvValues)
+        {
+            settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        }
     }
 
     /// <summary>

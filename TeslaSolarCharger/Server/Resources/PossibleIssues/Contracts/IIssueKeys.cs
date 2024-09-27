@@ -2,10 +2,7 @@
 
 public interface IIssueKeys
 {
-    string HomeBatteryMinimumSocNotConfigured { get; }
-    string HomeBatteryChargingPowerNotConfigured { get; }
     string VersionNotUpToDate { get; }
-    string ServerTimeZoneDifferentFromClient { get; }
     string FleetApiTokenNotRequested { get; }
     string FleetApiTokenUnauthorized { get; }
     string FleetApiTokenMissingScopes { get; }

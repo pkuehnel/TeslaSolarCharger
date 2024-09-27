@@ -5,112 +5,192 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Resources.PossibleIssues;
 
-public class PossibleIssues : IPossibleIssues
+public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
 {
-    private readonly Dictionary<string, DtoIssue> _issues;
-
-    public PossibleIssues(IIssueKeys issueKeys)
+    private readonly Dictionary<string, DtoIssue> _issues = new()
     {
-        _issues = new Dictionary<string, DtoIssue>
-        {
+        { issueKeys.VersionNotUpToDate, new DtoIssue
             {
-                issueKeys.HomeBatteryMinimumSocNotConfigured, CreateIssue("Home Battery Minimum Soc (%) is not set.",
-                    IssueSeverity.Error,
-                    "Set the Home Battery Minimum Soc (%) in your Base Configuration"
-                )
-            },
+                IssueSeverity = IssueSeverity.Warning,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiTokenNotRequested, new DtoIssue
             {
-                issueKeys.HomeBatteryChargingPowerNotConfigured, CreateIssue("Home Battery charging power (W) is not set.",
-                    IssueSeverity.Error,
-                    "Set the Home Battery charging power (W) in your Base Configuration"
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiTokenUnauthorized, new DtoIssue
             {
-                issueKeys.VersionNotUpToDate, CreateIssue("Your installed version is not up to date. Note: The first startup after an update may take more time than usual as the database format is converted. Do not stop TSC during the first startup as this might corrupt the database.",
-                    IssueSeverity.Warning,
-                    "<a href=\"https://github.com/pkuehnel/TeslaSolarCharger/releases\"  target=\"_blank\">Check release notes of latest versions</a>",
-                    "Update to latest version with <code>docker compose pull</code> and <code>docker compose up -d</code>."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiTokenMissingScopes, new DtoIssue
             {
-                issueKeys.ServerTimeZoneDifferentFromClient, CreateIssue("Server time zone does not match client timezone",
-                    IssueSeverity.Warning,
-                    "Update the TimeZone of the TeslaSolarChargerContainer in your docker-compose.yml."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiTokenRequestExpired, new DtoIssue
             {
-                issueKeys.FleetApiTokenNotRequested, CreateIssue("You did not request a Tesla Token, yet.",
-                    IssueSeverity.Error,
-                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiTokenNotReceived, new DtoIssue
             {
-                issueKeys.FleetApiTokenUnauthorized, CreateIssue("Your Tesla token is unauthorized, this could be due to a changed Tesla account password, or your you disabled mobile access in your car.",
-                    IssueSeverity.Error,
-                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a>, request a new token and select all available scopes.",
-                    "Enable mobile access in your car."
-                )
-            },
+                IssueSeverity = IssueSeverity.Warning,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiTokenExpired, new DtoIssue
             {
-                issueKeys.FleetApiTokenMissingScopes, CreateIssue("Your Tesla token has missing scopes.",
-                    IssueSeverity.Error,
-                    "Remove Tesla Solar Charger from your <a href=\"https://accounts.tesla.com/account-settings/security?tab=tpty-apps\" target=\"_blank\">third party apps</a> as you won't get asked again for the scopes. After that request a new token in the <a href=\"/BaseConfiguration\">Base Configuration</a> and select all available scopes."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiTokenNoApiRequestsAllowed, new DtoIssue
             {
-                issueKeys.FleetApiTokenNotReceived, CreateIssue("The Tesla token was not received, yet.",
-                    IssueSeverity.Warning,
-                    "Getting the Token can take up to five minutes after submitting your password.",
-                    "If waiting five minutes does not help, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.CrashedOnStartup, new DtoIssue
             {
-                issueKeys.FleetApiTokenRequestExpired, CreateIssue("The Tesla token could not be received.",
-                    IssueSeverity.Error,
-                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-                    "If this issue keeps occuring, feel free to open an issue <a href=\"https://github.com/pkuehnel/TeslaSolarCharger/issues\" target=\"_blank\">on Github</a> including the first 10 chars of your installation ID (bottom of the page). Do NOT include the whole ID."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.RestartNeeded, new DtoIssue
             {
-                issueKeys.FleetApiTokenExpired, CreateIssue("Your Tesla token is expired, this can occur when you changed your password or did not use the TeslaSolarCharger for too long..",
-                    IssueSeverity.Error,
-                    "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.GetVehicle, new DtoIssue
             {
-                issueKeys.CrashedOnStartup, CreateIssue("The application crashed while starting up.",
-                    IssueSeverity.Error,
-                    "Look into the logfiles for further details."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 4,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.GetVehicleData, new DtoIssue
             {
-                issueKeys.FleetApiTokenNoApiRequestsAllowed, CreateIssue("Fleet API requests are not allowed.",
-                    IssueSeverity.Error,
-                    "Update TSC to the latest version."
-                )
-            },
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.CarStateUnknown, new DtoIssue
             {
-                issueKeys.RestartNeeded, CreateIssue("A restart is needed.",
-                    IssueSeverity.Error,
-                    "Restart the TSC container.",
-                                         "Restart the Docker host."
-                )
-            },
-        };
-    }
-
-    private DtoIssue CreateIssue(string issueMessage, IssueSeverity issueSeverity, params string[] possibleSolutions)
-    {
-        return new DtoIssue()
-        {
-            IssueMessage = issueMessage,
-            IssueSeverity = issueSeverity,
-            PossibleSolutions = possibleSolutions.ToList(),
-        };
-    }
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.UnhandledCarStateRefresh, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiNonSuccessStatusCode, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = true,
+            }
+        },
+        { issueKeys.FleetApiNonSuccessResult, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = true,
+            }
+        },
+        { issueKeys.UnsignedCommand, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.FleetApiTokenRefreshNonSuccessStatusCode, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.CarRateLimited, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+        { issueKeys.BleCommandNoSuccess, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = true,
+            }
+        },
+        { issueKeys.SolarValuesNotAvailable, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = false,
+            }
+        },
+    };
 
     public DtoIssue GetIssueByKey(string key)
     {
-        return _issues[key];
+        return _issues[GetKeyToSearchFor(key)];
+    }
+
+    private string GetKeyToSearchFor(string key)
+    {
+        if (key.Contains('_'))
+        {
+            var keyToSearchFor = key.Split('_')[0] + "_";
+            return keyToSearchFor;
+        }
+        return key;
     }
 }
