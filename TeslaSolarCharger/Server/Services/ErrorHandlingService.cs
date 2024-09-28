@@ -148,9 +148,46 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         else
         {
             existingError.FurtherOccurrences.Add(dateTimeProvider.UtcNow());
+            var isChanged = false;
+            if (existingError.Source != source)
+            {
+                existingError.Source = source;
+                isChanged = true;
+            }
+
+            if (existingError.MethodName != methodName)
+            {
+                existingError.MethodName = methodName;
+                isChanged = true;
+            }
+
+            if (existingError.Headline != headline)
+            {
+                existingError.Headline = headline;
+                isChanged = true;
+            }
+
+            if (existingError.Message != message)
+            {
+                existingError.Message = message;
+                isChanged = true;
+            }
+
+            if (existingError.StackTrace != stackTrace)
+            {
+                existingError.StackTrace = stackTrace;
+                isChanged = true;
+            }
+
+            if (isChanged)
+            {
+                logger.LogInformation("Due to changes on the existing error the error {headline} for car {vin} is auto undismissed.", headline, vin);
+                existingError.DismissedAt = default;
+            }
+
         }
 
-        
+
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
