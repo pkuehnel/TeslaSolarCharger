@@ -106,4 +106,5 @@ public interface IConfigurationWrapper
     int MaxTravelSpeedMetersPerSecond();
     int CarRefreshAfterCommandSeconds();
     bool SendStackTraceToTelegram();
+    TimeSpan BleUsageStopAfterError();
 }

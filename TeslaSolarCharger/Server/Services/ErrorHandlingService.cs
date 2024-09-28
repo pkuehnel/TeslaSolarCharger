@@ -1,9 +1,11 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -219,6 +221,46 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         }
 
         await context.SaveChangesAsync();
+    }
+
+    public async Task RemoveInvalidLoggedErrorsAsync()
+    {
+        logger.LogTrace("{method}()", nameof(RemoveInvalidLoggedErrorsAsync));
+        // Get all issue keys using reflection
+        var validIssueKeys = GetIssueKeysUsingReflection();
+
+        // Split validIssueKeys into exact matches and prefixes
+        var exactMatchKeys = validIssueKeys.Where(k => !k.EndsWith("_")).ToList();
+        var prefixKeys = validIssueKeys.Where(k => k.EndsWith("_"))
+            .Select(k => k.TrimEnd('_'))
+            .ToList();
+
+        // Build the query to select invalid LoggedErrors
+        var errorsToRemove = context.LoggedErrors.Where(e =>
+            !exactMatchKeys.Contains(e.IssueKey) &&
+            !prefixKeys.Any(prefix => e.IssueKey.StartsWith(prefix)));
+
+        var numberOfErrorsToDelete = await errorsToRemove.CountAsync();
+        logger.LogInformation("Delete {numberOfErrorsToDelete} logged errors as they have unknown keys", numberOfErrorsToDelete);
+
+        // Remove the invalid LoggedErrors
+        context.LoggedErrors.RemoveRange(errorsToRemove);
+
+        // Save changes to the database
+        await context.SaveChangesAsync();
+    }
+
+    private List<string> GetIssueKeysUsingReflection()
+    {
+        // Get all public properties of the interface IIssueKeys
+        var issueKeyProperties = typeof(IIssueKeys).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        // Get the value of each property (the issue key string) from the _issueKeys instance
+        var keys = issueKeyProperties.Select(prop => prop.GetValue(issueKeys)?.ToString())
+            .Where(key => key != null)
+            .ToList();
+
+        return keys!;
     }
 
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)

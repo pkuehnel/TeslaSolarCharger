@@ -2,9 +2,7 @@
 using System.Net;
 using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
-using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -12,11 +10,9 @@ using TeslaSolarCharger.Shared.Enums;
 namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaBleService(ILogger<TeslaBleService> logger,
-    IConfigurationWrapper configurationWrapper,
-    ITeslamateApiService teslamateApiService,
     ISettings settings) : IBleService
 {
-    public async Task<DtoBleResult> StartCharging(string vin)
+    public async Task<DtoBleCommandResult> StartCharging(string vin)
     {
         logger.LogTrace("{method}({vin})", nameof(StartCharging), vin);
         var request = new DtoBleRequest
@@ -28,7 +24,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public async Task<DtoBleResult> WakeUpCar(string vin)
+    public async Task<DtoBleCommandResult> WakeUpCar(string vin)
     {
         var request = new DtoBleRequest
         {
@@ -40,7 +36,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public async Task<DtoBleResult> StopCharging(string vin)
+    public async Task<DtoBleCommandResult> StopCharging(string vin)
     {
         var request = new DtoBleRequest
         {
@@ -51,7 +47,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public async Task<DtoBleResult> SetAmp(string vin, int amps)
+    public async Task<DtoBleCommandResult> SetAmp(string vin, int amps)
     {
         logger.LogTrace("{method}({vin}, {amps})", nameof(SetAmp), vin, amps);
         var car = settings.Cars.First(c => c.Vin == vin);
@@ -60,7 +56,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         {
             Vin = vin,
             CommandName = "charging-set-amps",
-            Parameters = new List<string> { amps.ToString() },
+            Parameters = [amps.ToString()],
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
 
@@ -75,7 +71,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public async Task<DtoBleResult> FlashLights(string vin)
+    public async Task<DtoBleCommandResult> FlashLights(string vin)
     {
         var request = new DtoBleRequest
         {
@@ -86,13 +82,18 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         return result;
     }
 
-    public async Task<DtoBleResult> PairKey(string vin, string apiRole)
+    public async Task<DtoBleCommandResult> PairKey(string vin, string apiRole)
     {
         logger.LogTrace("{method}({vin}, {apiRole})", nameof(PairKey), vin, apiRole);
         var bleBaseUrl = GetBleBaseUrl(vin);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
-            return new DtoBleResult() { Message = "BLE Base URL is not set. Set a BLE URL in your base configuration.", StatusCode = HttpStatusCode.BadRequest, Success = false, };
+            return new()
+            {
+                ResultMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+                ErrorType = ErrorType.TscConfiguration,
+                Success = false,
+            };
         }
         
         bleBaseUrl += "Pairing/PairCar";
@@ -108,16 +109,27 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                return new DtoBleResult() { Message = responseContent, StatusCode = response.StatusCode, Success = false, };
+                return new()
+                {
+                    ResultMessage = responseContent,
+                    ErrorType = ErrorType.TscConfiguration,
+                    Success = false,
+                };
             }
-
-            // Success is unknown as the response is not known
-            return new DtoBleResult() { Message = responseContent, StatusCode = response.StatusCode, Success = false };
+            var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}");
+            // Success is unknown as the response is not known but display success false so result message is displayed in UI
+            commandResult.Success = false;
+            return commandResult;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to pair key.");
-            return new DtoBleResult() { Message = ex.Message, StatusCode = HttpStatusCode.InternalServerError, Success = false, };
+            return new()
+            {
+                ResultMessage = ex.Message,
+                ErrorType = ErrorType.Unknown,
+                Success = false,
+            };
         }
         
     }
@@ -132,17 +144,17 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         throw new NotImplementedException();
     }
 
-    private async Task<DtoBleResult> SendCommandToBle(DtoBleRequest request)
+    private async Task<DtoBleCommandResult> SendCommandToBle(DtoBleRequest request)
     {
         logger.LogTrace("{method}({@request})", nameof(SendCommandToBle), request);
         var bleBaseUrl = GetBleBaseUrl(request.Vin);
         if (string.IsNullOrWhiteSpace(bleBaseUrl))
         {
-            return new DtoBleResult()
+            return new DtoBleCommandResult()
             {
                 Success = false,
-                Message = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
-                StatusCode = HttpStatusCode.BadRequest,
+                ResultMessage = "BLE Base URL is not set. Set a BLE URL in your base configuration.",
+                ErrorType = ErrorType.TscConfiguration,
             };
         }
         bleBaseUrl += "Command/ExecuteCommand";
@@ -168,19 +180,18 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
                 throw new InvalidOperationException();
             }
-            var commandResult = JsonConvert.DeserializeObject<DtoCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoCommandResult)}"); ;
-            var result = new DtoBleResult
-            {
-                StatusCode = response.StatusCode,
-                Message = commandResult.ResultMessage ?? string.Empty,
-                Success = commandResult.Success,
-            };
-            return result;
+            var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}"); ;
+            return commandResult;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to send ble command.");
-            return new DtoBleResult() { Message = ex.Message, StatusCode = HttpStatusCode.InternalServerError, Success = false, };
+            return new DtoBleCommandResult()
+            {
+                ResultMessage = ex.Message,
+                Success = false,
+                ErrorType = ErrorType.Unknown,
+            };
         }
         
     }

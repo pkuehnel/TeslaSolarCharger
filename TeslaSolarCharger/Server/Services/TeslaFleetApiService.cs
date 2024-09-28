@@ -583,52 +583,76 @@ public class TeslaFleetApiService(
             var isCarBleEnabled = car.UseBle;
             if (isCarBleEnabled)
             {
-                
-                var result = new DtoBleResult();
-                if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+                if ((car.LastNonSuccessBleCall != default) && (car.LastNonSuccessBleCall.Value >
+                    (dateTimeProvider.UtcNow() - configurationWrapper.BleUsageStopAfterError())))
                 {
-                    result = await bleService.StartCharging(vin);
-                }
-                else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
-                {
-                    result = await bleService.StopCharging(vin);
-                }
-                else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
-                {
-                    result = await bleService.SetAmp(vin, amp!.Value);
-                }
-                else if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
-                {
-                    result = await bleService.WakeUpCar(vin);
-                }
-
-                if (result.Success)
-                {
-                    AddRequestToCar(vin, fleetApiRequest);
-                    await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
+                    logger.LogWarning("BLE is not used for car {carVin} as last non success BLE call was at {lastNonSuccessBleCall}", car.Vin, car.LastNonSuccessBleCall);
                 }
                 else
                 {
-                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
-                        $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.Message}",
-                        issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
-                }
-                
-                
-
-                if (typeof(T) == typeof(DtoVehicleCommandResult))
-                {
-                    var comamndResult = new DtoGenericTeslaResponse<T>() { };
-                    comamndResult.Response = (T)(object) new DtoVehicleCommandResult()
+                    var result = new DtoBleCommandResult();
+                    try
                     {
-                        Result = result.Success,
-                        Reason = result.Message,
-                    };
-                    return comamndResult;
+                        if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+                        {
+                            result = await bleService.StartCharging(vin);
+                        }
+                        else if (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+                        {
+                            result = await bleService.StopCharging(vin);
+                        }
+                        else if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
+                        {
+                            result = await bleService.SetAmp(vin, amp!.Value);
+                        }
+                        else if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
+                        {
+                            result = await bleService.WakeUpCar(vin);
+                        }
+
+                        if (result.Success
+                            || (result.ErrorType == ErrorType.CarExecution
+                                && (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+                                && (result.CarErrorMessage?.Contains("is_charging") == true))
+                            || (result.ErrorType == ErrorType.CarExecution
+                                && (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+                                && (result.CarErrorMessage?.Contains("not_charging") == true)))
+                        {
+                            AddRequestToCar(vin, fleetApiRequest);
+                            await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
+                            await errorHandlingService.HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback,
+                                car.Vin);
+                            if (typeof(T) == typeof(DtoVehicleCommandResult))
+                            {
+                                var comamndResult = new DtoGenericTeslaResponse<T> { Response = (T)(object)new DtoVehicleCommandResult()
+                                    {
+                                        //Do not use result.Success as on is_charging and not_charging errors this would be false but should be true
+                                        Result = true,
+                                        Reason = result.ResultMessage ?? string.Empty,
+                                    },
+                                };
+                                return comamndResult;
+                            }
+
+                            return new();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error while calling BLE API");
+                    }
+
+
+                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
+                        $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.ResultMessage}",
+                        issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
+                    logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback.");
+                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                        $"Using Fleet API as BLE fallback for car {car.Vin}",
+                        "As the BLE command did not succeed, Fleet API is used as fallback.", issueKeys.UsingFleetApiAsBleFallback, car.Vin,
+                        null).ConfigureAwait(false);
+                    car.LastNonSuccessBleCall = dateTimeProvider.UtcNow();
                 }
-
-                return new DtoGenericTeslaResponse<T>();
-
                 
             }
         }

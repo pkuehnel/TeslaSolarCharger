@@ -23,4 +23,5 @@ public interface IIssueKeys
     string CarRateLimited { get; }
     string BleCommandNoSuccess { get; }
     string SolarValuesNotAvailable { get; }
+    string UsingFleetApiAsBleFallback { get; }
 }
