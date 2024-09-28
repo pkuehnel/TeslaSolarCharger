@@ -182,7 +182,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IssueSeverity = IssueSeverity.Warning,
                 IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 2,
-                HasPlaceHolderIssueKey = true,
+                HasPlaceHolderIssueKey = false,
             }
         },
     };

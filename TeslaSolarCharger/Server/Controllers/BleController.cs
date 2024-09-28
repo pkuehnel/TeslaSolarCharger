@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TeslaSolarCharger.Server.Dtos.Ble;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.SharedBackend.Abstracts;

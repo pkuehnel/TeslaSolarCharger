@@ -610,24 +610,31 @@ public class TeslaFleetApiService(
                             result = await bleService.WakeUpCar(vin);
                         }
 
-                        if (result.Success)
+                        if (result.Success
+                            || (result.ErrorType == ErrorType.CarExecution
+                                && (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
+                                && (result.CarErrorMessage?.Contains("is_charging") == true))
+                            || (result.ErrorType == ErrorType.CarExecution
+                                && (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
+                                && (result.CarErrorMessage?.Contains("not_charging") == true)))
                         {
                             AddRequestToCar(vin, fleetApiRequest);
                             await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
-                            await errorHandlingService.HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback + fleetApiRequest.RequestUrl,
+                            await errorHandlingService.HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback,
                                 car.Vin);
                             if (typeof(T) == typeof(DtoVehicleCommandResult))
                             {
-                                var comamndResult = new DtoGenericTeslaResponse<T>() { };
-                                comamndResult.Response = (T)(object)new DtoVehicleCommandResult()
-                                {
-                                    Result = result.Success,
-                                    Reason = result.ResultMessage ?? string.Empty,
+                                var comamndResult = new DtoGenericTeslaResponse<T> { Response = (T)(object)new DtoVehicleCommandResult()
+                                    {
+                                        //Do not use result.Success as on is_charging and not_charging errors this would be false but should be true
+                                        Result = true,
+                                        Reason = result.ResultMessage ?? string.Empty,
+                                    },
                                 };
                                 return comamndResult;
                             }
 
-                            return new DtoGenericTeslaResponse<T>();
+                            return new();
                         }
                     }
                     catch (Exception ex)
@@ -642,7 +649,7 @@ public class TeslaFleetApiService(
                     logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback.");
                     await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                         $"Using Fleet API as BLE fallback for car {car.Vin}",
-                        "As the BLE command did not succeed, Fleet API is used as fallback", issueKeys.UsingFleetApiAsBleFallback + fleetApiRequest.RequestUrl, car.Vin,
+                        "As the BLE command did not succeed, Fleet API is used as fallback.", issueKeys.UsingFleetApiAsBleFallback, car.Vin,
                         null).ConfigureAwait(false);
                     car.LastNonSuccessBleCall = dateTimeProvider.UtcNow();
                 }
