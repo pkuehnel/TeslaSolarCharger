@@ -590,7 +590,7 @@ public class TeslaFleetApiService(
                 }
                 else
                 {
-                    var result = new DtoBleResult();
+                    var result = new DtoBleCommandResult();
                     try
                     {
                         if (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
@@ -622,7 +622,7 @@ public class TeslaFleetApiService(
                                 comamndResult.Response = (T)(object)new DtoVehicleCommandResult()
                                 {
                                     Result = result.Success,
-                                    Reason = result.Message,
+                                    Reason = result.ResultMessage ?? string.Empty,
                                 };
                                 return comamndResult;
                             }
@@ -637,7 +637,7 @@ public class TeslaFleetApiService(
 
 
                     await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
-                        $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.Message}",
+                        $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.ResultMessage}",
                         issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
                     logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback.");
                     await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),

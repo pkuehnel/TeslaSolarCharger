@@ -87,7 +87,7 @@ else
             {
                 <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
                     <p>
-                        @bleResult.Message
+                        @bleResult.ResultMessage
                     </p>
                 </div>
             }
@@ -102,7 +102,7 @@ else
                 {
                     <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
                         <p>
-                            @bleWakeUpResult.Message
+                            @bleWakeUpResult.ResultMessage
                         </p>
                     </div>
                     
@@ -122,8 +122,8 @@ else
 
     private Dictionary<string, string> _pairingResults = new();
 
-    private Dictionary<string, DtoBleResult> _bleTestResults = new();
-    private Dictionary<string, DtoBleResult> _bleWakeUpTestResults = new();
+    private Dictionary<string, DtoBleCommandResult> _bleTestResults = new();
+    private Dictionary<string, DtoBleCommandResult> _bleWakeUpTestResults = new();
 
     private HashSet<string> _loadingVins = new();
 
@@ -163,8 +163,8 @@ else
         _loadingVins.Add(car.Vin);
         var url = $"/api/Ble/PairKey?vin={car.Vin}&apiRole=charging_manager";
         var result = await HttpClient.GetStringAsync(url).ConfigureAwait(false);
-        var resultJson = JsonConvert.DeserializeObject<DtoBleResult>(result);
-        _pairingResults[car.Vin] = resultJson?.Message ?? result;
+        var resultJson = JsonConvert.DeserializeObject<DtoBleCommandResult>(result);
+        _pairingResults[car.Vin] = resultJson?.ResultMessage ?? result;
         _loadingVins.Remove(car.Vin);
     }
 
@@ -173,10 +173,15 @@ else
         _bleTestResults.Remove(vin);
         _loadingVins.Add(vin);
         var resultString = await HttpClient.GetStringAsync($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false);
-        var result = JsonConvert.DeserializeObject<DtoBleResult>(resultString) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
-        if(result.Success && string.IsNullOrWhiteSpace(result.Message))
+        var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString)
+                     ?? new DtoBleCommandResult
+                     {
+                         Success = false,
+                         ResultMessage = "Could not deserialize message from TSC.",
+                     };
+        if(result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
-            result.Message = "Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.";
+            result.ResultMessage = "Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.";
         }
         _bleTestResults[vin] = result;
         _loadingVins.Remove(vin);
@@ -187,10 +192,15 @@ else
         _bleWakeUpTestResults.Remove(vin);
         _loadingVins.Add(vin);
         var resultString = await HttpClient.GetStringAsync($"/api/Ble/WakeUp?vin={vin}").ConfigureAwait(false);
-        var result = JsonConvert.DeserializeObject<DtoBleResult>(resultString) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
-        if (result.Success && string.IsNullOrWhiteSpace(result.Message))
+        var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString) 
+                     ?? new DtoBleCommandResult
+                     {
+                         Success = false,
+                         ResultMessage = "Could not deserialize message from TSC.",
+                     };
+        if (result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
-            result.Message = "The car accepted the wake call.";
+            result.ResultMessage = "The car accepted the wake call.";
         }
         _bleWakeUpTestResults[vin] = result;
         _loadingVins.Remove(vin);
