@@ -99,4 +99,6 @@ public class DtoCar
     public List<DateTime> ChargeStopCalls { get; set; } = new List<DateTime>();
     public List<DateTime> SetChargingAmpsCall { get; set; } = new List<DateTime>();
     public List<DateTime> OtherCommandCalls { get; set; } = new List<DateTime>();
+
+    public DateTime? LastNonSuccessBleCall { get; set; }
 }
