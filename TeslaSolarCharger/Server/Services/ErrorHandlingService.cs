@@ -229,13 +229,20 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         // Get all issue keys using reflection
         var validIssueKeys = GetIssueKeysUsingReflection();
 
-        // Retrieve all LoggedErrors from the database
-        var loggedErrors = await context.LoggedErrors.ToListAsync();
+        // Split validIssueKeys into exact matches and prefixes
+        var exactMatchKeys = validIssueKeys.Where(k => !k.EndsWith("_")).ToList();
+        var prefixKeys = validIssueKeys.Where(k => k.EndsWith("_"))
+            .Select(k => k.TrimEnd('_'))
+            .ToList();
 
-        var errorsToRemove = loggedErrors.Where(e =>
-            !IsValidIssueKey(e.IssueKey, validIssueKeys)
-        ).ToList();
-        logger.LogInformation("{errorsToRemoveCount} errors woll be removed as they have no valid issues keys", errorsToRemove.Count);
+        // Build the query to select invalid LoggedErrors
+        var errorsToRemove = context.LoggedErrors.Where(e =>
+            !exactMatchKeys.Contains(e.IssueKey) &&
+            !prefixKeys.Any(prefix => e.IssueKey.StartsWith(prefix)));
+
+        var numberOfErrorsToDelete = await errorsToRemove.CountAsync();
+        logger.LogInformation("Delete {numberOfErrorsToDelete} logged errors as they have unknown keys", numberOfErrorsToDelete);
+
         // Remove the invalid LoggedErrors
         context.LoggedErrors.RemoveRange(errorsToRemove);
 
@@ -245,36 +252,15 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
     private List<string> GetIssueKeysUsingReflection()
     {
-        // Get all public properties of the IssueKeys class
-        var issueKeyProperties = typeof(IssueKeys).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        // Get all public properties of the interface IIssueKeys
+        var issueKeyProperties = typeof(IIssueKeys).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
-        // Get the value of each property (the issue key string) from the IssueKeys instance
-        var allIssueKeys = issueKeyProperties.Select(prop => prop.GetValue(issueKeys)?.ToString())
+        // Get the value of each property (the issue key string) from the _issueKeys instance
+        var keys = issueKeyProperties.Select(prop => prop.GetValue(issueKeys)?.ToString())
             .Where(key => key != null)
             .ToList();
 
-        return allIssueKeys!;
-    }
-
-    private bool IsValidIssueKey(string issueKey, List<string> validIssueKeys)
-    {
-        // Check for exact matches
-        if (validIssueKeys.Contains(issueKey))
-        {
-            return true;
-        }
-
-        // Check for keys with a trailing '_', allowing variations (like FleetApiNonSuccessStatusCode_)
-        foreach (var key in validIssueKeys.Where(k => k.EndsWith("_")))
-        {
-            if (issueKey.StartsWith(key))
-            {
-                return true;
-            }
-        }
-
-        // If no valid match found, return false
-        return false;
+        return keys!;
     }
 
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)
