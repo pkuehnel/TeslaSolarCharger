@@ -646,12 +646,14 @@ public class TeslaFleetApiService(
                     await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
                         $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.ResultMessage}",
                         issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
-                    logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback.");
+                    car.LastNonSuccessBleCall = dateTimeProvider.UtcNow();
+                    var fallbackUntilLocalTimeString =
+                        (car.LastNonSuccessBleCall + configurationWrapper.BleUsageStopAfterError()).Value.ToLocalTime();
+                    logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback until {fallbackUntil}.", fallbackUntilLocalTimeString);
                     await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
                         $"Using Fleet API as BLE fallback for car {car.Vin}",
-                        "As the BLE command did not succeed, Fleet API is used as fallback.", issueKeys.UsingFleetApiAsBleFallback, car.Vin,
+                        $"As the BLE command did not succeed, Fleet API is used as fallback until {fallbackUntilLocalTimeString}. Note: During this time it is not possible to retry BLE automatically you need to go to the car settings page and test BLE access manually.", issueKeys.UsingFleetApiAsBleFallback, car.Vin,
                         null).ConfigureAwait(false);
-                    car.LastNonSuccessBleCall = dateTimeProvider.UtcNow();
                 }
                 
             }
