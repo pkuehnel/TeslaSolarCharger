@@ -16,4 +16,5 @@ public interface IErrorHandlingService
     Task<DtoValue<int>> ErrorCount();
     Task<DtoValue<int>> WarningCount();
     Task<Fin<int>> DismissError(int errorIdValue);
+    Task RemoveInvalidLoggedErrorsAsync();
 }

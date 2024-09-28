@@ -227,6 +227,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
         await errorHandlingService.HandleErrorResolved(issueKeys.CrashedOnStartup, null)
             .ConfigureAwait(false);
+        await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
     }
     catch (Exception ex)
     {

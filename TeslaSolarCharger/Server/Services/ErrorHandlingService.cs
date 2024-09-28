@@ -1,9 +1,11 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -219,6 +221,60 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         }
 
         await context.SaveChangesAsync();
+    }
+
+    public async Task RemoveInvalidLoggedErrorsAsync()
+    {
+        logger.LogTrace("{method}()", nameof(RemoveInvalidLoggedErrorsAsync));
+        // Get all issue keys using reflection
+        var validIssueKeys = GetIssueKeysUsingReflection();
+
+        // Retrieve all LoggedErrors from the database
+        var loggedErrors = await context.LoggedErrors.ToListAsync();
+
+        var errorsToRemove = loggedErrors.Where(e =>
+            !IsValidIssueKey(e.IssueKey, validIssueKeys)
+        ).ToList();
+        logger.LogInformation("{errorsToRemoveCount} errors woll be removed as they have no valid issues keys", errorsToRemove.Count);
+        // Remove the invalid LoggedErrors
+        context.LoggedErrors.RemoveRange(errorsToRemove);
+
+        // Save changes to the database
+        await context.SaveChangesAsync();
+    }
+
+    private List<string> GetIssueKeysUsingReflection()
+    {
+        // Get all public properties of the IssueKeys class
+        var issueKeyProperties = typeof(IssueKeys).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        // Get the value of each property (the issue key string) from the IssueKeys instance
+        var allIssueKeys = issueKeyProperties.Select(prop => prop.GetValue(issueKeys)?.ToString())
+            .Where(key => key != null)
+            .ToList();
+
+        return allIssueKeys!;
+    }
+
+    private bool IsValidIssueKey(string issueKey, List<string> validIssueKeys)
+    {
+        // Check for exact matches
+        if (validIssueKeys.Contains(issueKey))
+        {
+            return true;
+        }
+
+        // Check for keys with a trailing '_', allowing variations (like FleetApiNonSuccessStatusCode_)
+        foreach (var key in validIssueKeys.Where(k => k.EndsWith("_")))
+        {
+            if (issueKey.StartsWith(key))
+            {
+                return true;
+            }
+        }
+
+        // If no valid match found, return false
+        return false;
     }
 
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)
