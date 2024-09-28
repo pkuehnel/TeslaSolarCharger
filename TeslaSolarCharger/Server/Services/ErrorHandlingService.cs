@@ -344,10 +344,11 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     {
         var activeIssueKeys = await context.LoggedErrors
             .Where(e => e.EndTimeStamp == null)
-            .Select(e => e.IssueKey)
+            .Select(e => new { e.IssueKey, Occurrences = e.FurtherOccurrences.Count + 1, })
             .ToListAsync().ConfigureAwait(false);
+        activeIssueKeys.RemoveAll(i => i.Occurrences < possibleIssues.GetIssueByKey(i.IssueKey).ShowErrorAfterOccurrences);
 
-        return activeIssueKeys.Count(activeIssueKey => possibleIssues.GetIssueByKey(activeIssueKey).IssueSeverity == severity);
+        return activeIssueKeys.Count(activeIssueKey => possibleIssues.GetIssueByKey(activeIssueKey.IssueKey).IssueSeverity == severity);
     }
 
     private async Task AddOrRemoveErrors(List<LoggedError> activeErrors, string issueKey, string headline, string message, bool shouldBeActive)
