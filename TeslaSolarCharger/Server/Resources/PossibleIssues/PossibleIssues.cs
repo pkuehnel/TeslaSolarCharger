@@ -177,6 +177,14 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HasPlaceHolderIssueKey = false,
             }
         },
+        { issueKeys.UsingFleetApiAsBleFallback, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Warning,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = true,
+            }
+        },
     };
 
     public DtoIssue GetIssueByKey(string key)

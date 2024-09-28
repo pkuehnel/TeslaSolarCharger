@@ -25,5 +25,6 @@ public class IssueKeys : IIssueKeys
     public string CarRateLimited => "CarRateLimited";
     public string BleCommandNoSuccess => "BleCommandNoSuccess_";
     public string SolarValuesNotAvailable => "SolarValuesNotAvailable";
+    public string UsingFleetApiAsBleFallback => "UsingFleetApiAsBleFallback_";
 }
 
