@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
+using System.Reflection;
 using TeslaSolarCharger.Client.Pages;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
@@ -30,7 +32,12 @@ builder.Services.AddRazorPages();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+});
 
 var useFleetApi = configurationManager.GetValue<bool>("UseFleetApi");
 builder.Services.AddMyDependencies(useFleetApi);
