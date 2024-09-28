@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System.Net;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
@@ -111,6 +112,12 @@ public class TeslaFleetApiService(
     public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
     {
         logger.LogTrace("{method}({carId}, {startAmp}, {carState})", nameof(StartCharging), carId, startAmp, carState);
+        var car = settings.Cars.First(c => c.Id == carId);
+        if (car.ChargeStartCalls.OrderDescending().FirstOrDefault() > (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(1)))
+        {
+            logger.LogDebug("Last charge start call is less than a minute old. Do not send command again.");
+            return;
+        }
         if (startAmp == 0)
         {
             logger.LogDebug("Should start charging with 0 amp. Skipping charge start.");
@@ -140,7 +147,14 @@ public class TeslaFleetApiService(
     public async Task StopCharging(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(StopCharging), carId);
+        var car = settings.Cars.First(c => c.Id == carId);
+        if (car.ChargeStopCalls.OrderDescending().FirstOrDefault() > (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(1)))
+        {
+            logger.LogDebug("Last charge stop call is less than a minute old. Do not send command again.");
+            return;
+        }
         var vin = GetVinByCarId(carId);
+        
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, ChargeStopRequest, HttpMethod.Post).ConfigureAwait(false);
     }
 
