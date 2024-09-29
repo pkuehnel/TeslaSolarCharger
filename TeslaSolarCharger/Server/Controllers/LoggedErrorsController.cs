@@ -17,6 +17,14 @@ public class LoggedErrorsController(IErrorHandlingService service) : ApiBaseCont
 
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetHiddenErrors()
+    {
+        var result = await service.GetHiddenErrors().ConfigureAwait(false);
+        return result.ToOk();
+
+    }
+
     [HttpPost]
     public async Task<IActionResult> DismissError([FromBody] DtoValue<int> errorId)
     {

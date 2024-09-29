@@ -62,7 +62,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     
     public async Task<Fin<List<DtoHiddenError>>> GetHiddenErrors()
     {
-        logger.LogTrace("{method}()", nameof(GetActiveLoggedErrors));
+        logger.LogTrace("{method}()", nameof(GetHiddenErrors));
         var unfilterdErrorsFin = await GetUnfilterdLoggedErrors();
         return unfilterdErrorsFin.Match(
             Succ: unfilteredErrors =>
