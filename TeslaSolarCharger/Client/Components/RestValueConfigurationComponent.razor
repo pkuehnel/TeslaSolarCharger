@@ -31,17 +31,28 @@
     private async Task OpenRestValueConfigurationDialog(int? id)
     {
         var options = new DialogOptions()
-            {
-                CloseButton = true,
-                CloseOnEscapeKey = true,
-            };
-        var parameters = new DialogParameters<RestValueConfigurationDialog>
         {
-            { x => x.RestValueConfigurationId, id },
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+        };
+        var parameters = new DialogParameters<DemoDialog>
+        {
         };
         var title = id == default ? "Add" : "Edit";
-        var dialog = await DialogService.ShowAsync<RestValueConfigurationDialog>($"{title} REST config", parameters, options);
+        var dialog = await DialogService.ShowAsync<DemoDialog>($"{title} REST config", parameters, options);
         var result = await dialog.Result;
+        // var options = new DialogOptions()
+        //     {
+        //         CloseButton = true,
+        //         CloseOnEscapeKey = true,
+        //     };
+        // var parameters = new DialogParameters<RestValueConfigurationDialog>
+        // {
+        //     { x => x.RestValueConfigurationId, id },
+        // };
+        // var title = id == default ? "Add" : "Edit";
+        // var dialog = await DialogService.ShowAsync<RestValueConfigurationDialog>($"{title} REST config", parameters, options);
+        // var result = await dialog.Result;
 
         await RefreshRequestResults();
     }
