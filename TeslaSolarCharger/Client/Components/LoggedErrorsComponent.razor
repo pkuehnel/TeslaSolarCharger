@@ -74,6 +74,7 @@ else
     private async Task RefreshErrors()
     {
         _errors = await HttpClient.SendGetRequestWithSnackbarAsync<List<DtoLoggedError>>("api/LoggedErrors/GetActiveLoggedErrors", Snackar);
+        await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()

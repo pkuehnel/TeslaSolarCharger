@@ -193,6 +193,7 @@
         try
         {
             _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
+            await InvokeAsync(StateHasChanged);
             _couldNotRefreshStates = false;
             UpdateBalls();
         }
@@ -376,7 +377,6 @@
                 }
             }
         }
-
         InvokeAsync(StateHasChanged);
     }
 

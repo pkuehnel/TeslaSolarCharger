@@ -592,8 +592,7 @@ else
             await RefreshCarBaseStates().ConfigureAwait(false);
             await RefreshAllVisableCarDetails().ConfigureAwait(false);
             await RefreshServerTime().ConfigureAwait(false);
-
-            
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception)
         {
