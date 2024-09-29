@@ -84,7 +84,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                         hiddenError.HideReason = LoggedErrorHideReason.NotEnoughOccurrences;
                         hiddenErrors.Add(hiddenError);
                     }
-                    else if(loggedError.DismissedAt > loggedError.FurtherOccurrences.Max())
+                    else if((loggedError.FurtherOccurrences.Any() ? (loggedError.DismissedAt > loggedError.FurtherOccurrences.Max()) : (loggedError.DismissedAt > loggedError.StartTimeStamp)))
                     {
                         var hiddenError = mapper2.Map<DtoHiddenError>(loggedError);
                         hiddenError.HideReason = LoggedErrorHideReason.Dismissed;
@@ -334,7 +334,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             var loggedErrors = await context.LoggedErrors
                 .Where(e => e.EndTimeStamp == default)
                 .ToListAsync();
-            return Fin<List<LoggedError>>.Succ(loggedErrors);
+            return Fin<List<LoggedError>>.Succ(new List<LoggedError>());
         }
         catch (Exception ex)
         {
