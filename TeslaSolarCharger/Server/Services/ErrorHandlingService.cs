@@ -18,7 +18,6 @@ using Error = LanguageExt.Common.Error;
 namespace TeslaSolarCharger.Server.Services;
 
 public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
-    IBackendApiService backendApiService,
     IIssueKeys issueKeys,
     ITelegramService telegramService,
     ITeslaSolarChargerContext context,
@@ -163,7 +162,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     {
         logger.LogTrace("{method}({source}, {methodName}, {message}, {issueKey}, {vin}, {stackTrace})",
             nameof(HandleError), source, methodName, message, issueKey, vin, stackTrace);
-        await backendApiService.PostErrorInformation(source, methodName, message, issueKey, vin, stackTrace);
+        //ToDo: maybe send error information again in the future. This currently leads to a circular dependency
+        //await backendApiService.PostErrorInformation(source, methodName, message, issueKey, vin, stackTrace);
         var existingError = await context.LoggedErrors
             .Where(e => e.IssueKey == issueKey
                         && e.Vin == vin
