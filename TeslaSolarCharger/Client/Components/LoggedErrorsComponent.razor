@@ -68,7 +68,7 @@ else
     protected override void OnInitialized()
     {
         _periodicTaskHelper = new();
-        _periodicTaskHelper.Start(RefreshErrors, TimeSpan.FromMinutes(1));
+        _periodicTaskHelper.Start(RefreshErrors, TimeSpan.FromSeconds(15));
     }
 
     private async Task RefreshErrors()

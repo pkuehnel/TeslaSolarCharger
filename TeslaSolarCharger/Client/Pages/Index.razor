@@ -54,9 +54,12 @@ else
 {
     @if (_carBaseStates.Count < 1)
     {
-        <p>
+        <MudAlert Severity="Severity.Error"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <h4>Enable TeslaSolarCharger for cars</h4>
             You need to enable TeslaSolarCharger for at least one car in the <MudLink Href="/CarSettings">car settings page</MudLink>.
-        </p>
+        </MudAlert>
     }
 
     @foreach (var car in _carBaseStates)
