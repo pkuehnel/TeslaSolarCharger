@@ -93,7 +93,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
             {
                 IssueSeverity = IssueSeverity.Error,
                 IsTelegramEnabled = true,
-                ShowErrorAfterOccurrences = 4,
+                ShowErrorAfterOccurrences = 15,
                 HasPlaceHolderIssueKey = false,
             }
         },
@@ -101,7 +101,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
             {
                 IssueSeverity = IssueSeverity.Error,
                 IsTelegramEnabled = true,
-                ShowErrorAfterOccurrences = 2,
+                ShowErrorAfterOccurrences = 10,
                 HasPlaceHolderIssueKey = false,
             }
         },

@@ -14,6 +14,9 @@ using Serilog.Events;
 using System.Linq;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
+using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
@@ -65,6 +68,8 @@ public class TestBase : IDisposable
 
         _fake = new AutoFake();
         _fake.Provide<IMapperConfigurationFactory, MapperConfigurationFactory>();
+        _fake.Provide<IIssueKeys, IssueKeys>();
+        _fake.Provide<IPossibleIssues, PossibleIssues>();
         _fake.Provide<IResultValueCalculationService, ResultValueCalculationService>();
         _fake.Provide<IConstants, Constants>();
         _fake.Provide<IDateTimeProvider>(new FakeDateTimeProvider(currentFakeTime));
@@ -75,6 +80,8 @@ public class TestBase : IDisposable
             {
                 b.Register((_, _) => Context);
                 b.Register((_, _) => _fake.Resolve<IMapperConfigurationFactory>());
+                b.Register((_, _) => _fake.Resolve<IIssueKeys>());
+                b.Register((_, _) => _fake.Resolve<IPossibleIssues>());
                 b.Register((_, _) => _fake.Resolve<IResultValueCalculationService>());
                 b.Register((_, _) => _fake.Resolve<IConstants>());
                 b.Register((_, _) => _fake.Resolve<IConfiguration>());
@@ -118,6 +125,7 @@ public class TestBase : IDisposable
         _ctx = _fake.Provide(new TeslaSolarChargerContext(options));
         _ctx.Database.EnsureCreated();
         _ctx.InitRestValueConfigurations();
+        _ctx.InitLoggedErrors();
         _ctx.SaveChanges();
         DetachAllEntities();
     }
