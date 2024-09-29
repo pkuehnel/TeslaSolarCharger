@@ -1,6 +1,6 @@
 ﻿@page "/BaseConfiguration"
 @using System.Globalization
-@using TeslaSolarCharger.Client.Extensions
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
@@ -8,6 +8,7 @@
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject IHttpClientHelper HttpClientHelper
 
 
 <PageTitle>Base Configuration</PageTitle>
@@ -647,7 +648,7 @@ else
 
     private async Task SendTelegramTestMessage()
     {
-        var result = await HttpClient.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Hello/SendTestTelegramMessage", Snackbar);
+        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Hello/SendTestTelegramMessage");
         if (result == default)
         {
             Snackbar.Add("Could not get result", Severity.Error);

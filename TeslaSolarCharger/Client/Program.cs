@@ -4,6 +4,8 @@ using MudBlazor;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using TeslaSolarCharger.Client;
+using TeslaSolarCharger.Client.Helper;
+using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Helper;
@@ -18,6 +20,8 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.H
 //builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri("http://192.168.1.50:7190/") });
 builder.Services.AddScoped<INodePatternTypeHelper, NodePatternTypeHelper>();
 builder.Services.AddScoped<IDateTimeProvider, DateTimeProvider>();
+builder.Services.AddScoped<IDialogHelper, DialogHelper>();
+builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();
 builder.Services.AddMudServices(config =>

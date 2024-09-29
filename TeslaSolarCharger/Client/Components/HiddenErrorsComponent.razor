@@ -1,11 +1,11 @@
-﻿@using TeslaSolarCharger.Client.Extensions
-@using TeslaSolarCharger.Client.Helper
+﻿@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos.LoggedError
 @using TeslaSolarCharger.Shared.Enums
 
 @implements IDisposable
 @inject ISnackbar Snackar
-@inject HttpClient HttpClient
+@inject IHttpClientHelper HttpClientHelper
 
 
 @if (_errors == default)
@@ -73,7 +73,7 @@ else
 
     private async Task RefreshErrors()
     {
-        _errors = await HttpClient.SendGetRequestWithSnackbarAsync<List<DtoHiddenError>>("api/LoggedErrors/GetHiddenErrors", Snackar);
+        _errors = await HttpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoHiddenError>>("api/LoggedErrors/GetHiddenErrors");
         await InvokeAsync(StateHasChanged);
     }
 

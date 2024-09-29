@@ -1,12 +1,12 @@
-﻿@using TeslaSolarCharger.Client.Extensions
-@using TeslaSolarCharger.Client.Helper
+﻿@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.LoggedError
 @using TeslaSolarCharger.Shared.Enums
 
 @implements IDisposable
 @inject ISnackbar Snackar
-@inject HttpClient HttpClient
+@inject IHttpClientHelper HttpClient
 
 
 @if (_errors == default)
@@ -73,7 +73,7 @@ else
 
     private async Task RefreshErrors()
     {
-        _errors = await HttpClient.SendGetRequestWithSnackbarAsync<List<DtoLoggedError>>("api/LoggedErrors/GetActiveLoggedErrors", Snackar);
+        _errors = await HttpClient.SendGetRequestWithSnackbarAsync<List<DtoLoggedError>>("api/LoggedErrors/GetActiveLoggedErrors");
         await InvokeAsync(StateHasChanged);
     }
 
@@ -84,7 +84,7 @@ else
 
     private async Task DismissError(int errorId)
     {
-        var idToRemove = await HttpClient.SendPostRequestWithSnackbarAsync<int>("api/LoggedErrors/DismissError", new DtoValue<int>(errorId), Snackar);
+        var idToRemove = await HttpClient.SendPostRequestWithSnackbarAsync<int>("api/LoggedErrors/DismissError", new DtoValue<int>(errorId));
         if (_errors == default)
         {
             return;
