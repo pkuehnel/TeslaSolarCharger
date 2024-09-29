@@ -44,7 +44,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 });
                 var mapper = mappingConfiguration.CreateMapper();
                 var errors = unfilteredErrors
-                    .Where(e => e.DismissedAt == default || (e.FurtherOccurrences.Any() && e.DismissedAt < e.FurtherOccurrences.Max()))
+                    .Where(e => e.DismissedAt == default || (e.FurtherOccurrences.Any() && (e.DismissedAt < e.FurtherOccurrences.Max())))
                     .Select(e => mapper.Map<DtoLoggedError>(e))
                     .ToList();
 
@@ -77,14 +77,15 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 var hiddenErrors = new List<DtoHiddenError>();
                 foreach (var loggedError in unfilteredErrors)
                 {
-                    if ((loggedError.FurtherOccurrences.Count + 1)
+                    var occurrences = new List<DateTime>() { loggedError.StartTimeStamp }.Concat(loggedError.FurtherOccurrences).ToList();
+                    if (occurrences.Count
                         < possibleIssues.GetIssueByKey(loggedError.IssueKey).ShowErrorAfterOccurrences)
                     {
                         var hiddenError = mapper2.Map<DtoHiddenError>(loggedError);
                         hiddenError.HideReason = LoggedErrorHideReason.NotEnoughOccurrences;
                         hiddenErrors.Add(hiddenError);
                     }
-                    else if((loggedError.FurtherOccurrences.Any() ? (loggedError.DismissedAt > loggedError.FurtherOccurrences.Max()) : (loggedError.DismissedAt > loggedError.StartTimeStamp)))
+                    else if(loggedError.DismissedAt > occurrences.Max())
                     {
                         var hiddenError = mapper2.Map<DtoHiddenError>(loggedError);
                         hiddenError.HideReason = LoggedErrorHideReason.Dismissed;
