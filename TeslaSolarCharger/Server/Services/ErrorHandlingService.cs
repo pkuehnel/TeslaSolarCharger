@@ -335,7 +335,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             var loggedErrors = await context.LoggedErrors
                 .Where(e => e.EndTimeStamp == default)
                 .ToListAsync();
-            return Fin<List<LoggedError>>.Succ(new List<LoggedError>());
+            return Fin<List<LoggedError>>.Succ(loggedErrors);
         }
         catch (Exception ex)
         {
