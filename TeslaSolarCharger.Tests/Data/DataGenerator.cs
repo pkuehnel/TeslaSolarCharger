@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Tests.Data;
@@ -77,6 +79,68 @@ public static class DataGenerator
                     UsedFor = ValueUsage.HomeBatteryPower,
                     Operator = _valueOperator,
                 },
+            },
+        });
+        return context;
+    }
+
+    public static TeslaSolarChargerContext InitLoggedErrors(this TeslaSolarChargerContext context)
+    {
+        context.LoggedErrors.AddRange(new List<LoggedError>()
+        {
+            new()
+            {
+                Id = -1,
+                Headline = "Not Hidden Test",
+                IssueKey = "CarStateUnknown",
+                StartTimeStamp = new(2023, 1, 22, 17, 0, 0, DateTimeKind.Utc),
+                FurtherOccurrences = [new(2023, 1, 22, 17, 1, 0, DateTimeKind.Utc)],
+                Message = "Test Error Message",
+                Vin = "1234567890",
+                Source = nameof(LoggedError.Source),
+                MethodName = nameof(LoggedError.MethodName),
+                StackTrace = "Test Stack Trace",
+            },
+            new()
+            {
+                Id = -2,
+                Headline = "Not Hidden Test due to dismissed in before last occurrence",
+                IssueKey = "CarStateUnknown",
+                StartTimeStamp = new(2023, 1, 22, 17, 0, 0, DateTimeKind.Utc),
+                FurtherOccurrences = [new(2023, 1, 22, 17, 1, 0, DateTimeKind.Utc)],
+                Message = "Test Error Message",
+                Vin = "1234567890",
+                Source = nameof(LoggedError.Source),
+                MethodName = nameof(LoggedError.MethodName),
+                StackTrace = "Test Stack Trace",
+                DismissedAt = new DateTime(2023, 1, 22, 17, 0, 30, DateTimeKind.Utc),
+            },
+            new()
+            {
+                Id = -3,
+                Headline = "Not Enough Occurrences Test",
+                IssueKey = "CarStateUnknown",
+                StartTimeStamp = new(2023, 1, 22, 17, 0, 0, DateTimeKind.Utc),
+                FurtherOccurrences = [],
+                Message = "Test Error Message",
+                Vin = "1234567890",
+                Source = nameof(LoggedError.Source),
+                MethodName = nameof(LoggedError.MethodName),
+                StackTrace = "Test Stack Trace",
+            },
+            new()
+            {
+                Id = -4,
+                Headline = "Dismissed Test",
+                IssueKey = "CarStateUnknown",
+                StartTimeStamp = new(2023, 1, 22, 17, 0, 0, DateTimeKind.Utc),
+                FurtherOccurrences = [new(2023, 1, 22, 17, 1, 0, DateTimeKind.Utc)],
+                Message = "Test Error Message",
+                Vin = "1234567890",
+                Source = nameof(LoggedError.Source),
+                MethodName = nameof(LoggedError.MethodName),
+                StackTrace = "Test Stack Trace",
+                DismissedAt = new DateTime(2023, 1, 22, 17, 1, 30, DateTimeKind.Utc),
             },
         });
         return context;

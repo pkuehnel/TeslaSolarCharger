@@ -1,6 +1,6 @@
 ﻿using TeslaSolarCharger.Shared.Enums;
 
-namespace TeslaSolarCharger.Shared.Dtos;
+namespace TeslaSolarCharger.Shared.Dtos.LoggedError;
 
 public class DtoLoggedError
 {
