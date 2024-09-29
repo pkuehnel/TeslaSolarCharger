@@ -369,9 +369,6 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
             "Remove Tesla Solar Charger from your <a href=\"https://accounts.tesla.com/account-settings/security?tab=tpty-apps\" target=\"_blank\">third party apps</a> as you won't get asked again for the scopes. After that request a new token in the <a href=\"/BaseConfiguration\">Base Configuration</a> and select all available scopes.",
             tokenState == FleetApiTokenState.MissingScopes).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNotReceived, "Waiting for Tesla Token",
-            "Waiting for the Tesla Token from the TSC backend. This might take up to five minutes. If after five minutes this error is still displayed, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            tokenState == FleetApiTokenState.NotReceived).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenRequestExpired, "Tesla Token could not be received",
             "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
             tokenState == FleetApiTokenState.TokenRequestExpired).ConfigureAwait(false);

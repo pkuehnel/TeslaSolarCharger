@@ -901,6 +901,7 @@ public class TeslaFleetApiService(
         if (tokenRequestedDate < dateTimeProvider.UtcNow().Subtract(constants.MaxTokenRequestWaitTime))
         {
             logger.LogError("Last token request is too old. Request a new token.");
+            await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenNotReceived, null).ConfigureAwait(false);
             return false;
         }
         using var httpClient = new HttpClient();
@@ -918,6 +919,7 @@ public class TeslaFleetApiService(
 
         var newToken = JsonConvert.DeserializeObject<DtoTeslaTscDeliveryToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
         await AddNewTokenAsync(newToken).ConfigureAwait(false);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenNotReceived, null).ConfigureAwait(false);
         return true;
     }
 
