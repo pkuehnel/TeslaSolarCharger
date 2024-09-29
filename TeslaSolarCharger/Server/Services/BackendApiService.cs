@@ -63,6 +63,7 @@ public class BackendApiService(
         await errorHandlingService.HandleError(nameof(BackendApiService), nameof(StartTeslaOAuth), "Waiting for Tesla token",
             "Waiting for the Tesla Token from the TSC backend. This might take up to five minutes. If after five minutes this error is still displayed, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
             issueKeys.FleetApiTokenNotReceived, null, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenNotRequested, null);
         return new DtoValue<string>(requestUrl);
     }
 
