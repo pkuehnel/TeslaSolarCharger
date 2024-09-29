@@ -2,5 +2,5 @@
 
 public interface ICarConfigurationService
 {
-    Task AddAllMissingTeslaMateCars();
+    Task AddAllMissingCarsFromTeslaAccount();
 }

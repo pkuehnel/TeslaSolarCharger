@@ -188,7 +188,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
             try
             {
-                await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
+                await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
             }
             catch
             {
