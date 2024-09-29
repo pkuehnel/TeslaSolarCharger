@@ -2,51 +2,36 @@
 using MudBlazor;
 using Newtonsoft.Json;
 using System.Net.Http.Json;
+using TeslaSolarCharger.Client.Helper.Contracts;
 
-namespace TeslaSolarCharger.Client.Extensions;
+namespace TeslaSolarCharger.Client.Helper;
 
-public static class HttpClientExtensions
+public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialogHelper dialogHelper) : IHttpClientHelper
 {
-    public static async Task<T?> SendGetRequestWithSnackbarAsync<T>(
-        this HttpClient httpClient,
-        string url,
-        ISnackbar snackbar)
+    public async Task<T?> SendGetRequestWithSnackbarAsync<T>(string url)
     {
-        return await SendRequestWithSnackbarInternalAsync<T>(httpClient, HttpMethod.Get, url, null, snackbar);
+        return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Get, url, null);
     }
 
-    public static async Task SendGetRequestWithSnackbarAsync(
-        this HttpClient httpClient,
-        string url,
-        ISnackbar snackbar)
+    public async Task SendGetRequestWithSnackbarAsync(string url)
     {
-        await SendRequestWithSnackbarInternalAsync<object>(httpClient, HttpMethod.Get, url, null, snackbar);
+        await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Get, url, null);
     }
 
-    public static async Task<T?> SendPostRequestWithSnackbarAsync<T>(
-        this HttpClient httpClient,
-        string url,
-        object content,
-        ISnackbar snackbar)
+    public async Task<T?> SendPostRequestWithSnackbarAsync<T>(string url, object content)
     {
-        return await SendRequestWithSnackbarInternalAsync<T>(httpClient, HttpMethod.Post, url, content, snackbar);
+        return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Post, url, content);
     }
 
-    public static async Task SendPostRequestWithSnackbarAsync(
-        this HttpClient httpClient,
-        string url,
-        object content,
-        ISnackbar snackbar)
+    public async Task SendPostRequestWithSnackbarAsync(string url, object content)
     {
-        await SendRequestWithSnackbarInternalAsync<object>(httpClient, HttpMethod.Post, url, content, snackbar);
+        await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Post, url, content);
     }
 
-    private static async Task<T?> SendRequestWithSnackbarInternalAsync<T>(
-        HttpClient httpClient,
+    private async Task<T?> SendRequestWithSnackbarInternalAsync<T>(
         HttpMethod method,
         string url,
-        object? content,
-        ISnackbar snackbar)
+        object? content)
     {
         try
         {
@@ -57,7 +42,10 @@ public static class HttpClientExtensions
             }
             else if (method == HttpMethod.Post)
             {
-                var jsonContent = new StringContent(JsonConvert.SerializeObject(content), System.Text.Encoding.UTF8, "application/json");
+                var jsonContent = new StringContent(
+                    JsonConvert.SerializeObject(content),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
                 response = await httpClient.PostAsync(url, jsonContent);
             }
             else
@@ -73,7 +61,7 @@ public static class HttpClientExtensions
                     var deserializedObject = JsonConvert.DeserializeObject<T>(responseContent);
                     if (deserializedObject == null)
                     {
-                        snackbar.Add("The string could not be deserialized to the object type.", Severity.Error);
+                        snackbar.Add($"{url}: The string could not be deserialized to the object type.", Severity.Error);
                     }
                     return deserializedObject;
                 }
@@ -82,7 +70,7 @@ public static class HttpClientExtensions
                 {
                     return default;
                 }
-                snackbar.Add("The specified object type is not supported", Severity.Error);
+                snackbar.Add($"{url}: The specified object type is not supported", Severity.Error);
                 return default;
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
@@ -93,19 +81,25 @@ public static class HttpClientExtensions
             }
             else
             {
-                var message = $"Unexpected error: {response.StatusCode}";
+                var message = $"{url}: Unexpected error: {response.StatusCode}";
                 snackbar.Add(message, Severity.Error);
             }
         }
         catch (HttpRequestException ex)
         {
-            var message = $"Network error: {ex.Message}";
+            var message = $"{url}: Network error: {ex.Message}";
             snackbar.Add(message, Severity.Error);
         }
         catch (Exception ex)
         {
-            var message = $"Unexpected error: {ex.Message}";
-            snackbar.Add(message, Severity.Error);
+            var message = $"{url}: Unexpected error: {ex.Message}";
+            snackbar.Add(message, Severity.Error, config =>
+            {
+                config.Action = "Details";
+                config.ActionColor = Color.Primary;
+                config.Onclick = snackbar1 => dialogHelper.ShowTextDialog("Error Details",
+                    $"Unexpected error while calling {url}: {ex.Message}{Environment.NewLine}{ex.StackTrace}");
+            });
         }
         return default;
     }
