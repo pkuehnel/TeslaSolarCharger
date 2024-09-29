@@ -31,7 +31,8 @@
         var options = new DialogOptions()
             {
                 CloseButton = true,
-                CloseOnEscapeKey = true,
+                CloseOnEscapeKey = false,
+                DisableBackdropClick = true,
             };
         var parameters = new DialogParameters<MqttValueConfigurationDialog>
         {
