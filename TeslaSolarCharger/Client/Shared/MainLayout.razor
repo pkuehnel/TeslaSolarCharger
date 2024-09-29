@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @using System.Timers
+@using TeslaSolarCharger.Client.Helper
 @implements IDisposable
 
 @inject IJSRuntime JsRuntime
@@ -32,8 +33,7 @@
     private MudThemeProvider? _mudThemeProvider;
 
     private string? _version;
-
-    private Timer? _timer;
+    PeriodicTaskHelper? _periodicTaskHelper;
 
     readonly MudTheme _tscTheme = new MudTheme()
         {
@@ -48,10 +48,8 @@
 
     protected override void OnInitialized()
     {
-        _timer = new Timer();
-        _timer.Interval = 30000;
-        _timer.Elapsed += async (_, _) => await CheckVersion();
-        _timer.Start();
+        _periodicTaskHelper = new();
+        _periodicTaskHelper.Start(CheckVersion, TimeSpan.FromSeconds(30));
     }
 
     private async Task CheckVersion()
@@ -79,7 +77,6 @@
 
     public void Dispose()
     {
-        _timer?.Stop();
-        _timer?.Dispose();
+        _periodicTaskHelper?.Dispose();
     }
 }
