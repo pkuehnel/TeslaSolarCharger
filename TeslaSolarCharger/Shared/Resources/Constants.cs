@@ -27,6 +27,7 @@ public class Constants : IConstants
     public string HandledChargesCarIdsConverted => "HandledChargesCarIdsConverted";
     public string HandledChargesConverted => "HandledChargesConverted";
     public string ChargingDetailsSolarPowerShareFixed => "ChargingDetailsSolarPowerShareFixed";
+    public string SolarValuesConverted => "SolarValuesConverted";
     public TimeSpan MaxTokenRequestWaitTime => TimeSpan.FromMinutes(5);
     public TimeSpan MinTokenRestLifetime => TimeSpan.FromMinutes(2);
     public int MaxTokenUnauthorizedCount => 5;

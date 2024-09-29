@@ -100,7 +100,10 @@ public class JobManager(
         var vehicleDataRefreshTrigger = TriggerBuilder.Create().WithIdentity("vehicleDataRefreshTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
 
-        var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create().WithIdentity("teslaMateChargeCostUpdateTrigger")
+        var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create()
+            .WithIdentity("teslaMateChargeCostUpdateTrigger")
+            //as this creates high CPU load, do it not directly at startup
+            .StartAt(dateTimeProvider.DateTimeOffSetNow().AddMinutes(30))
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
         var errorMessagingTrigger = TriggerBuilder.Create().WithIdentity("errorMessagingTrigger")

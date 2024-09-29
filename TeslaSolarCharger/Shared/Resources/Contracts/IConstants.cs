@@ -30,4 +30,5 @@ public interface IConstants
     string GridPoleIcon { get; }
     int ChargingDetailsAddTriggerEveryXSeconds { get; }
     string ChargingDetailsSolarPowerShareFixed { get; }
+    string SolarValuesConverted { get; }
 }
