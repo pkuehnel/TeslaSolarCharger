@@ -1,5 +1,5 @@
-﻿@using System.Timers
-@using TeslaSolarCharger.Client.Extensions
+﻿@using TeslaSolarCharger.Client.Extensions
+@using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.LoggedError
 @using TeslaSolarCharger.Shared.Enums
@@ -60,17 +60,15 @@ else
 
 
 @code {
-    private Timer? _errorRefreshTimer;
     private List<DtoLoggedError>? _errors;
 
+    PeriodicTaskHelper? _periodicTaskHelper;
 
-    protected override async Task OnInitializedAsync()
+
+    protected override void OnInitialized()
     {
-        _errorRefreshTimer = new Timer();
-        _errorRefreshTimer.Interval = 60000;
-        _errorRefreshTimer.Elapsed += async (_, _) => await RefreshErrors();
-        _errorRefreshTimer.Start();
-        await RefreshErrors();
+        _periodicTaskHelper = new();
+        _periodicTaskHelper.Start(RefreshErrors, TimeSpan.FromMinutes(1));
     }
 
     private async Task RefreshErrors()
@@ -80,8 +78,7 @@ else
 
     public void Dispose()
     {
-        _errorRefreshTimer?.Stop();
-        _errorRefreshTimer?.Dispose();
+        _periodicTaskHelper?.Dispose();
     }
 
     private async Task DismissError(int errorId)

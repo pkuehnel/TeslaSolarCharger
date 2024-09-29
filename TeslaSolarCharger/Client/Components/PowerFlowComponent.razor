@@ -186,7 +186,6 @@
 
         _periodicTaskHelper = new();
         _periodicTaskHelper.Start(RefreshPvValues, TimeSpan.FromSeconds(5));
-        await RefreshPvValues();
     }
     
     private async Task RefreshPvValues()
