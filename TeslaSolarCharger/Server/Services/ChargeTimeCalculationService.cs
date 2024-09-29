@@ -136,16 +136,15 @@ public class ChargeTimeCalculationService(
                     break;
 
                 case ChargeMode.PvOnly:
-                    var plannedChargingSlot = new DtoChargingSlot();
                     if (latestTimeToReachSoc > dateTimeOffSetNow)
                     {
-                        plannedChargingSlot = new DtoChargingSlot()
+                        var plannedChargingSlot = new DtoChargingSlot()
                         {
                             ChargeEnd = latestTimeToReachSoc,
                             ChargeStart = latestTimeToReachSoc - chargeDurationToMinSoc,
                         };
+                        plannedChargingSlots.Add(plannedChargingSlot);
                     }
-                    plannedChargingSlots.Add(plannedChargingSlot);
                     break;
 
                 case ChargeMode.MaxPower:
