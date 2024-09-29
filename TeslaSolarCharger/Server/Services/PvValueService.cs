@@ -8,6 +8,7 @@ using System.Web;
 using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
@@ -17,6 +18,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -34,11 +36,18 @@ public class PvValueService(
     IModbusValueConfigurationService modbusValueConfigurationService,
     IModbusValueExecutionService modbusValueExecutionService,
     IMqttClientHandlingService mqttClientHandlingService,
-    IMqttConfigurationService mqttConfigurationService)
+    IMqttConfigurationService mqttConfigurationService,
+    IConstants constants)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
     {
+        var solarConfigurationsConverted =
+            await context.TscConfigurations.AnyAsync(c => c.Key == constants.SolarValuesConverted).ConfigureAwait(false);
+        if (solarConfigurationsConverted)
+        {
+            return;
+        }
         if (!await context.RestValueConfigurations.AnyAsync())
         {
             //Do not change order of the following methods
@@ -129,73 +138,85 @@ public class PvValueService(
 
         if (!await context.MqttConfigurations.AnyAsync())
         {
-            var frontendConfiguration = configurationWrapper.FrontendConfiguration();
-            if (frontendConfiguration == default ||
-                (frontendConfiguration.GridValueSource != SolarValueSource.Mqtt
-                && frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.Mqtt
-                && frontendConfiguration.InverterValueSource != SolarValueSource.Mqtt))
-            {
-                logger.LogDebug("Do not convert MQTT as no value source is on MQTT.");
-                return;
-            }
-            var solarMqttServer = configurationWrapper.SolarMqttServer();
-            var solarMqttUser = configurationWrapper.SolarMqttUsername();
-            var solarMqttPassword = configurationWrapper.SolarMqttPassword();
-            if (string.IsNullOrEmpty(solarMqttServer))
-            {
-                return;
-            }
-            var mqttServerAndPort = solarMqttServer.Split(":");
-            var mqttHost = mqttServerAndPort.First();
-            int? mqttServerPort = null;
-            if (mqttServerAndPort.Length > 1)
-            {
-                mqttServerPort = Convert.ToInt32(mqttServerAndPort[1]);
-            }
+            await ConvertMqttConfigurations().ConfigureAwait(false);
+        }
 
-            var mqttConfiguration = new DtoMqttConfiguration()
-            {
-                Host = mqttHost,
-                Port = mqttServerPort ?? 1883,
-                Username = solarMqttUser,
-                Password = solarMqttPassword,
-            };
-            var mqttConfigurationId = await mqttConfigurationService.SaveConfiguration(mqttConfiguration);
-            try
-            {
-                await ConvertGridMqttConfiguration(mqttConfigurationId);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error while converting mqtt grid value configuration");
-            }
+        context.TscConfigurations.Add(new TscConfiguration()
+        {
+            Key = constants.SolarValuesConverted,
+            Value = "true",
+        });
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
 
-            try
-            {
-                await ConvertInverterMqttConfiguration(mqttConfigurationId);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error while converting mqtt inverter value configuration");
-            }
+    private async Task ConvertMqttConfigurations()
+    {
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        if (frontendConfiguration == default ||
+            (frontendConfiguration.GridValueSource != SolarValueSource.Mqtt
+             && frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.Mqtt
+             && frontendConfiguration.InverterValueSource != SolarValueSource.Mqtt))
+        {
+            logger.LogDebug("Do not convert MQTT as no value source is on MQTT.");
+            return;
+        }
+        var solarMqttServer = configurationWrapper.SolarMqttServer();
+        var solarMqttUser = configurationWrapper.SolarMqttUsername();
+        var solarMqttPassword = configurationWrapper.SolarMqttPassword();
+        if (string.IsNullOrEmpty(solarMqttServer))
+        {
+            return;
+        }
+        var mqttServerAndPort = solarMqttServer.Split(":");
+        var mqttHost = mqttServerAndPort.First();
+        int? mqttServerPort = null;
+        if (mqttServerAndPort.Length > 1)
+        {
+            mqttServerPort = Convert.ToInt32(mqttServerAndPort[1]);
+        }
 
-            try
-            {
-                await ConvertHomeBatteryPowerMqttConfiguration(mqttConfigurationId);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error while converting mqtt home battery power value configuration");
-            }
+        var mqttConfiguration = new DtoMqttConfiguration()
+        {
+            Host = mqttHost,
+            Port = mqttServerPort ?? 1883,
+            Username = solarMqttUser,
+            Password = solarMqttPassword,
+        };
+        var mqttConfigurationId = await mqttConfigurationService.SaveConfiguration(mqttConfiguration);
+        try
+        {
+            await ConvertGridMqttConfiguration(mqttConfigurationId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while converting mqtt grid value configuration");
+        }
 
-            try
-            {
-                await ConvertHomeBatterySocMqttConfiguration(mqttConfigurationId);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error while converting mqtt home battery soc value configuration");
-            }
+        try
+        {
+            await ConvertInverterMqttConfiguration(mqttConfigurationId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while converting mqtt inverter value configuration");
+        }
+
+        try
+        {
+            await ConvertHomeBatteryPowerMqttConfiguration(mqttConfigurationId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while converting mqtt home battery power value configuration");
+        }
+
+        try
+        {
+            await ConvertHomeBatterySocMqttConfiguration(mqttConfigurationId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while converting mqtt home battery soc value configuration");
         }
     }
 
