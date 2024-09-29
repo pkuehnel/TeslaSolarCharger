@@ -1,15 +1,13 @@
 @page "/"
 @using System.Globalization
-@using System.Timers
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues
-@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Resources
 @using TeslaSolarCharger.Shared.Dtos.Settings
 @using TeslaSolarCharger.Shared.Dtos.Table
-@using System.Diagnostics
+@using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @implements IDisposable
@@ -406,7 +404,8 @@ else
     private Dictionary<int, bool?> _isFleetApiWorkingForCar = new();
     private readonly HashSet<int> _testingFleetApiCarIds = new();
 
-    private Timer? _timer;
+    PeriodicTaskHelper? _periodicTaskHelper;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -425,10 +424,8 @@ else
             _collapsedCarDetails.Add(carBaseState.CarId);
         }
 
-        _timer = new Timer();
-        _timer.Interval = Debugger.IsAttached ? 1000 : 5000;
-        _timer.Elapsed += async (_, _) => await RefreshStates().ConfigureAwait(false);
-        _timer.Start();
+        _periodicTaskHelper = new();
+        _periodicTaskHelper.Start(RefreshStates, TimeSpan.FromSeconds(5));
     }
 
     private async Task RefreshCarBaseStates()
@@ -595,8 +592,7 @@ else
             await RefreshCarBaseStates().ConfigureAwait(false);
             await RefreshAllVisableCarDetails().ConfigureAwait(false);
             await RefreshServerTime().ConfigureAwait(false);
-
-            
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception)
         {
@@ -685,8 +681,7 @@ else
 
     public void Dispose()
     {
-        _timer?.Stop();
-        _timer?.Dispose();
+        _periodicTaskHelper?.Dispose();
     }
 
 }

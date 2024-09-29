@@ -1,8 +1,7 @@
-﻿@using System.Diagnostics
-@using TeslaSolarCharger.Shared.Dtos
+﻿@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Resources.Contracts
-@using System.Timers
+@using TeslaSolarCharger.Client.Helper
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
@@ -169,13 +168,13 @@
 
 @code {
     private List<Ball> Balls { get; set; } = new();
-    private Timer? _ballUpdateTimer;
 
     private DtoPvValues? _pvValues;
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
 
-    private Timer? _pvValueUpdateTimer;
+    PeriodicTaskHelper? _periodicTaskHelper;
+
 
 
 
@@ -184,35 +183,24 @@
     {
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
-        await RefreshPvValues();
 
-
-        _pvValueUpdateTimer = new Timer();
-        _pvValueUpdateTimer.Interval = 5000;
-        _pvValueUpdateTimer.Elapsed += async (_, _) => await RefreshPvValues().ConfigureAwait(false);
-        _pvValueUpdateTimer.Start();
+        _periodicTaskHelper = new();
+        _periodicTaskHelper.Start(RefreshPvValues, TimeSpan.FromSeconds(5));
     }
-
+    
     private async Task RefreshPvValues()
     {
         try
         {
             _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
+            await InvokeAsync(StateHasChanged);
             _couldNotRefreshStates = false;
-            StateHasChanged();
+            UpdateBalls();
         }
         catch (Exception ex)
         {
             _couldNotRefreshStates = true;
-            StateHasChanged();
         }
-    }
-
-    protected override void OnInitialized()
-    {
-        _ballUpdateTimer = new Timer(1000);
-        _ballUpdateTimer.Elapsed += (sender, e) => UpdateBalls();
-        _ballUpdateTimer.Start();
     }
 
     private void UpdateBalls()
@@ -389,7 +377,6 @@
                 }
             }
         }
-
         InvokeAsync(StateHasChanged);
     }
 
@@ -618,10 +605,7 @@
 
     public void Dispose()
     {
-        _ballUpdateTimer?.Stop();
-        _ballUpdateTimer?.Dispose();
-        _pvValueUpdateTimer?.Stop();
-        _pvValueUpdateTimer?.Dispose();
+        _periodicTaskHelper?.Dispose();
     }
 
     private int? CalculateHomePower()
