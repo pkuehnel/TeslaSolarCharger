@@ -111,7 +111,7 @@ else
                           Latitude="_dtoBaseConfiguration.HomeGeofenceLatitude"
                           Radius="_dtoBaseConfiguration.HomeGeofenceRadius"
                           LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.HomeGeofenceLatitude = newLatitude)"
-                          LongitudeChanged="@(newLongitude => _dtoBaseConfiguration.HomeGeofenceLongitude = newLongitude)"></MapComponent>
+                          LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.HomeGeofenceLongitude = newLongitude; Snackbar.Add("To update the location, click the save button on the bottom of the page", Severity.Info); })"></MapComponent>
 
             <small class="form-text text-muted">Click on the map to select your home geofence. Within that area TSC will regulate the charging power.</small>
         </div>
