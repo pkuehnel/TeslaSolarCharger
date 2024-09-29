@@ -20,9 +20,9 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
     ITeslaFleetApiService teslaFleetApiService,
     ISettings settings) : ICarConfigurationService
 {
-    public async Task AddAllMissingTeslaMateCars()
+    public async Task AddAllMissingCarsFromTeslaAccount()
     {
-        logger.LogTrace("{method}()", nameof(AddAllMissingTeslaMateCars));
+        logger.LogTrace("{method}()", nameof(AddAllMissingCarsFromTeslaAccount));
         var teslaMateCars = new List<Model.Entities.TeslaMate.Car>();
         if (settings.UseTeslaMate)
         {
