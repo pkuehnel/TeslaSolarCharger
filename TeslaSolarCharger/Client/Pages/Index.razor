@@ -133,6 +133,12 @@ else
                                     You registerd the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
                                 </div>
                             }
+                            @if (car.FleetApiState == default)
+                            {
+                                <div class="alert alert-danger" role="alert">
+                                    You did not test the Fleet API connection, yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
+                                </div>
+                            }
                         }
                     </div>
                 }

@@ -20,7 +20,7 @@ public class DtoCarBaseStates
     public bool IsAutoFullSpeedCharging { get; set; }
     public bool? IsHealthy { get; set; }
     public bool ChargingNotPlannedDueToNoSpotPricesAvailable { get; set; }
-    public TeslaCarFleetApiState FleetApiState { get; set; }
+    public TeslaCarFleetApiState? FleetApiState { get; set; }
     public bool VehicleCommandProtocolRequired { get; set; }
     public List<DtoChargeInformation> ChargeInformation { get; set; } = new();
     public CarStateEnum? State { get; set; }

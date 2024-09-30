@@ -8,7 +8,7 @@ public class Car
     public int? TeslaMateCarId { get; set; }
     public string? Name { get; set; }
     public string? Vin { get; set; }
-    public TeslaCarFleetApiState TeslaFleetApiState { get; set; } = TeslaCarFleetApiState.NotConfigured;
+    public TeslaCarFleetApiState? TeslaFleetApiState { get; set; }
     public ChargeMode ChargeMode { get; set; }
     public int MinimumSoc { get; set; }
     public DateTime LatestTimeToReachSoC { get; set; }
