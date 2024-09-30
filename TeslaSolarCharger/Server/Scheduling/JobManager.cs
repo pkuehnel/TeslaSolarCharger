@@ -104,6 +104,7 @@ public class JobManager(
             .WithIdentity("teslaMateChargeCostUpdateTrigger")
             //as this creates high CPU load, do it not directly at startup
             .StartAt(dateTimeProvider.DateTimeOffSetNow().AddMinutes(30))
+            //When updated, update the helper text in BaseConfigurationBase.cs
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(24)).Build();
 
         var errorMessagingTrigger = TriggerBuilder.Create().WithIdentity("errorMessagingTrigger")
