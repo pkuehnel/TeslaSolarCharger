@@ -85,7 +85,6 @@ public static class ServiceCollectionExtensions
                 options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
-            .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
             .AddTransient<IPossibleIssues, PossibleIssues>()
             .AddTransient<IChargingCostService, ChargingCostService>()
             .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
@@ -100,7 +99,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
             .AddTransient<ITeslaFleetApiTokenHelper, TeslaFleetApiTokenHelper>()
-            .AddTransient<ITeslamateApiService, TeslamateApiService>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()

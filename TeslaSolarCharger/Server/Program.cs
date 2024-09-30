@@ -58,9 +58,6 @@ Log.Logger = new LoggerConfiguration()
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogTrace("Logger created.");
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
-var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
-await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
-await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
 DoStartupStuff(app, logger, configurationWrapper);
 
 // Configure the HTTP request pipeline.
