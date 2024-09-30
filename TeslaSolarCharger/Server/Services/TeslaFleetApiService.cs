@@ -425,6 +425,7 @@ public class TeslaFleetApiService(
         {
             latestChargeStartOrWakeUp = dateTimeProvider.UtcNow().AddDays(-1);
         }
+        logger.LogDebug("Latest wake or charge start Timestamp: {latestChargeStartOrWakeUp}", latestChargeStartOrWakeUp);
         //force request after 55 seconds after start or wakeup as car takes much time to reach full charging speed
         const int seconds = 55;
         var forcedRequestTimeAfterStartOrWakeUp = latestChargeStartOrWakeUp + TimeSpan.FromSeconds(seconds);
