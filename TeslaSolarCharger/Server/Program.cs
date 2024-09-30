@@ -39,8 +39,7 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(xmlPath);
 });
 
-var useFleetApi = configurationManager.GetValue<bool>("UseFleetApi");
-builder.Services.AddMyDependencies(useFleetApi);
+builder.Services.AddMyDependencies(true);
 builder.Services.AddSharedDependencies();
 builder.Services.AddServicesDependencies();
 
