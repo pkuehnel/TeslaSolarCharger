@@ -412,7 +412,7 @@ public class TeslaFleetApiService(
             logger.LogDebug("Do not refresh data as on {latestCommandTimeStamp} there was a command sent to the car.", latestCommandTimeStamp);
             return false;
         }
-
+        
         //Note: This needs to be after request waste check
         if (latestCommandTimeStamp > latestRefresh)
         {
@@ -420,7 +420,22 @@ public class TeslaFleetApiService(
             return true;
         }
 
-        if(latestRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) < currentUtcDate)
+        var latestChargeStartOrWakeUp = car.WakeUpCalls.Concat(car.ChargeStartCalls).OrderByDescending(c => c).FirstOrDefault();
+        if (latestChargeStartOrWakeUp == default)
+        {
+            latestChargeStartOrWakeUp = dateTimeProvider.UtcNow().AddDays(-1);
+        }
+        //force request after 80 seconds after start or wakeup as car takes much time to reach full charging speed
+        const int seconds = 80;
+        var forcedRequestTimeAfterStartOrWakeUp = latestChargeStartOrWakeUp + TimeSpan.FromSeconds(seconds);
+        if (currentUtcDate > forcedRequestTimeAfterStartOrWakeUp
+            && latestRefresh < forcedRequestTimeAfterStartOrWakeUp)
+        {
+            logger.LogDebug("Within the last {seconds} seconds a charge start or wake call was sent to the car. Force vehicle data call now", seconds);
+            return true;
+        }
+
+        if (latestRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) < currentUtcDate)
         {
             logger.LogDebug("Refresh car data as time intervall of {seconds} s is over", car.ApiRefreshIntervalSeconds);
             return true;
