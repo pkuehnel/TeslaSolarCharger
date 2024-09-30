@@ -12,6 +12,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.SharedModel.Enums;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -26,7 +27,8 @@ public class ChargingService(
     ITeslaMateMqttService teslaMateMqttService,
     ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
     IChargeTimeCalculationService chargeTimeCalculationService,
-    IConstants constants)
+    IConstants constants,
+    ITeslaSolarChargerContext context)
     : IChargingService
 {
 
@@ -92,7 +94,7 @@ public class ChargingService(
             return;
         }
 
-        var powerToControl = CalculatePowerToControl();
+        var powerToControl = await CalculatePowerToControl().ConfigureAwait(false);
 
         logger.LogDebug("At least one car is charging.");
         settings.ControlledACarAtLastCycle = true;
@@ -130,7 +132,7 @@ public class ChargingService(
 
     private async Task UpdateChargingRelevantValues()
     {
-        UpdateChargeTimes();
+        await UpdateChargeTimes();
         CalculateGeofences();
         await chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
         await latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
@@ -172,7 +174,7 @@ public class ChargingService(
         return Convert.ToInt32(Math.Floor(powerToControl / ((double)(settings.AverageHomeGridVoltage ?? 230) * dtoCar.ActualPhases)));
     }
 
-    public int CalculatePowerToControl()
+    public async Task<int> CalculatePowerToControl()
     {
         logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
 
@@ -181,13 +183,16 @@ public class ChargingService(
         var averagedOverage = settings.Overage ?? constants.DefaultOverage;
         logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
-        if (configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None
-            && configurationWrapper.FrontendConfiguration()?.InverterValueSource != SolarValueSource.None
+        var resultConfigurations = await context.ModbusResultConfigurations.Select(r => r.UsedFor).ToListAsync();
+        resultConfigurations.AddRange(await context.RestValueResultConfigurations.Select(r => r.UsedFor).ToListAsync());
+        resultConfigurations.AddRange(await context.MqttResultConfigurations.Select(r => r.UsedFor).ToListAsync());
+        if ((!resultConfigurations.Any(r => r == ValueUsage.GridPower))
+            && resultConfigurations.Any(r => r == ValueUsage.InverterPower)
             && settings.InverterPower != null)
         {
             var chargingAtHomeSum = settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum();
             logger.LogDebug("Using Inverter power {inverterPower} minus chargingPower at home {chargingPowerAtHome} as overage", settings.InverterPower, chargingAtHomeSum);
-            averagedOverage = settings.InverterPower - chargingAtHomeSum ?? 0;
+            averagedOverage = settings.InverterPower - chargingAtHomeSum - buffer ?? 0;
         }
 
         var overage = averagedOverage - buffer;
@@ -481,20 +486,20 @@ public class ChargingService(
         }
     }
 
-    private void UpdateChargeTimes()
+    private async Task UpdateChargeTimes()
     {
         logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
         foreach (var car in settings.CarsToManage)
         {
             chargeTimeCalculationService.UpdateChargeTime(car);
-            UpdateShouldStartStopChargingSince(car);
+            await UpdateShouldStartStopChargingSince(car).ConfigureAwait(false);
         }
     }
 
-    private void UpdateShouldStartStopChargingSince(DtoCar dtoCar)
+    private async Task UpdateShouldStartStopChargingSince(DtoCar dtoCar)
     {
         logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), dtoCar.Id);
-        var powerToControl = CalculatePowerToControl();
+        var powerToControl = await CalculatePowerToControl().ConfigureAwait(false);
         var ampToSet = CalculateAmpByPowerAndCar(powerToControl, dtoCar);
         logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
         if (dtoCar.IsHomeGeofence == true)
