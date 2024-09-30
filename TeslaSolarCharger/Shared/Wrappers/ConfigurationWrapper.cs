@@ -152,11 +152,17 @@ public class ConfigurationWrapper(
 
     public bool GetVehicleDataFromTesla()
     {
-        if (!settings.UseTeslaMate)
+        if (!UseTeslaMateIntegration())
         {
             return true;
         }
         var value = GetBaseConfiguration().UseTeslaMateAsDataSource;
+        return !value;
+    }
+
+    public bool UseTeslaMateIntegration()
+    {
+        var value = GetBaseConfiguration().UseTeslaMateIntegration;
         return !value;
     }
 
@@ -260,32 +266,32 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().MqqtClientId;
     }
 
-    public string MosquitoServer()
+    public string? MosquitoServer()
     {
         return GetBaseConfiguration().MosquitoServer;
     }
 
-    public string TeslaMateDbServer()
+    public string? TeslaMateDbServer()
     {
         return GetBaseConfiguration().TeslaMateDbServer;
     }
 
-    public int TeslaMateDbPort()
+    public int? TeslaMateDbPort()
     {
         return GetBaseConfiguration().TeslaMateDbPort;
     }
 
-    public string TeslaMateDbDatabaseName()
+    public string? TeslaMateDbDatabaseName()
     {
         return GetBaseConfiguration().TeslaMateDbDatabaseName;
     }
 
-    public string TeslaMateDbUser()
+    public string? TeslaMateDbUser()
     {
         return GetBaseConfiguration().TeslaMateDbUser;
     }
 
-    public string TeslaMateDbPassword()
+    public string? TeslaMateDbPassword()
     {
         return GetBaseConfiguration().TeslaMateDbPassword;
     }

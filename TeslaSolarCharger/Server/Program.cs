@@ -39,7 +39,7 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(xmlPath);
 });
 
-builder.Services.AddMyDependencies(true);
+builder.Services.AddMyDependencies();
 builder.Services.AddSharedDependencies();
 builder.Services.AddServicesDependencies();
 
@@ -117,10 +117,12 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         }
 
         var shouldRetry = false;
-        var teslaMateContext = webApplication.Services.GetRequiredService<ITeslamateContext>();
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
         var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
-        if (!configurationWrapper1.ShouldUseFakeSolarValues())
+
+        var teslaMateContextWrapper = webApplication.Services.GetRequiredService<ITeslaMateDbContextWrapper>();
+        var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
+        if (teslaMateContext != default)
         {
             try
             {
@@ -142,8 +144,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 catch (Exception ex)
                 {
                     logger1.LogError(ex, "TeslaMate is not available. Use TSC without TeslaMate integration");
-                    settings.UseTeslaMate = false;
                     baseConfiguration.UseTeslaMateAsDataSource = false;
+                    baseConfiguration.UseTeslaMateIntegration = false;
                     await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
                 }
             }
@@ -212,8 +214,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var homeGeofenceName = configurationWrapper.GeoFence();
         
-        if (settings.UseTeslaMate && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 0, HomeGeofenceLongitude: 0 })
+        if (teslaMateContext != default && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 52.5185238, HomeGeofenceLongitude: 13.3761736 })
         {
+            logger.LogInformation("Convert home geofence from TeslaMate.");
             var homeGeofence = await teslaMateContext.Geofences.Where(g => g.Name == homeGeofenceName).FirstOrDefaultAsync();
             if (homeGeofence != null)
             {

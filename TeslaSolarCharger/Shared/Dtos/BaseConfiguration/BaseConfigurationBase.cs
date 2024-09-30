@@ -58,21 +58,15 @@ public class BaseConfigurationBase
     public string? TelegramChannelId { get; set; }
     [HelperText("If enabled detailed error information are sent via Telegram so developers can find the root cause. This is not needed for normal usage.")]
     public bool SendStackTraceToTelegram { get; set; }
-    [Required]
-    public string TeslaMateDbServer { get; set; } = "database";
-    [Required]
-    public int TeslaMateDbPort { get; set; } = 5432;
-    [Required]
-    public string TeslaMateDbDatabaseName { get; set; } = "teslamate";
-    [Required]
-    public string TeslaMateDbUser { get; set; } = "teslamate";
-    [Required]
+    public string? TeslaMateDbServer { get; set; }
+    public int? TeslaMateDbPort { get; set; }
+    public string? TeslaMateDbDatabaseName { get; set; }
+    public string? TeslaMateDbUser { get; set; }
     [DataType(DataType.Password)]
-    public string TeslaMateDbPassword { get; set; } = "secret";
+    public string? TeslaMateDbPassword { get; set; }
+    public string? MosquitoServer { get; set; }
     [Required]
     public string MqqtClientId { get; set; } = "TeslaSolarCharger";
-    [Required]
-    public string MosquitoServer { get; set; } = "mosquitto";
     public string? CurrentPowerToGridXmlPattern { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderName { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderValue { get; set; }
@@ -94,9 +88,10 @@ public class BaseConfigurationBase
     public int? MaxCombinedCurrent { get; set; }
     public int? MaxInverterAcPower { get; set; }
     public string? BleApiBaseUrl { get; set; }
+    public bool UseTeslaMateIntegration { get; set; }
     public bool UseTeslaMateAsDataSource { get; set; }
-    public double HomeGeofenceLongitude { get; set; } = 13.3761736;
-    public double HomeGeofenceLatitude { get; set; } = 52.5185238;
+    public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
+    public double HomeGeofenceLatitude { get; set; } = 52.5185238; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
     public int HomeGeofenceRadius { get; set; } = 50;
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }

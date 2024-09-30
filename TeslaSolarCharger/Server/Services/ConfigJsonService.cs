@@ -17,6 +17,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using System;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.Services.Contracts;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -26,11 +27,11 @@ public class ConfigJsonService(
     ISettings settings,
     IConfigurationWrapper configurationWrapper,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ITeslamateContext teslamateContext,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
     IMapperConfigurationFactory mapperConfigurationFactory,
-    JobManager jobManager)
+    JobManager jobManager,
+    ITeslaMateDbContextWrapper teslaMateDbContextWrapper)
     : IConfigJsonService
 {
     private bool CarConfigurationFileExists()
@@ -61,9 +62,10 @@ public class ConfigJsonService(
         var oldCarConfiguration = await teslaSolarChargerContext.CachedCarStates
             .Where(c => c.Key == constants.CarConfigurationKey)
             .ToListAsync().ConfigureAwait(false);
-
-        if (oldCarConfiguration.Count > 0 && settings.UseTeslaMate)
+        var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
+        if (oldCarConfiguration.Count > 0 && teslaMateContext != default)
         {
+            
             foreach (var databaseCarConfiguration in oldCarConfiguration)
             {
                 var configuration =
@@ -73,7 +75,7 @@ public class ConfigJsonService(
                     continue;
                 }
                 
-                var teslaMateDatabaseCar = await teslamateContext.Cars.FirstOrDefaultAsync(c => c.Id == databaseCarConfiguration.CarId)
+                var teslaMateDatabaseCar = await teslaMateContext.Cars.FirstOrDefaultAsync(c => c.Id == databaseCarConfiguration.CarId)
                     .ConfigureAwait(false);
                 if (teslaMateDatabaseCar == default)
                 {
@@ -272,9 +274,10 @@ public class ConfigJsonService(
             Id = car.Id,
             
         };
-        if (settings.UseTeslaMate)
+        var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
+        if (teslaMateContext != default)
         {
-            entity.TeslaMateCarId = teslamateContext.Cars.FirstOrDefault(c => c.Vin == car.Vin)?.Id ?? default;
+            entity.TeslaMateCarId = teslaMateContext.Cars.FirstOrDefault(c => c.Vin == car.Vin)?.Id ?? default;
         }
         entity.Name = car.Name;
         entity.Vin = car.Vin;
@@ -408,9 +411,10 @@ public class ConfigJsonService(
         const int lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
         try
         {
-            if (settings.UseTeslaMate)
+            var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
+            if (teslaMateContext != default && configurationWrapper.UseTeslaMateIntegration())
             {
-                var chargerVoltages = await teslamateContext
+                var chargerVoltages = await teslaMateContext
                     .Charges
                     .Where(c => c.ChargingProcess.Geofence != null
                                 && c.ChargingProcess.Geofence.Name == homeGeofence

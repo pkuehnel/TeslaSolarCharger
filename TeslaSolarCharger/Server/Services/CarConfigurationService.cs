@@ -1,32 +1,27 @@
-using LanguageExt;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection.Metadata.Ecma335;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Services.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
-using ZXing;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class CarConfigurationService(ILogger<CarConfigurationService> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ITeslamateContext teslamateContext,
     IDateTimeProvider dateTimeProvider,
     ITeslaFleetApiService teslaFleetApiService,
-    ISettings settings) : ICarConfigurationService
+    IConfigurationWrapper configurationWrapper,
+    ITeslaMateDbContextWrapper teslaMateDbContextWrapper) : ICarConfigurationService
 {
     public async Task AddAllMissingCarsFromTeslaAccount()
     {
         logger.LogTrace("{method}()", nameof(AddAllMissingCarsFromTeslaAccount));
         var teslaMateCars = new List<Model.Entities.TeslaMate.Car>();
-        if (settings.UseTeslaMate)
+        var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
+        if (teslaMateContext != default)
         {
-            teslaMateCars = await teslamateContext.Cars.ToListAsync();
+            teslaMateCars = await teslaMateContext.Cars.ToListAsync();
         }
         var teslaAccountCarsResult = await teslaFleetApiService.GetAllCarsFromAccount().ConfigureAwait(false);
         var teslaAccountCars = teslaAccountCarsResult.Match(
@@ -51,11 +46,19 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
         }
         foreach (var teslaAccountCar in teslaAccountCars)
         {
-            if (teslaSolarChargerCars.Any(c => string.Equals(c.Vin, teslaAccountCar.Vin, StringComparison.CurrentCultureIgnoreCase)))
+            var teslaSolarChargerCar = teslaSolarChargerCars.FirstOrDefault(c => string.Equals(c.Vin, teslaAccountCar.Vin, StringComparison.CurrentCultureIgnoreCase));
+            if (teslaSolarChargerCar != default)
             {
+                var teslaMateCarId = teslaMateCars
+                    .FirstOrDefault(c => string.Equals(c.Vin, teslaAccountCar.Vin, StringComparison.CurrentCultureIgnoreCase))?.Id;
+                if(teslaSolarChargerCar.TeslaMateCarId != teslaMateCarId)
+                {
+                    teslaSolarChargerCar.TeslaMateCarId = teslaMateCarId;
+                    await teslaSolarChargerContext.SaveChangesAsync();
+                }
                 continue;
             }
-            var teslaSolarChargerCar = new Car
+            teslaSolarChargerCar = new Car
             {
                 TeslaMateCarId = teslaMateCars.FirstOrDefault(c => string.Equals(c.Vin, teslaAccountCar.Vin, StringComparison.CurrentCultureIgnoreCase))?.Id,
                 Vin = teslaAccountCar.Vin,
