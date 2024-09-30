@@ -16,6 +16,7 @@ using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using System;
+using TeslaSolarCharger.Server.Scheduling;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -28,7 +29,8 @@ public class ConfigJsonService(
     ITeslamateContext teslamateContext,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
-    IMapperConfigurationFactory mapperConfigurationFactory)
+    IMapperConfigurationFactory mapperConfigurationFactory,
+    JobManager jobManager)
     : IConfigJsonService
 {
     private bool CarConfigurationFileExists()

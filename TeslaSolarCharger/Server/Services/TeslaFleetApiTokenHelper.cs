@@ -19,11 +19,6 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
     public async Task<FleetApiTokenState> GetFleetApiTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiTokenState));
-        if (!configurationWrapper.UseFleetApi())
-        {
-            return FleetApiTokenState.NotNeeded;
-        }
-
         if (!settings.AllowUnlimitedFleetApiRequests)
         {
             return FleetApiTokenState.NoApiRequestsAllowed;

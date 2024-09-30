@@ -84,56 +84,51 @@ else
 
                     </div>
                 }
-
-                @if (_usingFleetApi == true && car.VehicleCommandProtocolRequired)
+                @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
                 {
-                    @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
+                    <div>
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span class="sr-only">Testing Fleet API access might take about 30 seconds and the headlights might flash...</span>
+                    </div>
+                }
+                else if (_isFleetApiWorkingForCar.Any(d => d.Key == car.CarId))
+                {
+                    @if (_isFleetApiWorkingForCar[car.CarId] == true)
                     {
-                        <div>
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            <span class="sr-only">Testing Fleet API access might take about 30 seconds and the chargeport might open...</span>
+                        <div class="alert alert-success" role="alert">
+                            API access is working
                         </div>
                     }
+                    else
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <div>API access is not working.</div>
+                            <hr />
+                            <p>
+                                Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>. <br />
+                                If it still does not work, go to your car and under Controls -> Locks you can check if a key named "www.teslasolarcharger.de" is present. If not try adding the key again by clicking <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button>.
+                            </p>
 
-                    <div class="p-2 flex-grow-1">
-                        @if (_isFleetApiWorkingForCar.Any(d => d.Key == car.CarId))
-                        {
-                            @if (_isFleetApiWorkingForCar[car.CarId] == true)
-                            {
-                                <div class="alert alert-success" role="alert">
-                                    API access is working
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="alert alert-danger" role="alert">
-                                    <div>API access is not working.</div>
-                                    <hr />
-                                    <p>
-                                        Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>. <br />
-                                        If it still does not work, go to your car and under Controls -> Locks you can check if a key named "www.teslasolarcharger.de" is present. If not try adding the key again by clicking <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button>.
-                                    </p>
-
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            @if (car.FleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
-                            {
-                                <div class="alert alert-danger" role="alert">
-                                    TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button> to register the car. <br />
-                                    Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
-                                </div>
-                            }
-
-                            @if (car.FleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
-                            {
-                                <div class="alert alert-danger" role="alert">
-                                    You registerd the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
-                                </div>
-                            }
-                        }
+                        </div>
+                    }
+                }
+                else if (car.FleetApiState == default)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        You did not test the Fleet API connection, yet. Wake up the car by opening a door, wait about 30 seconds and click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
+                    </div>
+                }
+                else if (car.FleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button> to register the car. <br />
+                        Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
+                    </div>
+                }
+                else if (car.FleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        You registerd the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
                     </div>
                 }
 
@@ -403,7 +398,6 @@ else
     private DateTime? _serverTime;
     private string? _serverTimeZoneDisplayName;
     private string _installationId = "";
-    private bool? _usingFleetApi;
     private Dictionary<int, bool?> _isFleetApiWorkingForCar = new();
     private readonly HashSet<int> _testingFleetApiCarIds = new();
 
@@ -417,9 +411,6 @@ else
         await RefreshCarBaseStates().ConfigureAwait(false);
         await RefreshServerTime().ConfigureAwait(false);
         await RefreshServerTimeZone().ConfigureAwait(false);
-        
-        var usingFleetApi = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/FleetApi/IsFleetApiEnabled").ConfigureAwait(false);
-        _usingFleetApi = usingFleetApi?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         _installationId = await HttpClient.GetStringAsync("api/Hello/GetInstallationId").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
@@ -615,6 +606,12 @@ else
     {
         _testingFleetApiCarIds.Add(carId);
         var response = await HttpClient.GetFromJsonAsync<DtoValue<bool>>($"api/FleetApi/TestFleetApiAccess?carId={carId}").ConfigureAwait(false);
+        //Try again if non success because first try may result in no success bacause of Fleet API proxy required is only set after first error. So maybe the error is due to fleet api proxy beeing required but not used.
+        if (response!.Value == false)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            response = await HttpClient.GetFromJsonAsync<DtoValue<bool>>($"api/FleetApi/TestFleetApiAccess?carId={carId}").ConfigureAwait(false);
+        }
         if (response != default)
         {
             _isFleetApiWorkingForCar[carId] = response.Value;

@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using System.Net;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
@@ -82,10 +81,12 @@ public class TeslaFleetApiService(
         NeedsProxy = true,
         TeslaApiRequestType = TeslaApiRequestType.Command,
     };
-    private DtoFleetApiRequest OpenChargePortDoorRequest => new()
+    private DtoFleetApiRequest FlashHeadlightsRequest => new()
     {
-        RequestUrl = "command/charge_port_door_open",
+        RequestUrl = "command/flash_lights",
         NeedsProxy = true,
+        //Do not make this BLE compatible as this is used to test fleet api access
+        BleCompatible = false,
         TeslaApiRequestType = TeslaApiRequestType.Charging,
     };
     private DtoFleetApiRequest WakeUpRequest => new()
@@ -228,7 +229,7 @@ public class TeslaFleetApiService(
         try
         {
             await WakeUpCarIfNeeded(carId, inMemoryCar.State).ConfigureAwait(false);
-            var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, OpenChargePortDoorRequest, HttpMethod.Post).ConfigureAwait(false);
+            var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, FlashHeadlightsRequest, HttpMethod.Post).ConfigureAwait(false);
             var successResult = result?.Response?.Result == true;
             var car = teslaSolarChargerContext.Cars.First(c => c.Id == carId);
             car.TeslaFleetApiState = successResult ? TeslaCarFleetApiState.Ok : TeslaCarFleetApiState.NotWorking;
@@ -240,15 +241,6 @@ public class TeslaFleetApiService(
             logger.LogError(ex, "Testing fleet api access was not successfull");
             return new DtoValue<bool>(false);
         }
-        
-        
-    }
-
-    public DtoValue<bool> IsFleetApiEnabled()
-    {
-        logger.LogTrace("{method}", nameof(IsFleetApiEnabled));
-        var isEnabled = configurationWrapper.UseFleetApi();
-        return new DtoValue<bool>(isEnabled);
     }
 
     public async Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin)
@@ -259,13 +251,6 @@ public class TeslaFleetApiService(
             .Select(c => c.VehicleCommandProtocolRequired)
             .FirstAsync();
         return new DtoValue<bool>(fleetApiProxyEnabled);
-    }
-
-    public async Task OpenChargePortDoor(int carId)
-    {
-        logger.LogTrace("{method}({carId})", nameof(OpenChargePortDoor), carId);
-        var vin = GetVinByCarId(carId);
-        var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, OpenChargePortDoorRequest, HttpMethod.Post).ConfigureAwait(false);
     }
 
     public async Task RefreshCarData()
@@ -785,7 +770,7 @@ public class TeslaFleetApiService(
         {
             car.OtherCommandCalls.Add(currentDate);
         }
-        else if (fleetApiRequest.RequestUrl == OpenChargePortDoorRequest.RequestUrl)
+        else if (fleetApiRequest.RequestUrl == FlashHeadlightsRequest.RequestUrl)
         {
             car.OtherCommandCalls.Add(currentDate);
         }

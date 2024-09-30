@@ -59,8 +59,6 @@ public class FleetApiController(
     [HttpGet]
     public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => fleetApiService.TestFleetApiAccess(carId);
     [HttpGet]
-    public DtoValue<bool> IsFleetApiEnabled() => fleetApiService.IsFleetApiEnabled();
-    [HttpGet]
     public Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin) => fleetApiService.IsFleetApiProxyEnabled(vin);
 
     [HttpGet]
