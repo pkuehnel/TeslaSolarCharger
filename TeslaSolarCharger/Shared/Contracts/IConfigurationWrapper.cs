@@ -8,12 +8,11 @@ public interface IConfigurationWrapper
     TimeSpan ChargingValueJobUpdateIntervall();
     TimeSpan PvValueJobUpdateIntervall();
     string MqqtClientId();
-    string MosquitoServer();
+    string? MosquitoServer();
     string? CurrentPowerToGridUrl();
     string? CurrentInverterPowerUrl();
     string? CurrentPowerToGridJsonPattern();
     decimal CurrentPowerToGridCorrectionFactor();
-    string TeslaMateApiBaseUrl();
     string GeoFence();
     TimeSpan TimespanUntilSwitchOn();
     TimeSpan TimespanUntilSwitchOff();
@@ -29,11 +28,11 @@ public interface IConfigurationWrapper
     string? CurrentInverterPowerXmlAttributeHeaderName();
     string? CurrentInverterPowerXmlAttributeHeaderValue();
     string? CurrentInverterPowerXmlAttributeValueName();
-    string TeslaMateDbServer();
-    int TeslaMateDbPort();
-    string TeslaMateDbDatabaseName();
-    string TeslaMateDbUser();
-    string TeslaMateDbPassword();
+    string? TeslaMateDbServer();
+    int? TeslaMateDbPort();
+    string? TeslaMateDbDatabaseName();
+    string? TeslaMateDbUser();
+    string? TeslaMateDbPassword();
     string BaseConfigFileFullName();
 
     Task<DtoBaseConfiguration> GetBaseConfigurationAsync();
@@ -106,4 +105,5 @@ public interface IConfigurationWrapper
     int CarRefreshAfterCommandSeconds();
     bool SendStackTraceToTelegram();
     TimeSpan BleUsageStopAfterError();
+    bool UseTeslaMateIntegration();
 }

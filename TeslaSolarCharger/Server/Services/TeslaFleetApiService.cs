@@ -11,7 +11,6 @@ using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
-using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -32,7 +31,6 @@ public class TeslaFleetApiService(
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IDateTimeProvider dateTimeProvider,
     IConfigurationWrapper configurationWrapper,
-    ITeslamateApiService teslamateApiService,
     IConstants constants,
     ITscConfigurationService tscConfigurationService,
     IErrorHandlingService errorHandlingService,
@@ -140,7 +138,8 @@ public class TeslaFleetApiService(
         var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(car.Vin, WakeUpRequest, HttpMethod.Post).ConfigureAwait(false);
         if (car.TeslaMateCarId != default)
         {
-            await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
+            //ToDo: fix with https://github.com/pkuehnel/TeslaSolarCharger/issues/1511
+            //await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
         }
         await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
     }
@@ -564,7 +563,8 @@ public class TeslaFleetApiService(
                     logger.LogInformation("Resume logging as is suspended");
                     if (car.TeslaMateCarId != default)
                     {
-                        await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
+                        //ToDo: fix with https://github.com/pkuehnel/TeslaSolarCharger/issues/1511
+                        //await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
                     }
                     break;
             }

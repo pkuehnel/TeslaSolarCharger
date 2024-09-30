@@ -36,7 +36,7 @@ namespace TeslaSolarCharger.Server;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddMyDependencies(this IServiceCollection services, bool useFleetApi)
+    public static IServiceCollection AddMyDependencies(this IServiceCollection services)
     {
         services
             .AddSingleton<JobManager>()
@@ -85,7 +85,6 @@ public static class ServiceCollectionExtensions
                 options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
-            .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
             .AddTransient<IPossibleIssues, PossibleIssues>()
             .AddTransient<IChargingCostService, ChargingCostService>()
             .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
@@ -100,7 +99,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
             .AddTransient<ITeslaFleetApiTokenHelper, TeslaFleetApiTokenHelper>()
-            .AddTransient<ITeslamateApiService, TeslamateApiService>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
@@ -111,16 +109,9 @@ public static class ServiceCollectionExtensions
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
             .AddTransient<IErrorHandlingService, ErrorHandlingService>()
+            .AddTransient<ITeslaMateDbContextWrapper, TeslaMateDbContextWrapper>()
+            .AddTransient<ITeslaService, TeslaFleetApiService>()
             .AddSharedBackendDependencies();
-        if (useFleetApi)
-        {
-            services.AddTransient<ITeslaService, TeslaFleetApiService>();
-        }
-        else
-        {
-            services.AddTransient<ITeslaService, TeslamateApiService>();
-        }
-
         return services;
     }
 }

@@ -152,12 +152,18 @@ public class ConfigurationWrapper(
 
     public bool GetVehicleDataFromTesla()
     {
-        if (!settings.UseTeslaMate)
+        if (!UseTeslaMateIntegration())
         {
             return true;
         }
         var value = GetBaseConfiguration().UseTeslaMateAsDataSource;
         return !value;
+    }
+
+    public bool UseTeslaMateIntegration()
+    {
+        var value = GetBaseConfiguration().UseTeslaMateIntegration;
+        return value;
     }
 
     public double HomeGeofenceLongitude()
@@ -260,32 +266,32 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().MqqtClientId;
     }
 
-    public string MosquitoServer()
+    public string? MosquitoServer()
     {
         return GetBaseConfiguration().MosquitoServer;
     }
 
-    public string TeslaMateDbServer()
+    public string? TeslaMateDbServer()
     {
         return GetBaseConfiguration().TeslaMateDbServer;
     }
 
-    public int TeslaMateDbPort()
+    public int? TeslaMateDbPort()
     {
         return GetBaseConfiguration().TeslaMateDbPort;
     }
 
-    public string TeslaMateDbDatabaseName()
+    public string? TeslaMateDbDatabaseName()
     {
         return GetBaseConfiguration().TeslaMateDbDatabaseName;
     }
 
-    public string TeslaMateDbUser()
+    public string? TeslaMateDbUser()
     {
         return GetBaseConfiguration().TeslaMateDbUser;
     }
 
-    public string TeslaMateDbPassword()
+    public string? TeslaMateDbPassword()
     {
         return GetBaseConfiguration().TeslaMateDbPassword;
     }
@@ -507,11 +513,6 @@ public class ConfigurationWrapper(
     public int? MaxInverterAcPower()
     {
         return GetBaseConfiguration().MaxInverterAcPower;
-    }
-
-    public string TeslaMateApiBaseUrl()
-    {
-        return GetBaseConfiguration().TeslaMateApiBaseUrl;
     }
 
     /// <summary>
@@ -825,12 +826,14 @@ public class ConfigurationWrapper(
 
             cacheItemPolicy.ChangeMonitors.Add(new HostFileChangeMonitor(filePathList));
 
-            if (File.Exists(filePath))
+            if (!File.Exists(filePath))
             {
-                jsonFileContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
-
-                cache.Set(_baseConfigurationMemoryCacheName, jsonFileContent, cacheItemPolicy);
+                var baseConfiguration = new DtoBaseConfiguration();
+                var baseConfigurationJson = JsonConvert.SerializeObject(baseConfiguration);
+                await File.WriteAllTextAsync(filePath, baseConfigurationJson).ConfigureAwait(false);
             }
+            jsonFileContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
+            cache.Set(_baseConfigurationMemoryCacheName, jsonFileContent, cacheItemPolicy);
         }
 
         return jsonFileContent ?? throw new InvalidOperationException("Could not read BaseConfigurationJson file content.");
@@ -883,6 +886,16 @@ public class ConfigurationWrapper(
 
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration)
     {
+        if (!dtoBaseConfiguration.UseTeslaMateIntegration)
+        {
+            dtoBaseConfiguration.UseTeslaMateAsDataSource = false;
+            dtoBaseConfiguration.TeslaMateDbServer = default;
+            dtoBaseConfiguration.TeslaMateDbPort = default;
+            dtoBaseConfiguration.TeslaMateDbDatabaseName = default;
+            dtoBaseConfiguration.TeslaMateDbUser = default;
+            dtoBaseConfiguration.TeslaMateDbPassword = default;
+            dtoBaseConfiguration.MosquitoServer = default;
+        }
         var baseConfigurationBase = (BaseConfigurationBase)dtoBaseConfiguration;
         var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(JsonConvert.SerializeObject(baseConfigurationBase));
 

@@ -36,5 +36,4 @@ public class Settings : ISettings
 
     public string? ChargePricesUpdateText { get; set; }
     public int LastPvDemoCase { get; set; }
-    public bool UseTeslaMate { get; set; } = true;
 }

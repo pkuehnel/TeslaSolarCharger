@@ -29,8 +29,6 @@ public class BaseConfigurationBase
     public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
     public bool IsModbusCurrentInverterPowerUrl { get; set; }
     [Required]
-    public string TeslaMateApiBaseUrl { get; set; } = "http://teslamateapi:8080";
-    [Required]
     [Range(25, int.MaxValue)]
     public int UpdateIntervalSeconds { get; set; } = 30;
     [Required]
@@ -58,21 +56,15 @@ public class BaseConfigurationBase
     public string? TelegramChannelId { get; set; }
     [HelperText("If enabled detailed error information are sent via Telegram so developers can find the root cause. This is not needed for normal usage.")]
     public bool SendStackTraceToTelegram { get; set; }
-    [Required]
-    public string TeslaMateDbServer { get; set; } = "database";
-    [Required]
-    public int TeslaMateDbPort { get; set; } = 5432;
-    [Required]
-    public string TeslaMateDbDatabaseName { get; set; } = "teslamate";
-    [Required]
-    public string TeslaMateDbUser { get; set; } = "teslamate";
-    [Required]
+    public string? TeslaMateDbServer { get; set; }
+    public int? TeslaMateDbPort { get; set; }
+    public string? TeslaMateDbDatabaseName { get; set; }
+    public string? TeslaMateDbUser { get; set; }
     [DataType(DataType.Password)]
-    public string TeslaMateDbPassword { get; set; } = "secret";
+    public string? TeslaMateDbPassword { get; set; }
+    public string? MosquitoServer { get; set; }
     [Required]
     public string MqqtClientId { get; set; } = "TeslaSolarCharger";
-    [Required]
-    public string MosquitoServer { get; set; } = "mosquitto";
     public string? CurrentPowerToGridXmlPattern { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderName { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderValue { get; set; }
@@ -94,9 +86,12 @@ public class BaseConfigurationBase
     public int? MaxCombinedCurrent { get; set; }
     public int? MaxInverterAcPower { get; set; }
     public string? BleApiBaseUrl { get; set; }
+    [HelperText("When you use TeslaMate you can enable this so calculated charging costs from TSC are set in TeslaMate. Note: The charging costs in TeslaMate are only updated ever 24 hours.")]
+    public bool UseTeslaMateIntegration { get; set; }
+    [HelperText("If enabled TeslaMate MQTT is used as datasource. If disabled Tesla API is directly called. Note: If you use TSC without TeslaMate the setting here does not matter. Then the Tesla API is used always.")]
     public bool UseTeslaMateAsDataSource { get; set; }
-    public double HomeGeofenceLongitude { get; set; } = 13.3761736;
-    public double HomeGeofenceLatitude { get; set; } = 52.5185238;
+    public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
+    public double HomeGeofenceLatitude { get; set; } = 52.5185238; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
     public int HomeGeofenceRadius { get; set; } = 50;
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }

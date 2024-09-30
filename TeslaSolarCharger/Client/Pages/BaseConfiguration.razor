@@ -79,31 +79,56 @@ else
             <hr />
         }
         <h3>TeslaMate:</h3>
-        <div class="mb-3">
-            <InputCheckbox class="form-check-input" id="useTeslaMateAsDataSource" @bind-Value="_dtoBaseConfiguration.UseTeslaMateAsDataSource" />
-            <label class="form-check-label" for="useTeslaMateAsDataSource">
-                Use TeslaMate as car data source
-            </label>
-            <div>
-                <small id="useTeslaMateAsDataSourceHelp" class="form-text text-muted">If enabled TeslaMate MQTT is used as datasource. If disabled Tesla API is directly called. Note: If you use TSC without TeslaMate the setting here does not matter. Then the Tesla API is used always.</small>
-            </div>
-        </div>
-        <InputComponent ValueId="teslaMateDbUser"
-                        LabelText="TeslaMate Database Username"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
-        <InputComponent ValueId="teslaMateDbPassword"
-                        LabelText="TeslaMate Database Server Password"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput T="bool"
+                      For="() => _dtoBaseConfiguration.UseTeslaMateIntegration"
+                      OnValueChanged="_ => InvokeAsync(StateHasChanged)"></GenericInput>
+        @if (_dtoBaseConfiguration.UseTeslaMateIntegration)
+        {
+            <GenericInput For="() => _dtoBaseConfiguration.UseTeslaMateAsDataSource"></GenericInput>
+            <InputComponent ValueId="teslaMateDbServer"
+                            LabelText="TeslaMate Database Host"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText id="teslaMateDbServer" @bind-Value="_dtoBaseConfiguration.TeslaMateDbServer" class="form-control" placeholder=" "/>
+                </InputFragment>
+            </InputComponent>
+
+            <InputComponent ValueId="teslaMateDbPort"
+                            LabelText="TeslaMate Database Server Port"
+                            UnitText=""
+                            HelpText="You can use the internal port of the TeslaMate database container">
+                <InputFragment>
+                    <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" "/>
+                </InputFragment>
+            </InputComponent>
+            <InputComponent ValueId="teslaMateDbUser"
+                            LabelText="TeslaMate Database Username"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
+            <InputComponent ValueId="teslaMateDbPassword"
+                            LabelText="TeslaMate Database Server Password"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
+
+            <InputComponent ValueId="mosquitoServer"
+                            LabelText="Mosquito servername"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.MosquitoServer" class="form-control" placeholder=" "/>
+                </InputFragment>
+            </InputComponent>
+        }
+        
         
         <h3>Home Geofence</h3>
         <div class="mb-3">
@@ -220,48 +245,6 @@ else
                     </InputFragment>
                 </InputComponent>
                 <hr/>
-
-                @if (_fleetApiTokenState == FleetApiTokenState.NotNeeded)
-                {
-                    <InputComponent ValueId="teslaMateApiBaseUrl"
-                                    LabelText="Teslamate API Base Url"
-                                    UnitText=""
-                                    HelpText="You can use the name of the container and the default port even though you changed the external port.">
-                        <InputFragment>
-                            <InputText id="teslaMateApiBaseUrl" @bind-Value="_dtoBaseConfiguration.TeslaMateApiBaseUrl" placeholder=" " class="form-control"/>
-                        </InputFragment>
-                    </InputComponent>
-                    <hr/>
-                }
-
-                <InputComponent ValueId="teslaMateDbServer"
-                                LabelText="TeslaMate Database Server Name"
-                                UnitText=""
-                                HelpText="You can use the name of the TeslaMate database service from your docker-compose.yml.">
-                    <InputFragment>
-                        <InputText id="teslaMateDbServer" @bind-Value="_dtoBaseConfiguration.TeslaMateDbServer" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
-
-                <InputComponent ValueId="teslaMateDbPort"
-                                LabelText="TeslaMate Database Server Port"
-                                UnitText=""
-                                HelpText="You can use the internal port of the TeslaMate database container">
-                    <InputFragment>
-                        <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
-                <hr/>
-
-                <InputComponent ValueId="mosquitoServer"
-                                LabelText="Mosquito servername"
-                                UnitText=""
-                                HelpText="">
-                    <InputFragment>
-                        <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.MosquitoServer" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
-
                 <InputComponent ValueId="mqqtClientId"
                                 LabelText="Mqqt ClientId"
                                 UnitText=""

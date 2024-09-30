@@ -39,7 +39,7 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(xmlPath);
 });
 
-builder.Services.AddMyDependencies(true);
+builder.Services.AddMyDependencies();
 builder.Services.AddSharedDependencies();
 builder.Services.AddServicesDependencies();
 
@@ -58,9 +58,6 @@ Log.Logger = new LoggerConfiguration()
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogTrace("Logger created.");
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
-var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
-await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
-await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
 DoStartupStuff(app, logger, configurationWrapper);
 
 // Configure the HTTP request pipeline.
@@ -117,10 +114,18 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         }
 
         var shouldRetry = false;
-        var teslaMateContext = webApplication.Services.GetRequiredService<ITeslamateContext>();
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
         var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
-        if (!configurationWrapper1.ShouldUseFakeSolarValues())
+        var teslaMateContextWrapper = webApplication.Services.GetRequiredService<ITeslaMateDbContextWrapper>();
+        var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
+        //This needs to be done before first base configuration update otherwise all TeslaMate values are removed
+        if (teslaMateContext != default)
+        {
+            baseConfiguration.UseTeslaMateIntegration = true;
+            baseConfiguration.UseTeslaMateAsDataSource = true;
+        }
+        await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
+        if (teslaMateContext != default)
         {
             try
             {
@@ -142,8 +147,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 catch (Exception ex)
                 {
                     logger1.LogError(ex, "TeslaMate is not available. Use TSC without TeslaMate integration");
-                    settings.UseTeslaMate = false;
                     baseConfiguration.UseTeslaMateAsDataSource = false;
+                    baseConfiguration.UseTeslaMateIntegration = false;
                     await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
                 }
             }
@@ -212,18 +217,18 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var homeGeofenceName = configurationWrapper.GeoFence();
         
-        if (settings.UseTeslaMate && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 0, HomeGeofenceLongitude: 0 })
+        if (teslaMateContext != default && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 52.5185238, HomeGeofenceLongitude: 13.3761736 })
         {
+            logger.LogInformation("Convert home geofence from TeslaMate.");
             var homeGeofence = await teslaMateContext.Geofences.Where(g => g.Name == homeGeofenceName).FirstOrDefaultAsync();
             if (homeGeofence != null)
             {
                 baseConfiguration.HomeGeofenceLatitude = Convert.ToDouble(homeGeofence.Latitude);
                 baseConfiguration.HomeGeofenceLongitude = Convert.ToDouble(homeGeofence.Longitude);
                 baseConfiguration.HomeGeofenceRadius = homeGeofence.Radius;
-                await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
             }
         }
-
+        await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {
