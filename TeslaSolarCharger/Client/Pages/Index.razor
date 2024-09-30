@@ -90,56 +90,51 @@ else
                         You did not test the Fleet API connection, yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
                     </div>
                 }
-                @if (car.VehicleCommandProtocolRequired)
+                @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
                 {
-                    @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
+                    <div>
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span class="sr-only">Testing Fleet API access might take about 30 seconds and the headlights might flash...</span>
+                    </div>
+                }
+                
+                @if (_isFleetApiWorkingForCar.Any(d => d.Key == car.CarId))
+                {
+                    @if (_isFleetApiWorkingForCar[car.CarId] == true)
                     {
-                        <div>
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            <span class="sr-only">Testing Fleet API access might take about 30 seconds and the chargeport might open...</span>
+                        <div class="alert alert-success" role="alert">
+                            API access is working
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <div>API access is not working.</div>
+                            <hr />
+                            <p>
+                                Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>. <br />
+                                If it still does not work, go to your car and under Controls -> Locks you can check if a key named "www.teslasolarcharger.de" is present. If not try adding the key again by clicking <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button>.
+                            </p>
+
+                        </div>
+                    }
+                }
+                else
+                {
+                    @if (car.FleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button> to register the car. <br />
+                            Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
                         </div>
                     }
 
-                    <div class="p-2 flex-grow-1">
-                        @if (_isFleetApiWorkingForCar.Any(d => d.Key == car.CarId))
-                        {
-                            @if (_isFleetApiWorkingForCar[car.CarId] == true)
-                            {
-                                <div class="alert alert-success" role="alert">
-                                    API access is working
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="alert alert-danger" role="alert">
-                                    <div>API access is not working.</div>
-                                    <hr />
-                                    <p>
-                                        Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>. <br />
-                                        If it still does not work, go to your car and under Controls -> Locks you can check if a key named "www.teslasolarcharger.de" is present. If not try adding the key again by clicking <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button>.
-                                    </p>
-
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            @if (car.FleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
-                            {
-                                <div class="alert alert-danger" role="alert">
-                                    TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button> to register the car. <br />
-                                    Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
-                                </div>
-                            }
-
-                            @if (car.FleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
-                            {
-                                <div class="alert alert-danger" role="alert">
-                                    You registerd the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
-                                </div>
-                            }
-                        }
-                    </div>
+                    @if (car.FleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            You registerd the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
+                        </div>
+                    }
                 }
 
                 <div>
