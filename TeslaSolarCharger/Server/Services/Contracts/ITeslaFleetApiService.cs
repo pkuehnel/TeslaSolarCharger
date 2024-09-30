@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+using LanguageExt;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Car;
@@ -13,7 +13,6 @@ public interface ITeslaFleetApiService
     Task<bool> GetNewTokenFromBackend();
     Task OpenChargePortDoor(int carId);
     Task<DtoValue<bool>> TestFleetApiAccess(int carId);
-    DtoValue<bool> IsFleetApiEnabled();
     Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin);
     Task RefreshCarData();
     Task RefreshTokensIfAllowedAndNeeded();

@@ -86,7 +86,6 @@ public interface IConfigurationWrapper
     string GetSqliteFileNameWithoutPath();
     string BackupZipDirectory();
     string FleetApiClientId();
-    bool UseFleetApi();
     string BackendApiBaseUrl();
     bool IsDevelopmentEnvironment();
     string GetAwattarBaseUrl();

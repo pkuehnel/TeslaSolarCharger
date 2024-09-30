@@ -240,15 +240,6 @@ public class TeslaFleetApiService(
             logger.LogError(ex, "Testing fleet api access was not successfull");
             return new DtoValue<bool>(false);
         }
-        
-        
-    }
-
-    public DtoValue<bool> IsFleetApiEnabled()
-    {
-        logger.LogTrace("{method}", nameof(IsFleetApiEnabled));
-        var isEnabled = configurationWrapper.UseFleetApi();
-        return new DtoValue<bool>(isEnabled);
     }
 
     public async Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin)
