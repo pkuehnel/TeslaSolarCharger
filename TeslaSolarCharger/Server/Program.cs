@@ -227,6 +227,13 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             }
         }
 
+        if (teslaMateContext != default)
+        {
+            baseConfiguration.UseTeslaMateIntegration = true;
+            baseConfiguration.UseTeslaMateAsDataSource = true;
+            await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
+        }
+
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {
