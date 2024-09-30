@@ -889,6 +889,16 @@ public class ConfigurationWrapper(
 
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration dtoBaseConfiguration)
     {
+        if (!dtoBaseConfiguration.UseTeslaMateIntegration)
+        {
+            dtoBaseConfiguration.UseTeslaMateAsDataSource = false;
+            dtoBaseConfiguration.TeslaMateDbServer = default;
+            dtoBaseConfiguration.TeslaMateDbPort = default;
+            dtoBaseConfiguration.TeslaMateDbDatabaseName = default;
+            dtoBaseConfiguration.TeslaMateDbUser = default;
+            dtoBaseConfiguration.TeslaMateDbPassword = default;
+            dtoBaseConfiguration.MosquitoServer = default;
+        }
         var baseConfigurationBase = (BaseConfigurationBase)dtoBaseConfiguration;
         var baseConfigurationJson = JsonConvert.DeserializeObject<BaseConfigurationJson>(JsonConvert.SerializeObject(baseConfigurationBase));
 
