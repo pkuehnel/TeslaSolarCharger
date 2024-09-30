@@ -84,8 +84,13 @@ else
 
                     </div>
                 }
-
-                @if (_usingFleetApi == true && car.VehicleCommandProtocolRequired)
+                @if (car.FleetApiState == default)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        You did not test the Fleet API connection, yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
+                    </div>
+                }
+                @if (car.VehicleCommandProtocolRequired)
                 {
                     @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
                     {
@@ -131,12 +136,6 @@ else
                             {
                                 <div class="alert alert-danger" role="alert">
                                     You registerd the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
-                                </div>
-                            }
-                            @if (car.FleetApiState == default)
-                            {
-                                <div class="alert alert-danger" role="alert">
-                                    You did not test the Fleet API connection, yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">here</button> to test the connection.
                                 </div>
                             }
                         }
@@ -409,7 +408,6 @@ else
     private DateTime? _serverTime;
     private string? _serverTimeZoneDisplayName;
     private string _installationId = "";
-    private bool? _usingFleetApi;
     private Dictionary<int, bool?> _isFleetApiWorkingForCar = new();
     private readonly HashSet<int> _testingFleetApiCarIds = new();
 
@@ -423,9 +421,6 @@ else
         await RefreshCarBaseStates().ConfigureAwait(false);
         await RefreshServerTime().ConfigureAwait(false);
         await RefreshServerTimeZone().ConfigureAwait(false);
-        
-        var usingFleetApi = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/FleetApi/IsFleetApiEnabled").ConfigureAwait(false);
-        _usingFleetApi = usingFleetApi?.Value;
         _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
         _installationId = await HttpClient.GetStringAsync("api/Hello/GetInstallationId").ConfigureAwait(false);
         foreach (var carBaseState in _carBaseStates!)
