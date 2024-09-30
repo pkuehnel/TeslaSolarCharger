@@ -245,19 +245,6 @@ else
                     </InputFragment>
                 </InputComponent>
                 <hr/>
-
-                @if (_fleetApiTokenState == FleetApiTokenState.NotNeeded)
-                {
-                    <InputComponent ValueId="teslaMateApiBaseUrl"
-                                    LabelText="Teslamate API Base Url"
-                                    UnitText=""
-                                    HelpText="You can use the name of the container and the default port even though you changed the external port.">
-                        <InputFragment>
-                            <InputText id="teslaMateApiBaseUrl" @bind-Value="_dtoBaseConfiguration.TeslaMateApiBaseUrl" placeholder=" " class="form-control"/>
-                        </InputFragment>
-                    </InputComponent>
-                    <hr/>
-                }
                 <InputComponent ValueId="mqqtClientId"
                                 LabelText="Mqqt ClientId"
                                 UnitText=""

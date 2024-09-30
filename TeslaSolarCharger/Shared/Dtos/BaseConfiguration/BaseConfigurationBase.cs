@@ -29,8 +29,6 @@ public class BaseConfigurationBase
     public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
     public bool IsModbusCurrentInverterPowerUrl { get; set; }
     [Required]
-    public string TeslaMateApiBaseUrl { get; set; } = "http://teslamateapi:8080";
-    [Required]
     [Range(25, int.MaxValue)]
     public int UpdateIntervalSeconds { get; set; } = 30;
     [Required]

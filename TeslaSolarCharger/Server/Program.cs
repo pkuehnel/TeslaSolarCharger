@@ -116,9 +116,15 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var shouldRetry = false;
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
         var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
-
         var teslaMateContextWrapper = webApplication.Services.GetRequiredService<ITeslaMateDbContextWrapper>();
         var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
+        //This needs to be done before first base configuration update otherwise all TeslaMate values are removed
+        if (teslaMateContext != default)
+        {
+            baseConfiguration.UseTeslaMateIntegration = true;
+            baseConfiguration.UseTeslaMateAsDataSource = true;
+        }
+        await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
         if (teslaMateContext != default)
         {
             try
@@ -220,17 +226,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 baseConfiguration.HomeGeofenceLatitude = Convert.ToDouble(homeGeofence.Latitude);
                 baseConfiguration.HomeGeofenceLongitude = Convert.ToDouble(homeGeofence.Longitude);
                 baseConfiguration.HomeGeofenceRadius = homeGeofence.Radius;
-                await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
             }
         }
-
-        if (teslaMateContext != default)
-        {
-            baseConfiguration.UseTeslaMateIntegration = true;
-            baseConfiguration.UseTeslaMateAsDataSource = true;
-            await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
-        }
-
+        await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {

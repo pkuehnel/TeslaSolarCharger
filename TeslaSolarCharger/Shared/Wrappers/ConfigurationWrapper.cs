@@ -515,11 +515,6 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().MaxInverterAcPower;
     }
 
-    public string TeslaMateApiBaseUrl()
-    {
-        return GetBaseConfiguration().TeslaMateApiBaseUrl;
-    }
-
     /// <summary>
     /// Get max combined current from baseConfiguration
     /// </summary>
@@ -831,12 +826,14 @@ public class ConfigurationWrapper(
 
             cacheItemPolicy.ChangeMonitors.Add(new HostFileChangeMonitor(filePathList));
 
-            if (File.Exists(filePath))
+            if (!File.Exists(filePath))
             {
-                jsonFileContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
-
-                cache.Set(_baseConfigurationMemoryCacheName, jsonFileContent, cacheItemPolicy);
+                var baseConfiguration = new DtoBaseConfiguration();
+                var baseConfigurationJson = JsonConvert.SerializeObject(baseConfiguration);
+                await File.WriteAllTextAsync(filePath, baseConfigurationJson).ConfigureAwait(false);
             }
+            jsonFileContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
+            cache.Set(_baseConfigurationMemoryCacheName, jsonFileContent, cacheItemPolicy);
         }
 
         return jsonFileContent ?? throw new InvalidOperationException("Could not read BaseConfigurationJson file content.");

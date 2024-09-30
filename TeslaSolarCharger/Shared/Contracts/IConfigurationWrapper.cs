@@ -13,7 +13,6 @@ public interface IConfigurationWrapper
     string? CurrentInverterPowerUrl();
     string? CurrentPowerToGridJsonPattern();
     decimal CurrentPowerToGridCorrectionFactor();
-    string TeslaMateApiBaseUrl();
     string GeoFence();
     TimeSpan TimespanUntilSwitchOn();
     TimeSpan TimespanUntilSwitchOff();

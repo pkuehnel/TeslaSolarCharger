@@ -110,16 +110,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
             .AddTransient<IErrorHandlingService, ErrorHandlingService>()
             .AddTransient<ITeslaMateDbContextWrapper, TeslaMateDbContextWrapper>()
+            .AddTransient<ITeslaService, TeslaFleetApiService>()
             .AddSharedBackendDependencies();
-        if (true)
-        {
-            services.AddTransient<ITeslaService, TeslaFleetApiService>();
-        }
-        else
-        {
-            services.AddTransient<ITeslaService, TeslamateApiService>();
-        }
-
         return services;
     }
 }
