@@ -163,7 +163,7 @@ public class ConfigurationWrapper(
     public bool UseTeslaMateIntegration()
     {
         var value = GetBaseConfiguration().UseTeslaMateIntegration;
-        return !value;
+        return value;
     }
 
     public double HomeGeofenceLongitude()
