@@ -34,7 +34,7 @@ You can either install the software in a Docker container or download the binari
 
 The easiest way to use TeslaSolarCharger is with Docker.
 
-Depending on your system, you have to install Docker first. To do this on a RaspberryPi (should be the same on standard Linux systems), you need to execute the following commands in your Terminal window:
+Depending on your system, you have to install Docker first. To do this on a Raspberry Pi (should be the same on standard Linux systems), you need to execute the following commands in your Terminal window:
 1. Install Docker
     ```
     curl -sSL https://get.docker.com | sh
@@ -165,7 +165,7 @@ volumes:
 [![Docker size](https://img.shields.io/docker/image-size/pkuehnel/teslasolarchargersolaredgeplugin/latest)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 [![Docker pulls](https://img.shields.io/docker/pulls/pkuehnel/teslasolarchargersolaredgeplugin)](https://hub.docker.com/r/pkuehnel/teslasolarchargersolaredgeplugin)
 
-The SolarEdge Plugin uses the cloud API, which is limited to 300 which is reset after 15 minutes. When the limit is reached the solaredge API does not gather any new values. This results in TSC displaying 0 grid and home battery power until 15 minutes are over.
+The SolarEdge Plugin uses the cloud API, which is limited to 300 which is reset after 15 minutes. When the limit is reached the SolarEdge API does not gather any new values. This results in TSC displaying 0 grid and home battery power until 15 minutes are over.
 
 To use the plugin, just add these lines before the volumes section of your `docker-compose.yml`. Note: You have to change your site ID and your API key in the `CloudUrl` environment variable
 
@@ -447,7 +447,7 @@ You can use the correction factors to scale/ correct these values as appropriate
 - Home Battery expresses its state of charge as an absolute value in kWh: Select `Plus` for the operator and a correction factor of  1/(Full Charge Capacity) e.g. if the battery has a full charge capacity of 100kWh the correction factor is 1/100 or 0.01
 
 #### Install and setup BLE API
-To go around Teslas API limitations, you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on, or by using a separate device. Note: The device needs to be placed near the car. Even if it is working when beeing a few meters away or in other rooms I can guarantee you, that you will have issues sooner or later. The device needs to be in one room with the car without any walls between them.
+To go around Teslas API limitations, you can use Bluetooth (BLE) to control your car. You can do this either by using the same device as your TSC is running on, or by using a separate device. Note: The device needs to be placed near the car. Even if it is working when being a few meters away or in different rooms, I can guarantee you, that you will have issues sooner or later. The device needs to be in one room with the car without any walls between them.
 
 Confirmed working hardware:
 * Raspberry Pi Zero 2W (only capable when used as separate device)
@@ -565,12 +565,12 @@ To configure your home battery, you need to add the following settings:
 - Home Battery Minimum SoC
 - Home Battery Charging Power
 
-As long as you home battery's SoC is below the set value, the configured charging power is reserved for the home battery. E.g. if you set Home Battery Minimum SoC to 80% and Home Battery Charging Power to 5000W TSC lets the home battery charge with 5000W as long as its SoC is below 80%.
+As long as your home battery's SoC is below the set value, the configured charging power is reserved for the home battery. E.g. if you set Home Battery Minimum SoC to 80% and Home Battery Charging Power to 5000W TSC lets the home battery charge with 5000W as long as its SoC is below 80%.
 
 **Note:** If your battery is discharging, the power should be displayed in red. If the battery is charging, the power should be displayed in green. If this is the other way around, you must update the `Operator` to be `Minus`.
 
 ### Telegram integration
-In this section you learn how to create the Telegram Bot Key and where you get the Telegram ChannelID from:
+In this section, you learn how to create the Telegram Bot Key and where you get the Telegram ChannelID from:
 
 - Create a bot by chatting with `BotFather`
 
@@ -606,8 +606,8 @@ Currently, there are four different charge modes available:
 
 1. **PV only**: Only solar energy is used to charge. You can set a SOC level that should be reached at the specified date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). If solar power is insufficient to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, specify `usable kWh` in the car settings section.
 1. **Maximum Power**: The car charges with the maximum available power
-1. **Min SoC + PV**: If plugged in, the car starts charging with maximum power until the set Min SoC is reached. After that, only PV Power is used to charge the car.
-1. **Spot Price + PV**: You can set a Min Soc, which should be reached at a specific date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). The charge times are then planned to charge at the cheapest possible time. This is especially useful if you have hourly electricity prices like with [Tibber](https://tibber.com/) or [aWATTar](https://www.awattar.de/). Note: The car will still charge based on Solar energy if available, and you need to enable `Use Spot Price` in the Charge Prices settings for correct charge price calculation.
+1. **Min SoC + PV**: If plugged in, the car starts charging with maximum power until the set Min SoC is reached. Thereafter, only PV Power is used to charge the car.
+1. **Spot Price + PV**: You can set a Min Soc, which should be reached at a specific date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). The charge times are then planned to charge at the cheapest possible time. This is especially useful if you have hourly electricity prices, like with [Tibber](https://tibber.com/) or [aWATTar](https://www.awattar.de/). Note: The car will still charge based on Solar energy if available, and you need to enable `Use Spot Price` in the Charge Prices settings for correct charge price calculation.
 1. **TSC Disabled**: TSC leaves this car as is and does not update the charging speed etc.
 
 ## Generate logfiles
