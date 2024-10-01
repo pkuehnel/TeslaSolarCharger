@@ -315,6 +315,7 @@ volumes:
 1. Go to `Car Settings` and reload the page until the message `Restart TSC to add new cars` is displayed.
 1. Restart the container with `docker compose restart teslasolarcharger` (you need to be in the directory of your `docker-compose.yml`).
 1. Wake up the car by opening a car door. Now the SoC values, car name,... should be displayed on the `Overview` page:
+![image](https://github.com/user-attachments/assets/8ba58c08-f66f-4b4a-897b-439b83a8b04a)
 1. If there are any messages displayed below your car name, just follow the instructions.
 
 If you only want to charge based on Spot Price, you are done now.
@@ -331,6 +332,8 @@ If you are using a plugin, you need to use the following values:
   - Url: `http://<IP of your Docker host>:7192/api/CurrentPower/GetAllValues` (Note: the serial number in the screenshot is optional in case you have multiple SMA EnergyMeter/Homa Managers)
   - Node Pattern Type: JSON
   - Add a result with the configuration seen in the screenshot
+![SMA plugin](https://github.com/user-attachments/assets/2785c050-e51e-404c-8c61-898f72177374)
+
 - SolarEdge Plugin:
   - Url: `http://solaredgeplugin/api/CurrentValues/GetCurrentPvValues`
   - Set Result types to json and use the following json patterns:
@@ -346,7 +349,8 @@ If you are using a plugin, you need to use the following values:
     - Home Battery SoC: `$.homeBatterySoc`
     - Home Battery Power: `$.homeBatteryPower`
   - The result should look like this:
-  ![image](https://user-images.githubusercontent.com/35361981/226210694-18e1af38-25e8-43d8-a13d-6671f0d65fbc.png)
+![Solax Plugin](https://github.com/user-attachments/assets/d8d3324b-2988-4532-bb56-2ef4a8b4f52e)
+
 
 
 ###### Modbus values
