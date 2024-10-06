@@ -188,7 +188,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
         { issueKeys.BleVersionCompatibility, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,
-                IsTelegramEnabled = false,
+                IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 2,
                 HasPlaceHolderIssueKey = true,
             }
