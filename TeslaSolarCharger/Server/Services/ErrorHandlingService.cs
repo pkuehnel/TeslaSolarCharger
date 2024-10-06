@@ -123,6 +123,21 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
             "Update TSC to the latest version.", settings.IsNewVersionAvailable).ConfigureAwait(false);
         await DetectTokenStateIssues(activeErrors);
+        foreach (var car in settings.Cars)
+        {
+            if ((car.LastNonSuccessBleCall != default)
+                && (car.LastNonSuccessBleCall.Value > (dateTimeProvider.UtcNow() - configurationWrapper.BleUsageStopAfterError())))
+            {
+                //Issue should already be active as is set on TeslaFleetApiService.
+                //Note: The same logic for the if is used in TeslaFleetApiService.SendCommandToTeslaApi<T> if ble is enabled.
+                //So: let it be like that even though the if part is empty.
+            }
+            else
+            {
+                //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
+                await HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
+            }
+        }
     }
 
     public async Task<DtoValue<int>> ErrorCount()
