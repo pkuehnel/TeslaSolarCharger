@@ -134,6 +134,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             }
             else
             {
+                //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
                 await HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
             }
         }
