@@ -45,46 +45,46 @@ public class TeslaFleetApiService(
 
     private DtoFleetApiRequest ChargeStartRequest => new()
     {
-        RequestUrl = "command/charge_start",
+        RequestUrl = constants.ChargeStartRequestUrl,
         NeedsProxy = true,
         BleCompatible = true,
         TeslaApiRequestType = TeslaApiRequestType.Charging,
     };
     private DtoFleetApiRequest ChargeStopRequest => new()
     {
-        RequestUrl = "command/charge_stop",
+        RequestUrl = constants.ChargeStopRequestUrl,
         NeedsProxy = true,
         BleCompatible = true,
         TeslaApiRequestType = TeslaApiRequestType.Charging,
     };
     private DtoFleetApiRequest SetChargingAmpsRequest => new()
     {
-        RequestUrl = "command/set_charging_amps",
+        RequestUrl = constants.SetChargingAmpsRequestUrl,
         NeedsProxy = true,
         BleCompatible = true,
         TeslaApiRequestType = TeslaApiRequestType.Command,
     };
     private DtoFleetApiRequest SetScheduledChargingRequest => new()
     {
-        RequestUrl = "command/set_scheduled_charging",
+        RequestUrl = constants.SetScheduledChargingRequestUrl,
         NeedsProxy = true,
         TeslaApiRequestType = TeslaApiRequestType.Command,
     };
     private DtoFleetApiRequest SetChargeLimitRequest => new()
     {
-        RequestUrl = "command/set_charge_limit",
+        RequestUrl = constants.SetChargeLimitRequestUrl,
         NeedsProxy = true,
         TeslaApiRequestType = TeslaApiRequestType.Command,
     };
     private DtoFleetApiRequest SetSentryModeRequest => new()
     {
-        RequestUrl = "command/set_sentry_mode",
+        RequestUrl = constants.SetSentryModeRequestUrl,
         NeedsProxy = true,
         TeslaApiRequestType = TeslaApiRequestType.Command,
     };
     private DtoFleetApiRequest FlashHeadlightsRequest => new()
     {
-        RequestUrl = "command/flash_lights",
+        RequestUrl = constants.FlashHeadlightsRequestUrl,
         NeedsProxy = true,
         //Do not make this BLE compatible as this is used to test fleet api access
         BleCompatible = false,
@@ -92,21 +92,21 @@ public class TeslaFleetApiService(
     };
     private DtoFleetApiRequest WakeUpRequest => new()
     {
-        RequestUrl = "wake_up",
+        RequestUrl = constants.WakeUpRequestUrl,
         NeedsProxy = false,
         TeslaApiRequestType = TeslaApiRequestType.WakeUp,
     };
 
     private DtoFleetApiRequest VehicleRequest => new()
     {
-        RequestUrl = "",
+        RequestUrl = constants.VehicleRequestUrl,
         NeedsProxy = false,
         TeslaApiRequestType = TeslaApiRequestType.Vehicle,
     };
 
     private DtoFleetApiRequest VehicleDataRequest => new()
     {
-        RequestUrl = $"vehicle_data?endpoints={Uri.EscapeDataString("drive_state;location_data;vehicle_state;charge_state;climate_state")}",
+        RequestUrl = constants.VehicleDataRequestUrl,
         NeedsProxy = false,
         TeslaApiRequestType = TeslaApiRequestType.VehicleData,
     };

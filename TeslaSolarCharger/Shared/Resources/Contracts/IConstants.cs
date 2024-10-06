@@ -31,4 +31,14 @@ public interface IConstants
     int ChargingDetailsAddTriggerEveryXSeconds { get; }
     string ChargingDetailsSolarPowerShareFixed { get; }
     string SolarValuesConverted { get; }
+    string ChargeStartRequestUrl { get; }
+    string ChargeStopRequestUrl { get; }
+    string SetChargingAmpsRequestUrl { get; }
+    string SetScheduledChargingRequestUrl { get; }
+    string SetChargeLimitRequestUrl { get; }
+    string SetSentryModeRequestUrl { get; }
+    string FlashHeadlightsRequestUrl { get; }
+    string WakeUpRequestUrl { get; }
+    string VehicleRequestUrl { get; }
+    string VehicleDataRequestUrl { get; }
 }
