@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -28,7 +30,9 @@ public class ChargingService(
     ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
     IChargeTimeCalculationService chargeTimeCalculationService,
     IConstants constants,
-    ITeslaSolarChargerContext context)
+    ITeslaSolarChargerContext context,
+    IErrorHandlingService errorHandlingService,
+    IIssueKeys issueKeys)
     : IChargingService
 {
 
@@ -115,10 +119,16 @@ public class ChargingService(
 
         foreach (var relevantCar in relevantCars)
         {
-            var ampToControl = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
-            logger.LogDebug("Amp to control: {amp}", ampToControl);
+            var requestedAmpChange = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
+            logger.LogDebug("Amp to control: {amp}", requestedAmpChange);
             logger.LogDebug("Update Car amp for car {carname}", relevantCar.Name);
-            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
+            if (requestedAmpChange == 0)
+            {
+                await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + constants.SetChargingAmpsRequestUrl, relevantCar.Vin);
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessStatusCode + constants.SetChargingAmpsRequestUrl, relevantCar.Vin);
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.SetChargingAmpsRequestUrl, relevantCar.Vin);
+            }
+            powerToControl -= await ChangeCarAmp(relevantCar, requestedAmpChange, maxAmpIncrease).ConfigureAwait(false);
         }
     }
 

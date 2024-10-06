@@ -11,6 +11,7 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.LoggedError;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using TeslaSolarCharger.SharedModel.Enums;
 using Error = LanguageExt.Common.Error;
@@ -26,7 +27,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     IMapperConfigurationFactory mapperConfigurationFactory,
     ISettings settings,
     ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper,
-    IPossibleIssues possibleIssues) : IErrorHandlingService
+    IPossibleIssues possibleIssues,
+    IConstants constants) : IErrorHandlingService
 {
     public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
     {
@@ -136,6 +138,28 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             {
                 //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
                 await HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
+            }
+
+            if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
+            {
+                await HandleErrorResolved(issueKeys.GetVehicleData, car.Vin);
+            }
+
+            if (car.State != CarStateEnum.Asleep && car.State != CarStateEnum.Offline && car.State != CarStateEnum.Unknown)
+            {
+                await HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.WakeUpRequestUrl, car.Vin);
+            }
+            if (car.State is CarStateEnum.Charging)
+            {
+                await HandleErrorResolved(issueKeys.BleCommandNoSuccess + constants.ChargeStartRequestUrl, car.Vin);
+                await HandleErrorResolved(issueKeys.FleetApiNonSuccessStatusCode + constants.ChargeStartRequestUrl, car.Vin);
+                await HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.ChargeStartRequestUrl, car.Vin);
+            }
+            else
+            {
+                await HandleErrorResolved(issueKeys.BleCommandNoSuccess + constants.ChargeStopRequestUrl, car.Vin);
+                await HandleErrorResolved(issueKeys.FleetApiNonSuccessStatusCode + constants.ChargeStopRequestUrl, car.Vin);
+                await HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.ChargeStopRequestUrl, car.Vin);
             }
         }
     }
