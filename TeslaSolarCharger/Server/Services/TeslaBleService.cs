@@ -166,51 +166,68 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             var url = baseUrl + "Hello/TscVersionCompatibility";
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(3);
+            var vins = settings.Cars.Where(c => c.BleApiBaseUrl == host && c.UseBle).Select(c => c.Vin).ToList();
             try
             {
                 var response = await client.GetAsync(url).ConfigureAwait(false);
                 var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (response.StatusCode == HttpStatusCode.NotFound)
                 {
-                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                        $"BLE container with URL {host} not up to date", "Update the BLE container to the latest version",
-                        issueKeys.BleVersionCompatibility + host, null, null).ConfigureAwait(false);
+                    foreach (var vin in vins)
+                    {
+                        await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                            $"BLE container with URL {host} not up to date", $"Used for {vin}. Update the BLE container to the latest version",
+                            issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
+                    }
                     continue;
                 }
 
                 var commandResult = JsonConvert.DeserializeObject<DtoValue<string>>(responseContent);
                 if (commandResult == default || commandResult.Value == default)
                 {
-                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                        $"BLE container with URL {host} does not respond properly", $"Could not get value from {responseContent}",
-                        issueKeys.BleVersionCompatibility + host, null, null).ConfigureAwait(false);
+                    foreach (var vin in vins)
+                    {
+                        await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                            $"BLE container with URL {host} does not respond properly", $"Used for {vin}. Could not get value from {responseContent}",
+                            issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
+                    }
                     continue;
                 }
                 var couldParse = Version.TryParse(commandResult.Value, out var bleContainerVersion);
                 if (!couldParse || bleContainerVersion == default)
                 {
-                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                        $"BLE container with URL {host} does not respond properly", $"Could not get version from {commandResult.Value}",
-                        issueKeys.BleVersionCompatibility + host, null, null).ConfigureAwait(false);
+                    foreach (var vin in vins)
+                    {
+                        await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                            $"BLE container with URL {host} does not respond properly", $"Used for {vin}. Could not get version from {commandResult.Value}",
+                            issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
+                    }
                     continue;
                 }
 
                 var correctVersion = new Version(2, 31, 0);
                 if (!bleContainerVersion.Equals(correctVersion))
                 {
-                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                        $"BLE container with URL {host} has an incompatible version", $"Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update TSC and BLE container to the latest version.",
-                        issueKeys.BleVersionCompatibility + host, null, null).ConfigureAwait(false);
+                    foreach (var vin in vins)
+                    {
+                        await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                            $"BLE container with URL {host} has an incompatible version", $"Used for {vin}. Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update TSC and BLE container to the latest version.",
+                            issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
+                    }
                     continue;
                 }
 
-                await errorHandlingService.HandleErrorResolved(issueKeys.BleVersionCompatibility + host, null).ConfigureAwait(false);
+                await errorHandlingService.HandleErrorResolved(issueKeys.BleVersionCompatibility, null).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                    $"BLE container with URL {host} not reachable", "Looks like the url is not correct or BLE container is not online.",
-                    issueKeys.BleVersionCompatibility + host, null, ex.StackTrace).ConfigureAwait(false);
+                foreach (var vin in vins)
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                        $"BLE container with URL {host} not reachable", $"Used for {vin}. Looks like the url is not correct or BLE container is not online.",
+                        issueKeys.BleVersionCompatibility, vin, ex.StackTrace).ConfigureAwait(false);
+                }
+                
             }
         }
     }
