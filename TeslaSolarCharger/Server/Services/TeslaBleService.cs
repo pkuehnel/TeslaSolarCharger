@@ -2,7 +2,10 @@
 using System.Net;
 using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
+using TeslaSolarCharger.Server.Enums;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Ble;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -10,7 +13,9 @@ using TeslaSolarCharger.Shared.Enums;
 namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaBleService(ILogger<TeslaBleService> logger,
-    ISettings settings) : IBleService
+    ISettings settings,
+    IErrorHandlingService errorHandlingService,
+    IIssueKeys issueKeys) : IBleService
 {
     public async Task<DtoBleCommandResult> StartCharging(string vin)
     {
@@ -144,6 +149,72 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         throw new NotImplementedException();
     }
 
+    public async Task CheckBleApiVersionCompatibilities()
+    {
+        logger.LogTrace("{method}()", nameof(CheckBleApiVersionCompatibilities));
+        var hosts = settings.Cars
+            .Where(c => !string.IsNullOrEmpty(c.BleApiBaseUrl))
+            .Select(c => c.BleApiBaseUrl)
+            .Distinct().ToList();
+        foreach (var host in hosts)
+        {
+            var baseUrl = GetBleBaseUrlFromConfiguredUrl(host);
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                continue;
+            }
+            var url = baseUrl + "Hello/TscVersionCompatibility";
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(3);
+            try
+            {
+                var response = await client.GetAsync(url).ConfigureAwait(false);
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                        $"BLE container with URL {host} not up to date", "Update the BLE container to the latest version",
+                        issueKeys.BleVersionCompatibility + host, null, null).ConfigureAwait(false);
+                    continue;
+                }
+
+                var commandResult = JsonConvert.DeserializeObject<DtoValue<string>>(responseContent);
+                if (commandResult == default || commandResult.Value == default)
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                        $"BLE container with URL {host} does not respond properly", $"Could not get value from {responseContent}",
+                        issueKeys.BleVersionCompatibility + host, null, null).ConfigureAwait(false);
+                    continue;
+                }
+                var couldParse = Version.TryParse(commandResult.Value, out var bleContainerVersion);
+                if (!couldParse || bleContainerVersion == default)
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                        $"BLE container with URL {host} does not respond properly", $"Could not get version from {commandResult.Value}",
+                        issueKeys.BleVersionCompatibility + host, null, null).ConfigureAwait(false);
+                    continue;
+                }
+
+                var correctVersion = new Version(2, 31, 0);
+                if (!bleContainerVersion.Equals(correctVersion))
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                        $"BLE container with URL {host} has an incompatible version", $"Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update TSC and BLE container to the latest version.",
+                        issueKeys.BleVersionCompatibility + host, null, null).ConfigureAwait(false);
+                    continue;
+                }
+
+                await errorHandlingService.HandleErrorResolved(issueKeys.BleVersionCompatibility + host, null).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                    $"BLE container with URL {host} not reachable", "Looks like the url is not correct or BLE container is not online.",
+                    issueKeys.BleVersionCompatibility + host, null, ex.StackTrace).ConfigureAwait(false);
+            }
+        }
+    }
+
     private async Task<DtoBleCommandResult> SendCommandToBle(DtoBleRequest request)
     {
         logger.LogTrace("{method}({@request})", nameof(SendCommandToBle), request);
@@ -199,20 +270,24 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     private string? GetBleBaseUrl(string vin)
     {
         var car = settings.Cars.First(c => c.Vin == vin);
-        var bleUrl = car.BleApiBaseUrl;
-        if (string.IsNullOrWhiteSpace(bleUrl))
+        return GetBleBaseUrlFromConfiguredUrl(car.BleApiBaseUrl);
+    }
+
+    private static string? GetBleBaseUrlFromConfiguredUrl(string? bleApiBaseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(bleApiBaseUrl))
         {
             return null;
         }
-        if (!bleUrl.EndsWith("/"))
+        if (!bleApiBaseUrl.EndsWith("/"))
         {
-            bleUrl += "/";
+            bleApiBaseUrl += "/";
         }
-        if (!bleUrl.EndsWith("/api/"))
+        if (!bleApiBaseUrl.EndsWith("/api/"))
         {
-            bleUrl += "api/";
+            bleApiBaseUrl += "api/";
         }
-        return bleUrl;
+        return bleApiBaseUrl;
     }
 
     private string GetVinByCarId(int carId)

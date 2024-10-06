@@ -24,4 +24,5 @@ public interface IIssueKeys
     string BleCommandNoSuccess { get; }
     string SolarValuesNotAvailable { get; }
     string UsingFleetApiAsBleFallback { get; }
+    string BleVersionCompatibility { get; }
 }

@@ -12,4 +12,5 @@ public interface IBleService
     Task<DtoBleCommandResult> FlashLights(string vin);
     Task<DtoBleCommandResult> PairKey(string vin, string role);
     Task<DtoBleCommandResult> WakeUpCar(string vin);
+    Task CheckBleApiVersionCompatibilities();
 }

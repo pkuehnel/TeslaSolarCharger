@@ -26,5 +26,6 @@ public class IssueKeys : IIssueKeys
     public string BleCommandNoSuccess => "BleCommandNoSuccess_";
     public string SolarValuesNotAvailable => "SolarValuesNotAvailable";
     public string UsingFleetApiAsBleFallback => "UsingFleetApiAsBleFallback";
+    public string BleVersionCompatibility => "BleVersionCompatibility_";
 }
 
