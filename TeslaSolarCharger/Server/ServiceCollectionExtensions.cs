@@ -54,6 +54,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ApiCallCounterResetJob>()
             .AddTransient<ErrorMessagingJob>()
             .AddTransient<ErrorDetectionJob>()
+            .AddTransient<BleApiVersionDetectionJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()

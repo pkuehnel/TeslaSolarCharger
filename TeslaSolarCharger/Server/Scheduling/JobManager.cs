@@ -49,6 +49,7 @@ public class JobManager(
         var apiCallCounterResetJob = JobBuilder.Create<ApiCallCounterResetJob>().WithIdentity(nameof(ApiCallCounterResetJob)).Build();
         var errorMessagingJob = JobBuilder.Create<ErrorMessagingJob>().WithIdentity(nameof(ErrorMessagingJob)).Build();
         var errorDetectionJob = JobBuilder.Create<ErrorDetectionJob>().WithIdentity(nameof(ErrorDetectionJob)).Build();
+        var bleApiVersionDetectionJob = JobBuilder.Create<BleApiVersionDetectionJob>().WithIdentity(nameof(BleApiVersionDetectionJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -115,6 +116,9 @@ public class JobManager(
             .StartAt(latestTriggerStartTime.Add(TimeSpan.FromSeconds(5)))
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(62)).Build();
 
+        var bleApiVersionDetectionTrigger = TriggerBuilder.Create().WithIdentity("bleApiVersionDetectionJoTrigger")
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(61)).Build();
+
         var random = new Random();
         var hour = random.Next(0, 5);
         var minute = random.Next(0, 59);
@@ -137,6 +141,7 @@ public class JobManager(
             {spotPriceJob, new HashSet<ITrigger> {spotPricePlanningTrigger}},
             {errorMessagingJob, new HashSet<ITrigger> {errorMessagingTrigger}},
             {errorDetectionJob, new HashSet<ITrigger> {errorDetectionTrigger}},
+            {bleApiVersionDetectionJob, new HashSet<ITrigger> {bleApiVersionDetectionTrigger}},
         };
 
         if (!configurationWrapper.ShouldUseFakeSolarValues())

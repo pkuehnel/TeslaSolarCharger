@@ -185,6 +185,14 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HasPlaceHolderIssueKey = false,
             }
         },
+        { issueKeys.BleVersionCompatibility, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = true,
+            }
+        },
     };
 
     public DtoIssue GetIssueByKey(string key)

@@ -143,6 +143,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
             {
                 await HandleErrorResolved(issueKeys.GetVehicleData, car.Vin);
+                await HandleErrorResolved(issueKeys.FleetApiNonSuccessStatusCode + constants.VehicleDataRequestUrl, car.Vin);
+                await HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.VehicleDataRequestUrl, car.Vin);
             }
 
             if (car.State != CarStateEnum.Asleep && car.State != CarStateEnum.Offline && car.State != CarStateEnum.Unknown)
