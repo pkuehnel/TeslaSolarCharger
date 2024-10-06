@@ -153,7 +153,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     {
         logger.LogTrace("{method}()", nameof(CheckBleApiVersionCompatibilities));
         var hosts = settings.Cars
-            .Where(c => !string.IsNullOrEmpty(c.BleApiBaseUrl))
+            .Where(c => c.UseBle)
             .Select(c => c.BleApiBaseUrl)
             .Distinct().ToList();
         foreach (var host in hosts)
