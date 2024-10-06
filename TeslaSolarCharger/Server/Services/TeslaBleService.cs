@@ -217,7 +217,10 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                     continue;
                 }
 
-                await errorHandlingService.HandleErrorResolved(issueKeys.BleVersionCompatibility, null).ConfigureAwait(false);
+                foreach (var vin in vins)
+                {
+                    await errorHandlingService.HandleErrorResolved(issueKeys.BleVersionCompatibility, vin).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
