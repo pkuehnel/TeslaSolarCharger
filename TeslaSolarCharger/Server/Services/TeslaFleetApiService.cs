@@ -40,6 +40,9 @@ public class TeslaFleetApiService(
     ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper)
     : ITeslaService, ITeslaFleetApiService
 {
+    private const string IsChargingErrorMessage = "is_charging";
+    private const string IsNotChargingErrorMessage = "not_charging";
+
     private DtoFleetApiRequest ChargeStartRequest => new()
     {
         RequestUrl = "command/charge_start",
@@ -628,10 +631,10 @@ public class TeslaFleetApiService(
                         if (result.Success
                             || (result.ErrorType == ErrorType.CarExecution
                                 && (fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl)
-                                && (result.CarErrorMessage?.Contains("is_charging") == true))
+                                && (result.CarErrorMessage?.Contains(IsChargingErrorMessage) == true))
                             || (result.ErrorType == ErrorType.CarExecution
                                 && (fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl)
-                                && (result.CarErrorMessage?.Contains("not_charging") == true)))
+                                && (result.CarErrorMessage?.Contains(IsNotChargingErrorMessage) == true)))
                         {
                             AddRequestToCar(vin, fleetApiRequest);
                             await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin);
@@ -722,7 +725,9 @@ public class TeslaFleetApiService(
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(responseString);
         if (response.IsSuccessStatusCode && (teslaCommandResultResponse?.Response is DtoVehicleCommandResult vehicleCommandResult))
         {
-            if (vehicleCommandResult.Result != true)
+            if (vehicleCommandResult.Result != true
+                && !((fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl) && responseString.Contains(IsChargingErrorMessage))
+                && !((fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl) && responseString.Contains(IsNotChargingErrorMessage)))
             {
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Car {car.Vin} could not handle command",
                         $"Result of command request is false {fleetApiRequest.RequestUrl}, {contentData}. Response string: {responseString}",
