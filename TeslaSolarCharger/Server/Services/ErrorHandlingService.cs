@@ -125,7 +125,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
             "Update TSC to the latest version.", settings.IsNewVersionAvailable).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNoApiRequestsAllowed, "No Fleet API requests allowed",
-            "Update TSC to the latest version.", !settings.AllowUnlimitedFleetApiRequests).ConfigureAwait(false);
+            "Make sure your TSC can access the internet and TSC is on its latest version.", !settings.AllowUnlimitedFleetApiRequests).ConfigureAwait(false);
 
         await DetectTokenStateIssues(activeErrors);
         foreach (var car in settings.Cars)
