@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -12,88 +14,69 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
+using TeslaSolarCharger.SharedModel.Enums;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
 
-public class ChargingService : IChargingService
+public class ChargingService(
+    ILogger<ChargingService> logger,
+    ISettings settings,
+    IDateTimeProvider dateTimeProvider,
+    ITelegramService telegramService,
+    ITeslaService teslaService,
+    IConfigurationWrapper configurationWrapper,
+    ITeslaMateMqttService teslaMateMqttService,
+    ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
+    IChargeTimeCalculationService chargeTimeCalculationService,
+    IConstants constants,
+    ITeslaSolarChargerContext context,
+    IErrorHandlingService errorHandlingService,
+    IIssueKeys issueKeys)
+    : IChargingService
 {
-    private readonly ILogger<ChargingService> _logger;
-    private readonly ISettings _settings;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ITelegramService _telegramService;
-    private readonly ITeslaService _teslaService;
-    private readonly IConfigurationWrapper _configurationWrapper;
-    private readonly IPvValueService _pvValueService;
-    private readonly ITeslaMateMqttService _teslaMateMqttService;
-    private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
-    private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
-    private readonly IConstants _constants;
-    private readonly ITeslamateContext _teslamateContext;
-
-    public ChargingService(ILogger<ChargingService> logger,
-        ISettings settings, IDateTimeProvider dateTimeProvider, ITelegramService telegramService,
-        ITeslaService teslaService, IConfigurationWrapper configurationWrapper, IPvValueService pvValueService,
-        ITeslaMateMqttService teslaMateMqttService, ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
-        IChargeTimeCalculationService chargeTimeCalculationService, IConstants constants,
-        ITeslamateContext teslamateContext)
-    {
-        _logger = logger;
-        _settings = settings;
-        _dateTimeProvider = dateTimeProvider;
-        _telegramService = telegramService;
-        _teslaService = teslaService;
-        _configurationWrapper = configurationWrapper;
-        _pvValueService = pvValueService;
-        _teslaMateMqttService = teslaMateMqttService;
-        _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
-        _chargeTimeCalculationService = chargeTimeCalculationService;
-        _constants = constants;
-        _teslamateContext = teslamateContext;
-    }
 
     public async Task SetNewChargingValues()
     {
-        _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
+        logger.LogTrace("{method}()", nameof(SetNewChargingValues));
         await UpdateChargingRelevantValues().ConfigureAwait(false);
 
 
-        _logger.LogDebug("Current overage is {overage} Watt.", _settings.Overage);
-        if (_settings.Overage == null && _settings.InverterPower == null)
+        logger.LogDebug("Current overage is {overage} Watt.", settings.Overage);
+        if (settings.Overage == null && settings.InverterPower == null)
         {
-            _logger.LogWarning("Can not control power as overage is unknown. Use int minValue");
+            logger.LogWarning("Can not control power as overage is unknown. Use int minValue");
         }
-        var geofence = _configurationWrapper.GeoFence();
-        _logger.LogDebug("Relevant Geofence: {geofence}", geofence);
+        var geofence = configurationWrapper.GeoFence();
+        logger.LogDebug("Relevant Geofence: {geofence}", geofence);
 
-        if (!_teslaMateMqttService.IsMqttClientConnected)
+        if (!teslaMateMqttService.IsMqttClientConnected)
         {
-            _logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
+            logger.LogWarning("TeslaMate Mqtt Client is not connected. Charging Values won't be set.");
         }
 
-        LogErrorForCarsWithUnknownSocLimit(_settings.CarsToManage);
+        LogErrorForCarsWithUnknownSocLimit(settings.CarsToManage);
 
         var relevantCarIds = GetRelevantCarIds();
-        _logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
+        logger.LogDebug("Relevant car ids: {@ids}", relevantCarIds);
 
         var irrelevantCars = GetIrrelevantCars(relevantCarIds);
-        _logger.LogDebug("Irrelevant car ids: {@ids}", irrelevantCars.Select(c => c.Id));
+        logger.LogDebug("Irrelevant car ids: {@ids}", irrelevantCars.Select(c => c.Id));
         foreach (var irrelevantCar in irrelevantCars)
         {
             SetAllPlannedChargingSlotsToInactive(irrelevantCar);
         }
 
-        var relevantCars = _settings.Cars
+        var relevantCars = settings.Cars
             .Where(c => relevantCarIds.Any(r => c.Id == r))
             .OrderBy(c => c.ChargingPriority)
             .ThenBy(c => c.Id)
             .ToList();
 
-        if (_configurationWrapper.LogLocationData())
+        if (configurationWrapper.LogLocationData())
         {
-            _logger.LogDebug("Relevant cars: {@relevantCars}", relevantCars);
-            _logger.LogDebug("Irrelevant cars: {@irrelevantCars}", irrelevantCars);
+            logger.LogDebug("Relevant cars: {@relevantCars}", relevantCars);
+            logger.LogDebug("Irrelevant cars: {@irrelevantCars}", irrelevantCars);
         }
         else
         {
@@ -102,33 +85,33 @@ public class ChargingService : IChargingService
                 ContractResolver = new IgnorePropertiesResolver(new[] { nameof(DtoCar.Longitude), nameof(DtoCar.Latitude) }),
             };
             var relevantCarsJson = JsonConvert.SerializeObject(relevantCars, jsonSerializerSettings);
-            _logger.LogDebug("Relevant cars: {relevantCarsJson}", relevantCarsJson);
+            logger.LogDebug("Relevant cars: {relevantCarsJson}", relevantCarsJson);
             var irrelevantCarsJson = JsonConvert.SerializeObject(irrelevantCars, jsonSerializerSettings);
-            _logger.LogDebug("Irrelevant cars: {irrelevantCarsJson}", irrelevantCarsJson);
+            logger.LogDebug("Irrelevant cars: {irrelevantCarsJson}", irrelevantCarsJson);
         }
         
 
         if (relevantCarIds.Count < 1)
         {
-            _logger.LogDebug("No car was charging this cycle.");
-            _settings.ControlledACarAtLastCycle = false;
+            logger.LogDebug("No car was charging this cycle.");
+            settings.ControlledACarAtLastCycle = false;
             return;
         }
 
-        var powerToControl = CalculatePowerToControl();
+        var powerToControl = await CalculatePowerToControl().ConfigureAwait(false);
 
-        _logger.LogDebug("At least one car is charging.");
-        _settings.ControlledACarAtLastCycle = true;
+        logger.LogDebug("At least one car is charging.");
+        settings.ControlledACarAtLastCycle = true;
 
-        _logger.LogDebug("Power to control: {power}", powerToControl);
+        logger.LogDebug("Power to control: {power}", powerToControl);
 
-        var maxUsableCurrent = _configurationWrapper.MaxCombinedCurrent();
+        var maxUsableCurrent = configurationWrapper.MaxCombinedCurrent();
         var currentlyUsedCurrent = relevantCars.Select(c => c.ChargerActualCurrent ?? 0).Sum();
         var maxAmpIncrease = new DtoValue<int>(maxUsableCurrent - currentlyUsedCurrent);
 
         if (powerToControl < 0 || maxAmpIncrease.Value < 0)
         {
-            _logger.LogTrace("Reversing car order");
+            logger.LogTrace("Reversing car order");
             relevantCars.Reverse();
         }
 
@@ -136,10 +119,16 @@ public class ChargingService : IChargingService
 
         foreach (var relevantCar in relevantCars)
         {
-            var ampToControl = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
-            _logger.LogDebug("Amp to control: {amp}", ampToControl);
-            _logger.LogDebug("Update Car amp for car {carname}", relevantCar.Name);
-            powerToControl -= await ChangeCarAmp(relevantCar, ampToControl, maxAmpIncrease).ConfigureAwait(false);
+            var requestedAmpChange = CalculateAmpByPowerAndCar(powerToControl, relevantCar);
+            logger.LogDebug("Amp to control: {amp}", requestedAmpChange);
+            logger.LogDebug("Update Car amp for car {carname}", relevantCar.Name);
+            if (requestedAmpChange == 0)
+            {
+                await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + constants.SetChargingAmpsRequestUrl, relevantCar.Vin);
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessStatusCode + constants.SetChargingAmpsRequestUrl, relevantCar.Vin);
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.SetChargingAmpsRequestUrl, relevantCar.Vin);
+            }
+            powerToControl -= await ChangeCarAmp(relevantCar, requestedAmpChange, maxAmpIncrease).ConfigureAwait(false);
         }
     }
 
@@ -153,23 +142,16 @@ public class ChargingService : IChargingService
 
     private async Task UpdateChargingRelevantValues()
     {
-        UpdateChargeTimes();
-        await CalculateGeofences().ConfigureAwait(false);
-        await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
-        await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
+        await UpdateChargeTimes();
+        CalculateGeofences();
+        await chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
+        await latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
     }
 
-    private async Task CalculateGeofences()
+    private void CalculateGeofences()
     {
-        _logger.LogTrace("{method}()", nameof(CalculateGeofences));
-        var geofence = await _teslamateContext.Geofences
-            .FirstOrDefaultAsync(g => g.Name == _configurationWrapper.GeoFence()).ConfigureAwait(false);
-        if (geofence == null)
-        {
-            _logger.LogError("Specified geofence does not exist.");
-            return;
-        }
-        foreach (var car in _settings.Cars)
+        logger.LogTrace("{method}()", nameof(CalculateGeofences));
+        foreach (var car in settings.Cars)
         {
             if (car.Longitude == null || car.Latitude == null)
             {
@@ -177,10 +159,11 @@ public class ChargingService : IChargingService
             }
 
             var distance = GetDistance(car.Longitude.Value, car.Latitude.Value,
-                (double)geofence.Longitude, (double)geofence.Latitude);
-            _logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
-            car.IsHomeGeofence = distance < geofence.Radius;
-            car.DistanceToHomeGeofence = (int)distance - geofence.Radius;
+                (double)configurationWrapper.HomeGeofenceLongitude(), (double)configurationWrapper.HomeGeofenceLatitude());
+            logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
+            var radius = configurationWrapper.HomeGeofenceRadius();
+            car.IsHomeGeofence = distance < radius;
+            car.DistanceToHomeGeofence = (int)distance - radius;
         }
     }
 
@@ -197,30 +180,33 @@ public class ChargingService : IChargingService
 
     public int CalculateAmpByPowerAndCar(int powerToControl, DtoCar dtoCar)
     {
-        _logger.LogTrace("{method}({powerToControl}, {carId})", nameof(CalculateAmpByPowerAndCar), powerToControl, dtoCar.Id);
-        return Convert.ToInt32(Math.Floor(powerToControl / ((double)(_settings.AverageHomeGridVoltage ?? 230) * dtoCar.ActualPhases)));
+        logger.LogTrace("{method}({powerToControl}, {carId})", nameof(CalculateAmpByPowerAndCar), powerToControl, dtoCar.Id);
+        return Convert.ToInt32(Math.Floor(powerToControl / ((double)(settings.AverageHomeGridVoltage ?? 230) * dtoCar.ActualPhases)));
     }
 
-    public int CalculatePowerToControl()
+    public async Task<int> CalculatePowerToControl()
     {
-        _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
+        logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
 
-        var buffer = _configurationWrapper.PowerBuffer(true);
-        _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-        var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
-        _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
+        var buffer = configurationWrapper.PowerBuffer(true);
+        logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
+        var averagedOverage = settings.Overage ?? constants.DefaultOverage;
+        logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
-        if (_configurationWrapper.FrontendConfiguration()?.GridValueSource == SolarValueSource.None
-            && _configurationWrapper.FrontendConfiguration()?.InverterValueSource != SolarValueSource.None
-            && _settings.InverterPower != null)
+        var resultConfigurations = await context.ModbusResultConfigurations.Select(r => r.UsedFor).ToListAsync();
+        resultConfigurations.AddRange(await context.RestValueResultConfigurations.Select(r => r.UsedFor).ToListAsync());
+        resultConfigurations.AddRange(await context.MqttResultConfigurations.Select(r => r.UsedFor).ToListAsync());
+        if ((!resultConfigurations.Any(r => r == ValueUsage.GridPower))
+            && resultConfigurations.Any(r => r == ValueUsage.InverterPower)
+            && settings.InverterPower != null)
         {
-            var chargingAtHomeSum = _settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum();
-            _logger.LogDebug("Using Inverter power {inverterPower} minus chargingPower at home {chargingPowerAtHome} as overage", _settings.InverterPower, chargingAtHomeSum);
-            averagedOverage = _settings.InverterPower - chargingAtHomeSum ?? 0;
+            var chargingAtHomeSum = settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum();
+            logger.LogDebug("Using Inverter power {inverterPower} minus chargingPower at home {chargingPowerAtHome} as overage", settings.InverterPower, chargingAtHomeSum);
+            averagedOverage = settings.InverterPower - chargingAtHomeSum - buffer ?? 0;
         }
 
         var overage = averagedOverage - buffer;
-        _logger.LogDebug("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
+        logger.LogDebug("Overage after subtracting power buffer ({buffer}): {overage}", buffer, overage);
 
         overage = AddHomeBatteryStateToPowerCalculation(overage);
 
@@ -230,25 +216,25 @@ public class ChargingService : IChargingService
 
     internal int AddHomeBatteryStateToPowerCalculation(int overage)
     {
-        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
-        _logger.LogDebug("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
-        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
-        _logger.LogDebug("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
+        var homeBatteryMinSoc = configurationWrapper.HomeBatteryMinSoc();
+        logger.LogDebug("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
+        var homeBatteryMaxChargingPower = configurationWrapper.HomeBatteryChargingPower();
+        logger.LogDebug("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
         if (homeBatteryMinSoc != null && homeBatteryMaxChargingPower != null)
         {
-            var actualHomeBatterySoc = _settings.HomeBatterySoc;
-            _logger.LogDebug("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
-            var actualHomeBatteryPower = _settings.HomeBatteryPower;
-            _logger.LogDebug("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
+            var actualHomeBatterySoc = settings.HomeBatterySoc;
+            logger.LogDebug("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
+            var actualHomeBatteryPower = settings.HomeBatteryPower;
+            logger.LogDebug("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
             if (actualHomeBatterySoc != null && actualHomeBatteryPower != null)
             {
                 var batteryMinChargingPower = GetBatteryTargetChargingPower();
                 var overageToIncrease = actualHomeBatteryPower.Value - batteryMinChargingPower;
                 overage += overageToIncrease;
-                var inverterAcOverload = (_configurationWrapper.MaxInverterAcPower() - _settings.InverterPower) * (-1);
+                var inverterAcOverload = (configurationWrapper.MaxInverterAcPower() - settings.InverterPower) * (-1);
                 if (inverterAcOverload > 0)
                 {
-                    _logger.LogDebug("As inverter power is higher than max inverter AC power, overage is reduced by overload");
+                    logger.LogDebug("As inverter power is higher than max inverter AC power, overage is reduced by overload");
                     overage -= (inverterAcOverload.Value - batteryMinChargingPower);
                 }
             }
@@ -259,9 +245,9 @@ public class ChargingService : IChargingService
 
     public int GetBatteryTargetChargingPower()
     {
-        var actualHomeBatterySoc = _settings.HomeBatterySoc;
-        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
-        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        var actualHomeBatterySoc = settings.HomeBatterySoc;
+        var homeBatteryMinSoc = configurationWrapper.HomeBatteryMinSoc();
+        var homeBatteryMaxChargingPower = configurationWrapper.HomeBatteryChargingPower();
         if (actualHomeBatterySoc < homeBatteryMinSoc)
         {
             return homeBatteryMaxChargingPower ?? 0;
@@ -272,7 +258,7 @@ public class ChargingService : IChargingService
 
     internal List<DtoCar> GetIrrelevantCars(List<int> relevantCarIds)
     {
-        return _settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)).ToList();
+        return settings.Cars.Where(car => !relevantCarIds.Any(i => i == car.Id)).ToList();
     }
 
     private void LogErrorForCarsWithUnknownSocLimit(List<DtoCar> cars)
@@ -286,20 +272,20 @@ public class ChargingService : IChargingService
                  car.State == CarStateEnum.Asleep ||
                  car.State == CarStateEnum.Offline))
             {
-                _logger.LogWarning("Unknown charge limit of car {carId}.", car.Id);
+                logger.LogWarning("Unknown charge limit of car {carId}.", car.Id);
             }
         }
     }
 
     private bool IsSocLimitUnknown(DtoCar dtoCar)
     {
-        return dtoCar.SocLimit == null || dtoCar.SocLimit < _constants.MinSocLimit;
+        return dtoCar.SocLimit == null || dtoCar.SocLimit < constants.MinSocLimit;
     }
 
 
     public List<int> GetRelevantCarIds()
     {
-        var relevantIds = _settings.Cars
+        var relevantIds = settings.Cars
             .Where(c =>
                 c.IsHomeGeofence == true
                 && c.ShouldBeManaged == true
@@ -308,7 +294,7 @@ public class ChargingService : IChargingService
                 && c.PluggedIn != false
                 && (c.ClimateOn == true ||
                     c.ChargerActualCurrent > 0 ||
-                    c.SoC < (c.SocLimit - _constants.MinimumSocDifference)))
+                    c.SoC < (c.SocLimit - constants.MinimumSocDifference)))
             .Select(c => c.Id)
             .ToList();
 
@@ -324,11 +310,11 @@ public class ChargingService : IChargingService
     /// <returns>Power difference</returns>
     private async Task<int> ChangeCarAmp(DtoCar dtoCar, int ampToChange, DtoValue<int> maxAmpIncrease)
     {
-        _logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(ChangeCarAmp), dtoCar.Id, ampToChange, maxAmpIncrease.Value);
+        logger.LogTrace("{method}({param1}, {param2}, {param3})", nameof(ChangeCarAmp), dtoCar.Id, ampToChange, maxAmpIncrease.Value);
         var actualCurrent = dtoCar.ChargerActualCurrent;
         if (maxAmpIncrease.Value < ampToChange)
         {
-            _logger.LogDebug("Reduce current increase from {ampToChange}A to {maxAmpIncrease}A due to limited combined charging current.",
+            logger.LogDebug("Reduce current increase from {ampToChange}A to {maxAmpIncrease}A due to limited combined charging current.",
                 ampToChange, maxAmpIncrease.Value);
             ampToChange = maxAmpIncrease.Value;
         }
@@ -336,7 +322,7 @@ public class ChargingService : IChargingService
         if (ampToChange > 0 && dtoCar.ChargerRequestedCurrent > actualCurrent && actualCurrent > 0)
         {
             //ampToChange = 0;
-            _logger.LogWarning("Car does not use full request.");
+            logger.LogWarning("Car does not use full request.");
         }
         var finalAmpsToSet = (dtoCar.ChargerRequestedCurrent ?? 0) + ampToChange;
 
@@ -345,12 +331,12 @@ public class ChargingService : IChargingService
             finalAmpsToSet = (int)(actualCurrent + ampToChange);
         }
 
-        _logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
+        logger.LogDebug("Amps to set: {amps}", finalAmpsToSet);
         var ampChange = 0;
         var minAmpPerCar = dtoCar.MinimumAmpere;
         var maxAmpPerCar = dtoCar.MaximumAmpere;
-        _logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
-        _logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
+        logger.LogDebug("Min amp for car: {amp}", minAmpPerCar);
+        logger.LogDebug("Max amp for car: {amp}", maxAmpPerCar);
         await SendWarningOnChargerPilotReduced(dtoCar, maxAmpPerCar).ConfigureAwait(false);
 
         if (dtoCar.ChargerPilotCurrent != null)
@@ -372,28 +358,28 @@ public class ChargingService : IChargingService
         //Falls MaxPower als Charge Mode: Leistung auf maximal
         if (dtoCar.ChargeMode == ChargeMode.MaxPower || dtoCar.AutoFullSpeedCharge)
         {
-            _logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}",
+            logger.LogDebug("Max Power Charging: ChargeMode: {chargeMode}, AutoFullSpeedCharge: {autofullspeedCharge}",
                 dtoCar.ChargeMode, dtoCar.AutoFullSpeedCharge);
             if (dtoCar.ChargerRequestedCurrent != maxAmpPerCar || dtoCar.State != CarStateEnum.Charging || maxAmpIncrease.Value < 0)
             {
                 var ampToSet = (maxAmpPerCar - dtoCar.ChargerRequestedCurrent) > maxAmpIncrease.Value ? ((actualCurrent ?? 0) + maxAmpIncrease.Value) : maxAmpPerCar;
-                _logger.LogDebug("Set current to {ampToSet} after considering max car Current {maxAmpPerCar} and maxAmpIncrease {maxAmpIncrease}", ampToSet, maxAmpPerCar, maxAmpIncrease.Value);
+                logger.LogDebug("Set current to {ampToSet} after considering max car Current {maxAmpPerCar} and maxAmpIncrease {maxAmpIncrease}", ampToSet, maxAmpPerCar, maxAmpIncrease.Value);
                 if (dtoCar.State != CarStateEnum.Charging)
                 {
                     //Do not start charging when battery level near charge limit
                     if (dtoCar.SoC >=
-                        dtoCar.SocLimit - _constants.MinimumSocDifference)
+                        dtoCar.SocLimit - constants.MinimumSocDifference)
                     {
-                        _logger.LogDebug("Do not start charging for car {carId} as set SoC Limit in your Tesla app needs to be 3% higher than actual SoC", dtoCar.Id);
+                        logger.LogDebug("Do not start charging for car {carId} as set SoC Limit in your Tesla app needs to be 3% higher than actual SoC", dtoCar.Id);
                         return 0;
                     }
-                    _logger.LogDebug("Charging schould start.");
-                    await _teslaService.StartCharging(dtoCar.Id, ampToSet, dtoCar.State).ConfigureAwait(false);
+                    logger.LogDebug("Charging schould start.");
+                    await teslaService.StartCharging(dtoCar.Id, ampToSet, dtoCar.State).ConfigureAwait(false);
                     ampChange += ampToSet - (actualCurrent ?? 0);
                 }
                 else
                 {
-                    await _teslaService.SetAmp(dtoCar.Id, ampToSet).ConfigureAwait(false);
+                    await teslaService.SetAmp(dtoCar.Id, ampToSet).ConfigureAwait(false);
                     ampChange += ampToSet - (actualCurrent ?? 0);
                 }
 
@@ -403,74 +389,74 @@ public class ChargingService : IChargingService
         //Falls Laden beendet werden soll, aber noch ladend
         else if (finalAmpsToSet < minAmpPerCar && dtoCar.State == CarStateEnum.Charging)
         {
-            _logger.LogDebug("Charging should stop");
+            logger.LogDebug("Charging should stop");
             //Falls Ausschaltbefehl erst seit Kurzem
-            if ((dtoCar.EarliestSwitchOff == default) || (dtoCar.EarliestSwitchOff > _dateTimeProvider.Now()))
+            if ((dtoCar.EarliestSwitchOff == default) || (dtoCar.EarliestSwitchOff > dateTimeProvider.Now()))
             {
-                _logger.LogDebug("Can not stop charging: earliest Switch Off: {earliestSwitchOff}",
+                logger.LogDebug("Can not stop charging: earliest Switch Off: {earliestSwitchOff}",
                     dtoCar.EarliestSwitchOff);
                 if (actualCurrent != minAmpPerCar)
                 {
-                    await _teslaService.SetAmp(dtoCar.Id, minAmpPerCar).ConfigureAwait(false);
+                    await teslaService.SetAmp(dtoCar.Id, minAmpPerCar).ConfigureAwait(false);
                 }
                 ampChange += minAmpPerCar - (actualCurrent ?? 0);
             }
             //Laden Stoppen
             else
             {
-                _logger.LogDebug("Stop Charging");
-                await _teslaService.StopCharging(dtoCar.Id).ConfigureAwait(false);
+                logger.LogDebug("Stop Charging");
+                await teslaService.StopCharging(dtoCar.Id).ConfigureAwait(false);
                 ampChange -= actualCurrent ?? 0;
             }
         }
         //Falls Laden beendet ist und beendet bleiben soll
         else if (finalAmpsToSet < minAmpPerCar)
         {
-            _logger.LogDebug("Charging should stay stopped");
+            logger.LogDebug("Charging should stay stopped");
         }
         //Falls nicht ladend, aber laden soll beginnen
         else if (finalAmpsToSet >= minAmpPerCar && (dtoCar.State != CarStateEnum.Charging))
         {
-            _logger.LogDebug("Charging should start");
+            logger.LogDebug("Charging should start");
 
-            if (dtoCar.EarliestSwitchOn <= _dateTimeProvider.Now())
+            if (dtoCar.EarliestSwitchOn <= dateTimeProvider.Now())
             {
-                _logger.LogDebug("Charging is starting");
+                logger.LogDebug("Charging is starting");
                 var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-                await _teslaService.StartCharging(dtoCar.Id, startAmp, dtoCar.State).ConfigureAwait(false);
+                await teslaService.StartCharging(dtoCar.Id, startAmp, dtoCar.State).ConfigureAwait(false);
                 ampChange += startAmp;
             }
         }
         //Normal Ampere setzen
         else
         {
-            _logger.LogDebug("Normal amp set");
+            logger.LogDebug("Normal amp set");
             var ampToSet = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
             if (ampToSet != dtoCar.ChargerRequestedCurrent)
             {
-                await _teslaService.SetAmp(dtoCar.Id, ampToSet).ConfigureAwait(false);
+                await teslaService.SetAmp(dtoCar.Id, ampToSet).ConfigureAwait(false);
                 ampChange += ampToSet - (actualCurrent ?? 0);
             }
             else
             {
-                _logger.LogDebug("Current requested amp: {currentRequestedAmp} same as amp to set: {ampToSet} Do not change anything",
+                logger.LogDebug("Current requested amp: {currentRequestedAmp} same as amp to set: {ampToSet} Do not change anything",
                     dtoCar.ChargerRequestedCurrent, ampToSet);
             }
         }
 
         maxAmpIncrease.Value -= ampChange;
-        return ampChange * (dtoCar.ChargerVoltage ?? (_settings.AverageHomeGridVoltage ?? 230)) * dtoCar.ActualPhases;
+        return ampChange * (dtoCar.ChargerVoltage ?? (settings.AverageHomeGridVoltage ?? 230)) * dtoCar.ActualPhases;
     }
 
     private async Task SendWarningOnChargerPilotReduced(DtoCar dtoCar, int maxAmpPerCar)
     {
         if (dtoCar.ChargerPilotCurrent != null && maxAmpPerCar > dtoCar.ChargerPilotCurrent)
         {
-            _logger.LogWarning("Charging speed of {carID} id reduced to {amp}", dtoCar.Id, dtoCar.ChargerPilotCurrent);
+            logger.LogWarning("Charging speed of {carID} id reduced to {amp}", dtoCar.Id, dtoCar.ChargerPilotCurrent);
             if (!dtoCar.ReducedChargeSpeedWarning)
             {
                 dtoCar.ReducedChargeSpeedWarning = true;
-                await _telegramService
+                await telegramService
                     .SendMessage(
                         $"Charging of {dtoCar.Name} is reduced to {dtoCar.ChargerPilotCurrent} due to chargelimit of wallbox.")
                     .ConfigureAwait(false);
@@ -479,13 +465,13 @@ public class ChargingService : IChargingService
         else if (dtoCar.ReducedChargeSpeedWarning)
         {
             dtoCar.ReducedChargeSpeedWarning = false;
-            await _telegramService.SendMessage($"Charging speed of {dtoCar.Name} is regained.").ConfigureAwait(false);
+            await telegramService.SendMessage($"Charging speed of {dtoCar.Name} is regained.").ConfigureAwait(false);
         }
     }
 
     internal void DisableFullSpeedChargeIfWithinNonePlannedChargingSlot(DtoCar dtoCar)
     {
-        var currentDate = _dateTimeProvider.DateTimeOffSetNow();
+        var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var plannedChargeSlotInCurrentTime = dtoCar.PlannedChargingSlots
             .FirstOrDefault(c => c.ChargeStart <= currentDate && c.ChargeEnd > currentDate);
         if (plannedChargeSlotInCurrentTime == default)
@@ -500,7 +486,7 @@ public class ChargingService : IChargingService
 
     internal void EnableFullSpeedChargeIfWithinPlannedChargingSlot(DtoCar dtoCar)
     {
-        var currentDate = _dateTimeProvider.DateTimeOffSetNow();
+        var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var plannedChargeSlotInCurrentTime = dtoCar.PlannedChargingSlots
             .FirstOrDefault(c => c.ChargeStart <= currentDate && c.ChargeEnd > currentDate);
         if (plannedChargeSlotInCurrentTime != default)
@@ -510,31 +496,31 @@ public class ChargingService : IChargingService
         }
     }
 
-    private void UpdateChargeTimes()
+    private async Task UpdateChargeTimes()
     {
-        _logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
-        foreach (var car in _settings.CarsToManage)
+        logger.LogTrace("{method}()", nameof(UpdateChargeTimes));
+        foreach (var car in settings.CarsToManage)
         {
-            _chargeTimeCalculationService.UpdateChargeTime(car);
-            UpdateShouldStartStopChargingSince(car);
+            chargeTimeCalculationService.UpdateChargeTime(car);
+            await UpdateShouldStartStopChargingSince(car).ConfigureAwait(false);
         }
     }
 
-    private void UpdateShouldStartStopChargingSince(DtoCar dtoCar)
+    private async Task UpdateShouldStartStopChargingSince(DtoCar dtoCar)
     {
-        _logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), dtoCar.Id);
-        var powerToControl = CalculatePowerToControl();
+        logger.LogTrace("{method}({carId})", nameof(UpdateShouldStartStopChargingSince), dtoCar.Id);
+        var powerToControl = await CalculatePowerToControl().ConfigureAwait(false);
         var ampToSet = CalculateAmpByPowerAndCar(powerToControl, dtoCar);
-        _logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
+        logger.LogTrace("Amp to set: {ampToSet}", ampToSet);
         if (dtoCar.IsHomeGeofence == true)
         {
             var actualCurrent = dtoCar.ChargerActualCurrent ?? 0;
-            _logger.LogTrace("Actual current: {actualCurrent}", actualCurrent);
+            logger.LogTrace("Actual current: {actualCurrent}", actualCurrent);
             //This is needed because sometimes actual current is higher than last set amp, leading to higher calculated amp to set, than actually needed
             var lastSetAmp = dtoCar.ChargerRequestedCurrent ?? dtoCar.LastSetAmp;
             if (actualCurrent > lastSetAmp)
             {
-                _logger.LogTrace("Actual current {actualCurrent} higher than last set amp {lastSetAmp}. Setting actual current as last set amp.", actualCurrent, lastSetAmp);
+                logger.LogTrace("Actual current {actualCurrent} higher than last set amp {lastSetAmp}. Setting actual current as last set amp.", actualCurrent, lastSetAmp);
                 actualCurrent = lastSetAmp;
             }
             ampToSet += actualCurrent;
@@ -552,37 +538,37 @@ public class ChargingService : IChargingService
 
     internal void SetEarliestSwitchOnToNowWhenNotAlreadySet(DtoCar dtoCar)
     {
-        _logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOnToNowWhenNotAlreadySet), dtoCar.Id);
+        logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOnToNowWhenNotAlreadySet), dtoCar.Id);
         if (dtoCar.ShouldStartChargingSince == null)
         {
-            dtoCar.ShouldStartChargingSince = _dateTimeProvider.Now();
-            var timespanUntilSwitchOn = _configurationWrapper.TimespanUntilSwitchOn();
+            dtoCar.ShouldStartChargingSince = dateTimeProvider.Now();
+            var timespanUntilSwitchOn = configurationWrapper.TimespanUntilSwitchOn();
             var earliestSwitchOn = dtoCar.ShouldStartChargingSince + timespanUntilSwitchOn;
             dtoCar.EarliestSwitchOn = earliestSwitchOn;
         }
         dtoCar.EarliestSwitchOff = null;
         dtoCar.ShouldStopChargingSince = null;
-        _logger.LogDebug("Should start charging since: {shoudStartChargingSince}", dtoCar.ShouldStartChargingSince);
-        _logger.LogDebug("Earliest switch on: {earliestSwitchOn}", dtoCar.EarliestSwitchOn);
+        logger.LogDebug("Should start charging since: {shoudStartChargingSince}", dtoCar.ShouldStartChargingSince);
+        logger.LogDebug("Earliest switch on: {earliestSwitchOn}", dtoCar.EarliestSwitchOn);
     }
 
     internal void SetEarliestSwitchOffToNowWhenNotAlreadySet(DtoCar dtoCar)
     {
-        _logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOffToNowWhenNotAlreadySet), dtoCar.Id);
+        logger.LogTrace("{method}({param1})", nameof(SetEarliestSwitchOffToNowWhenNotAlreadySet), dtoCar.Id);
         if (dtoCar.ShouldStopChargingSince == null)
         {
-            var currentDate = _dateTimeProvider.Now();
-            _logger.LogTrace("Current date: {currentDate}", currentDate);
+            var currentDate = dateTimeProvider.Now();
+            logger.LogTrace("Current date: {currentDate}", currentDate);
             dtoCar.ShouldStopChargingSince = currentDate;
-            var timespanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
-            _logger.LogTrace("TimeSpan until switch off: {timespanUntilSwitchOff}", timespanUntilSwitchOff);
+            var timespanUntilSwitchOff = configurationWrapper.TimespanUntilSwitchOff();
+            logger.LogTrace("TimeSpan until switch off: {timespanUntilSwitchOff}", timespanUntilSwitchOff);
             var earliestSwitchOff = dtoCar.ShouldStopChargingSince + timespanUntilSwitchOff;
             dtoCar.EarliestSwitchOff = earliestSwitchOff;
         }
         dtoCar.EarliestSwitchOn = null;
         dtoCar.ShouldStartChargingSince = null;
-        _logger.LogDebug("Should start charging since: {shoudStopChargingSince}", dtoCar.ShouldStopChargingSince);
-        _logger.LogDebug("Earliest switch off: {earliestSwitchOff}", dtoCar.EarliestSwitchOff);
+        logger.LogDebug("Should start charging since: {shoudStopChargingSince}", dtoCar.ShouldStopChargingSince);
+        logger.LogDebug("Earliest switch off: {earliestSwitchOff}", dtoCar.EarliestSwitchOff);
     }
 
 

@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -27,6 +29,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<MqttConfiguration> MqttConfigurations { get; set; } = null!;
     public DbSet<MqttResultConfiguration> MqttResultConfigurations { get; set; } = null!;
     public DbSet<BackendNotification> BackendNotifications { get; set; } = null!;
+    public DbSet<LoggedError> LoggedErrors { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -107,6 +110,23 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<Car>()
             .Property(c => c.ApiRefreshIntervalSeconds)
             .HasDefaultValue(500);
+
+        var timeListToString = new ValueConverter<List<DateTime>, string?>(
+            v => JsonConvert.SerializeObject(v),
+            v => v == null ? new() : JsonConvert.DeserializeObject<List<DateTime>>(v) ?? new List<DateTime>()
+        );
+
+        var valueComparer = new ValueComparer<List<DateTime>>(
+            (c1, c2) => c2 != null && c1 != null && c1.SequenceEqual(c2), // Determines equality
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())), // Calculates hash code
+            c => c.ToList() // Makes a snapshot copy
+        );
+
+        modelBuilder.Entity<LoggedError>()
+            .Property(e => e.FurtherOccurrences)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
     }
 
 #pragma warning disable CS8618

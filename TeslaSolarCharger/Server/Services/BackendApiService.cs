@@ -5,12 +5,12 @@ using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -21,7 +21,9 @@ public class BackendApiService(
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
-    ISettings settings)
+    ISettings settings,
+    IErrorHandlingService errorHandlingService,
+    IIssueKeys issueKeys)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
@@ -58,6 +60,10 @@ public class BackendApiService(
             tokenRequested.Value = dateTimeProvider.UtcNow().ToString("O");
         }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        await errorHandlingService.HandleError(nameof(BackendApiService), nameof(StartTeslaOAuth), "Waiting for Tesla token",
+            "Waiting for the Tesla Token from the TSC backend. This might take up to five minutes. If after five minutes this error is still displayed, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            issueKeys.FleetApiTokenNotReceived, null, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenNotRequested, null);
         return new DtoValue<string>(requestUrl);
     }
 
@@ -93,7 +99,8 @@ public class BackendApiService(
 
     }
 
-    public async Task PostErrorInformation(string source, string methodName, string message, string? stackTrace = null)
+    public async Task PostErrorInformation(string source, string methodName, string message, string issueKey, string? vin,
+        string? stackTrace)
     {
         try
         {

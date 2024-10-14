@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
+using System.Reflection;
+using TeslaSolarCharger.Client.Pages;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -28,27 +32,19 @@ builder.Services.AddRazorPages();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+});
 
-var useFleetApi = configurationManager.GetValue<bool>("UseFleetApi");
-builder.Services.AddMyDependencies(useFleetApi);
+builder.Services.AddMyDependencies();
 builder.Services.AddSharedDependencies();
 builder.Services.AddServicesDependencies();
 
 builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration));
-
-builder.Configuration
-    .AddJsonFile("appsettings.json")
-    .AddEnvironmentVariables();
-
-var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-
-if (environment == "Development")
-{
-    builder.Configuration.AddJsonFile("appsettings.Development.json");
-}
-
 
 var app = builder.Build();
 
@@ -62,9 +58,6 @@ Log.Logger = new LoggerConfiguration()
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogTrace("Logger created.");
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
-var baseConfigurationConverter = app.Services.GetRequiredService<IBaseConfigurationConverter>();
-await baseConfigurationConverter.ConvertAllEnvironmentVariables().ConfigureAwait(false);
-await baseConfigurationConverter.ConvertBaseConfigToV1_0().ConfigureAwait(false);
 DoStartupStuff(app, logger, configurationWrapper);
 
 // Configure the HTTP request pipeline.
@@ -102,26 +95,37 @@ app.Run();
 
 async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger1, IConfigurationWrapper configurationWrapper1)
 {
+    var settings = webApplication.Services.GetRequiredService<ISettings>();
     try
     {
         //Do nothing before these lines as database is created here.
         var teslaSolarChargerContext = webApplication.Services.GetRequiredService<ITeslaSolarChargerContext>();
         await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
-        var shouldRetry = false;
-        var teslaMateContext = webApplication.Services.GetRequiredService<ITeslamateContext>();
+        var teslaFleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
+        await teslaFleetApiService.RefreshFleetApiRequestsAreAllowed();
         try
         {
-            var geofences = await teslaMateContext.Geofences.ToListAsync();
+            await teslaFleetApiService.RefreshTokensIfAllowedAndNeeded();
         }
-        catch (Exception ex)
+        catch(Exception ex)
         {
-            shouldRetry = true;
-            logger1.LogError(ex, "TeslaMate Database not ready yet. Waiting for 20 seconds.");
-            await Task.Delay(20000);
+            logger1.LogError(ex, "Error refreshing Tesla tokens");
         }
 
-        if (shouldRetry)
+        var shouldRetry = false;
+        var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
+        var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
+        var teslaMateContextWrapper = webApplication.Services.GetRequiredService<ITeslaMateDbContextWrapper>();
+        var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
+        //This needs to be done before first base configuration update otherwise all TeslaMate values are removed
+        if (teslaMateContext != default)
+        {
+            baseConfiguration.UseTeslaMateIntegration = true;
+            baseConfiguration.UseTeslaMateAsDataSource = true;
+        }
+        await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
+        if (teslaMateContext != default)
         {
             try
             {
@@ -129,10 +133,27 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             }
             catch (Exception ex)
             {
-                logger1.LogError(ex, "TeslaMate Database still not ready. Throwing exception.");
-                throw new Exception("TeslaMate database is not available. Check the database and restart TSC.");
+                shouldRetry = true;
+                logger1.LogError(ex, "TeslaMate Database not ready yet. Waiting for 20 seconds.");
+                await Task.Delay(20000);
+            }
+
+            if (shouldRetry)
+            {
+                try
+                {
+                    var geofences = await teslaMateContext.Geofences.ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    logger1.LogError(ex, "TeslaMate is not available. Use TSC without TeslaMate integration");
+                    baseConfiguration.UseTeslaMateAsDataSource = false;
+                    baseConfiguration.UseTeslaMateIntegration = false;
+                    await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
+                }
             }
         }
+
 
 
         var tscConfigurationService = webApplication.Services.GetRequiredService<ITscConfigurationService>();
@@ -161,7 +182,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await configurationWrapper1.TryAutoFillUrls().ConfigureAwait(false);
 
         var telegramService = webApplication.Services.GetRequiredService<ITelegramService>();
-        await telegramService.SendMessage("Application starting up").ConfigureAwait(false);
+        await telegramService.SendMessage("Error messages via Telegram enabled. Note: Error and error resolved messages are only sent every five minutes.").ConfigureAwait(false);
 
         var configJsonService = webApplication.Services.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
@@ -171,10 +192,20 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
-        await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
-        await carConfigurationService.AddAllMissingTeslaMateCars().ConfigureAwait(false);
+        if (!configurationWrapper.ShouldUseFakeSolarValues())
+        {
+            await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
+            try
+            {
+                await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore this error as this could result in never taking the first token
+            }
+        }
         await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 
 
@@ -184,26 +215,44 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var spotPriceService = webApplication.Services.GetRequiredService<ISpotPriceService>();
         await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
+        var homeGeofenceName = configurationWrapper.GeoFence();
+        
+        if (teslaMateContext != default && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 52.5185238, HomeGeofenceLongitude: 13.3761736 })
+        {
+            logger.LogInformation("Convert home geofence from TeslaMate.");
+            var homeGeofence = await teslaMateContext.Geofences.Where(g => g.Name == homeGeofenceName).FirstOrDefaultAsync();
+            if (homeGeofence != null)
+            {
+                baseConfiguration.HomeGeofenceLatitude = Convert.ToDouble(homeGeofence.Latitude);
+                baseConfiguration.HomeGeofenceLongitude = Convert.ToDouble(homeGeofence.Longitude);
+                baseConfiguration.HomeGeofenceRadius = homeGeofence.Radius;
+            }
+        }
+        await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
+        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
+        await errorHandlingService.HandleErrorResolved(issueKeys.CrashedOnStartup, null)
+            .ConfigureAwait(false);
+        await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
     }
     catch (Exception ex)
     {
         logger1.LogCritical(ex, "Crashed on startup");
-        var settings = webApplication.Services.GetRequiredService<ISettings>();
         settings.CrashedOnStartup = true;
         settings.StartupCrashMessage = ex.Message;
-        var backendApiService = webApplication.Services.GetRequiredService<IBackendApiService>();
-        await backendApiService.PostErrorInformation(nameof(Program), "Startup",
-                $"Exception Message: {ex.Message} StackTrace: {ex.StackTrace}")
+        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
+        await errorHandlingService.HandleError(nameof(Program), "Startup", "TSC crashed on startup",
+                $"Exception Message: {ex.Message}", issueKeys.CrashedOnStartup, null, ex.StackTrace)
             .ConfigureAwait(false);
     }
     finally
     {
-        var settings = webApplication.Services.GetRequiredService<ISettings>();
         settings.IsStartupCompleted = true;
         var dateTimeProvider = webApplication.Services.GetRequiredService<IDateTimeProvider>();
         settings.StartupTime = dateTimeProvider.UtcNow();

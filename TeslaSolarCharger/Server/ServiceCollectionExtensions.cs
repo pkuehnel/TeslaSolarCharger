@@ -12,6 +12,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
@@ -35,7 +36,7 @@ namespace TeslaSolarCharger.Server;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddMyDependencies(this IServiceCollection services, bool useFleetApi)
+    public static IServiceCollection AddMyDependencies(this IServiceCollection services)
     {
         services
             .AddSingleton<JobManager>()
@@ -51,6 +52,9 @@ public static class ServiceCollectionExtensions
             .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<TeslaMateChargeCostUpdateJob>()
             .AddTransient<ApiCallCounterResetJob>()
+            .AddTransient<ErrorMessagingJob>()
+            .AddTransient<ErrorDetectionJob>()
+            .AddTransient<BleApiVersionDetectionJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -82,22 +86,20 @@ public static class ServiceCollectionExtensions
                 options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
-            .AddTransient<IBaseConfigurationConverter, BaseConfigurationConverter>()
             .AddTransient<IPossibleIssues, PossibleIssues>()
-            .AddTransient<IIssueValidationService, IssueValidationService>()
             .AddTransient<IChargingCostService, ChargingCostService>()
             .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
             .AddTransient<ICoreService, CoreService>()
             .AddTransient<INewVersionCheckService, NewVersionCheckService>()
             .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()
-            .AddSingleton<IssueKeys>()
+            .AddSingleton<IIssueKeys, IssueKeys>()
             .AddSingleton<ToolTipTextKeys>()
             .AddTransient<IIndexService, IndexService>()
             .AddTransient<ISpotPriceService, SpotPriceService>()
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
-            .AddTransient<ITeslamateApiService, TeslamateApiService>()
+            .AddTransient<ITeslaFleetApiTokenHelper, TeslaFleetApiTokenHelper>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()
@@ -106,16 +108,11 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslaMateChargeCostUpdateService, TeslaMateChargeCostUpdateService>()
             .AddTransient<IBleService, TeslaBleService>()
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
+            .AddTransient<ICarConfigurationService, CarConfigurationService>()
+            .AddTransient<IErrorHandlingService, ErrorHandlingService>()
+            .AddTransient<ITeslaMateDbContextWrapper, TeslaMateDbContextWrapper>()
+            .AddTransient<ITeslaService, TeslaFleetApiService>()
             .AddSharedBackendDependencies();
-        if (useFleetApi)
-        {
-            services.AddTransient<ITeslaService, TeslaFleetApiService>();
-        }
-        else
-        {
-            services.AddTransient<ITeslaService, TeslamateApiService>();
-        }
-
         return services;
     }
 }

@@ -98,6 +98,12 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("ChargeMode")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ChargeStartCalls")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChargeStopCalls")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("ChargerActualCurrent")
                         .HasColumnType("INTEGER");
 
@@ -113,13 +119,22 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int?>("ChargerVoltage")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("ChargingCommandsRateLimitedUntil")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ChargingPriority")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool?>("ClimateOn")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("CommandsRateLimitedUntil")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IgnoreLatestTimeToReachSocDate")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IgnoreLatestTimeToReachSocDateOnWeekend")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("LatestTimeToReachSoC")
@@ -143,16 +158,16 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("OtherCommandCalls")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool?>("PluggedIn")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime?>("RateLimitedUntil")
+                    b.Property<string>("SetChargingAmpsCall")
                         .HasColumnType("TEXT");
 
                     b.Property<bool?>("ShouldBeManaged")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool?>("ShouldSetChargeStartTimes")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("SoC")
@@ -164,7 +179,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int?>("State")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("TeslaFleetApiState")
+                    b.Property<int?>("TeslaFleetApiState")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("TeslaMateCarId")
@@ -176,10 +191,31 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<bool>("UseBle")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("UseBleForWakeUp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("VehicleCalls")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("VehicleCommandProtocolRequired")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("VehicleDataCalls")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("VehicleDataRateLimitedUntil")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("VehicleRateLimitedUntil")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Vin")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WakeUpCalls")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("WakeUpRateLimitedUntil")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -231,6 +267,9 @@ namespace TeslaSolarCharger.Model.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ChargerVoltage")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ChargingProcessId")
@@ -319,6 +358,62 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("HandledCharges");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.LoggedError", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("DismissedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EndTimeStamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FurtherOccurrences")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Headline")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IssueKey")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MethodName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StackTrace")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartTimeStamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("TelegramNotificationSent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("TelegramResolvedMessageSent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Vin")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LoggedErrors");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", b =>

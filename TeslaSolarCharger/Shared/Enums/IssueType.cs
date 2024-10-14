@@ -2,7 +2,6 @@
 
 public enum IssueType
 {
-    Information,
-    Warning,
-    Error,
+    Configuration,
+    Runtime,
 }

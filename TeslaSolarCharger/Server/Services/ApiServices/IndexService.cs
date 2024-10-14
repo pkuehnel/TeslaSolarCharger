@@ -16,65 +16,44 @@ using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.ApiServices;
 
-public class IndexService : IIndexService
+public class IndexService(
+    ILogger<IndexService> logger,
+    ISettings settings,
+    ToolTipTextKeys toolTipTextKeys,
+    ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService,
+    IConfigJsonService configJsonService,
+    IChargeTimeCalculationService chargeTimeCalculationService,
+    IConstants constants,
+    IConfigurationWrapper configurationWrapper,
+    IDateTimeProvider dateTimeProvider,
+    ITeslaSolarChargerContext teslaSolarChargerContext,
+    ITscOnlyChargingCostService tscOnlyChargingCostService)
+    : IIndexService
 {
-    private readonly ILogger<IndexService> _logger;
-    private readonly ISettings _settings;
-    private readonly ITeslamateContext _teslamateContext;
-    private readonly ToolTipTextKeys _toolTipTextKeys;
-    private readonly ILatestTimeToReachSocUpdateService _latestTimeToReachSocUpdateService;
-    private readonly IConfigJsonService _configJsonService;
-    private readonly IChargeTimeCalculationService _chargeTimeCalculationService;
-    private readonly IConstants _constants;
-    private readonly IConfigurationWrapper _configurationWrapper;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
-    private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
-
-    public IndexService(ILogger<IndexService> logger, ISettings settings, ITeslamateContext teslamateContext, ToolTipTextKeys toolTipTextKeys,
-        ILatestTimeToReachSocUpdateService latestTimeToReachSocUpdateService, IConfigJsonService configJsonService,
-        IChargeTimeCalculationService chargeTimeCalculationService,
-        IConstants constants, IConfigurationWrapper configurationWrapper, IDateTimeProvider dateTimeProvider,
-        ITeslaSolarChargerContext teslaSolarChargerContext, ITscOnlyChargingCostService tscOnlyChargingCostService)
-    {
-        _logger = logger;
-        _settings = settings;
-        _teslamateContext = teslamateContext;
-        _toolTipTextKeys = toolTipTextKeys;
-        _latestTimeToReachSocUpdateService = latestTimeToReachSocUpdateService;
-        _configJsonService = configJsonService;
-        _chargeTimeCalculationService = chargeTimeCalculationService;
-        _constants = constants;
-        _configurationWrapper = configurationWrapper;
-        _dateTimeProvider = dateTimeProvider;
-        _teslaSolarChargerContext = teslaSolarChargerContext;
-        _tscOnlyChargingCostService = tscOnlyChargingCostService;
-    }
-
     public DtoPvValues GetPvValues()
     {
-        _logger.LogTrace("{method}()", nameof(GetPvValues));
-        int? powerBuffer = _configurationWrapper.PowerBuffer(true);
-        if (_settings.InverterPower == null && _settings.Overage == null)
+        logger.LogTrace("{method}()", nameof(GetPvValues));
+        int? powerBuffer = configurationWrapper.PowerBuffer(true);
+        if (settings.InverterPower == null && settings.Overage == null)
         {
             powerBuffer = null;
         }
 
         return new DtoPvValues()
         {
-            GridPower = _settings.Overage,
-            InverterPower = _settings.InverterPower,
-            HomeBatteryPower = _settings.HomeBatteryPower,
-            HomeBatterySoc = _settings.HomeBatterySoc,
+            GridPower = settings.Overage,
+            InverterPower = settings.InverterPower,
+            HomeBatteryPower = settings.HomeBatteryPower,
+            HomeBatterySoc = settings.HomeBatterySoc,
             PowerBuffer = powerBuffer, 
-            CarCombinedChargingPowerAtHome = _settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum(),
-            LastUpdated = _settings.LastPvValueUpdate,
+            CarCombinedChargingPowerAtHome = settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum(),
+            LastUpdated = settings.LastPvValueUpdate,
         };
     }
 
     public async Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars()
     {
-        _logger.LogTrace("{method}()", nameof(GetCarBaseStatesOfEnabledCars));
+        logger.LogTrace("{method}()", nameof(GetCarBaseStatesOfEnabledCars));
         var enabledCars = GetEnabledCars();
         var carBaseValues = new List<DtoCarBaseStates>();
         foreach (var enabledCar in enabledCars)
@@ -93,17 +72,20 @@ public class IndexService : IIndexService
                 ChargingSlots = enabledCar.PlannedChargingSlots,
                 State = enabledCar.State,
             };
-            dtoCarBaseValues.DtoChargeSummary = await _tscOnlyChargingCostService.GetChargeSummary(enabledCar.Id).ConfigureAwait(false);
+            dtoCarBaseValues.DtoChargeSummary = await tscOnlyChargingCostService.GetChargeSummary(enabledCar.Id).ConfigureAwait(false);
             if (enabledCar.ChargeMode == ChargeMode.SpotPrice)
             {
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
-                    await _chargeTimeCalculationService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
+                    await chargeTimeCalculationService.IsLatestTimeToReachSocAfterLatestKnownChargePrice(enabledCar.Id).ConfigureAwait(false);
             }
 
-            var dbCar = await _teslaSolarChargerContext.Cars.Where(c => c.Id == enabledCar.Id).SingleAsync();
+            var dbCar = await teslaSolarChargerContext.Cars.Where(c => c.Id == enabledCar.Id).SingleAsync();
             dtoCarBaseValues.FleetApiState = dbCar.TeslaFleetApiState;
-            dtoCarBaseValues.VehicleCommandProtocolRequired = dbCar.VehicleCommandProtocolRequired;
-            dtoCarBaseValues.RateLimitedUntil = dbCar.RateLimitedUntil;
+            dtoCarBaseValues.VehicleRateLimitedUntil = dbCar.VehicleRateLimitedUntil;
+            dtoCarBaseValues.VehicleDataRateLimitedUntil = dbCar.VehicleDataRateLimitedUntil;
+            dtoCarBaseValues.CommandsRateLimitedUntil = dbCar.CommandsRateLimitedUntil;
+            dtoCarBaseValues.ChargingCommandsRateLimitedUntil = dbCar.ChargingCommandsRateLimitedUntil;
+            dtoCarBaseValues.WakeUpRateLimitedUntil = dbCar.WakeUpRateLimitedUntil;
 
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
 
@@ -115,8 +97,8 @@ public class IndexService : IIndexService
 
     private List<DtoChargeInformation> GenerateChargeInformation(DtoCar enabledDtoCar)
     {
-        _logger.LogTrace("{method}({carId})", nameof(GenerateChargeInformation), enabledDtoCar.Id);
-        if (_settings.Overage == _constants.DefaultOverage || enabledDtoCar.PlannedChargingSlots.Any(c => c.IsActive))
+        logger.LogTrace("{method}({carId})", nameof(GenerateChargeInformation), enabledDtoCar.Id);
+        if (settings.Overage == constants.DefaultOverage || enabledDtoCar.PlannedChargingSlots.Any(c => c.IsActive))
         {
             return new List<DtoChargeInformation>();
         }
@@ -143,7 +125,7 @@ public class IndexService : IIndexService
 
         if ((!(enabledDtoCar.State == CarStateEnum.Charging && enabledDtoCar.IsHomeGeofence == true))
             && enabledDtoCar.EarliestSwitchOn != null
-            && enabledDtoCar.EarliestSwitchOn > _dateTimeProvider.Now())
+            && enabledDtoCar.EarliestSwitchOn > dateTimeProvider.Now())
         {
             result.Add(new DtoChargeInformation()
             {
@@ -157,14 +139,14 @@ public class IndexService : IIndexService
         {
             result.Add(new DtoChargeInformation()
             {
-                InfoText = $"Enough solar power for at least {_configurationWrapper.TimespanUntilSwitchOn().TotalMinutes} minutes.",
+                InfoText = $"Enough solar power for at least {configurationWrapper.TimespanUntilSwitchOn().TotalMinutes} minutes.",
                 TimeToDisplay = default,
             });
         }
 
         if ((enabledDtoCar.State == CarStateEnum.Charging && enabledDtoCar.IsHomeGeofence == true)
             && enabledDtoCar.EarliestSwitchOff != null
-            && enabledDtoCar.EarliestSwitchOff > _dateTimeProvider.Now())
+            && enabledDtoCar.EarliestSwitchOff > dateTimeProvider.Now())
         {
             result.Add(new DtoChargeInformation()
             {
@@ -174,11 +156,11 @@ public class IndexService : IIndexService
         }
 
         if ((!(enabledDtoCar.State == CarStateEnum.Charging && enabledDtoCar.IsHomeGeofence == true))
-            && (enabledDtoCar.SocLimit - enabledDtoCar.SoC) < (_constants.MinimumSocDifference + 1))
+            && (enabledDtoCar.SocLimit - enabledDtoCar.SoC) < (constants.MinimumSocDifference + 1))
         {
             result.Add(new DtoChargeInformation()
             {
-                InfoText = $"SoC Limit is at least {_constants.MinimumSocDifference + 1}% higher than actual SoC",
+                InfoText = $"SoC Limit is at least {constants.MinimumSocDifference + 1}% higher than actual SoC",
                 TimeToDisplay = default,
             });
         }
@@ -188,7 +170,7 @@ public class IndexService : IIndexService
 
     public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars()
     {
-        _logger.LogTrace("{method}()", nameof(GetCarBaseSettingsOfEnabledCars));
+        logger.LogTrace("{method}()", nameof(GetCarBaseSettingsOfEnabledCars));
         var enabledCars = GetEnabledCars();
 
         return enabledCars.ToDictionary(enabledCar => enabledCar.Id, enabledCar => new DtoCarBaseSettings()
@@ -198,40 +180,35 @@ public class IndexService : IIndexService
             MinimumStateOfCharge = enabledCar.MinimumSoC,
             LatestTimeToReachStateOfCharge = enabledCar.LatestTimeToReachSoC,
             IgnoreLatestTimeToReachSocDate = enabledCar.IgnoreLatestTimeToReachSocDate,
+            IgnoreLatestTimeToReachSocDateOnWeekend = enabledCar.IgnoreLatestTimeToReachSocDateOnWeekend,
         });
     }
 
     public async Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
     {
-        await _latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
-        await _chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
-        await _configJsonService.UpdateCarBaseSettings(carBaseSettings).ConfigureAwait(false);
+        await latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
+        await chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
+        await configJsonService.UpdateCarBaseSettings(carBaseSettings).ConfigureAwait(false);
     }
 
     public Dictionary<string, string> GetToolTipTexts()
     {
         return new Dictionary<string, string>()
         {
-            { _toolTipTextKeys.InverterPower, "Power your inverter currently delivers." },
-            { _toolTipTextKeys.GridPower, "Power at your grid point. Green: Power feeding into grid; Red: Power consuming from grid" },
-            { _toolTipTextKeys.HomeBatterySoC, "State of charge of your home battery." },
-            { _toolTipTextKeys.HomeBatteryPower, "Power of your home battery. Green: Battery is charging; Red: Battery is discharging" },
-            { _toolTipTextKeys.CombinedChargingPower, "Power sum of all cars charging at home." },
-            { _toolTipTextKeys.CarName, "Name configured in your car (or VIN if no name defined)." },
-            { _toolTipTextKeys.CarSoc, "State of charge" },
-            { _toolTipTextKeys.CarSocLimit, "SoC Limit (configured in the car or in the Tesla App)" },
-            { _toolTipTextKeys.CarChargingPowerHome, "Power your car is currently charging at home" },
-            { _toolTipTextKeys.CarChargedSolarEnergy, "Total charged solar energy" },
-            { _toolTipTextKeys.CarChargedHomeBatteryEnergy, "Total charged home battery energy" },
-            { _toolTipTextKeys.CarChargedGridEnergy, "Total charged grid energy" },
-            { _toolTipTextKeys.CarChargeCost, "Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed." },
-            { _toolTipTextKeys.CarAtHome, "Your car is in your defined GeoFence" },
-            { _toolTipTextKeys.CarNotHealthy, "Your car has no optimal internet connection or there is an issue with the Tesla API." },
-            { _toolTipTextKeys.CarPluggedIn, "Your car is plugged in" },
-            { _toolTipTextKeys.CarChargeMode, "ChargeMode of your car. Click <a href=\"https://github.com/pkuehnel/TeslaSolarCharger#charge-modes\"  target=\"_blank\">here</a> for details."},
-            { _toolTipTextKeys.ServerTime, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time." },
-            { _toolTipTextKeys.ServerTimeZone, "This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" },
-            { _toolTipTextKeys.PowerBuffer, "Configured Power Buffer" },
+            { toolTipTextKeys.CarName, "Name configured in your car (or VIN if no name defined)." },
+            { toolTipTextKeys.CarSoc, "State of charge" },
+            { toolTipTextKeys.CarSocLimit, "SoC Limit (configured in the car or in the Tesla App)" },
+            { toolTipTextKeys.CarChargingPowerHome, "Power your car is currently charging at home" },
+            { toolTipTextKeys.CarChargedSolarEnergy, "Total charged solar energy" },
+            { toolTipTextKeys.CarChargedHomeBatteryEnergy, "Total charged home battery energy" },
+            { toolTipTextKeys.CarChargedGridEnergy, "Total charged grid energy" },
+            { toolTipTextKeys.CarChargeCost, "Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed." },
+            { toolTipTextKeys.CarAtHome, "Your car is in your defined GeoFence" },
+            { toolTipTextKeys.CarNotHealthy, "Your car has no optimal internet connection or there is an issue with the Tesla API." },
+            { toolTipTextKeys.CarPluggedIn, "Your car is plugged in" },
+            { toolTipTextKeys.CarChargeMode, "ChargeMode of your car. Click <a href=\"https://github.com/pkuehnel/TeslaSolarCharger#charge-modes\"  target=\"_blank\">here</a> for details."},
+            { toolTipTextKeys.ServerTime, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time." },
+            { toolTipTextKeys.ServerTimeZone, "This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" },
         };
     }
 
@@ -244,7 +221,7 @@ public class IndexService : IIndexService
             NonDateValues = nonDateValues,
             DateValues = dateValues,
         };
-        var carState = _settings.Cars.First(c => c.Id == carId);
+        var carState = settings.Cars.First(c => c.Id == carId);
         var propertiesToExclude = new List<string>()
         {
             nameof(DtoCar.PlannedChargingSlots),
@@ -262,7 +239,7 @@ public class IndexService : IIndexService
             if (property.PropertyType == typeof(List<DateTime>))
             {
                 var list = (List<DateTime>?) property.GetValue(carState, null);
-                var currentDate = _dateTimeProvider.UtcNow().Date;
+                var currentDate = dateTimeProvider.UtcNow().Date;
                 dtoCarTopicValues.NonDateValues.Add(new DtoCarTopicValue()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
@@ -302,25 +279,25 @@ public class IndexService : IIndexService
 
     public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId)
     {
-        _logger.LogTrace("{method}({carId})", nameof(RecalculateAndGetChargingSlots), carId);
-        var car = _settings.Cars.First(c => c.Id == carId);
-        _chargeTimeCalculationService.UpdatePlannedChargingSlots(car);
+        logger.LogTrace("{method}({carId})", nameof(RecalculateAndGetChargingSlots), carId);
+        var car = settings.Cars.First(c => c.Id == carId);
+        chargeTimeCalculationService.UpdatePlannedChargingSlots(car);
         return car.PlannedChargingSlots;
     }
 
     public List<DtoChargingSlot> GetChargingSlots(int carId)
     {
-        _logger.LogTrace("{method}({carId})", nameof(GetChargingSlots), carId);
-        var car = _settings.Cars.First(c => c.Id == carId);
+        logger.LogTrace("{method}({carId})", nameof(GetChargingSlots), carId);
+        var car = settings.Cars.First(c => c.Id == carId);
         return car.PlannedChargingSlots;
     }
 
     public async Task UpdateCarFleetApiState(int carId, TeslaCarFleetApiState fleetApiState)
     {
-        _logger.LogTrace("{method}({carId}, {fleetApiState})", nameof(UpdateCarFleetApiState), carId, fleetApiState);
-        var car = _teslaSolarChargerContext.Cars.First(c => c.Id == carId);
+        logger.LogTrace("{method}({carId}, {fleetApiState})", nameof(UpdateCarFleetApiState), carId, fleetApiState);
+        var car = teslaSolarChargerContext.Cars.First(c => c.Id == carId);
         car.TeslaFleetApiState = fleetApiState;
-        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     string AddSpacesBeforeCapitalLetters(string text)
@@ -340,16 +317,16 @@ public class IndexService : IIndexService
 
     private List<DtoCar> GetEnabledCars()
     {
-        _logger.LogTrace("{method}()", nameof(GetEnabledCars));
-        return _settings.CarsToManage;
+        logger.LogTrace("{method}()", nameof(GetEnabledCars));
+        return settings.CarsToManage;
     }
 
     
 
     public async Task<string?> GetVinByCarId(int carId)
     {
-        _logger.LogTrace("{method}({carId})", nameof(GetVinByCarId), carId);
-        return await _teslaSolarChargerContext.Cars
+        logger.LogTrace("{method}({carId})", nameof(GetVinByCarId), carId);
+        return await teslaSolarChargerContext.Cars
             .Where(c => c.Id == carId)
             .Select(c => c.Vin).FirstAsync().ConfigureAwait(false);
     }

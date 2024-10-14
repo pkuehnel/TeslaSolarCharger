@@ -1,13 +1,45 @@
-﻿@page "/CarSettings"
+@page "/CarSettings"
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Ble
 @using Newtonsoft.Json
+@using TeslaSolarCharger.Shared.Enums
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
 <PageTitle>Car Settings</PageTitle>
 <h1>Car Settings</h1>
+
+<div class="mb-3">
+    @if (_fleetApiTokenState == FleetApiTokenState.NotReceived)
+    {
+        <MudAlert Severity="Severity.Warning"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <h4>Waiting for token</h4>
+            You already requested a token. TSC is currently waiting for receiving it. This might take up to five minutes. Reload this page to get new information if available.
+        </MudAlert>
+    }
+    else if (_fleetApiTokenState != null && _fleetApiTokenState != FleetApiTokenState.UpToDate)
+    {
+        <MudAlert Severity="Severity.Error"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <h4>Create Token.</h4>
+            Go to <MudLink Href="/BaseConfiguration">Base Configuration</MudLink>, Generate a Tesla Fleet API Token and restart TSC to see cars here.
+        </MudAlert>
+    }
+    @if (_fleetApiTokenState == FleetApiTokenState.UpToDate)
+    {
+        <MudAlert Severity="Severity.Info"
+                  NoIcon="true"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <h5>Restart TSC to add new cars</h5>
+            If you do not see all cars here that are available in your Tesla account, restart TSC.
+        </MudAlert>
+    }
+</div>
+
 
 @if (_carBasicConfigurations == null)
 {
@@ -26,10 +58,11 @@ else
                 <GenericInput For="() => carBasicConfiguration.UsableEnergy" />
                 <GenericInput For="() => carBasicConfiguration.ChargingPriority" />
                 <GenericInput For="() => carBasicConfiguration.ShouldBeManaged" />
-                <GenericInput For="() => carBasicConfiguration.ShouldSetChargeStartTimes" />
-                <GenericInput For="() => carBasicConfiguration.ShouldSetChargeStartTimes" />
                 <GenericInput For="() => carBasicConfiguration.ApiRefreshIntervalSeconds" />
                 <GenericInput For="() => carBasicConfiguration.UseBle" />
+                <GenericInput T="bool"
+                              For="() => carBasicConfiguration.UseBleForWakeUp"
+                              OnValueChanged="StateHasChanged"/>
                 <GenericInput For="() => carBasicConfiguration.BleApiBaseUrl" />
             </EditFormComponent>
             <hr />
@@ -51,7 +84,7 @@ else
             <div>
                 Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device.
             </div>
-            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Vin)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
+            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
             <h5>Test BLE access</h5>
             <div>
                 Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new "phone key" on the car's screen.
@@ -63,12 +96,30 @@ else
             {
                 <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
                     <p>
-                        @bleResult.Message
+                        @bleResult.ResultMessage
                     </p>
                 </div>
             }
             <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
-            
+            @if (carBasicConfiguration.UseBleForWakeUp)
+            {
+                <h5>Test Wakeup via BLE</h5>
+                <div>
+                    After this test the car should wake up.
+                </div>
+                @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleWakeUpResult))
+                {
+                    <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
+                        <p>
+                            @bleWakeUpResult.ResultMessage
+                        </p>
+                    </div>
+                    
+                }
+                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Vin)" ButtonText="Wake up"></RightAlignedButtonComponent>
+            }
+
+
             </div>
     }
 }
@@ -76,16 +127,28 @@ else
 @code {
     private List<CarBasicConfiguration>? _carBasicConfigurations;
     private readonly List<int> _savingCarIds = new();
+    private FleetApiTokenState? _fleetApiTokenState;
 
     private Dictionary<string, string> _pairingResults = new();
 
-    private Dictionary<string, DtoBleResult> _bleTestResults = new();
+    private Dictionary<string, DtoBleCommandResult> _bleTestResults = new();
+    private Dictionary<string, DtoBleCommandResult> _bleWakeUpTestResults = new();
 
     private HashSet<string> _loadingVins = new();
 
     protected override async Task OnInitializedAsync()
     {
+        await RefreshFleetApiTokenState();
         _carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
+    }
+
+    private async Task RefreshFleetApiTokenState()
+    {
+        var value = await HttpClient.GetFromJsonAsync<DtoValue<FleetApiTokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
+        if (value != null)
+        {
+            _fleetApiTokenState = value.Value;
+        }
     }
 
     private async Task UpdateCarConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
@@ -103,14 +166,15 @@ else
         _savingCarIds.RemoveAll(i => i == carId);
     }
 
-    private async Task PairCar(string vin)
+    private async Task PairCar(CarBasicConfiguration car)
     {
-        _pairingResults.Remove(vin);
-        _loadingVins.Add(vin);
-        var result = await HttpClient.GetStringAsync($"/api/Ble/PairKey?vin={vin}").ConfigureAwait(false);
-        var resultJson = JsonConvert.DeserializeObject<DtoBleResult>(result);
-        _pairingResults[vin] = resultJson?.Message ?? result;
-        _loadingVins.Remove(vin);
+        _pairingResults.Remove(car.Vin);
+        _loadingVins.Add(car.Vin);
+        var url = $"/api/Ble/PairKey?vin={car.Vin}&apiRole=charging_manager";
+        var result = await HttpClient.GetStringAsync(url).ConfigureAwait(false);
+        var resultJson = JsonConvert.DeserializeObject<DtoBleCommandResult>(result);
+        _pairingResults[car.Vin] = resultJson?.ResultMessage ?? result;
+        _loadingVins.Remove(car.Vin);
     }
 
     private async Task TestBle(string vin)
@@ -118,12 +182,36 @@ else
         _bleTestResults.Remove(vin);
         _loadingVins.Add(vin);
         var resultString = await HttpClient.GetStringAsync($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false);
-        var result = JsonConvert.DeserializeObject<DtoBleResult>(resultString) ?? new DtoBleResult { Success = false, Message = "Could not deserialize message from TSC." };
-        if(result.Success && string.IsNullOrWhiteSpace(result.Message))
+        var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString)
+                     ?? new DtoBleCommandResult
+                     {
+                         Success = false,
+                         ResultMessage = "Could not deserialize message from TSC.",
+                     };
+        if(result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
-            result.Message = "Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.";
+            result.ResultMessage = "Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.";
         }
         _bleTestResults[vin] = result;
+        _loadingVins.Remove(vin);
+    }
+
+    private async Task WakeCar(string vin)
+    {
+        _bleWakeUpTestResults.Remove(vin);
+        _loadingVins.Add(vin);
+        var resultString = await HttpClient.GetStringAsync($"/api/Ble/WakeUp?vin={vin}").ConfigureAwait(false);
+        var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString) 
+                     ?? new DtoBleCommandResult
+                     {
+                         Success = false,
+                         ResultMessage = "Could not deserialize message from TSC.",
+                     };
+        if (result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
+        {
+            result.ResultMessage = "The car accepted the wake call.";
+        }
+        _bleWakeUpTestResults[vin] = result;
         _loadingVins.Remove(vin);
     }
 

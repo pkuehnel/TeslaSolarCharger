@@ -1,0 +1,98 @@
+﻿@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos.LoggedError
+@using TeslaSolarCharger.Shared.Enums
+
+@implements IDisposable
+@inject ISnackbar Snackar
+@inject IHttpClientHelper HttpClientHelper
+
+
+@if (_errors == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else if (_errors.Count < 1)
+{
+
+}
+else
+{
+    <div class="my-2">
+        <MudExpansionPanels>
+            <MudExpansionPanel IsInitiallyExpanded="false">
+                <TitleContent>
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-0">
+                            <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
+                                <MudText Class="mt-1">Hidden errors</MudText>
+                            </MudBadge>
+                            
+                        </div>
+                        <div class="mt-1 ml-2 flex-grow-1 text-center">
+                            These errors are currently not resolved but hidden.
+                        </div>
+                        <div class="mt-1 ml-2 flex-grow-0">
+                            <small>The list is only updated once per minute</small>
+                        </div>
+                    </div>
+                </TitleContent>
+                <ChildContent>
+                    @foreach (var error in _errors)
+                    {
+                        <div class="mb-2">
+                            <MudAlert Severity="GetSeverity(error.Severity)"
+                                      NoIcon="true"
+                                      ContentAlignment="HorizontalAlignment.Left"
+                                      ShowCloseIcon="false">
+                                <h4>@(error.Headline + $" occured {error.Occurrences.Count} time(s)")</h4>
+                                <div>
+                                    Hidden reason: @(error.HideReason == LoggedErrorHideReason.NotEnoughOccurrences ? "Not Enough occurrences" : "Dismissed")
+                                </div>
+                                <div>
+                                    @((MarkupString)error.Message)
+                                </div>
+                            </MudAlert>
+                        </div>
+
+                    }
+                </ChildContent>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </div>
+}
+
+
+@code {
+    private List<DtoHiddenError>? _errors;
+
+    PeriodicTaskHelper? _periodicTaskHelper;
+
+
+    protected override void OnInitialized()
+    {
+        _periodicTaskHelper = new();
+        _periodicTaskHelper.Start(RefreshErrors, TimeSpan.FromMinutes(1));
+    }
+
+    private async Task RefreshErrors()
+    {
+        _errors = await HttpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoHiddenError>>("api/LoggedErrors/GetHiddenErrors");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _periodicTaskHelper?.Dispose();
+    }
+
+    private Severity GetSeverity(IssueSeverity issueSeverity)
+    {
+        return issueSeverity switch
+        {
+            IssueSeverity.Warning => Severity.Warning,
+            IssueSeverity.Error => Severity.Error,
+            _ => Severity.Info,
+        };
+    }
+}

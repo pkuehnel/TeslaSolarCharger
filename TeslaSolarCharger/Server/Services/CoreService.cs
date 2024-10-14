@@ -1,12 +1,19 @@
-﻿using System.Diagnostics;
+﻿using LanguageExt;
+using LanguageExt.Common;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Reflection;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Car;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -26,12 +33,13 @@ public class CoreService : ICoreService
     private readonly ITscConfigurationService _tscConfigurationService;
     private readonly IBaseConfigurationService _baseConfigurationService;
     private readonly IConstants _constants;
+    private readonly ITelegramService _telegramService;
 
     public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
         ITeslaMateMqttService teslaMateMqttService, ISettings settings,
         IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService, IBaseConfigurationService baseConfigurationService,
-        IConstants constants)
+        IConstants constants, ITelegramService telegramService)
     {
         _logger = logger;
         _chargingService = chargingService;
@@ -45,6 +53,7 @@ public class CoreService : ICoreService
         _tscConfigurationService = tscConfigurationService;
         _baseConfigurationService = baseConfigurationService;
         _constants = constants;
+        _telegramService = telegramService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -52,7 +61,8 @@ public class CoreService : ICoreService
         _logger.LogTrace("{method}()", nameof(GetCurrentVersion));
         var assembly = Assembly.GetExecutingAssembly();
         var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-        return Task.FromResult(fileVersionInfo.ProductVersion);
+        var productVersion = fileVersionInfo.ProductVersion;
+        return Task.FromResult(productVersion);
     }
 
     public DtoValue<int> NumberOfRelevantCars()
@@ -177,5 +187,16 @@ public class CoreService : ICoreService
     public bool IsStartupCompleted()
     {
         return _settings.IsStartupCompleted;
+    }
+
+    public async Task<Fin<DtoValue<string>>> SendTestTelegramMessage()
+    {
+        _logger.LogTrace("{method}()", nameof(SendTestTelegramMessage));
+        var statusCode = await _telegramService.SendMessage("TeslaSolarCharger test message");
+        if (((int)statusCode >= 200) && ((int)statusCode <= 299))
+        {
+            return Fin<DtoValue<string>>.Succ(new("Sending message succeeded"));
+        }
+        return Fin<DtoValue<string>>.Fail($"Sending error message failed with status code {statusCode}");
     }
 }

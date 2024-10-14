@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
+[DisallowConcurrentExecution]
 public class FinishedChargingProcessFinalizingJob(
     ILogger<FinishedChargingProcessFinalizingJob> logger,
     ITscOnlyChargingCostService service)

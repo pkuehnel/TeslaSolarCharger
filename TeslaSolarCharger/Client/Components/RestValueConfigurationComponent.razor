@@ -1,9 +1,5 @@
-﻿@using TeslaSolarCharger.Shared.Dtos.RestValueConfiguration
-@using TeslaSolarCharger.Shared.Helper.Contracts
+﻿@using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
-@using TeslaSolarCharger.SharedModel.Enums
-@using TeslaSolarCharger.Client.Wrapper
-@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Client.Dialogs
 @inject HttpClient HttpClient
@@ -37,7 +33,8 @@
         var options = new DialogOptions()
             {
                 CloseButton = true,
-                CloseOnEscapeKey = true,
+                CloseOnEscapeKey = false,
+                DisableBackdropClick = true,
             };
         var parameters = new DialogParameters<RestValueConfigurationDialog>
         {

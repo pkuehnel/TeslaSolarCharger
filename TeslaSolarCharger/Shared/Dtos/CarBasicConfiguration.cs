@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using TeslaSolarCharger.Shared.Attributes;
 
 namespace TeslaSolarCharger.Shared.Dtos;
@@ -36,15 +37,16 @@ public class CarBasicConfiguration
     public int ChargingPriority { get; set; }
     [HelperText("If disabled, this car will not show up in the overview page and TSC does not manage it.")]
     public bool ShouldBeManaged { get; set; } = true;
-    [HelperText("Enable this to use planned charges of your Tesla App. This ensures starting a planned charge even if the car can't be woken up via Tesla App.")]
-    public bool ShouldSetChargeStartTimes { get; set; }
-    [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g. Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near your car.")]
+    [DisplayName("Use BLE")]
+    [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g., Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near (max 4 meters without any walls in between) your car.")]
     public bool UseBle { get; set; }
+    [DisplayName("Use BLE for wake up")]
+    [HelperText("The car needs to be at least on version 2024.32.3 to support wake up via BLE.")]
+    public bool UseBleForWakeUp { get; set; }
     [HelperText("Limits requests to car as getting values is rate limited.")]
     [Postfix("s")]
     [Range(11, int.MaxValue)]
     public int ApiRefreshIntervalSeconds { get; set; }
     [HelperText("Needed to send commands via BLE to the car. An example value would be `http://raspible:7210/`")]
     public string? BleApiBaseUrl { get; set; }
-
 }

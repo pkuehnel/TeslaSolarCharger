@@ -15,7 +15,7 @@ public class DbConnectionStringHelper : IDbConnectionStringHelper
         _configurationWrapper = configurationWrapper;
     }
 
-    public string GetTeslaMateConnectionString()
+    public string? GetTeslaMateConnectionString()
     {
         _logger.LogTrace("{method}()", nameof(GetTeslaMateConnectionString));
         var server = _configurationWrapper.TeslaMateDbServer();
@@ -23,6 +23,14 @@ public class DbConnectionStringHelper : IDbConnectionStringHelper
         var databaseName = _configurationWrapper.TeslaMateDbDatabaseName();
         var username = _configurationWrapper.TeslaMateDbUser();
         var password = _configurationWrapper.TeslaMateDbPassword();
+        if (string.IsNullOrEmpty(server)
+            || port == default
+            || string.IsNullOrEmpty(databaseName)
+            || string.IsNullOrEmpty(username)
+            || string.IsNullOrEmpty(password))
+        {
+            return null;
+        }
         var connectionString = $"Host={server};Port={port};Database={databaseName};Username={username};Password={password}";
         _logger.LogTrace("ConnectionString: {connectionString}", connectionString);
         return connectionString;

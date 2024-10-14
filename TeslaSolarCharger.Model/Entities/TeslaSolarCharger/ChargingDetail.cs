@@ -7,6 +7,7 @@ public class ChargingDetail
     public int SolarPower { get; set; }
     public int HomeBatteryPower { get; set; }
     public int GridPower { get; set; }
+    public int? ChargerVoltage { get; set; }
 
     public int ChargingProcessId { get; set; }
 

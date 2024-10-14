@@ -1,10 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
+using System.Net;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Car;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Abstracts;
+using TeslaSolarCharger.SharedBackend.Extensions;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
@@ -38,10 +42,29 @@ public class FleetApiController(
         return teslaService.SetChargeLimit(carId, percent);
     }
 
+    /// <summary>
+    /// Note: This endpoint is only available in development environment
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Is thrown when not beeing in dev Mode</exception>
+    [HttpGet]
+    public Task SetSentryMode(int carId, bool active)
+    {
+        if (!configurationWrapper.IsDevelopmentEnvironment())
+        {
+            throw new InvalidOperationException("This method is only available in development environment");
+        }
+        return teslaService.SetSentryMode(carId, active);
+    }
+
     [HttpGet]
     public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => fleetApiService.TestFleetApiAccess(carId);
     [HttpGet]
-    public DtoValue<bool> IsFleetApiEnabled() => fleetApiService.IsFleetApiEnabled();
-    [HttpGet]
     public Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin) => fleetApiService.IsFleetApiProxyEnabled(vin);
+
+    [HttpGet]
+    public async Task<IActionResult> GetNewCarsInAccount()
+    {
+        var result = await fleetApiService.GetNewCarsInAccount().ConfigureAwait(false);
+        return result.ToOk();
+    }
 }

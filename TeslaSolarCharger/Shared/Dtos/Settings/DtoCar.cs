@@ -1,4 +1,4 @@
-﻿using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -18,6 +18,7 @@ public class DtoCar
     public DateTime LatestTimeToReachSoC { get; set; }
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }
+    public bool IgnoreLatestTimeToReachSocDateOnWeekend { get; set; }
 
     public int MaximumAmpere { get; set; }
 
@@ -26,7 +27,6 @@ public class DtoCar
     public int UsableEnergy { get; set; }
 
     public bool? ShouldBeManaged { get; set; } = true;
-    public bool? ShouldSetChargeStartTimes { get; set; }
 
     public int ChargingPriority { get; set; }
 
@@ -86,10 +86,11 @@ public class DtoCar
     public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
-    public DateTimeOffset LastApiDataRefresh { get; set; }
     public int ApiRefreshIntervalSeconds { get; set; }
     public bool UseBle { get; set; }
+    public bool UseBleForWakeUp { get; set; }
     public string? BleApiBaseUrl { get; set; }
+    public DateTime? EarliestHomeArrival { get; set; }
     public List<DtoChargingSlot> PlannedChargingSlots { get; set; } = new List<DtoChargingSlot>();
     public List<DateTime> WakeUpCalls { get; set; } = new List<DateTime>();
     public List<DateTime> VehicleDataCalls { get; set; } = new List<DateTime>();
@@ -98,4 +99,6 @@ public class DtoCar
     public List<DateTime> ChargeStopCalls { get; set; } = new List<DateTime>();
     public List<DateTime> SetChargingAmpsCall { get; set; } = new List<DateTime>();
     public List<DateTime> OtherCommandCalls { get; set; } = new List<DateTime>();
+
+    public DateTime? LastNonSuccessBleCall { get; set; }
 }

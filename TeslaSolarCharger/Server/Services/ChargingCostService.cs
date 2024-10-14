@@ -15,7 +15,6 @@ namespace TeslaSolarCharger.Server.Services;
 public class ChargingCostService(
     ILogger<ChargingCostService> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ITeslamateContext teslamateContext,
     IMapperConfigurationFactory mapperConfigurationFactory,
     IServiceProvider serviceProvider,
     IConstants constants,

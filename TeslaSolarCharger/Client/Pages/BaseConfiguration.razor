@@ -1,5 +1,6 @@
 ﻿@page "/BaseConfiguration"
 @using System.Globalization
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
@@ -7,6 +8,7 @@
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject IHttpClientHelper HttpClientHelper
 
 
 <PageTitle>Base Configuration</PageTitle>
@@ -77,37 +79,74 @@ else
             <hr />
         }
         <h3>TeslaMate:</h3>
+        <GenericInput T="bool"
+                      For="() => _dtoBaseConfiguration.UseTeslaMateIntegration"
+                      OnValueChanged="_ => InvokeAsync(StateHasChanged)"></GenericInput>
+        @if (_dtoBaseConfiguration.UseTeslaMateIntegration)
+        {
+            <GenericInput For="() => _dtoBaseConfiguration.UseTeslaMateAsDataSource"></GenericInput>
+            <InputComponent ValueId="teslaMateDbServer"
+                            LabelText="TeslaMate Database Host"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText id="teslaMateDbServer" @bind-Value="_dtoBaseConfiguration.TeslaMateDbServer" class="form-control" placeholder=" "/>
+                </InputFragment>
+            </InputComponent>
+
+            <InputComponent ValueId="teslaMateDbPort"
+                            LabelText="TeslaMate Database Server Port"
+                            UnitText=""
+                            HelpText="You can use the internal port of the TeslaMate database container">
+                <InputFragment>
+                    <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" "/>
+                </InputFragment>
+            </InputComponent>
+            <InputComponent ValueId="teslaMateDbUser"
+                            LabelText="TeslaMate Database Username"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
+            <InputComponent ValueId="teslaMateDbPassword"
+                            LabelText="TeslaMate Database Server Password"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
+
+            <InputComponent ValueId="mosquitoServer"
+                            LabelText="Mosquito servername"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.MosquitoServer" class="form-control" placeholder=" "/>
+                </InputFragment>
+            </InputComponent>
+        }
+        
+        
+        <h3>Home Geofence</h3>
         <div class="mb-3">
-            <InputCheckbox class="form-check-input" id="useTeslaMateAsDataSource" @bind-Value="_dtoBaseConfiguration.UseTeslaMateAsDataSource" />
-            <label class="form-check-label" for="useTeslaMateAsDataSource">
-                Use TeslaMate as car data source
-            </label>
-            <div>
-                <small id="useTeslaMateAsDataSourceHelp" class="form-text text-muted">If enabled TeslaMate MQTT is used as datasource. If disabled Tesla API is directly called.</small>
-            </div>
+            <MapComponent Longitude="_dtoBaseConfiguration.HomeGeofenceLongitude"
+                          Latitude="_dtoBaseConfiguration.HomeGeofenceLatitude"
+                          Radius="_dtoBaseConfiguration.HomeGeofenceRadius"
+                          LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.HomeGeofenceLatitude = newLatitude)"
+                          LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.HomeGeofenceLongitude = newLongitude; Snackbar.Add("To update the location, click the save button on the bottom of the page", Severity.Info); })"></MapComponent>
+
+            <small class="form-text text-muted">Click on the map to select your home geofence. Within that area TSC will regulate the charging power.</small>
         </div>
-        <InputComponent ValueId="teslaMateDbUser"
-                        LabelText="TeslaMate Database Username"
-                        UnitText=""
-                        HelpText="">
+
+        <InputComponent ValueId="HomeGeofenceRadius"
+                        LabelText="Home Radius"
+                        UnitText="m"
+                        HelpText="Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended">
             <InputFragment>
-                <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
-        <InputComponent ValueId="teslaMateDbPassword"
-                        LabelText="TeslaMate Database Server Password"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
-        <InputComponent ValueId="geoFence"
-                        LabelText="Home Geofence Name"
-                        UnitText=""
-                        HelpText="You have to add a geofence with the same name in TeslaMate at your home location.">
-            <InputFragment>
-                <InputText id="geoFence" @bind-Value="_dtoBaseConfiguration.GeoFence" class="form-control" placeholder=" " />
+                <InputNumber id="HomeGeofenceRadius" @bind-Value="_dtoBaseConfiguration.HomeGeofenceRadius" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
 
@@ -123,7 +162,7 @@ else
         <InputComponent ValueId="homeBatteryMinSoc"
                         LabelText="Home Battery Minimum SoC"
                         UnitText="%"
-                        HelpText="Set the SoC your home battery should get charged to before cars start to use full power. Leave emtpy if you do not have a home battery">
+                        HelpText="Set the SoC your home battery should get charged to before cars start to use full power. Leave empty if you do not have a home battery">
             <InputFragment>
                 <InputNumber id="homeBatteryMinSoc" @bind-Value="_dtoBaseConfiguration.HomeBatteryMinSoc" placeholder=" " class="form-control" />
             </InputFragment>
@@ -132,7 +171,7 @@ else
         <InputComponent ValueId="homeBatteryMinChargingPower"
                         LabelText="Home Battery Goal charging power"
                         UnitText="W"
-                        HelpText="Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave emtpy if you do not have a home battery">
+                        HelpText="Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery">
             <InputFragment>
                 <InputNumber id="homeBatteryMinChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" placeholder=" " class="form-control" />
             </InputFragment>
@@ -151,329 +190,24 @@ else
         <ModbusValueConfigurationComponent />
         <MqttValueConfigurationComponent />
         
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            <h3>Telegram:</h3>
+            <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
+            <div>Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,...</div>
+            <GenericInput T="string?"
+                          For="() => _dtoBaseConfiguration.TelegramBotKey"
+                          OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
+            <GenericInput T="string?"
+                          For="() => _dtoBaseConfiguration.TelegramChannelId"
+                          OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
+            <GenericInput For="() => _dtoBaseConfiguration.SendStackTraceToTelegram"></GenericInput>
+            <RightAlignedButtonComponent ButtonText="Send test message"
+                                         IsDisabled="_telegramSettingsChanged"
+                                         DisableToolTipText="You need to save the configuration before testing it."
+                                         OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
+        </div>
+        
         <MudExpansionPanels>
-            <MudExpansionPanel Text="Old configurations. These values are not used anymore. If you used TSC before v 2.25 you can look up your settings here.">
-                @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource == SolarValueSource.Mqtt
-               || _dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource == SolarValueSource.Mqtt
-               || _dtoBaseConfiguration.FrontendConfiguration!.InverterValueSource == SolarValueSource.Mqtt
-               )
-                {
-                    <div class="shadow p-3 mb-5 bg-white rounded">
-                        <h3>MQTT Server settings</h3>
-                        <InputComponent ValueId="solarMqttServer"
-                                        LabelText="Solar Mqtt-Server"
-                                        UnitText=""
-                                        HelpText="This is only needed if you get solar values via MQTT">
-                            <InputFragment>
-                                <InputText id="solarMqttServer" @bind-Value="_dtoBaseConfiguration.SolarMqttServer" class="form-control" placeholder=" " />
-                            </InputFragment>
-                        </InputComponent>
-                        <InputComponent ValueId="solarMqttUserName"
-                                        LabelText="Solar Mqtt Username"
-                                        UnitText=""
-                                        HelpText="Leave this blank if your mqtt server does not need authentication">
-                            <InputFragment>
-                                <InputText id="solarMqttUserName" @bind-Value="_dtoBaseConfiguration.SolarMqttUserName" class="form-control" placeholder=" " />
-                            </InputFragment>
-                        </InputComponent>
-                        <InputComponent ValueId="solarMqttPassword"
-                                        LabelText="Solar Mqtt Password"
-                                        UnitText=""
-                                        HelpText="Leave this blank if your mqtt server does not need authentication">
-                            <InputFragment>
-                                <InputText type="password" id="solarMqttPassword" @bind-Value="_dtoBaseConfiguration.SolarMqttPassword" class="form-control" placeholder=" " />
-                            </InputFragment>
-                        </InputComponent>
-                    </div>
-                }
-
-                <div class="shadow p-3 mb-5 bg-white rounded">
-                    <h3>Grid Power:</h3>
-                    <InputComponent ValueId="gridValueSource"
-                                    LabelText="Source"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputSelect class="form-select" @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource" id="gridValueSource">
-
-                                @foreach (var value in Enum.GetValues<SolarValueSource>())
-                                {
-                                    <option value="@value">@value.ToFriendlyString()</option>
-                                }
-                            </InputSelect>
-                        </InputFragment>
-                    </InputComponent>
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource == SolarValueSource.Mqtt)
-                    {
-                        <InputComponent ValueId="gridMqttTopic"
-                                        LabelText="Grid Power Mqtt-Topic"
-                                        UnitText=""
-                                        HelpText="">
-                            <InputFragment>
-                                <InputText id="gridMqttTopic" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridMqttTopic" placeholder=" " class="form-control" />
-                            </InputFragment>
-                        </InputComponent>
-                    }
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
-                    {
-                        <RestPvValueComponent Purpose="Grid Power"
-                                              SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.GridValueSource"
-                                              @bind-Url="_dtoBaseConfiguration.CurrentPowerToGridUrl"
-                                              @bind-Url:event="UrlChanged"
-                                              @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusGridUrl"
-                                              @bind-IsModbusUrl:event="IsModbusUrlChanged"
-                                              @bind-Headers="_dtoBaseConfiguration.CurrentPowerToGridHeaders"
-                                              @bind-Headers:event="HeadersChanged" />
-                    }
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.GridValueSource != SolarValueSource.None)
-                    {
-                        <NodePatternTypeComponent Purpose="Grid Power"
-                                                  @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.GridPowerNodePatternType"
-                                                  @bind-NodePatternType:event="NodePatternTypeChanged"
-                                                  @bind-JsonPattern="_dtoBaseConfiguration.CurrentPowerToGridJsonPattern"
-                                                  @bind-JsonPattern:event="JsonPatternChanged"
-                                                  @bind-XmlPattern="_dtoBaseConfiguration.CurrentPowerToGridXmlPattern"
-                                                  @bind-XmlPattern:event="XmlPatternChanged"
-                                                  @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderName"
-                                                  @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
-                                                  @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeHeaderValue"
-                                                  @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
-                                                  @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentPowerToGridXmlAttributeValueName"
-                                                  @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
-
-                        <InputComponent ValueId="gridCorrectionFactor"
-                                        LabelText="Grid Power Correction Factor"
-                                        UnitText=""
-                                        HelpText="@_correctionFactorHelpText">
-                            <InputFragment>
-                                <InputNumber id="gridCorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentPowerToGridCorrectionFactor" placeholder=" " class="form-control" />
-                            </InputFragment>
-                        </InputComponent>
-                    }
-                </div>
-                <div class="shadow p-3 mb-5 bg-white rounded">
-                    <h3>Home Battery:</h3>
-                    <InputComponent ValueId="homeBatteryValueSource"
-                                    LabelText="Source"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputSelect class="form-select" @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource" id="homeBatteryValueSource" name="homeBatteryValueSource">
-
-                                @foreach (var value in Enum.GetValues<SolarValueSource>())
-                                {
-                                    <option value="@value">@value.ToFriendlyString()</option>
-                                }
-                            </InputSelect>
-                        </InputFragment>
-                    </InputComponent>
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
-                    {
-                        <h5>Home Battery Soc:</h5>
-                    }
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
-                    {
-                        <InputComponent ValueId="homeBatterySocMqttTopic"
-                                        LabelText="HomeBatterySoc Mqtt-Topic"
-                                        UnitText=""
-                                        HelpText="">
-                            <InputFragment>
-                                <InputText id="homeBatterySocMqttTopic" @bind-Value="_dtoBaseConfiguration.HomeBatterySocMqttTopic" placeholder=" " class="form-control" />
-                            </InputFragment>
-                        </InputComponent>
-                    }
-
-
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Rest or SolarValueSource.Modbus)
-                    {
-                        <RestPvValueComponent Purpose="Home Battery SoC"
-                                              SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource"
-                                              @bind-Url="_dtoBaseConfiguration.HomeBatterySocUrl"
-                                              @bind-Url:event="UrlChanged"
-                                              @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusHomeBatterySocUrl"
-                                              @bind-IsModbusUrl:event="IsModbusUrlChanged"
-                                              @bind-Headers="_dtoBaseConfiguration.HomeBatterySocHeaders"
-                                              @bind-Headers:event="HeadersChanged" />
-                    }
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
-                    {
-                        <NodePatternTypeComponent Purpose="Home Battery SoC"
-                                                  @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatterySocNodePatternType"
-                                                  @bind-NodePatternType:event="NodePatternTypeChanged"
-                                                  @bind-JsonPattern="_dtoBaseConfiguration.HomeBatterySocJsonPattern"
-                                                  @bind-JsonPattern:event="JsonPatternChanged"
-                                                  @bind-XmlPattern="_dtoBaseConfiguration.HomeBatterySocXmlPattern"
-                                                  @bind-XmlPattern:event="XmlPatternChanged"
-                                                  @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.HomeBatterySocXmlAttributeHeaderName"
-                                                  @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
-                                                  @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.HomeBatterySocXmlAttributeHeaderValue"
-                                                  @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
-                                                  @bind-XmlAttributeValueName="_dtoBaseConfiguration.HomeBatterySocXmlAttributeValueName"
-                                                  @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
-
-                        <InputComponent ValueId="homeBatterySocCorrectionFactor"
-                                        LabelText="Home Battery Soc Correction Factor"
-                                        UnitText=""
-                                        HelpText="@_correctionFactorHelpText">
-                            <InputFragment>
-                                <InputNumber id="homeBatterySocCorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatterySocCorrectionFactor" placeholder=" " class="form-control" />
-                            </InputFragment>
-                        </InputComponent>
-
-
-                    }
-
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
-                    {
-                        <h5>Home Battery Power:</h5>
-                    }
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource == SolarValueSource.Mqtt)
-                    {
-                        <InputComponent ValueId="homeBatteryPowerMqttTopic"
-                                        LabelText="HomeBatteryPower Mqtt-Topic"
-                                        UnitText=""
-                                        HelpText="">
-                            <InputFragment>
-                                <InputText id="homeBatterySocMqttTopic" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerMqttTopic" placeholder=" " class="form-control" />
-                            </InputFragment>
-                        </InputComponent>
-                    }
-
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource is SolarValueSource.Rest or SolarValueSource.Modbus)
-                    {
-                        <RestPvValueComponent Purpose="Home Battery Power"
-                                              SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration!.HomeBatteryValuesSource"
-                                              @bind-Url="_dtoBaseConfiguration.HomeBatteryPowerUrl"
-                                              @bind-Url:event="UrlChanged"
-                                              @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusHomeBatteryPowerUrl"
-                                              @bind-IsModbusUrl:event="IsModbusUrlChanged"
-                                              @bind-Headers="_dtoBaseConfiguration.HomeBatteryPowerHeaders"
-                                              @bind-Headers:event="HeadersChanged" />
-                    }
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryValuesSource != SolarValueSource.None)
-                    {
-                        <NodePatternTypeComponent Purpose="Home Battery Power"
-                                                  @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.HomeBatteryPowerNodePatternType"
-                                                  @bind-NodePatternType:event="NodePatternTypeChanged"
-                                                  @bind-JsonPattern="_dtoBaseConfiguration.HomeBatteryPowerJsonPattern"
-                                                  @bind-JsonPattern:event="JsonPatternChanged"
-                                                  @bind-XmlPattern="_dtoBaseConfiguration.HomeBatteryPowerXmlPattern"
-                                                  @bind-XmlPattern:event="XmlPatternChanged"
-                                                  @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeHeaderName"
-                                                  @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
-                                                  @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeHeaderValue"
-                                                  @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
-                                                  @bind-XmlAttributeValueName="_dtoBaseConfiguration.HomeBatteryPowerXmlAttributeValueName"
-                                                  @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
-
-
-                        <InputComponent ValueId="homeBatteryPowerCorrectionFactor"
-                                        LabelText="Home Battery Power Correction Factor"
-                                        UnitText=""
-                                        HelpText="@_correctionFactorHelpText">
-                            <InputFragment>
-                                <InputNumber id="homeBatteryPowerCorrectionFactor" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerCorrectionFactor" placeholder=" " class="form-control" />
-                            </InputFragment>
-                        </InputComponent>
-
-
-                    }
-
-                </div>
-                <div class="shadow p-3 mb-5 bg-white rounded">
-                    <h3>Inverter:</h3>
-                    <InputComponent ValueId="inverterValueSource"
-                                    LabelText="Source"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputSelect class="form-select" @bind-Value="@_dtoBaseConfiguration.FrontendConfiguration!.InverterValueSource" id="inverterValueSource">
-                                @foreach (var value in Enum.GetValues<SolarValueSource>())
-                                {
-                                    <option value="@value">@value.ToFriendlyString()</option>
-                                }
-                            </InputSelect>
-                        </InputFragment>
-                    </InputComponent>
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource == SolarValueSource.Mqtt)
-                    {
-                        <InputComponent ValueId="inverterPowerMqttTopic"
-                                        LabelText="Inverter Power Mqtt-Topic"
-                                        UnitText=""
-                                        HelpText="">
-                            <InputFragment>
-                                <InputText id="inverterPowerMqttTopic" @bind-Value="_dtoBaseConfiguration.CurrentInverterPowerMqttTopic" placeholder=" " class="form-control" />
-                            </InputFragment>
-                        </InputComponent>
-                    }
-
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource is SolarValueSource.Rest or SolarValueSource.Modbus)
-                    {
-                        <RestPvValueComponent Purpose="Inverter Power"
-                                              SolarValueSource="_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource"
-                                              @bind-Url="_dtoBaseConfiguration.CurrentInverterPowerUrl"
-                                              @bind-Url:event="UrlChanged"
-                                              @bind-IsModbusUrl="_dtoBaseConfiguration.IsModbusCurrentInverterPowerUrl"
-                                              @bind-IsModbusUrl:event="IsModbusUrlChanged"
-                                              @bind-Headers="_dtoBaseConfiguration.CurrentInverterPowerHeaders"
-                                              @bind-Headers:event="HeadersChanged" />
-                    }
-                    @if (_dtoBaseConfiguration.FrontendConfiguration.InverterValueSource != SolarValueSource.None)
-                    {
-                        <NodePatternTypeComponent Purpose="Inverter Power"
-                                                  @bind-NodePatternType="_dtoBaseConfiguration.FrontendConfiguration.InverterPowerNodePatternType"
-                                                  @bind-NodePatternType:event="NodePatternTypeChanged"
-                                                  @bind-JsonPattern="_dtoBaseConfiguration.CurrentInverterPowerJsonPattern"
-                                                  @bind-JsonPattern:event="JsonPatternChanged"
-                                                  @bind-XmlPattern="_dtoBaseConfiguration.CurrentInverterPowerXmlPattern"
-                                                  @bind-XmlPattern:event="XmlPatternChanged"
-                                                  @bind-XmlAttributeHeaderName="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeHeaderName"
-                                                  @bind-XmlAttributeHeaderName:event="XmlAttributeHeaderNameChanged"
-                                                  @bind-XmlAttributeHeaderValue="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeHeaderValue"
-                                                  @bind-XmlAttributeHeaderValue:event="XmlAttributeHeaderValueChanged"
-                                                  @bind-XmlAttributeValueName="_dtoBaseConfiguration.CurrentInverterPowerXmlAttributeValueName"
-                                                  @bind-XmlAttributeValueName:event="XmlAttributeValueNameChanged" />
-
-                        <InputComponent ValueId="inverterCorrectionFactor"
-                                        LabelText="Inverter Correction Factor"
-                                        UnitText=""
-                                        HelpText="@_correctionFactorHelpText">
-                            <InputFragment>
-                                <InputNumber id="inverterCorrectionFactor" @bind-Value="_dtoBaseConfiguration.CurrentInverterPowerCorrectionFactor" placeholder=" " class="form-control" />
-                            </InputFragment>
-                        </InputComponent>
-                    }
-                </div>
-                <div class="shadow p-3 mb-5 bg-white rounded">
-                    <h3>Telegram:</h3>
-                    <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
-                    <InputComponent ValueId="telegramBotKey"
-                                    LabelText="Telegram Bot Key"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputText id="telegramBotKey" @bind-Value="_dtoBaseConfiguration.TelegramBotKey" placeholder=" " class="form-control" />
-                        </InputFragment>
-                    </InputComponent>
-
-                    <InputComponent ValueId="telegramChannelId"
-                                    LabelText="Telegram Channel ID"
-                                    UnitText=""
-                                    HelpText="">
-                        <InputFragment>
-                            <InputText id="telegramChannelId" @bind-Value="_dtoBaseConfiguration.TelegramChannelId" placeholder=" " class="form-control" />
-                        </InputFragment>
-                    </InputComponent>
-                </div>
-            </MudExpansionPanel>
             <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
                 <InputComponent ValueId="updateIntervalSeconds"
                                 LabelText="Car power adjustment interval"
@@ -511,48 +245,6 @@ else
                     </InputFragment>
                 </InputComponent>
                 <hr/>
-
-                @if (_fleetApiTokenState == FleetApiTokenState.NotNeeded)
-                {
-                    <InputComponent ValueId="teslaMateApiBaseUrl"
-                                    LabelText="Teslamate API Base Url"
-                                    UnitText=""
-                                    HelpText="You can use the name of the container and the default port even though you changed the external port.">
-                        <InputFragment>
-                            <InputText id="teslaMateApiBaseUrl" @bind-Value="_dtoBaseConfiguration.TeslaMateApiBaseUrl" placeholder=" " class="form-control"/>
-                        </InputFragment>
-                    </InputComponent>
-                    <hr/>
-                }
-
-                <InputComponent ValueId="teslaMateDbServer"
-                                LabelText="TeslaMate Database Server Name"
-                                UnitText=""
-                                HelpText="You can use the name of the TeslaMate database service from your docker-compose.yml.">
-                    <InputFragment>
-                        <InputText id="teslaMateDbServer" @bind-Value="_dtoBaseConfiguration.TeslaMateDbServer" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
-
-                <InputComponent ValueId="teslaMateDbPort"
-                                LabelText="TeslaMate Database Server Port"
-                                UnitText=""
-                                HelpText="You can use the internal port of the TeslaMate database container">
-                    <InputFragment>
-                        <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
-                <hr/>
-
-                <InputComponent ValueId="mosquitoServer"
-                                LabelText="Mosquito servername"
-                                UnitText=""
-                                HelpText="">
-                    <InputFragment>
-                        <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.MosquitoServer" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
-
                 <InputComponent ValueId="mqqtClientId"
                                 LabelText="Mqqt ClientId"
                                 UnitText=""
@@ -575,7 +267,12 @@ else
         </MudExpansionPanels>
         <DataAnnotationsValidator />
         <ValidationSummary />
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <div class="mt-3 mb-4">
+            <RightAlignedButtonComponent ButtonText="Save"
+                                         IsLoading="_submitLoading"
+                                         ButtonType="ButtonType.Submit"></RightAlignedButtonComponent>
+        </div>
+        
     </EditForm>
 }
 
@@ -585,6 +282,9 @@ else
     private FleetApiTokenState? _fleetApiTokenState;
 
     private bool _tokenGenerationButtonDisabled;
+
+    private bool _telegramSettingsChanged;
+    private bool _submitLoading;
 
     protected override async Task OnInitializedAsync()
     {
@@ -598,15 +298,19 @@ else
 
     private async Task HandleValidSubmit()
     {
+        _submitLoading = true;
         var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
         if (result.IsSuccessStatusCode)
         {
+            _telegramSettingsChanged = false;
             Snackbar.Add("Base Configuration updated", Severity.Success);
         }
         else
         {
             Snackbar.Add("Error updating base configuration", Severity.Error);
         }
+
+        _submitLoading = false;
     }
 
     private async Task GenerateFleetApiToken()
@@ -623,4 +327,17 @@ else
 
 
     private string _correctionFactorHelpText = "Use this to correct the returned value. E.g. if the returned value is 1 but should bei -1 insert -1";
+
+    private async Task SendTelegramTestMessage()
+    {
+        var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Hello/SendTestTelegramMessage");
+        if (result == default)
+        {
+            Snackbar.Add("Could not get result", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(result.Value, Severity.Success);
+    }
+
 }

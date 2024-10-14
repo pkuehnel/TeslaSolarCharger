@@ -1,16 +1,26 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaMateChargeCostUpdateService (ILogger<TeslaMateChargeCostUpdateService> logger,
-    ITeslamateContext teslamateContext,
-    ITeslaSolarChargerContext teslaSolarChargerContext) : ITeslaMateChargeCostUpdateService
+    ITeslaSolarChargerContext teslaSolarChargerContext,
+    ISettings settings,
+    IConfigurationWrapper configurationWrapper,
+    ITeslaMateDbContextWrapper teslaMateDbContextWrapper) : ITeslaMateChargeCostUpdateService
 {
     public async Task UpdateTeslaMateChargeCosts()
     {
         logger.LogTrace("{method}()", nameof(UpdateTeslaMateChargeCosts));
+        var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
+
+        if (!configurationWrapper.UseTeslaMateIntegration() || teslaMateContext == default)
+        {
+            return;
+        }
         var teslaMateCars = await teslaSolarChargerContext.Cars
             .Select(c => new
             {
@@ -19,9 +29,10 @@ public class TeslaMateChargeCostUpdateService (ILogger<TeslaMateChargeCostUpdate
             })
             .Where(c => c.TeslaMateCarId != null)
             .ToListAsync();
+
         foreach (var teslaMateCar in teslaMateCars)
         {
-            var teslaMateChargingProcesses = teslamateContext.ChargingProcesses
+            var teslaMateChargingProcesses = teslaMateContext.ChargingProcesses
                 .Where(cp => cp.CarId == teslaMateCar.TeslaMateCarId)
                 .OrderByDescending(cp => cp.StartDate)
                 .ToList();
@@ -62,7 +73,7 @@ public class TeslaMateChargeCostUpdateService (ILogger<TeslaMateChargeCostUpdate
                 teslaMateChargingProcess.Cost = cost;
             }
         }
-        await teslamateContext.SaveChangesAsync();
+        await teslaMateContext.SaveChangesAsync();
     }
 
     private static TimeSpan? GetOverlapDuration(Model.Entities.TeslaSolarCharger.ChargingProcess tscProcess, Model.Entities.TeslaMate.ChargingProcess teslaMateProcess)

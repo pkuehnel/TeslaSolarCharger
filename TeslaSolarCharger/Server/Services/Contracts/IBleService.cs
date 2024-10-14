@@ -6,9 +6,11 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IBleService
 {
-    Task<DtoBleResult> StartCharging(string vin);
-    Task<DtoBleResult> StopCharging(string vin);
-    Task<DtoBleResult> SetAmp(string vin, int amps);
-    Task<DtoBleResult> FlashLights(string vin);
-    Task<DtoBleResult> PairKey(string vin);
+    Task<DtoBleCommandResult> StartCharging(string vin);
+    Task<DtoBleCommandResult> StopCharging(string vin);
+    Task<DtoBleCommandResult> SetAmp(string vin, int amps);
+    Task<DtoBleCommandResult> FlashLights(string vin);
+    Task<DtoBleCommandResult> PairKey(string vin, string role);
+    Task<DtoBleCommandResult> WakeUpCar(string vin);
+    Task CheckBleApiVersionCompatibilities();
 }

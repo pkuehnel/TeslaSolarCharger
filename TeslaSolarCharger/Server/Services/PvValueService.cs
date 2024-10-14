@@ -8,72 +8,47 @@ using System.Web;
 using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class PvValueService : IPvValueService
+public class PvValueService(
+    ILogger<PvValueService> logger,
+    ISettings settings,
+    IInMemoryValues inMemoryValues,
+    IConfigurationWrapper configurationWrapper,
+    ITelegramService telegramService,
+    IDateTimeProvider dateTimeProvider,
+    ITeslaSolarChargerContext context,
+    IRestValueExecutionService restValueExecutionService,
+    IRestValueConfigurationService restValueConfigurationService,
+    IModbusValueConfigurationService modbusValueConfigurationService,
+    IModbusValueExecutionService modbusValueExecutionService,
+    IMqttClientHandlingService mqttClientHandlingService,
+    IMqttConfigurationService mqttConfigurationService,
+    IConstants constants)
+    : IPvValueService
 {
-    private readonly ILogger<PvValueService> _logger;
-    private readonly ISettings _settings;
-    private readonly IInMemoryValues _inMemoryValues;
-    private readonly IConfigurationWrapper _configurationWrapper;
-    private readonly ITelegramService _telegramService;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly IConstants _constants;
-    private readonly ITeslaSolarChargerContext _context;
-    private readonly IRestValueExecutionService _restValueExecutionService;
-    private readonly IMapperConfigurationFactory _mapperConfigurationFactory;
-    private readonly IRestValueConfigurationService _restValueConfigurationService;
-    private readonly IModbusValueConfigurationService _modbusValueConfigurationService;
-    private readonly IModbusValueExecutionService _modbusValueExecutionService;
-    private readonly IMqttClientHandlingService _mqttClientHandlingService;
-    private readonly IMqttConfigurationService _mqttConfigurationService;
-
-    public PvValueService(ILogger<PvValueService> logger, ISettings settings,
-        IInMemoryValues inMemoryValues, IConfigurationWrapper configurationWrapper,
-        ITelegramService telegramService,IDateTimeProvider dateTimeProvider,
-        IConstants constants, ITeslaSolarChargerContext context,
-        IRestValueExecutionService restValueExecutionService,
-        IMapperConfigurationFactory mapperConfigurationFactory,
-        IRestValueConfigurationService restValueConfigurationService,
-        IModbusValueConfigurationService modbusValueConfigurationService,
-        IModbusValueExecutionService modbusValueExecutionService,
-        IMqttClientHandlingService mqttClientHandlingService,
-        IMqttConfigurationService mqttConfigurationService)
-    {
-        _logger = logger;
-        _settings = settings;
-        _inMemoryValues = inMemoryValues;
-        _configurationWrapper = configurationWrapper;
-        _telegramService = telegramService;
-        _dateTimeProvider = dateTimeProvider;
-        _constants = constants;
-        _context = context;
-        _restValueExecutionService = restValueExecutionService;
-        _mapperConfigurationFactory = mapperConfigurationFactory;
-        _restValueConfigurationService = restValueConfigurationService;
-        _modbusValueConfigurationService = modbusValueConfigurationService;
-        _modbusValueExecutionService = modbusValueExecutionService;
-        _mqttClientHandlingService = mqttClientHandlingService;
-        _mqttConfigurationService = mqttConfigurationService;
-    }
-
     public async Task ConvertToNewConfiguration()
     {
-        if (!await _context.RestValueConfigurations.AnyAsync())
+        var solarConfigurationsConverted =
+            await context.TscConfigurations.AnyAsync(c => c.Key == constants.SolarValuesConverted).ConfigureAwait(false);
+        if (solarConfigurationsConverted)
+        {
+            return;
+        }
+        if (!await context.RestValueConfigurations.AnyAsync())
         {
             //Do not change order of the following methods
             try
@@ -82,7 +57,7 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting grid rest value configuration");
+                logger.LogError(e, "Error while converting grid rest value configuration");
             }
 
             try
@@ -92,7 +67,7 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting inverter rest value configuration");
+                logger.LogError(e, "Error while converting inverter rest value configuration");
             }
 
             try
@@ -101,7 +76,7 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting home battery soc rest value configuration");
+                logger.LogError(e, "Error while converting home battery soc rest value configuration");
             }
 
             try
@@ -110,11 +85,11 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting home battery power rest value configuration");
+                logger.LogError(e, "Error while converting home battery power rest value configuration");
             }
         }
 
-        if (!await _context.ModbusConfigurations.AnyAsync())
+        if (!await context.ModbusConfigurations.AnyAsync())
         {
             try
             {
@@ -122,7 +97,7 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting grid modbus value configuration");
+                logger.LogError(e, "Error while converting grid modbus value configuration");
             }
             try
             {
@@ -131,7 +106,7 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting inverter modbus value configuration");
+                logger.LogError(e, "Error while converting inverter modbus value configuration");
             }
 
             try
@@ -140,7 +115,7 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting home battery power modbus value configuration");
+                logger.LogError(e, "Error while converting home battery power modbus value configuration");
             }
             try
             {
@@ -148,7 +123,7 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting home battery power inversion modbus value configuration");
+                logger.LogError(e, "Error while converting home battery power inversion modbus value configuration");
             }
 
             try
@@ -157,86 +132,98 @@ public class PvValueService : IPvValueService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while converting home battery soc modbus value configuration");
+                logger.LogError(e, "Error while converting home battery soc modbus value configuration");
             }
         }
 
-        if (!await _context.MqttConfigurations.AnyAsync())
+        if (!await context.MqttConfigurations.AnyAsync())
         {
-            var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-            if (frontendConfiguration == default ||
-                (frontendConfiguration.GridValueSource != SolarValueSource.Mqtt
-                && frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.Mqtt
-                && frontendConfiguration.InverterValueSource != SolarValueSource.Mqtt))
-            {
-                _logger.LogDebug("Do not convert MQTT as no value source is on MQTT.");
-                return;
-            }
-            var solarMqttServer = _configurationWrapper.SolarMqttServer();
-            var solarMqttUser = _configurationWrapper.SolarMqttUsername();
-            var solarMqttPassword = _configurationWrapper.SolarMqttPassword();
-            if (string.IsNullOrEmpty(solarMqttServer))
-            {
-                return;
-            }
-            var mqttServerAndPort = solarMqttServer.Split(":");
-            var mqttHost = mqttServerAndPort.First();
-            int? mqttServerPort = null;
-            if (mqttServerAndPort.Length > 1)
-            {
-                mqttServerPort = Convert.ToInt32(mqttServerAndPort[1]);
-            }
+            await ConvertMqttConfigurations().ConfigureAwait(false);
+        }
 
-            var mqttConfiguration = new DtoMqttConfiguration()
-            {
-                Host = mqttHost,
-                Port = mqttServerPort ?? 1883,
-                Username = solarMqttUser,
-                Password = solarMqttPassword,
-            };
-            var mqttConfigurationId = await _mqttConfigurationService.SaveConfiguration(mqttConfiguration);
-            try
-            {
-                await ConvertGridMqttConfiguration(mqttConfigurationId);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error while converting mqtt grid value configuration");
-            }
+        context.TscConfigurations.Add(new TscConfiguration()
+        {
+            Key = constants.SolarValuesConverted,
+            Value = "true",
+        });
+        await context.SaveChangesAsync().ConfigureAwait(false);
+    }
 
-            try
-            {
-                await ConvertInverterMqttConfiguration(mqttConfigurationId);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error while converting mqtt inverter value configuration");
-            }
+    private async Task ConvertMqttConfigurations()
+    {
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        if (frontendConfiguration == default ||
+            (frontendConfiguration.GridValueSource != SolarValueSource.Mqtt
+             && frontendConfiguration.HomeBatteryValuesSource != SolarValueSource.Mqtt
+             && frontendConfiguration.InverterValueSource != SolarValueSource.Mqtt))
+        {
+            logger.LogDebug("Do not convert MQTT as no value source is on MQTT.");
+            return;
+        }
+        var solarMqttServer = configurationWrapper.SolarMqttServer();
+        var solarMqttUser = configurationWrapper.SolarMqttUsername();
+        var solarMqttPassword = configurationWrapper.SolarMqttPassword();
+        if (string.IsNullOrEmpty(solarMqttServer))
+        {
+            return;
+        }
+        var mqttServerAndPort = solarMqttServer.Split(":");
+        var mqttHost = mqttServerAndPort.First();
+        int? mqttServerPort = null;
+        if (mqttServerAndPort.Length > 1)
+        {
+            mqttServerPort = Convert.ToInt32(mqttServerAndPort[1]);
+        }
 
-            try
-            {
-                await ConvertHomeBatteryPowerMqttConfiguration(mqttConfigurationId);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error while converting mqtt home battery power value configuration");
-            }
+        var mqttConfiguration = new DtoMqttConfiguration()
+        {
+            Host = mqttHost,
+            Port = mqttServerPort ?? 1883,
+            Username = solarMqttUser,
+            Password = solarMqttPassword,
+        };
+        var mqttConfigurationId = await mqttConfigurationService.SaveConfiguration(mqttConfiguration);
+        try
+        {
+            await ConvertGridMqttConfiguration(mqttConfigurationId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while converting mqtt grid value configuration");
+        }
 
-            try
-            {
-                await ConvertHomeBatterySocMqttConfiguration(mqttConfigurationId);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error while converting mqtt home battery soc value configuration");
-            }
+        try
+        {
+            await ConvertInverterMqttConfiguration(mqttConfigurationId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while converting mqtt inverter value configuration");
+        }
+
+        try
+        {
+            await ConvertHomeBatteryPowerMqttConfiguration(mqttConfigurationId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while converting mqtt home battery power value configuration");
+        }
+
+        try
+        {
+            await ConvertHomeBatterySocMqttConfiguration(mqttConfigurationId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while converting mqtt home battery soc value configuration");
         }
     }
 
     private async Task ConvertHomeBatterySocMqttConfiguration(int mqttConfigurationId)
     {
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        var homeBatterySocMqttTopic = _configurationWrapper.HomeBatterySocMqttTopic();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        var homeBatterySocMqttTopic = configurationWrapper.HomeBatterySocMqttTopic();
         if (frontendConfiguration?.HomeBatteryValuesSource != SolarValueSource.Mqtt
             || string.IsNullOrEmpty(homeBatterySocMqttTopic))
         {
@@ -245,28 +232,28 @@ public class PvValueService : IPvValueService
         var resultConfiguration = new DtoMqttResultConfiguration()
         {
             Topic = homeBatterySocMqttTopic,
-            CorrectionFactor = _configurationWrapper.HomeBatterySocCorrectionFactor(),
+            CorrectionFactor = configurationWrapper.HomeBatterySocCorrectionFactor(),
             UsedFor = ValueUsage.HomeBatterySoc,
         };
         resultConfiguration.NodePatternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
         if (resultConfiguration.NodePatternType == NodePatternType.Xml)
         {
-            resultConfiguration.NodePattern = _configurationWrapper.HomeBatterySocXmlPattern();
-            resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
-            resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
-            resultConfiguration.XmlAttributeValueName = _configurationWrapper.HomeBatterySocXmlAttributeValueName();
+            resultConfiguration.NodePattern = configurationWrapper.HomeBatterySocXmlPattern();
+            resultConfiguration.XmlAttributeHeaderName = configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
+            resultConfiguration.XmlAttributeHeaderValue = configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
+            resultConfiguration.XmlAttributeValueName = configurationWrapper.HomeBatterySocXmlAttributeValueName();
         }
         else if (resultConfiguration.NodePatternType == NodePatternType.Json)
         {
-            resultConfiguration.NodePattern = _configurationWrapper.HomeBatterySocJsonPattern();
+            resultConfiguration.NodePattern = configurationWrapper.HomeBatterySocJsonPattern();
         }
-        await _mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
+        await mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
     }
 
     private async Task ConvertHomeBatteryPowerMqttConfiguration(int mqttConfigurationId)
     {
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        var homeBatteryPowerMqttTopic = _configurationWrapper.HomeBatteryPowerMqttTopic();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        var homeBatteryPowerMqttTopic = configurationWrapper.HomeBatteryPowerMqttTopic();
         if (frontendConfiguration?.HomeBatteryValuesSource != SolarValueSource.Mqtt
             || string.IsNullOrEmpty(homeBatteryPowerMqttTopic))
         {
@@ -275,28 +262,28 @@ public class PvValueService : IPvValueService
         var resultConfiguration = new DtoMqttResultConfiguration()
         {
             Topic = homeBatteryPowerMqttTopic,
-            CorrectionFactor = _configurationWrapper.HomeBatteryPowerCorrectionFactor(),
+            CorrectionFactor = configurationWrapper.HomeBatteryPowerCorrectionFactor(),
             UsedFor = ValueUsage.HomeBatteryPower,
         };
         resultConfiguration.NodePatternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
         if (resultConfiguration.NodePatternType == NodePatternType.Xml)
         {
-            resultConfiguration.NodePattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
-            resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
-            resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
-            resultConfiguration.XmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
+            resultConfiguration.NodePattern = configurationWrapper.HomeBatteryPowerXmlPattern();
+            resultConfiguration.XmlAttributeHeaderName = configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
+            resultConfiguration.XmlAttributeHeaderValue = configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
+            resultConfiguration.XmlAttributeValueName = configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
         }
         else if (resultConfiguration.NodePatternType == NodePatternType.Json)
         {
-            resultConfiguration.NodePattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
+            resultConfiguration.NodePattern = configurationWrapper.HomeBatteryPowerJsonPattern();
         }
-        await _mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
+        await mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
     }
 
     private async Task ConvertInverterMqttConfiguration(int mqttConfigurationId)
     {
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        var currentInverterPowerMqttTopic = _configurationWrapper.CurrentInverterPowerMqttTopic();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        var currentInverterPowerMqttTopic = configurationWrapper.CurrentInverterPowerMqttTopic();
         if (frontendConfiguration?.InverterValueSource != SolarValueSource.Mqtt
             || string.IsNullOrEmpty(currentInverterPowerMqttTopic))
         {
@@ -305,28 +292,28 @@ public class PvValueService : IPvValueService
         var resultConfiguration = new DtoMqttResultConfiguration()
         {
             Topic = currentInverterPowerMqttTopic,
-            CorrectionFactor = _configurationWrapper.CurrentInverterPowerCorrectionFactor(),
+            CorrectionFactor = configurationWrapper.CurrentInverterPowerCorrectionFactor(),
             UsedFor = ValueUsage.InverterPower,
         };
         resultConfiguration.NodePatternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
         if (resultConfiguration.NodePatternType == NodePatternType.Xml)
         {
-            resultConfiguration.NodePattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
-            resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
-            resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
-            resultConfiguration.XmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
+            resultConfiguration.NodePattern = configurationWrapper.CurrentInverterPowerXmlPattern();
+            resultConfiguration.XmlAttributeHeaderName = configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
+            resultConfiguration.XmlAttributeHeaderValue = configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
+            resultConfiguration.XmlAttributeValueName = configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
         }
         else if (resultConfiguration.NodePatternType == NodePatternType.Json)
         {
-            resultConfiguration.NodePattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
+            resultConfiguration.NodePattern = configurationWrapper.CurrentInverterPowerJsonPattern();
         }
-        await _mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
+        await mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
     }
 
     private async Task ConvertGridMqttConfiguration(int mqttConfigurationId)
     {
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        var currentPowerToGridMqttTopic = _configurationWrapper.CurrentPowerToGridMqttTopic();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        var currentPowerToGridMqttTopic = configurationWrapper.CurrentPowerToGridMqttTopic();
         if (frontendConfiguration?.GridValueSource != SolarValueSource.Mqtt
             || string.IsNullOrEmpty(currentPowerToGridMqttTopic))
         {
@@ -335,29 +322,29 @@ public class PvValueService : IPvValueService
         var resultConfiguration = new DtoMqttResultConfiguration()
         {
             Topic = currentPowerToGridMqttTopic,
-            CorrectionFactor = _configurationWrapper.CurrentPowerToGridCorrectionFactor(),
+            CorrectionFactor = configurationWrapper.CurrentPowerToGridCorrectionFactor(),
             UsedFor = ValueUsage.GridPower,
         };
         resultConfiguration.NodePatternType = frontendConfiguration.GridPowerNodePatternType ?? NodePatternType.Direct;
         if (resultConfiguration.NodePatternType == NodePatternType.Xml)
         {
-            resultConfiguration.NodePattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
-            resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
-            resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
-            resultConfiguration.XmlAttributeValueName = _configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
+            resultConfiguration.NodePattern = configurationWrapper.CurrentPowerToGridXmlPattern();
+            resultConfiguration.XmlAttributeHeaderName = configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
+            resultConfiguration.XmlAttributeHeaderValue = configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
+            resultConfiguration.XmlAttributeValueName = configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
         }
         else if (resultConfiguration.NodePatternType == NodePatternType.Json)
         {
-            resultConfiguration.NodePattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+            resultConfiguration.NodePattern = configurationWrapper.CurrentPowerToGridJsonPattern();
         }
-        await _mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
+        await mqttConfigurationService.SaveResultConfiguration(mqttConfigurationId, resultConfiguration);
     }
 
     private async Task ConvertGridModbusValueConfiguration()
     {
-        var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        var correctionFactor = _configurationWrapper.CurrentPowerToGridCorrectionFactor();
+        var gridRequestUrl = configurationWrapper.CurrentPowerToGridUrl();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        var correctionFactor = configurationWrapper.CurrentPowerToGridCorrectionFactor();
         if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is
             { GridValueSource: SolarValueSource.Modbus })
         {
@@ -367,9 +354,9 @@ public class PvValueService : IPvValueService
 
     private async Task ConvertInverterModbusValueConfiguration()
     {
-        var requestUrl = _configurationWrapper.CurrentInverterPowerUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        var correctionFactor = _configurationWrapper.CurrentInverterPowerCorrectionFactor();
+        var requestUrl = configurationWrapper.CurrentInverterPowerUrl();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        var correctionFactor = configurationWrapper.CurrentInverterPowerCorrectionFactor();
         if (!string.IsNullOrWhiteSpace(requestUrl) && frontendConfiguration is
                 { InverterValueSource: SolarValueSource.Modbus })
         {
@@ -379,9 +366,9 @@ public class PvValueService : IPvValueService
 
     private async Task ConvertHomeBatteryPowerModbusValueConfiguration()
     {
-        var requestUrl = _configurationWrapper.HomeBatteryPowerUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        var correctionFactor = _configurationWrapper.HomeBatteryPowerCorrectionFactor();
+        var requestUrl = configurationWrapper.HomeBatteryPowerUrl();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        var correctionFactor = configurationWrapper.HomeBatteryPowerCorrectionFactor();
         if (!string.IsNullOrWhiteSpace(requestUrl) && frontendConfiguration is
                 { HomeBatteryValuesSource: SolarValueSource.Modbus })
         {
@@ -391,27 +378,27 @@ public class PvValueService : IPvValueService
 
     private async Task ConvertHomeBatteryPowerInversionUrl()
     {
-        var requestUrl = _configurationWrapper.HomeBatteryPowerInversionUrl();
+        var requestUrl = configurationWrapper.HomeBatteryPowerInversionUrl();
         if (string.IsNullOrEmpty(requestUrl))
         {
             return;
         }
         var homeBatteryPowerResultConfigurations =
-            await _modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r => r.UsedFor == ValueUsage.HomeBatteryPower);
+            await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r => r.UsedFor == ValueUsage.HomeBatteryPower);
         var homeBatteryPowerResultConfiguration = homeBatteryPowerResultConfigurations.Single();
-        var parentConfigs = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c =>
+        var parentConfigs = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c =>
             c.ModbusResultConfigurations.Any(r => r.Id == homeBatteryPowerResultConfiguration.Id));
         var parentConfig = parentConfigs.Single();
         var inversionId = await ConvertGenericModbusValueConfiguration(requestUrl, ValueUsage.HomeBatteryPower, 1);
         homeBatteryPowerResultConfiguration.InvertedByModbusResultConfigurationId = inversionId;
-        await _modbusValueConfigurationService.SaveModbusResultConfiguration(parentConfig.Id, homeBatteryPowerResultConfiguration);
+        await modbusValueConfigurationService.SaveModbusResultConfiguration(parentConfig.Id, homeBatteryPowerResultConfiguration);
     }
 
     private async Task ConvertHomeBatterySocModbusValueConfiguration()
     {
-        var requestUrl = _configurationWrapper.HomeBatterySocUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
-        var correctionFactor = _configurationWrapper.HomeBatterySocCorrectionFactor();
+        var requestUrl = configurationWrapper.HomeBatterySocUrl();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
+        var correctionFactor = configurationWrapper.HomeBatterySocCorrectionFactor();
         if (!string.IsNullOrWhiteSpace(requestUrl) && frontendConfiguration is
                 { HomeBatteryValuesSource: SolarValueSource.Modbus })
         {
@@ -435,7 +422,7 @@ public class PvValueService : IPvValueService
         var timeoutSecondsString = GetQueryParameterValue(uri, "timeoutSeconds", "1");
         modbusValueConfiguration.ReadTimeoutMilliseconds = (int.Parse(timeoutSecondsString)) * 1000;
         int configurationId;
-        var existingConfigurations = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c =>
+        var existingConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c =>
             c.Host == modbusValueConfiguration.Host && c.Port == modbusValueConfiguration.Port);
         if (existingConfigurations.Any())
         {
@@ -443,7 +430,7 @@ public class PvValueService : IPvValueService
         }
         else
         {
-            configurationId = await _modbusValueConfigurationService.SaveModbusConfiguration(modbusValueConfiguration);
+            configurationId = await modbusValueConfigurationService.SaveModbusConfiguration(modbusValueConfiguration);
         }
         var resultConfiguration = new DtoModbusValueResultConfiguration()
         {
@@ -468,7 +455,7 @@ public class PvValueService : IPvValueService
         resultConfiguration.Address = int.Parse(addressString);
         var quantityString = GetQueryParameterValue(uri, "quantity");
         resultConfiguration.Length = int.Parse(quantityString);
-        return await _modbusValueConfigurationService.SaveModbusResultConfiguration(configurationId, resultConfiguration);
+        return await modbusValueConfigurationService.SaveModbusResultConfiguration(configurationId, resultConfiguration);
     }
 
     private void SetValueType(Uri uri, DtoModbusValueResultConfiguration resultConfiguration)
@@ -522,13 +509,13 @@ public class PvValueService : IPvValueService
 
     private async Task ConvertHomeBatteryPowerRestConfiguration()
     {
-        var homeBatteryPowerRequestUrl = _configurationWrapper.HomeBatteryPowerUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var homeBatteryPowerRequestUrl = configurationWrapper.HomeBatteryPowerUrl();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(homeBatteryPowerRequestUrl) && frontendConfiguration is
                 { HomeBatteryValuesSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.HomeBatteryPowerNodePatternType ?? NodePatternType.Direct;
-            var newHomeBatteryPowerConfiguration = await _context.RestValueConfigurations
+            var newHomeBatteryPowerConfiguration = await context.RestValueConfigurations
                 .Where(r => r.Url == homeBatteryPowerRequestUrl)
                 .FirstOrDefaultAsync();
             if (newHomeBatteryPowerConfiguration == default)
@@ -539,8 +526,8 @@ public class PvValueService : IPvValueService
                     NodePatternType = patternType,
                     HttpMethod = HttpVerb.Get,
                 };
-                _context.RestValueConfigurations.Add(newHomeBatteryPowerConfiguration);
-                var homeBatteryPowerHeaders = _configurationWrapper.HomeBatteryPowerHeaders();
+                context.RestValueConfigurations.Add(newHomeBatteryPowerConfiguration);
+                var homeBatteryPowerHeaders = configurationWrapper.HomeBatteryPowerHeaders();
                 foreach (var homeBatteryPowerHeader in homeBatteryPowerHeaders)
                 {
                     newHomeBatteryPowerConfiguration.Headers.Add(new RestValueConfigurationHeader()
@@ -552,34 +539,34 @@ public class PvValueService : IPvValueService
             }
             var resultConfiguration = new RestValueResultConfiguration()
             {
-                CorrectionFactor = _configurationWrapper.HomeBatteryPowerCorrectionFactor(),
+                CorrectionFactor = configurationWrapper.HomeBatteryPowerCorrectionFactor(),
                 UsedFor = ValueUsage.HomeBatteryPower,
             };
             if (newHomeBatteryPowerConfiguration.NodePatternType == NodePatternType.Xml)
             {
-                resultConfiguration.NodePattern = _configurationWrapper.HomeBatteryPowerXmlPattern();
-                resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
-                resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
-                resultConfiguration.XmlAttributeValueName = _configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
+                resultConfiguration.NodePattern = configurationWrapper.HomeBatteryPowerXmlPattern();
+                resultConfiguration.XmlAttributeHeaderName = configurationWrapper.HomeBatteryPowerXmlAttributeHeaderName();
+                resultConfiguration.XmlAttributeHeaderValue = configurationWrapper.HomeBatteryPowerXmlAttributeHeaderValue();
+                resultConfiguration.XmlAttributeValueName = configurationWrapper.HomeBatteryPowerXmlAttributeValueName();
             }
             else if (newHomeBatteryPowerConfiguration.NodePatternType == NodePatternType.Json)
             {
-                resultConfiguration.NodePattern = _configurationWrapper.HomeBatteryPowerJsonPattern();
+                resultConfiguration.NodePattern = configurationWrapper.HomeBatteryPowerJsonPattern();
             }
             newHomeBatteryPowerConfiguration.RestValueResultConfigurations.Add(resultConfiguration);
-            await _context.SaveChangesAsync().ConfigureAwait(false);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 
     private async Task ConvertHomeBatterySocRestConfiguration()
     {
-        var homeBatterySocRequestUrl = _configurationWrapper.HomeBatterySocUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var homeBatterySocRequestUrl = configurationWrapper.HomeBatterySocUrl();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(homeBatterySocRequestUrl) && frontendConfiguration is
                 { HomeBatteryValuesSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.HomeBatterySocNodePatternType ?? NodePatternType.Direct;
-            var newHomeBatterySocConfiguration = await _context.RestValueConfigurations
+            var newHomeBatterySocConfiguration = await context.RestValueConfigurations
                 .Where(r => r.Url == homeBatterySocRequestUrl)
                 .FirstOrDefaultAsync();
             if (newHomeBatterySocConfiguration == default)
@@ -590,8 +577,8 @@ public class PvValueService : IPvValueService
                     NodePatternType = patternType,
                     HttpMethod = HttpVerb.Get,
                 };
-                _context.RestValueConfigurations.Add(newHomeBatterySocConfiguration);
-                var hombatteryHeaders = _configurationWrapper.HomeBatterySocHeaders();
+                context.RestValueConfigurations.Add(newHomeBatterySocConfiguration);
+                var hombatteryHeaders = configurationWrapper.HomeBatterySocHeaders();
                 foreach (var homeBatteryHeader in hombatteryHeaders)
                 {
                     newHomeBatterySocConfiguration.Headers.Add(new RestValueConfigurationHeader()
@@ -603,34 +590,34 @@ public class PvValueService : IPvValueService
             }
             var resultConfiguration = new RestValueResultConfiguration()
             {
-                CorrectionFactor = _configurationWrapper.HomeBatterySocCorrectionFactor(),
+                CorrectionFactor = configurationWrapper.HomeBatterySocCorrectionFactor(),
                 UsedFor = ValueUsage.HomeBatterySoc,
             };
             if (newHomeBatterySocConfiguration.NodePatternType == NodePatternType.Xml)
             {
-                resultConfiguration.NodePattern = _configurationWrapper.HomeBatterySocXmlPattern();
-                resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
-                resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
-                resultConfiguration.XmlAttributeValueName = _configurationWrapper.HomeBatterySocXmlAttributeValueName();
+                resultConfiguration.NodePattern = configurationWrapper.HomeBatterySocXmlPattern();
+                resultConfiguration.XmlAttributeHeaderName = configurationWrapper.HomeBatterySocXmlAttributeHeaderName();
+                resultConfiguration.XmlAttributeHeaderValue = configurationWrapper.HomeBatterySocXmlAttributeHeaderValue();
+                resultConfiguration.XmlAttributeValueName = configurationWrapper.HomeBatterySocXmlAttributeValueName();
             }
             else if (newHomeBatterySocConfiguration.NodePatternType == NodePatternType.Json)
             {
-                resultConfiguration.NodePattern = _configurationWrapper.HomeBatterySocJsonPattern();
+                resultConfiguration.NodePattern = configurationWrapper.HomeBatterySocJsonPattern();
             }
             newHomeBatterySocConfiguration.RestValueResultConfigurations.Add(resultConfiguration);
-            await _context.SaveChangesAsync().ConfigureAwait(false);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 
     private async Task ConvertInverterRestValueConfiguration()
     {
-        var inverterRequestUrl = _configurationWrapper.CurrentInverterPowerUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var inverterRequestUrl = configurationWrapper.CurrentInverterPowerUrl();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(inverterRequestUrl) && frontendConfiguration is
                 { InverterValueSource: SolarValueSource.Rest })
         {
             var patternType = frontendConfiguration.InverterPowerNodePatternType ?? NodePatternType.Direct;
-            var newInverterConfiguration = await _context.RestValueConfigurations
+            var newInverterConfiguration = await context.RestValueConfigurations
                 .Where(r => r.Url == inverterRequestUrl)
                 .FirstOrDefaultAsync();
             if (newInverterConfiguration == default)
@@ -641,8 +628,8 @@ public class PvValueService : IPvValueService
                     NodePatternType = patternType,
                     HttpMethod = HttpVerb.Get,
                 };
-                _context.RestValueConfigurations.Add(newInverterConfiguration);
-                var inverterRequestHeaders = _configurationWrapper.CurrentInverterPowerHeaders();
+                context.RestValueConfigurations.Add(newInverterConfiguration);
+                var inverterRequestHeaders = configurationWrapper.CurrentInverterPowerHeaders();
                 foreach (var inverterRequestHeader in inverterRequestHeaders)
                 {
                     newInverterConfiguration.Headers.Add(new RestValueConfigurationHeader()
@@ -654,29 +641,29 @@ public class PvValueService : IPvValueService
             }
             var resultConfiguration = new RestValueResultConfiguration()
             {
-                CorrectionFactor = _configurationWrapper.CurrentInverterPowerCorrectionFactor(),
+                CorrectionFactor = configurationWrapper.CurrentInverterPowerCorrectionFactor(),
                 UsedFor = ValueUsage.InverterPower,
             };
             if (newInverterConfiguration.NodePatternType == NodePatternType.Xml)
             {
-                resultConfiguration.NodePattern = _configurationWrapper.CurrentInverterPowerXmlPattern();
-                resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
-                resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
-                resultConfiguration.XmlAttributeValueName = _configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
+                resultConfiguration.NodePattern = configurationWrapper.CurrentInverterPowerXmlPattern();
+                resultConfiguration.XmlAttributeHeaderName = configurationWrapper.CurrentInverterPowerXmlAttributeHeaderName();
+                resultConfiguration.XmlAttributeHeaderValue = configurationWrapper.CurrentInverterPowerXmlAttributeHeaderValue();
+                resultConfiguration.XmlAttributeValueName = configurationWrapper.CurrentInverterPowerXmlAttributeValueName();
             }
             else if (newInverterConfiguration.NodePatternType == NodePatternType.Json)
             {
-                resultConfiguration.NodePattern = _configurationWrapper.CurrentInverterPowerJsonPattern();
+                resultConfiguration.NodePattern = configurationWrapper.CurrentInverterPowerJsonPattern();
             }
             newInverterConfiguration.RestValueResultConfigurations.Add(resultConfiguration);
-            await _context.SaveChangesAsync().ConfigureAwait(false);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 
     private async Task ConvertGridRestValueConfiguration()
     {
-        var gridRequestUrl = _configurationWrapper.CurrentPowerToGridUrl();
-        var frontendConfiguration = _configurationWrapper.FrontendConfiguration();
+        var gridRequestUrl = configurationWrapper.CurrentPowerToGridUrl();
+        var frontendConfiguration = configurationWrapper.FrontendConfiguration();
         if (!string.IsNullOrWhiteSpace(gridRequestUrl) && frontendConfiguration is
                 { GridValueSource: SolarValueSource.Rest })
         {
@@ -687,8 +674,8 @@ public class PvValueService : IPvValueService
                 NodePatternType = patternType,
                 HttpMethod = HttpVerb.Get,
             };
-            _context.RestValueConfigurations.Add(newGridConfiguration);
-            var gridRequestHeaders = _configurationWrapper.CurrentPowerToGridHeaders();
+            context.RestValueConfigurations.Add(newGridConfiguration);
+            var gridRequestHeaders = configurationWrapper.CurrentPowerToGridHeaders();
             foreach (var gridRequestHeader in gridRequestHeaders)
             {
                 newGridConfiguration.Headers.Add(new RestValueConfigurationHeader()
@@ -699,28 +686,191 @@ public class PvValueService : IPvValueService
             }
             var resultConfiguration = new RestValueResultConfiguration()
             {
-                CorrectionFactor = _configurationWrapper.CurrentPowerToGridCorrectionFactor(),
+                CorrectionFactor = configurationWrapper.CurrentPowerToGridCorrectionFactor(),
                 UsedFor = ValueUsage.GridPower,
             };
             if (newGridConfiguration.NodePatternType == NodePatternType.Xml)
             {
-                resultConfiguration.NodePattern = _configurationWrapper.CurrentPowerToGridXmlPattern();
-                resultConfiguration.XmlAttributeHeaderName = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
-                resultConfiguration.XmlAttributeHeaderValue = _configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
-                resultConfiguration.XmlAttributeValueName = _configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
+                resultConfiguration.NodePattern = configurationWrapper.CurrentPowerToGridXmlPattern();
+                resultConfiguration.XmlAttributeHeaderName = configurationWrapper.CurrentPowerToGridXmlAttributeHeaderName();
+                resultConfiguration.XmlAttributeHeaderValue = configurationWrapper.CurrentPowerToGridXmlAttributeHeaderValue();
+                resultConfiguration.XmlAttributeValueName = configurationWrapper.CurrentPowerToGridXmlAttributeValueName();
             }
             else if (newGridConfiguration.NodePatternType == NodePatternType.Json)
             {
-                resultConfiguration.NodePattern = _configurationWrapper.CurrentPowerToGridJsonPattern();
+                resultConfiguration.NodePattern = configurationWrapper.CurrentPowerToGridJsonPattern();
             }
             newGridConfiguration.RestValueResultConfigurations.Add(resultConfiguration);
-            await _context.SaveChangesAsync().ConfigureAwait(false);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 
     public async Task UpdatePvValues()
     {
-        _logger.LogTrace("{method}()", nameof(UpdatePvValues));
+        logger.LogTrace("{method}()", nameof(UpdatePvValues));
+        var errorWhileUpdatingPvValues = false;
+        if (configurationWrapper.ShouldUseFakeSolarValues())
+        {
+            logger.LogWarning("Fake solar values are used.");
+            if (true)
+            {
+                foreach (var car in settings.CarsToManage)
+                {
+                    car.ChargerActualCurrent = 1;
+                    car.ChargerVoltage = 1;
+                    car.ChargerPhases = 1;
+                }
+                if (((settings.LastPvDemoCase / 16) % 2) == 0)
+                {
+                    foreach (var dtoCar in settings.CarsToManage)
+                    {
+                        dtoCar.IsHomeGeofence = true;
+                    }
+                }
+                else
+                {
+                    foreach (var dtoCar in settings.CarsToManage)
+                    {
+                        dtoCar.IsHomeGeofence = false;
+                    }
+                }
+                switch ((settings.LastPvDemoCase++ % 16))
+                {
+                    case 0:
+                        settings.InverterPower = null;
+                        settings.Overage = null;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 1:
+                        settings.InverterPower = null;
+                        settings.Overage = 200;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 8:
+                        settings.InverterPower = null;
+                        settings.Overage = -200;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 9:
+                        settings.InverterPower = null;
+                        settings.Overage = 0;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 2:
+                        settings.InverterPower = 500;
+                        settings.Overage = null;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 5:
+                        settings.InverterPower = 0;
+                        settings.Overage = null;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 3:
+                        settings.InverterPower = 500;
+                        settings.Overage = 300;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 4:
+                        settings.InverterPower = 500;
+                        settings.Overage = -300;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 6:
+                        settings.InverterPower = 0;
+                        settings.Overage = -300;
+                        settings.HomeBatteryPower = null;
+                        settings.HomeBatterySoc = null;
+                        break;
+                    case 7:
+                        settings.InverterPower = 0;
+                        settings.Overage = -300;
+                        settings.HomeBatteryPower = 0;
+                        settings.HomeBatterySoc = 0;
+                        break;
+                    case 10:
+                        settings.InverterPower = 0;
+                        settings.Overage = -300;
+                        settings.HomeBatteryPower = -500;
+                        settings.HomeBatterySoc = 20;
+                        break;
+                    case 11:
+                        settings.InverterPower = 0;
+                        settings.Overage = 300;
+                        settings.HomeBatteryPower = -500;
+                        settings.HomeBatterySoc = 20;
+                        break;
+                    case 12:
+                        settings.InverterPower = 1000;
+                        settings.Overage = 300;
+                        settings.HomeBatteryPower = 500;
+                        settings.HomeBatterySoc = 20;
+                        break;
+                    case 13:
+                        settings.InverterPower = 1000;
+                        settings.Overage = -20;
+                        settings.HomeBatteryPower = 500;
+                        settings.HomeBatterySoc = 20;
+                        break;
+                    case 14:
+                        settings.InverterPower = 10;
+                        settings.Overage = -200;
+                        settings.HomeBatteryPower = 100;
+                        settings.HomeBatterySoc = 20;
+                        break;
+                    case 15:
+                        settings.InverterPower = 10;
+                        settings.Overage = -500;
+                        settings.HomeBatteryPower = 100;
+                        settings.HomeBatterySoc = 20;
+                        break;
+
+                }
+            }
+            else
+            {
+                var random = new Random();
+                var fakeInverterPower = random.Next(0, 30000);
+                var fakeHousePower = random.Next(500, 25000);
+                var fakeOverage = fakeInverterPower - fakeHousePower;
+                var fakeHomeBatteryPower = 0;
+                if (Math.Abs(fakeOverage) < 7000)
+                {
+                    var deviation = random.Next(-150, 150);
+                    fakeHomeBatteryPower = fakeOverage - deviation;
+                    fakeOverage = -deviation;
+                }
+                else
+                {
+                    if (fakeOverage > 0)
+                    {
+                        fakeHomeBatteryPower = 7000;
+                    }
+                    else
+                    {
+                        fakeHomeBatteryPower = -7000;
+                    }
+                    fakeOverage -= fakeHomeBatteryPower;
+                }
+                settings.InverterPower = fakeInverterPower;
+                settings.Overage = fakeOverage;
+                settings.HomeBatteryPower = fakeHomeBatteryPower;
+                settings.HomeBatterySoc = 82;
+                settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+            }
+            
+            
+            return;
+        }
+
         var valueUsages = new HashSet<ValueUsage>
         {
             ValueUsage.InverterPower,
@@ -730,18 +880,18 @@ public class PvValueService : IPvValueService
         };
         var resultSums = new Dictionary<ValueUsage, decimal>();
         //ToDo: Modbus and rest values can be requersted in parallel but dictionary needs to be thread save for that
-        var restConfigurations = await _restValueConfigurationService
+        var restConfigurations = await restValueConfigurationService
             .GetFullRestValueConfigurationsByPredicate(c => c.RestValueResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
         foreach (var restConfiguration in restConfigurations)
         {
             try
             {
-                var responseString = await _restValueExecutionService.GetResult(restConfiguration).ConfigureAwait(false);
-                var resultConfigurations = await _restValueConfigurationService.GetResultConfigurationsByConfigurationId(restConfiguration.Id).ConfigureAwait(false);
+                var responseString = await restValueExecutionService.GetResult(restConfiguration).ConfigureAwait(false);
+                var resultConfigurations = await restValueConfigurationService.GetResultConfigurationsByConfigurationId(restConfiguration.Id).ConfigureAwait(false);
                 var results = new Dictionary<int, decimal>();
                 foreach (var resultConfiguration in resultConfigurations)
                 {
-                    results.Add(resultConfiguration.Id, _restValueExecutionService.GetValue(responseString, restConfiguration.NodePatternType, resultConfiguration));
+                    results.Add(resultConfiguration.Id, restValueExecutionService.GetValue(responseString, restConfiguration.NodePatternType, resultConfiguration));
                 }
                 foreach (var result in results)
                 {
@@ -755,26 +905,27 @@ public class PvValueService : IPvValueService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
+                logger.LogError(ex, "Error while getting result for {restConfigurationId} with URL {url}", restConfiguration.Id, restConfiguration.Url);
+                errorWhileUpdatingPvValues = true;
             }
         }
 
-        var modbusConfigurations = await _modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
+        var modbusConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c => c.ModbusResultConfigurations.Any(r => valueUsages.Contains(r.UsedFor))).ConfigureAwait(false);
         foreach (var modbusConfiguration in modbusConfigurations)
         {
-            _logger.LogDebug("Get Modbus results for modbus Configuration {host}:{port}", modbusConfiguration.Host,
+            logger.LogDebug("Get Modbus results for modbus Configuration {host}:{port}", modbusConfiguration.Host,
                 modbusConfiguration.Port);
             var modbusResultConfigurations =
-                await _modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
+                await modbusValueConfigurationService.GetModbusResultConfigurationsByPredicate(r =>
                     r.ModbusConfigurationId == modbusConfiguration.Id);
             foreach (var resultConfiguration in modbusResultConfigurations)
             {
-                _logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
+                logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
                     modbusConfiguration.Port, resultConfiguration.Address);
-                var byteArry = await _modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration);
-                _logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
-                                       modbusConfiguration.Port, resultConfiguration.Address, _modbusValueExecutionService.GetBinaryString(byteArry));
-                var value = await _modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
+                var byteArry = await modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration);
+                logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
+                                       modbusConfiguration.Port, resultConfiguration.Address, modbusValueExecutionService.GetBinaryString(byteArry));
+                var value = await modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
                 var valueUsage = resultConfiguration.UsedFor;
                 if (!resultSums.ContainsKey(valueUsage))
                 {
@@ -784,7 +935,7 @@ public class PvValueService : IPvValueService
             }
         }
 
-        var mqttValues = _mqttClientHandlingService.GetMqttValues();
+        var mqttValues = mqttClientHandlingService.GetMqttValues();
         foreach (var mqttValue in mqttValues)
         {
             if (valueUsages.Contains(mqttValue.UsedFor))
@@ -800,14 +951,17 @@ public class PvValueService : IPvValueService
 
         int? inverterValue = resultSums.TryGetValue(ValueUsage.InverterPower, out var inverterPower) ?
             SafeToInt(inverterPower) : null;
-        _settings.InverterPower = inverterValue < 0 ? 0 : inverterValue;
-        _settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ?
+        settings.InverterPower = inverterValue < 0 ? 0 : inverterValue;
+        settings.Overage = resultSums.TryGetValue(ValueUsage.GridPower, out var gridPower) ?
             SafeToInt(gridPower) : null;
-        _settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ?
+        settings.HomeBatteryPower = resultSums.TryGetValue(ValueUsage.HomeBatteryPower, out var homeBatteryPower) ?
             SafeToInt(homeBatteryPower) : null;
-        _settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
+        settings.HomeBatterySoc = resultSums.TryGetValue(ValueUsage.HomeBatterySoc, out var homeBatterySoc) ?
             SafeToInt(homeBatterySoc) : null;
-        _settings.LastPvValueUpdate = _dateTimeProvider.DateTimeOffSetNow();
+        if (!errorWhileUpdatingPvValues)
+        {
+            settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        }
     }
 
     /// <summary>
@@ -828,15 +982,15 @@ public class PvValueService : IPvValueService
         int? intValue;
         if (httpResponse == null)
         {
-            _logger.LogError("HttpResponse is null, extraction of value is not possible");
+            logger.LogError("HttpResponse is null, extraction of value is not possible");
             return null;
         }
         if (!httpResponse.IsSuccessStatusCode)
         {
             intValue = null;
-            _logger.LogError("Could not get value. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
+            logger.LogError("Could not get value. {statusCode}, {reasonPhrase}", httpResponse.StatusCode,
                 httpResponse.ReasonPhrase);
-            await _telegramService.SendMessage(
+            await telegramService.SendMessage(
                     $"Getting value did result in statuscode {httpResponse.StatusCode} with reason {httpResponse.ReasonPhrase}")
                 .ConfigureAwait(false);
         }
@@ -850,12 +1004,12 @@ public class PvValueService : IPvValueService
 
     private async Task<HttpResponseMessage> GetHttpResponse(HttpRequestMessage request)
     {
-        _logger.LogTrace("{method}({request}) [called by {callingMethod}]", nameof(GetHttpResponse), request, new StackTrace().GetFrame(1)?.GetMethod()?.Name);
+        logger.LogTrace("{method}({request}) [called by {callingMethod}]", nameof(GetHttpResponse), request, new StackTrace().GetFrame(1)?.GetMethod()?.Name);
         var httpClientHandler = new HttpClientHandler();
 
-        if (_configurationWrapper.ShouldIgnoreSslErrors())
+        if (configurationWrapper.ShouldIgnoreSslErrors())
         {
-            _logger.LogWarning("PV Value SSL errors are ignored.");
+            logger.LogWarning("PV Value SSL errors are ignored.");
             httpClientHandler.ServerCertificateCustomValidationCallback = MyRemoteCertificateValidationCallback;
         }
 
@@ -888,48 +1042,48 @@ public class PvValueService : IPvValueService
 
     public void ClearOverageValues()
     {
-        _inMemoryValues.OverageValues.Clear();
+        inMemoryValues.OverageValues.Clear();
     }
 
     public void AddOverageValueToInMemoryList(int overage)
     {
-        _logger.LogTrace("{method}({overage})", nameof(AddOverageValueToInMemoryList), overage);
-        _inMemoryValues.OverageValues.Add(overage);
+        logger.LogTrace("{method}({overage})", nameof(AddOverageValueToInMemoryList), overage);
+        inMemoryValues.OverageValues.Add(overage);
 
-        var valuesToSave = (int)(_configurationWrapper.ChargingValueJobUpdateIntervall().TotalSeconds /
-                            _configurationWrapper.PvValueJobUpdateIntervall().TotalSeconds);
+        var valuesToSave = (int)(configurationWrapper.ChargingValueJobUpdateIntervall().TotalSeconds /
+                            configurationWrapper.PvValueJobUpdateIntervall().TotalSeconds);
 
-        if (_inMemoryValues.OverageValues.Count > valuesToSave)
+        if (inMemoryValues.OverageValues.Count > valuesToSave)
         {
-            _inMemoryValues.OverageValues.RemoveRange(0, _inMemoryValues.OverageValues.Count - valuesToSave);
+            inMemoryValues.OverageValues.RemoveRange(0, inMemoryValues.OverageValues.Count - valuesToSave);
         }
     }
 
     internal bool IsSameRequest(HttpRequestMessage? httpRequestMessage1, HttpRequestMessage httpRequestMessage2)
     {
-        _logger.LogTrace("{method}({request1}, {request2})", nameof(IsSameRequest), httpRequestMessage1, httpRequestMessage2);
+        logger.LogTrace("{method}({request1}, {request2})", nameof(IsSameRequest), httpRequestMessage1, httpRequestMessage2);
         if (httpRequestMessage1 == null)
         {
-            _logger.LogTrace("Not same request as first request is null.");
+            logger.LogTrace("Not same request as first request is null.");
             return false;
         }
         if (httpRequestMessage1.Method != httpRequestMessage2.Method)
         {
-            _logger.LogDebug("not same request as request1 method is {request1} and request2 method is {request2}",
+            logger.LogDebug("not same request as request1 method is {request1} and request2 method is {request2}",
                 httpRequestMessage1.Method, httpRequestMessage2.Method);
             return false;
         }
 
         if (httpRequestMessage1.RequestUri != httpRequestMessage2.RequestUri)
         {
-            _logger.LogDebug("not same request as request1 Uri is {request1} and request2 Uri is {request2}",
+            logger.LogDebug("not same request as request1 Uri is {request1} and request2 Uri is {request2}",
                 httpRequestMessage1.RequestUri, httpRequestMessage2.RequestUri);
             return false;
         }
 
         if (httpRequestMessage1.Headers.Count() != httpRequestMessage2.Headers.Count())
         {
-            _logger.LogDebug("not same request as request1 header count is {request1} and request2 header count is {request2}",
+            logger.LogDebug("not same request as request1 header count is {request1} and request2 header count is {request2}",
                 httpRequestMessage1.Headers.Count(), httpRequestMessage2.Headers.Count());
             return false;
         }
@@ -960,7 +1114,7 @@ public class PvValueService : IPvValueService
     private async Task<int?> GetIntegerValue(HttpResponseMessage response, string? jsonPattern, string? xmlPattern, double correctionFactor,
         NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
-        _logger.LogTrace("{method}({httpResonse}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
+        logger.LogTrace("{method}({httpResonse}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
             nameof(GetIntegerValue), response, jsonPattern, xmlPattern, correctionFactor);
 
         var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -971,7 +1125,7 @@ public class PvValueService : IPvValueService
     public int? GetIntegerValueByString(string valueString, string? jsonPattern, string? xmlPattern, double correctionFactor,
         NodePatternType nodePatternType, string? xmlAttributeHeaderName, string? xmlAttributeHeaderValue, string? xmlAttributeValueName)
     {
-        _logger.LogTrace("{method}({valueString}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
+        logger.LogTrace("{method}({valueString}, {jsonPattern}, {xmlPattern}, {correctionFactor})",
             nameof(GetIntegerValueByString), valueString, jsonPattern, xmlPattern, correctionFactor);
         var pattern = string.Empty;
 
@@ -996,12 +1150,12 @@ public class PvValueService : IPvValueService
         {
             //allow JSON values to be null, as this is needed by SMA inverters: https://tff-forum.de/t/teslasolarcharger-laden-nach-pv-ueberschuss-mit-beliebiger-wallbox/170369/2728?u=mane123
             case NodePatternType.Json:
-                _logger.LogTrace("Extract overage value from json {result} with {pattern}", result, pattern);
+                logger.LogTrace("Extract overage value from json {result} with {pattern}", result, pattern);
                 result = (JObject.Parse(result).SelectToken(pattern ?? throw new ArgumentNullException(nameof(pattern))) ??
                           throw new InvalidOperationException("Could not find token by pattern")).Value<string>() ?? "0";
                 break;
             case NodePatternType.Xml:
-                _logger.LogTrace("Extract overage value from xml {result} with {pattern}", result, pattern);
+                logger.LogTrace("Extract overage value from xml {result} with {pattern}", result, pattern);
                 var xmlDocument = new XmlDocument();
                 xmlDocument.LoadXml(result);
                 var nodes = xmlDocument.SelectNodes(pattern ?? throw new ArgumentNullException(nameof(pattern))) ?? throw new InvalidOperationException("Could not find any nodes by pattern");
@@ -1031,7 +1185,7 @@ public class PvValueService : IPvValueService
 
     internal double GetdoubleFromStringResult(string? inputString)
     {
-        _logger.LogTrace("{method}({param})", nameof(GetdoubleFromStringResult), inputString);
+        logger.LogTrace("{method}({param})", nameof(GetdoubleFromStringResult), inputString);
         return double.Parse(inputString ?? throw new ArgumentNullException(nameof(inputString)), CultureInfo.InvariantCulture);
     }
 }

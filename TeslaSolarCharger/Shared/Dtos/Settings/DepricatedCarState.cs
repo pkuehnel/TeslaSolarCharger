@@ -19,7 +19,7 @@ public class DepricatedCarState
     public int LastSetAmp { get; set; }
     public int? ChargerPhases { get; set; }
 
-    public int ActualPhases => ChargerPhases is null or > 1 ? 3 : 1;
+    private int ActualPhases => ChargerPhases is null or > 1 ? 3 : 1;
 
     public int? ChargerVoltage { get; set; }
     public int? ChargerActualCurrent { get; set; }

@@ -4,5 +4,6 @@ public class DtoBleRequest
 {
     public string Vin { get; set; }
     public string CommandName { get; set; }
+    public string? Domain { get; set; }
     public List<string> Parameters { get; set; } = new();
 }
