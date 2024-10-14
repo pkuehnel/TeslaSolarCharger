@@ -9,6 +9,7 @@ public interface IIssueKeys
     string FleetApiTokenRequestExpired { get; }
     string FleetApiTokenNotReceived { get; }
     string FleetApiTokenExpired { get; }
+    string FleetApiTokenRefreshNonSuccessStatusCode { get; }
     string FleetApiTokenNoApiRequestsAllowed { get; }
     string CrashedOnStartup { get; }
     string RestartNeeded { get; }
@@ -19,7 +20,6 @@ public interface IIssueKeys
     string FleetApiNonSuccessStatusCode { get; }
     string FleetApiNonSuccessResult { get; }
     string UnsignedCommand { get; }
-    string FleetApiTokenRefreshNonSuccessStatusCode { get; }
     string CarRateLimited { get; }
     string BleCommandNoSuccess { get; }
     string SolarValuesNotAvailable { get; }

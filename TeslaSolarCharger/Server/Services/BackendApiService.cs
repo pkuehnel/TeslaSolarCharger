@@ -31,10 +31,10 @@ public class BackendApiService(
         logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
         var currentTokens = await teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
         teslaSolarChargerContext.TeslaTokens.RemoveRange(currentTokens);
-        var cconfigEntriesToRemove = await teslaSolarChargerContext.TscConfigurations
+        var configEntriesToRemove = await teslaSolarChargerContext.TscConfigurations
             .Where(c => c.Key == constants.TokenMissingScopes)
             .ToListAsync().ConfigureAwait(false);
-        teslaSolarChargerContext.TscConfigurations.RemoveRange(cconfigEntriesToRemove);
+        teslaSolarChargerContext.TscConfigurations.RemoveRange(configEntriesToRemove);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var backendApiBaseUrl = configurationWrapper.BackendApiBaseUrl();
@@ -63,7 +63,13 @@ public class BackendApiService(
         await errorHandlingService.HandleError(nameof(BackendApiService), nameof(StartTeslaOAuth), "Waiting for Tesla token",
             "Waiting for the Tesla Token from the TSC backend. This might take up to five minutes. If after five minutes this error is still displayed, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
             issueKeys.FleetApiTokenNotReceived, null, null);
+        //Do not set FleetApiTokenNotReceived to resolved here, as the token might still be in transit
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenNotRequested, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenUnauthorized, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenMissingScopes, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenRequestExpired, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenExpired, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenRefreshNonSuccessStatusCode, null);
         return new DtoValue<string>(requestUrl);
     }
 
