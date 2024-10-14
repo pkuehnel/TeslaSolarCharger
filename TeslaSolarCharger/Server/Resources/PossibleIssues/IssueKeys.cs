@@ -10,6 +10,7 @@ public class IssueKeys : IIssueKeys
     public string FleetApiTokenMissingScopes => "FleetApiTokenMissingScopes";
     public string FleetApiTokenRequestExpired => "FleetApiTokenRequestExpired";
     public string FleetApiTokenNotReceived => "FleetApiTokenNotReceived";
+    public string FleetApiTokenRefreshNonSuccessStatusCode => "FleetApiTokenRefreshNonSuccessStatusCode";
     public string FleetApiTokenExpired => "FleetApiTokenExpired";
     public string FleetApiTokenNoApiRequestsAllowed => "FleetApiRequestsNotAllowed";
     public string CrashedOnStartup => "CrashedOnStartup";
@@ -21,7 +22,6 @@ public class IssueKeys : IIssueKeys
     public string FleetApiNonSuccessStatusCode => "FleetApiNonSuccessStatusCode_";
     public string FleetApiNonSuccessResult => "FleetApiNonSuccessResult_";
     public string UnsignedCommand => "UnsignedCommand";
-    public string FleetApiTokenRefreshNonSuccessStatusCode => "FleetApiTokenRefreshNonSuccessStatusCode";
     public string CarRateLimited => "CarRateLimited";
     public string BleCommandNoSuccess => "BleCommandNoSuccess_";
     public string SolarValuesNotAvailable => "SolarValuesNotAvailable";
