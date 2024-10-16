@@ -49,6 +49,7 @@ public class Car
     public bool UseBleForWakeUp { get; set; }
     public int ApiRefreshIntervalSeconds { get; set; }
     public string? BleApiBaseUrl { get; set; }
+    public bool UseFleetTelemetry { get; set; }
 
     public string? WakeUpCalls { get; set; }
     public string? VehicleDataCalls { get; set; }
@@ -59,4 +60,5 @@ public class Car
     public string? OtherCommandCalls { get; set; }
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
+    public List<CarValueLog> CarValueLogs { get; set; } = new List<CarValueLog>();
 }
