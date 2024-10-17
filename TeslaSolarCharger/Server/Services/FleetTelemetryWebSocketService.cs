@@ -120,7 +120,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                     }
                     logger.LogDebug("Received non heartbeat message {string}", jsonMessage);
                     // Deserialize the JSON message into a C# object
-                    var message = JsonConvert.DeserializeObject<DtoFleetTelemetryMessage>(jsonMessage);
+                    var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage);
                     if (message != null)
                     {
                         logger.LogDebug("Saving fleet telemetry message");
@@ -132,6 +132,8 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                             Type = message.Type,
                             DoubleValue = message.DoubleValue,
                             IntValue = message.IntValue,
+                            StringValue = message.StringValue,
+                            UnknownValue = message.UnknownValue,
                             Timestamp = message.TimeStamp.UtcDateTime,
                         };
                         context.CarValueLogs.Add(carValueLog);
