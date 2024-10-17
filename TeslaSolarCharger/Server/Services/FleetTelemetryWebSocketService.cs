@@ -28,11 +28,38 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
             .Where(c => c.UseFleetTelemetry)
             .Select(c => c.Vin)
             .ToListAsync();
+        var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
+        var heartbeatsendTimeout = TimeSpan.FromSeconds(5);
         foreach (var vin in vins)
         {
-            if (string.IsNullOrEmpty(vin) || Clients.Any(c => string.Equals(c.Vin, vin, StringComparison.InvariantCultureIgnoreCase)))
+            if (string.IsNullOrEmpty(vin))
             {
                 continue;
+            }
+            var existingClient = Clients.FirstOrDefault(c => c.Vin == vin);
+            if (existingClient != default)
+            {
+                if (existingClient.WebSocketClient.State == WebSocketState.Open)
+                {
+                    var segment = new ArraySegment<byte>(bytesToSend);
+                    try
+                    {
+                        await existingClient.WebSocketClient.SendAsync(segment, WebSocketMessageType.Text, true,
+                            new CancellationTokenSource(heartbeatsendTimeout).Token);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error sending heartbeat for car {vin}", vin);
+                        existingClient.WebSocketClient.Dispose();
+                        Clients.Remove(existingClient);
+                    }
+                    continue;
+                }
+                else
+                {
+                    existingClient.WebSocketClient.Dispose();
+                    Clients.Remove(existingClient);
+                }
             }
             ConnectToFleetTelemetryApi(vin);
         }
