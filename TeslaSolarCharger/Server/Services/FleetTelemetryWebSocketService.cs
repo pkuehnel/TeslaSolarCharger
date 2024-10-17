@@ -118,11 +118,12 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                     {
                         continue;
                     }
-                    
+                    logger.LogDebug("Received non heartbeat message {string}", jsonMessage);
                     // Deserialize the JSON message into a C# object
                     var message = JsonConvert.DeserializeObject<DtoFleetTelemetryMessage>(jsonMessage);
                     if (message != null)
                     {
+                        logger.LogDebug("Saving fleet telemetry message");
                         var scope = serviceProvider.CreateScope();
                         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
                         var carValueLog = new CarValueLog
