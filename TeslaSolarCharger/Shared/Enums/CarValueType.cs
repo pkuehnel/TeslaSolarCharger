@@ -8,4 +8,5 @@ public enum CarValueType
     ChargeState,
     ChargeAmps,
     ChargeCurrentRequest,
+    ChargePortLatch,
 }
