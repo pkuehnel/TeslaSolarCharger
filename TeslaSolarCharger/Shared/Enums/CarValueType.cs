@@ -7,4 +7,5 @@ public enum CarValueType
     BatteryHeaterOn,
     ChargeState,
     ChargeAmps,
+    ChargeCurrentRequest,
 }
