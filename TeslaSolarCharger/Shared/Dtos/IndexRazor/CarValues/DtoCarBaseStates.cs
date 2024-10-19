@@ -11,6 +11,8 @@ public class DtoCarBaseStates
     public string? Vin { get; set; }
     public int? StateOfCharge { get; set; }
     public int? StateOfChargeLimit { get; set; }
+    public double? ModuleTemperatureMin { get; set; }
+    public double? ModuleTemperatureMax { get; set; }
     public int? HomeChargePower { get; set; }
 #pragma warning disable CS8618
     public DtoChargeSummary DtoChargeSummary { get; set; }

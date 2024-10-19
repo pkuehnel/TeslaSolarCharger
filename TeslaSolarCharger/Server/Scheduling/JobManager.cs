@@ -50,6 +50,7 @@ public class JobManager(
         var errorMessagingJob = JobBuilder.Create<ErrorMessagingJob>().WithIdentity(nameof(ErrorMessagingJob)).Build();
         var errorDetectionJob = JobBuilder.Create<ErrorDetectionJob>().WithIdentity(nameof(ErrorDetectionJob)).Build();
         var bleApiVersionDetectionJob = JobBuilder.Create<BleApiVersionDetectionJob>().WithIdentity(nameof(BleApiVersionDetectionJob)).Build();
+        var fleetTelemetryReconnectionJob = JobBuilder.Create<FleetTelemetryReconnectionJob>().WithIdentity(nameof(FleetTelemetryReconnectionJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -116,7 +117,9 @@ public class JobManager(
             .StartAt(latestTriggerStartTime.Add(TimeSpan.FromSeconds(5)))
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(62)).Build();
 
-        var bleApiVersionDetectionTrigger = TriggerBuilder.Create().WithIdentity("bleApiVersionDetectionJoTrigger")
+        var bleApiVersionDetectionTrigger = TriggerBuilder.Create().WithIdentity("bleApiVersionDetectionTrigger")
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(61)).Build();
+        var fleetTelemetryReconnectionTrigger = TriggerBuilder.Create().WithIdentity("fleetTelemetryReconnectionTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(61)).Build();
 
         var random = new Random();
@@ -142,6 +145,7 @@ public class JobManager(
             {errorMessagingJob, new HashSet<ITrigger> {errorMessagingTrigger}},
             {errorDetectionJob, new HashSet<ITrigger> {errorDetectionTrigger}},
             {bleApiVersionDetectionJob, new HashSet<ITrigger> {bleApiVersionDetectionTrigger}},
+            {fleetTelemetryReconnectionJob, new HashSet<ITrigger> {fleetTelemetryReconnectionTrigger}},
         };
 
         if (!configurationWrapper.ShouldUseFakeSolarValues())

@@ -55,6 +55,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ErrorMessagingJob>()
             .AddTransient<ErrorDetectionJob>()
             .AddTransient<BleApiVersionDetectionJob>()
+            .AddTransient<FleetTelemetryReconnectionJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -112,6 +113,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IErrorHandlingService, ErrorHandlingService>()
             .AddTransient<ITeslaMateDbContextWrapper, TeslaMateDbContextWrapper>()
             .AddTransient<ITeslaService, TeslaFleetApiService>()
+            .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSharedBackendDependencies();
         return services;
     }
