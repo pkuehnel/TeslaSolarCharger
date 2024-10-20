@@ -49,4 +49,6 @@ public class CarBasicConfiguration
     public int ApiRefreshIntervalSeconds { get; set; }
     [HelperText("Needed to send commands via BLE to the car. An example value would be `http://raspible:7210/`")]
     public string? BleApiBaseUrl { get; set; }
+    [HelperText("If enabled, some data will be transferred via Fleet Telemetry. This improves the delay in the TSC detection of plugin and out of the car, as well as changes in the charging speed. Note: All data transferred via Fleet Telemetry passes my server.")]
+    public bool UseFleetTelemetry { get; set; }
 }
