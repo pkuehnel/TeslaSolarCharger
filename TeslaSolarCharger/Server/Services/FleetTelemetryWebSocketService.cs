@@ -8,6 +8,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -162,6 +163,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                             StringValue = message.StringValue,
                             UnknownValue = message.UnknownValue,
                             Timestamp = message.TimeStamp.UtcDateTime,
+                            Source = CarValueSource.FleetTelemetry,
                         };
                         context.CarValueLogs.Add(carValueLog);
                         await context.SaveChangesAsync().ConfigureAwait(false);
