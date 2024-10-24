@@ -106,4 +106,5 @@ public interface IConfigurationWrapper
     bool SendStackTraceToTelegram();
     TimeSpan BleUsageStopAfterError();
     bool UseTeslaMateIntegration();
+    string FleetTelemetryApiUrl();
 }

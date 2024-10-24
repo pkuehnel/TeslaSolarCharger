@@ -3,14 +3,13 @@ using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
-[DisallowConcurrentExecution]
-public class BleApiVersionDetectionJob(
+public class FleetTelemetryReconnectionJob(
     ILogger<BleApiVersionDetectionJob> logger,
-    IBleService service) : IJob
+    IFleetTelemetryWebSocketService service) : IJob
 {
     public async Task Execute(IJobExecutionContext context)
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await service.CheckBleApiVersionCompatibilities();
+        await service.ReconnectWebSocketsForEnabledCars();
     }
 }

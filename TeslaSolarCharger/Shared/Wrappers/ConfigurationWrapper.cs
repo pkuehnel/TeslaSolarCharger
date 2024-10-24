@@ -205,6 +205,13 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public string FleetTelemetryApiUrl()
+    {
+        var environmentVariableName = "FleetTelemetryApiUrl";
+        var value = configuration.GetValue<string>(environmentVariableName);
+        return value;
+    }
+
     public bool IsDevelopmentEnvironment()
     {
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");

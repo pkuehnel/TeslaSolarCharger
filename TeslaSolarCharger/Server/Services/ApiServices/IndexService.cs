@@ -86,8 +86,17 @@ public class IndexService(
             dtoCarBaseValues.CommandsRateLimitedUntil = dbCar.CommandsRateLimitedUntil;
             dtoCarBaseValues.ChargingCommandsRateLimitedUntil = dbCar.ChargingCommandsRateLimitedUntil;
             dtoCarBaseValues.WakeUpRateLimitedUntil = dbCar.WakeUpRateLimitedUntil;
-
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
+            dtoCarBaseValues.ModuleTemperatureMin = await teslaSolarChargerContext.CarValueLogs
+                .Where(c => c.CarId == enabledCar.Id && c.Type == CarValueType.ModuleTempMin)
+                .OrderByDescending(c => c.Timestamp)
+                .Select(c => c.DoubleValue)
+                .FirstOrDefaultAsync().ConfigureAwait(false);
+            dtoCarBaseValues.ModuleTemperatureMax = await teslaSolarChargerContext.CarValueLogs
+                .Where(c => c.CarId == enabledCar.Id && c.Type == CarValueType.ModuleTempMax)
+                .OrderByDescending(c => c.Timestamp)
+                .Select(c => c.DoubleValue)
+                .FirstOrDefaultAsync().ConfigureAwait(false);
 
             carBaseValues.Add(dtoCarBaseValues);
             

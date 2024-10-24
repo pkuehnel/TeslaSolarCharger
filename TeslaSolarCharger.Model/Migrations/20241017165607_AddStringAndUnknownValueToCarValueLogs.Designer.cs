@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,12 +11,14 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20241017165607_AddStringAndUnknownValueToCarValueLogs")]
+    partial class AddStringAndUnknownValueToCarValueLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.8");
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.BackendNotification", b =>
                 {
@@ -245,9 +248,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("REAL");
 
                     b.Property<int?>("IntValue")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Source")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("StringValue")

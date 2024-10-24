@@ -107,6 +107,17 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         var activeErrors = await context.LoggedErrors
             .Where(e => e.EndTimeStamp == default)
             .ToListAsync().ConfigureAwait(false);
+        foreach (var error in activeErrors)
+        {
+            if (error.Vin == null || settings.CarsToManage.Any(c => c.Vin == error.Vin))
+            {
+                continue;
+            }
+            logger.LogDebug("Remove error with ID {id} as it belongs to a car that should not be managed.", error.Id);
+            error.EndTimeStamp = dateTimeProvider.UtcNow();
+        }
+        await context.SaveChangesAsync().ConfigureAwait(false);
+
         await AddOrRemoveErrors(activeErrors, issueKeys.RestartNeeded, "TSC restart needed",
             "Due to configuration changes a restart of TSC is needed.", settings.RestartNeeded).ConfigureAwait(false);
 
@@ -128,7 +139,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             "Make sure your TSC can access the internet and TSC is on its latest version.", !settings.AllowUnlimitedFleetApiRequests).ConfigureAwait(false);
 
         await DetectTokenStateIssues(activeErrors);
-        foreach (var car in settings.Cars)
+        foreach (var car in settings.CarsToManage)
         {
             if ((car.LastNonSuccessBleCall != default)
                 && (car.LastNonSuccessBleCall.Value > (dateTimeProvider.UtcNow() - configurationWrapper.BleUsageStopAfterError())))
