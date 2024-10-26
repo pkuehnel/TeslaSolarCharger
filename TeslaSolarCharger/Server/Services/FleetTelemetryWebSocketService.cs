@@ -1,11 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks.Sources;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -17,6 +19,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider) : IFleetTelemetryWebSocketService
 {
+    private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
     private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
 
@@ -30,7 +33,6 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
             .Select(c => c.Vin)
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
-        var heartbeatsendTimeout = TimeSpan.FromSeconds(5);
         foreach (var vin in vins)
         {
             if (string.IsNullOrEmpty(vin))
@@ -46,7 +48,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                     try
                     {
                         await existingClient.WebSocketClient.SendAsync(segment, WebSocketMessageType.Text, true,
-                            new CancellationTokenSource(heartbeatsendTimeout).Token);
+                            new CancellationTokenSource(_heartbeatsendTimeout).Token);
                     }
                     catch (Exception ex)
                     {
@@ -85,7 +87,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
         using var client = new ClientWebSocket();
         try
         {
-            await client.ConnectAsync(new Uri(url), CancellationToken.None).ConfigureAwait(false);
+            await client.ConnectAsync(new Uri(url), new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
             var cancellation = new CancellationTokenSource();
             var dtoClient = new DtoFleetTelemetryWebSocketClients
             {
@@ -109,9 +111,9 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
             finally
             {
                 Clients.Remove(dtoClient);
-                if (dtoClient.WebSocketClient.State == WebSocketState.Open)
+                if (dtoClient.WebSocketClient.State != WebSocketState.Closed && dtoClient.WebSocketClient.State != WebSocketState.Aborted)
                 {
-                    await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None).ConfigureAwait(false);
+                    await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
                 }
             }
         }
@@ -134,7 +136,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     // If the server closed the connection, close the WebSocket
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", ctx);
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, ctx);
                     logger.LogInformation("WebSocket connection closed by server.");
                 }
                 else
@@ -148,7 +150,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                     }
                     logger.LogDebug("Received non heartbeat message {string}", jsonMessage);
                     // Deserialize the JSON message into a C# object
-                    var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage);
+                    var message = DeserializeFleetTelemetryMessage(jsonMessage);
                     if (message != null)
                     {
                         logger.LogDebug("Saving fleet telemetry message");
@@ -162,6 +164,8 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                             IntValue = message.IntValue,
                             StringValue = message.StringValue,
                             UnknownValue = message.UnknownValue,
+                            BooleanValue = message.BooleanValue,
+                            InvalidValue = message.InvalidValue,
                             Timestamp = message.TimeStamp.UtcDateTime,
                             Source = CarValueSource.FleetTelemetry,
                         };
@@ -175,5 +179,18 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                 logger.LogError(ex, "Could not reveive message");
             }
         }
+    }
+
+    internal DtoTscFleetTelemetryMessage? DeserializeFleetTelemetryMessage(string jsonMessage)
+    {
+        var settings = new JsonSerializerSettings
+        {
+            Converters = new List<JsonConverter>
+            {
+                new EnumDefaultConverter<CarValueType>(CarValueType.Unknown),
+            },
+        };
+        var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage, settings);
+        return message;
     }
 }
