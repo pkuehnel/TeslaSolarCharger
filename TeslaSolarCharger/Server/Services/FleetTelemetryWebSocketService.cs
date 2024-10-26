@@ -17,6 +17,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider) : IFleetTelemetryWebSocketService
 {
+    private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
     private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
 
@@ -30,7 +31,6 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
             .Select(c => c.Vin)
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
-        var heartbeatsendTimeout = TimeSpan.FromSeconds(5);
         foreach (var vin in vins)
         {
             if (string.IsNullOrEmpty(vin))
@@ -46,7 +46,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                     try
                     {
                         await existingClient.WebSocketClient.SendAsync(segment, WebSocketMessageType.Text, true,
-                            new CancellationTokenSource(heartbeatsendTimeout).Token);
+                            new CancellationTokenSource(_heartbeatsendTimeout).Token);
                     }
                     catch (Exception ex)
                     {
@@ -85,7 +85,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
         using var client = new ClientWebSocket();
         try
         {
-            await client.ConnectAsync(new Uri(url), CancellationToken.None).ConfigureAwait(false);
+            await client.ConnectAsync(new Uri(url), new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
             var cancellation = new CancellationTokenSource();
             var dtoClient = new DtoFleetTelemetryWebSocketClients
             {
@@ -109,9 +109,9 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
             finally
             {
                 Clients.Remove(dtoClient);
-                if (dtoClient.WebSocketClient.State == WebSocketState.Open)
+                if (dtoClient.WebSocketClient.State != WebSocketState.Closed && dtoClient.WebSocketClient.State != WebSocketState.Aborted)
                 {
-                    await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None).ConfigureAwait(false);
+                    await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
                 }
             }
         }
@@ -134,7 +134,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     // If the server closed the connection, close the WebSocket
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", ctx);
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, ctx);
                     logger.LogInformation("WebSocket connection closed by server.");
                 }
                 else
