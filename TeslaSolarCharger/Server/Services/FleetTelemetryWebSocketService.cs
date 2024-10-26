@@ -164,7 +164,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                             IntValue = message.IntValue,
                             StringValue = message.StringValue,
                             UnknownValue = message.UnknownValue,
-                            BoolValue = message.BoolValue,
+                            BooleanValue = message.BooleanValue,
                             InvalidValue = message.InvalidValue,
                             Timestamp = message.TimeStamp.UtcDateTime,
                             Source = CarValueSource.FleetTelemetry,

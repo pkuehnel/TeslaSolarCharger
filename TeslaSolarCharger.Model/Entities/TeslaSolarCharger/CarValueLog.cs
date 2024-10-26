@@ -12,7 +12,7 @@ public class CarValueLog
     public int? IntValue { get; set; }
     public string? StringValue { get; set; }
     public string? UnknownValue { get; set; }
-    public bool? BoolValue { get; set; }
+    public bool? BooleanValue { get; set; }
     public bool? InvalidValue { get; set; }
 
     public int CarId { get; set; }
