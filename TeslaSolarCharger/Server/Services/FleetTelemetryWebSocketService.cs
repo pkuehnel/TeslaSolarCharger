@@ -1,11 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks.Sources;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -148,7 +150,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                     }
                     logger.LogDebug("Received non heartbeat message {string}", jsonMessage);
                     // Deserialize the JSON message into a C# object
-                    var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage);
+                    var message = DeserializeFleetTelemetryMessage(jsonMessage);
                     if (message != null)
                     {
                         logger.LogDebug("Saving fleet telemetry message");
@@ -175,5 +177,18 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                 logger.LogError(ex, "Could not reveive message");
             }
         }
+    }
+
+    internal DtoTscFleetTelemetryMessage? DeserializeFleetTelemetryMessage(string jsonMessage)
+    {
+        var settings = new JsonSerializerSettings
+        {
+            Converters = new List<JsonConverter>
+            {
+                new EnumDefaultConverter<CarValueType>(CarValueType.Unknown),
+            },
+        };
+        var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage, settings);
+        return message;
     }
 }

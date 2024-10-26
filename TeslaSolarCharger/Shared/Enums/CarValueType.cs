@@ -9,4 +9,6 @@ public enum CarValueType
     ChargeAmps,
     ChargeCurrentRequest,
     ChargePortLatch,
+    DetailedChargeState,
+    Unknown = 9999,
 }
