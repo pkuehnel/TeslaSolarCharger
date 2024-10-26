@@ -163,6 +163,13 @@ else
                     <MudIcon Class="mr-1" Icon="@(GetBatteryIconBySoc(car.StateOfCharge))"></MudIcon>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSoc]">@(car.StateOfCharge) %</TooltipComponent> <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarSocLimit]">(@(car.StateOfChargeLimit) %)</TooltipComponent>
                 </div>
+                @if (car.ModuleTemperatureMin != null && car.ModuleTemperatureMax != null)
+                {
+                    <div class="d-flex align-items-center mb-1">
+                        <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.Thermostat"></MudIcon>
+                        <TooltipComponent Text="Battery Temperature">@(car.ModuleTemperatureMin)@("\u00b0")C - @(car.ModuleTemperatureMax)@("\u00b0")C</TooltipComponent>
+                    </div>
+                }
                 <div>
                 </div>
 

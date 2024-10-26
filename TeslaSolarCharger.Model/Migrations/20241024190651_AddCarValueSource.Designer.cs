@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20241024190651_AddCarValueSource")]
+    partial class AddCarValueSource
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
@@ -238,9 +241,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool?>("BooleanValue")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("CarId")
                         .HasColumnType("INTEGER");
 
@@ -248,9 +248,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("REAL");
 
                     b.Property<int?>("IntValue")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool?>("InvalidValue")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Source")
