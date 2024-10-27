@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MudBlazor.Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Net.WebSockets;
@@ -28,18 +29,22 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
         logger.LogTrace("{method}", nameof(ReconnectWebSocketsForEnabledCars));
         var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var vins = await context.Cars
+        var cars = await context.Cars
             .Where(c => c.UseFleetTelemetry)
-            .Select(c => c.Vin)
+            .Select(c => new
+            {
+                c.Vin,
+                c.UseFleetTelemetryForLocationData,
+            })
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
-        foreach (var vin in vins)
+        foreach (var car in cars)
         {
-            if (string.IsNullOrEmpty(vin))
+            if (string.IsNullOrEmpty(car.Vin))
             {
                 continue;
             }
-            var existingClient = Clients.FirstOrDefault(c => c.Vin == vin);
+            var existingClient = Clients.FirstOrDefault(c => c.Vin == car.Vin);
             if (existingClient != default)
             {
                 if (existingClient.WebSocketClient.State == WebSocketState.Open)
@@ -52,7 +57,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Error sending heartbeat for car {vin}", vin);
+                        logger.LogError(ex, "Error sending heartbeat for car {vin}", car);
                         existingClient.WebSocketClient.Dispose();
                         Clients.Remove(existingClient);
                     }
@@ -64,11 +69,11 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                     Clients.Remove(existingClient);
                 }
             }
-            ConnectToFleetTelemetryApi(vin);
+            ConnectToFleetTelemetryApi(car.Vin, car.UseFleetTelemetryForLocationData);
         }
     }
 
-    private async Task ConnectToFleetTelemetryApi(string vin)
+    private async Task ConnectToFleetTelemetryApi(string vin, bool useFleetTelemetryForLocationData)
     {
         logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);
         var currentDate = dateTimeProvider.UtcNow();
@@ -83,7 +88,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
             logger.LogError("Can not connect to WebSocket: No token found for car {vin}", vin);
             return;
         }
-        var url = configurationWrapper.FleetTelemetryApiUrl() + $"teslaToken={token.AccessToken}&region={token.Region}&vin={vin}&forceReconfiguration=false";
+        var url = configurationWrapper.FleetTelemetryApiUrl() + $"teslaToken={token.AccessToken}&region={token.Region}&vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}";
         using var client = new ClientWebSocket();
         try
         {

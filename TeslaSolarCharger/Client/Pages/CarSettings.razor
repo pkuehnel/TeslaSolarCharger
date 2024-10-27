@@ -64,7 +64,13 @@ else
                               For="() => carBasicConfiguration.UseBleForWakeUp"
                               OnValueChanged="StateHasChanged"/>
                 <GenericInput For="() => carBasicConfiguration.BleApiBaseUrl" />
-                <GenericInput For="() => carBasicConfiguration.UseFleetTelemetry" />
+                <GenericInput T="bool"
+                              For="() => carBasicConfiguration.UseFleetTelemetry"
+                              OnValueChanged="newValue => UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration, newValue)"/>
+                @if(carBasicConfiguration.UseFleetTelemetry)
+                {
+                    <GenericInput For="() => carBasicConfiguration.UseFleetTelemetryForLocationData" />
+                }
             </EditFormComponent>
             <hr />
             <h3>BLE Pairing and test</h3>
@@ -214,6 +220,12 @@ else
         }
         _bleWakeUpTestResults[vin] = result;
         _loadingVins.Remove(vin);
+    }
+
+    private void UpdateGetlocationDataViaFleetTelemetry(CarBasicConfiguration carBasicConfiguration, bool newUseFleetTelemetryValue)
+    {
+            carBasicConfiguration.UseFleetTelemetryForLocationData = newUseFleetTelemetryValue;
+            InvokeAsync(() => StateHasChanged());
     }
 
 }

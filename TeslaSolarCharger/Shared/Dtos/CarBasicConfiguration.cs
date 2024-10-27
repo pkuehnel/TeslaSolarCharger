@@ -51,4 +51,7 @@ public class CarBasicConfiguration
     public string? BleApiBaseUrl { get; set; }
     [HelperText("If enabled, some data will be transferred via Fleet Telemetry. This improves the delay in the TSC detection of plugin and out of the car, as well as changes in the charging speed. Note: All data transferred via Fleet Telemetry passes my server.")]
     public bool UseFleetTelemetry { get; set; }
+
+    [HelperText("If disabled TSC takes up to 8 minutes to detect if the car is at home. If you do not mind that your car location data passes my server do not disable this option.")]
+    public bool UseFleetTelemetryForLocationData { get; set; } = true;
 }
