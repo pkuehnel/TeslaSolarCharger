@@ -10,5 +10,11 @@ public enum CarValueType
     ChargeCurrentRequest,
     ChargePortLatch,
     DetailedChargeState,
+    IsPluggedIn,
+    IsCharging,
+    ChargerPilotCurrent,
+    Location,
+    Longitude,
+    Latitude,
     Unknown = 9999,
 }
