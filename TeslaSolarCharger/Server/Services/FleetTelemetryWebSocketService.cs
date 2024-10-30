@@ -148,17 +148,23 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                 {
                     // Decode the received message
                     var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    logger.LogTrace("Received message: {message}", jsonMessage);
                     if(jsonMessage == "Heartbeat")
                     {
+                        logger.LogTrace("Received heartbeat: {message}", jsonMessage);
                         continue;
                     }
-                    logger.LogDebug("Received non heartbeat message {string}", jsonMessage);
-                    // Deserialize the JSON message into a C# object
                     var message = DeserializeFleetTelemetryMessage(jsonMessage);
                     if (message != null)
                     {
-                        logger.LogDebug("Saving fleet telemetry message");
+                        if (configurationWrapper.LogLocationData() ||
+                            (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
+                        {
+                            logger.LogDebug("Save fleet telemetry message {@message}", message);
+                        }
+                        else
+                        {
+                            logger.LogDebug("Save location message for car {carId}", carId);
+                        }
                         var scope = serviceProvider.CreateScope();
                         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
                         var carValueLog = new CarValueLog
@@ -176,6 +182,10 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                         };
                         context.CarValueLogs.Add(carValueLog);
                         await context.SaveChangesAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
                     }
                 }
             }
