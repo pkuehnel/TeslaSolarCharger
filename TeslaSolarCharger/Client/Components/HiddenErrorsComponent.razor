@@ -45,7 +45,7 @@ else
                                       NoIcon="true"
                                       ContentAlignment="HorizontalAlignment.Left"
                                       ShowCloseIcon="false">
-                                <h4>@(error.Headline + $" occured {error.Occurrences.Count} time(s)")</h4>
+                                <h4>@(error.Headline + $"{(error.HideOccurrenceCount ? string.Empty : $" occured {error.OccurrenceCount} time(s)")}")</h4>
                                 <div>
                                     Hidden reason: @(error.HideReason == LoggedErrorHideReason.NotEnoughOccurrences ? "Not Enough occurrences" : "Dismissed")
                                 </div>

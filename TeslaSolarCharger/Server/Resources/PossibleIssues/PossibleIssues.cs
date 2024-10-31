@@ -15,6 +15,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = false,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.FleetApiTokenNotRequested, new DtoIssue
@@ -23,6 +24,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = false,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.FleetApiTokenUnauthorized, new DtoIssue
@@ -47,6 +49,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = false,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.FleetApiTokenNotReceived, new DtoIssue
@@ -55,6 +58,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = false,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.FleetApiTokenExpired, new DtoIssue
@@ -63,6 +67,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.FleetApiTokenNoApiRequestsAllowed, new DtoIssue
@@ -71,6 +76,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 2,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.CrashedOnStartup, new DtoIssue
@@ -79,6 +85,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.RestartNeeded, new DtoIssue
@@ -87,6 +94,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = false,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.GetVehicle, new DtoIssue
@@ -191,6 +199,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 2,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
     };
