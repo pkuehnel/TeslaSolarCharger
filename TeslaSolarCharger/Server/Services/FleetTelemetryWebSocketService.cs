@@ -1,10 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MudBlazor.Extensions;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using System.Net.WebSockets;
 using System.Text;
-using System.Threading.Tasks.Sources;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;
@@ -30,7 +27,7 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
         var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var cars = await context.Cars
-            .Where(c => c.UseFleetTelemetry)
+            .Where(c => c.UseFleetTelemetry && (c.ShouldBeManaged == true))
             .Select(c => new
             {
                 c.Vin,
@@ -70,6 +67,21 @@ public class FleetTelemetryWebSocketService(ILogger<FleetTelemetryWebSocketServi
                 }
             }
             ConnectToFleetTelemetryApi(car.Vin, car.UseFleetTelemetryForLocationData);
+        }
+    }
+
+    public async Task DisconnectWebSocketsByVin(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(DisconnectWebSocketsByVin), vin);
+        var client = Clients.FirstOrDefault(c => c.Vin == vin);
+        if (client != default)
+        {
+            if (client.WebSocketClient.State == WebSocketState.Open)
+            {
+                await client.WebSocketClient.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
+            }
+            client.WebSocketClient.Dispose();
+            Clients.Remove(client);
         }
     }
 
