@@ -19,6 +19,7 @@ public class CarBasicConfiguration
     }
     public int Id { get; set; }
     public string? Name { get; set; }
+    [Disabled]
     public string Vin { get; set; }
     [Range(1, int.MaxValue)]
     [Postfix("A")]
