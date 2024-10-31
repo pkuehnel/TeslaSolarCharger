@@ -5,164 +5,175 @@
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
+@inject ISnackbar Snackbar
 @implements IDisposable
 
 @if (_pvValues != default)
 {
-
-    <svg width="420" height="@SvgHeight" viewBox="@($"0 0 420 {SvgHeight}")">
-        <!-- Lines -->
-        <!-- Grid to Solar -->
-        @if (GridLocation != default && InverterLocation != default)
-        {
-            <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@InverterLocation.X" y2="@InverterLocation.Y" stroke="black" />
-        }
-        <!-- Grid to House -->
-        @if (GridLocation != default && HomeLocation != default)
-        {
-            <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="black" />
-        }
-        <!-- Solar to House -->
-        @if (InverterLocation != default && HomeLocation != default)
-        {
-            <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="black" />
-        }
-
-        <!-- Solar to Home Battery -->
-        @if (InverterLocation != default && BatteryLocation != default)
-        {
-            <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
-        }
-        <!-- Home Battery to House -->
-        @if (HomeLocation != default && BatteryLocation != default)
-        {
-            <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
-        }
-        <!-- Grid to Home Battery -->
-        @if (GridLocation != default && BatteryLocation != default)
-        {
-            <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
-        }
-
-        <!-- Home to Charger -->
-        @if (HomeLocation != default && EvChargerLocation != default)
-        {
-            <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
-        }
-
-        @if (HomeLocation == default)
-        {
-            <!-- Grid to EvCharger -->
-            @if (GridLocation != default && EvChargerLocation != default)
+    <div class="text-center">
+        <svg width="420" height="@SvgHeight" viewBox="@($"0 0 420 {SvgHeight}")">
+            <!-- Lines -->
+            <!-- Grid to Solar -->
+            @if (GridLocation != default && InverterLocation != default)
             {
-                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@InverterLocation.X" y2="@InverterLocation.Y" stroke="black" />
             }
-            <!-- Solar to EVCharger -->
-            @if (InverterLocation != default && EvChargerLocation != default)
+            <!-- Grid to House -->
+            @if (GridLocation != default && HomeLocation != default)
             {
-                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="black" />
             }
-            <!-- Home Battery to EVCharger -->
-            @if (EvChargerLocation != default && BatteryLocation != default)
+            <!-- Solar to House -->
+            @if (InverterLocation != default && HomeLocation != default)
             {
-                <line x1="@EvChargerLocation.X" y1="@EvChargerLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@HomeLocation.X" y2="@HomeLocation.Y" stroke="black" />
             }
-        }
+
+            <!-- Solar to Home Battery -->
+            @if (InverterLocation != default && BatteryLocation != default)
+            {
+                <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+            }
+            <!-- Home Battery to House -->
+            @if (HomeLocation != default && BatteryLocation != default)
+            {
+                <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+            }
+            <!-- Grid to Home Battery -->
+            @if (GridLocation != default && BatteryLocation != default)
+            {
+                <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+            }
+
+            <!-- Home to Charger -->
+            @if (HomeLocation != default && EvChargerLocation != default)
+            {
+                <line x1="@HomeLocation.X" y1="@HomeLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+            }
+
+            @if (HomeLocation == default)
+            {
+                <!-- Grid to EvCharger -->
+                @if (GridLocation != default && EvChargerLocation != default)
+                {
+                    <line x1="@GridLocation.X" y1="@GridLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+                }
+                <!-- Solar to EVCharger -->
+                @if (InverterLocation != default && EvChargerLocation != default)
+                {
+                    <line x1="@InverterLocation.X" y1="@InverterLocation.Y" x2="@EvChargerLocation.X" y2="@EvChargerLocation.Y" stroke="black" />
+                }
+                <!-- Home Battery to EVCharger -->
+                @if (EvChargerLocation != default && BatteryLocation != default)
+                {
+                    <line x1="@EvChargerLocation.X" y1="@EvChargerLocation.Y" x2="@BatteryLocation.X" y2="@BatteryLocation.Y" stroke="black" />
+                }
+            }
 
 
-        <!-- Animated balls -->
-        @foreach (var ball in Balls)
-        {
-            <circle cx="@ball.X" cy="@ball.Y" r="5" fill="@ball.Color">
-                <animate attributeName="cx" from="@ball.StartX" to="@ball.EndX" dur="@ball.Duration" repeatCount="indefinite" />
-                <animate attributeName="cy" from="@ball.StartY" to="@ball.EndY" dur="@ball.Duration" repeatCount="indefinite" />
-            </circle>
-        }
+            <!-- Animated balls -->
+            @foreach (var ball in Balls)
+            {
+                <circle cx="@ball.X" cy="@ball.Y" r="5" fill="@ball.Color">
+                    <animate attributeName="cx" from="@ball.StartX" to="@ball.EndX" dur="@ball.Duration" repeatCount="indefinite" />
+                    <animate attributeName="cy" from="@ball.StartY" to="@ball.EndY" dur="@ball.Duration" repeatCount="indefinite" />
+                </circle>
+            }
 
-        <!-- Circles -->
-        <!-- Grid -->
-        @if (GridLocation != default)
-        {
-            <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40"
-                    fill="@(_pvValues.GridPower == 0 ? "white" : (_pvValues.GridPower > 0 ? "lightgreen" : "#ff3030"))"
-                    stroke="lightblue" stroke-width="4" />
-        }
-        <!-- Solar -->
-        @if (InverterLocation != default)
-        {
-            <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40"
-                    fill="@(_pvValues.InverterPower == 0 ? "white" : "orange")"
-                    stroke="orange" stroke-width="4" />
-        }
-        <!-- Home Battery -->
-        @if (BatteryLocation != default)
-        {
-            <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40"
-                    fill="@(_pvValues.HomeBatteryPower == 0 ? "white" : (_pvValues.HomeBatteryPower > 0 ? "lightgreen" : "#ff3030"))"
-                    stroke="lightsalmon" stroke-width="4" />
-        }
-        <!-- House -->
-        @if (HomeLocation != default)
-        {
-            <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40"
-                    fill="@(CalculateHomePower() == 0 ? "white" : "pink")"
-                    stroke="pink" stroke-width="4" />
-        }
-        <!-- EVCharger -->
-        @if (EvChargerLocation != default)
-        {
-            <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40"
-                    fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "white" : "lightgrey")"
-                    stroke="lightgrey" stroke-width="4" />
-        }
+            <!-- Circles -->
+            <!-- Grid -->
+            @if (GridLocation != default)
+            {
+                <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40"
+                        fill="@(_pvValues.GridPower == 0 ? "white" : (_pvValues.GridPower > 0 ? "lightgreen" : "#ff3030"))"
+                        stroke="lightblue" stroke-width="4" />
+            }
+            <!-- Solar -->
+            @if (InverterLocation != default)
+            {
+                <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40"
+                        fill="@(_pvValues.InverterPower == 0 ? "white" : "orange")"
+                        stroke="orange" stroke-width="4" />
+            }
+            <!-- Home Battery -->
+            @if (BatteryLocation != default)
+            {
+                <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40"
+                        fill="@(_pvValues.HomeBatteryPower == 0 ? "white" : (_pvValues.HomeBatteryPower > 0 ? "lightgreen" : "#ff3030"))"
+                        stroke="lightsalmon" stroke-width="4" />
+            }
+            <!-- House -->
+            @if (HomeLocation != default)
+            {
+                <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40"
+                        fill="@(CalculateHomePower() == 0 ? "white" : "pink")"
+                        stroke="pink" stroke-width="4" />
+            }
+            <!-- EVCharger -->
+            @if (EvChargerLocation != default)
+            {
+                <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40"
+                        fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "white" : "lightgrey")"
+                        stroke="lightgrey" stroke-width="4" />
+            }
 
-        <!-- Text -->
-        @if (GridLocation != default)
-        {
-            <foreignObject x="@(GridLocation.X - CircleContentLocationDifference)" y="@(GridLocation.Y - CircleContentLocationDifference)" width="70" height="80">
-                <div style="text-align: center;">
-                    <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Large" />
-                    <div>@(Math.Abs(_pvValues.GridPower ?? 0)) W</div>
-                </div>
-            </foreignObject>
-        }
-        @if (InverterLocation != default)
-        {
-            <foreignObject x="@(InverterLocation.X - CircleContentLocationDifference)" y="@(InverterLocation.Y - CircleContentLocationDifference)" width="70" height="80">
-                <div style="text-align: center;">
-                    <MudIcon Icon="@Icons.Material.Filled.WbSunny" Size="Size.Large" />
-                    <div>@_pvValues.InverterPower W</div>
-                </div>
-            </foreignObject>
-        }
-        @if (BatteryLocation != default)
-        {
-            <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
-                <div style="text-align: center;">
-                    <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
-                    <div>@Math.Abs(_pvValues.HomeBatteryPower ?? 0) W</div>
-                </div>
-            </foreignObject>
-        }
-        @if (HomeLocation != default)
-        {
-            <foreignObject x="@(HomeLocation.X - CircleContentLocationDifference)" y="@(HomeLocation.Y - CircleContentLocationDifference)" width="70" height="80">
-                <div style="text-align: center;">
-                    <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Large" />
-                    <div>@CalculateHomePower() W</div>
-                </div>
-            </foreignObject>
-        }
-        @if (EvChargerLocation != default)
-        {
-            <foreignObject x="@(EvChargerLocation.X - CircleContentLocationDifference)" y="@(EvChargerLocation.Y - CircleContentLocationDifference)" width="70" height="80">
-                <div style="text-align: center;">
-                    <MudIcon Icon="@Icons.Material.Filled.EvStation" Size="Size.Large" />
-                    <div>@_pvValues.CarCombinedChargingPowerAtHome W</div>
-                </div>
-            </foreignObject>
-        }
-    </svg>
+            <!-- Text -->
+            @if (GridLocation != default)
+            {
+                <foreignObject x="@(GridLocation.X - CircleContentLocationDifference)" y="@(GridLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+                    <div style="text-align: center;">
+                        <MudIcon Icon="@Constants.GridPoleIcon" Size="Size.Large" />
+                        <div>@(Math.Abs(_pvValues.GridPower ?? 0)) W</div>
+                    </div>
+                </foreignObject>
+            }
+            @if (InverterLocation != default)
+            {
+                <foreignObject x="@(InverterLocation.X - CircleContentLocationDifference)" y="@(InverterLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+                    <div style="text-align: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.WbSunny" Size="Size.Large" />
+                        <div>@_pvValues.InverterPower W</div>
+                    </div>
+                </foreignObject>
+            }
+            @if (BatteryLocation != default)
+            {
+                <foreignObject x="@(BatteryLocation.X - CircleContentLocationDifference)" y="@(BatteryLocation.Y - CircleContentLocationDifference + 10)" width="70" height="80">
+                    <div style="text-align: center;">
+                        <BatteryIcon StateOfCharge="@_pvValues.HomeBatterySoc" />
+                        <div>@Math.Abs(_pvValues.HomeBatteryPower ?? 0) W</div>
+                    </div>
+                </foreignObject>
+            }
+            @if (HomeLocation != default)
+            {
+                <foreignObject x="@(HomeLocation.X - CircleContentLocationDifference)" y="@(HomeLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+                    <div style="text-align: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Large" />
+                        <div>@CalculateHomePower() W</div>
+                    </div>
+                </foreignObject>
+            }
+            @if (EvChargerLocation != default)
+            {
+                <foreignObject x="@(EvChargerLocation.X - CircleContentLocationDifference)" y="@(EvChargerLocation.Y - CircleContentLocationDifference)" width="70" height="80">
+                    <div style="text-align: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.EvStation" Size="Size.Large" />
+                        <div>@_pvValues.CarCombinedChargingPowerAtHome W</div>
+                    </div>
+                </foreignObject>
+            }
+        </svg>
+
+    </div>
+    if (_pvValues.PowerBuffer != default && _pvValues.PowerBuffer != 0)
+    {
+        <div style="max-width: 200px; margin: 0 auto;">
+            <GenericInput T="int?"
+                          For="() => _pvValues.PowerBuffer"
+                          OnValueChanged="newValue => UpdatePowerBuffer(newValue)"></GenericInput>
+        </div>
+    }
 }
 
 
@@ -187,7 +198,7 @@
         _periodicTaskHelper = new();
         _periodicTaskHelper.Start(RefreshPvValues, TimeSpan.FromSeconds(5));
     }
-    
+
     private async Task RefreshPvValues()
     {
         try
@@ -629,4 +640,19 @@
         var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
         return homePower;
     }
+
+    private async Task UpdatePowerBuffer(int? newValue)
+    {
+        var response = await HttpClient.GetAsync($"api/BaseConfiguration/UpdatePowerBuffer?powerBuffer={newValue ?? 0}").ConfigureAwait(false);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Power Buffer updated", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to update Power Buffer", Severity.Error);
+        }
+        
+    }
+
 }
