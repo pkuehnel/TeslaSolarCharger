@@ -11,4 +11,5 @@ public class DtoIssue
     /// If true the issue Starts with the specified issue key and can have multiple variations separated from the main issue key by _
     /// </summary>
     public bool HasPlaceHolderIssueKey { get; set; }
+    public bool HideOccurrenceCount { get; set; }
 }
