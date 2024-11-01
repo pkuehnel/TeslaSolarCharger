@@ -31,7 +31,8 @@ public class ConfigJsonService(
     IDateTimeProvider dateTimeProvider,
     IMapperConfigurationFactory mapperConfigurationFactory,
     JobManager jobManager,
-    ITeslaMateDbContextWrapper teslaMateDbContextWrapper)
+    ITeslaMateDbContextWrapper teslaMateDbContextWrapper,
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService)
     : IConfigJsonService
 {
     private bool CarConfigurationFileExists()
@@ -248,6 +249,7 @@ public class ConfigJsonService(
         databaseCar.ApiRefreshIntervalSeconds = carBasicConfiguration.ApiRefreshIntervalSeconds;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
+        databaseCar.UseFleetTelemetryForLocationData = carBasicConfiguration.UseFleetTelemetryForLocationData;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var settingsCar = settings.Cars.First(c => c.Id == carId);
         settingsCar.Name = carBasicConfiguration.Name;
@@ -261,6 +263,7 @@ public class ConfigJsonService(
         settingsCar.UseBle = carBasicConfiguration.UseBle;
         settingsCar.UseBleForWakeUp = carBasicConfiguration.UseBleForWakeUp;
         settingsCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
+        await fleetTelemetryWebSocketService.DisconnectWebSocketsByVin(carBasicConfiguration.Vin);
     }
 
     public Task UpdateCarConfiguration(int carId, DepricatedCarConfiguration carConfiguration)

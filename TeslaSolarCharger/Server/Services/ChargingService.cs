@@ -202,7 +202,7 @@ public class ChargingService(
         {
             var chargingAtHomeSum = settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum();
             logger.LogDebug("Using Inverter power {inverterPower} minus chargingPower at home {chargingPowerAtHome} as overage", settings.InverterPower, chargingAtHomeSum);
-            averagedOverage = settings.InverterPower - chargingAtHomeSum - buffer ?? 0;
+            averagedOverage = settings.InverterPower.Value - (chargingAtHomeSum ?? 0);
         }
 
         var overage = averagedOverage - buffer;

@@ -8,7 +8,8 @@ public class DtoLoggedError
     public IssueSeverity Severity { get; set; }
     public string Headline { get; set; }
     public string IssueKey { get; set; }
-    public List<DateTime> Occurrences { get; set; } = new();
+    public int OccurrenceCount { get; set; }
     public string? Vin { get; set; }
     public string Message { get; set; }
+    public bool HideOccurrenceCount { get; set; }
 }

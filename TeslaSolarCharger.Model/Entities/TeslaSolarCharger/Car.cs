@@ -28,9 +28,8 @@ public class Car
 
     public int? SoC { get; set; }
     public int? SocLimit { get; set; }
-
     public int? ChargerPhases { get; set; }
-    public int? ChargerVoltage { get; set; }
+    public int? ChargerVoltage { get; set; } //NotAvailabel in Fleet Telemetry
     public int? ChargerActualCurrent { get; set; }
     public int? ChargerPilotCurrent { get; set; }
     public int? ChargerRequestedCurrent { get; set; }
@@ -39,6 +38,7 @@ public class Car
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public CarStateEnum? State { get; set; }
+
     public bool VehicleCommandProtocolRequired { get; set; }
     public DateTime? VehicleRateLimitedUntil { get; set; }
     public DateTime? VehicleDataRateLimitedUntil { get; set; }
@@ -50,6 +50,7 @@ public class Car
     public int ApiRefreshIntervalSeconds { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public bool UseFleetTelemetry { get; set; }
+    public bool UseFleetTelemetryForLocationData { get; set; }
 
     public string? WakeUpCalls { get; set; }
     public string? VehicleDataCalls { get; set; }

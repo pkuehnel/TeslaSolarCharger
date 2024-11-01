@@ -40,8 +40,9 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 var mappingConfiguration = mapperConfigurationFactory.Create(cfg =>
                 {
                     cfg.CreateMap<LoggedError, DtoLoggedError>()
-                        .ForMember(d => d.Occurrences, opt => opt.MapFrom(s => new List<DateTime>() { s.StartTimeStamp }.Concat(s.FurtherOccurrences)))
+                        .ForMember(d => d.OccurrenceCount, opt => opt.MapFrom(s => s.FurtherOccurrences.Count() + 1))
                         .ForMember(d => d.Severity, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).IssueSeverity))
+                        .ForMember(d => d.HideOccurrenceCount, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).HideOccurrenceCount))
                         ;
                 });
                 var mapper = mappingConfiguration.CreateMapper();
@@ -50,7 +51,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                     .Select(e => mapper.Map<DtoLoggedError>(e))
                     .ToList();
 
-                var removedErrorCount = errors.RemoveAll(e => e.Occurrences.Count < possibleIssues.GetIssueByKey(e.IssueKey).ShowErrorAfterOccurrences);
+                var removedErrorCount = errors.RemoveAll(e => e.OccurrenceCount < possibleIssues.GetIssueByKey(e.IssueKey).ShowErrorAfterOccurrences);
                 logger.LogDebug("{removedErrorsCount} errors removed as did not reach minimum error count", removedErrorCount);
                 return Fin<List<DtoLoggedError>>.Succ(errors);
             },
@@ -71,8 +72,9 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 var mappingConfiguration = mapperConfigurationFactory.Create(cfg =>
                 {
                     cfg.CreateMap<LoggedError, DtoHiddenError>()
-                        .ForMember(d => d.Occurrences, opt => opt.MapFrom(s => new List<DateTime>() { s.StartTimeStamp }.Concat(s.FurtherOccurrences)))
+                        .ForMember(d => d.OccurrenceCount, opt => opt.MapFrom(s => s.FurtherOccurrences.Count() + 1))
                         .ForMember(d => d.Severity, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).IssueSeverity))
+                        .ForMember(d => d.HideOccurrenceCount, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).HideOccurrenceCount))
                         ;
                 });
                 var mapper2 = mappingConfiguration.CreateMapper();
