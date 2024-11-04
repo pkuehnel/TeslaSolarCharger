@@ -1,3 +1,5 @@
+using Lysando.LabStorageV2.UiHelper.Wrapper;
+using Lysando.LabStorageV2.UiHelper.Wrapper.Contracts;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
@@ -21,6 +23,7 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.H
 builder.Services.AddScoped<INodePatternTypeHelper, NodePatternTypeHelper>();
 builder.Services.AddScoped<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddScoped<IDialogHelper, DialogHelper>();
+builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();

@@ -2,6 +2,7 @@
 @using System.Reflection
 @using System.ComponentModel.DataAnnotations
 @using System.ComponentModel
+@using Lysando.LabStorageV2.UiHelper.Wrapper.Contracts
 @using MudExtensions
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
@@ -11,8 +12,11 @@
 @inject IStringHelper StringHelper
 @* ReSharper disable once InconsistentNaming *@
 @inject IJSRuntime JSRuntime
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 @typeparam T
+
+<div>@($"iOS Device: {isIosDevice}")</div>
 
 @if (!EqualityComparer<T>.Default.Equals(Value, default(T)) || !IsReadOnly)
 {
@@ -210,7 +214,7 @@
 
     [Parameter]
     public bool? ShouldBeInErrorState { get; set; }
-    
+
     [Parameter]
     public string? ErrorMessage { get; set; }
 
@@ -230,6 +234,8 @@
             return IsDisabled;
         }
     }
+
+    private bool isIosDevice;
 
     private string _inputId = Guid.NewGuid().ToString();
 
@@ -616,9 +622,9 @@
         }        
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        
+        isIosDevice = await JavaScriptWrapper.IsIosDevice();
     }
 
     private string GetMultiSelectionText(List<string> selectedValues)
