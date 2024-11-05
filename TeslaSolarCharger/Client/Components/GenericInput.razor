@@ -136,7 +136,8 @@
                                      Adornment="@Adornment"
                                      AdornmentText="@AdornmentText"
                                      Margin="InputMargin"
-                                     InputMode="@(InputMode.text)"/>
+                                     Pattern="-?[0-9]+"
+                                     InputMode="@(InputMode.numeric)"/>
                 }
                 else if (IsNormalText())
                 {
