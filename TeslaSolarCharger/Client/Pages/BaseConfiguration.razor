@@ -1,4 +1,4 @@
-﻿@page "/BaseConfiguration"
+@page "/BaseConfiguration"
 @using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
@@ -241,7 +241,7 @@ else
                                 UnitText="min"
                                 HelpText="">
                     <InputFragment>
-                        <InputNumber id="minutesUntilSwitchOn" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" "/>
+                        <InputNumber id="minutesUntilSwitchOff" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
                 <hr/>
