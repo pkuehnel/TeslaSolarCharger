@@ -1,4 +1,4 @@
-﻿@page "/BaseConfiguration"
+@page "/BaseConfiguration"
 @using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
@@ -153,11 +153,13 @@ else
         <InputComponent ValueId="powerBuffer"
                         LabelText="Power Buffer"
                         UnitText="W"
-                        HelpText="Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid. Note: The power buffer you see on the home page is replaced with this value after a TSC restart. Do only change this value if you want a permanent change. Frequent Base Configuration changes are not recommended. If you can not see a power buffer value on the homepage, set the power buffer here to 1 as on the homepage it is only displayed if different from zero.">
+                        HelpText="Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid.">
             <InputFragment>
                 <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" placeholder=" " class="form-control" />
             </InputFragment>
         </InputComponent>
+        
+        <GenericInput For="() => _dtoBaseConfiguration.AllowPowerBufferChangeOnHome"></GenericInput>
 
         <InputComponent ValueId="homeBatteryMinSoc"
                         LabelText="Home Battery Minimum SoC"
@@ -241,7 +243,7 @@ else
                                 UnitText="min"
                                 HelpText="">
                     <InputFragment>
-                        <InputNumber id="minutesUntilSwitchOn" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" "/>
+                        <InputNumber id="minutesUntilSwitchOff" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
                 <hr/>

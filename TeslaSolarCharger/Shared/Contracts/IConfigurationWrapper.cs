@@ -107,4 +107,5 @@ public interface IConfigurationWrapper
     TimeSpan BleUsageStopAfterError();
     bool UseTeslaMateIntegration();
     string FleetTelemetryApiUrl();
+    bool AllowPowerBufferChangeOnHome();
 }

@@ -2,6 +2,7 @@
 @using System.Reflection
 @using System.ComponentModel.DataAnnotations
 @using System.ComponentModel
+@using Lysando.LabStorageV2.UiHelper.Wrapper.Contracts
 @using MudExtensions
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
@@ -9,30 +10,37 @@
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
-@* ReSharper disable once InconsistentNaming *@
-@inject IJSRuntime JSRuntime
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 @typeparam T
 
 @if (!EqualityComparer<T>.Default.Equals(Value, default(T)) || !IsReadOnly)
 {
     <div class="d-flex align-items-center">
-        <div class="p-2 flex-grow-1">
+        <div class="@($"p-{Padding} flex-grow-1")">
             <div>
                 @if (typeof(T) == typeof(DateTime?))
                 {
-                    <MudDatePicker @bind-Date="DateValue"
+                    <MudDatePicker id="@InputId"
+                                   @bind-Date="DateValue"
                                    For="@(ForDateTime)"
                                    Required="@IsRequired"
                                    Label="@LabelName"
                                    Disabled="IsDisabled"
                                    ReadOnly="IsReadOnly"
                                    Variant="Variant.Outlined"
-                                   Margin="InputMargin"/>
+                                   Margin="InputMargin"
+                                   Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                   @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                {
+                                                    { "Error", ShouldBeInErrorState.Value },
+                                                    { "ErrorText", ErrorMessage ?? string.Empty },
+                                                } :new())" />
                 }
                 else if (DropDownOptions != default && typeof(T) == typeof(int?))
                 {
-                    <MudSelectExtended T="int?"
+                    <MudSelectExtended id="@InputId"
+                                       T="int?"
                                        @bind-Value="@NullableIntValue"
                                        SearchBox="true"
                                        For="@(ForNullableInt)"
@@ -44,12 +52,21 @@
                                        Margin="InputMargin"
                                        SearchBoxAutoFocus="true"
                                        ToStringFunc="@(new Func<int?, string>(x => DropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
-                                       ItemCollection="@DropDownOptions.Keys.Select(k => (int?)k).ToList()">
+                                       ItemCollection="@DropDownOptions.Keys.Select(k => (int?)k).ToList()"
+                                       Immediate="@ImmediateValueUpdate"
+                                       Virtualize="true"
+                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                    {
+                                                        { "Error", ShouldBeInErrorState.Value },
+                                                        { "ErrorText", ErrorMessage ?? string.Empty },
+                                                    } :new())">
                     </MudSelectExtended>
                 }
                 else if (DropDownOptions != default && typeof(T) == typeof(HashSet<int>))
                 {
-                    <MudSelectExtended T="int"
+                    <MudSelectExtended id="@InputId"
+                                       T="int"
                                        MultiSelection="true"
                                        @bind-Value="@MultiSelectValue"
                                        @bind-SelectedValues="SelectedMultiSelectValues"
@@ -61,14 +78,80 @@
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
                                        SearchBoxAutoFocus="true"
+                                       MultiSelectionTextFunc="@GetIntMultiSelectionText"
                                        ToStringFunc="@(new Func<int, string>(x => DropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
-                                       ItemCollection="@DropDownOptions.Keys.ToList()">
+                                       ItemCollection="@DropDownOptions.Keys.ToList()"
+                                       Immediate="@ImmediateValueUpdate"
+                                       Virtualize="true"
+                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                    {
+                                                        { "Error", ShouldBeInErrorState.Value },
+                                                        { "ErrorText", ErrorMessage ?? string.Empty },
+                                                    } :new())">
                     </MudSelectExtended>
+
+                }
+                else if (LongIdDropDownOptions != default && typeof(T) == typeof(long?))
+                {
+                    <MudSelectExtended id="@InputId"
+                                       T="long?"
+                                       @bind-Value="@NullableLongValue"
+                                       SearchBox="true"
+                                       For="@(ForNullableLong)"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       ToStringFunc="@(new Func<long?, string>(x => LongIdDropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
+                                       ItemCollection="@LongIdDropDownOptions.Keys.Select(k => (long?)k).ToList()"
+                                       Immediate="@ImmediateValueUpdate"
+                                       Virtualize="true"
+                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                    {
+                                                        { "Error", ShouldBeInErrorState.Value },
+                                                        { "ErrorText", ErrorMessage ?? string.Empty },
+                                                    } :new())">
+                    </MudSelectExtended>
+                }
+                else if (LongIdDropDownOptions != default && typeof(T) == typeof(HashSet<long>))
+                {
+                    <MudSelectExtended id="@InputId"
+                                       T="long"
+                                       MultiSelection="true"
+                                       @bind-Value="@MultiSelectLongValue"
+                                       @bind-SelectedValues="SelectedMultiSelectLongValues"
+                                       SearchBox="true"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="true"
+                                       MultiSelectionTextFunc="@GetLongMultiSelectionText"
+                                       ToStringFunc="@(new Func<long, string>(x => LongIdDropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
+                                       ItemCollection="@LongIdDropDownOptions.Keys.ToList()"
+                                       Immediate="@ImmediateValueUpdate"
+                                       Virtualize="true"
+                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                    {
+                                                        { "Error", ShouldBeInErrorState.Value },
+                                                        { "ErrorText", ErrorMessage ?? string.Empty },
+                                                    } :new())">
+                    </MudSelectExtended>
+
                 }
                 else if (StringIdDropDownOptions != default && typeof(T) == typeof(string))
                 {
                     @* Even though compiler says ?? string.Empty is not needed in ToStringFunc, it is needed. *@
-                    <MudSelectExtended T="string"
+                    <MudSelectExtended id="@InputId"
+                                       T="string"
                                        @bind-Value="@NullableStringValue"
                                        For="@(ForNullableString)"
                                        SearchBox="true"
@@ -80,14 +163,23 @@
                                        Margin="InputMargin"
                                        SearchBoxAutoFocus="true"
                                        ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
-                                       ItemCollection="@StringIdDropDownOptions.Keys.ToList()">
+                                       ItemCollection="@StringIdDropDownOptions.Keys.ToList()"
+                                       Immediate="@ImmediateValueUpdate"
+                                       Virtualize="true"
+                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                    {
+                                                        { "Error", ShouldBeInErrorState.Value },
+                                                        { "ErrorText", ErrorMessage ?? string.Empty },
+                                                    } :new())">
                     </MudSelectExtended>
                 }
                 else if (StringIdDropDownOptions != default && typeof(T) == typeof(HashSet<string>))
                 {
                     //ToDo: For label is missing
                     @* Even though compiler says ?? string.Empty is not needed in ToStringFunc, it is needed. *@
-                    <MudSelectExtended T="string"
+                    <MudSelectExtended id="@InputId"
+                                       T="string"
                                        MultiSelection="true"
                                        @bind-Value="@MultiSelectStringValue"
                                        @bind-SelectedValues="SelectedMultiSelectStringValues"
@@ -99,30 +191,40 @@
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
                                        SearchBoxAutoFocus="true"
+                                       MultiSelectionTextFunc="@(GetMultiSelectionText)"
                                        ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
-                                       ItemCollection="@StringIdDropDownOptions.Keys.ToList()">
+                                       ItemCollection="@StringIdDropDownOptions.Keys.ToList()"
+                                       Immediate="@ImmediateValueUpdate"
+                                       Virtualize="true"
+                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                    {
+                                                        { "Error", ShouldBeInErrorState.Value },
+                                                        { "ErrorText", ErrorMessage ?? string.Empty },
+                                                    } :new())">
                     </MudSelectExtended>
                 }
                 else if (typeof(T) == typeof(short)
-                         || typeof(T) == typeof(short?)
-                         || typeof(T) == typeof(ushort)
-                         || typeof(T) == typeof(ushort?)
-                         || typeof(T) == typeof(int)
-                         || typeof(T) == typeof(int?)
-                         || typeof(T) == typeof(uint)
-                         || typeof(T) == typeof(uint?)
-                         || typeof(T) == typeof(long)
-                         || typeof(T) == typeof(long?)
-                         || typeof(T) == typeof(ulong)
-                         || typeof(T) == typeof(ulong?)
-                         || typeof(T) == typeof(float)
-                         || typeof(T) == typeof(float?)
-                         || typeof(T) == typeof(double)
-                         || typeof(T) == typeof(double?)
-                         || typeof(T) == typeof(decimal)
-                         || typeof(T) == typeof(decimal?))
+                || typeof(T) == typeof(short?)
+                || typeof(T) == typeof(ushort)
+                || typeof(T) == typeof(ushort?)
+                || typeof(T) == typeof(int)
+                || typeof(T) == typeof(int?)
+                || typeof(T) == typeof(uint)
+                || typeof(T) == typeof(uint?)
+                || typeof(T) == typeof(long)
+                || typeof(T) == typeof(long?)
+                || typeof(T) == typeof(ulong)
+                || typeof(T) == typeof(ulong?)
+                || typeof(T) == typeof(float)
+                || typeof(T) == typeof(float?)
+                || typeof(T) == typeof(double)
+                || typeof(T) == typeof(double?)
+                || typeof(T) == typeof(decimal)
+                || typeof(T) == typeof(decimal?))
                 {
-                    <MudNumericField @bind-Value="Value"
+                    <MudNumericField id="@InputId"
+                                     @bind-Value="Value"
                                      For="@(For)"
                                      Required="@IsRequired"
                                      Label="@LabelName"
@@ -131,13 +233,17 @@
                                      Variant="Variant.Outlined"
                                      Adornment="@Adornment"
                                      AdornmentText="@AdornmentText"
-                                     Margin="InputMargin"/>
+                                     Margin="InputMargin"
+                                     Immediate="@ImmediateValueUpdate"
+                                     Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                     @attributes="@(NumericFieldAttributes())" />
                 }
                 else if (IsNormalText())
                 {
                     if (IsPassword)
                     {
-                        <MudTextField @bind-Value="Value"
+                        <MudTextField id="@InputId"
+                                      @bind-Value="Value"
                                       For="@(For)"
                                       Required="@IsRequired"
                                       HelperText="Leave empty if you want to keep the existing password."
@@ -146,32 +252,51 @@
                                       Disabled="IsDisabled"
                                       ReadOnly="IsReadOnly"
                                       Variant="Variant.Outlined"
-                                      Margin="InputMargin"/>
+                                      Margin="InputMargin"
+                                      Immediate="@ImmediateValueUpdate"
+                                      Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                      @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                   {
+                                                       { "Error", ShouldBeInErrorState.Value },
+                                                       { "ErrorText", ErrorMessage ?? string.Empty },
+                                                   } :new())" />
                     }
                     else
                     {
-                        <MudTextField id="@_inputId"
-                                      OnKeyUp="_ => UpdateLineCount(true)"
-                                      Lines="@TextAreaLines"
+                        <MudTextField id="@InputId"
+                                      AutoGrow="@Autogrow"
                                       @bind-Value="Value" For="@(For)"
                                       Required="@IsRequired"
                                       Label="@LabelName"
                                       Disabled="IsDisabled"
                                       ReadOnly="IsReadOnly"
                                       Variant="Variant.Outlined"
-                                      Margin="InputMargin"/>
+                                      Margin="InputMargin"
+                                      Immediate="@ImmediateValueUpdate"
+                                      Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                      @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                   {
+                                                       { "Error", ShouldBeInErrorState.Value },
+                                                       { "ErrorText", ErrorMessage ?? string.Empty },
+                                                   } :new())" />
                     }
                 }
                 else if (typeof(T) == typeof(bool)
-                         || typeof(T) == typeof(bool?))
+                || typeof(T) == typeof(bool?))
                 {
-                    <MudCheckBox @bind-Checked="@Value"
+                    <MudCheckBox id="@InputId"
+                                 @bind-Value="@Value"
                                  For="@(For)"
                                  Required="@IsRequired"
                                  Disabled="IsDisabled"
                                  ReadOnly="IsReadOnly"
                                  Label="@LabelName"
-                                 Dense="InputMargin == Margin.Dense">
+                                 Dense="InputMargin == Margin.Dense"
+                                 @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                              {
+                                                  { "Error", ShouldBeInErrorState.Value },
+                                                  { "ErrorText", ErrorMessage ?? string.Empty },
+                                              } :new())">
                     </MudCheckBox>
                 }
                 else
@@ -179,7 +304,7 @@
                     throw new ArgumentOutOfRangeException();
                 }
             </div>
-            @if(!string.IsNullOrEmpty(HelperText))
+            @if (!string.IsNullOrEmpty(HelperText))
             {
                 <div>
                     <small class="form-text text-muted">@HelperText</small>
@@ -188,7 +313,7 @@
         </div>
         @if (!string.IsNullOrEmpty(PostfixButtonStartIcon))
         {
-            <div class="p-2">
+            <div class="@($"p-{Padding}")">
                 <MudFab Disabled="@ButtonDisplayedAsDisabled"
                         StartIcon="@PostfixButtonStartIcon"
                         ButtonType="ButtonType.Button"
@@ -209,9 +334,18 @@
 
     [Parameter]
     public bool? ShouldBeInErrorState { get; set; }
-    
+
     [Parameter]
     public string? ErrorMessage { get; set; }
+
+    [Parameter]
+    public int Padding { get; set; } = 2;
+
+    [Parameter]
+    public string InputId { get; set; } = Guid.NewGuid().ToString();
+
+    [Parameter]
+    public bool Autogrow { get; set; } = true;
 
     private string MarginClass => Constants.DefaultMargin;
     private Margin InputMargin => Constants.InputMargin;
@@ -230,12 +364,27 @@
         }
     }
 
-    private string _inputId = Guid.NewGuid().ToString();
 
-    [Parameter]
-    public int TextAreaMinimumLines { get; set; } = 1;
+    private bool? _isReadOnlyParameter;
+    private bool _isIosDevice;
 
-    private int TextAreaLines { get; set; } = 1;
+    private IDictionary<string, object> NumericFieldAttributes()
+    {
+        var attributes = new Dictionary<string, object>();
+
+        if (ShouldBeInErrorState.HasValue)
+        {
+            attributes["Error"] = ShouldBeInErrorState.Value;
+            attributes["ErrorText"] = ErrorMessage ?? string.Empty;
+        }
+
+        if (_isIosDevice)
+        {
+            attributes["InputMode"] = InputMode.text;
+        }
+
+        return attributes;
+    }
 
     private Expression<Func<DateTime?>>? ForDateTime
     {
@@ -261,49 +410,9 @@
 
     private int MultiSelectValue { get; set; } = 0;
 
+    private long MultiSelectLongValue { get; set; } = 0;
+
     private string MultiSelectStringValue { get; set; } = string.Empty;
-
-    private async Task<int> GetVisibleLineBreaksCount()
-    {
-        return await JSRuntime.InvokeAsync<int>("countVisibleLineBreaks", _inputId);
-    }
-
-    private async Task<bool> IsTextCutOff()
-    {
-        return await JSRuntime.InvokeAsync<bool>("isInputTextCutOff", _inputId);
-    }
-
-    private async Task SetFocusToCurrentInput()
-    {
-        await JSRuntime.InvokeVoidAsync("setFocusToInput", _inputId);
-    }
-
-    private async Task UpdateLineCount(bool shouldSetFocus)
-    {
-        var textFieldReplacedByTextarea = false;
-        if (IsNormalText() && !IsPassword)
-        {
-            if (TextAreaLines < 2)
-            {
-                if (!await IsTextCutOff())
-                {
-                    return;
-                }
-                textFieldReplacedByTextarea = true;
-            }
-            var lineCount = await GetVisibleLineBreaksCount();
-            TextAreaLines = lineCount > TextAreaMinimumLines ? lineCount : TextAreaMinimumLines;
-            this.StateHasChanged();
-            if (shouldSetFocus && textFieldReplacedByTextarea)
-            {
-                await SetFocusToCurrentInput();
-            }
-            if (textFieldReplacedByTextarea)
-            {
-                await UpdateLineCount(false);
-            }
-        }
-    }
 
     private Expression<Func<HashSet<int>>> ForMultiSelectValues
     {
@@ -328,7 +437,7 @@
             }
             throw new InvalidCastException();
         }
-        set => throw new NotImplementedException($"{nameof(ForMultiSelectValues)} can not be set.");
+        set => throw new NotImplementedException($"{nameof(ForNullableString)} can not be set.");
     }
 
     private Expression<Func<int?>> ForNullableInt
@@ -341,11 +450,27 @@
             }
             throw new InvalidCastException();
         }
-        set => throw new NotImplementedException($"{nameof(ForMultiSelectValues)} can not be set.");
+        set => throw new NotImplementedException($"{nameof(ForNullableInt)} can not be set.");
+    }
+
+    private Expression<Func<long?>> ForNullableLong
+    {
+        get
+        {
+            if (typeof(T) == typeof(long?) && For != null)
+            {
+                return (Expression<Func<long?>>)(object)For;
+            }
+            throw new InvalidCastException();
+        }
+        set => throw new NotImplementedException($"{nameof(ForNullableLong)} can not be set.");
     }
 
     [Parameter]
     public Dictionary<int, string>? DropDownOptions { get; set; }
+
+    [Parameter]
+    public Dictionary<long, string>? LongIdDropDownOptions { get; set; }
 
     [Parameter]
     public Dictionary<string, string>? StringIdDropDownOptions { get; set; }
@@ -384,10 +509,31 @@
     public bool? IsRequiredParameter { get; set; }
 
     [Parameter]
-    public bool? IsReadOnlyParameter { get; set; }
+    public bool? IsReadOnlyParameter
+    {
+        get => _isReadOnlyParameter;
+        set
+        {
+            if (_isReadOnlyParameter != value && _componentRenderedCounter > 0)
+            {
+                _isReadOnlyParameter = value;
+                OnAfterRender(true);
+            }
+            else
+            {
+                _isReadOnlyParameter = value;
+            }
+        }
+    }
 
     [Parameter]
     public string? HelperText { get; set; }
+
+    [Parameter]
+    public bool ImmediateValueUpdate { get; set; }
+
+    [Parameter]
+    public bool Clearable { get; set; }
 
     private string? AdornmentText { get; set; }
     private bool IsRequired { get; set; }
@@ -395,11 +541,29 @@
     private bool IsReadOnly { get; set; }
     private Adornment Adornment { get; set; }
 
+    private int _componentRenderedCounter = 0;
+
     private IEnumerable<int> SelectedMultiSelectValues
     {
         get
         {
             if (Value is HashSet<int> selectedValues)
+            {
+                return selectedValues;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+        set => Value = (T)value;
+    }
+
+    private IEnumerable<long> SelectedMultiSelectLongValues
+    {
+        get
+        {
+            if (Value is HashSet<long> selectedValues)
             {
                 return selectedValues;
             }
@@ -481,6 +645,33 @@
         }
     }
 
+    private long? NullableLongValue
+    {
+        get
+        {
+            if (typeof(T) == typeof(long?) && Value != null)
+            {
+                return (long?)(object)Value;
+            }
+            if (Value == null)
+            {
+                return null;
+            }
+            throw new NotImplementedException();
+        }
+        set
+        {
+            if (value != default)
+            {
+                Value = (T)(object)value;
+            }
+            else
+            {
+                Value = default;
+            }
+        }
+    }
+
     private DateTime? DateValue
     {
         get
@@ -539,17 +730,25 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender && IsNormalText() && !IsPassword)
+        try
         {
-            await UpdateLineCount(false);
+            _isIosDevice = await JavaScriptWrapper.IsIosDevice();
         }
+        catch (Exception)
+        {
+            _isIosDevice = false;
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        _componentRenderedCounter++;
     }
 
     protected override void OnParametersSet()
     {
-        TextAreaLines = TextAreaMinimumLines;
         if (For == default)
         {
             throw new ArgumentException("Expression body is null");
@@ -587,7 +786,7 @@
 
         var postfixAttribute = propertyInfo.GetCustomAttributes<PostfixAttribute>(false).SingleOrDefault();
         var prefixAttribute = propertyInfo.GetCustomAttributes<PrefixAttribute>(false).SingleOrDefault();
-        
+
 
         if (postfixAttribute != default)
         {
@@ -612,15 +811,11 @@
         else
         {
             Adornment = Adornment.None;
-        }        
+        }
+        StateHasChanged();
     }
 
-    protected override void OnInitialized()
-    {
-        
-    }
-
-    private string GetMultiSelectionText(List<string> selectedValues)
+    private string GetIntMultiSelectionText(List<int> selectedValues)
     {
         if (DisplayMultiSelectValues && selectedValues.Count > 0)
         {
@@ -635,7 +830,36 @@
                     // ignored
                 }
             }
-            else if(StringIdDropDownOptions != null)
+        }
+
+        return GetMultiSelectionTextWithoutValues(selectedValues.Count, DropDownOptions?.Count);
+    }
+
+    private string GetLongMultiSelectionText(List<long> selectedValues)
+    {
+        if (DisplayMultiSelectValues && selectedValues.Count > 0)
+        {
+            if (LongIdDropDownOptions != null)
+            {
+                try
+                {
+                    return string.Join("; ", selectedValues.Select(x => LongIdDropDownOptions[Convert.ToInt64(x)]));
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+            }
+        }
+
+        return GetMultiSelectionTextWithoutValues(selectedValues.Count, LongIdDropDownOptions?.Count);
+    }
+
+    private string GetMultiSelectionText(List<string> selectedValues)
+    {
+        if (DisplayMultiSelectValues && selectedValues.Count > 0)
+        {
+            if (StringIdDropDownOptions != null)
             {
                 try
                 {
@@ -647,7 +871,13 @@
                 }
             }
         }
-        return $"{selectedValues.Count} item{(selectedValues.Count == 1 ? " has" : "s have")} been selected";
+        return GetMultiSelectionTextWithoutValues(selectedValues.Count, StringIdDropDownOptions?.Count);
+    }
+
+    private string GetMultiSelectionTextWithoutValues(int selectedValues, int? availableOptions)
+    {
+        var ofText = availableOptions == null ? string.Empty : $"/{availableOptions}";
+        return $"{selectedValues}{ofText} item{(selectedValues == 1 ? " has" : "s have")} been selected";
     }
 
     private void InvokeOnButtonClicked()
