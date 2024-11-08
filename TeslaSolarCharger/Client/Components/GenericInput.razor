@@ -10,6 +10,7 @@
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 @typeparam T
 
@@ -235,11 +236,7 @@
                                      Margin="InputMargin"
                                      Immediate="@ImmediateValueUpdate"
                                      Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
-                                     @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
-                                                  {
-                                                      { "Error", ShouldBeInErrorState.Value },
-                                                      { "ErrorText", ErrorMessage ?? string.Empty },
-                                                  } :new())" />
+                                     @attributes="@(NumericFieldAttributes())" />
                 }
                 else if (IsNormalText())
                 {
@@ -369,6 +366,25 @@
 
 
     private bool? _isReadOnlyParameter;
+    private bool _isIosDevice;
+
+    private IDictionary<string, object> NumericFieldAttributes()
+    {
+        var attributes = new Dictionary<string, object>();
+
+        if (ShouldBeInErrorState.HasValue)
+        {
+            attributes["Error"] = ShouldBeInErrorState.Value;
+            attributes["ErrorText"] = ErrorMessage ?? string.Empty;
+        }
+
+        if (_isIosDevice)
+        {
+            attributes["InputMode"] = InputMode.text;
+        }
+
+        return attributes;
+    }
 
     private Expression<Func<DateTime?>>? ForDateTime
     {
@@ -711,6 +727,18 @@
             property.SetValue(target, value);
 
             OnValueChanged.InvokeAsync(Value);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isIosDevice = await JavaScriptWrapper.IsIosDevice();
+        }
+        catch (Exception)
+        {
+            _isIosDevice = false;
         }
     }
 
