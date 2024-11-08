@@ -45,6 +45,8 @@ public class BaseConfigurationBase
     public int MinutesUntilSwitchOff { get; set; } = 5;
     [Required]
     public int PowerBuffer { get; set; } = 0;
+    [HelperText("If enabled, the configured power buffer is displayed on the home screen, including the option to directly change it. Note: The values you set on the home screen will be overwritten on every TSC restart. To set a permanent power buffer, use the field above.")]
+    public bool AllowPowerBufferChangeOnHome { get; set; }
     public string? CurrentPowerToGridJsonPattern { get; set; }
     public decimal CurrentPowerToGridCorrectionFactor { get; set; } = 1;
     public string? CurrentInverterPowerJsonPattern { get; set; }

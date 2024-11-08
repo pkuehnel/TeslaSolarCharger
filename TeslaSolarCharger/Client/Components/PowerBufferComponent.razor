@@ -1,0 +1,55 @@
+﻿@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
+
+@inject HttpClient HttpClient
+@inject ISnackbar Snackbar
+
+
+@if(_displayValue && _pvValues != default)
+{
+    <div style="max-width: 200px; margin: 0 auto;">
+        <GenericInput T="int?"
+                      For="() => _pvValues.PowerBuffer"
+                      PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                      OnButtonClicked="UpdatePowerBuffer"></GenericInput>
+    </div>
+}
+
+
+@code {
+    private DtoPvValues? _pvValues;
+    private bool _displayValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/BaseConfiguration/AllowPowerBufferChangeOnHome").ConfigureAwait(false);
+        if(result == default)
+        {
+            return;
+        }
+        _displayValue = result.Value;
+        if(_displayValue)
+        {
+            _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
+        }
+        
+    }
+
+    private async Task UpdatePowerBuffer()
+    {
+        if(_pvValues == default)
+        {
+            return;
+        }
+        var response = await HttpClient.GetAsync($"api/BaseConfiguration/UpdatePowerBuffer?powerBuffer={_pvValues.PowerBuffer ?? 0}").ConfigureAwait(false);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Power Buffer updated", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to update Power Buffer", Severity.Error);
+        }
+
+    }
+}
