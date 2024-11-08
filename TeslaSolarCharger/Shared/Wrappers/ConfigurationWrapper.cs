@@ -212,6 +212,11 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool AllowPowerBufferChangeOnHome()
+    {
+        return GetBaseConfiguration().AllowPowerBufferChangeOnHome;
+    }
+
     public bool IsDevelopmentEnvironment()
     {
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");

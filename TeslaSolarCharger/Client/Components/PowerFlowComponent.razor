@@ -5,7 +5,6 @@
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
-@inject ISnackbar Snackbar
 @implements IDisposable
 
 @if (_pvValues != default)
@@ -166,14 +165,6 @@
         </svg>
 
     </div>
-    if (_pvValues.PowerBuffer != default && _pvValues.PowerBuffer != 0)
-    {
-        <div style="max-width: 200px; margin: 0 auto;">
-            <GenericInput T="int?"
-                          For="() => _pvValues.PowerBuffer"
-                          OnValueChanged="newValue => UpdatePowerBuffer(newValue)"></GenericInput>
-        </div>
-    }
 }
 
 
@@ -639,20 +630,6 @@
         var chargingPower = _pvValues.CarCombinedChargingPowerAtHome ?? 0;
         var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
         return homePower;
-    }
-
-    private async Task UpdatePowerBuffer(int? newValue)
-    {
-        var response = await HttpClient.GetAsync($"api/BaseConfiguration/UpdatePowerBuffer?powerBuffer={newValue ?? 0}").ConfigureAwait(false);
-        if (response.IsSuccessStatusCode)
-        {
-            Snackbar.Add("Power Buffer updated", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add("Failed to update Power Buffer", Severity.Error);
-        }
-        
     }
 
 }
