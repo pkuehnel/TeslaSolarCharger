@@ -188,7 +188,7 @@ public class ChargingService(
     {
         logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
 
-        var buffer = configurationWrapper.PowerBuffer(true);
+        var buffer = configurationWrapper.PowerBuffer();
         logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
         var averagedOverage = settings.Overage ?? constants.DefaultOverage;
         logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);

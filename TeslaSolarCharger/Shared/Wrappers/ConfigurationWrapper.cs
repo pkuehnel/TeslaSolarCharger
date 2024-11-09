@@ -559,16 +559,8 @@ public class ConfigurationWrapper(
         return value;
     }
 
-    public int PowerBuffer(bool getInMemoryValueIfAvailable)
+    public int PowerBuffer()
     {
-        if (getInMemoryValueIfAvailable)
-        {
-            var settingsPowerBuffer = settings.PowerBuffer;
-            if (settingsPowerBuffer != null)
-            {
-                return settingsPowerBuffer.Value;
-            }
-        }
         return GetBaseConfiguration().PowerBuffer;
     }
 
