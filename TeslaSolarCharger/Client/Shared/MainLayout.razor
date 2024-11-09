@@ -7,6 +7,7 @@
 @inject HttpClient HttpClient
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
+<MudPopoverProvider />
 <MudDialogProvider FullWidth="true"
                    MaxWidth="MaxWidth.Medium" />
 <MudSnackbarProvider />
@@ -36,7 +37,7 @@
 
     readonly MudTheme _tscTheme = new MudTheme()
         {
-            Palette = new PaletteLight()
+            PaletteLight = new PaletteLight()
             {
                 Primary = "#1b6ec2",
                 Secondary = "#6c757d",
