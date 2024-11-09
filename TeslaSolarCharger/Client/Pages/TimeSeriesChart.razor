@@ -42,20 +42,28 @@
 
     private async Task LoadTimeSeriesData()
     {
-        var response = await Http.GetFromJsonAsync<List<DtoTimeSeriesDatum>>($"api/TimeSeriesData/GetTimeSeriesData?carId={CarId}&startEpoch={StartEpoch}&endEpoch={EndEpoch}&carValueType={CarValueType.ModuleTempMin}");
+        await AddChartSeries(CarValueType.ModuleTempMin).ConfigureAwait(false);
+        await AddChartSeries(CarValueType.ModuleTempMax).ConfigureAwait(false);
+        await AddChartSeries(CarValueType.StateOfCharge).ConfigureAwait(false);
+        await AddChartSeries(CarValueType.StateOfChargeLimit).ConfigureAwait(false);
+
+        StateHasChanged();
+    }
+
+    private async Task AddChartSeries(CarValueType carValueType)
+    {
+        var response = await Http.GetFromJsonAsync<List<DtoTimeSeriesDatum>>($"api/TimeSeriesData/GetTimeSeriesData?carId={CarId}&startEpoch={StartEpoch}&endEpoch={EndEpoch}&carValueType={carValueType}");
         if (response != null && response.Count > 0)
         {
             var chartSeries = new TimeSeriesChartSeries
             {
                 Index = 0,
-                Name = StringHelper.GenerateFriendlyStringFromPascalString(nameof(CarValueType.ModuleTempMin)),
+                    Name = StringHelper.GenerateFriendlyStringFromPascalString(carValueType.ToString()),
                 Data = response.Select(d => new TimeSeriesChartSeries.TimeValue(d.Timestamp, d.Value ?? 0)).ToList(),
                 IsVisible = true,
                 Type = TimeSeriesDiplayType.Line,
             };
             _series.Add(chartSeries);
-
-            StateHasChanged();
         }
     }
 }
