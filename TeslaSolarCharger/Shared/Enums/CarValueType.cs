@@ -16,5 +16,10 @@ public enum CarValueType
     Location,
     Longitude,
     Latitude,
+    StateOfCharge,
+    StateOfChargeLimit,
+    ChargerPhases,
+    ChargerVoltage,
+    AsleepOrOffline,
     Unknown = 9999,
 }
