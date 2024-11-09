@@ -288,14 +288,29 @@ public class TeslaFleetApiService(
                 var vehicleState = vehicleResult.State;
                 if (configurationWrapper.GetVehicleDataFromTesla())
                 {
+                    var carStateLog = new CarValueLog()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.FleetApi,
+                        Type = CarValueType.AsleepOrOffline,
+                    };
                     if (vehicleState == "asleep")
                     {
+                        carStateLog.BooleanValue = true;
                         car.State = CarStateEnum.Asleep;
                     }
                     else if (vehicleState == "offline")
                     {
+                        carStateLog.BooleanValue = true;
                         car.State = CarStateEnum.Offline;
                     }
+                    else
+                    {
+                        carStateLog.BooleanValue = false;
+                    }
+                    teslaSolarChargerContext.CarValueLogs.Add(carStateLog);
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
 
                 if (vehicleState is "asleep" or "offline")

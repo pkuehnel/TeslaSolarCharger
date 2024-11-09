@@ -20,5 +20,6 @@ public enum CarValueType
     StateOfChargeLimit,
     ChargerPhases,
     ChargerVoltage,
+    AsleepOrOffline,
     Unknown = 9999,
 }
