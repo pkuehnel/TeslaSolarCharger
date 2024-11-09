@@ -8,15 +8,15 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class TeslaMateMqttService : ITeslaMateMqttService
+public class TeslaMateMqttService(
+    ILogger<TeslaMateMqttService> logger,
+    IMqttClient mqttClient,
+    MqttFactory mqttFactory,
+    ISettings settings,
+    IConfigurationWrapper configurationWrapper,
+    IDateTimeProvider dateTimeProvider)
+    : ITeslaMateMqttService
 {
-    private readonly ILogger<TeslaMateMqttService> _logger;
-    private readonly IMqttClient _mqttClient;
-    private readonly MqttFactory _mqttFactory;
-    private readonly ISettings _settings;
-    private readonly IConfigurationWrapper _configurationWrapper;
-    private readonly IConfigJsonService _configJsonService;
-    private readonly IDateTimeProvider _dateTimeProvider;
 
     // ReSharper disable once InconsistentNaming
     private const string TopicDisplayName = "display_name";
@@ -53,49 +53,36 @@ public class TeslaMateMqttService : ITeslaMateMqttService
     // ReSharper disable once InconsistentNaming
     private const string TopicSpeed = "speed";
 
-    public bool IsMqttClientConnected => _mqttClient.IsConnected;
-
-    public TeslaMateMqttService(ILogger<TeslaMateMqttService> logger, IMqttClient mqttClient, MqttFactory mqttFactory,
-        ISettings settings, IConfigurationWrapper configurationWrapper,
-        IConfigJsonService configJsonService, IDateTimeProvider dateTimeProvider)
-    {
-        _logger = logger;
-        _mqttClient = mqttClient;
-        _mqttFactory = mqttFactory;
-        _settings = settings;
-        _configurationWrapper = configurationWrapper;
-        _configJsonService = configJsonService;
-        _dateTimeProvider = dateTimeProvider;
-    }
+    public bool IsMqttClientConnected => mqttClient.IsConnected;
 
     public async Task ConnectMqttClient()
     {
-        _logger.LogTrace("{method}()", nameof(ConnectMqttClient));
+        logger.LogTrace("{method}()", nameof(ConnectMqttClient));
         var guid = Guid.NewGuid();
-        var mqqtClientId = _configurationWrapper.MqqtClientId() + guid;
-        var mosquitoServer = _configurationWrapper.MosquitoServer();
+        var mqqtClientId = configurationWrapper.MqqtClientId() + guid;
+        var mosquitoServer = configurationWrapper.MosquitoServer();
         var mqttClientOptions = new MqttClientOptionsBuilder()
             .WithClientId(mqqtClientId)
             .WithTcpServer(mosquitoServer)
             .Build();
 
-        _mqttClient.ApplicationMessageReceivedAsync += e =>
+        mqttClient.ApplicationMessageReceivedAsync += e =>
         {
             var value = GetValueFromMessage(e.ApplicationMessage);
-            if ((!_configurationWrapper.LogLocationData()) && (string.Equals(value.Topic, TopicLongitude) || string.Equals(value.Topic, TopicLatitude)))
+            if ((!configurationWrapper.LogLocationData()) && (string.Equals(value.Topic, TopicLongitude) || string.Equals(value.Topic, TopicLatitude)))
             {
-                _logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: xx.xxxxx", value.CarId, value.Topic);
+                logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: xx.xxxxx", value.CarId, value.Topic);
             }
             else
             {
-                _logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: {value}", value.CarId, value.Topic, value.Value);
+                logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: {value}", value.CarId, value.Topic, value.Value);
             }
             UpdateCar(value);
             return Task.CompletedTask;
         };
 
 
-        if (_mqttClient.IsConnected)
+        if (mqttClient.IsConnected)
         {
             await DisconnectClient("Reconnecting with new configuration").ConfigureAwait(false);
             await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
@@ -103,17 +90,17 @@ public class TeslaMateMqttService : ITeslaMateMqttService
 
         try
         {
-            await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None).ConfigureAwait(false);
+            await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not connect to TeslaMate mqtt server");
+            logger.LogError(ex, "Could not connect to TeslaMate mqtt server");
             return;
         }
 
         var topicPrefix = "teslamate/cars/+/";
 
-        var mqttSubscribeOptions = _mqttFactory.CreateSubscribeOptionsBuilder()
+        var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
             .WithTopicFilter(f =>
             {
                 f.WithTopic($"{topicPrefix}{TopicDisplayName}");
@@ -184,46 +171,46 @@ public class TeslaMateMqttService : ITeslaMateMqttService
             })
             .Build();
 
-        await _mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
+        await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None).ConfigureAwait(false);
     }
 
     public async Task DisconnectClient(string reason)
     {
-        _logger.LogTrace("{method}({reason})", nameof(DisconnectClient), reason);
-        if (_mqttClient.IsConnected)
+        logger.LogTrace("{method}({reason})", nameof(DisconnectClient), reason);
+        if (mqttClient.IsConnected)
         {
-            await _mqttClient.DisconnectAsync().ConfigureAwait(false);
+            await mqttClient.DisconnectAsync().ConfigureAwait(false);
         }
     }
 
 
     public async Task ConnectClientIfNotConnected()
     {
-        _logger.LogTrace("{method}()", nameof(ConnectClientIfNotConnected));
-        if (_mqttClient.IsConnected)
+        logger.LogTrace("{method}()", nameof(ConnectClientIfNotConnected));
+        if (mqttClient.IsConnected)
         {
-            _logger.LogTrace("MqttClient is connected");
+            logger.LogTrace("MqttClient is connected");
             return;
         }
 
-        if (_configurationWrapper.GetVehicleDataFromTesla())
+        if (configurationWrapper.GetVehicleDataFromTesla())
         {
-            _logger.LogInformation("Not connecting to TeslaMate as data is retrieved from Teslas Fleet API");
+            logger.LogInformation("Not connecting to TeslaMate as data is retrieved from Teslas Fleet API");
             return;
         }
-        _logger.LogWarning("MqttClient is not connected");
+        logger.LogWarning("MqttClient is not connected");
         await ConnectMqttClient().ConfigureAwait(false);
     }
 
     internal void UpdateCar(TeslaMateValue value)
     {
-        _logger.LogTrace("{method}({@param})", nameof(UpdateCar), value);
-        var car = _settings.Cars.FirstOrDefault(c => c.TeslaMateCarId == value.CarId);
+        logger.LogTrace("{method}({@param})", nameof(UpdateCar), value);
+        var car = settings.Cars.FirstOrDefault(c => c.TeslaMateCarId == value.CarId);
 
         if (car == null)
         {
             // Logge einen Fehler oder handle den Fall, dass kein Auto gefunden wurde
-            _logger.LogError($"No car found with TeslaMateCarId {value.CarId}");
+            logger.LogError($"No car found with TeslaMateCarId {value.CarId}");
             return; // oder andere geeignete Maßnahme
         }
 
@@ -249,9 +236,9 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                     var minimumSettableSocLimit = 50;
                     if (car.MinimumSoC > car.SocLimit && car.SocLimit > minimumSettableSocLimit)
                     {
-                        _logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.MinimumSoC, car.SocLimit);
+                        logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.MinimumSoC, car.SocLimit);
                         car.MinimumSoC = (int)car.SocLimit;
-                        _logger.LogError("Can not handle lower Soc than minimumSoc");
+                        logger.LogError("Can not handle lower Soc than minimumSoc");
                     }
                 }
                 break;
@@ -263,7 +250,7 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 else
                 {
                     //This is needed as TeslaMate sometime sends empty values during charger being connected.
-                    _logger.LogDebug($"{nameof(TopicChargerPhases)} is {value.Value}. Do not overwrite charger phases.");
+                    logger.LogDebug($"{nameof(TopicChargerPhases)} is {value.Value}. Do not overwrite charger phases.");
                     //car.CarState.ChargerPhases = null;
                 }
                 break;
@@ -286,14 +273,14 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                         car.LastSetAmp == car.ChargerActualCurrent - 1 &&
                         car.LastSetAmp > 0)
                     {
-                        _logger.LogWarning("CarId {carId}: Reducing {actualCurrent} from {originalValue} to {newValue} due to error in TeslaApi", car.Id, nameof(car.ChargerActualCurrent), car.ChargerActualCurrent, car.LastSetAmp);
+                        logger.LogWarning("CarId {carId}: Reducing {actualCurrent} from {originalValue} to {newValue} due to error in TeslaApi", car.Id, nameof(car.ChargerActualCurrent), car.ChargerActualCurrent, car.LastSetAmp);
                         //ToDo: Set to average of requested and actual current
                         car.ChargerActualCurrent = car.LastSetAmp;
                     }
 
                     if (car.ChargerActualCurrent > 0 && car.PluggedIn != true)
                     {
-                        _logger.LogWarning("Car {carId} is not detected as plugged in but actual current > 0 => set plugged in to true", car.Id);
+                        logger.LogWarning("Car {carId} is not detected as plugged in but actual current > 0 => set plugged in to true", car.Id);
                         car.PluggedIn = true;
                     }
                 }
@@ -349,14 +336,14 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                         car.State = CarStateEnum.Updating;
                         break;
                     default:
-                        _logger.LogWarning("Unknown car state deteckted: {carState}", value.Value);
+                        logger.LogWarning("Unknown car state deteckted: {carState}", value.Value);
                         car.State = CarStateEnum.Unknown;
                         break;
                 }
                 break;
             case TopicHealthy:
                 car.Healthy = Convert.ToBoolean(value.Value);
-                _logger.LogTrace("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.Healthy);
+                logger.LogTrace("Car healthiness if car {carId} changed to {healthiness}", car.Id, car.Healthy);
                 break;
             case TopicChargeCurrentRequest:
                 if (!string.IsNullOrWhiteSpace(value.Value))
@@ -371,13 +358,13 @@ public class TeslaMateMqttService : ITeslaMateMqttService
                 }
                 break;
             case TopicScheduledChargingStartTime:
-                _logger.LogTrace("{topicName} changed to {value}", nameof(TopicScheduledChargingStartTime), value.Value);
+                logger.LogTrace("{topicName} changed to {value}", nameof(TopicScheduledChargingStartTime), value.Value);
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     var parsedScheduledChargingStartTime = DateTimeOffset.Parse(value.Value);
-                    if (parsedScheduledChargingStartTime < _dateTimeProvider.DateTimeOffSetNow().AddDays(-14))
+                    if (parsedScheduledChargingStartTime < dateTimeProvider.DateTimeOffSetNow().AddDays(-14))
                     {
-                        _logger.LogWarning("TeslaMate set scheduled charging start time to {teslaMateValue}. As this is in the past, it will be ignored.", parsedScheduledChargingStartTime);
+                        logger.LogWarning("TeslaMate set scheduled charging start time to {teslaMateValue}. As this is in the past, it will be ignored.", parsedScheduledChargingStartTime);
                         car.ScheduledChargingStartTime = null;
                     }
                     else
