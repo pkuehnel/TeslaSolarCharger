@@ -4,4 +4,5 @@ public enum CarValueSource
 {
     FleetTelemetry,
     FleetApi,
+    TeslaMate,
 }

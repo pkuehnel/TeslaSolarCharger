@@ -1,6 +1,8 @@
 using MQTTnet;
 using MQTTnet.Client;
 using System.Globalization;
+using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -14,7 +16,8 @@ public class TeslaMateMqttService(
     MqttFactory mqttFactory,
     ISettings settings,
     IConfigurationWrapper configurationWrapper,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ITeslaSolarChargerContext teslaSolarChargerContext)
     : ITeslaMateMqttService
 {
 
@@ -66,7 +69,7 @@ public class TeslaMateMqttService(
             .WithTcpServer(mosquitoServer)
             .Build();
 
-        mqttClient.ApplicationMessageReceivedAsync += e =>
+        mqttClient.ApplicationMessageReceivedAsync += async e =>
         {
             var value = GetValueFromMessage(e.ApplicationMessage);
             if ((!configurationWrapper.LogLocationData()) && (string.Equals(value.Topic, TopicLongitude) || string.Equals(value.Topic, TopicLatitude)))
@@ -77,8 +80,7 @@ public class TeslaMateMqttService(
             {
                 logger.LogTrace("Car Id: {carId}, Topic: {topic}, Value: {value}", value.CarId, value.Topic, value.Value);
             }
-            UpdateCar(value);
-            return Task.CompletedTask;
+            await UpdateCar(value);
         };
 
 
@@ -202,7 +204,7 @@ public class TeslaMateMqttService(
         await ConnectMqttClient().ConfigureAwait(false);
     }
 
-    internal void UpdateCar(TeslaMateValue value)
+    internal async Task UpdateCar(TeslaMateValue value)
     {
         logger.LogTrace("{method}({@param})", nameof(UpdateCar), value);
         var car = settings.Cars.FirstOrDefault(c => c.TeslaMateCarId == value.CarId);
@@ -227,12 +229,30 @@ public class TeslaMateMqttService(
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.SoC = Convert.ToInt32(value.Value);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.StateOfCharge,
+                        IntValue = car.SoC,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
                 break;
             case TopicChargeLimit:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.SocLimit = Convert.ToInt32(value.Value);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.StateOfChargeLimit,
+                        IntValue = car.SocLimit,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                     var minimumSettableSocLimit = 50;
                     if (car.MinimumSoC > car.SocLimit && car.SocLimit > minimumSettableSocLimit)
                     {
@@ -246,6 +266,15 @@ public class TeslaMateMqttService(
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.ChargerPhases = Convert.ToInt32(value.Value);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.ChargerPhases,
+                        IntValue = car.ChargerPhases is null or > 1 ? 3 : 1,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
                 else
                 {
@@ -258,6 +287,15 @@ public class TeslaMateMqttService(
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.ChargerVoltage = Convert.ToInt32(value.Value);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.ChargerVoltage,
+                        IntValue = car.ChargerVoltage,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
                 else
                 {
@@ -268,6 +306,15 @@ public class TeslaMateMqttService(
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.ChargerActualCurrent = Convert.ToInt32(value.Value);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.ChargeAmps,
+                        IntValue = car.ChargerActualCurrent,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                     if (car.ChargerActualCurrent < 5 &&
                         car.ChargerRequestedCurrent == car.LastSetAmp &&
                         car.LastSetAmp == car.ChargerActualCurrent - 1 &&
@@ -293,6 +340,15 @@ public class TeslaMateMqttService(
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.PluggedIn = Convert.ToBoolean(value.Value);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.IsPluggedIn,
+                        BooleanValue = car.PluggedIn == true,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
                 break;
             case TopicIsClimateOn:
@@ -312,34 +368,64 @@ public class TeslaMateMqttService(
                 }
                 break;
             case TopicState:
+                var asleepValueLog = new CarValueLog()
+                {
+                    CarId = car.Id,
+                    Timestamp = dateTimeProvider.UtcNow(),
+                    Source = CarValueSource.TeslaMate,
+                    Type = CarValueType.AsleepOrOffline,
+                };
+                var chargingValueLog = new CarValueLog()
+                {
+                    CarId = car.Id,
+                    Timestamp = dateTimeProvider.UtcNow(),
+                    Source = CarValueSource.TeslaMate,
+                    Type = CarValueType.IsCharging,
+                };
                 switch (value.Value)
                 {
                     case "asleep":
                         car.State = CarStateEnum.Asleep;
+                        asleepValueLog.BooleanValue = true;
+                        chargingValueLog.BooleanValue = false;
                         break;
                     case "offline":
                         car.State = CarStateEnum.Offline;
+                        asleepValueLog.BooleanValue = true;
+                        chargingValueLog.BooleanValue = false;
                         break;
                     case "online":
                         car.State = CarStateEnum.Online;
+                        asleepValueLog.BooleanValue = false;
+                        chargingValueLog.BooleanValue = false;
                         break;
                     case "charging":
                         car.State = CarStateEnum.Charging;
+                        asleepValueLog.BooleanValue = false;
+                        chargingValueLog.BooleanValue = true;
                         break;
                     case "suspended":
                         car.State = CarStateEnum.Suspended;
+                        asleepValueLog.BooleanValue = false;
+                        chargingValueLog.BooleanValue = false;
                         break;
                     case "driving":
                         car.State = CarStateEnum.Driving;
+                        asleepValueLog.BooleanValue = false;
+                        chargingValueLog.BooleanValue = false;
                         break;
                     case "updating":
                         car.State = CarStateEnum.Updating;
+                        asleepValueLog.BooleanValue = false;
                         break;
                     default:
                         logger.LogWarning("Unknown car state deteckted: {carState}", value.Value);
                         car.State = CarStateEnum.Unknown;
                         break;
                 }
+                teslaSolarChargerContext.CarValueLogs.Add(asleepValueLog);
+                teslaSolarChargerContext.CarValueLogs.Add(chargingValueLog);
+                await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 break;
             case TopicHealthy:
                 car.Healthy = Convert.ToBoolean(value.Value);
@@ -349,12 +435,30 @@ public class TeslaMateMqttService(
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.ChargerRequestedCurrent = Convert.ToInt32(value.Value);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.ChargeCurrentRequest,
+                        IntValue = car.ChargerRequestedCurrent,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
                 break;
             case TopicChargeCurrentRequestMax:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.ChargerPilotCurrent = Convert.ToInt32(value.Value);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.ChargerPilotCurrent,
+                        IntValue = car.ChargerPilotCurrent,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
                 break;
             case TopicScheduledChargingStartTime:
@@ -381,12 +485,30 @@ public class TeslaMateMqttService(
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.Longitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.Longitude,
+                        DoubleValue = car.Longitude,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
                 break;
             case TopicLatitude:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
                     car.Latitude = Convert.ToDouble(value.Value, CultureInfo.InvariantCulture);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = dateTimeProvider.UtcNow(),
+                        Source = CarValueSource.TeslaMate,
+                        Type = CarValueType.Latitude,
+                        DoubleValue = car.Latitude,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
                 break;
             case TopicSpeed:
