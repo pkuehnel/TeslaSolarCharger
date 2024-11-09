@@ -114,6 +114,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslaMateDbContextWrapper, TeslaMateDbContextWrapper>()
             .AddTransient<ITeslaService, TeslaFleetApiService>()
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
+            .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
             .AddSharedBackendDependencies();
         return services;
     }
