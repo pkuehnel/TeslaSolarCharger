@@ -18,7 +18,18 @@ else
                  Height="@datagridHeight" Breakpoint="Breakpoint.None">
         <Columns>
             <PropertyColumn Property="x => x.StartTime"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))"></PropertyColumn>
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))">
+                <CellTemplate>
+                    @if(context.Item.EndTime.HasValue)
+                    {
+                        <MudLink Href="@($"/TimeSeries/{CarId}/{((DateTimeOffset)context.Item.StartTime.ToUniversalTime()).ToUnixTimeSeconds()}/{((DateTimeOffset)context.Item.EndTime.Value.ToUniversalTime()).ToUnixTimeSeconds()}")">@context.Item.StartTime</MudLink>
+                    }
+                    else
+                    {
+                        @context.Item.StartTime
+                    }
+                </CellTemplate>
+            </PropertyColumn>
             <PropertyColumn Property="x => x.CalculatedPrice"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.CalculatedPrice))"
                             AggregateDefinition="_calculatedPriceAggregation">

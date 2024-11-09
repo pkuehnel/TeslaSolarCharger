@@ -113,6 +113,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             //ToDo: Maybe possible null exceptions as not all members that are nullable in database are also nullable in dto
             cfg.CreateMap<ChargingProcess, DtoHandledCharge>()
                 .ForMember(d => d.StartTime, opt => opt.MapFrom(h => h.StartDate.ToLocalTime()))
+                .ForMember(d => d.EndTime, opt => opt.MapFrom(h => h.EndDate.HasValue ? h.EndDate.Value.ToLocalTime() : (DateTime?)null))
                 .ForMember(d => d.CalculatedPrice, opt => opt.MapFrom(h => h.Cost == null ? 0m : Math.Round(h.Cost.Value, 2)))
                 .ForMember(d => d.UsedGridEnergy, opt => opt.MapFrom(h => h.UsedGridEnergyKwh == null ? 0m : Math.Round(h.UsedGridEnergyKwh.Value, 2)))
                 .ForMember(d => d.UsedHomeBatteryEnergy, opt => opt.MapFrom(h => h.UsedHomeBatteryEnergyKwh == null ? 0m : Math.Round(h.UsedHomeBatteryEnergyKwh.Value, 2)))
