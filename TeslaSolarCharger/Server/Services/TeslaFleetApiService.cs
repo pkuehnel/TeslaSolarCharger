@@ -323,10 +323,26 @@ public class TeslaFleetApiService(
                 await errorHandlingService.HandleErrorResolved(issueKeys.GetVehicleData, car.Vin);
                 if (configurationWrapper.GetVehicleDataFromTesla())
                 {
-                    
+                    var timeStamp = dateTimeProvider.UtcNow();
                     car.Name = vehicleDataResult.VehicleState.VehicleName;
                     car.SoC = vehicleDataResult.ChargeState.BatteryLevel;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.StateOfCharge,
+                        Source = CarValueSource.FleetApi,
+                        IntValue = vehicleDataResult.ChargeState.BatteryLevel,
+                    });
                     car.SocLimit = vehicleDataResult.ChargeState.ChargeLimitSoc;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.StateOfChargeLimit,
+                        Source = CarValueSource.FleetApi,
+                        IntValue = vehicleDataResult.ChargeState.ChargeLimitSoc,
+                    });
                     var minimumSettableSocLimit = vehicleDataResult.ChargeState.ChargeLimitSocMin;
                     if (car.MinimumSoC > car.SocLimit && car.SocLimit > minimumSettableSocLimit)
                     {
@@ -335,9 +351,41 @@ public class TeslaFleetApiService(
                         logger.LogError("Can not handle lower Soc than minimumSoc");
                     }
                     car.ChargerPhases = vehicleDataResult.ChargeState.ChargerPhases;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.ChargerPhases,
+                        Source = CarValueSource.FleetApi,
+                        IntValue = vehicleDataResult.ChargeState.ChargerPhases is null or > 1 ? 3 : 1,
+                    });
                     car.ChargerVoltage = vehicleDataResult.ChargeState.ChargerVoltage;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.ChargerVoltage,
+                        Source = CarValueSource.FleetApi,
+                        IntValue = vehicleDataResult.ChargeState.ChargerVoltage,
+                    });
                     car.ChargerActualCurrent = vehicleDataResult.ChargeState.ChargerActualCurrent;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.ChargeAmps,
+                        Source = CarValueSource.FleetApi,
+                        IntValue = vehicleDataResult.ChargeState.ChargerActualCurrent,
+                    });
                     car.PluggedIn = vehicleDataResult.ChargeState.ChargingState != "Disconnected";
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.IsPluggedIn,
+                        Source = CarValueSource.FleetApi,
+                        BooleanValue = vehicleDataResult.ChargeState.ChargingState != "Disconnected",
+                    });
                     car.ClimateOn = vehicleDataResult.ClimateState.IsClimateOn;
                     car.TimeUntilFullCharge = TimeSpan.FromHours(vehicleDataResult.ChargeState.TimeToFullCharge);
                     var teslaCarStateString = vehicleDataResult.State;
@@ -345,6 +393,14 @@ public class TeslaFleetApiService(
                     var teslaCarSoftwareUpdateState = vehicleDataResult.VehicleState.SoftwareUpdate.Status;
                     var chargingState = vehicleDataResult.ChargeState.ChargingState;
                     car.State = DetermineCarState(teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.IsCharging,
+                        Source = CarValueSource.FleetApi,
+                        BooleanValue = vehicleDataResult.ChargeState.ChargingState != "Charging",
+                    });
                     if (car.State == CarStateEnum.Unknown)
                     {
                         await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error determining car state for car {car.Vin}",
@@ -356,10 +412,43 @@ public class TeslaFleetApiService(
                     }
                     car.Healthy = true;
                     car.ChargerRequestedCurrent = vehicleDataResult.ChargeState.ChargeCurrentRequest;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.ChargeCurrentRequest,
+                        Source = CarValueSource.FleetApi,
+                        IntValue = vehicleDataResult.ChargeState.ChargeCurrentRequest,
+                    });
                     car.ChargerPilotCurrent = vehicleDataResult.ChargeState.ChargerPilotCurrent;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.ChargerPilotCurrent,
+                        Source = CarValueSource.FleetApi,
+                        IntValue = vehicleDataResult.ChargeState.ChargerPilotCurrent,
+                    });
                     car.ScheduledChargingStartTime = vehicleDataResult.ChargeState.ScheduledChargingStartTime == null ? (DateTimeOffset?)null : DateTimeOffset.FromUnixTimeSeconds(vehicleDataResult.ChargeState.ScheduledChargingStartTime.Value);
                     car.Longitude = vehicleDataResult.DriveState.Longitude;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.Longitude,
+                        Source = CarValueSource.FleetApi,
+                        DoubleValue = vehicleDataResult.DriveState.Longitude,
+                    });
                     car.Latitude = vehicleDataResult.DriveState.Latitude;
+                    teslaSolarChargerContext.CarValueLogs.Add(new()
+                    {
+                        CarId = car.Id,
+                        Timestamp = timeStamp,
+                        Type = CarValueType.Latitude,
+                        Source = CarValueSource.FleetApi,
+                        DoubleValue = vehicleDataResult.DriveState.Latitude,
+                    });
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
 
                 await errorHandlingService.HandleErrorResolved(issueKeys.UnhandledCarStateRefresh, car.Vin);
