@@ -9,7 +9,10 @@
     <div style="max-width: 300px; margin: 0 auto;">
         <GenericInput T="int?"
                       For="() => PowerBuffer"
+                      ImmediateValueUpdate="true"
                       PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                      IsButtonDisabled="@(PowerBuffer == _lastSavedPowerBuffer)"
+                      OnValueChanged="_ => InvokeAsync(StateHasChanged)"
                       OnButtonClicked="UpdatePowerBuffer"></GenericInput>
     </div>
 }
@@ -17,6 +20,7 @@
 
 @code {
     private int? PowerBuffer { get; set; }
+    private int? _lastSavedPowerBuffer;
     private bool _displayValue;
 
     protected override async Task OnInitializedAsync()
@@ -32,6 +36,7 @@
             var powerBufferResult = await HttpClient.GetFromJsonAsync<DtoValue<int>>("api/BaseConfiguration/PowerBuffer").ConfigureAwait(false);
             if (powerBufferResult != default)
             {
+                _lastSavedPowerBuffer = powerBufferResult.Value;
                 PowerBuffer = powerBufferResult.Value;
             }
         }
@@ -44,6 +49,7 @@
         if (response.IsSuccessStatusCode)
         {
             Snackbar.Add("Power Buffer updated", Severity.Success);
+            _lastSavedPowerBuffer = PowerBuffer;
         }
         else
         {
