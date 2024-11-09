@@ -6,7 +6,6 @@ public interface ISettings
 {
     int? InverterPower { get; set; }
     int? Overage { get; set; }
-    int? PowerBuffer { get; set; }
     int? HomeBatterySoc { get; set; }
     int? HomeBatteryPower { get; set; }
     bool ControlledACarAtLastCycle { get; set; }

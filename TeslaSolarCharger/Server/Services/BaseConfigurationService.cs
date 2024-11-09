@@ -32,7 +32,6 @@ public class BaseConfigurationService(
         {
             await teslaMateMqttService.ConnectClientIfNotConnected().ConfigureAwait(false);
         }
-        settings.PowerBuffer = null;
 
         if (restartNeeded)
         {
@@ -47,9 +46,11 @@ public class BaseConfigurationService(
         await configurationWrapper.UpdateBaseConfigurationAsync(baseConfiguration).ConfigureAwait(false);
     }
 
-    public void UpdatePowerBuffer(int powerBuffer)
+    public async Task UpdatePowerBuffer(int powerBuffer)
     {
-        settings.PowerBuffer = powerBuffer;
+        var config = await configurationWrapper.GetBaseConfigurationAsync();
+        config.PowerBuffer = powerBuffer;
+        await configurationWrapper.UpdateBaseConfigurationAsync(config);
     }
 
     public async Task<byte[]> DownloadBackup(string backupFileNamePrefix, string? backupZipDestinationDirectory)

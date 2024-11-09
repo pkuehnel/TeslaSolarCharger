@@ -33,7 +33,7 @@ public class IndexService(
     public DtoPvValues GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
-        int? powerBuffer = configurationWrapper.PowerBuffer(true);
+        int? powerBuffer = configurationWrapper.PowerBuffer();
         if (settings.InverterPower == null && settings.Overage == null)
         {
             powerBuffer = null;

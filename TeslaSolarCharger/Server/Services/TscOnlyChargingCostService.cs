@@ -286,7 +286,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     public async Task AddChargingDetailsForAllCars()
     {
         logger.LogTrace("{method}()", nameof(AddChargingDetailsForAllCars));
-        var powerBuffer = configurationWrapper.PowerBuffer(true);
+        var powerBuffer = configurationWrapper.PowerBuffer();
         var overage = settings.Overage ?? (settings.InverterPower - (powerBuffer < 0 ? 0 : powerBuffer));
         var homeBatteryDischargingPower =  (- settings.HomeBatteryPower) ?? 0;
         if (homeBatteryDischargingPower < 0)

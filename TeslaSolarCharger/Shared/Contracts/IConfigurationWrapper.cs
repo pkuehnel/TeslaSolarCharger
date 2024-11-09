@@ -16,7 +16,7 @@ public interface IConfigurationWrapper
     string GeoFence();
     TimeSpan TimespanUntilSwitchOn();
     TimeSpan TimespanUntilSwitchOff();
-    int PowerBuffer(bool getInMemoryValueIfAvailable);
+    int PowerBuffer();
     string? TelegramBotKey();
     string? TelegramChannelId();
     string? CurrentInverterPowerJsonPattern();

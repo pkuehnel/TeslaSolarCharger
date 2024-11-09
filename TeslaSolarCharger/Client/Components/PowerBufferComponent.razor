@@ -1,15 +1,14 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos
-@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 
 @inject HttpClient HttpClient
 @inject ISnackbar Snackbar
 
 
-@if(_displayValue && _pvValues != default)
+@if (_displayValue && PowerBuffer != default)
 {
-    <div style="max-width: 200px; margin: 0 auto;">
+    <div style="max-width: 300px; margin: 0 auto;">
         <GenericInput T="int?"
-                      For="() => _pvValues.PowerBuffer"
+                      For="() => PowerBuffer"
                       PostfixButtonStartIcon="@Icons.Material.Filled.Save"
                       OnButtonClicked="UpdatePowerBuffer"></GenericInput>
     </div>
@@ -17,7 +16,7 @@
 
 
 @code {
-    private DtoPvValues? _pvValues;
+    private int? PowerBuffer { get; set; }
     private bool _displayValue;
 
     protected override async Task OnInitializedAsync()
@@ -30,18 +29,18 @@
         _displayValue = result.Value;
         if(_displayValue)
         {
-            _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
+            var powerBufferResult = await HttpClient.GetFromJsonAsync<DtoValue<int>>("api/BaseConfiguration/PowerBuffer").ConfigureAwait(false);
+            if (powerBufferResult != default)
+            {
+                PowerBuffer = powerBufferResult.Value;
+            }
         }
         
     }
 
     private async Task UpdatePowerBuffer()
     {
-        if(_pvValues == default)
-        {
-            return;
-        }
-        var response = await HttpClient.GetAsync($"api/BaseConfiguration/UpdatePowerBuffer?powerBuffer={_pvValues.PowerBuffer ?? 0}").ConfigureAwait(false);
+        var response = await HttpClient.GetAsync($"api/BaseConfiguration/UpdatePowerBuffer?powerBuffer={PowerBuffer ?? 0}").ConfigureAwait(false);
         if (response.IsSuccessStatusCode)
         {
             Snackbar.Add("Power Buffer updated", Severity.Success);

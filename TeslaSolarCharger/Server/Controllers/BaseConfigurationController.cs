@@ -27,7 +27,10 @@ namespace TeslaSolarCharger.Server.Controllers
             service.UpdateMaxCombinedCurrent(maxCombinedCurrent);
 
         [HttpGet]
-        public void UpdatePowerBuffer(int powerBuffer) =>
+        public DtoValue<int> PowerBuffer() => new(configurationWrapper.PowerBuffer());
+
+        [HttpGet]
+        public Task UpdatePowerBuffer(int powerBuffer) =>
             service.UpdatePowerBuffer(powerBuffer);
 
         [HttpGet]
