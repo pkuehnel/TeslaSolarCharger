@@ -11,7 +11,7 @@
                       For="() => PowerBuffer"
                       ImmediateValueUpdate="true"
                       PostfixButtonStartIcon="@Icons.Material.Filled.Save"
-                      IsButtonDisabled="@(PowerBuffer == _lastSavedPowerBuffer)"
+                      IsButtonDisabled="@(PowerBuffer == _lastSavedPowerBuffer || PowerBuffer == default)"
                       OnValueChanged="_ => InvokeAsync(StateHasChanged)"
                       OnButtonClicked="UpdatePowerBuffer"></GenericInput>
     </div>
