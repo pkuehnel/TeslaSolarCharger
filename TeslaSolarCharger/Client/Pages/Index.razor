@@ -322,7 +322,7 @@ else
             }
 
             <MudExpansionPanels>
-                <MudExpansionPanel Text="More car details:" IsExpandedChanged="(state) => OnCollapseChanged(state, car.CarId)">
+                <MudExpansionPanel Text="More car details:" ExpandedChanged="(state) => OnCollapseChanged(state, car.CarId)">
                     @if (_newCarDetailStates.Any(c => c.Key == car.CarId))
                     {
                         <TableComponent Content="@_newCarDetailStates[car.CarId]"></TableComponent>

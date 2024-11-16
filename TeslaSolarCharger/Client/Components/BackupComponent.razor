@@ -64,7 +64,7 @@
 </MudButton>
 
 <MudExpansionPanels>
-    <MudExpansionPanel Text="Automatically created backups before each update" IsExpandedChanged="RefreshBackups">
+    <MudExpansionPanel Text="Automatically created backups before each update" ExpandedChanged="RefreshBackups">
         <MudDataGrid Items="_backupFiles">
             <Columns>
                 <PropertyColumn Property="x => x.FileName"></PropertyColumn>
