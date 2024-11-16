@@ -118,13 +118,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
         var teslaMateContextWrapper = webApplication.Services.GetRequiredService<ITeslaMateDbContextWrapper>();
         var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
-        //This needs to be done before first base configuration update otherwise all TeslaMate values are removed
-        if (teslaMateContext != default)
-        {
-            baseConfiguration.UseTeslaMateIntegration = true;
-            baseConfiguration.UseTeslaMateAsDataSource = true;
-        }
-        await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
         if (teslaMateContext != default)
         {
             try
