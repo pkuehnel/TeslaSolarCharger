@@ -267,7 +267,7 @@ public class TeslaFleetApiService(
         foreach (var carId in carIds)
         {
             var car = settings.Cars.First(c => c.Id == carId);
-            if (!IsCarDataRefreshNeeded(car))
+            if (!(await IsCarDataRefreshNeeded(car)))
             {
                 logger.LogDebug("Do not refresh car data for car {carId} to prevent rate limits", car.Id);
                 continue;
@@ -477,7 +477,7 @@ public class TeslaFleetApiService(
         }
     }
 
-    private bool IsCarDataRefreshNeeded(DtoCar car)
+    private async Task<bool> IsCarDataRefreshNeeded(DtoCar car)
     {
         logger.LogTrace("{method}({vin})", nameof(IsCarDataRefreshNeeded), car.Vin);
         var latestRefresh = car.VehicleDataCalls.OrderByDescending(c => c).FirstOrDefault();
@@ -525,6 +525,38 @@ public class TeslaFleetApiService(
         {
             logger.LogDebug("Send a request now as more than {carResfreshAfterCommand} s ago there was a command request", configurationWrapper.CarRefreshAfterCommandSeconds());
             return true;
+        }
+
+        var isChargingStates = await teslaSolarChargerContext.CarValueLogs
+            .Where(c => c.Type == CarValueType.IsCharging && c.Source == CarValueSource.FleetTelemetry && c.CarId == car.Id)
+            .OrderByDescending(c => c.Timestamp)
+            .Select(c => c.BooleanValue)
+            .Take(2)
+            .ToListAsync();
+
+        if (isChargingStates.Count == 2)
+        {
+            if (isChargingStates[0] != isChargingStates[1])
+            {
+                logger.LogDebug("Send a request as Fleet Telemetry detected a change in charging state.");
+                return true;
+            }
+        }
+
+        var isPluggedInStates = await teslaSolarChargerContext.CarValueLogs
+            .Where(c => c.Type == CarValueType.IsPluggedIn && c.Source == CarValueSource.FleetTelemetry && c.CarId == car.Id)
+            .OrderByDescending(c => c.Timestamp)
+            .Select(c => c.BooleanValue)
+            .Take(2)
+            .ToListAsync();
+
+        if (isPluggedInStates.Count == 2)
+        {
+            if (isPluggedInStates[0] != isPluggedInStates[1])
+            {
+                logger.LogDebug("Send a request as Fleet Telemetry detected a change in plugged in state.");
+                return true;
+            }
         }
 
         var latestChargeStartOrWakeUp = car.WakeUpCalls.Concat(car.ChargeStartCalls).OrderByDescending(c => c).FirstOrDefault();
