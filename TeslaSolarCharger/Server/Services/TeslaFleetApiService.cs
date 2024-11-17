@@ -527,36 +527,23 @@ public class TeslaFleetApiService(
             return true;
         }
 
-        var isChargingStates = await teslaSolarChargerContext.CarValueLogs
-            .Where(c => c.Type == CarValueType.IsCharging && c.Source == CarValueSource.FleetTelemetry && c.CarId == car.Id)
-            .OrderByDescending(c => c.Timestamp)
-            .Select(c => c.BooleanValue)
-            .Take(2)
-            .ToListAsync();
-
-        if (isChargingStates.Count == 2)
+        if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsCharging, latestRefresh).ConfigureAwait(false))
         {
-            if (isChargingStates[0] != isChargingStates[1])
-            {
-                logger.LogDebug("Send a request as Fleet Telemetry detected a change in charging state.");
-                return true;
-            }
+            logger.LogDebug("Send a request as Fleet Telemetry detected a change in is charging in state.");
+            return true;
         }
 
-        var isPluggedInStates = await teslaSolarChargerContext.CarValueLogs
-            .Where(c => c.Type == CarValueType.IsPluggedIn && c.Source == CarValueSource.FleetTelemetry && c.CarId == car.Id)
-            .OrderByDescending(c => c.Timestamp)
-            .Select(c => c.BooleanValue)
-            .Take(2)
-            .ToListAsync();
-
-        if (isPluggedInStates.Count == 2)
+        if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsPluggedIn, latestRefresh).ConfigureAwait(false))
         {
-            if (isPluggedInStates[0] != isPluggedInStates[1])
-            {
-                logger.LogDebug("Send a request as Fleet Telemetry detected a change in plugged in state.");
-                return true;
-            }
+            logger.LogDebug("Send a request as Fleet Telemetry detected a change in plugged in state.");
+            return true;
+        }
+
+        var values = await GetLatestTwoValues(car.Id, CarValueType.ChargeAmps).ConfigureAwait(false);
+        if (LatestValueChangeAfterLatestFleetApiRefresh(latestRefresh, values) && values.Any(v => v.DoubleValue == 0))
+        {
+            logger.LogDebug("Send a request as Fleet Telemetry detected at least one 0 value in charging amps.");
+            return true;
         }
 
         var latestChargeStartOrWakeUp = car.WakeUpCalls.Concat(car.ChargeStartCalls).OrderByDescending(c => c).FirstOrDefault();
@@ -583,6 +570,69 @@ public class TeslaFleetApiService(
         logger.LogDebug("Refresh of vehicle Data is not needed.");
         return false;
     }
+
+    private async Task<bool> FleetTelemetryValueChanged(int carId, CarValueType carValueType, DateTime latestRefresh)
+    {
+        var values = await GetLatestTwoValues(carId, carValueType).ConfigureAwait(false);
+
+        if (!LatestValueChangeAfterLatestFleetApiRefresh(latestRefresh, values))
+        {
+            return false;
+        }
+
+        var currentValue = values[0];
+        var previousValue = values[1];
+
+        var doubleValueChanged = !Nullable.Equals(currentValue.DoubleValue, previousValue.DoubleValue);
+        var intValueChanged = !Nullable.Equals(currentValue.IntValue, previousValue.IntValue);
+        var stringValueChanged = currentValue.StringValue != previousValue.StringValue;
+        var unknownValueChanged = currentValue.UnknownValue != previousValue.UnknownValue;
+        var booleanValueChanged = !Nullable.Equals(currentValue.BooleanValue, previousValue.BooleanValue);
+        var invalidValueChanged = !Nullable.Equals(currentValue.InvalidValue, previousValue.InvalidValue);
+
+        return (currentValue.Timestamp > latestRefresh)
+               && (doubleValueChanged || intValueChanged || stringValueChanged || unknownValueChanged || booleanValueChanged || invalidValueChanged);
+    }
+
+    private static bool LatestValueChangeAfterLatestFleetApiRefresh(DateTime latestRefresh, List<CarValueLogTimeStampAndValues> values)
+    {
+        //Only one value available
+        if (values.Count != 2)
+        {
+            return false;
+        }
+
+        //latest value change before latest fleet API refresh
+        if (values.Count(c => c.Timestamp > latestRefresh) < 1)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<List<CarValueLogTimeStampAndValues>> GetLatestTwoValues(int carId, CarValueType carValueType)
+    {
+        var values = await teslaSolarChargerContext.CarValueLogs
+            .Where(c => c.Type == carValueType
+                        && c.Source == CarValueSource.FleetTelemetry
+                        && c.CarId == carId)
+            .OrderByDescending(c => c.Timestamp)
+            .Select(c => new CarValueLogTimeStampAndValues
+            {
+                Timestamp = c.Timestamp,
+                DoubleValue = c.DoubleValue,
+                IntValue = c.IntValue,
+                StringValue = c.StringValue,
+                UnknownValue = c.UnknownValue,
+                BooleanValue = c.BooleanValue,
+                InvalidValue = c.InvalidValue,
+            })
+            .Take(2)
+            .ToListAsync();
+        return values;
+    }
+
 
     private CarStateEnum? DetermineCarState(string teslaCarStateString, string? teslaCarShiftState, string teslaCarSoftwareUpdateState, string chargingState)
     {
