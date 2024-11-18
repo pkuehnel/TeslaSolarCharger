@@ -17,7 +17,6 @@ public class BaseConfigurationService(
     JobManager jobManager,
     ITeslaMateMqttService teslaMateMqttService,
     ISettings settings,
-    IPvValueService pvValueService,
     IDbConnectionStringHelper dbConnectionStringHelper,
     IConstants constants)
     : IBaseConfigurationService
