@@ -84,7 +84,7 @@
                                     }
                                 </div>
                                 <div class="flex-grow-1">
-                                    <MudChip Text="grey">@(restValueResult.CalculatedValue == null ? "Not available" : Math.Round(restValueResult.CalculatedValue.Value, 2) + $" {suffixString}")</MudChip>
+                                    <MudChip T="string" Variant="Variant.Text">@(restValueResult.CalculatedValue == null ? "Not available" : Math.Round(restValueResult.CalculatedValue.Value, 2) + $" {suffixString}")</MudChip>
                                 </div>
                             </div>
                         }

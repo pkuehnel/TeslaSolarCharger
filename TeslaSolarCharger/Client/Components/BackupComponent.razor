@@ -33,15 +33,14 @@
 </div>
 <div class="mb-2">
     <MudFileUpload T="IBrowserFile" FilesChanged="SelectFile" Accept=".zip" MaximumFileCount="1">
-        <ButtonTemplate Context="fileUploadContext">
+        <ActivatorContent>
             <MudButton HtmlTag="label"
                        Variant="Variant.Filled"
                        Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.AttachFile"
-                       for="@fileUploadContext">
+                       StartIcon="@Icons.Material.Filled.AttachFile">
                 Select Backup File
             </MudButton>
-        </ButtonTemplate>
+        </ActivatorContent>
     </MudFileUpload>
 </div>
 
@@ -65,7 +64,7 @@
 </MudButton>
 
 <MudExpansionPanels>
-    <MudExpansionPanel Text="Automatically created backups before each update" IsExpandedChanged="RefreshBackups">
+    <MudExpansionPanel Text="Automatically created backups before each update" ExpandedChanged="RefreshBackups">
         <MudDataGrid Items="_backupFiles">
             <Columns>
                 <PropertyColumn Property="x => x.FileName"></PropertyColumn>
@@ -107,8 +106,12 @@
         StateHasChanged();
     }
 
-    private void SelectFile(IBrowserFile file)
+    private void SelectFile(IBrowserFile? file)
     {
+        if(file == default)
+        {
+            return;
+        }
         if (file.Size > _maxFileSize)
         {
             Snackbar.Add($"{file.Name} is greater than {_maxFileSize / 1024 / 1024} and won't be uploaded."

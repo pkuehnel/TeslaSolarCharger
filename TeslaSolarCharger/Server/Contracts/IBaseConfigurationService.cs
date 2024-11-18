@@ -8,7 +8,7 @@ public interface IBaseConfigurationService
 {
     Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration);
     Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent);
-    void UpdatePowerBuffer(int powerBuffer);
+    Task UpdatePowerBuffer(int powerBuffer);
     Task<byte[]> DownloadBackup(string backupFileNamePrefix, string? backupZipDestinationDirectory);
     Task RestoreBackup(IFormFile file);
     Task<string> CreateLocalBackupZipFile(string backupFileNamePrefix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup);

@@ -1,0 +1,69 @@
+﻿@page "/TimeSeries/{carId:int}/{startEpoch:long}/{endEpoch:long}"
+
+@using MudBlazor.Components.Chart.Models
+@using TeslaSolarCharger.Shared.Dtos.TimeSeries
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@inject HttpClient Http
+@inject IStringHelper StringHelper
+
+<div>
+    <MudTimeSeriesChart ChartSeries="@_series"
+                        Width="100%" Height="350px"
+                        ChartOptions="@_options"
+                        CanHideSeries
+                        TimeLabelSpacing="TimeSpan.FromSeconds((EndEpoch - StartEpoch) / 10)" />
+</div>
+
+@code
+{
+    [Parameter]
+    public int CarId { get; set; }
+    [Parameter]
+    public long StartEpoch { get; set; }
+    [Parameter]
+    public long EndEpoch { get; set; }
+
+
+    private readonly ChartOptions _options = new ChartOptions
+        {
+            YAxisLines = false,
+            YAxisRequireZeroPoint = true,
+            XAxisLines = false,
+            LineStrokeWidth = 1,
+        };
+
+    private readonly List<TimeSeriesChartSeries> _series = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadTimeSeriesData();
+    }
+
+    private async Task LoadTimeSeriesData()
+    {
+        await AddChartSeries(CarValueType.ModuleTempMin).ConfigureAwait(false);
+        await AddChartSeries(CarValueType.ModuleTempMax).ConfigureAwait(false);
+        await AddChartSeries(CarValueType.StateOfCharge).ConfigureAwait(false);
+        await AddChartSeries(CarValueType.StateOfChargeLimit).ConfigureAwait(false);
+
+        StateHasChanged();
+    }
+
+    private async Task AddChartSeries(CarValueType carValueType)
+    {
+        var response = await Http.GetFromJsonAsync<List<DtoTimeSeriesDatum>>($"api/TimeSeriesData/GetTimeSeriesData?carId={CarId}&startEpoch={StartEpoch}&endEpoch={EndEpoch}&carValueType={carValueType}");
+        if (response != null && response.Count > 0)
+        {
+            var chartSeries = new TimeSeriesChartSeries
+            {
+                Index = 0,
+                    Name = StringHelper.GenerateFriendlyStringFromPascalString(carValueType.ToString()),
+                Data = response.Select(d => new TimeSeriesChartSeries.TimeValue(d.Timestamp, d.Value ?? 0)).ToList(),
+                IsVisible = true,
+                Type = TimeSeriesDiplayType.Line,
+            };
+            _series.Add(chartSeries);
+        }
+    }
+}
