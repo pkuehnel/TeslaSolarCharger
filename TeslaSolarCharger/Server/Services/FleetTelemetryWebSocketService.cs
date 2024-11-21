@@ -206,58 +206,62 @@ public class FleetTelemetryWebSocketService(
                         };
                         context.CarValueLogs.Add(carValueLog);
                         await context.SaveChangesAsync().ConfigureAwait(false);
-                        var settingsCar = settings.Cars.First(c => c.Vin == vin);
-                        string? propertyName = null;
-                        switch (message.Type)
+                        if (configurationWrapper.GetVehicleDataFromTesla())
                         {
-                            case CarValueType.ChargeAmps:
-                                propertyName = nameof(DtoCar.ChargerActualCurrent);
-                                break;
-                            case CarValueType.ChargeCurrentRequest:
-                                propertyName = nameof(DtoCar.ChargerRequestedCurrent);
-                                break;
-                            case CarValueType.IsPluggedIn:
-                                propertyName = nameof(DtoCar.PluggedIn);
-                                break;
-                            case CarValueType.IsCharging:
-                                if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
-                                {
-                                    logger.LogDebug("Set car state for car {carId} to charging", carId);
-                                    settingsCar.State = CarStateEnum.Charging;
-                                }
-                                else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
-                                {
-                                    logger.LogDebug("Set car state for car {carId} to online", carId);
-                                    settingsCar.State = CarStateEnum.Online;
-                                }
-                                break;
-                            case CarValueType.ChargerPilotCurrent:
-                                propertyName = nameof(DtoCar.ChargerPilotCurrent);
-                                break;
-                            case CarValueType.Longitude:
-                                propertyName = nameof(DtoCar.Longitude);
-                                break;
-                            case CarValueType.Latitude:
-                                propertyName = nameof(DtoCar.Latitude);
-                                break;
-                            case CarValueType.StateOfCharge:
-                                propertyName = nameof(DtoCar.SoC);
-                                break;
-                            case CarValueType.StateOfChargeLimit:
-                                propertyName = nameof(DtoCar.SocLimit);
-                                break;
-                            case CarValueType.ChargerPhases:
-                                propertyName = nameof(DtoCar.SocLimit);
-                                break;
-                            case CarValueType.ChargerVoltage:
-                                propertyName = nameof(DtoCar.ChargerVoltage);
-                                break;
-                        }
+                            var settingsCar = settings.Cars.First(c => c.Vin == vin);
+                            string? propertyName = null;
+                            switch (message.Type)
+                            {
+                                case CarValueType.ChargeAmps:
+                                    propertyName = nameof(DtoCar.ChargerActualCurrent);
+                                    break;
+                                case CarValueType.ChargeCurrentRequest:
+                                    propertyName = nameof(DtoCar.ChargerRequestedCurrent);
+                                    break;
+                                case CarValueType.IsPluggedIn:
+                                    propertyName = nameof(DtoCar.PluggedIn);
+                                    break;
+                                case CarValueType.IsCharging:
+                                    if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
+                                    {
+                                        logger.LogDebug("Set car state for car {carId} to charging", carId);
+                                        settingsCar.State = CarStateEnum.Charging;
+                                    }
+                                    else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
+                                    {
+                                        logger.LogDebug("Set car state for car {carId} to online", carId);
+                                        settingsCar.State = CarStateEnum.Online;
+                                    }
+                                    break;
+                                case CarValueType.ChargerPilotCurrent:
+                                    propertyName = nameof(DtoCar.ChargerPilotCurrent);
+                                    break;
+                                case CarValueType.Longitude:
+                                    propertyName = nameof(DtoCar.Longitude);
+                                    break;
+                                case CarValueType.Latitude:
+                                    propertyName = nameof(DtoCar.Latitude);
+                                    break;
+                                case CarValueType.StateOfCharge:
+                                    propertyName = nameof(DtoCar.SoC);
+                                    break;
+                                case CarValueType.StateOfChargeLimit:
+                                    propertyName = nameof(DtoCar.SocLimit);
+                                    break;
+                                case CarValueType.ChargerPhases:
+                                    propertyName = nameof(DtoCar.SocLimit);
+                                    break;
+                                case CarValueType.ChargerVoltage:
+                                    propertyName = nameof(DtoCar.ChargerVoltage);
+                                    break;
+                            }
 
-                        if (propertyName != default)
-                        {
-                            UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
+                            if (propertyName != default)
+                            {
+                                UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
+                            }
                         }
+                        
                     }
                     else
                     {
