@@ -318,7 +318,16 @@ public class TeslaFleetApiService(
                     logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
                     continue;
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Could not get vehicle data for car {carId}", carId);
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while refreshing car data for car {car.Vin}",
+                    $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.GetVehicle, car.Vin, ex.StackTrace).ConfigureAwait(false);
+            }
 
+            try
+            {
                 var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(car.Vin, VehicleDataRequest, HttpMethod.Get)
                     .ConfigureAwait(false);
                 logger.LogTrace("Got vehicleData {@vehicleData}", vehicleData);
@@ -465,14 +474,12 @@ public class TeslaFleetApiService(
                     });
                     await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
-
-                await errorHandlingService.HandleErrorResolved(issueKeys.UnhandledCarStateRefresh, car.Vin);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Could not get vehicle data for car {carId}", carId);
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while refreshing car data for car {car.Vin}",
-                    $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.UnhandledCarStateRefresh, car.Vin, ex.StackTrace).ConfigureAwait(false);
+                    $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.GetVehicleData, car.Vin, ex.StackTrace).ConfigureAwait(false);
             }
         }
     }
