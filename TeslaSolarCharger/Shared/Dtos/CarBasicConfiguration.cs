@@ -50,7 +50,7 @@ public class CarBasicConfiguration
     public int ApiRefreshIntervalSeconds { get; set; }
     [HelperText("Needed to send commands via BLE to the car. An example value would be `http://raspible:7210/`")]
     public string? BleApiBaseUrl { get; set; }
-    [HelperText("If enabled, some data will be transferred via Fleet Telemetry. This improves the delay in the TSC detection of plugin and out of the car, as well as changes in the charging speed. Note: All data transferred via Fleet Telemetry passes my server. For now, the fleet telemetry fields ModuleTempMin, ModuleTempMax,ChargeAmps, ChargeCurrentRequest, ChargeCurrentRequestMax, DetailedChargeState are requested.")]
+    [HelperText("Only supported on cars with Software 2024.38.2+. Not supported on Pre 2021 Model S/X. If enabled, some data will be transferred via Fleet Telemetry. This improves the delay in the TSC detection of plugin and out of the car, as well as changes in the charging speed. Note: All data transferred via Fleet Telemetry passes my server. For now, the fleet telemetry fields ModuleTempMin, ModuleTempMax,ChargeAmps, ChargeCurrentRequest, ChargeCurrentRequestMax, DetailedChargeState are requested.")]
     public bool UseFleetTelemetry { get; set; }
 
     [HelperText("This further improves the detection if the car is at home. Enabling this results in additionally streaming the field Location over my server. If you do not mind that your car location data passes my server, do not disable this option.")]

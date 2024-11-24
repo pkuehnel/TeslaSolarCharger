@@ -121,14 +121,6 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HasPlaceHolderIssueKey = false,
             }
         },
-        { issueKeys.UnhandledCarStateRefresh, new DtoIssue
-            {
-                IssueSeverity = IssueSeverity.Error,
-                IsTelegramEnabled = true,
-                ShowErrorAfterOccurrences = 2,
-                HasPlaceHolderIssueKey = false,
-            }
-        },
         { issueKeys.FleetApiNonSuccessStatusCode, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,

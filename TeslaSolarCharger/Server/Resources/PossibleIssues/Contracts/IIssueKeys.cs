@@ -16,7 +16,6 @@ public interface IIssueKeys
     string GetVehicle { get; }
     string GetVehicleData { get; }
     string CarStateUnknown { get; }
-    string UnhandledCarStateRefresh { get; }
     string FleetApiNonSuccessStatusCode { get; }
     string FleetApiNonSuccessResult { get; }
     string UnsignedCommand { get; }

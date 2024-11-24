@@ -439,7 +439,6 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         {
             foreach (var activeError in activeErrors.Where(activeError => activeError.IssueKey.StartsWith(issueKeys.GetVehicleData)
                                                                           || activeError.IssueKey.StartsWith(issueKeys.CarStateUnknown)
-                                                                          || activeError.IssueKey.StartsWith(issueKeys.UnhandledCarStateRefresh)
                                                                           || activeError.IssueKey.StartsWith(issueKeys.FleetApiNonSuccessStatusCode)
                                                                           || activeError.IssueKey.StartsWith(issueKeys.FleetApiNonSuccessResult)
                                                                           || activeError.IssueKey.StartsWith(issueKeys.UnsignedCommand)))
