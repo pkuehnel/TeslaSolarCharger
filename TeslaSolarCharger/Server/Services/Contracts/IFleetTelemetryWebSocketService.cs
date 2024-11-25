@@ -4,4 +4,5 @@ public interface IFleetTelemetryWebSocketService
 {
     Task ReconnectWebSocketsForEnabledCars();
     Task DisconnectWebSocketsByVin(string vin);
+    bool IsClientConnected(string vin);
 }
