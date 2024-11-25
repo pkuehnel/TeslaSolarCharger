@@ -511,8 +511,8 @@ public class TeslaFleetApiService(
                 return true;
             }
 
-            var values = await GetLatestTwoValues(car.Id, CarValueType.ChargeAmps, earliestDetectedChange).ConfigureAwait(false);
-            if (LatestValueChangeAfterLatestFleetApiRefresh(latestRefresh, values) && values.Any(v => v.DoubleValue == 0))
+            var values = await GetValuesSince(car.Id, CarValueType.ChargeAmps, earliestDetectedChange).ConfigureAwait(false);
+            if (AnyValueChanged(latestRefresh, values) && values.Any(v => v.DoubleValue == 0))
             {
                 logger.LogDebug("Send a request as Fleet Telemetry detected at least one 0 value in charging amps.");
                 return true;
@@ -590,45 +590,38 @@ public class TeslaFleetApiService(
 
     private async Task<bool> FleetTelemetryValueChanged(int carId, CarValueType carValueType, DateTime latestRefresh, DateTime currentUtcDate)
     {
-        var values = await GetLatestTwoValues(carId, carValueType, currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds())).ConfigureAwait(false);
+        var values = await GetValuesSince(carId, carValueType, currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds())).ConfigureAwait(false);
 
-        if (!LatestValueChangeAfterLatestFleetApiRefresh(latestRefresh, values))
-        {
-            return false;
-        }
-
-        var currentValue = values[0];
-        var previousValue = values[1];
-
-        var doubleValueChanged = !Nullable.Equals(currentValue.DoubleValue, previousValue.DoubleValue);
-        var intValueChanged = !Nullable.Equals(currentValue.IntValue, previousValue.IntValue);
-        var stringValueChanged = currentValue.StringValue != previousValue.StringValue;
-        var unknownValueChanged = currentValue.UnknownValue != previousValue.UnknownValue;
-        var booleanValueChanged = !Nullable.Equals(currentValue.BooleanValue, previousValue.BooleanValue);
-        var invalidValueChanged = !Nullable.Equals(currentValue.InvalidValue, previousValue.InvalidValue);
-
-        return (currentValue.Timestamp > latestRefresh)
-               && (doubleValueChanged || intValueChanged || stringValueChanged || unknownValueChanged || booleanValueChanged || invalidValueChanged);
+        return AnyValueChanged(latestRefresh, values);
     }
 
-    private bool LatestValueChangeAfterLatestFleetApiRefresh(DateTime latestRefresh, List<CarValueLogTimeStampAndValues> values)
+    private static bool AnyValueChanged(DateTime latestRefresh, List<CarValueLogTimeStampAndValues> values)
     {
-        //Only one value available
-        if (values.Count != 2)
+        // Ensure there are at least two values to compare
+        if (values.Count < 2)
         {
             return false;
         }
 
-        //latest value change before latest fleet API refresh
-        if (values.Count(c => c.Timestamp > latestRefresh) < 1)
+        // Check if the latest value is after the latest refresh time
+        if (values[0].Timestamp <= latestRefresh)
         {
             return false;
         }
 
-        return true;
+        // Check if any of the properties have changed among all values
+        var doubleValuesChanged = values.Select(v => v.DoubleValue).Distinct().Count() > 1;
+        var intValuesChanged = values.Select(v => v.IntValue).Distinct().Count() > 1;
+        var stringValuesChanged = values.Select(v => v.StringValue).Distinct().Count() > 1;
+        var unknownValuesChanged = values.Select(v => v.UnknownValue).Distinct().Count() > 1;
+        var booleanValuesChanged = values.Select(v => v.BooleanValue).Distinct().Count() > 1;
+        var invalidValuesChanged = values.Select(v => v.InvalidValue).Distinct().Count() > 1;
+
+        // Return true if any property has changed
+        return doubleValuesChanged || intValuesChanged || stringValuesChanged || unknownValuesChanged || booleanValuesChanged || invalidValuesChanged;
     }
 
-    private async Task<List<CarValueLogTimeStampAndValues>> GetLatestTwoValues(int carId, CarValueType carValueType, DateTime startTime)
+    private async Task<List<CarValueLogTimeStampAndValues>> GetValuesSince(int carId, CarValueType carValueType, DateTime startTime)
     {
         var values = await teslaSolarChargerContext.CarValueLogs
             .Where(c => c.Type == carValueType
@@ -646,7 +639,6 @@ public class TeslaFleetApiService(
                 BooleanValue = c.BooleanValue,
                 InvalidValue = c.InvalidValue,
             })
-            .Take(2)
             .ToListAsync();
         return values;
     }
