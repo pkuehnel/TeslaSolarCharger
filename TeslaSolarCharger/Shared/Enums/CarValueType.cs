@@ -21,5 +21,7 @@ public enum CarValueType
     ChargerPhases,
     ChargerVoltage,
     AsleepOrOffline,
+    Gear,
+    Speed,
     Unknown = 9999,
 }
