@@ -579,9 +579,9 @@ public class TeslaFleetApiService(
         }
         
 
-        if (latestRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) < currentUtcDate)
+        if ((latestRefresh + configurationWrapper.FleetApiRefreshInterval()) < currentUtcDate)
         {
-            logger.LogDebug("Refresh car data as time intervall of {seconds} s is over", car.ApiRefreshIntervalSeconds);
+            logger.LogDebug("Refresh car data as time interval of {interval} s is over", configurationWrapper.FleetApiRefreshInterval());
             return true;
         }
         logger.LogDebug("Refresh of vehicle Data is not needed.");

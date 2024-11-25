@@ -150,6 +150,13 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
+    public TimeSpan FleetApiRefreshInterval()
+    {
+        var environmentVariableName = "FleetApiRefreshIntervalSeconds";
+        var value = configuration.GetValue<int>(environmentVariableName);
+        return TimeSpan.FromSeconds(value);
+    }
+
     public bool GetVehicleDataFromTesla()
     {
         if (!UseTeslaMateIntegration())
