@@ -86,7 +86,6 @@ public class DtoCar
     public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
-    public int ApiRefreshIntervalSeconds { get; set; }
     public bool UseBle { get; set; }
     public bool UseBleForWakeUp { get; set; }
     public string? BleApiBaseUrl { get; set; }
