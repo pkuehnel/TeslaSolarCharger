@@ -26,6 +26,12 @@ public class FleetTelemetryWebSocketService(
 
     private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
 
+    public bool IsClientConnected(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(IsClientConnected), vin);
+        return Clients.Any(c => c.Vin == vin && c.WebSocketClient.State == WebSocketState.Open);
+    }
+
     public async Task ReconnectWebSocketsForEnabledCars()
     {
         logger.LogTrace("{method}", nameof(ReconnectWebSocketsForEnabledCars));
