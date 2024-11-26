@@ -57,8 +57,10 @@ public class FleetTelemetryWebSocketService(
                     var segment = new ArraySegment<byte>(bytesToSend);
                     try
                     {
+                        logger.LogDebug("Sending Heartbeat to websocket client for car {vin}", existingClient.Vin);
                         await existingClient.WebSocketClient.SendAsync(segment, WebSocketMessageType.Text, true,
                             new CancellationTokenSource(_heartbeatsendTimeout).Token);
+                        logger.LogDebug("Heartbeat to websocket client for car {vin} sent", existingClient.Vin);
                     }
                     catch (Exception ex)
                     {
@@ -69,11 +71,10 @@ public class FleetTelemetryWebSocketService(
 
                     continue;
                 }
-                else
-                {
-                    existingClient.WebSocketClient.Dispose();
-                    Clients.Remove(existingClient);
-                }
+
+                logger.LogInformation("Websocket Client for car {vin} is not open. Disposing client", car.Vin);
+                existingClient.WebSocketClient.Dispose();
+                Clients.Remove(existingClient);
             }
 
             ConnectToFleetTelemetryApi(car.Vin, car.UseFleetTelemetryForLocationData);
@@ -158,14 +159,16 @@ public class FleetTelemetryWebSocketService(
 
     private async Task ReceiveMessages(ClientWebSocket webSocket, CancellationToken ctx, string vin, int carId)
     {
+        logger.LogTrace("{method}(webSocket, ctx, {vin}, {carId})", nameof(ReceiveMessages), vin, carId);
         var buffer = new byte[1024 * 4]; // Buffer to store incoming data
         while (webSocket.State == WebSocketState.Open)
         {
             try
             {
                 // Receive message from the WebSocket server
+                logger.LogTrace("Waiting for new fleet telemetry message for car {vin}", vin);
                 var result = await webSocket.ReceiveAsync(new(buffer), ctx);
-
+                logger.LogTrace("Received new fleet telemetry message for car {vin}", vin);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     // If the server closed the connection, close the WebSocket
@@ -183,96 +186,95 @@ public class FleetTelemetryWebSocketService(
                     }
 
                     var message = DeserializeFleetTelemetryMessage(jsonMessage);
-                    if (message != null)
+                    if (message == default)
                     {
-                        if (configurationWrapper.LogLocationData() ||
-                            (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
-                        {
-                            logger.LogDebug("Save fleet telemetry message {@message}", message);
-                        }
-                        else
-                        {
-                            logger.LogDebug("Save location message for car {carId}", carId);
-                        }
+                        logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
+                        continue;
+                    }
 
-                        var scope = serviceProvider.CreateScope();
-                        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-                        var carValueLog = new CarValueLog
-                        {
-                            CarId = carId,
-                            Type = message.Type,
-                            DoubleValue = message.DoubleValue,
-                            IntValue = message.IntValue,
-                            StringValue = message.StringValue,
-                            UnknownValue = message.UnknownValue,
-                            BooleanValue = message.BooleanValue,
-                            InvalidValue = message.InvalidValue,
-                            Timestamp = message.TimeStamp.UtcDateTime,
-                            Source = CarValueSource.FleetTelemetry,
-                        };
-                        context.CarValueLogs.Add(carValueLog);
-                        await context.SaveChangesAsync().ConfigureAwait(false);
-                        if (configurationWrapper.GetVehicleDataFromTesla())
-                        {
-                            var settingsCar = settings.Cars.First(c => c.Vin == vin);
-                            string? propertyName = null;
-                            switch (message.Type)
-                            {
-                                case CarValueType.ChargeAmps:
-                                    propertyName = nameof(DtoCar.ChargerActualCurrent);
-                                    break;
-                                case CarValueType.ChargeCurrentRequest:
-                                    propertyName = nameof(DtoCar.ChargerRequestedCurrent);
-                                    break;
-                                case CarValueType.IsPluggedIn:
-                                    propertyName = nameof(DtoCar.PluggedIn);
-                                    break;
-                                case CarValueType.IsCharging:
-                                    if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
-                                    {
-                                        logger.LogDebug("Set car state for car {carId} to charging", carId);
-                                        settingsCar.State = CarStateEnum.Charging;
-                                    }
-                                    else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
-                                    {
-                                        logger.LogDebug("Set car state for car {carId} to online", carId);
-                                        settingsCar.State = CarStateEnum.Online;
-                                    }
-                                    break;
-                                case CarValueType.ChargerPilotCurrent:
-                                    propertyName = nameof(DtoCar.ChargerPilotCurrent);
-                                    break;
-                                case CarValueType.Longitude:
-                                    propertyName = nameof(DtoCar.Longitude);
-                                    break;
-                                case CarValueType.Latitude:
-                                    propertyName = nameof(DtoCar.Latitude);
-                                    break;
-                                case CarValueType.StateOfCharge:
-                                    propertyName = nameof(DtoCar.SoC);
-                                    break;
-                                case CarValueType.StateOfChargeLimit:
-                                    propertyName = nameof(DtoCar.SocLimit);
-                                    break;
-                                case CarValueType.ChargerPhases:
-                                    propertyName = nameof(DtoCar.SocLimit);
-                                    break;
-                                case CarValueType.ChargerVoltage:
-                                    propertyName = nameof(DtoCar.ChargerVoltage);
-                                    break;
-                            }
-
-                            if (propertyName != default)
-                            {
-                                UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
-                            }
-                        }
-                        
+                    if (configurationWrapper.LogLocationData() ||
+                        (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
+                    {
+                        logger.LogDebug("Save fleet telemetry message {@message}", message);
                     }
                     else
                     {
-                        logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
+                        logger.LogDebug("Save location message for car {carId}", carId);
                     }
+
+                    var scope = serviceProvider.CreateScope();
+                    var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+                    var carValueLog = new CarValueLog
+                    {
+                        CarId = carId,
+                        Type = message.Type,
+                        DoubleValue = message.DoubleValue,
+                        IntValue = message.IntValue,
+                        StringValue = message.StringValue,
+                        UnknownValue = message.UnknownValue,
+                        BooleanValue = message.BooleanValue,
+                        InvalidValue = message.InvalidValue,
+                        Timestamp = message.TimeStamp.UtcDateTime,
+                        Source = CarValueSource.FleetTelemetry,
+                    };
+                    context.CarValueLogs.Add(carValueLog);
+                    await context.SaveChangesAsync().ConfigureAwait(false);
+                    if (configurationWrapper.GetVehicleDataFromTesla())
+                    {
+                        var settingsCar = settings.Cars.First(c => c.Vin == vin);
+                        string? propertyName = null;
+                        switch (message.Type)
+                        {
+                            case CarValueType.ChargeAmps:
+                                propertyName = nameof(DtoCar.ChargerActualCurrent);
+                                break;
+                            case CarValueType.ChargeCurrentRequest:
+                                propertyName = nameof(DtoCar.ChargerRequestedCurrent);
+                                break;
+                            case CarValueType.IsPluggedIn:
+                                propertyName = nameof(DtoCar.PluggedIn);
+                                break;
+                            case CarValueType.IsCharging:
+                                if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
+                                {
+                                    logger.LogDebug("Set car state for car {carId} to charging", carId);
+                                    settingsCar.State = CarStateEnum.Charging;
+                                }
+                                else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
+                                {
+                                    logger.LogDebug("Set car state for car {carId} to online", carId);
+                                    settingsCar.State = CarStateEnum.Online;
+                                }
+                                break;
+                            case CarValueType.ChargerPilotCurrent:
+                                propertyName = nameof(DtoCar.ChargerPilotCurrent);
+                                break;
+                            case CarValueType.Longitude:
+                                propertyName = nameof(DtoCar.Longitude);
+                                break;
+                            case CarValueType.Latitude:
+                                propertyName = nameof(DtoCar.Latitude);
+                                break;
+                            case CarValueType.StateOfCharge:
+                                propertyName = nameof(DtoCar.SoC);
+                                break;
+                            case CarValueType.StateOfChargeLimit:
+                                propertyName = nameof(DtoCar.SocLimit);
+                                break;
+                            case CarValueType.ChargerPhases:
+                                propertyName = nameof(DtoCar.SocLimit);
+                                break;
+                            case CarValueType.ChargerVoltage:
+                                propertyName = nameof(DtoCar.ChargerVoltage);
+                                break;
+                        }
+
+                        if (propertyName != default)
+                        {
+                            UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
+                        }
+                    }
+
                 }
             }
             catch (Exception ex)
