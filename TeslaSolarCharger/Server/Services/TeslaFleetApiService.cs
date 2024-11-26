@@ -590,13 +590,14 @@ public class TeslaFleetApiService(
 
     private async Task<bool> FleetTelemetryValueChanged(int carId, CarValueType carValueType, DateTime latestRefresh, DateTime currentUtcDate)
     {
+        logger.LogTrace("{method}({carId}, {carValueType}, {latestRefresh}, {currentUtcDate})", nameof(FleetTelemetryValueChanged), carId, carValueType, latestRefresh, currentUtcDate);
         var values = await GetValuesSince(carId, carValueType, currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds())).ConfigureAwait(false);
-
         return AnyValueChanged(latestRefresh, values);
     }
 
-    private static bool AnyValueChanged(DateTime latestRefresh, List<CarValueLogTimeStampAndValues> values)
+    private bool AnyValueChanged(DateTime latestRefresh, List<CarValueLogTimeStampAndValues> values)
     {
+        logger.LogTrace("{method}({latestRefresh}, {@values})", nameof(AnyValueChanged), latestRefresh, values);
         // Ensure there are at least two values to compare
         if (values.Count < 2)
         {
@@ -623,6 +624,7 @@ public class TeslaFleetApiService(
 
     private async Task<List<CarValueLogTimeStampAndValues>> GetValuesSince(int carId, CarValueType carValueType, DateTime startTime)
     {
+        logger.LogTrace("{method}({carId}, {carValueType}, {startTime})", nameof(GetValuesSince), carId, carValueType, startTime);
         var values = await teslaSolarChargerContext.CarValueLogs
             .Where(c => c.Type == carValueType
                         && c.Source == CarValueSource.FleetTelemetry
