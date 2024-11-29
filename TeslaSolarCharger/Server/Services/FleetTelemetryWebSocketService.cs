@@ -20,7 +20,8 @@ public class FleetTelemetryWebSocketService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider,
-    ISettings settings) : IFleetTelemetryWebSocketService
+    ISettings settings,
+    ITscConfigurationService tscConfigurationService) : IFleetTelemetryWebSocketService
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
@@ -52,7 +53,13 @@ public class FleetTelemetryWebSocketService(
             var existingClient = Clients.FirstOrDefault(c => c.Vin == car.Vin);
             if (existingClient != default)
             {
-                if (existingClient.WebSocketClient.State == WebSocketState.Open)
+                var currentTime = dateTimeProvider.UtcNow();
+                //When intervall is changed, change it also in the server WebSocketConnectionHandlingService.SendHeartbeatsTask
+                var serverSideHeartbeatIntervall = TimeSpan.FromSeconds(54);
+                var additionalIntervallbuffer = TimeSpan.FromSeconds(30);
+                var maxLastHeartbeatAge = serverSideHeartbeatIntervall + additionalIntervallbuffer;
+                var earliestPossibleLastHeartbeat = currentTime - maxLastHeartbeatAge;
+                if ((existingClient.WebSocketClient.State == WebSocketState.Open) && (existingClient.LastReceivedHeartbeat > earliestPossibleLastHeartbeat))
                 {
                     var segment = new ArraySegment<byte>(bytesToSend);
                     try
@@ -72,7 +79,7 @@ public class FleetTelemetryWebSocketService(
                     continue;
                 }
 
-                logger.LogInformation("Websocket Client for car {vin} is not open. Disposing client", car.Vin);
+                logger.LogInformation("Websocket Client for car {vin} is not open or last heartbeat is too old. Disposing client", car.Vin);
                 existingClient.WebSocketClient.Dispose();
                 Clients.Remove(existingClient);
             }
@@ -114,9 +121,9 @@ public class FleetTelemetryWebSocketService(
             logger.LogError("Can not connect to WebSocket: No token found for car {vin}", vin);
             return;
         }
-
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var url = configurationWrapper.FleetTelemetryApiUrl() +
-                  $"teslaToken={token.AccessToken}&region={token.Region}&vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}";
+                  $"teslaToken={token.AccessToken}&region={token.Region}&vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}&installationId={installationId}";
         using var client = new ClientWebSocket();
         try
         {
@@ -127,6 +134,7 @@ public class FleetTelemetryWebSocketService(
                 Vin = vin,
                 WebSocketClient = client,
                 CancellationToken = cancellation.Token,
+                LastReceivedHeartbeat = currentDate,
             };
             Clients.Add(dtoClient);
             var carId = await context.Cars
@@ -135,7 +143,7 @@ public class FleetTelemetryWebSocketService(
                 .FirstOrDefaultAsync().ConfigureAwait(false);
             try
             {
-                await ReceiveMessages(client, dtoClient.CancellationToken, dtoClient.Vin, carId).ConfigureAwait(false);
+                await ReceiveMessages(dtoClient, dtoClient.Vin, carId).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -157,22 +165,22 @@ public class FleetTelemetryWebSocketService(
         }
     }
 
-    private async Task ReceiveMessages(ClientWebSocket webSocket, CancellationToken ctx, string vin, int carId)
+    private async Task ReceiveMessages(DtoFleetTelemetryWebSocketClients client, string vin, int carId)
     {
         logger.LogTrace("{method}(webSocket, ctx, {vin}, {carId})", nameof(ReceiveMessages), vin, carId);
         var buffer = new byte[1024 * 4]; // Buffer to store incoming data
-        while (webSocket.State == WebSocketState.Open)
+        while (client.WebSocketClient.State == WebSocketState.Open)
         {
             try
             {
                 // Receive message from the WebSocket server
                 logger.LogTrace("Waiting for new fleet telemetry message for car {vin}", vin);
-                var result = await webSocket.ReceiveAsync(new(buffer), ctx);
+                var result = await client.WebSocketClient.ReceiveAsync(new(buffer), client.CancellationToken);
                 logger.LogTrace("Received new fleet telemetry message for car {vin}", vin);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     // If the server closed the connection, close the WebSocket
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, ctx);
+                    await client.WebSocketClient.CloseAsync(WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, client.CancellationToken);
                     logger.LogInformation("WebSocket connection closed by server.");
                 }
                 else
@@ -182,6 +190,7 @@ public class FleetTelemetryWebSocketService(
                     if (jsonMessage == "Heartbeat")
                     {
                         logger.LogTrace("Received heartbeat: {message}", jsonMessage);
+                        client.LastReceivedHeartbeat = dateTimeProvider.UtcNow();
                         continue;
                     }
 
