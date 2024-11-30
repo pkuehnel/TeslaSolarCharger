@@ -20,11 +20,18 @@ public class FleetTelemetryWebSocketService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider,
-    ISettings settings) : IFleetTelemetryWebSocketService
+    ISettings settings,
+    ITscConfigurationService tscConfigurationService) : IFleetTelemetryWebSocketService
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
     private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
+
+    public bool IsClientConnected(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(IsClientConnected), vin);
+        return Clients.Any(c => c.Vin == vin && c.WebSocketClient.State == WebSocketState.Open);
+    }
 
     public async Task ReconnectWebSocketsForEnabledCars()
     {
@@ -46,13 +53,21 @@ public class FleetTelemetryWebSocketService(
             var existingClient = Clients.FirstOrDefault(c => c.Vin == car.Vin);
             if (existingClient != default)
             {
-                if (existingClient.WebSocketClient.State == WebSocketState.Open)
+                var currentTime = dateTimeProvider.UtcNow();
+                //When intervall is changed, change it also in the server WebSocketConnectionHandlingService.SendHeartbeatsTask
+                var serverSideHeartbeatIntervall = TimeSpan.FromSeconds(54);
+                var additionalIntervallbuffer = TimeSpan.FromSeconds(30);
+                var maxLastHeartbeatAge = serverSideHeartbeatIntervall + additionalIntervallbuffer;
+                var earliestPossibleLastHeartbeat = currentTime - maxLastHeartbeatAge;
+                if ((existingClient.WebSocketClient.State == WebSocketState.Open) && (existingClient.LastReceivedHeartbeat > earliestPossibleLastHeartbeat))
                 {
                     var segment = new ArraySegment<byte>(bytesToSend);
                     try
                     {
+                        logger.LogDebug("Sending Heartbeat to websocket client for car {vin}", existingClient.Vin);
                         await existingClient.WebSocketClient.SendAsync(segment, WebSocketMessageType.Text, true,
                             new CancellationTokenSource(_heartbeatsendTimeout).Token);
+                        logger.LogDebug("Heartbeat to websocket client for car {vin} sent", existingClient.Vin);
                     }
                     catch (Exception ex)
                     {
@@ -63,11 +78,10 @@ public class FleetTelemetryWebSocketService(
 
                     continue;
                 }
-                else
-                {
-                    existingClient.WebSocketClient.Dispose();
-                    Clients.Remove(existingClient);
-                }
+
+                logger.LogInformation("Websocket Client for car {vin} is not open or last heartbeat is too old. Disposing client", car.Vin);
+                existingClient.WebSocketClient.Dispose();
+                Clients.Remove(existingClient);
             }
 
             ConnectToFleetTelemetryApi(car.Vin, car.UseFleetTelemetryForLocationData);
@@ -107,9 +121,9 @@ public class FleetTelemetryWebSocketService(
             logger.LogError("Can not connect to WebSocket: No token found for car {vin}", vin);
             return;
         }
-
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var url = configurationWrapper.FleetTelemetryApiUrl() +
-                  $"teslaToken={token.AccessToken}&region={token.Region}&vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}";
+                  $"teslaToken={token.AccessToken}&region={token.Region}&vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}&installationId={installationId}";
         using var client = new ClientWebSocket();
         try
         {
@@ -120,6 +134,7 @@ public class FleetTelemetryWebSocketService(
                 Vin = vin,
                 WebSocketClient = client,
                 CancellationToken = cancellation.Token,
+                LastReceivedHeartbeat = currentDate,
             };
             Clients.Add(dtoClient);
             var carId = await context.Cars
@@ -128,7 +143,7 @@ public class FleetTelemetryWebSocketService(
                 .FirstOrDefaultAsync().ConfigureAwait(false);
             try
             {
-                await ReceiveMessages(client, dtoClient.CancellationToken, dtoClient.Vin, carId).ConfigureAwait(false);
+                await ReceiveMessages(dtoClient, dtoClient.Vin, carId).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -150,20 +165,22 @@ public class FleetTelemetryWebSocketService(
         }
     }
 
-    private async Task ReceiveMessages(ClientWebSocket webSocket, CancellationToken ctx, string vin, int carId)
+    private async Task ReceiveMessages(DtoFleetTelemetryWebSocketClients client, string vin, int carId)
     {
+        logger.LogTrace("{method}(webSocket, ctx, {vin}, {carId})", nameof(ReceiveMessages), vin, carId);
         var buffer = new byte[1024 * 4]; // Buffer to store incoming data
-        while (webSocket.State == WebSocketState.Open)
+        while (client.WebSocketClient.State == WebSocketState.Open)
         {
             try
             {
                 // Receive message from the WebSocket server
-                var result = await webSocket.ReceiveAsync(new(buffer), ctx);
-
+                logger.LogTrace("Waiting for new fleet telemetry message for car {vin}", vin);
+                var result = await client.WebSocketClient.ReceiveAsync(new(buffer), client.CancellationToken);
+                logger.LogTrace("Received new fleet telemetry message for car {vin}", vin);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     // If the server closed the connection, close the WebSocket
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, ctx);
+                    await client.WebSocketClient.CloseAsync(WebSocketCloseStatus.NormalClosure, result.CloseStatusDescription, client.CancellationToken);
                     logger.LogInformation("WebSocket connection closed by server.");
                 }
                 else
@@ -173,39 +190,46 @@ public class FleetTelemetryWebSocketService(
                     if (jsonMessage == "Heartbeat")
                     {
                         logger.LogTrace("Received heartbeat: {message}", jsonMessage);
+                        client.LastReceivedHeartbeat = dateTimeProvider.UtcNow();
                         continue;
                     }
 
                     var message = DeserializeFleetTelemetryMessage(jsonMessage);
-                    if (message != null)
+                    if (message == default)
                     {
-                        if (configurationWrapper.LogLocationData() ||
-                            (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
-                        {
-                            logger.LogDebug("Save fleet telemetry message {@message}", message);
-                        }
-                        else
-                        {
-                            logger.LogDebug("Save location message for car {carId}", carId);
-                        }
+                        logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
+                        continue;
+                    }
 
-                        var scope = serviceProvider.CreateScope();
-                        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-                        var carValueLog = new CarValueLog
-                        {
-                            CarId = carId,
-                            Type = message.Type,
-                            DoubleValue = message.DoubleValue,
-                            IntValue = message.IntValue,
-                            StringValue = message.StringValue,
-                            UnknownValue = message.UnknownValue,
-                            BooleanValue = message.BooleanValue,
-                            InvalidValue = message.InvalidValue,
-                            Timestamp = message.TimeStamp.UtcDateTime,
-                            Source = CarValueSource.FleetTelemetry,
-                        };
-                        context.CarValueLogs.Add(carValueLog);
-                        await context.SaveChangesAsync().ConfigureAwait(false);
+                    if (configurationWrapper.LogLocationData() ||
+                        (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
+                    {
+                        logger.LogDebug("Save fleet telemetry message {@message}", message);
+                    }
+                    else
+                    {
+                        logger.LogDebug("Save location message for car {carId}", carId);
+                    }
+
+                    var scope = serviceProvider.CreateScope();
+                    var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+                    var carValueLog = new CarValueLog
+                    {
+                        CarId = carId,
+                        Type = message.Type,
+                        DoubleValue = message.DoubleValue,
+                        IntValue = message.IntValue,
+                        StringValue = message.StringValue,
+                        UnknownValue = message.UnknownValue,
+                        BooleanValue = message.BooleanValue,
+                        InvalidValue = message.InvalidValue,
+                        Timestamp = message.TimeStamp.UtcDateTime,
+                        Source = CarValueSource.FleetTelemetry,
+                    };
+                    context.CarValueLogs.Add(carValueLog);
+                    await context.SaveChangesAsync().ConfigureAwait(false);
+                    if (configurationWrapper.GetVehicleDataFromTesla())
+                    {
                         var settingsCar = settings.Cars.First(c => c.Vin == vin);
                         string? propertyName = null;
                         switch (message.Type)
@@ -259,10 +283,7 @@ public class FleetTelemetryWebSocketService(
                             UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
                         }
                     }
-                    else
-                    {
-                        logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
-                    }
+
                 }
             }
             catch (Exception ex)

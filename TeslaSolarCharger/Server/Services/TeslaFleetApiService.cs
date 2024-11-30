@@ -37,7 +37,8 @@ public class TeslaFleetApiService(
     ISettings settings,
     IBleService bleService,
     IIssueKeys issueKeys,
-    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper)
+    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper,
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService)
     : ITeslaService, ITeslaFleetApiService
 {
     private const string IsChargingErrorMessage = "is_charging";
@@ -318,7 +319,16 @@ public class TeslaFleetApiService(
                     logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
                     continue;
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Could not get vehicle data for car {carId}", carId);
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while refreshing car data for car {car.Vin}",
+                    $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.GetVehicle, car.Vin, ex.StackTrace).ConfigureAwait(false);
+            }
 
+            try
+            {
                 var vehicleData = await SendCommandToTeslaApi<DtoVehicleDataResult>(car.Vin, VehicleDataRequest, HttpMethod.Get)
                     .ConfigureAwait(false);
                 logger.LogTrace("Got vehicleData {@vehicleData}", vehicleData);
@@ -465,14 +475,12 @@ public class TeslaFleetApiService(
                     });
                     await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                 }
-
-                await errorHandlingService.HandleErrorResolved(issueKeys.UnhandledCarStateRefresh, car.Vin);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Could not get vehicle data for car {carId}", carId);
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while refreshing car data for car {car.Vin}",
-                    $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.UnhandledCarStateRefresh, car.Vin, ex.StackTrace).ConfigureAwait(false);
+                    $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.GetVehicleData, car.Vin, ex.StackTrace).ConfigureAwait(false);
             }
         }
     }
@@ -487,136 +495,141 @@ public class TeslaFleetApiService(
         }
         logger.LogDebug("Latest car refresh: {latestRefresh}", latestRefresh);
         var currentUtcDate = dateTimeProvider.UtcNow();
-        var homeGeofenceDistance = car.DistanceToHomeGeofence;
-        var earliestHomeArrival =
-            // ReSharper disable once PossibleLossOfFraction
-            latestRefresh.AddSeconds((homeGeofenceDistance ?? 0) / configurationWrapper.MaxTravelSpeedMetersPerSecond());
-        logger.LogDebug("Earliest Home arrival: {earliestHomeArrival}", earliestHomeArrival);
-        car.EarliestHomeArrival = earliestHomeArrival;
-        if (earliestHomeArrival > currentUtcDate)
+        var earliestDetectedChange = currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds());
+        if (fleetTelemetryWebSocketService.IsClientConnected(car.Vin))
         {
-            logger.LogDebug("Do not refresh data for car {vin} as ealiest calculated home arrival is {ealiestHomeArrival}", car.Vin, earliestHomeArrival);
-            return false;
+            logger.LogTrace("Fleet Telemetry Client connected, check fleet telemetry changes and do not request Fleet API after commands.");
+            if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsCharging, latestRefresh, earliestDetectedChange).ConfigureAwait(false))
+            {
+                logger.LogDebug("Send a request as Fleet Telemetry detected a change in is charging in state.");
+                return true;
+            }
+
+            if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsPluggedIn, latestRefresh, earliestDetectedChange).ConfigureAwait(false))
+            {
+                logger.LogDebug("Send a request as Fleet Telemetry detected a change in plugged in state.");
+                return true;
+            }
+
+            var values = await GetValuesSince(car.Id, CarValueType.ChargeAmps, earliestDetectedChange).ConfigureAwait(false);
+            if (AnyValueChanged(latestRefresh, values) && values.Any(v => v.DoubleValue == 0))
+            {
+                logger.LogDebug("Send a request as Fleet Telemetry detected at least one 0 value in charging amps.");
+                return true;
+            }
         }
-
-        var latestCommandTimeStamp = car.WakeUpCalls
-            .Concat(car.ChargeStartCalls)
-            .Concat(car.ChargeStopCalls)
-            .Concat(car.SetChargingAmpsCall)
-            .Concat(car.OtherCommandCalls)
-            .OrderByDescending(c => c)
-            .FirstOrDefault();
-        if (latestCommandTimeStamp == default)
+        else
         {
-            latestCommandTimeStamp = dateTimeProvider.UtcNow().AddDays(-1);
-        }
+            logger.LogTrace("Fleet Telemetry Client not connected, request Fleet API after commands.");
+            var homeGeofenceDistance = car.DistanceToHomeGeofence;
+            var earliestHomeArrival =
+                // ReSharper disable once PossibleLossOfFraction
+                latestRefresh.AddSeconds((homeGeofenceDistance ?? 0) / configurationWrapper.MaxTravelSpeedMetersPerSecond());
+            logger.LogDebug("Earliest Home arrival: {earliestHomeArrival}", earliestHomeArrival);
+            car.EarliestHomeArrival = earliestHomeArrival;
+            if (earliestHomeArrival > currentUtcDate)
+            {
+                logger.LogDebug("Do not refresh data for car {vin} as ealiest calculated home arrival is {ealiestHomeArrival}", car.Vin, earliestHomeArrival);
+                return false;
+            }
 
-        logger.LogDebug("Latest command Timestamp: {latestCommandTimeStamp}", latestCommandTimeStamp);
+            var latestCommandTimeStamp = car.WakeUpCalls
+                .Concat(car.ChargeStartCalls)
+                .Concat(car.ChargeStopCalls)
+                .Concat(car.SetChargingAmpsCall)
+                .Concat(car.OtherCommandCalls)
+                .OrderByDescending(c => c)
+                .FirstOrDefault();
+            if (latestCommandTimeStamp == default)
+            {
+                latestCommandTimeStamp = dateTimeProvider.UtcNow().AddDays(-1);
+            }
 
-        //Do not waste a request if the latest command was in the last few seconds. Request the next time instead
-        if (latestCommandTimeStamp > currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds()))
-        {
-            logger.LogDebug("Do not refresh data as on {latestCommandTimeStamp} there was a command sent to the car.", latestCommandTimeStamp);
-            return false;
+            logger.LogDebug("Latest command Timestamp: {latestCommandTimeStamp}", latestCommandTimeStamp);
+
+            //Do not waste a request if the latest command was in the last few seconds. Request the next time instead
+            if (latestCommandTimeStamp > earliestDetectedChange)
+            {
+                logger.LogDebug("Do not refresh data as on {latestCommandTimeStamp} there was a command sent to the car.", latestCommandTimeStamp);
+                return false;
+            }
+
+            //Note: This needs to be after request waste check
+            if (latestCommandTimeStamp > latestRefresh)
+            {
+                logger.LogDebug("Send a request now as more than {carResfreshAfterCommand} s ago there was a command request", configurationWrapper.CarRefreshAfterCommandSeconds());
+                return true;
+            }
+
+            var latestChargeStartOrWakeUp = car.WakeUpCalls.Concat(car.ChargeStartCalls).OrderByDescending(c => c).FirstOrDefault();
+            if (latestChargeStartOrWakeUp == default)
+            {
+                latestChargeStartOrWakeUp = dateTimeProvider.UtcNow().AddDays(-1);
+            }
+            logger.LogDebug("Latest wake or charge start Timestamp: {latestChargeStartOrWakeUp}", latestChargeStartOrWakeUp);
+            //force request after 55 seconds after start or wakeup as car takes much time to reach full charging speed
+            const int seconds = 55;
+            var forcedRequestTimeAfterStartOrWakeUp = latestChargeStartOrWakeUp + TimeSpan.FromSeconds(seconds);
+            if (currentUtcDate > forcedRequestTimeAfterStartOrWakeUp
+                && latestRefresh < forcedRequestTimeAfterStartOrWakeUp)
+            {
+                logger.LogDebug("Within the last {seconds} seconds a charge start or wake call was sent to the car. Force vehicle data call now", seconds);
+                return true;
+            }
         }
         
-        //Note: This needs to be after request waste check
-        if (latestCommandTimeStamp > latestRefresh)
-        {
-            logger.LogDebug("Send a request now as more than {carResfreshAfterCommand} s ago there was a command request", configurationWrapper.CarRefreshAfterCommandSeconds());
-            return true;
-        }
 
-        if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsCharging, latestRefresh).ConfigureAwait(false))
+        if ((latestRefresh + configurationWrapper.FleetApiRefreshInterval()) < currentUtcDate)
         {
-            logger.LogDebug("Send a request as Fleet Telemetry detected a change in is charging in state.");
-            return true;
-        }
-
-        if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsPluggedIn, latestRefresh).ConfigureAwait(false))
-        {
-            logger.LogDebug("Send a request as Fleet Telemetry detected a change in plugged in state.");
-            return true;
-        }
-
-        var values = await GetLatestTwoValues(car.Id, CarValueType.ChargeAmps).ConfigureAwait(false);
-        if (LatestValueChangeAfterLatestFleetApiRefresh(latestRefresh, values) && values.Any(v => v.DoubleValue == 0))
-        {
-            logger.LogDebug("Send a request as Fleet Telemetry detected at least one 0 value in charging amps.");
-            return true;
-        }
-
-        var latestChargeStartOrWakeUp = car.WakeUpCalls.Concat(car.ChargeStartCalls).OrderByDescending(c => c).FirstOrDefault();
-        if (latestChargeStartOrWakeUp == default)
-        {
-            latestChargeStartOrWakeUp = dateTimeProvider.UtcNow().AddDays(-1);
-        }
-        logger.LogDebug("Latest wake or charge start Timestamp: {latestChargeStartOrWakeUp}", latestChargeStartOrWakeUp);
-        //force request after 55 seconds after start or wakeup as car takes much time to reach full charging speed
-        const int seconds = 55;
-        var forcedRequestTimeAfterStartOrWakeUp = latestChargeStartOrWakeUp + TimeSpan.FromSeconds(seconds);
-        if (currentUtcDate > forcedRequestTimeAfterStartOrWakeUp
-            && latestRefresh < forcedRequestTimeAfterStartOrWakeUp)
-        {
-            logger.LogDebug("Within the last {seconds} seconds a charge start or wake call was sent to the car. Force vehicle data call now", seconds);
-            return true;
-        }
-
-        if (latestRefresh.AddSeconds(car.ApiRefreshIntervalSeconds) < currentUtcDate)
-        {
-            logger.LogDebug("Refresh car data as time intervall of {seconds} s is over", car.ApiRefreshIntervalSeconds);
+            logger.LogDebug("Refresh car data as time interval of {interval} s is over", configurationWrapper.FleetApiRefreshInterval());
             return true;
         }
         logger.LogDebug("Refresh of vehicle Data is not needed.");
         return false;
     }
 
-    private async Task<bool> FleetTelemetryValueChanged(int carId, CarValueType carValueType, DateTime latestRefresh)
+    private async Task<bool> FleetTelemetryValueChanged(int carId, CarValueType carValueType, DateTime latestRefresh, DateTime currentUtcDate)
     {
-        var values = await GetLatestTwoValues(carId, carValueType).ConfigureAwait(false);
-
-        if (!LatestValueChangeAfterLatestFleetApiRefresh(latestRefresh, values))
-        {
-            return false;
-        }
-
-        var currentValue = values[0];
-        var previousValue = values[1];
-
-        var doubleValueChanged = !Nullable.Equals(currentValue.DoubleValue, previousValue.DoubleValue);
-        var intValueChanged = !Nullable.Equals(currentValue.IntValue, previousValue.IntValue);
-        var stringValueChanged = currentValue.StringValue != previousValue.StringValue;
-        var unknownValueChanged = currentValue.UnknownValue != previousValue.UnknownValue;
-        var booleanValueChanged = !Nullable.Equals(currentValue.BooleanValue, previousValue.BooleanValue);
-        var invalidValueChanged = !Nullable.Equals(currentValue.InvalidValue, previousValue.InvalidValue);
-
-        return (currentValue.Timestamp > latestRefresh)
-               && (doubleValueChanged || intValueChanged || stringValueChanged || unknownValueChanged || booleanValueChanged || invalidValueChanged);
+        logger.LogTrace("{method}({carId}, {carValueType}, {latestRefresh}, {currentUtcDate})", nameof(FleetTelemetryValueChanged), carId, carValueType, latestRefresh, currentUtcDate);
+        var values = await GetValuesSince(carId, carValueType, currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds())).ConfigureAwait(false);
+        return AnyValueChanged(latestRefresh, values);
     }
 
-    private static bool LatestValueChangeAfterLatestFleetApiRefresh(DateTime latestRefresh, List<CarValueLogTimeStampAndValues> values)
+    private bool AnyValueChanged(DateTime latestRefresh, List<CarValueLogTimeStampAndValues> values)
     {
-        //Only one value available
-        if (values.Count != 2)
+        logger.LogTrace("{method}({latestRefresh}, {@values})", nameof(AnyValueChanged), latestRefresh, values);
+        // Ensure there are at least two values to compare
+        if (values.Count < 2)
         {
             return false;
         }
 
-        //latest value change before latest fleet API refresh
-        if (values.Count(c => c.Timestamp > latestRefresh) < 1)
+        // Check if the latest value is after the latest refresh time
+        if (values[0].Timestamp <= latestRefresh)
         {
             return false;
         }
 
-        return true;
+        // Check if any of the properties have changed among all values
+        var doubleValuesChanged = values.Select(v => v.DoubleValue).Distinct().Count() > 1;
+        var intValuesChanged = values.Select(v => v.IntValue).Distinct().Count() > 1;
+        var stringValuesChanged = values.Select(v => v.StringValue).Distinct().Count() > 1;
+        var unknownValuesChanged = values.Select(v => v.UnknownValue).Distinct().Count() > 1;
+        var booleanValuesChanged = values.Select(v => v.BooleanValue).Distinct().Count() > 1;
+        var invalidValuesChanged = values.Select(v => v.InvalidValue).Distinct().Count() > 1;
+
+        // Return true if any property has changed
+        return doubleValuesChanged || intValuesChanged || stringValuesChanged || unknownValuesChanged || booleanValuesChanged || invalidValuesChanged;
     }
 
-    private async Task<List<CarValueLogTimeStampAndValues>> GetLatestTwoValues(int carId, CarValueType carValueType)
+    private async Task<List<CarValueLogTimeStampAndValues>> GetValuesSince(int carId, CarValueType carValueType, DateTime startTime)
     {
+        logger.LogTrace("{method}({carId}, {carValueType}, {startTime})", nameof(GetValuesSince), carId, carValueType, startTime);
         var values = await teslaSolarChargerContext.CarValueLogs
             .Where(c => c.Type == carValueType
                         && c.Source == CarValueSource.FleetTelemetry
-                        && c.CarId == carId)
+                        && c.CarId == carId
+                        && c.Timestamp > startTime)
             .OrderByDescending(c => c.Timestamp)
             .Select(c => new CarValueLogTimeStampAndValues
             {
@@ -628,7 +641,6 @@ public class TeslaFleetApiService(
                 BooleanValue = c.BooleanValue,
                 InvalidValue = c.InvalidValue,
             })
-            .Take(2)
             .ToListAsync();
         return values;
     }

@@ -170,7 +170,7 @@ public class BackendApiService(
                 InstallationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false),
                 StartupTime = settings.StartupTime,
                 GetDataFromTesla = getVehicleDataFromTesla,
-                ApiRefreshInterval = car.ApiRefreshIntervalSeconds,
+                ApiRefreshInterval = (int) configurationWrapper.FleetApiRefreshInterval().TotalSeconds,
                 UseBle = car.UseBle,
                 Vin = car.Vin,
                 WakeUpCalls = car.WakeUpCalls.Where(predicate).ToList(),

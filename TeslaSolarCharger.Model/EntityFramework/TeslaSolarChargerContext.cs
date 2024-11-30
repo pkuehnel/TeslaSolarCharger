@@ -108,10 +108,6 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
 
-        modelBuilder.Entity<Car>()
-            .Property(c => c.ApiRefreshIntervalSeconds)
-            .HasDefaultValue(500);
-
         var timeListToString = new ValueConverter<List<DateTime>, string?>(
             v => JsonConvert.SerializeObject(v),
             v => v == null ? new() : JsonConvert.DeserializeObject<List<DateTime>>(v) ?? new List<DateTime>()
