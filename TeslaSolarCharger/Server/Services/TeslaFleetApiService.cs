@@ -501,7 +501,7 @@ public class TeslaFleetApiService(
             logger.LogTrace("Fleet Telemetry Client connected, check fleet telemetry changes and do not request Fleet API after commands.");
             if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsCharging, latestRefresh, earliestDetectedChange).ConfigureAwait(false))
             {
-                logger.LogDebug("Send a request as Fleet Telemetry detected a change in is charging in state.");
+                logger.LogDebug("Send a request as Fleet Telemetry detected a change in is charging state.");
                 return true;
             }
 
