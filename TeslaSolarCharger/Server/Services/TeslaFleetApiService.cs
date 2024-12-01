@@ -642,7 +642,31 @@ public class TeslaFleetApiService(
                 InvalidValue = c.InvalidValue,
             })
             .ToListAsync();
-        return values;
+
+        var lastBeforeStartTimeValue = await teslaSolarChargerContext.CarValueLogs
+            .Where(c => c.Type == carValueType
+                        && c.Source == CarValueSource.FleetTelemetry
+                        && c.CarId == carId
+                        && c.Timestamp <= startTime)
+            .OrderByDescending(c => c.Timestamp)
+            .Select(c => new CarValueLogTimeStampAndValues
+            {
+                Timestamp = c.Timestamp,
+                DoubleValue = c.DoubleValue,
+                IntValue = c.IntValue,
+                StringValue = c.StringValue,
+                UnknownValue = c.UnknownValue,
+                BooleanValue = c.BooleanValue,
+                InvalidValue = c.InvalidValue,
+            })
+            .FirstOrDefaultAsync(); // Use FirstOrDefault to get the single latest value before startTime
+
+        // Combine the results
+        if (lastBeforeStartTimeValue != null)
+        {
+            values.Add(lastBeforeStartTimeValue); // Add the value before startTime if it exists
+        }
+        return values.OrderByDescending(v => v.Timestamp).ToList();
     }
 
 
