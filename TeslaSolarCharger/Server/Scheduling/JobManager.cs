@@ -100,7 +100,7 @@ public class JobManager(
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
 
         var vehicleDataRefreshTrigger = TriggerBuilder.Create().WithIdentity("vehicleDataRefreshTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(11)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(configurationWrapper.CarRefreshAfterCommandSeconds())).Build();
 
         var teslaMateChargeCostUpdateTrigger = TriggerBuilder.Create()
             .WithIdentity("teslaMateChargeCostUpdateTrigger")
