@@ -13,4 +13,6 @@ public interface IBleService
     Task<DtoBleCommandResult> PairKey(string vin, string role);
     Task<DtoBleCommandResult> WakeUpCar(string vin);
     Task CheckBleApiVersionCompatibilities();
+    Task<DtoBleCommandResult> GetChargeState(string vin);
+    Task<DtoBleCommandResult> GetDriveState(string vin);
 }
