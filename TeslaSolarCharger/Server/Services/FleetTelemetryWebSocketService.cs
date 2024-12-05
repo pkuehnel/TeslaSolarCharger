@@ -79,7 +79,7 @@ public class FleetTelemetryWebSocketService(
                     continue;
                 }
 
-                logger.LogInformation("Websocket Client for car {vin} is not open or last heartbeat is too old. Disposing client", car.Vin);
+                logger.LogInformation("Websocket Client State for car {vin} is {state}, last heartbeat is {lastHeartbeat} while earliest Possible Heartbeat is {earliestPossibleHeartbeat}. Disposing client", car.Vin, existingClient.WebSocketClient.State, existingClient.LastReceivedHeartbeat, earliestPossibleLastHeartbeat);
                 existingClient.WebSocketClient.Dispose();
                 Clients.Remove(existingClient);
             }
