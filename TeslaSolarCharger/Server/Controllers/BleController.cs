@@ -24,4 +24,10 @@ public class BleController (IBleService bleService) : ApiBaseController
 
     [HttpGet]
     public Task<DtoBleCommandResult> WakeUp(string vin) => bleService.WakeUpCar(vin);
+
+    [HttpGet]
+    public Task<DtoBleCommandResult> GetChargeState(string vin) => bleService.GetChargeState(vin);
+
+    [HttpGet]
+    public Task<DtoBleCommandResult> GetDriveState(string vin) => bleService.GetDriveState(vin);
 }
