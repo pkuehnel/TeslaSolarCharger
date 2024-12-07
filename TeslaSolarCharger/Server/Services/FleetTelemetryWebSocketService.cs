@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
@@ -7,6 +8,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
+using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -197,9 +199,10 @@ public class FleetTelemetryWebSocketService(
                         client.LastReceivedHeartbeat = dateTimeProvider.UtcNow();
                         continue;
                     }
-                    logger.LogTrace("Received non heartbeate message.");
-                    var message = DeserializeFleetTelemetryMessage(jsonMessage);
-                    if (message == default)
+                    logger.LogTrace("Received non heartbeat message.");
+                    var jObject = JObject.Parse(jsonMessage);
+                    var messageType = jObject[nameof(FleetTelemetryMessageBase.MessageType)]?.ToObject<FleetTelemetryMessageType>();
+                    if (messageType == FleetTelemetryMessageType.Error)
                     {
                         var couldHandleErrorMessage = await HandleErrorMessage(jsonMessage);
                         if (!couldHandleErrorMessage)
@@ -208,7 +211,12 @@ public class FleetTelemetryWebSocketService(
                         }
                         continue;
                     }
-
+                    var message = DeserializeFleetTelemetryMessage(jsonMessage);
+                    if (message == default)
+                    {
+                        logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
+                        continue;
+                    }
                     if (configurationWrapper.LogLocationData() ||
                         (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
                     {
