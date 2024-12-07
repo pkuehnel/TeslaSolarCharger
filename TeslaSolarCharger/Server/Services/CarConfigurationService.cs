@@ -56,6 +56,12 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                     teslaSolarChargerCar.TeslaMateCarId = teslaMateCarId;
                     await teslaSolarChargerContext.SaveChangesAsync();
                 }
+
+                if (!teslaSolarChargerCar.IsAvailableInTeslaAccount)
+                {
+                    teslaSolarChargerCar.IsAvailableInTeslaAccount = true;
+                    await teslaSolarChargerContext.SaveChangesAsync();
+                }
                 continue;
             }
             teslaSolarChargerCar = new Car
@@ -77,6 +83,17 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
             };
             teslaSolarChargerContext.Cars.Add(teslaSolarChargerCar);
             await teslaSolarChargerContext.SaveChangesAsync();
+        }
+
+        foreach (var teslaSolarChargerCar in teslaSolarChargerCars)
+        {
+            if (!teslaAccountCars.Any(c => string.Equals(c.Vin, teslaSolarChargerCar.Vin)))
+            {
+                logger.LogInformation("Car with VIN {vin} is not available in Tesla account anymore.", teslaSolarChargerCar.Vin);
+                teslaSolarChargerCar.IsAvailableInTeslaAccount = false;
+                teslaSolarChargerCar.ShouldBeManaged = false;
+                await teslaSolarChargerContext.SaveChangesAsync();
+            }
         }
     }
 }

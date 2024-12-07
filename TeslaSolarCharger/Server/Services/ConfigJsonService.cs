@@ -184,6 +184,8 @@ public class ConfigJsonService(
         });
 
         var cars = await teslaSolarChargerContext.Cars
+            .Where(c => c.IsAvailableInTeslaAccount)
+            .OrderBy(c => c.ChargingPriority)
             .ProjectTo<CarBasicConfiguration>(mapper)
             .ToListAsync().ConfigureAwait(false);
 
@@ -405,47 +407,25 @@ public class ConfigJsonService(
     public async Task UpdateAverageGridVoltage()
     {
         logger.LogTrace("{method}()", nameof(UpdateAverageGridVoltage));
-        var homeGeofence = configurationWrapper.GeoFence();
         const int lowestWorldWideGridVoltage = 100;
         const int voltageBuffer = 15;
         const int lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
         try
         {
-            var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
-            if (teslaMateContext != default && configurationWrapper.UseTeslaMateIntegration())
+            var chargerVoltages = await teslaSolarChargerContext.ChargingDetails
+                .Where(c => (c.ChargerVoltage != null)
+                            && (c.ChargerVoltage > lowestGridVoltageToSearchFor))
+                .OrderByDescending(c => c.Id)
+                .Select(c => c.ChargerVoltage)
+                .Take(1000)
+                .ToListAsync().ConfigureAwait(false);
+            if (chargerVoltages.Count > 10)
             {
-                var chargerVoltages = await teslaMateContext
-                    .Charges
-                    .Where(c => c.ChargingProcess.Geofence != null
-                                && c.ChargingProcess.Geofence.Name == homeGeofence
-                                && c.ChargerVoltage > lowestGridVoltageToSearchFor)
-                    .OrderByDescending(c => c.Id)
-                    .Select(c => c.ChargerVoltage)
-                    .Take(1000)
-                    .ToListAsync().ConfigureAwait(false);
-                if (chargerVoltages.Count > 10)
-                {
-                    var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
-                    logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
-                    settings.AverageHomeGridVoltage = averageValue;
-                }
+                var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
+                logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
+                settings.AverageHomeGridVoltage = averageValue;
             }
-            else
-            {
-                var chargerVoltages = await teslaSolarChargerContext.ChargingDetails
-                    .Where(c => c.ChargerVoltage != null)
-                    .OrderByDescending(c => c.Id)
-                    .Select(c => c.ChargerVoltage)
-                    .Take(1000)
-                    .ToListAsync().ConfigureAwait(false);
-                if (chargerVoltages.Count > 10)
-                {
-                    var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
-                    logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
-                    settings.AverageHomeGridVoltage = averageValue;
-                }
-            }
-            
+
         }
         catch (Exception ex)
         {
