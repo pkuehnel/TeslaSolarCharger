@@ -194,7 +194,7 @@ public class FleetTelemetryWebSocketService(
                         client.LastReceivedHeartbeat = dateTimeProvider.UtcNow();
                         continue;
                     }
-
+                    logger.LogTrace("Received non heartbeate message.");
                     var message = DeserializeFleetTelemetryMessage(jsonMessage);
                     if (message == default)
                     {

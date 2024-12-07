@@ -245,7 +245,6 @@ public class ConfigJsonService(
         databaseCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
         databaseCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         databaseCar.UseBle = carBasicConfiguration.UseBle;
-        databaseCar.UseBleForWakeUp = carBasicConfiguration.UseBleForWakeUp;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
         databaseCar.UseFleetTelemetryForLocationData = carBasicConfiguration.UseFleetTelemetryForLocationData;
@@ -259,7 +258,6 @@ public class ConfigJsonService(
         settingsCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
         settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         settingsCar.UseBle = carBasicConfiguration.UseBle;
-        settingsCar.UseBleForWakeUp = carBasicConfiguration.UseBleForWakeUp;
         settingsCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         await fleetTelemetryWebSocketService.DisconnectWebSocketsByVin(carBasicConfiguration.Vin);
     }

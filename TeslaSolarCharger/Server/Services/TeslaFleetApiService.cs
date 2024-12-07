@@ -96,6 +96,7 @@ public class TeslaFleetApiService(
         RequestUrl = constants.WakeUpRequestUrl,
         NeedsProxy = false,
         TeslaApiRequestType = TeslaApiRequestType.WakeUp,
+        BleCompatible = true,
     };
 
     private DtoFleetApiRequest VehicleRequest => new()
@@ -821,7 +822,7 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {contentData})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, contentData);
         var car = settings.Cars.First(c => c.Vin == vin);
-        if (fleetApiRequest.BleCompatible || (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl && car.UseBleForWakeUp))
+        if (fleetApiRequest.BleCompatible)
         {
             
             var isCarBleEnabled = car.UseBle;
