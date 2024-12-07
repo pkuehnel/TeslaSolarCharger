@@ -41,12 +41,9 @@ public class CarBasicConfiguration
     [DisplayName("Use BLE")]
     [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g., Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near (max 4 meters without any walls in between) your car.")]
     public bool UseBle { get; set; }
-    [DisplayName("Use BLE for wake up")]
-    [HelperText("The car needs to be at least on version 2024.32.3 to support wake up via BLE.")]
-    public bool UseBleForWakeUp { get; set; }
     [HelperText("Needed to send commands via BLE to the car. An example value would be `http://raspible:7210/`")]
     public string? BleApiBaseUrl { get; set; }
-    [HelperText("Only supported on cars with Software 2024.38.2+. Not supported on Pre 2021 Model S/X. If enabled, some data will be transferred via Fleet Telemetry. This improves the delay in the TSC detection of plugin and out of the car, as well as changes in the charging speed. Note: All data transferred via Fleet Telemetry passes my server.")]
+    [HelperText("Only supported on cars with Software 2024.38.2+. Not supported on Pre 2021 Model S/X. If enabled, some data will be transferred via Fleet Telemetry. This improves the delay in the TSC detection of plugin and out of the car, as well as changes in the charging speed. Note: All data transferred via Fleet Telemetry passes my server. If your car does not support fleet telemetry, this option will be disabled automatically within two minutes.")]
     public bool UseFleetTelemetry { get; set; }
 
     [HelperText("This further improves the detection if the car is at home. Enabling this results in additionally streaming the field Location over my server. If you do not mind that your car location data passes my server, do not disable this option.")]

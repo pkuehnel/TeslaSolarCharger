@@ -59,9 +59,6 @@ else
                 <GenericInput For="() => carBasicConfiguration.ChargingPriority" />
                 <GenericInput For="() => carBasicConfiguration.ShouldBeManaged" />
                 <GenericInput For="() => carBasicConfiguration.UseBle" />
-                <GenericInput T="bool"
-                              For="() => carBasicConfiguration.UseBleForWakeUp"
-                              OnValueChanged="StateHasChanged"/>
                 <GenericInput For="() => carBasicConfiguration.BleApiBaseUrl" />
                 <GenericInput T="bool"
                               For="() => carBasicConfiguration.UseFleetTelemetry"
@@ -107,7 +104,7 @@ else
                 </div>
             }
             <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
-            @if (carBasicConfiguration.UseBleForWakeUp)
+            @if (carBasicConfiguration.UseBle)
             {
                 <h5>Test Wakeup via BLE</h5>
                 <div>

@@ -1,6 +1,6 @@
 ﻿using TeslaSolarCharger.Shared.Enums;
 
-namespace TeslaSolarCharger.Server.Dtos;
+namespace TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 
 public class DtoTscFleetTelemetryMessage
 {

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using LanguageExt;
+using Newtonsoft.Json;
 using System.Net;
 using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
@@ -36,6 +37,34 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             Vin = vin,
             CommandName = "wake",
             Domain = "vcsec",
+        };
+        var result = await SendCommandToBle(request).ConfigureAwait(false);
+        return result;
+    }
+
+    public async Task<DtoBleCommandResult> GetChargeState(string vin)
+    {
+        //Not tested, should contain a json with the charge state. Other options would be climate, drive, closures, charge-schedule, precondition-schedule, tire-pressue, media, media-detail, software-update
+        logger.LogTrace("{method}({vin})", nameof(GetChargeState), vin);
+        var request = new DtoBleRequest
+        {
+            Vin = vin,
+            CommandName = "state",
+            Parameters = ["charge"],
+        };
+        var result = await SendCommandToBle(request).ConfigureAwait(false);
+        return result;
+    }
+
+    public async Task<DtoBleCommandResult> GetDriveState(string vin)
+    {
+        //Not tested
+        logger.LogTrace("{method}({vin})", nameof(GetDriveState), vin);
+        var request = new DtoBleRequest
+        {
+            Vin = vin,
+            CommandName = "state",
+            Parameters = ["drive"],
         };
         var result = await SendCommandToBle(request).ConfigureAwait(false);
         return result;

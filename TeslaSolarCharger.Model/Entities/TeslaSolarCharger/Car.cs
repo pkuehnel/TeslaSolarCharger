@@ -46,10 +46,10 @@ public class Car
     public DateTime? WakeUpRateLimitedUntil { get; set; }
     public DateTime? ChargingCommandsRateLimitedUntil { get; set; }
     public bool UseBle { get; set; }
-    public bool UseBleForWakeUp { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public bool UseFleetTelemetry { get; set; }
     public bool UseFleetTelemetryForLocationData { get; set; }
+    public bool IsAvailableInTeslaAccount { get; set; }
 
     public string? WakeUpCalls { get; set; }
     public string? VehicleDataCalls { get; set; }

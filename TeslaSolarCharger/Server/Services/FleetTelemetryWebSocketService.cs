@@ -1,11 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
+using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -39,7 +42,9 @@ public class FleetTelemetryWebSocketService(
         var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var cars = await context.Cars
-            .Where(c => c.UseFleetTelemetry && (c.ShouldBeManaged == true))
+            .Where(c => c.UseFleetTelemetry
+                        && (c.ShouldBeManaged == true)
+                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotWorking))
             .Select(c => new { c.Vin, c.UseFleetTelemetryForLocationData, })
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
@@ -79,7 +84,8 @@ public class FleetTelemetryWebSocketService(
                     continue;
                 }
 
-                logger.LogInformation("Websocket Client for car {vin} is not open or last heartbeat is too old. Disposing client", car.Vin);
+                logger.LogInformation("Websocket Client State for car {vin} is {state}, last heartbeat is {lastHeartbeat} while earliest Possible Heartbeat is {earliestPossibleHeartbeat}. Disposing client",
+                    car.Vin, existingClient.WebSocketClient.State, existingClient.LastReceivedHeartbeat, earliestPossibleLastHeartbeat);
                 existingClient.WebSocketClient.Dispose();
                 Clients.Remove(existingClient);
             }
@@ -193,14 +199,24 @@ public class FleetTelemetryWebSocketService(
                         client.LastReceivedHeartbeat = dateTimeProvider.UtcNow();
                         continue;
                     }
-
+                    logger.LogTrace("Received non heartbeat message.");
+                    var jObject = JObject.Parse(jsonMessage);
+                    var messageType = jObject[nameof(FleetTelemetryMessageBase.MessageType)]?.ToObject<FleetTelemetryMessageType>();
+                    if (messageType == FleetTelemetryMessageType.Error)
+                    {
+                        var couldHandleErrorMessage = await HandleErrorMessage(jsonMessage);
+                        if (!couldHandleErrorMessage)
+                        {
+                            logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
+                        }
+                        continue;
+                    }
                     var message = DeserializeFleetTelemetryMessage(jsonMessage);
                     if (message == default)
                     {
                         logger.LogWarning("Could not deserialize non heartbeat message {string}", jsonMessage);
                         continue;
                     }
-
                     if (configurationWrapper.LogLocationData() ||
                         (message.Type != CarValueType.Latitude && message.Type != CarValueType.Longitude))
                     {
@@ -291,6 +307,58 @@ public class FleetTelemetryWebSocketService(
                 logger.LogError(ex, "Could not reveive message");
             }
         }
+    }
+
+    private async Task<bool> HandleErrorMessage(string jsonMessage)
+    {
+        logger.LogTrace("{method}({jsonMessage}", nameof(HandleErrorMessage), jsonMessage);
+        var message = JsonConvert.DeserializeObject<DtoFleetTelemetryErrorMessage>(jsonMessage);
+        if(message == default)
+        {
+            return false;
+        }
+        foreach (var vin in message.MissingKeyVins)
+        {
+            var scope = serviceProvider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+            var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
+            if (car == default)
+            {
+                continue;
+            }
+            logger.LogInformation("Set Fleet API state for car {vin} to not working", vin);
+            car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
+            await context.SaveChangesAsync();
+        }
+
+        foreach (var vin in message.UnsupportedFirmwareVins)
+        {
+            logger.LogInformation("Disable Fleet Telemetry for car {vin} as firmware is not supported", vin);
+            await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
+        }
+
+        foreach (var vin in message.UnsupportedHardwareVins)
+        {
+            logger.LogInformation("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
+            await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
+        }
+
+        return true;
+    }
+
+    private async Task DisableFleetTelemetryForCar(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(DisableFleetTelemetryForCar), vin);
+        var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
+        if (car == default)
+        {
+            return;
+        }
+        car.UseFleetTelemetry = false;
+        car.UseFleetTelemetryForLocationData = false;
+        await context.SaveChangesAsync();
     }
 
     internal DtoTscFleetTelemetryMessage? DeserializeFleetTelemetryMessage(string jsonMessage)

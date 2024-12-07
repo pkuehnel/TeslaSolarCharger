@@ -87,7 +87,6 @@ public class DtoCar
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
     public bool UseBle { get; set; }
-    public bool UseBleForWakeUp { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public DateTime? EarliestHomeArrival { get; set; }
     public List<DtoChargingSlot> PlannedChargingSlots { get; set; } = new List<DtoChargingSlot>();
