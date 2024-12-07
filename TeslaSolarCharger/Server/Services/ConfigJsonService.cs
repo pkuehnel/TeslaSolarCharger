@@ -184,6 +184,8 @@ public class ConfigJsonService(
         });
 
         var cars = await teslaSolarChargerContext.Cars
+            .Where(c => c.IsAvailableInTeslaAccount)
+            .OrderBy(c => c.ChargingPriority)
             .ProjectTo<CarBasicConfiguration>(mapper)
             .ToListAsync().ConfigureAwait(false);
 
@@ -433,7 +435,7 @@ public class ConfigJsonService(
             else
             {
                 var chargerVoltages = await teslaSolarChargerContext.ChargingDetails
-                    .Where(c => c.ChargerVoltage != null)
+                    .Where(c => c.ChargerVoltage != null && c.ChargerVoltage > 40)
                     .OrderByDescending(c => c.Id)
                     .Select(c => c.ChargerVoltage)
                     .Take(1000)
