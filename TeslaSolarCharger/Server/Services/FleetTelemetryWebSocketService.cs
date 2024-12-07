@@ -44,7 +44,9 @@ public class FleetTelemetryWebSocketService(
         var cars = await context.Cars
             .Where(c => c.UseFleetTelemetry
                         && (c.ShouldBeManaged == true)
-                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotWorking))
+                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotWorking)
+                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
+                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured))
             .Select(c => new { c.Vin, c.UseFleetTelemetryForLocationData, })
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
