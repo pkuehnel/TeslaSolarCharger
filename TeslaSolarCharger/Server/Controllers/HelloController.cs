@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Net;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
@@ -68,5 +69,14 @@ namespace TeslaSolarCharger.Server.Controllers
             return result.ToOk();
             
         }
+
+        [HttpGet]
+        public string GetMachineName() => Environment.MachineName;
+
+        [HttpGet]
+        public string GetHostName() => Dns.GetHostName();
+
+        [HttpGet]
+        public string GetHostNameFromFile() => System.IO.File.ReadAllText("/etc/hostname").Trim();
     }
 }
