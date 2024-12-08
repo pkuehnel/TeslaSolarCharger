@@ -1251,11 +1251,11 @@ public class TeslaFleetApiService(
             }
 
             var responseValue = JsonConvert.DeserializeObject<DtoValue<bool>>(responseString);
-            settings.AllowUnlimitedFleetApiRequests = responseValue?.Value != false;
+            settings.AllowUnlimitedFleetApiRequests = responseValue?.Value == true;
         }
         catch (Exception)
         {
-            settings.AllowUnlimitedFleetApiRequests = true;
+            settings.AllowUnlimitedFleetApiRequests = false;
         }
         
     }
