@@ -425,7 +425,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             "You recently changed your password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
             tokenState == FleetApiTokenState.TokenUnauthorized).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
-            "Remove Tesla Solar Charger from your <a href=\"https://accounts.tesla.com/account-settings/security?tab=tpty-apps\" target=\"_blank\">third party apps</a> as you won't get asked again for the scopes. After that request a new token in the <a href=\"/BaseConfiguration\">Base Configuration</a> and select all available scopes.",
+            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
             tokenState == FleetApiTokenState.MissingScopes).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenRequestExpired, "Tesla Token could not be received",
             "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
@@ -479,7 +479,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         }
         else if (shouldBeActive)
         {
-            for (var i = 0; i < activeErrors.Count; i++)
+            for (var i = 0; i < filteredErrors.Count; i++)
             {
                 if (i == 0)
                 {
