@@ -77,20 +77,6 @@ public class TeslaFleetApiService(
         NeedsProxy = true,
         TeslaApiRequestType = TeslaApiRequestType.Command,
     };
-    private DtoFleetApiRequest SetSentryModeRequest => new()
-    {
-        RequestUrl = constants.SetSentryModeRequestUrl,
-        NeedsProxy = true,
-        TeslaApiRequestType = TeslaApiRequestType.Command,
-    };
-    private DtoFleetApiRequest FlashHeadlightsRequest => new()
-    {
-        RequestUrl = constants.FlashHeadlightsRequestUrl,
-        NeedsProxy = true,
-        //Do not make this BLE compatible as this is used to test fleet api access
-        BleCompatible = false,
-        TeslaApiRequestType = TeslaApiRequestType.Charging,
-    };
     private DtoFleetApiRequest WakeUpRequest => new()
     {
         RequestUrl = constants.WakeUpRequestUrl,
@@ -212,19 +198,6 @@ public class TeslaFleetApiService(
         await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargeLimitRequest, HttpMethod.Post, JsonConvert.SerializeObject(parameters)).ConfigureAwait(false);
     }
 
-    public async Task SetSentryMode(int carId, bool active)
-    {
-        logger.LogTrace("{method}({param1}, {param2})", nameof(SetSentryMode), carId, active);
-        var vin = GetVinByCarId(carId);
-        var car = settings.Cars.First(c => c.Id == carId);
-        await WakeUpCarIfNeeded(carId, car.State).ConfigureAwait(false);
-        var parameters = new Dictionary<string, int>()
-        {
-            { "on", active ? 1 : 0 },
-        };
-        await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetSentryModeRequest, HttpMethod.Post, JsonConvert.SerializeObject(parameters)).ConfigureAwait(false);
-    }
-
     public async Task<DtoValue<bool>> TestFleetApiAccess(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(TestFleetApiAccess), carId);
@@ -233,7 +206,9 @@ public class TeslaFleetApiService(
         try
         {
             await WakeUpCarIfNeeded(carId, inMemoryCar.State).ConfigureAwait(false);
-            var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, FlashHeadlightsRequest, HttpMethod.Post).ConfigureAwait(false);
+            var amps = 7;
+            var commandData = $"{{\"charging_amps\":{amps}}}";
+            var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, HttpMethod.Post, commandData, amps).ConfigureAwait(false);
             var successResult = result?.Response?.Result == true;
             var car = teslaSolarChargerContext.Cars.First(c => c.Id == carId);
             car.TeslaFleetApiState = successResult ? TeslaCarFleetApiState.Ok : TeslaCarFleetApiState.NotWorking;
@@ -1019,10 +994,6 @@ public class TeslaFleetApiService(
             car.OtherCommandCalls.Add(currentDate);
         }
         else if (fleetApiRequest.RequestUrl == SetChargeLimitRequest.RequestUrl)
-        {
-            car.OtherCommandCalls.Add(currentDate);
-        }
-        else if (fleetApiRequest.RequestUrl == FlashHeadlightsRequest.RequestUrl)
         {
             car.OtherCommandCalls.Add(currentDate);
         }
