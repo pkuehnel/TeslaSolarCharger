@@ -1233,8 +1233,6 @@ public class TeslaFleetApiService(
     public async Task RefreshFleetApiRequestsAreAllowed()
     {
         logger.LogTrace("{method}()", nameof(RefreshFleetApiRequestsAreAllowed));
-        settings.AllowUnlimitedFleetApiRequests = false;
-        return;
         if (settings.AllowUnlimitedFleetApiRequests && (settings.LastFleetApiRequestAllowedCheck > dateTimeProvider.UtcNow().AddHours(-1)))
         {
             return;
