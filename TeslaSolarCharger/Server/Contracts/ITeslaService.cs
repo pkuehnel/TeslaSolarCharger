@@ -10,5 +10,4 @@ public interface ITeslaService
     Task StopCharging(int carId);
     Task SetAmp(int carId, int amps);
     Task SetChargeLimit(int carId, int limitSoC);
-    Task SetSentryMode(int carId, bool active);
 }
