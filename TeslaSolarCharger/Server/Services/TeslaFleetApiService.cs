@@ -1169,16 +1169,11 @@ public class TeslaFleetApiService(
             logger.LogError("No token found. Cannot refresh token.");
             return;
         }
+
         var tokensToRefresh = tokens.Where(t => t.ExpiresAtUtc < (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(2))).ToList();
         if (tokensToRefresh.Count < 1)
         {
             logger.LogTrace("No token needs to be refreshed.");
-            return;
-        }
-        //ToDo: needs to handle manual generated tokens. For now as soon as rate limits are introduced nobody gets refresh tokens even if they have a token not from www.teslasolarcharger.de
-        if (settings.AllowUnlimitedFleetApiRequests == false)
-        {
-            logger.LogError("Due to rate limitations fleet api requests are not allowed. As this version can not handle rate limits try updating to the latest version.");
             return;
         }
 
@@ -1217,6 +1212,13 @@ public class TeslaFleetApiService(
                 await HandleNonSuccessTeslaApiStatusCodes(response.StatusCode, tokenToRefresh, responseString, TeslaApiRequestType.Other).ConfigureAwait(false);
             }
             response.EnsureSuccessStatusCode();
+            if (settings.AllowUnlimitedFleetApiRequests == false)
+            {
+                logger.LogError("Due to rate limitations fleet api requests are not allowed. As this version can not handle rate limits try updating to the latest version.");
+                teslaSolarChargerContext.TeslaTokens.Remove(tokenToRefresh);
+                await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+                return;
+            }
             var newToken = JsonConvert.DeserializeObject<DtoTeslaFleetApiRefreshToken>(responseString) ?? throw new InvalidDataException("Could not get token from string.");
             tokenToRefresh.AccessToken = newToken.AccessToken;
             tokenToRefresh.RefreshToken = newToken.RefreshToken;
@@ -1231,6 +1233,8 @@ public class TeslaFleetApiService(
     public async Task RefreshFleetApiRequestsAreAllowed()
     {
         logger.LogTrace("{method}()", nameof(RefreshFleetApiRequestsAreAllowed));
+        settings.AllowUnlimitedFleetApiRequests = false;
+        return;
         if (settings.AllowUnlimitedFleetApiRequests && (settings.LastFleetApiRequestAllowedCheck > dateTimeProvider.UtcNow().AddHours(-1)))
         {
             return;
