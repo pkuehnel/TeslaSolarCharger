@@ -433,9 +433,6 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Tesla Token expired",
             "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
             tokenState == FleetApiTokenState.Expired).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNoApiRequestsAllowed, "No Fleet API requests allowed",
-            "Due to changes on Tesla Fleet API billing you need to update to the latest TSC version as the current version can not handle Fleet API requests.",
-            tokenState == FleetApiTokenState.NoApiRequestsAllowed).ConfigureAwait(false);
 
         //Remove all token related issue keys on token error because very likely it is because of the underlaying token issue.
         if (tokenState != FleetApiTokenState.UpToDate && tokenState != FleetApiTokenState.NotNeeded)
@@ -482,7 +479,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         }
         else if (shouldBeActive)
         {
-            for (var i = 0; i < activeErrors.Count; i++)
+            for (var i = 0; i < filteredErrors.Count; i++)
             {
                 if (i == 0)
                 {
