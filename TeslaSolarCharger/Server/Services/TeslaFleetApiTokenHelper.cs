@@ -11,10 +11,10 @@ namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
     ISettings settings,
-    IConfigurationWrapper configurationWrapper,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
-    IDateTimeProvider dateTimeProvider) : ITeslaFleetApiTokenHelper
+    IDateTimeProvider dateTimeProvider,
+    ITscConfigurationService tscConfigurationService) : ITeslaFleetApiTokenHelper
 {
     public async Task<FleetApiTokenState> GetFleetApiTokenState()
     {
@@ -31,9 +31,10 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
             return FleetApiTokenState.MissingScopes;
         }
         var token = await teslaSolarChargerContext.BackendTokens.FirstOrDefaultAsync().ConfigureAwait(false);
-        if (token != null)
+        if (token != default)
         {
-            if (token.UnauthorizedCounter > constants.MaxTokenUnauthorizedCount)
+            var isTokenUnauthorized = string.Equals(await tscConfigurationService.GetConfigurationValueByKey(constants.BackendTokenUnauthorizedKey), "true", StringComparison.InvariantCultureIgnoreCase);
+            if (isTokenUnauthorized)
             {
                 return FleetApiTokenState.TokenUnauthorized;
             }

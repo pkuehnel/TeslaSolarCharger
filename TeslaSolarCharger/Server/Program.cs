@@ -97,14 +97,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var teslaFleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
         await teslaFleetApiService.RefreshFleetApiRequestsAreAllowed();
-        try
-        {
-            await teslaFleetApiService.RefreshTokensIfAllowedAndNeeded();
-        }
-        catch(Exception ex)
-        {
-            logger1.LogError(ex, "Error refreshing Tesla tokens");
-        }
 
         var shouldRetry = false;
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();

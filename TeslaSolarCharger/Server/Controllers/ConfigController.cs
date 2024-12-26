@@ -41,9 +41,5 @@ namespace TeslaSolarCharger.Server.Controllers
         [HttpPut]
         public Task UpdateCarBasicConfiguration(int carId, [FromBody] CarBasicConfiguration carBasicConfiguration) =>
             _configJsonService.UpdateCarBasicConfiguration(carId, carBasicConfiguration);
-
-        [HttpPost]
-        public Task AddTeslaFleetApiToken([FromBody] DtoTeslaTscDeliveryToken token) =>
-            _teslaFleetApiService.AddNewTokenAsync(token);
     }
 }

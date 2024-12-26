@@ -120,21 +120,18 @@ public class FleetTelemetryWebSocketService(
         var currentDate = dateTimeProvider.UtcNow();
         var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var token = await context.BackendTokens
-            .Where(t => t.ExpiresAtUtc > currentDate)
-            .OrderByDescending(t => t.ExpiresAtUtc)
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        if (token == default)
+        var url = configurationWrapper.FleetTelemetryApiUrl() +
+                  $"vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}";
+        var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
+        if(authToken == default)
         {
             logger.LogError("Can not connect to WebSocket: No token found for car {vin}", vin);
             return;
         }
-        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-        var url = configurationWrapper.FleetTelemetryApiUrl() +
-                  $"teslaToken={token.AccessToken}&region={token.Region}&vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}&installationId={installationId}";
         using var client = new ClientWebSocket();
         try
         {
+            client.Options.SetRequestHeader("Authorization", $"Bearer {authToken.AccessToken}");
             await client.ConnectAsync(new Uri(url), new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
             var cancellation = new CancellationTokenSource();
             var dtoClient = new DtoFleetTelemetryWebSocketClients

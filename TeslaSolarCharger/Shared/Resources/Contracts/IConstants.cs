@@ -40,4 +40,6 @@ public interface IConstants
     string VehicleDataRequestUrl { get; }
     public string EmailConfigurationKey { get; }
     string BackendPasswordConfigurationKey { get; }
+    string TeslaTokenEncryptionKeyKey { get; }
+    string BackendTokenUnauthorizedKey { get; }
 }
