@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Server.Dtos.Solar2CarBackend.User;
+using TeslaSolarCharger.Server.Dtos.Solar4CarBackend.User;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;

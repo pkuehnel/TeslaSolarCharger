@@ -38,7 +38,7 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
             {
                 return FleetApiTokenState.TokenUnauthorized;
             }
-            return (token.ExpiresAtUtc < dateTimeProvider.UtcNow() ? FleetApiTokenState.Expired : FleetApiTokenState.UpToDate);
+            return (token.ExpiresAtUtc < dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(2)) ? FleetApiTokenState.Expired : FleetApiTokenState.UpToDate;
         }
         var tokenRequestedDate = await GetTokenRequestedDate().ConfigureAwait(false);
         if (tokenRequestedDate == null)

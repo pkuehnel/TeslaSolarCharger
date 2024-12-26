@@ -5,11 +5,10 @@ using System.Net;
 using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
-using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -1217,8 +1216,28 @@ public class TeslaFleetApiService(
                 return Fin<List<DtoTesla>>.Fail(Error.New(excpetion));
             }
 
-            
-            var vehicles = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<List<DtoVehicleResult>>>(responseBodyString);
+            var teslaBackendResult = JsonConvert.DeserializeObject<DtoTeslaResponse>(responseBodyString);
+            if (teslaBackendResult == null)
+            {
+                logger.LogError("Could not deserialize Solar4CarBackend response body {responseBodyString}", responseBodyString);
+                return Fin<List<DtoTesla>>.Fail($"Could not deserialize response body {responseBodyString}");
+            }
+
+            if (teslaBackendResult.StatusCode is >= 200 and < 300)
+            {
+                logger.LogError("Error while getting all cars from account due to communication issue between Solar4Car Backend and Tesla: Underlaying Status code: {statusCode}; Underlaying Response Body: {responseBodyString}", teslaBackendResult.StatusCode, teslaBackendResult.JsonResponse);
+                var excpetion = new HttpRequestException($"Requesting {requestUri} returned following body: {responseBodyString}", null,
+                    response.StatusCode);
+                return Fin<List<DtoTesla>>.Fail(Error.New(excpetion));
+            }
+
+            if(string.IsNullOrWhiteSpace(teslaBackendResult.JsonResponse))
+            {
+                logger.LogError("Empty Tesla JSON response body from Solar4Car Backend");
+                return Fin<List<DtoTesla>>.Fail("Empty Tesla JSON response body from Solar4Car Backend");
+            }
+
+            var vehicles = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<List<DtoVehicleResult>>>(teslaBackendResult.JsonResponse);
 
             if (vehicles?.Response == null)
             {

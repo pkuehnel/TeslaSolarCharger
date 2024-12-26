@@ -1,4 +1,4 @@
-﻿namespace TeslaSolarCharger.Server.Dtos.Solar2CarBackend.User;
+﻿namespace TeslaSolarCharger.Server.Dtos.Solar4CarBackend.User;
 
 public class DtoCreateUser(string userName, string password)
 {
