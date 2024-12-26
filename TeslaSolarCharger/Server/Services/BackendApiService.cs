@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos.Solar2CarBackend.User;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -21,25 +22,22 @@ public class BackendApiService(
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
-    ISettings settings,
     IErrorHandlingService errorHandlingService,
-    IIssueKeys issueKeys)
+    IIssueKeys issueKeys,
+    IPasswordGenerationService passwordGenerationService)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
     {
         logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
-        var currentTokens = await teslaSolarChargerContext.TeslaTokens.ToListAsync().ConfigureAwait(false);
-        teslaSolarChargerContext.TeslaTokens.RemoveRange(currentTokens);
         var configEntriesToRemove = await teslaSolarChargerContext.TscConfigurations
             .Where(c => c.Key == constants.TokenMissingScopes)
             .ToListAsync().ConfigureAwait(false);
         teslaSolarChargerContext.TscConfigurations.RemoveRange(configEntriesToRemove);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var backendApiBaseUrl = configurationWrapper.BackendApiBaseUrl();
         using var httpClient = new HttpClient();
-        var requestUri = $"{backendApiBaseUrl}Tsc/StartTeslaOAuth?installationId={Uri.EscapeDataString(installationId.ToString())}&baseUrl={Uri.EscapeDataString(baseUrl)}";
+        var requestUri = $"{backendApiBaseUrl}Client/AddAuthenticationStartInformation?redirectUri={Uri.EscapeDataString(baseUrl)}";
         var responseString = await httpClient.GetStringAsync(requestUri).ConfigureAwait(false);
         var oAuthRequestInformation = JsonConvert.DeserializeObject<DtoTeslaOAuthRequestInformation>(responseString) ?? throw new InvalidDataException("Could not get oAuth data");
         var requestUrl = GenerateAuthUrl(oAuthRequestInformation, locale);
@@ -71,6 +69,89 @@ public class BackendApiService(
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenExpired, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenRefreshNonSuccessStatusCode, null);
         return new DtoValue<string>(requestUrl);
+    }
+
+    public async Task GenerateUserAccount()
+    {
+        logger.LogTrace("{method}()", nameof(GenerateUserAccount));
+        var userEmail = await tscConfigurationService.GetConfigurationValueByKey(constants.EmailConfigurationKey);
+        var password = passwordGenerationService.GeneratePassword(configurationWrapper.BackendPasswordDefaultLength());
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+        var dtoCreateUser = new DtoCreateUser(installationId.ToString(), password) { Email = userEmail, };
+        var url = configurationWrapper.BackendApiBaseUrl() + "User/Create";
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var response = await httpClient.PostAsJsonAsync(url, dtoCreateUser).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            logger.LogError("Could not create user account. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            throw new InvalidOperationException("Could not create user account");
+        }
+        await tscConfigurationService.SetConfigurationValueByKey(constants.BackendPasswordConfigurationKey, password);
+    }
+
+    public async Task GetOrRefreshBackendToken()
+    {
+        logger.LogTrace("{method}()", nameof(GetOrRefreshBackendToken));
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if (token != default)
+        {
+            if (token.ExpiresAtUtc > dateTimeProvider.DateTimeOffSetUtcNow())
+            {
+                return;
+            }
+            logger.LogInformation("Backend Token expired. Refresh token...");
+            await RefreshBackendToken(token);
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+            logger.LogInformation("Backend Token refreshed");
+            return;
+        }
+        var backendPassword = await tscConfigurationService.GetConfigurationValueByKey(constants.BackendPasswordConfigurationKey).ConfigureAwait(false);
+        if (string.IsNullOrEmpty(backendPassword))
+        {
+            return;
+        }
+        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
+        var dtoLogin = new DtoLogin(installationId.ToString(), backendPassword);
+        var url = configurationWrapper.BackendApiBaseUrl() + "User/Login";
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var response = await httpClient.PostAsJsonAsync(url, dtoLogin).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            logger.LogError("Could not login to backend. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            throw new InvalidOperationException("Could not login to backend");
+        }
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var newToken = JsonConvert.DeserializeObject<DtoAccessToken>(responseContent) ?? throw new InvalidDataException("Could not parse token");
+        token = new(newToken.AccessToken, newToken.RefreshToken)
+        {
+            ExpiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(newToken.ExpiresAt),
+        };
+        teslaSolarChargerContext.BackendTokens.Add(token);
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private async Task RefreshBackendToken(BackendToken token)
+    {
+        logger.LogTrace("{method}(token)", nameof(RefreshBackendToken));
+        var url = configurationWrapper.BackendApiBaseUrl() + "User/RefreshToken";
+        var dtoRefreshToken = new DtoTokenRefreshModel(token.AccessToken, token.RefreshToken);
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var response = await httpClient.PostAsJsonAsync(url, dtoRefreshToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            logger.LogError("Could not refresh backend token. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            throw new InvalidOperationException("Could not refresh backend token");
+        }
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var newToken = JsonConvert.DeserializeObject<DtoAccessToken>(responseContent) ?? throw new InvalidDataException("Could not parse token");
+        token.AccessToken = newToken.AccessToken;
+        token.RefreshToken = newToken.RefreshToken;
     }
 
     internal string GenerateAuthUrl(DtoTeslaOAuthRequestInformation oAuthInformation, string locale)
@@ -139,62 +220,6 @@ public class BackendApiService(
         var assembly = Assembly.GetExecutingAssembly();
         var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
         return Task.FromResult(fileVersionInfo.ProductVersion);
-    }
-
-    public async Task PostTeslaApiCallStatistics()
-    {
-        logger.LogTrace("{method}()", nameof(PostTeslaApiCallStatistics));
-        var shouldTransferDate = configurationWrapper.SendTeslaApiStatsToBackend();
-        var currentDate = dateTimeProvider.UtcNow().Date;
-        if (!shouldTransferDate)
-        {
-            logger.LogWarning("You manually disabled tesla API stats transfer to the backend. This means your usage won't be considered in future optimizations.");
-            return;
-        }
-
-        Func<DateTime, bool> predicate = d => d > (currentDate.AddDays(-1)) && (d < currentDate);
-        var cars = settings.Cars.Where(c => c.WakeUpCalls.Count(predicate) > 0
-                                             || c.VehicleDataCalls.Count(predicate) > 0
-                                             || c.VehicleCalls.Count(predicate) > 0
-                                             || c.ChargeStartCalls.Count(predicate) > 0
-                                             || c.ChargeStopCalls.Count(predicate) > 0
-                                             || c.SetChargingAmpsCall.Count(predicate) > 0
-                                             || c.OtherCommandCalls.Count(predicate) > 0).ToList();
-
-        var getVehicleDataFromTesla = configurationWrapper.GetVehicleDataFromTesla();
-        foreach (var car in cars)
-        {
-            var statistics = new DtoTeslaApiCallStatistic
-            {
-                Date = DateOnly.FromDateTime(currentDate.AddDays(-1)),
-                InstallationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false),
-                StartupTime = settings.StartupTime,
-                GetDataFromTesla = getVehicleDataFromTesla,
-                ApiRefreshInterval = (int) configurationWrapper.FleetApiRefreshInterval().TotalSeconds,
-                UseBle = car.UseBle,
-                Vin = car.Vin,
-                WakeUpCalls = car.WakeUpCalls.Where(predicate).ToList(),
-                VehicleDataCalls = car.VehicleDataCalls.Where(predicate).ToList(),
-                VehicleCalls = car.VehicleCalls.Where(predicate).ToList(),
-                ChargeStartCalls = car.ChargeStartCalls.Where(predicate).ToList(),
-                ChargeStopCalls = car.ChargeStopCalls.Where(predicate).ToList(),
-                SetChargingAmpsCall = car.SetChargingAmpsCall.Where(predicate).ToList(),
-                OtherCommandCalls = car.OtherCommandCalls.Where(predicate).ToList(),
-            };
-            var url = configurationWrapper.BackendApiBaseUrl() + "Tsc/NotifyTeslaApiCallStatistics";
-            try
-            {
-                using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(10);
-                var response = await httpClient.PostAsJsonAsync(url, statistics).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Could not post tesla api call statistics");
-            }
-            
-        }
-
     }
 
     public async Task GetNewBackendNotifications()

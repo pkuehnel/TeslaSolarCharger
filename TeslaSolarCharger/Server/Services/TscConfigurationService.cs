@@ -1,32 +1,22 @@
-﻿using TeslaSolarCharger.Model.Contracts;
+﻿using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class TscConfigurationService : ITscConfigurationService
+public class TscConfigurationService(
+    ILogger<TscConfigurationService> logger,
+    ITeslaSolarChargerContext teslaSolarChargerContext,
+    IConstants constants)
+    : ITscConfigurationService
 {
-    private readonly ILogger<TscConfigurationService> _logger;
-    private readonly ITeslaSolarChargerContext _teslaSolarChargerContext;
-    private readonly IConstants _constants;
-
-    public TscConfigurationService(ILogger<TscConfigurationService> logger, ITeslaSolarChargerContext teslaSolarChargerContext, IConstants constants)
-    {
-        _logger = logger;
-        _teslaSolarChargerContext = teslaSolarChargerContext;
-        _constants = constants;
-    }
-
     public async Task<Guid> GetInstallationId()
     {
-        _logger.LogTrace("{method}()", nameof(GetInstallationId));
-        var configurationIdString = _teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == _constants.InstallationIdKey)
+        logger.LogTrace("{method}()", nameof(GetInstallationId));
+        var configurationIdString = teslaSolarChargerContext.TscConfigurations
+            .Where(c => c.Key == constants.InstallationIdKey)
             .Select(c => c.Value)
             .FirstOrDefault();
 
@@ -37,11 +27,54 @@ public class TscConfigurationService : ITscConfigurationService
 
         var installationIdConfiguration = new TscConfiguration()
         {
-            Key = _constants.InstallationIdKey,
+            Key = constants.InstallationIdKey,
             Value = Guid.NewGuid().ToString(),
         };
-        _teslaSolarChargerContext.TscConfigurations.Add(installationIdConfiguration);
-        await _teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        teslaSolarChargerContext.TscConfigurations.Add(installationIdConfiguration);
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         return Guid.Parse(installationIdConfiguration.Value);
+    }
+
+    /// <summary>
+    /// Get a configuration value by its key
+    /// </summary>
+    /// <param name="configurationKey">Configuration key to get the value from</param>
+    /// <returns>Configuration value, null if value key does not exist in database</returns>
+    public async Task<string?> GetConfigurationValueByKey(string configurationKey)
+    {
+        logger.LogTrace("{method}({configurationKey})", nameof(GetConfigurationValueByKey), configurationKey);
+        var configurationValue = await teslaSolarChargerContext.TscConfigurations
+            .FirstOrDefaultAsync(c => c.Key == constants.InstallationIdKey);
+
+        return configurationValue?.Value;
+    }
+
+    /// <summary>
+    /// Set a configuration value by its key. If the key does not exist, it will be created. If it exists, the value will be updated.
+    /// </summary>
+    /// <param name="configurationKey">Key to update</param>
+    /// <param name="configurationValue">Value to update</param>
+    /// <returns></returns>
+    public async Task SetConfigurationValueByKey(string configurationKey, string configurationValue)
+    {
+        logger.LogTrace("{method}({configurationKey}, {configurationValue})", nameof(SetConfigurationValueByKey), configurationKey, configurationValue);
+        var configuration = await teslaSolarChargerContext.TscConfigurations
+            .FirstOrDefaultAsync(c => c.Key == configurationKey);
+
+        if (configuration == default)
+        {
+            configuration = new()
+            {
+                Key = configurationKey,
+                Value = configurationValue,
+            };
+            teslaSolarChargerContext.TscConfigurations.Add(configuration);
+        }
+        else
+        {
+            configuration.Value = configurationValue;
+        }
+
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 }

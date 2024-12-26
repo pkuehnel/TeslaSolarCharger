@@ -8,6 +8,7 @@ public interface IBackendApiService
     Task PostInstallationInformation(string reason);
     Task PostErrorInformation(string source, string methodName, string message, string issueKey, string? vin, string? stackTrace);
     Task<string?> GetCurrentVersion();
-    Task PostTeslaApiCallStatistics();
     Task GetNewBackendNotifications();
+    Task GenerateUserAccount();
+    Task GetOrRefreshBackendToken();
 }

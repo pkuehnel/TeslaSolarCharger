@@ -16,7 +16,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<HandledCharge> HandledCharges { get; set; } = null!;
     public DbSet<PowerDistribution> PowerDistributions { get; set; } = null!;
     public DbSet<SpotPrice> SpotPrices { get; set; } = null!;
-    public DbSet<TeslaToken> TeslaTokens { get; set; } = null!;
+    public DbSet<BackendToken> BackendTokens { get; set; } = null!;
     public DbSet<TscConfiguration> TscConfigurations { get; set; } = null!;
     public DbSet<Car> Cars { get; set; } = null!;
     public DbSet<RestValueConfiguration> RestValueConfigurations { get; set; } = null!;

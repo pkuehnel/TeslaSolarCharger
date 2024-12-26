@@ -88,7 +88,6 @@ public interface IConfigurationWrapper
     string BackendApiBaseUrl();
     bool IsDevelopmentEnvironment();
     string GetAwattarBaseUrl();
-    string? GetFleetApiBaseUrl();
     string RestoreTempDirectory();
     string ConfigFileDirectory();
     string AutoBackupsZipDirectory();
@@ -109,4 +108,5 @@ public interface IConfigurationWrapper
     string FleetTelemetryApiUrl();
     bool AllowPowerBufferChangeOnHome();
     TimeSpan FleetApiRefreshInterval();
+    int BackendPasswordDefaultLength();
 }

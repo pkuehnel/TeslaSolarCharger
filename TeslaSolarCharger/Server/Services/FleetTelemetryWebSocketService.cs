@@ -120,7 +120,7 @@ public class FleetTelemetryWebSocketService(
         var currentDate = dateTimeProvider.UtcNow();
         var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var token = await context.TeslaTokens
+        var token = await context.BackendTokens
             .Where(t => t.ExpiresAtUtc > currentDate)
             .OrderByDescending(t => t.ExpiresAtUtc)
             .FirstOrDefaultAsync().ConfigureAwait(false);

@@ -30,7 +30,7 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
         {
             return FleetApiTokenState.MissingScopes;
         }
-        var token = await teslaSolarChargerContext.TeslaTokens.FirstOrDefaultAsync().ConfigureAwait(false);
+        var token = await teslaSolarChargerContext.BackendTokens.FirstOrDefaultAsync().ConfigureAwait(false);
         if (token != null)
         {
             if (token.UnauthorizedCounter > constants.MaxTokenUnauthorizedCount)
