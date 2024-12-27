@@ -9,6 +9,7 @@ public interface IBackendApiService
     Task PostErrorInformation(string source, string methodName, string message, string issueKey, string? vin, string? stackTrace);
     Task<string?> GetCurrentVersion();
     Task GetNewBackendNotifications();
-    Task GenerateUserAccount();
+    Task<DtoValue<bool>> GenerateUserAccount(string emailAddress);
     Task GetOrRefreshBackendToken();
+    Task<DtoValue<bool>> HasValidBackendToken();
 }

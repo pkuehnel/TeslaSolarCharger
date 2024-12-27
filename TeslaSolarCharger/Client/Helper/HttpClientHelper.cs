@@ -18,12 +18,12 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
         await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Get, url, null);
     }
 
-    public async Task<T?> SendPostRequestWithSnackbarAsync<T>(string url, object content)
+    public async Task<T?> SendPostRequestWithSnackbarAsync<T>(string url, object? content)
     {
         return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Post, url, content);
     }
 
-    public async Task SendPostRequestWithSnackbarAsync(string url, object content)
+    public async Task SendPostRequestWithSnackbarAsync(string url, object? content)
     {
         await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Post, url, content);
     }

@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -71,7 +73,15 @@ public class BackendApiService(
         return new DtoValue<string>(requestUrl);
     }
 
-    public async Task GenerateUserAccount()
+    public async Task<DtoValue<bool>> GenerateUserAccount(string emailAddress)
+    {
+        logger.LogTrace("{method}({emailAddress})", nameof(GenerateUserAccount), emailAddress);
+        await tscConfigurationService.SetConfigurationValueByKey(constants.EmailConfigurationKey, emailAddress);
+        await GenerateUserAccount();
+        return new(true);
+    }
+
+    private async Task GenerateUserAccount()
     {
         logger.LogTrace("{method}()", nameof(GenerateUserAccount));
         var userEmail = await tscConfigurationService.GetConfigurationValueByKey(constants.EmailConfigurationKey);
@@ -132,6 +142,33 @@ public class BackendApiService(
         };
         teslaSolarChargerContext.BackendTokens.Add(token);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public async Task<DtoValue<bool>> HasValidBackendToken()
+    {
+        logger.LogTrace("{method}", nameof(HasValidBackendToken));
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if (token == default)
+        {
+            return new(false);
+        }
+        var url = configurationWrapper.BackendApiBaseUrl() + "Client/IsTokenValid";
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new("Bearer", token.AccessToken);
+        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return new(false);
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            logger.LogError("Could not check if token is valid. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            throw new InvalidOperationException("Could not check if token is valid");
+        }
+        return new(true);
     }
 
     private async Task RefreshBackendToken(BackendToken token)

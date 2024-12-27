@@ -1,0 +1,36 @@
+﻿@using System.ComponentModel
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Attributes
+@using TeslaSolarCharger.Shared.Dtos
+
+@inject IHttpClientHelper HttpClientHelper
+
+<MudDialog>
+    <DialogContent>
+        <GenericInput For="() => EmailAddress"></GenericInput>
+        <div>ToDo: Link to privacy Policy</div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Error" OnClick="Submit">Yes</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [HelperText("While entering an E-Mail is not required it is HIGHLY!! recommended so I can contact you in case I detect anything not working")]
+    [DisplayName("E-Mail")]
+    public string EmailAddress { get; set; } = string.Empty;
+
+    async Task Submit()
+    {
+        var result = await HttpClientHelper.SendPostRequestWithSnackbarAsync<DtoValue<bool>>($"api/BackendApi/GenerateUserAccount?emailAddress={EmailAddress}", null);
+        if (result is { Value: true })
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

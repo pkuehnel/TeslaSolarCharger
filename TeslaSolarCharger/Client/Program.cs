@@ -8,6 +8,8 @@ using MudExtensions.Services;
 using TeslaSolarCharger.Client;
 using TeslaSolarCharger.Client.Helper;
 using TeslaSolarCharger.Client.Helper.Contracts;
+using TeslaSolarCharger.Client.Services;
+using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Helper;
@@ -25,6 +27,7 @@ builder.Services.AddScoped<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddScoped<IDialogHelper, DialogHelper>();
 builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
+builder.Services.AddScoped<IFleetApiTokenCheckService, FleetApiTokenCheckService>();
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();
 builder.Services.AddMudServices(config =>

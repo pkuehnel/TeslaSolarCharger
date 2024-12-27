@@ -1,14 +1,16 @@
 @page "/BaseConfiguration"
 @using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
-@using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Dtos
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IHttpClientHelper HttpClientHelper
+@inject IFleetApiTokenCheckService FleetApiTokenCheckService
+@inject IDialogHelper DialogHelper
 
 
 <PageTitle>Base Configuration</PageTitle>
@@ -320,6 +322,17 @@ else
         _tokenGenerationButtonDisabled = true;
         var locale = CultureInfo.CurrentCulture.ToString();
         var baseUrl = NavigationManager.BaseUri;
+        var hasValidBackendToken = await FleetApiTokenCheckService.HasValidBackendToken();
+        if (!hasValidBackendToken)
+        {
+            var result = await DialogHelper.ShowCreateBackendTokenDialog();
+            //ToDo: only continue on result == DialogResult.Ok()
+            // if (result != DialogResult.Ok())
+            // {
+
+            // }
+        }
+
         var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={Uri.EscapeDataString(locale)}&baseUrl={Uri.EscapeDataString(baseUrl)}").ConfigureAwait(false);
         if (url?.Value != null)
         {
