@@ -1,5 +1,4 @@
 ﻿@using TeslaSolarCharger.Client.Helper.Contracts
-@using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos
 
 @inject IHttpClientHelper HttpClientHelper
@@ -18,8 +17,6 @@
 
 @code {
     [CascadingParameter] MudDialogInstance MudDialog { get; set; }
-
-    [HelperText("While entering an E-Mail is not required it is HIGHLY!! recommended so I can contact you in case I detect anything not working")]
     
     private readonly DtoBackendLogin _backendLogin = new DtoBackendLogin();
 
