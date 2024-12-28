@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
@@ -23,7 +24,8 @@ public class BackendApiService(
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
     IErrorHandlingService errorHandlingService,
-    IIssueKeys issueKeys)
+    IIssueKeys issueKeys,
+    IPasswordGenerationService passwordGenerationService)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
@@ -35,9 +37,20 @@ public class BackendApiService(
         teslaSolarChargerContext.TscConfigurations.RemoveRange(configEntriesToRemove);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var backendApiBaseUrl = configurationWrapper.BackendApiBaseUrl();
+        var encryptionKey = passwordGenerationService.GeneratePassword(32);
+        var state = Guid.NewGuid();
+        var requestUri = $"{backendApiBaseUrl}Client/AddAuthenticationStartInformation?redirectUri={Uri.EscapeDataString(baseUrl)}&encryptionKey={Uri.EscapeDataString(encryptionKey)}&state={Uri.EscapeDataString(state.ToString())}";
         using var httpClient = new HttpClient();
-        var requestUri = $"{backendApiBaseUrl}Client/AddAuthenticationStartInformation?redirectUri={Uri.EscapeDataString(baseUrl)}";
-        var responseString = await httpClient.GetStringAsync(requestUri).ConfigureAwait(false);
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
+        }
+        request.Headers.Authorization = new("Bearer", token.AccessToken);
+        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var oAuthRequestInformation = JsonConvert.DeserializeObject<DtoTeslaOAuthRequestInformation>(responseString) ?? throw new InvalidDataException("Could not get oAuth data");
         var requestUrl = GenerateAuthUrl(oAuthRequestInformation, locale);
         var tokenRequested = await teslaSolarChargerContext.TscConfigurations
