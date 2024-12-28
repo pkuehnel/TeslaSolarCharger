@@ -5,5 +5,5 @@ namespace TeslaSolarCharger.Client.Helper.Contracts;
 public interface IDialogHelper
 {
     Task ShowTextDialog(string title, string dialogText);
-    Task<DialogResult?> ShowCreateBackendTokenDialog();
+    Task<bool> ShowCreateBackendTokenDialog();
 }

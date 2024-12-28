@@ -10,6 +10,7 @@ public class BackendApiController (IBackendApiService backendApiService) : ApiBa
     [HttpGet]
     public Task<DtoValue<bool>> HasValidBackendToken() => backendApiService.HasValidBackendToken();
 
+
     [HttpPost]
-    public Task<DtoValue<bool>> GenerateUserAccount(string emailAddress) => backendApiService.GenerateUserAccount(emailAddress);
+    public Task LoginToBackend(DtoBackendLogin login) => backendApiService.GetToken(login);
 }

@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -12,7 +11,6 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
-using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -25,8 +23,7 @@ public class BackendApiService(
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
     IErrorHandlingService errorHandlingService,
-    IIssueKeys issueKeys,
-    IPasswordGenerationService passwordGenerationService)
+    IIssueKeys issueKeys)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
@@ -73,57 +70,27 @@ public class BackendApiService(
         return new DtoValue<string>(requestUrl);
     }
 
-    public async Task<DtoValue<bool>> GenerateUserAccount(string emailAddress)
+    public async Task GetToken(DtoBackendLogin login)
     {
-        logger.LogTrace("{method}({emailAddress})", nameof(GenerateUserAccount), emailAddress);
-        await tscConfigurationService.SetConfigurationValueByKey(constants.EmailConfigurationKey, emailAddress);
-        await GenerateUserAccount();
-        return new(true);
-    }
+        logger.LogTrace("{method}()", nameof(GetToken));
 
-    private async Task GenerateUserAccount()
-    {
-        logger.LogTrace("{method}()", nameof(GenerateUserAccount));
-        var userEmail = await tscConfigurationService.GetConfigurationValueByKey(constants.EmailConfigurationKey);
-        var password = passwordGenerationService.GeneratePassword(configurationWrapper.BackendPasswordDefaultLength());
-        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-        var dtoCreateUser = new DtoCreateUser(installationId.ToString(), password) { Email = userEmail, };
-        var url = configurationWrapper.BackendApiBaseUrl() + "User/Create";
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
-        var response = await httpClient.PostAsJsonAsync(url, dtoCreateUser).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
+        if (string.IsNullOrEmpty(login.UserName))
         {
-            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            logger.LogError("Could not create user account. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
-            throw new InvalidOperationException("Could not create user account");
+            throw new InvalidOperationException("Username is empty");
         }
-        await tscConfigurationService.SetConfigurationValueByKey(constants.BackendPasswordConfigurationKey, password);
-    }
+        if (string.IsNullOrEmpty(login.Password))
+        {
+            throw new InvalidOperationException("Password is empty");
+        }
 
-    public async Task GetOrRefreshBackendToken()
-    {
-        logger.LogTrace("{method}()", nameof(GetOrRefreshBackendToken));
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
         if (token != default)
         {
-            if (token.ExpiresAtUtc > dateTimeProvider.DateTimeOffSetUtcNow())
-            {
-                return;
-            }
-            logger.LogInformation("Backend Token expired. Refresh token...");
-            await RefreshBackendToken(token);
-            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-            logger.LogInformation("Backend Token refreshed");
-            return;
-        }
-        var backendPassword = await tscConfigurationService.GetConfigurationValueByKey(constants.BackendPasswordConfigurationKey).ConfigureAwait(false);
-        if (string.IsNullOrEmpty(backendPassword))
-        {
-            return;
+            teslaSolarChargerContext.BackendTokens.Remove(token);
         }
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-        var dtoLogin = new DtoLogin(installationId.ToString(), backendPassword);
+        
+        var dtoLogin = new DtoLogin(login.UserName, login.Password, installationId.ToString());
         var url = configurationWrapper.BackendApiBaseUrl() + "User/Login";
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromSeconds(10);
@@ -171,10 +138,16 @@ public class BackendApiService(
         return new(true);
     }
 
-    private async Task RefreshBackendToken(BackendToken token)
+    public async Task RefreshBackendToken()
     {
         logger.LogTrace("{method}(token)", nameof(RefreshBackendToken));
         var url = configurationWrapper.BackendApiBaseUrl() + "User/RefreshToken";
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if(token == default)
+        {
+            logger.LogError("Could not refresh backend token. No token found");
+            return;
+        }
         var dtoRefreshToken = new DtoTokenRefreshModel(token.AccessToken, token.RefreshToken);
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromSeconds(10);

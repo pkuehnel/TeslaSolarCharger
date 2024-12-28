@@ -21,7 +21,7 @@ public class DialogHelper(IDialogService dialogService) : IDialogHelper
         var result = await dialog.Result;
     }
 
-    public async Task<DialogResult?> ShowCreateBackendTokenDialog()
+    public async Task<bool> ShowCreateBackendTokenDialog()
     {
         var options = new DialogOptions()
         {
@@ -32,6 +32,7 @@ public class DialogHelper(IDialogService dialogService) : IDialogHelper
         {
         };
         var dialog = await dialogService.ShowAsync<CreateBackendTokenDialog>("Generate Backend Token", parameters, options);
-        return await dialog.Result;
+        var result = await dialog.Result;
+        return result is { Canceled: false };
     }
 }

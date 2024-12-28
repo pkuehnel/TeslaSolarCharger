@@ -325,12 +325,11 @@ else
         var hasValidBackendToken = await FleetApiTokenCheckService.HasValidBackendToken();
         if (!hasValidBackendToken)
         {
-            var result = await DialogHelper.ShowCreateBackendTokenDialog();
-            //ToDo: only continue on result == DialogResult.Ok()
-            // if (result != DialogResult.Ok())
-            // {
+            var success = await DialogHelper.ShowCreateBackendTokenDialog();
+            if (!success)
+            {
 
-            // }
+            }
         }
 
         var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={Uri.EscapeDataString(locale)}&baseUrl={Uri.EscapeDataString(baseUrl)}").ConfigureAwait(false);
