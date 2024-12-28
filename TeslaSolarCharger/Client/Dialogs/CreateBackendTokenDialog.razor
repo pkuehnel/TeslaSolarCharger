@@ -7,11 +7,12 @@
 <MudDialog>
     <DialogContent>
         <GenericInput For="() => _backendLogin.UserName"></GenericInput>
-        <GenericInput For="() => _backendLogin.Password"></GenericInput>
+        <GenericInput For="() => _backendLogin.Password"
+                      IsPassword="true"></GenericInput>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Error" OnClick="Submit">Yes</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Login</MudButton>
     </DialogActions>
 </MudDialog>
 
