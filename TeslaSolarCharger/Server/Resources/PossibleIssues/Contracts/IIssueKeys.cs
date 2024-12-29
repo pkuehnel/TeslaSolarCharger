@@ -3,14 +3,10 @@
 public interface IIssueKeys
 {
     string VersionNotUpToDate { get; }
-    string FleetApiTokenNotRequested { get; }
     string FleetApiTokenUnauthorized { get; }
     string FleetApiTokenMissingScopes { get; }
     string FleetApiTokenRequestExpired { get; }
-    string FleetApiTokenNotReceived { get; }
-    string FleetApiTokenExpired { get; }
     string FleetApiTokenRefreshNonSuccessStatusCode { get; }
-    string FleetApiTokenNoApiRequestsAllowed { get; }
     string CrashedOnStartup { get; }
     string RestartNeeded { get; }
     string GetVehicle { get; }
@@ -24,4 +20,7 @@ public interface IIssueKeys
     string SolarValuesNotAvailable { get; }
     string UsingFleetApiAsBleFallback { get; }
     string BleVersionCompatibility { get; }
+    string NoBackendApiToken { get; }
+    string BackendTokenUnauthorized { get; }
+    string FleetApiTokenExpired { get; }
 }

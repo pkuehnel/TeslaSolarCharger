@@ -52,34 +52,11 @@ public class BackendApiService(
         var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var oAuthRequestInformation = JsonConvert.DeserializeObject<DtoTeslaOAuthRequestInformation>(responseString) ?? throw new InvalidDataException("Could not get oAuth data");
         var requestUrl = GenerateAuthUrl(oAuthRequestInformation, locale);
-        var tokenRequested = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.FleetApiTokenRequested)
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        if (tokenRequested == null)
-        {
-            var config = new TscConfiguration
-            {
-                Key = constants.FleetApiTokenRequested,
-                Value = dateTimeProvider.UtcNow().ToString("O"),
-            };
-            teslaSolarChargerContext.TscConfigurations.Add(config);
-        }
-        else
-        {
-            tokenRequested.Value = dateTimeProvider.UtcNow().ToString("O");
-        }
-        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        await errorHandlingService.HandleError(nameof(BackendApiService), nameof(StartTeslaOAuth), "Waiting for Tesla token",
-            "Waiting for the Tesla Token from the TSC backend. This might take up to five minutes. If after five minutes this error is still displayed, open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            issueKeys.FleetApiTokenNotReceived, null, null);
-        //Do not set FleetApiTokenNotReceived to resolved here, as the token might still be in transit
-        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenNotRequested, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenUnauthorized, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenMissingScopes, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenRequestExpired, null);
-        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenExpired, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenRefreshNonSuccessStatusCode, null);
-        return new DtoValue<string>(requestUrl);
+        return new(requestUrl);
     }
 
     public async Task GetToken(DtoBackendLogin login)

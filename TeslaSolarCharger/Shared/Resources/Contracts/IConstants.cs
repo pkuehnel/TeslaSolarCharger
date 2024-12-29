@@ -14,7 +14,6 @@ public interface IConstants
     int MinimumSocDifference { get; }
 
     string InstallationIdKey { get; }
-    string FleetApiTokenRequested { get; }
     string TokenMissingScopes { get; }
     string NextAllowedTeslaApiRequest { get; }
     string BackupZipBaseFileName { get; }
@@ -39,5 +38,5 @@ public interface IConstants
     string VehicleRequestUrl { get; }
     string VehicleDataRequestUrl { get; }
     string TeslaTokenEncryptionKeyKey { get; }
-    string BackendTokenUnauthorizedKey { get; }
+    string FleetApiTokenUnauthorizedKey { get; }
 }

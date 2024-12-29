@@ -2,13 +2,10 @@
 
 public enum FleetApiTokenState
 {
-    NotNeeded,
-    NotRequested,
-    TokenRequestExpired,
-    TokenUnauthorized,
-    MissingScopes,
-    NotReceived,
-    Expired,
+    NoBackendApiToken,
+    BackendTokenUnauthorized,
+    FleetApiTokenUnauthorized,
+    FleetApiTokenMissingScopes,
+    FleetApiTokenExpired,
     UpToDate,
-    NoApiRequestsAllowed,
 }

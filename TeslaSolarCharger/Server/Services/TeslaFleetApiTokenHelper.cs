@@ -1,70 +1,57 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using System.Globalization;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
-    ISettings settings,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
-    IDateTimeProvider dateTimeProvider,
-    ITscConfigurationService tscConfigurationService) : ITeslaFleetApiTokenHelper
+    ITscConfigurationService tscConfigurationService,
+    IConfigurationWrapper configurationWrapper) : ITeslaFleetApiTokenHelper
 {
     public async Task<FleetApiTokenState> GetFleetApiTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiTokenState));
-        if (!settings.AllowUnlimitedFleetApiRequests)
-        {
-            return FleetApiTokenState.NoApiRequestsAllowed;
-        }
         var hasCurrentTokenMissingScopes = await teslaSolarChargerContext.TscConfigurations
             .Where(c => c.Key == constants.TokenMissingScopes)
             .AnyAsync().ConfigureAwait(false);
         if (hasCurrentTokenMissingScopes)
         {
-            return FleetApiTokenState.MissingScopes;
+            return FleetApiTokenState.FleetApiTokenMissingScopes;
         }
-        var token = await teslaSolarChargerContext.BackendTokens.FirstOrDefaultAsync().ConfigureAwait(false);
-        if (token != default)
+        var isTokenUnauthorized = string.Equals(await tscConfigurationService.GetConfigurationValueByKey(constants.FleetApiTokenUnauthorizedKey), "true", StringComparison.InvariantCultureIgnoreCase);
+        if (isTokenUnauthorized)
         {
-            var isTokenUnauthorized = string.Equals(await tscConfigurationService.GetConfigurationValueByKey(constants.BackendTokenUnauthorizedKey), "true", StringComparison.InvariantCultureIgnoreCase);
-            if (isTokenUnauthorized)
-            {
-                return FleetApiTokenState.TokenUnauthorized;
-            }
-            return (token.ExpiresAtUtc < dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(2)) ? FleetApiTokenState.Expired : FleetApiTokenState.UpToDate;
+            return FleetApiTokenState.FleetApiTokenUnauthorized;
         }
-        var tokenRequestedDate = await GetTokenRequestedDate().ConfigureAwait(false);
-        if (tokenRequestedDate == null)
+        var url = configurationWrapper.BackendApiBaseUrl() + "FleetApiRequests/AnyFleetApiTokenWithExpiryInFuture";
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
         {
-            return FleetApiTokenState.NotRequested;
+            return FleetApiTokenState.NoBackendApiToken;
         }
-        var currentDate = dateTimeProvider.UtcNow();
-        if (tokenRequestedDate < (currentDate - constants.MaxTokenRequestWaitTime))
+        request.Headers.Authorization = new("Bearer", token.AccessToken);
+        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
         {
-            return FleetApiTokenState.TokenRequestExpired;
+            logger.LogError("Could not check if token is valid. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            return FleetApiTokenState.BackendTokenUnauthorized;
         }
-        return FleetApiTokenState.NotReceived;
-    }
-
-    public async Task<DateTime?> GetTokenRequestedDate()
-    {
-        logger.LogTrace("{method}()", nameof(GetTokenRequestedDate));
-        var tokenRequestedDateString = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.FleetApiTokenRequested)
-            .Select(c => c.Value)
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        if (tokenRequestedDateString == null)
+        var validFleetApiToken = JsonConvert.DeserializeObject<DtoValue<bool>>(responseString);
+        if (validFleetApiToken?.Value != true)
         {
-            return null;
+            return FleetApiTokenState.FleetApiTokenExpired;
         }
-        var tokenRequestedDate = DateTime.Parse(tokenRequestedDateString, null, DateTimeStyles.RoundtripKind);
-        return tokenRequestedDate;
+        return FleetApiTokenState.UpToDate;
     }
 }

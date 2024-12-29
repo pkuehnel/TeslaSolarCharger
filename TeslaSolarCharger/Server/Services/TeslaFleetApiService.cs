@@ -1088,7 +1088,7 @@ public class TeslaFleetApiService(
         logger.LogTrace("{method}({statusCode}, {token}, {responseString})", nameof(HandleNonSuccessTeslaApiStatusCodes), statusCode, token, responseString);
         if (statusCode == HttpStatusCode.Unauthorized)
         {
-            await tscConfigurationService.SetConfigurationValueByKey(constants.BackendTokenUnauthorizedKey, "true");
+            await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenUnauthorizedKey, "true");
             logger.LogError(
                 "Your token or refresh token is invalid. Response: {responseString}", responseString);
         }

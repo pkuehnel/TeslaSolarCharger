@@ -137,9 +137,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
         await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
             "Update TSC to the latest version.", settings.IsNewVersionAvailable).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNoApiRequestsAllowed, "No Fleet API requests allowed",
-            "Make sure your TSC can access the internet and TSC is on its latest version.", !settings.AllowUnlimitedFleetApiRequests).ConfigureAwait(false);
 
+        //ToDo: if last check there was no token related issue, only detect token related issues every x minutes as creates high load in backend
         await DetectTokenStateIssues(activeErrors);
         foreach (var car in settings.CarsToManage)
         {
@@ -418,24 +417,24 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     {
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
         var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNotRequested, "Fleet API token not requested",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
-            tokenState == FleetApiTokenState.NotRequested).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "No Backen API token",
+            "You are currently not connected to the backend. Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            tokenState == FleetApiTokenState.NoBackendApiToken).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.BackendTokenUnauthorized, "Backend Token Unauthorized",
+            "You recently changed your Solar4Car password or did not use TSC for at least 30 days. Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            tokenState == FleetApiTokenState.BackendTokenUnauthorized).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
-            "You recently changed your password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
-            tokenState == FleetApiTokenState.TokenUnauthorized).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
+            "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            tokenState == FleetApiTokenState.FleetApiTokenUnauthorized).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is expired",
+            "Either you recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            tokenState == FleetApiTokenState.FleetApiTokenExpired).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Your Tesla token has missing scopes.",
             "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
-            tokenState == FleetApiTokenState.MissingScopes).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenRequestExpired, "Tesla Token could not be received",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            tokenState == FleetApiTokenState.TokenRequestExpired).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Tesla Token expired",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            tokenState == FleetApiTokenState.Expired).ConfigureAwait(false);
-
-        //Remove all token related issue keys on token error because very likely it is because of the underlaying token issue.
-        if (tokenState != FleetApiTokenState.UpToDate && tokenState != FleetApiTokenState.NotNeeded)
+            tokenState == FleetApiTokenState.FleetApiTokenMissingScopes).ConfigureAwait(false);
+        
+        //Remove all fleet api related issue keys on token error because very likely it is because of the underlaying token issue.
+        if (tokenState != FleetApiTokenState.UpToDate)
         {
             foreach (var activeError in activeErrors.Where(activeError => activeError.IssueKey.StartsWith(issueKeys.GetVehicleData)
                                                                           || activeError.IssueKey.StartsWith(issueKeys.CarStateUnknown)

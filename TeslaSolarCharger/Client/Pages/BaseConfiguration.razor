@@ -34,52 +34,34 @@ else
             </InputFragment>
         </InputComponent>
         <hr />
-        @if (_fleetApiTokenState != FleetApiTokenState.NotNeeded)
+        <h3>Tesla Fleet API:</h3>
+        @switch (_fleetApiTokenState)
         {
-            <h3>Tesla Fleet API:</h3>
-            @switch (_fleetApiTokenState)
-            {
-                case FleetApiTokenState.NotRequested:
-                    <div>
-                        You have to generate a token in order to use the Tesla Fleet API. Important: You have to allow access to all scopes.
-                    </div>
-                    break;
-                case FleetApiTokenState.NotReceived:
-                    <div>
-                        You already have requested a token but did not receive it yet. It can take up to five minutes to receive the token. If the token did not arrive within five minutes please try again:
-                    </div>
-                    break;
-                case FleetApiTokenState.TokenRequestExpired:
-                    <div>
-                        Your token request has expired. Please generate a new token:
-                    </div>
-                    break;
-                case FleetApiTokenState.TokenUnauthorized:
-                    <div>
-                        Your token is unauthorized, Please generate a new token, allow access to all scopes and enable mobile access in your car.
-                    </div>
-                    break;
-                case FleetApiTokenState.MissingScopes:
-                    <div>
-                        Your token has missing scopes. Remove Tesla Solar Charger from your <a href="https://accounts.tesla.com/account-settings/security?tab=tpty-apps" target="_blank">third party apps</a> as you won't get asked again for the scopes. After that generate a new token and allow access to all scopes.
-                    </div>
-                    break;
-                case FleetApiTokenState.Expired:
-                    <div>
-                        Your token has expired. This could happen if you changed your Tesla password or did not use TeslaSolarCharger for too long. Please generate a new token:
-                    </div>
-                    break;
-                case FleetApiTokenState.UpToDate:
-                    <div>
-                        Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:
-                    </div>
-                    break;
-            }
-            <div>
-                <button class="btn btn-primary" disabled="@_tokenGenerationButtonDisabled" type="button" @onclick="GenerateFleetApiToken">Generate Token</button>
-            </div>
-            <hr />
+            case FleetApiTokenState.NoBackendApiToken:
+                <div>
+                    You are not logged in in the Solar4car.com account. When requesting a new Tesla Token there will also be a request to log in to your Solar4car.com account.
+                </div>
+                break;
+            case FleetApiTokenState.FleetApiTokenUnauthorized:
+                <div>
+                    Your token is unauthorized. Request a new token, allow access to all scopes and enable mobile access in your car.
+                </div>
+                break;
+            case FleetApiTokenState.FleetApiTokenMissingScopes:
+                <div>
+                    Your token has missing scopes. Request a new Token and allow all scopes (only required scopes are requested).
+                </div>
+                break;
+            case FleetApiTokenState.UpToDate:
+                <div>
+                    Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:
+                </div>
+                break;
         }
+        <div>
+            <button class="btn btn-primary" disabled="@_tokenGenerationButtonDisabled" type="button" @onclick="GenerateFleetApiToken">Request Token</button>
+        </div>
+        <hr />
         <h3>TeslaMate:</h3>
         <GenericInput T="bool"
                       For="() => _dtoBaseConfiguration.UseTeslaMateIntegration"
@@ -92,7 +74,7 @@ else
                             UnitText=""
                             HelpText="">
                 <InputFragment>
-                    <InputText id="teslaMateDbServer" @bind-Value="_dtoBaseConfiguration.TeslaMateDbServer" class="form-control" placeholder=" "/>
+                    <InputText id="teslaMateDbServer" @bind-Value="_dtoBaseConfiguration.TeslaMateDbServer" class="form-control" placeholder=" " />
                 </InputFragment>
             </InputComponent>
 
@@ -101,7 +83,7 @@ else
                             UnitText=""
                             HelpText="You can use the internal port of the TeslaMate database container">
                 <InputFragment>
-                    <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" "/>
+                    <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" " />
                 </InputFragment>
             </InputComponent>
             <InputComponent ValueId="teslaMateDbUser"
@@ -126,12 +108,12 @@ else
                             UnitText=""
                             HelpText="">
                 <InputFragment>
-                    <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.MosquitoServer" class="form-control" placeholder=" "/>
+                    <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.MosquitoServer" class="form-control" placeholder=" " />
                 </InputFragment>
             </InputComponent>
         }
-        
-        
+
+
         <h3>Home Geofence</h3>
         <div class="mb-3">
             <MapComponent Longitude="_dtoBaseConfiguration.HomeGeofenceLongitude"
@@ -160,7 +142,7 @@ else
                 <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" placeholder=" " class="form-control" />
             </InputFragment>
         </InputComponent>
-        
+
         <GenericInput For="() => _dtoBaseConfiguration.AllowPowerBufferChangeOnHome"></GenericInput>
 
         <InputComponent ValueId="homeBatteryMinSoc"
@@ -189,11 +171,11 @@ else
                 <InputNumber id="maxInverterAcPower" @bind-Value="_dtoBaseConfiguration.MaxInverterAcPower" placeholder=" " class="form-control" />
             </InputFragment>
         </InputComponent>
-        
+
         <RestValueConfigurationComponent />
         <ModbusValueConfigurationComponent />
         <MqttValueConfigurationComponent />
-        
+
         <div class="shadow p-3 mb-5 bg-white rounded">
             <h3>Telegram:</h3>
             <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
@@ -210,7 +192,7 @@ else
                                          DisableToolTipText="You need to save the configuration before testing it."
                                          OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
         </div>
-        
+
         <MudExpansionPanels>
             <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
                 <InputComponent ValueId="updateIntervalSeconds"
@@ -218,7 +200,7 @@ else
                                 UnitText="s"
                                 HelpText="Note: It is not possible to use values below 25 seconds here, as there is a delay between the car changing its current and the Tesla API getting notified about this change.">
                     <InputFragment>
-                        <InputNumber id="updateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.UpdateIntervalSeconds" class="form-control" placeholder=" "/>
+                        <InputNumber id="updateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.UpdateIntervalSeconds" class="form-control" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
 
@@ -227,7 +209,7 @@ else
                                 UnitText="s"
                                 HelpText="">
                     <InputFragment>
-                        <InputNumber id="pvValueUpdateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.PvValueUpdateIntervalSeconds" class="form-control" placeholder=" "/>
+                        <InputNumber id="pvValueUpdateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.PvValueUpdateIntervalSeconds" class="form-control" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
 
@@ -236,7 +218,7 @@ else
                                 UnitText="min"
                                 HelpText="">
                     <InputFragment>
-                        <InputNumber id="minutesUntilSwitchOn" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOn" class="form-control" placeholder=" "/>
+                        <InputNumber id="minutesUntilSwitchOn" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOn" class="form-control" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
 
@@ -248,23 +230,23 @@ else
                         <InputNumber id="minutesUntilSwitchOff" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
-                <hr/>
+                <hr />
                 <InputComponent ValueId="mqqtClientId"
                                 LabelText="Mqqt ClientId"
                                 UnitText=""
                                 HelpText="">
                     <InputFragment>
-                        <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.MqqtClientId" class="form-control" placeholder=" "/>
+                        <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.MqqtClientId" class="form-control" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
-                <hr/>
+                <hr />
 
                 <InputComponent ValueId="homeBatteryPowerInversionUrl"
                                 LabelText="HomeBatteryPowerInversion Url"
                                 UnitText=""
                                 HelpText="Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.">
                     <InputFragment>
-                        <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" placeholder=" "/>
+                        <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" placeholder=" " />
                     </InputFragment>
                 </InputComponent>
             </MudExpansionPanel>
@@ -276,7 +258,7 @@ else
                                          IsLoading="_submitLoading"
                                          ButtonType="ButtonType.Submit"></RightAlignedButtonComponent>
         </div>
-        
+
     </EditForm>
 }
 

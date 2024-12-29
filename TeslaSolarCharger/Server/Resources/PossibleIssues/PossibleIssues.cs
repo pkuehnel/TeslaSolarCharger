@@ -18,15 +18,6 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = true,
             }
         },
-        { issueKeys.FleetApiTokenNotRequested, new DtoIssue
-            {
-                IssueSeverity = IssueSeverity.Error,
-                IsTelegramEnabled = false,
-                ShowErrorAfterOccurrences = 1,
-                HasPlaceHolderIssueKey = false,
-                HideOccurrenceCount = true,
-            }
-        },
         { issueKeys.FleetApiTokenUnauthorized, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,
@@ -48,33 +39,6 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IssueSeverity = IssueSeverity.Error,
                 IsTelegramEnabled = false,
                 ShowErrorAfterOccurrences = 1,
-                HasPlaceHolderIssueKey = false,
-                HideOccurrenceCount = true,
-            }
-        },
-        { issueKeys.FleetApiTokenNotReceived, new DtoIssue
-            {
-                IssueSeverity = IssueSeverity.Warning,
-                IsTelegramEnabled = false,
-                ShowErrorAfterOccurrences = 1,
-                HasPlaceHolderIssueKey = false,
-                HideOccurrenceCount = true,
-            }
-        },
-        { issueKeys.FleetApiTokenExpired, new DtoIssue
-            {
-                IssueSeverity = IssueSeverity.Error,
-                IsTelegramEnabled = true,
-                ShowErrorAfterOccurrences = 1,
-                HasPlaceHolderIssueKey = false,
-                HideOccurrenceCount = true,
-            }
-        },
-        { issueKeys.FleetApiTokenNoApiRequestsAllowed, new DtoIssue
-            {
-                IssueSeverity = IssueSeverity.Error,
-                IsTelegramEnabled = true,
-                ShowErrorAfterOccurrences = 2,
                 HasPlaceHolderIssueKey = false,
                 HideOccurrenceCount = true,
             }
@@ -186,6 +150,33 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
             }
         },
         { issueKeys.BleVersionCompatibility, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
+        { issueKeys.NoBackendApiToken, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
+        { issueKeys.BackendTokenUnauthorized, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 2,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
+        { issueKeys.FleetApiTokenExpired, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,
                 IsTelegramEnabled = true,
