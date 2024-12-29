@@ -1,6 +1,5 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
@@ -151,14 +150,20 @@ public class BackendApiService(
         return new(true);
     }
 
-    public async Task RefreshBackendToken()
+    public async Task RefreshBackendTokenIfNeeded()
     {
-        logger.LogTrace("{method}(token)", nameof(RefreshBackendToken));
+        logger.LogTrace("{method}(token)", nameof(RefreshBackendTokenIfNeeded));
         var url = configurationWrapper.BackendApiBaseUrl() + "User/RefreshToken";
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
         if(token == default)
         {
             logger.LogError("Could not refresh backend token. No token found");
+            return;
+        }
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        if(token.ExpiresAtUtc > currentDate.AddMinutes(1))
+        {
+            logger.LogTrace("Token is still valid");
             return;
         }
         var dtoRefreshToken = new DtoTokenRefreshModel(token.AccessToken, token.RefreshToken);

@@ -12,5 +12,5 @@ public interface IBackendApiService
     Task GetNewBackendNotifications();
     Task<DtoValue<bool>> HasValidBackendToken();
     Task GetToken(DtoBackendLogin login);
-    Task RefreshBackendToken();
+    Task RefreshBackendTokenIfNeeded();
 }
