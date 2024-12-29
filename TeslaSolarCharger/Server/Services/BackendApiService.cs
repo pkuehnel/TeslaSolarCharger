@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
@@ -175,6 +175,7 @@ public class BackendApiService(
         var newToken = JsonConvert.DeserializeObject<DtoAccessToken>(responseContent) ?? throw new InvalidDataException("Could not parse token");
         token.AccessToken = newToken.AccessToken;
         token.RefreshToken = newToken.RefreshToken;
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     internal string GenerateAuthUrl(DtoTeslaOAuthRequestInformation oAuthInformation, string locale)
