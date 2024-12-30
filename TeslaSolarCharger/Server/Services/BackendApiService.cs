@@ -101,13 +101,13 @@ public class BackendApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public async Task<DtoValue<bool>> HasValidBackendToken()
+    public async Task<bool> HasValidBackendToken()
     {
         logger.LogTrace("{method}", nameof(HasValidBackendToken));
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
         if (token == default)
         {
-            return new(false);
+            return false;
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "Client/IsTokenValid";
         using var httpClient = new HttpClient();
@@ -117,7 +117,7 @@ public class BackendApiService(
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
-            return new(false);
+            return false;
         }
         if (!response.IsSuccessStatusCode)
         {
@@ -125,7 +125,7 @@ public class BackendApiService(
             logger.LogError("Could not check if token is valid. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
             throw new InvalidOperationException("Could not check if token is valid");
         }
-        return new(true);
+        return true;
     }
 
     public async Task RefreshBackendTokenIfNeeded()

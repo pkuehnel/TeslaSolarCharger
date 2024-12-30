@@ -8,7 +8,7 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class BackendApiController (IBackendApiService backendApiService) : ApiBaseController
 {
     [HttpGet]
-    public Task<DtoValue<bool>> HasValidBackendToken() => backendApiService.HasValidBackendToken();
+    public async Task<DtoValue<bool>> HasValidBackendToken() => new(await backendApiService.HasValidBackendToken());
 
 
     [HttpPost]
