@@ -13,9 +13,11 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
     ITscConfigurationService tscConfigurationService,
-    IConfigurationWrapper configurationWrapper) : ITeslaFleetApiTokenHelper
+    IConfigurationWrapper configurationWrapper,
+    IBackendApiService backendApiService,
+    IDateTimeProvider dateTimeProvider) : ITeslaFleetApiTokenHelper
 {
-    public async Task<FleetApiTokenState> GetFleetApiTokenState()
+    public async Task<TokenState> GetFleetApiTokenState()
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiTokenState));
         var hasCurrentTokenMissingScopes = await teslaSolarChargerContext.TscConfigurations
@@ -23,12 +25,17 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
             .AnyAsync().ConfigureAwait(false);
         if (hasCurrentTokenMissingScopes)
         {
-            return FleetApiTokenState.FleetApiTokenMissingScopes;
+            return TokenState.MissingScopes;
         }
         var isTokenUnauthorized = string.Equals(await tscConfigurationService.GetConfigurationValueByKey(constants.FleetApiTokenUnauthorizedKey), "true", StringComparison.InvariantCultureIgnoreCase);
         if (isTokenUnauthorized)
         {
-            return FleetApiTokenState.FleetApiTokenUnauthorized;
+            return TokenState.Unauthorized;
+        }
+        var backendTokenState = await GetBackendTokenState();
+        if (backendTokenState != TokenState.UpToDate)
+        {
+            return TokenState.MissingPrecondition;
         }
         var url = configurationWrapper.BackendApiBaseUrl() + "FleetApiRequests/FleetApiTokenExpiresInSeconds";
         using var httpClient = new HttpClient();
@@ -37,7 +44,7 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
-            return FleetApiTokenState.NoBackendApiToken;
+            return TokenState.MissingPrecondition;
         }
         request.Headers.Authorization = new("Bearer", token.AccessToken);
         var response = await httpClient.SendAsync(request).ConfigureAwait(false);
@@ -45,22 +52,39 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
         if (!response.IsSuccessStatusCode)
         {
             logger.LogError("Could not check if token is valid. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
-            return FleetApiTokenState.BackendTokenUnauthorized;
+            return TokenState.MissingPrecondition;
         }
         var validFleetApiToken = JsonConvert.DeserializeObject<DtoValue<long?>>(responseString);
         if (validFleetApiToken == null)
         {
             logger.LogError("Could not check if fleet api token is available.");
-            return FleetApiTokenState.NoFleetApiToken;
+            return TokenState.MissingPrecondition;
         }
         if (validFleetApiToken.Value == null)
         {
-            return FleetApiTokenState.NoFleetApiToken;
+            return TokenState.NotAvailable;
         }
         if (validFleetApiToken.Value <= 0)
         {
-            return FleetApiTokenState.FleetApiTokenExpired;
+            return TokenState.Expired;
         }
-        return FleetApiTokenState.UpToDate;
+        return TokenState.UpToDate;
+    }
+
+    public async Task<TokenState> GetBackendTokenState()
+    {
+        logger.LogTrace("{method}", nameof(GetBackendTokenState));
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            return TokenState.NotAvailable;
+        }
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        if (token.ExpiresAtUtc < currentDate)
+        {
+            return TokenState.Expired;
+        }
+        var isTokenValid = await backendApiService.HasValidBackendToken();
+        return isTokenValid ? TokenState.UpToDate : TokenState.Unauthorized;
     }
 }

@@ -9,7 +9,7 @@
 {
     <PlaceholderComponent Count="10"></PlaceholderComponent>
 }
-else if (_fleetApiTokenState != FleetApiTokenState.UpToDate)
+else if (_fleetApiTokenState != TokenState.UpToDate)
 {
     <MudAlert Severity="Severity.Error"
               NoIcon="true"
@@ -26,7 +26,7 @@ else
 @code {
 
 
-    private FleetApiTokenState? _fleetApiTokenState;
+    private TokenState? _fleetApiTokenState;
 
     protected override async Task OnInitializedAsync()
     {
@@ -35,7 +35,7 @@ else
 
     public async Task RefreshFleetApiTokenState()
     {
-        var value = await HttpClient.GetFromJsonAsync<DtoValue<FleetApiTokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
+        var value = await HttpClient.GetFromJsonAsync<DtoValue<TokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
         if (value != null)
         {
             _fleetApiTokenState = value.Value;

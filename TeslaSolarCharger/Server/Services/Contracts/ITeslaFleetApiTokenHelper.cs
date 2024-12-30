@@ -4,5 +4,6 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface ITeslaFleetApiTokenHelper
 {
-    Task<FleetApiTokenState> GetFleetApiTokenState();
+    Task<TokenState> GetFleetApiTokenState();
+    Task<TokenState> GetBackendTokenState();
 }

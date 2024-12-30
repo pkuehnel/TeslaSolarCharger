@@ -7,7 +7,7 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface ITeslaFleetApiService
 {
-    Task<DtoValue<FleetApiTokenState>> GetFleetApiTokenState();
+    Task<DtoValue<TokenState>> GetFleetApiTokenState();
     Task<DtoValue<bool>> TestFleetApiAccess(int carId);
     Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin);
     Task RefreshCarData();

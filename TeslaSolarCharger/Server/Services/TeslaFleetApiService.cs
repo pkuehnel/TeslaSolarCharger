@@ -1052,7 +1052,7 @@ public class TeslaFleetApiService(
         
     }
 
-    public async Task<DtoValue<FleetApiTokenState>> GetFleetApiTokenState()
+    public async Task<DtoValue<TokenState>> GetFleetApiTokenState()
     {
         var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
         return new(tokenState);

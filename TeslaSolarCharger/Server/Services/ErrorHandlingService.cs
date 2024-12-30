@@ -416,28 +416,29 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)
     {
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
-        var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
+        var backendTokenState = await teslaFleetApiTokenHelper.GetBackendTokenState();
+        var fleetApiTokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
         await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "No Backen API token",
             "You are currently not connected to the backend. Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            tokenState == FleetApiTokenState.NoBackendApiToken).ConfigureAwait(false);
+            backendTokenState == TokenState.NotAvailable).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.BackendTokenUnauthorized, "Backend Token Unauthorized",
             "You recently changed your Solar4Car password or did not use TSC for at least 30 days. Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            tokenState == FleetApiTokenState.BackendTokenUnauthorized).ConfigureAwait(false);
+            backendTokenState == TokenState.Unauthorized).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
             "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
-            tokenState == FleetApiTokenState.FleetApiTokenUnauthorized).ConfigureAwait(false);
+            fleetApiTokenState == TokenState.Unauthorized).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.NoFleetApiToken, "No Fleet API Token available.",
             "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            tokenState == FleetApiTokenState.NoFleetApiToken).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is expired",
+            fleetApiTokenState == TokenState.NotAvailable).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Fleet API token is expired",
             "Either you recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
-            tokenState == FleetApiTokenState.FleetApiTokenExpired).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Your Tesla token has missing scopes.",
+            fleetApiTokenState == TokenState.Expired).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
             "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
-            tokenState == FleetApiTokenState.FleetApiTokenMissingScopes).ConfigureAwait(false);
+            fleetApiTokenState == TokenState.MissingScopes).ConfigureAwait(false);
         
         //Remove all fleet api related issue keys on token error because very likely it is because of the underlaying token issue.
-        if (tokenState != FleetApiTokenState.UpToDate)
+        if (fleetApiTokenState != TokenState.UpToDate)
         {
             foreach (var activeError in activeErrors.Where(activeError => activeError.IssueKey.StartsWith(issueKeys.GetVehicleData)
                                                                           || activeError.IssueKey.StartsWith(issueKeys.CarStateUnknown)

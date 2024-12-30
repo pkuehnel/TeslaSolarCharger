@@ -11,7 +11,7 @@
 <h1>Car Settings</h1>
 
 <div class="mb-3">
-    @if (_fleetApiTokenState != null && _fleetApiTokenState != FleetApiTokenState.UpToDate)
+    @if (_fleetApiTokenState != null && _fleetApiTokenState != TokenState.UpToDate)
     {
         <MudAlert Severity="Severity.Error"
                   NoIcon="true"
@@ -20,7 +20,7 @@
             Go to <MudLink Href="/BaseConfiguration">Base Configuration</MudLink>, Generate a Tesla Fleet API Token and restart TSC to see cars here.
         </MudAlert>
     }
-    @if (_fleetApiTokenState == FleetApiTokenState.UpToDate)
+    @if (_fleetApiTokenState == TokenState.UpToDate)
     {
         <MudAlert Severity="Severity.Info"
                   NoIcon="true"
@@ -121,7 +121,7 @@ else
 @code {
     private List<CarBasicConfiguration>? _carBasicConfigurations;
     private readonly List<int> _savingCarIds = new();
-    private FleetApiTokenState? _fleetApiTokenState;
+    private TokenState? _fleetApiTokenState;
 
     private Dictionary<string, string> _pairingResults = new();
 
@@ -138,7 +138,7 @@ else
 
     private async Task RefreshFleetApiTokenState()
     {
-        var value = await HttpClient.GetFromJsonAsync<DtoValue<FleetApiTokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
+        var value = await HttpClient.GetFromJsonAsync<DtoValue<TokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
         if (value != null)
         {
             _fleetApiTokenState = value.Value;

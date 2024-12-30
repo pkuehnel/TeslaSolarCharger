@@ -20,7 +20,7 @@ public class FleetApiController(
     : ApiBaseController
 {
     [HttpGet]
-    public Task<DtoValue<FleetApiTokenState>> FleetApiTokenState() => fleetApiService.GetFleetApiTokenState();
+    public Task<DtoValue<TokenState>> FleetApiTokenState() => fleetApiService.GetFleetApiTokenState();
 
     [HttpGet]
     public Task<DtoValue<string>> GetOauthUrl(string locale, string baseUrl) => backendApiService.StartTeslaOAuth(locale, baseUrl);
