@@ -19,8 +19,6 @@ public class Constants : IConstants
     public Margin InputMargin => Margin.Dense;
 
     public string InstallationIdKey => "InstallationId";
-    public string FleetApiTokenRequested => "FleetApiTokenRequested";
-    public string TokenRefreshUnauthorized => "TokenRefreshUnauthorized";
     public string TokenMissingScopes => "TokenMissingScopes";
     public string CarConfigurationsConverted => "CarConfigurationsConverted";
     public string BleBaseUrlConverted => "BleBaseUrlConverted";
@@ -39,8 +37,6 @@ public class Constants : IConstants
     public string WakeUpRequestUrl => "FleetApiRequests/WakeUp";
     public string VehicleRequestUrl => "FleetApiRequests/GetVehicle";
     public string VehicleDataRequestUrl => $"FleetApiRequests/GetVehicleData";
-    public string EmailConfigurationKey => "EmailConfiguration";
-    public string BackendPasswordConfigurationKey => "BackendPasswordConfiguration";
     public string TeslaTokenEncryptionKeyKey => "TeslaTokenEncryptionKey";
     public string FleetApiTokenUnauthorizedKey => "BackendTokenUnauthorized";
 
