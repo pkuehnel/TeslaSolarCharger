@@ -117,14 +117,6 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HasPlaceHolderIssueKey = false,
             }
         },
-        { issueKeys.CarRateLimited, new DtoIssue
-            {
-                IssueSeverity = IssueSeverity.Error,
-                IsTelegramEnabled = true,
-                ShowErrorAfterOccurrences = 1,
-                HasPlaceHolderIssueKey = false,
-            }
-        },
         { issueKeys.BleCommandNoSuccess, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,

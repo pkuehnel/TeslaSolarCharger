@@ -1,6 +1,6 @@
 ﻿namespace TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 
-public class DtoTeslaResponse
+public class DtoBackendApiTeslaResponse
 {
     public int StatusCode { get; set; }
     public string? JsonResponse { get; set; }

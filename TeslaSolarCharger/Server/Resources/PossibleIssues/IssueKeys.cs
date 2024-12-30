@@ -15,9 +15,9 @@ public class IssueKeys : IIssueKeys
     public string GetVehicleData => "GetVehicleData";
     public string CarStateUnknown => "CarStateUnknown";
     public string FleetApiNonSuccessStatusCode => "FleetApiNonSuccessStatusCode_";
+    public string Solar4CarSideFleetApiNonSuccessStatusCode => "Solar4CarSideFleetApiNonSuccessStatusCode_";
     public string FleetApiNonSuccessResult => "FleetApiNonSuccessResult_";
     public string UnsignedCommand => "UnsignedCommand";
-    public string CarRateLimited => "CarRateLimited";
     public string BleCommandNoSuccess => "BleCommandNoSuccess_";
     public string SolarValuesNotAvailable => "SolarValuesNotAvailable";
     public string UsingFleetApiAsBleFallback => "UsingFleetApiAsBleFallback";

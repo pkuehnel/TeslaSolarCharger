@@ -15,7 +15,6 @@ public interface IIssueKeys
     string FleetApiNonSuccessStatusCode { get; }
     string FleetApiNonSuccessResult { get; }
     string UnsignedCommand { get; }
-    string CarRateLimited { get; }
     string BleCommandNoSuccess { get; }
     string SolarValuesNotAvailable { get; }
     string UsingFleetApiAsBleFallback { get; }
@@ -23,4 +22,5 @@ public interface IIssueKeys
     string NoBackendApiToken { get; }
     string BackendTokenUnauthorized { get; }
     string FleetApiTokenExpired { get; }
+    string Solar4CarSideFleetApiNonSuccessStatusCode { get; }
 }

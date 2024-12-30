@@ -40,11 +40,6 @@ public class Car
     public CarStateEnum? State { get; set; }
 
     public bool VehicleCommandProtocolRequired { get; set; }
-    public DateTime? VehicleRateLimitedUntil { get; set; }
-    public DateTime? VehicleDataRateLimitedUntil { get; set; }
-    public DateTime? CommandsRateLimitedUntil { get; set; }
-    public DateTime? WakeUpRateLimitedUntil { get; set; }
-    public DateTime? ChargingCommandsRateLimitedUntil { get; set; }
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public bool UseFleetTelemetry { get; set; }
