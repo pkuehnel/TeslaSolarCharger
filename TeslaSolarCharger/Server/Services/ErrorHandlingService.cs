@@ -26,7 +26,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     IConfigurationWrapper configurationWrapper,
     IMapperConfigurationFactory mapperConfigurationFactory,
     ISettings settings,
-    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper,
+    ITokenHelper tokenHelper,
     IPossibleIssues possibleIssues,
     IConstants constants) : IErrorHandlingService
 {
@@ -416,8 +416,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)
     {
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
-        var backendTokenState = await teslaFleetApiTokenHelper.GetBackendTokenState(true);
-        var fleetApiTokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState(true);
+        var backendTokenState = await tokenHelper.GetBackendTokenState(true);
+        var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
         await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "No Backen API token",
             "You are currently not connected to the backend. Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
             backendTokenState == TokenState.NotAvailable).ConfigureAwait(false);

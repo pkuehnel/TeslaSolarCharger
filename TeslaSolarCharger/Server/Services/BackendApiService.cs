@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using System.Net;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -24,7 +24,9 @@ public class BackendApiService(
     IDateTimeProvider dateTimeProvider,
     IErrorHandlingService errorHandlingService,
     IIssueKeys issueKeys,
-    IPasswordGenerationService passwordGenerationService)
+    IPasswordGenerationService passwordGenerationService,
+    ITokenHelper tokenHelper,
+    IMemoryCache memoryCache)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
@@ -104,19 +106,21 @@ public class BackendApiService(
     public async Task RefreshBackendTokenIfNeeded()
     {
         logger.LogTrace("{method}(token)", nameof(RefreshBackendTokenIfNeeded));
-        var url = configurationWrapper.BackendApiBaseUrl() + "User/RefreshToken";
-        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
-        if(token == default)
+        var tokenExpriationDate = await tokenHelper.GetBackendTokenExpirationDate();
+        if(tokenExpriationDate == default)
         {
-            logger.LogError("Could not refresh backend token. No token found");
+            logger.LogError("Could not refresh backend token. No token found.");
             return;
         }
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        if(token.ExpiresAtUtc > currentDate.AddMinutes(1))
+        if(tokenExpriationDate > currentDate.AddMinutes(1))
         {
             logger.LogTrace("Token is still valid");
             return;
         }
+        var url = configurationWrapper.BackendApiBaseUrl() + "User/RefreshToken";
+        //As expiration date is not null a token must exist.
+        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
         var dtoRefreshToken = new DtoTokenRefreshModel(token.AccessToken, token.RefreshToken);
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromSeconds(10);
@@ -125,6 +129,7 @@ public class BackendApiService(
         {
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             logger.LogError("Could not refresh backend token. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            memoryCache.Remove(constants.BackendTokenStateKey);
             throw new InvalidOperationException("Could not refresh backend token");
         }
         var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -132,6 +137,7 @@ public class BackendApiService(
         token.AccessToken = newToken.AccessToken;
         token.RefreshToken = newToken.RefreshToken;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        memoryCache.Remove(constants.BackendTokenStateKey);
     }
 
     internal string GenerateAuthUrl(DtoTeslaOAuthRequestInformation oAuthInformation, string locale)

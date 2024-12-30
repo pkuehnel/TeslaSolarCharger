@@ -17,7 +17,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     ITscConfigurationService tscConfigurationService,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
-    IMemoryCache memoryCache) : ITeslaFleetApiTokenHelper
+    IMemoryCache memoryCache) : ITokenHelper
 {
     public async Task<TokenState> GetFleetApiTokenState(bool useCache)
     {

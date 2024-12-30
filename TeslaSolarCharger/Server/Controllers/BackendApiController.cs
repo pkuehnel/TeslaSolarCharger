@@ -6,7 +6,7 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class BackendApiController (IBackendApiService backendApiService, ITeslaFleetApiTokenHelper tokenHelper) : ApiBaseController
+public class BackendApiController (IBackendApiService backendApiService, ITokenHelper tokenHelper) : ApiBaseController
 {
     [HttpGet]
     public async Task<DtoValue<TokenState>> HasValidBackendToken()

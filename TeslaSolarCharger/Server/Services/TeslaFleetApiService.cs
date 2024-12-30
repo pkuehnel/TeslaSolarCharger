@@ -35,7 +35,7 @@ public class TeslaFleetApiService(
     ISettings settings,
     IBleService bleService,
     IIssueKeys issueKeys,
-    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper,
+    ITokenHelper tokenHelper,
     IFleetTelemetryWebSocketService fleetTelemetryWebSocketService)
     : ITeslaService, ITeslaFleetApiService
 {
@@ -1053,7 +1053,7 @@ public class TeslaFleetApiService(
 
     public async Task<DtoValue<TokenState>> GetFleetApiTokenState()
     {
-        var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState(false);
+        var tokenState = await tokenHelper.GetFleetApiTokenState(false);
         return new(tokenState);
     }
 
