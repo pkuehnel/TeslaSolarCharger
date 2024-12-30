@@ -49,6 +49,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<NewVersionCheckJob>()
             .AddTransient<SpotPriceJob>()
             .AddTransient<BackendTokenRefreshJob>()
+            .AddTransient<FleetApiTokenRefreshJob>()
             .AddTransient<VehicleDataRefreshJob>()
             .AddTransient<TeslaMateChargeCostUpdateJob>()
             .AddTransient<BackendNotificationRefreshJob>()

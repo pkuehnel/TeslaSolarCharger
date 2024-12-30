@@ -1,5 +1,6 @@
 using LanguageExt;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System.Net;
 using System.Net.Http.Headers;
@@ -36,7 +37,8 @@ public class TeslaFleetApiService(
     IBleService bleService,
     IIssueKeys issueKeys,
     ITokenHelper tokenHelper,
-    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService)
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
+    IMemoryCache memoryCache)
     : ITeslaService, ITeslaFleetApiService
 {
     private const string IsChargingErrorMessage = "is_charging";
@@ -429,6 +431,66 @@ public class TeslaFleetApiService(
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while refreshing car data for car {car.Vin}",
                     $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.GetVehicleData, car.Vin, ex.StackTrace).ConfigureAwait(false);
             }
+        }
+    }
+
+    public async Task RefreshFleetApiTokenIfNeeded()
+    {
+        logger.LogTrace("{method}()", nameof(RefreshFleetApiTokenIfNeeded));
+        var fleetApiTokenExpiration = await tokenHelper.GetFleetApiTokenExpirationDate(true);
+        if (fleetApiTokenExpiration == default)
+        {
+            var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
+            logger.LogDebug("Do not refresh Fleet API Token as state is {state}", fleetApiTokenState);
+            return;
+        }
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        if(fleetApiTokenExpiration > currentDate.AddMinutes(1))
+        {
+            logger.LogDebug("Do not refresh Fleet API Token as it is still valid until {expiration}", fleetApiTokenExpiration);
+            return;
+        }
+        logger.LogDebug("Refresh Fleet API Token as it is expired since {expiration}", fleetApiTokenExpiration);
+        var backendApiBaseUrl = configurationWrapper.BackendApiBaseUrl();
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            throw new InvalidOperationException("No Decryption key found.");
+        }
+        var requestUri = $"{backendApiBaseUrl}TeslaOAuth/RefreshToken?encryptionKey={Uri.EscapeDataString(decryptionKey)}";
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
+        }
+        request.Headers.Authorization = new("Bearer", token.AccessToken);
+        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+        memoryCache.Remove(constants.FleetApiTokenStateKey);
+        memoryCache.Remove(constants.FleetApiTokenExpirationTimeKey);
+        var responseString = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError("Refresh Fleet API Token was not successfull. Status code: {statusCode}; response string: {responseString}", response.StatusCode, responseString);
+            return;
+        }
+        var result = JsonConvert.DeserializeObject<DtoBackendApiTeslaResponse>(responseString);
+        if (result == default)
+        {
+            logger.LogError("Could not deserialize response from TeslaOAuth/RefreshToken");
+            return;
+        }
+
+        if (result.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.Ambiguous)
+        {
+            logger.LogInformation("Refresh Fleet API Token was successfull");
+        }
+        else
+        {
+            logger.LogError("Refresh Token did not succeed between Backend and Tesla.");
         }
     }
 

@@ -33,10 +33,10 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         return state.TokenState;
     }
 
-    public async Task<DateTimeOffset?> GetFleetApiTokenExpirationDate()
+    public async Task<DateTimeOffset?> GetFleetApiTokenExpirationDate(bool useCache)
     {
         logger.LogTrace("{method}()", nameof(GetFleetApiTokenExpirationDate));
-        if (memoryCache.TryGetValue(constants.FleetApiTokenExpirationTimeKey, out DateTimeOffset? expirationTime))
+        if (useCache && memoryCache.TryGetValue(constants.FleetApiTokenExpirationTimeKey, out DateTimeOffset? expirationTime))
         {
             logger.LogTrace("Returning FleetApiToken ExpirationTime from cache: {expirationTime}", expirationTime);
             return expirationTime;

@@ -6,6 +6,6 @@ public interface ITokenHelper
 {
     Task<TokenState> GetFleetApiTokenState(bool useCache);
     Task<TokenState> GetBackendTokenState(bool useCache);
-    Task<DateTimeOffset?> GetFleetApiTokenExpirationDate();
+    Task<DateTimeOffset?> GetFleetApiTokenExpirationDate(bool useCache);
     Task<DateTimeOffset?> GetBackendTokenExpirationDate();
 }
