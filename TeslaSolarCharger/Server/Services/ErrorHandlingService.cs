@@ -416,8 +416,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)
     {
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
-        var backendTokenState = await teslaFleetApiTokenHelper.GetBackendTokenState();
-        var fleetApiTokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
+        var backendTokenState = await teslaFleetApiTokenHelper.GetBackendTokenState(true);
+        var fleetApiTokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState(true);
         await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "No Backen API token",
             "You are currently not connected to the backend. Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
             backendTokenState == TokenState.NotAvailable).ConfigureAwait(false);

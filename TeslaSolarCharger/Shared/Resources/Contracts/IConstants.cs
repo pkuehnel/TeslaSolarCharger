@@ -39,5 +39,7 @@ public interface IConstants
     string VehicleDataRequestUrl { get; }
     string TeslaTokenEncryptionKeyKey { get; }
     string FleetApiTokenUnauthorizedKey { get; }
-    string FleetApiTokenExpirationTime { get; }
+    string FleetApiTokenExpirationTimeKey { get; }
+    string FleetApiTokenStateKey { get; }
+    string BackendTokenStateKey { get; }
 }

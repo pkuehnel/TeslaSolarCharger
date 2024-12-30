@@ -1,6 +1,8 @@
-﻿namespace TeslaSolarCharger.Client.Services.Contracts;
+﻿using TeslaSolarCharger.Shared.Enums;
+
+namespace TeslaSolarCharger.Client.Services.Contracts;
 
 public interface IFleetApiTokenCheckService
 {
-    Task<bool> HasValidBackendToken();
+    Task<TokenState> HasValidBackendToken();
 }

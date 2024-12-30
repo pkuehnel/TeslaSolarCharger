@@ -100,7 +100,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ILatestTimeToReachSocUpdateService, LatestTimeToReachSocUpdateService>()
             .AddTransient<IChargeTimeCalculationService, ChargeTimeCalculationService>()
             .AddTransient<ITeslaFleetApiService, TeslaFleetApiService>()
-            .AddTransient<ITeslaFleetApiTokenHelper, TeslaFleetApiTokenHelper>()
+            .AddTransient<ITeslaFleetApiTokenHelper, TokenHelper>()
             .AddTransient<ITscConfigurationService, TscConfigurationService>()
             .AddTransient<IBackendApiService, BackendApiService>()
             .AddTransient<ITscOnlyChargingCostService, TscOnlyChargingCostService>()

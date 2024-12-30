@@ -10,7 +10,6 @@ public interface IBackendApiService
     Task PostErrorInformation(string source, string methodName, string message, string issueKey, string? vin, string? stackTrace);
     Task<string?> GetCurrentVersion();
     Task GetNewBackendNotifications();
-    Task<bool> HasValidBackendToken();
     Task GetToken(DtoBackendLogin login);
     Task RefreshBackendTokenIfNeeded();
 }

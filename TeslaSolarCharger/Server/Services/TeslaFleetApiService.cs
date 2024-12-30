@@ -6,7 +6,6 @@ using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -1054,7 +1053,7 @@ public class TeslaFleetApiService(
 
     public async Task<DtoValue<TokenState>> GetFleetApiTokenState()
     {
-        var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
+        var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState(false);
         return new(tokenState);
     }
 

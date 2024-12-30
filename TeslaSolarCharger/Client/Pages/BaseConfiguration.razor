@@ -314,8 +314,8 @@ else
         _tokenGenerationButtonDisabled = true;
         var locale = CultureInfo.CurrentCulture.ToString();
         var baseUrl = NavigationManager.BaseUri;
-        var hasValidBackendToken = await FleetApiTokenCheckService.HasValidBackendToken();
-        if (!hasValidBackendToken)
+        var backendTokenState = await FleetApiTokenCheckService.HasValidBackendToken();
+        if (backendTokenState != TokenState.UpToDate)
         {
             var success = await DialogHelper.ShowCreateBackendTokenDialog();
             if (!success)
