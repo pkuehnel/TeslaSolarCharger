@@ -18,12 +18,22 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = true,
             }
         },
+        { issueKeys.NoFleetApiToken, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
         { issueKeys.FleetApiTokenUnauthorized, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,
                 IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.FleetApiTokenMissingScopes, new DtoIssue
@@ -32,6 +42,7 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 IsTelegramEnabled = true,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
             }
         },
         { issueKeys.FleetApiTokenRequestExpired, new DtoIssue

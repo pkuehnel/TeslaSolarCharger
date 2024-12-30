@@ -37,6 +37,7 @@ public class BackendApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var backendApiBaseUrl = configurationWrapper.BackendApiBaseUrl();
         var encryptionKey = passwordGenerationService.GeneratePassword(32);
+        await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
         var state = Guid.NewGuid();
         var requestUri = $"{backendApiBaseUrl}Client/AddAuthenticationStartInformation?redirectUri={Uri.EscapeDataString(baseUrl)}&encryptionKey={Uri.EscapeDataString(encryptionKey)}&state={Uri.EscapeDataString(state.ToString())}";
         using var httpClient = new HttpClient();

@@ -44,7 +44,7 @@ public class TscConfigurationService(
     {
         logger.LogTrace("{method}({configurationKey})", nameof(GetConfigurationValueByKey), configurationKey);
         var configurationValue = await teslaSolarChargerContext.TscConfigurations
-            .FirstOrDefaultAsync(c => c.Key == constants.InstallationIdKey);
+            .FirstOrDefaultAsync(c => c.Key == configurationKey);
 
         return configurationValue?.Value;
     }

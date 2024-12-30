@@ -869,7 +869,7 @@ public class TeslaFleetApiService(
             logger.LogError("Decryption key not found do not send command");
             return null;
         }
-        var requestUri = $"{baseUrl}{fleetApiRequest.RequestUrl}?encryptionKey={decryptionKey}&vin={vin}&carRequiresProxy={fleetApiProxyRequired.Value}";
+        var requestUri = $"{baseUrl}{fleetApiRequest.RequestUrl}?encryptionKey={Uri.EscapeDataString(decryptionKey)}&vin={vin}&carRequiresProxy={fleetApiProxyRequired.Value}";
         if (fleetApiRequest.RequestUrl == SetChargingAmpsRequest.RequestUrl)
         {
             requestUri += $"&amps={intParam}";
@@ -1136,7 +1136,7 @@ public class TeslaFleetApiService(
             logger.LogError("Decryption key not found do not send command");
             return Fin<List<DtoTesla>>.Fail("No Decryption key found.");
         }
-        var requestUri = $"{baseUrl}GetAllCarsFromAccount?encryptionKey={decryptionKey}";
+        var requestUri = $"{baseUrl}FleetApiRequests/GetAllCarsFromAccount?encryptionKey={Uri.EscapeDataString(decryptionKey)}";
 
         var request = new HttpRequestMessage()
         {

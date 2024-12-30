@@ -50,6 +50,7 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
         var validFleetApiToken = JsonConvert.DeserializeObject<DtoValue<long?>>(responseString);
         if (validFleetApiToken == null)
         {
+            logger.LogError("Could not check if fleet api token is available.");
             return FleetApiTokenState.NoFleetApiToken;
         }
         if (validFleetApiToken.Value == null)
