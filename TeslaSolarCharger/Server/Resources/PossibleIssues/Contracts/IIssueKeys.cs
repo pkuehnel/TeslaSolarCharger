@@ -4,6 +4,7 @@ public interface IIssueKeys
 {
     string VersionNotUpToDate { get; }
     string FleetApiTokenUnauthorized { get; }
+    string NoFleetApiToken { get; }
     string FleetApiTokenMissingScopes { get; }
     string FleetApiTokenRequestExpired { get; }
     string FleetApiTokenRefreshNonSuccessStatusCode { get; }

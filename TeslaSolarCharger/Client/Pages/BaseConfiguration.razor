@@ -42,6 +42,16 @@ else
                     You are not logged in in the Solar4car.com account. When requesting a new Tesla Token there will also be a request to log in to your Solar4car.com account.
                 </div>
                 break;
+            case FleetApiTokenState.BackendTokenUnauthorized:
+                <div>
+                    You are not logged in in the Solar4car.com account. When requesting a new Tesla Token there will also be a request to log in to your Solar4car.com account.
+                </div>
+                break;
+            case FleetApiTokenState.NoFleetApiToken:
+                <div>
+                    You did not request a Fleet API Token, yet. Request a new token, allow access to all scopes and enable mobile access in your car.
+                </div>
+                break;
             case FleetApiTokenState.FleetApiTokenUnauthorized:
                 <div>
                     Your token is unauthorized. Request a new token, allow access to all scopes and enable mobile access in your car.
@@ -50,6 +60,11 @@ else
             case FleetApiTokenState.FleetApiTokenMissingScopes:
                 <div>
                     Your token has missing scopes. Request a new Token and allow all scopes (only required scopes are requested).
+                </div>
+                break;
+            case FleetApiTokenState.FleetApiTokenExpired:
+                <div>
+                    Your Fleet API token is expired. Request a new Token and allow all scopes (only required scopes are requested).
                 </div>
                 break;
             case FleetApiTokenState.UpToDate:

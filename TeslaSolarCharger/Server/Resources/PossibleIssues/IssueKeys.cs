@@ -6,6 +6,7 @@ public class IssueKeys : IIssueKeys
 {
     public string VersionNotUpToDate => "VersionNotUpToDate";
     public string FleetApiTokenUnauthorized => "FleetApiTokenUnauthorized";
+    public string NoFleetApiToken => "NoFleetApiToken";
     public string FleetApiTokenMissingScopes => "FleetApiTokenMissingScopes";
     public string FleetApiTokenRequestExpired => "FleetApiTokenRequestExpired";
     public string FleetApiTokenRefreshNonSuccessStatusCode => "FleetApiTokenRefreshNonSuccessStatusCode";

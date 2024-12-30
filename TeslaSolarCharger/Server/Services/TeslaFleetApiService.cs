@@ -904,7 +904,7 @@ public class TeslaFleetApiService(
             return null;
         }
 
-        if (backendApiResponse.StatusCode is >= 200 and < 300)
+        if (backendApiResponse.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices)
         {
             AddRequestToCar(vin, fleetApiRequest);
             await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessStatusCode + fleetApiRequest.RequestUrl, car.Vin);
@@ -922,7 +922,7 @@ public class TeslaFleetApiService(
         //ToDo: should be able to handle null backend API response. e.g. with an error "incompatible version".
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(backendApiResponse.JsonResponse);
 
-        if (backendApiResponse.StatusCode is >= 200 and < 300 && (teslaCommandResultResponse?.Response is DtoVehicleCommandResult vehicleCommandResult))
+        if ((backendApiResponse.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices) && (teslaCommandResultResponse?.Response is DtoVehicleCommandResult vehicleCommandResult))
         {
             if (vehicleCommandResult.Result != true
                 && !((fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl) && responseString.Contains(IsChargingErrorMessage))
@@ -1162,7 +1162,7 @@ public class TeslaFleetApiService(
                 return Fin<List<DtoTesla>>.Fail($"Could not deserialize response body {responseBodyString}");
             }
 
-            if (teslaBackendResult.StatusCode is >= 200 and < 300)
+            if (teslaBackendResult.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices)
             {
                 logger.LogError("Error while getting all cars from account due to communication issue between Solar4Car Backend and Tesla: Underlaying Status code: {statusCode}; Underlaying Response Body: {responseBodyString}", teslaBackendResult.StatusCode, teslaBackendResult.JsonResponse);
                 var excpetion = new HttpRequestException($"Requesting {requestUri} returned following body: {responseBodyString}", null,

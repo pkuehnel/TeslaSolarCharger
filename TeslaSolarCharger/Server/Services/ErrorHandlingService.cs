@@ -426,6 +426,9 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
             "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
             tokenState == FleetApiTokenState.FleetApiTokenUnauthorized).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.NoFleetApiToken, "No Fleet API Token available.",
+            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            tokenState == FleetApiTokenState.NoFleetApiToken).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is expired",
             "Either you recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
             tokenState == FleetApiTokenState.FleetApiTokenExpired).ConfigureAwait(false);

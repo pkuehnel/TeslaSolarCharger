@@ -30,7 +30,7 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
         {
             return FleetApiTokenState.FleetApiTokenUnauthorized;
         }
-        var url = configurationWrapper.BackendApiBaseUrl() + "FleetApiRequests/AnyFleetApiTokenWithExpiryInFuture";
+        var url = configurationWrapper.BackendApiBaseUrl() + "FleetApiRequests/FleetApiTokenExpiresInSeconds";
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromSeconds(10);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -47,8 +47,16 @@ public class TeslaFleetApiTokenHelper(ILogger<TeslaFleetApiTokenHelper> logger,
             logger.LogError("Could not check if token is valid. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
             return FleetApiTokenState.BackendTokenUnauthorized;
         }
-        var validFleetApiToken = JsonConvert.DeserializeObject<DtoValue<bool>>(responseString);
-        if (validFleetApiToken?.Value != true)
+        var validFleetApiToken = JsonConvert.DeserializeObject<DtoValue<long?>>(responseString);
+        if (validFleetApiToken == null)
+        {
+            return FleetApiTokenState.NoFleetApiToken;
+        }
+        if (validFleetApiToken.Value == null)
+        {
+            return FleetApiTokenState.NoFleetApiToken;
+        }
+        if (validFleetApiToken.Value <= 0)
         {
             return FleetApiTokenState.FleetApiTokenExpired;
         }

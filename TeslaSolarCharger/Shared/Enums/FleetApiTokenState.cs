@@ -4,6 +4,7 @@ public enum FleetApiTokenState
 {
     NoBackendApiToken,
     BackendTokenUnauthorized,
+    NoFleetApiToken,
     FleetApiTokenUnauthorized,
     FleetApiTokenMissingScopes,
     FleetApiTokenExpired,
