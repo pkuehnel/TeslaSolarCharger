@@ -23,5 +23,6 @@ public enum CarValueType
     AsleepOrOffline,
     Gear,
     Speed,
+    VehicleName,
     Unknown = 9999,
 }

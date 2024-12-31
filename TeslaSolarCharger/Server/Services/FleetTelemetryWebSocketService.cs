@@ -291,6 +291,9 @@ public class FleetTelemetryWebSocketService(
                             case CarValueType.ChargerVoltage:
                                 propertyName = nameof(DtoCar.ChargerVoltage);
                                 break;
+                            case CarValueType.VehicleName:
+                                propertyName = nameof(DtoCar.Name);
+                                break;
                         }
 
                         if (propertyName != default)
