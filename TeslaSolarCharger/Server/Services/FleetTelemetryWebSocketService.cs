@@ -15,6 +15,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -23,8 +24,7 @@ public class FleetTelemetryWebSocketService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider,
-    ISettings settings,
-    ITscConfigurationService tscConfigurationService) : IFleetTelemetryWebSocketService
+    ISettings settings) : IFleetTelemetryWebSocketService
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
@@ -120,8 +120,16 @@ public class FleetTelemetryWebSocketService(
         var currentDate = dateTimeProvider.UtcNow();
         var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var tscConfigurationService = scope.ServiceProvider.GetRequiredService<ITscConfigurationService>();
+        var constants = scope.ServiceProvider.GetRequiredService<IConstants>();
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            throw new InvalidOperationException("No Decryption key found.");
+        }
         var url = configurationWrapper.FleetTelemetryApiUrl() +
-                  $"vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}";
+                  $"vin={vin}&forceReconfiguration=false&includeTrackingRelevantFields={useFleetTelemetryForLocationData}&encryptionKey={Uri.EscapeDataString(decryptionKey)}";
         var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
         if(authToken == default)
         {
