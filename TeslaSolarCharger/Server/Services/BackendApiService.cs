@@ -136,6 +136,7 @@ public class BackendApiService(
         var newToken = JsonConvert.DeserializeObject<DtoAccessToken>(responseContent) ?? throw new InvalidDataException("Could not parse token");
         token.AccessToken = newToken.AccessToken;
         token.RefreshToken = newToken.RefreshToken;
+        token.ExpiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(newToken.ExpiresAt);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         memoryCache.Remove(constants.BackendTokenStateKey);
     }

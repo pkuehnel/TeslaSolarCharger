@@ -140,6 +140,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
             return new()
             {
                 TokenState = TokenState.Expired,
+                ExpiresAtUtc = dateTimeProvider.DateTimeOffSetUtcNow().AddSeconds(validFleetApiToken.Value.Value),
             };
         }
         return new()
@@ -215,7 +216,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     {
         var validFor = TimeSpan.FromMinutes(15);
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        if (validUntil != default && (validUntil < (currentDate + validFor)))
+        if (validUntil != default && (validUntil < (currentDate + validFor)) && (validUntil > currentDate))
         {
             validFor = validUntil.Value - currentDate;
         }
