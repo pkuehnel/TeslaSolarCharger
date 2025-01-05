@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using LanguageExt.Traits;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System.Diagnostics;
@@ -11,6 +12,7 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -150,21 +152,40 @@ public class BackendApiService(
     }
 
     public async Task PostInstallationInformation(string reason)
+
     {
         try
         {
-            var url = configurationWrapper.BackendApiBaseUrl() + "Tsc/NotifyInstallation";
+            var tokenState = await tokenHelper.GetBackendTokenState(true);
             var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
             var currentVersion = await GetCurrentVersion().ConfigureAwait(false);
-            var installationInformation = new DtoInstallationInformation
-            {
-                InstallationId = installationId.ToString(),
-                Version = currentVersion ?? "unknown",
-                InfoReason = reason,
-            };
+            var url = configurationWrapper.BackendApiBaseUrl() + $"Client/NotifyInstallation?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}";
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(10);
-            var response = await httpClient.PostAsJsonAsync(url, installationInformation).ConfigureAwait(false);
+            if (tokenState == TokenState.UpToDate)
+            {
+                var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
+                var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Authorization = new("Bearer", token.AccessToken);
+                var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+                if (response.IsSuccessStatusCode)
+                {
+                    logger.LogInformation("Sent installation information to Backend");
+                    return;
+                }
+
+                logger.LogWarning("Error while sending installation information to backend. StatusCode: {statusCode}. Trying again without token", response.StatusCode);
+            }
+            url += $"&installationId={Uri.EscapeDataString(installationId.ToString())}";
+            var nonTokenRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            var nonTokenResponse = await httpClient.SendAsync(nonTokenRequest).ConfigureAwait(false);
+            if (nonTokenResponse.IsSuccessStatusCode)
+            {
+                logger.LogInformation("Sent installation information to Backend");
+                return;
+            }
+
+            logger.LogWarning("Error while sending installation information to backend. StatusCode: {statusCode}.", nonTokenResponse.StatusCode);
         }
         catch (Exception e)
         {
