@@ -159,11 +159,12 @@ public class BackendApiService(
             var tokenState = await tokenHelper.GetBackendTokenState(true);
             var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
             var currentVersion = await GetCurrentVersion().ConfigureAwait(false);
-            var url = configurationWrapper.BackendApiBaseUrl() + $"Client/NotifyInstallation?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}";
+            
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(10);
             if (tokenState == TokenState.UpToDate)
             {
+                var url = configurationWrapper.BackendApiBaseUrl() + $"Client/NotifyInstallation?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}";
                 var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Headers.Authorization = new("Bearer", token.AccessToken);
@@ -176,8 +177,8 @@ public class BackendApiService(
 
                 logger.LogWarning("Error while sending installation information to backend. StatusCode: {statusCode}. Trying again without token", response.StatusCode);
             }
-            url += $"&installationId={Uri.EscapeDataString(installationId.ToString())}";
-            var nonTokenRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            var noTokenUrl = configurationWrapper.BackendApiBaseUrl() + $"Client/NotifyInstallationAnonymous?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}&installationId={Uri.EscapeDataString(installationId.ToString())}";
+            var nonTokenRequest = new HttpRequestMessage(HttpMethod.Post, noTokenUrl);
             var nonTokenResponse = await httpClient.SendAsync(nonTokenRequest).ConfigureAwait(false);
             if (nonTokenResponse.IsSuccessStatusCode)
             {
