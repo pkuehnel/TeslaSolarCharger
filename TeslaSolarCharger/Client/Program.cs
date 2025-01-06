@@ -1,5 +1,4 @@
 using Lysando.LabStorageV2.UiHelper.Wrapper;
-using Lysando.LabStorageV2.UiHelper.Wrapper.Contracts;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
