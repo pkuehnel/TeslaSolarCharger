@@ -9,9 +9,9 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class BackendApiController (IBackendApiService backendApiService, ITokenHelper tokenHelper) : ApiBaseController
 {
     [HttpGet]
-    public async Task<DtoValue<TokenState>> HasValidBackendToken()
+    public async Task<DtoValue<TokenState>> GetTokenState(bool useCache)
     {
-        return new(await tokenHelper.GetBackendTokenState(false));
+        return new(await tokenHelper.GetBackendTokenState(useCache));
     }
 
     [HttpPost]

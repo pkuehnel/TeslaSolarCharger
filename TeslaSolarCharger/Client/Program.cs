@@ -27,7 +27,7 @@ builder.Services.AddScoped<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddScoped<IDialogHelper, DialogHelper>();
 builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
-builder.Services.AddScoped<IFleetApiTokenCheckService, FleetApiTokenCheckService>();
+builder.Services.AddScoped<IBackendApiTokenCheckService, BackendApiTokenCheckService>();
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();
 builder.Services.AddMudServices(config =>

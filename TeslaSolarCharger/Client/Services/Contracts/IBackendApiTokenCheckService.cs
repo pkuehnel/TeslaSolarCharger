@@ -2,7 +2,7 @@
 
 namespace TeslaSolarCharger.Client.Services.Contracts;
 
-public interface IFleetApiTokenCheckService
+public interface IBackendApiTokenCheckService
 {
-    Task<TokenState> HasValidBackendToken();
+    Task<TokenState> GetTokenState(bool useCache);
 }

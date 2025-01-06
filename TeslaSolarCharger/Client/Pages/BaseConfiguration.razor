@@ -9,7 +9,7 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IHttpClientHelper HttpClientHelper
-@inject IFleetApiTokenCheckService FleetApiTokenCheckService
+@inject IBackendApiTokenCheckService BackendApiTokenCheckService
 @inject IDialogHelper DialogHelper
 
 
@@ -314,7 +314,7 @@ else
         _tokenGenerationButtonDisabled = true;
         var locale = CultureInfo.CurrentCulture.ToString();
         var baseUrl = NavigationManager.BaseUri;
-        var backendTokenState = await FleetApiTokenCheckService.HasValidBackendToken();
+        var backendTokenState = await BackendApiTokenCheckService.GetTokenState(false);
         if (backendTokenState != TokenState.UpToDate)
         {
             var success = await DialogHelper.ShowCreateBackendTokenDialog();

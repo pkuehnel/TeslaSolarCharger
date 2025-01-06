@@ -128,7 +128,7 @@ public class BackendApiService(
         if (result.HasError)
         {
             await errorHandlingService.HandleError(nameof(BackendApiService), nameof(RefreshBackendTokenIfNeeded),
-                "Could not refresh backend token", result.ErrorMessage ?? string.Empty, issueKeys.BackendTokenUnauthorized, null, null);
+                "Could not refresh backend token", result.ErrorMessage ?? string.Empty, issueKeys.BackendTokenNotRefreshable, null, null);
             logger.LogError("Could not refresh backend token. {errorMessage}", result.ErrorMessage);
             memoryCache.Remove(constants.BackendTokenStateKey);
             throw new InvalidOperationException($"Could not refresh backend token {result.ErrorMessage}");
