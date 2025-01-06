@@ -11,4 +11,5 @@ public interface IBackendApiService
     Task GetNewBackendNotifications();
     Task GetToken(DtoBackendLogin login);
     Task RefreshBackendTokenIfNeeded();
+    Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content);
 }

@@ -233,7 +233,7 @@ public class BackendApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private async Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
+    public async Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
     {
         var request = new HttpRequestMessage();
         var finalUrl = configurationWrapper.BackendApiBaseUrl() + requestUrlPart;
