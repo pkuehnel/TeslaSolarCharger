@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -81,14 +81,12 @@ public class BackendApiService(
         {
             throw new InvalidOperationException("Password is empty");
         }
-
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
         if (token != default)
         {
             teslaSolarChargerContext.BackendTokens.Remove(token);
         }
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-        
         var dtoLogin = new DtoLogin(login.UserName, login.Password, installationId.ToString());
         var result = await SendRequestToBackend<DtoAccessToken>(HttpMethod.Post, null, "User/Login", dtoLogin);
         if (result.HasError)
@@ -123,22 +121,20 @@ public class BackendApiService(
             logger.LogTrace("Token is still valid");
             return;
         }
-        var url = configurationWrapper.BackendApiBaseUrl() + "User/RefreshToken";
         //As expiration date is not null a token must exist.
         var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
         var dtoRefreshToken = new DtoTokenRefreshModel(token.AccessToken, token.RefreshToken);
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
-        var response = await httpClient.PostAsJsonAsync(url, dtoRefreshToken).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
+        var result = await SendRequestToBackend<DtoAccessToken>(HttpMethod.Post, null, "User/RefreshToken", dtoRefreshToken);
+        if (result.HasError)
         {
-            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            logger.LogError("Could not refresh backend token. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
+            await errorHandlingService.HandleError(nameof(BackendApiService), nameof(RefreshBackendTokenIfNeeded),
+                "Could not refresh backend token", result.ErrorMessage ?? string.Empty, issueKeys.BackendTokenUnauthorized, null, null);
+            logger.LogError("Could not refresh backend token. {errorMessage}", result.ErrorMessage);
             memoryCache.Remove(constants.BackendTokenStateKey);
-            throw new InvalidOperationException("Could not refresh backend token");
+            throw new InvalidOperationException($"Could not refresh backend token {result.ErrorMessage}");
         }
-        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        var newToken = JsonConvert.DeserializeObject<DtoAccessToken>(responseContent) ?? throw new InvalidDataException("Could not parse token");
+        await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenUnauthorized, null);
+        var newToken = result.Data ?? throw new InvalidDataException("Could not parse new token");
         token.AccessToken = newToken.AccessToken;
         token.RefreshToken = newToken.RefreshToken;
         token.ExpiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(newToken.ExpiresAt);
@@ -167,61 +163,32 @@ public class BackendApiService(
             httpClient.Timeout = TimeSpan.FromSeconds(10);
             if (tokenState == TokenState.UpToDate)
             {
-                var url = configurationWrapper.BackendApiBaseUrl() + $"Client/NotifyInstallation?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}";
                 var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
-                var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Authorization = new("Bearer", token.AccessToken);
-                var response = await httpClient.SendAsync(request).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode)
+                var result = await SendRequestToBackend<object>(HttpMethod.Post, token.AccessToken,
+                    $"Client/NotifyInstallation?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}",
+                    null);
+                if (!result.HasError)
                 {
                     logger.LogInformation("Sent installation information to Backend");
                     return;
                 }
 
-                logger.LogWarning("Error while sending installation information to backend. StatusCode: {statusCode}. Trying again without token", response.StatusCode);
+                logger.LogWarning("Error while sending installation information to backend. {errorMessage}", result.ErrorMessage);
             }
-            var noTokenUrl = configurationWrapper.BackendApiBaseUrl() + $"Client/NotifyInstallationAnonymous?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}&installationId={Uri.EscapeDataString(installationId.ToString())}";
-            var nonTokenRequest = new HttpRequestMessage(HttpMethod.Post, noTokenUrl);
-            var nonTokenResponse = await httpClient.SendAsync(nonTokenRequest).ConfigureAwait(false);
-            if (nonTokenResponse.IsSuccessStatusCode)
+            var noTokenResult = await SendRequestToBackend<object>(HttpMethod.Post, null,
+                $"Client/NotifyInstallationAnonymous?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}&installationId={Uri.EscapeDataString(installationId.ToString())}",
+                null);
+            if (!noTokenResult.HasError)
             {
                 logger.LogInformation("Sent installation information to Backend");
                 return;
             }
 
-            logger.LogWarning("Error while sending installation information to backend. StatusCode: {statusCode}.", nonTokenResponse.StatusCode);
+            logger.LogWarning("Error while sending installation information to backend. {errorMessage}", noTokenResult.ErrorMessage);
         }
         catch (Exception e)
         {
             logger.LogError(e, "Could not post installation information");
-        }
-
-    }
-
-    public async Task PostErrorInformation(string source, string methodName, string message, string issueKey, string? vin,
-        string? stackTrace)
-    {
-        try
-        {
-            var url = configurationWrapper.BackendApiBaseUrl() + "Tsc/NotifyError";
-            var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-            var currentVersion = await GetCurrentVersion().ConfigureAwait(false);
-            var errorInformation = new DtoErrorInformation()
-            {
-                InstallationId = installationId.ToString(),
-                Source = source,
-                MethodName = methodName,
-                Message = message,
-                Version = currentVersion ?? "unknown",
-                StackTrace = stackTrace,
-            };
-            using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(10);
-            var response = await httpClient.PostAsJsonAsync(url, errorInformation).ConfigureAwait(false);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Could not post error information");
         }
 
     }
@@ -242,12 +209,13 @@ public class BackendApiService(
             .OrderByDescending(n => n.BackendIssueId)
             .Select(n => n.BackendIssueId)
             .FirstOrDefaultAsync().ConfigureAwait(false);
-        var url = configurationWrapper.BackendApiBaseUrl() + $"Tsc/GetBackendNotifications?installationId={installationId}&lastKnownNotificationId={lastKnownNotificationId}";
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
-        var response = await httpClient.GetStringAsync(url).ConfigureAwait(false);
-        var notifications = JsonConvert.DeserializeObject<List<DtoBackendNotification>>(response) ?? throw new InvalidDataException("Could not parse notifications");
-
+        var result = await SendRequestToBackend<List<DtoBackendNotification>>(HttpMethod.Get, null,
+            $"Tsc/GetBackendNotifications?installationId={installationId}&lastKnownNotificationId={lastKnownNotificationId}", null);
+        if (result.HasError)
+        {
+            logger.LogError("Could not load new Backend Information. {errorMessage}", result.ErrorMessage);
+        }
+        var notifications = result.Data ?? throw new InvalidDataException("Could not parse notifications");
         foreach (var dtoBackendNotification in notifications)
         {
             teslaSolarChargerContext.BackendNotifications.Add(new BackendNotification

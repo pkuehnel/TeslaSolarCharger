@@ -24,4 +24,5 @@ public interface IIssueKeys
     string BackendTokenUnauthorized { get; }
     string FleetApiTokenExpired { get; }
     string Solar4CarSideFleetApiNonSuccessStatusCode { get; }
+    string BackendTokenNotRefreshable { get; }
 }
