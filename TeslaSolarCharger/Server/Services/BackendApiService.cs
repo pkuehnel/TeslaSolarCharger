@@ -1,4 +1,4 @@
-﻿using LanguageExt.Traits;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -39,23 +39,28 @@ public class BackendApiService(
             .ToListAsync().ConfigureAwait(false);
         teslaSolarChargerContext.TscConfigurations.RemoveRange(configEntriesToRemove);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var backendApiBaseUrl = configurationWrapper.BackendApiBaseUrl();
         var encryptionKey = passwordGenerationService.GeneratePassword(32);
         await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
         var state = Guid.NewGuid();
-        var requestUri = $"{backendApiBaseUrl}Client/AddAuthenticationStartInformation?redirectUri={Uri.EscapeDataString(baseUrl)}&encryptionKey={Uri.EscapeDataString(encryptionKey)}&state={Uri.EscapeDataString(state.ToString())}";
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
+        var requestUri = $"Client/AddAuthenticationStartInformation?redirectUri={Uri.EscapeDataString(baseUrl)}&encryptionKey={Uri.EscapeDataString(encryptionKey)}&state={Uri.EscapeDataString(state.ToString())}";
         var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
         if (token == default)
         {
             throw new InvalidOperationException("Can not start Tesla O Auth without backend token");
         }
+        var result = await SendRequestToBackend<DtoTeslaOAuthRequestInformation>(HttpMethod.Post, token.AccessToken, requestUri, null).ConfigureAwait(false);
         request.Headers.Authorization = new("Bearer", token.AccessToken);
-        var response = await httpClient.SendAsync(request).ConfigureAwait(false);
-        var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        var oAuthRequestInformation = JsonConvert.DeserializeObject<DtoTeslaOAuthRequestInformation>(responseString) ?? throw new InvalidDataException("Could not get oAuth data");
+        var oAuthRequestInformation = result.Data;
+        if (result.HasError)
+        {
+            throw new InvalidOperationException(result.ErrorMessage);
+        }
+
+        if (oAuthRequestInformation == default)
+        {
+            throw new InvalidOperationException("oAuth Information is null");
+        }
         var requestUrl = GenerateAuthUrl(oAuthRequestInformation, locale);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenUnauthorized, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenMissingScopes, null);
@@ -85,18 +90,16 @@ public class BackendApiService(
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         
         var dtoLogin = new DtoLogin(login.UserName, login.Password, installationId.ToString());
-        var url = configurationWrapper.BackendApiBaseUrl() + "User/Login";
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
-        var response = await httpClient.PostAsJsonAsync(url, dtoLogin).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
+        var result = await SendRequestToBackend<DtoAccessToken>(HttpMethod.Post, null, "User/Login", dtoLogin);
+        if (result.HasError)
         {
-            var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            logger.LogError("Could not login to backend. StatusCode: {statusCode}, resultBody: {resultBody}", response.StatusCode, responseString);
-            throw new InvalidOperationException("Could not login to backend");
+            throw new InvalidOperationException(result.ErrorMessage);
         }
-        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        var newToken = JsonConvert.DeserializeObject<DtoAccessToken>(responseContent) ?? throw new InvalidDataException("Could not parse token");
+        var newToken = result.Data;
+        if(newToken == default)
+        {
+            throw new InvalidOperationException("Could not parse token");
+        }
         token = new(newToken.AccessToken, newToken.RefreshToken)
         {
             ExpiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(newToken.ExpiresAt),
@@ -260,5 +263,89 @@ public class BackendApiService(
             });
         }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private async Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
+    {
+        var request = new HttpRequestMessage();
+        var finalUrl = configurationWrapper.BackendApiBaseUrl() + requestUrlPart;
+        request.RequestUri = new Uri(finalUrl);
+        if (accessToken != default)
+        {
+            request.Headers.Authorization = new("Bearer", accessToken);
+        }
+        try
+        {
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
+            if (httpMethod == HttpMethod.Get)
+            {
+                request.Method = HttpMethod.Get;
+            }
+            else if (httpMethod == HttpMethod.Post)
+            {
+                request.Method = HttpMethod.Post;
+                if (content != default)
+                {
+                    var jsonContent = new StringContent(
+                        JsonConvert.SerializeObject(content),
+                        System.Text.Encoding.UTF8,
+                        "application/json");
+                    request.Content = jsonContent;
+                }
+            }
+            else
+            {
+                return new Result<T>(
+                    default,
+                    $"Unsupported HTTP method: {httpMethod}"
+                );
+            }
+            var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (typeof(T) != typeof(object))
+                {
+                    var deserializedObject = JsonConvert.DeserializeObject<T>(responseContent);
+
+                    if (deserializedObject == null)
+                    {
+                        return new Result<T>(
+                            default,
+                            $"{finalUrl}: Could not deserialize response to {typeof(T).Name}."
+                        );
+                    }
+
+                    return new Result<T>(deserializedObject, null);
+                }
+                else
+                {
+                    // If T=object, we don't do any deserialization
+                    return new Result<T>(
+                        default,
+                        null
+                    );
+                }
+            }
+            else
+            {
+                var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+                var message = problemDetails != null
+                    ? $"Backend Error: {problemDetails.Detail}"
+                    : "An error occurred while retrieving data from the backend server.";
+
+                return new Result<T>(default, message);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error while sending request to backend");
+            return new Result<T>(
+                default,
+                $"{finalUrl}: Unexpected error: {ex.Message}"
+            );
+        }
+
     }
 }

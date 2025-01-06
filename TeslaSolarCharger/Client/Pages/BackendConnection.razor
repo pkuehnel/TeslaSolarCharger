@@ -1,0 +1,41 @@
+﻿@page "/backendconnection"
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+
+@inject IHttpClientHelper HttpClientHelper
+
+<h1>Backend Connection</h1>
+
+<MudAlert Severity="Severity.Warning"
+NoIcon="true"
+ShowCloseIcon="false">
+    <div>You need to create a <MudLink Href="https://solar4car.com/Account/Login?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions">Solar4Car.com account</MudLink> and create at least a base app subscription before you can proceed.</div>
+</MudAlert>
+
+<GenericInput For="() => _backendLogin.UserName"></GenericInput>
+<GenericInput For="() => _backendLogin.Password"
+              IsPassword="true"></GenericInput>
+
+@if (LoginErrorMessage != default)
+{
+    <div class="validation-message">
+        Login failed: @LoginErrorMessage
+    </div>
+}
+
+<RightAlignedButtonComponent OnButtonClicked="Submit"
+                             ButtonText="Login">
+</RightAlignedButtonComponent>
+
+
+@code {
+    private readonly DtoBackendLogin _backendLogin = new DtoBackendLogin();
+
+    private string? LoginErrorMessage { get; set; }
+
+    async Task Submit()
+    {
+        var result = await HttpClientHelper.SendPostRequestAsync("api/BackendApi/LoginToBackend", _backendLogin);
+        LoginErrorMessage = result.HasError ? result.ErrorMessage : default;
+    }
+}

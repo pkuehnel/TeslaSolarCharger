@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Client.Helper.Contracts;
+﻿using TeslaSolarCharger.Shared.Dtos;
+
+namespace TeslaSolarCharger.Client.Helper.Contracts;
 
 public interface IHttpClientHelper
 {
@@ -6,4 +8,8 @@ public interface IHttpClientHelper
     Task SendGetRequestWithSnackbarAsync(string url);
     Task<T?> SendPostRequestWithSnackbarAsync<T>(string url, object? content);
     Task SendPostRequestWithSnackbarAsync(string url, object? content);
+    Task<Result<T>> SendGetRequestAsync<T>(string url);
+    Task<Result<object>> SendGetRequestAsync(string url);
+    Task<Result<T>> SendPostRequestAsync<T>(string url, object? content);
+    Task<Result<object>> SendPostRequestAsync(string url, object? content);
 }

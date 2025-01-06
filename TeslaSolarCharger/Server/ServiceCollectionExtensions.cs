@@ -11,6 +11,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Middlewares;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
@@ -117,6 +118,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IPasswordGenerationService, PasswordGenerationService>()
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
+            .AddScoped<ErrorHandlingMiddleware>()
             .AddSharedBackendDependencies();
         return services;
     }
