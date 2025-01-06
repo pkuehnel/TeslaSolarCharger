@@ -6,6 +6,4 @@ public class DtoBackendApiTeslaResponse
 {
     public HttpStatusCode StatusCode { get; set; }
     public string? JsonResponse { get; set; }
-    public string? Error { get; set; }
-    public string? ErrorDescription { get; set; }
 }

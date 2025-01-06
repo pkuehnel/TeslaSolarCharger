@@ -942,27 +942,27 @@ public class TeslaFleetApiService(
         else
         {
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Tesla related error while sending command to car {car.Vin}",
-                $"Sending command to Tesla API resulted in non succes status code: {backendApiResponse.StatusCode} : Command name:{fleetApiRequest.RequestUrl}, Int Param:{intParam}. Tesla Error: {backendApiResponse.Error}; Tesla error description: {backendApiResponse.ErrorDescription}",
+                $"Sending command to Tesla API resulted in non succes status code: {backendApiResponse.StatusCode} : Command name:{fleetApiRequest.RequestUrl}, Int Param:{intParam}. Tesla Result: {backendApiResponse.JsonResponse}",
                 issueKeys.FleetApiNonSuccessStatusCode + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
-            logger.LogError("Sending command to Tesla API resulted in non succes status code: {statusCode} : Command name:{commandName}, Int Param:{intParam}. Tesla Error: {error}; Tesla error description: {errorDescription}", backendApiResponse.StatusCode, fleetApiRequest.RequestUrl, intParam, backendApiResponse.Error, backendApiResponse.ErrorDescription);
+            logger.LogError("Sending command to Tesla API resulted in non succes status code: {statusCode} : Command name:{commandName}, Int Param:{intParam}. Tesla Result: {result}; Tesla error description: {errorDescription}", backendApiResponse.StatusCode, fleetApiRequest.RequestUrl, intParam, backendApiResponse.JsonResponse);
             return null;
         }
 
 
         //ToDo: should be able to handle null backend API response. e.g. with an error "incompatible version".
         var teslaCommandResultResponse = JsonConvert.DeserializeObject<DtoGenericTeslaResponse<T>>(backendApiResponse.JsonResponse);
-        var responseString = JsonConvert.SerializeObject(backendApiResponse);
         if ((backendApiResponse.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices) && (teslaCommandResultResponse?.Response is DtoVehicleCommandResult vehicleCommandResult))
         {
             if (vehicleCommandResult.Result != true
-                && !((fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl) && responseString.Contains(IsChargingErrorMessage))
-                && !((fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl) && responseString.Contains(IsNotChargingErrorMessage)))
+                && !((fleetApiRequest.RequestUrl == ChargeStartRequest.RequestUrl) && backendApiResponse.JsonResponse.Contains(IsChargingErrorMessage))
+                && !((fleetApiRequest.RequestUrl == ChargeStopRequest.RequestUrl) && backendApiResponse.JsonResponse.Contains(IsNotChargingErrorMessage)))
             {
                 await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Car {car.Vin} could not handle command",
-                        $"Result of command request is false {fleetApiRequest.RequestUrl}, {intParam}. Response string: {responseString}",
+                        $"Result of command request is false {fleetApiRequest.RequestUrl}, {intParam}. Response string: {backendApiResponse.JsonResponse}",
                         issueKeys.FleetApiNonSuccessResult + fleetApiRequest.RequestUrl, car.Vin, null)
                     .ConfigureAwait(false);
-                logger.LogError("Result of command request is false {fleetApiRequest.RequestUrl}, {intParam}. Response string: {responseString}", fleetApiRequest.RequestUrl, intParam, responseString);
+                logger.LogError("Result of command request is false {fleetApiRequest.RequestUrl}, {intParam}. Response string: {responseString}", fleetApiRequest.RequestUrl, intParam, backendApiResponse.JsonResponse);
+                await HandleNonSuccessTeslaApiStatusCodes(backendApiResponse.StatusCode, backendApiResponse.JsonResponse, vin).ConfigureAwait(false);
                 await HandleUnsignedCommands(vehicleCommandResult, vin).ConfigureAwait(false);
             }
             else
@@ -970,7 +970,7 @@ public class TeslaFleetApiService(
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + fleetApiRequest.RequestUrl, car.Vin);
             }
         }
-        logger.LogDebug("Response: {responseString}", responseString);
+        logger.LogDebug("Response: {responseString}", backendApiResponse.JsonResponse);
         return teslaCommandResultResponse;
     }
 
@@ -1089,10 +1089,10 @@ public class TeslaFleetApiService(
         return new(tokenState);
     }
 
-    private async Task HandleNonSuccessTeslaApiStatusCodes(HttpStatusCode statusCode, BackendToken token,
-        string responseString, TeslaApiRequestType teslaApiRequestType, string? vin = null)
+    private async Task HandleNonSuccessTeslaApiStatusCodes(HttpStatusCode statusCode,
+        string responseString, string? vin = null)
     {
-        logger.LogTrace("{method}({statusCode}, {token}, {responseString})", nameof(HandleNonSuccessTeslaApiStatusCodes), statusCode, token, responseString);
+        logger.LogTrace("{method}({statusCode}, {responseString})", nameof(HandleNonSuccessTeslaApiStatusCodes), statusCode, responseString);
         if (statusCode == HttpStatusCode.Unauthorized)
         {
             await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenUnauthorizedKey, "true");
@@ -1185,8 +1185,8 @@ public class TeslaFleetApiService(
 
             if (teslaBackendResult.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices)
             {
-                logger.LogError("Error while getting all cars from account due to communication issue between Solar4Car Backend and Tesla: Underlaying Status code: {statusCode}; Underlaying Error: {responseBodyString}; Underlaying Error Description {errorDescription}", teslaBackendResult.StatusCode, teslaBackendResult.Error, teslaBackendResult.ErrorDescription);
-                var excpetion = new HttpRequestException($"Requesting {requestUri} returned following statusCode: {teslaBackendResult.StatusCode} Error: {teslaBackendResult.Error}; ErrorDescription; {teslaBackendResult.ErrorDescription}", null,
+                logger.LogError("Error while getting all cars from account due to communication issue between Solar4Car Backend and Tesla: Underlaying Status code: {statusCode}; Underlaying Result: {jsonResult}", teslaBackendResult.StatusCode, teslaBackendResult.JsonResponse);
+                var excpetion = new HttpRequestException($"Requesting {requestUri} returned following statusCode: {teslaBackendResult.StatusCode} Underlaying result: {teslaBackendResult.JsonResponse}", null,
                     teslaBackendResult.StatusCode);
                 return Fin<List<DtoTesla>>.Fail(Error.New(excpetion));
             }
