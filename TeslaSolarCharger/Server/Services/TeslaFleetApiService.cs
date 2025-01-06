@@ -944,7 +944,9 @@ public class TeslaFleetApiService(
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Tesla related error while sending command to car {car.Vin}",
                 $"Sending command to Tesla API resulted in non succes status code: {backendApiResponse.StatusCode} : Command name:{fleetApiRequest.RequestUrl}, Int Param:{intParam}. Tesla Result: {backendApiResponse.JsonResponse}",
                 issueKeys.FleetApiNonSuccessStatusCode + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
-            logger.LogError("Sending command to Tesla API resulted in non succes status code: {statusCode} : Command name:{commandName}, Int Param:{intParam}. Tesla Result: {result}; Tesla error description: {errorDescription}", backendApiResponse.StatusCode, fleetApiRequest.RequestUrl, intParam, backendApiResponse.JsonResponse);
+            logger.LogError("Sending command to Tesla API resulted in non succes status code: {statusCode} : Command name:{commandName}, Int Param:{intParam}. Tesla Result: {result}", backendApiResponse.StatusCode, fleetApiRequest.RequestUrl, intParam, backendApiResponse.JsonResponse);
+            //ToDo: should be able to handle null backend API response. e.g. with an error "incompatible version".
+            await HandleNonSuccessTeslaApiStatusCodes(backendApiResponse.StatusCode, backendApiResponse.JsonResponse, vin).ConfigureAwait(false);
             return null;
         }
 
@@ -962,7 +964,6 @@ public class TeslaFleetApiService(
                         issueKeys.FleetApiNonSuccessResult + fleetApiRequest.RequestUrl, car.Vin, null)
                     .ConfigureAwait(false);
                 logger.LogError("Result of command request is false {fleetApiRequest.RequestUrl}, {intParam}. Response string: {responseString}", fleetApiRequest.RequestUrl, intParam, backendApiResponse.JsonResponse);
-                await HandleNonSuccessTeslaApiStatusCodes(backendApiResponse.StatusCode, backendApiResponse.JsonResponse, vin).ConfigureAwait(false);
                 await HandleUnsignedCommands(vehicleCommandResult, vin).ConfigureAwait(false);
             }
             else
