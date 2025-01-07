@@ -34,11 +34,6 @@ public class BackendApiService(
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
     {
         logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
-        var configEntriesToRemove = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.FleetApiTokenMissingScopes)
-            .ToListAsync().ConfigureAwait(false);
-        teslaSolarChargerContext.TscConfigurations.RemoveRange(configEntriesToRemove);
-        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var encryptionKey = passwordGenerationService.GeneratePassword(32);
         await tscConfigurationService.SetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey, encryptionKey).ConfigureAwait(false);
         var state = Guid.NewGuid();
