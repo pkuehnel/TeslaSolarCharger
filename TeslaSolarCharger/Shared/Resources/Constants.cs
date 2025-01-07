@@ -19,7 +19,7 @@ public class Constants : IConstants
     public Margin InputMargin => Margin.Dense;
 
     public string InstallationIdKey => "InstallationId";
-    public string TokenMissingScopes => "TokenMissingScopes";
+    public string FleetApiTokenMissingScopes => "FleetApiTokenMissingScopes";
     public string CarConfigurationsConverted => "CarConfigurationsConverted";
     public string BleBaseUrlConverted => "BleBaseUrlConverted";
     public string HandledChargesCarIdsConverted => "HandledChargesCarIdsConverted";

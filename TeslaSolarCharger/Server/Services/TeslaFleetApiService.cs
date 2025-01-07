@@ -1112,7 +1112,7 @@ public class TeslaFleetApiService(
                 logger.LogError("You did not select all scopes, so TSC can't send commands to your car. Response: {responseString}", responseString);
                 teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
                 {
-                    Key = constants.TokenMissingScopes,
+                    Key = constants.FleetApiTokenMissingScopes,
                     Value = responseString,
                 });
             }

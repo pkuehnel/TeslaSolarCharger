@@ -71,7 +71,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     private async Task<TokenStateIncludingExpirationTime> GetUncachedFleetApiTokenState()
     {
         var hasCurrentTokenMissingScopes = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.TokenMissingScopes)
+            .Where(c => c.Key == constants.FleetApiTokenMissingScopes)
             .AnyAsync().ConfigureAwait(false);
         if (hasCurrentTokenMissingScopes)
         {

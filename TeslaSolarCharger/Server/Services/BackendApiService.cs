@@ -35,7 +35,7 @@ public class BackendApiService(
     {
         logger.LogTrace("{method}()", nameof(StartTeslaOAuth));
         var configEntriesToRemove = await teslaSolarChargerContext.TscConfigurations
-            .Where(c => c.Key == constants.TokenMissingScopes)
+            .Where(c => c.Key == constants.FleetApiTokenMissingScopes)
             .ToListAsync().ConfigureAwait(false);
         teslaSolarChargerContext.TscConfigurations.RemoveRange(configEntriesToRemove);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -62,6 +62,8 @@ public class BackendApiService(
             throw new InvalidOperationException("oAuth Information is null");
         }
         var requestUrl = GenerateAuthUrl(oAuthRequestInformation, locale);
+        await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenMissingScopes, "false");
+        await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenUnauthorizedKey, "false");
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenUnauthorized, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenMissingScopes, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiTokenRequestExpired, null);

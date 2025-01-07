@@ -14,7 +14,7 @@ public interface IConstants
     int MinimumSocDifference { get; }
 
     string InstallationIdKey { get; }
-    string TokenMissingScopes { get; }
+    string FleetApiTokenMissingScopes { get; }
     string NextAllowedTeslaApiRequest { get; }
     string BackupZipBaseFileName { get; }
     TimeSpan MaxTokenRequestWaitTime { get; }
