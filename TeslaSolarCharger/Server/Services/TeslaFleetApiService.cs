@@ -1096,9 +1096,9 @@ public class TeslaFleetApiService(
         logger.LogTrace("{method}({statusCode}, {responseString})", nameof(HandleNonSuccessTeslaApiStatusCodes), statusCode, responseString);
         if (statusCode == HttpStatusCode.Unauthorized)
         {
-            await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenUnauthorizedKey, "true");
             logger.LogError(
                 "Your token or refresh token is invalid. Response: {responseString}", responseString);
+            await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenUnauthorizedKey, "true");
         }
         else if (statusCode == HttpStatusCode.Forbidden)
         {
@@ -1110,11 +1110,7 @@ public class TeslaFleetApiService(
             else
             {
                 logger.LogError("You did not select all scopes, so TSC can't send commands to your car. Response: {responseString}", responseString);
-                teslaSolarChargerContext.TscConfigurations.Add(new TscConfiguration()
-                {
-                    Key = constants.FleetApiTokenMissingScopes,
-                    Value = responseString,
-                });
+                await tscConfigurationService.SetConfigurationValueByKey(constants.FleetApiTokenMissingScopes, "true");
             }
             
         }
