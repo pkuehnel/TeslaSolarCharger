@@ -1203,7 +1203,7 @@ public class TeslaFleetApiService(
 
     public async Task RefreshFleetApiRequestsAreAllowed()
     {
-        logger.LogTrace("{method}()", nameof(RefreshFleetApiRequestsAreAllowed));
+        logger.LogDebug("{method}()", nameof(RefreshFleetApiRequestsAreAllowed));
         if (settings.AllowUnlimitedFleetApiRequests && (settings.LastFleetApiRequestAllowedCheck > dateTimeProvider.UtcNow().AddHours(-1)))
         {
             return;
@@ -1215,19 +1215,23 @@ public class TeslaFleetApiService(
         var url = configurationWrapper.BackendApiBaseUrl() + $"Tsc/AllowUnlimitedFleetApiAccess?installationId={installationId}";
         try
         {
+            logger.LogDebug("Calling url {url}", url);
             var response = await httpClient.GetAsync(url).ConfigureAwait(false);
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                settings.AllowUnlimitedFleetApiRequests = true;
+                logger.LogError("Error while trying to check if fleet api requests are allowed. Response status code: {statusCode}, Response string: {responseString}",
+                    response.StatusCode, responseString);
+                settings.AllowUnlimitedFleetApiRequests = false;
                 return;
             }
-
+            logger.LogDebug("Response string: {responseString}", responseString);
             var responseValue = JsonConvert.DeserializeObject<DtoValue<bool>>(responseString);
             settings.AllowUnlimitedFleetApiRequests = responseValue?.Value == true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error while trying to check if fleet api requests are allowed.");
             settings.AllowUnlimitedFleetApiRequests = false;
         }
         
