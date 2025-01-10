@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Context;
@@ -13,6 +15,7 @@ using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using CarBasicConfigurationValidator = TeslaSolarCharger.Server.ServerValidators.CarBasicConfigurationValidator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +42,10 @@ builder.Services.AddServicesDependencies();
 
 builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration));
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
+
 
 var app = builder.Build();
 

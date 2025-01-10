@@ -2,6 +2,7 @@
 using MudBlazor;
 using Newtonsoft.Json;
 using System.Net.Http.Json;
+using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 
@@ -112,7 +113,8 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
             {
                 return new Result<T>(
                     default,
-                    $"Unsupported HTTP method: {method}"
+                    $"Unsupported HTTP method: {method}",
+                    null
                 );
             }
 
@@ -128,17 +130,19 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
                     {
                         return new Result<T>(
                             default,
-                            $"{url}: Could not deserialize response to {typeof(T).Name}."
+                            $"{url}: Could not deserialize response to {typeof(T).Name}.",
+                            null
                         );
                     }
 
-                    return new Result<T>(deserializedObject, null);
+                    return new Result<T>(deserializedObject, null, null);
                 }
                 else
                 {
                     // If T=object, we don't do any deserialization
                     return new Result<T>(
                         default,
+                        null,
                         null
                     );
                 }
@@ -150,20 +154,20 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
                     ? $"Error: {problemDetails.Detail}"
                     : "An error occurred on the server.";
 
-                return new Result<T>(default, message);
+                return new Result<T>(default, message, problemDetails);
             }
         }
         catch (HttpRequestException ex)
         {
             // Network-level error
             var message = $"{url}: Network error: {ex.Message}";
-            return new Result<T>(default, message);
+            return new Result<T>(default, message, null);
         }
         catch (Exception ex)
         {
             // Any other unexpected error
             var message = $"{url}: Unexpected error: {ex.Message}";
-            return new Result<T>(default, message);
+            return new Result<T>(default, message, null);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Net;
+using TeslaSolarCharger.Server.Exceptions;
 
 namespace TeslaSolarCharger.Server.Middlewares;
 
@@ -10,6 +11,7 @@ public class ErrorHandlingMiddleware(ILogger<ErrorHandlingMiddleware> logger) : 
     {
         try
         {
+            //As Unauthorized dos not necessaryl throw an exception, we need to check the status code
             await next(context).ConfigureAwait(false);
             if (context.Response.StatusCode == StatusCodes.Status401Unauthorized)
             {
@@ -55,6 +57,14 @@ public class ErrorHandlingMiddleware(ILogger<ErrorHandlingMiddleware> logger) : 
 
         switch (exception)
         {
+            case ValidationException validationException:
+                problemDetails.Title = "Validation failed";
+                problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
+                problemDetails.Status = StatusCodes.Status422UnprocessableEntity;
+                problemDetails.Detail = "One or more validation failures have occurred.";
+                problemDetails.Extensions.Add("validationErrors", validationException.Errors);
+                break;
+
             case UnauthorizedAccessException e:
                 logger.LogWarning(e, e.Message);
                 context.Response.StatusCode = (int)HttpStatusCode.Forbidden;

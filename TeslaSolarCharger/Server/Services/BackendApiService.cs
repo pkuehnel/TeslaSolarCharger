@@ -230,7 +230,7 @@ public class BackendApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public async Task<Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
+    public async Task<Dtos.Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
     {
         var request = new HttpRequestMessage();
         var finalUrl = configurationWrapper.BackendApiBaseUrl() + requestUrlPart;
@@ -261,9 +261,10 @@ public class BackendApiService(
             }
             else
             {
-                return new Result<T>(
+                return new Dtos.Result<T>(
                     default,
-                    $"Unsupported HTTP method: {httpMethod}"
+                    $"Unsupported HTTP method: {httpMethod}",
+                    null
                 );
             }
             var response = await httpClient.SendAsync(request).ConfigureAwait(false);
@@ -276,19 +277,21 @@ public class BackendApiService(
 
                     if (deserializedObject == null)
                     {
-                        return new Result<T>(
+                        return new Dtos.Result<T>(
                             default,
-                            $"{finalUrl}: Could not deserialize response to {typeof(T).Name}."
+                            $"{finalUrl}: Could not deserialize response to {typeof(T).Name}.",
+                            null
                         );
                     }
 
-                    return new Result<T>(deserializedObject, null);
+                    return new Dtos.Result<T>(deserializedObject, null, null);
                 }
                 else
                 {
                     // If T=object, we don't do any deserialization
-                    return new Result<T>(
+                    return new Dtos.Result<T>(
                         default,
+                        null,
                         null
                     );
                 }
@@ -300,15 +303,15 @@ public class BackendApiService(
                     ? $"Backend Error: {problemDetails.Detail}"
                     : "An error occurred while retrieving data from the backend server.";
 
-                return new Result<T>(default, message);
+                return new Dtos.Result<T>(default, message, problemDetails);
             }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error while sending request to backend");
-            return new Result<T>(
+            return new Dtos.Result<T>(
                 default,
-                $"{finalUrl}: Unexpected error: {ex.Message}"
+                $"{finalUrl}: Unexpected error: {ex.Message}", null
             );
         }
 

@@ -41,7 +41,9 @@ else
     @foreach (var carBasicConfiguration in _carBasicConfigurations)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(new EditableItem<CarBasicConfiguration>(carBasicConfiguration))" OnValidSubmit="_ => UpdateCarConfiguration(carBasicConfiguration.Id, carBasicConfiguration)">
+            <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(new EditableItem<CarBasicConfiguration>(carBasicConfiguration))"
+                               OnValidSubmit="_ => UpdateCarConfiguration(carBasicConfiguration.Id, carBasicConfiguration)"
+                               SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Id}")">
                 <GenericInput For="() => carBasicConfiguration.Name" />
                 <GenericInput For="() => carBasicConfiguration.Vin" />
                 <GenericInput For="() => carBasicConfiguration.MinimumAmpere"/>
@@ -148,15 +150,16 @@ else
     private async Task UpdateCarConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         _savingCarIds.Add(carId);
-        var result = await HttpClient.PutAsJsonAsync($"api/Config/UpdateCarBasicConfiguration?carId={carId}", carBasicConfiguration).ConfigureAwait(false);
-        if (result.IsSuccessStatusCode)
-        {
-            Snackbar.Add("Car Configuration updated", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add("Error updating car configuration", Severity.Error);
-        }
+        // var result = await HttpClient.PostAsJsonAsync($"api/Config/UpdateCarBasicConfiguration?carId={carId}", carBasicConfiguration).ConfigureAwait(false);
+        
+        // if (result.IsSuccessStatusCode)
+        // {
+        //     Snackbar.Add("Car Configuration updated", Severity.Success);
+        // }
+        // else
+        // {
+        //     Snackbar.Add("Error updating car configuration", Severity.Error);
+        // }
         _savingCarIds.RemoveAll(i => i == carId);
     }
 
