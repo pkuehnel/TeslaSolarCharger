@@ -46,22 +46,29 @@ else
                                SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
                 <GenericInput For="() => carBasicConfiguration.Item.Name" />
                 <GenericInput For="() => carBasicConfiguration.Item.Vin" />
-                <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
-                <GenericInput For="() => carBasicConfiguration.Item.MaximumAmpere" />
-                <GenericInput For="() => carBasicConfiguration.Item.UsableEnergy" />
-                <GenericInput For="() => carBasicConfiguration.Item.ChargingPriority" />
                 <GenericInput For="() => carBasicConfiguration.Item.ShouldBeManaged" />
-                <GenericInput T="bool"
-                              For="() => carBasicConfiguration.Item.UseBle"
-                              OnValueChanged="_ => carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.BleApiBaseUrl))"/>
-                <GenericInput For="() => carBasicConfiguration.Item.BleApiBaseUrl" />
-                <GenericInput T="bool"
-                              For="() => carBasicConfiguration.Item.UseFleetTelemetry"
-                              OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields));}" />
-                @if (carBasicConfiguration.Item.UseFleetTelemetry)
+                @if (carBasicConfiguration.Item.ShouldBeManaged)
                 {
-                    <GenericInput For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields" />
+                    <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
+                    <GenericInput For="() => carBasicConfiguration.Item.MaximumAmpere" />
+                    <GenericInput For="() => carBasicConfiguration.Item.UsableEnergy" />
+                    <GenericInput For="() => carBasicConfiguration.Item.ChargingPriority" />
+                    <GenericInput T="bool"
+                                  For="() => carBasicConfiguration.Item.UseBle"
+                                  OnValueChanged="_ => carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.BleApiBaseUrl))" />
+                    @if (carBasicConfiguration.Item.UseBle)
+                    {
+                        <GenericInput For="() => carBasicConfiguration.Item.BleApiBaseUrl" />
+                    }
+                    <GenericInput T="bool"
+                                  For="() => carBasicConfiguration.Item.UseFleetTelemetry"
+                                  OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields));}" />
+                    @if (carBasicConfiguration.Item.UseFleetTelemetry)
+                    {
+                        <GenericInput For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields" />
+                    }
                 }
+                
             </EditFormComponent>
             <hr />
             <h3>BLE Pairing and test</h3>
