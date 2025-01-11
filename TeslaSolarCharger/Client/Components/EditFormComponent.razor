@@ -46,6 +46,9 @@
     [Parameter]
     public EventCallback<T> OnValidSubmit { get; set; }
 
+    [Parameter]
+    public EventCallback<T> OnAfterSuccessfullSubmit { get; set; }
+
     public bool IsDirty => WrappedElement.EditContext.IsModified();
 
     private bool IsSubmitting;
@@ -64,7 +67,7 @@
         var result = await HttpClientHelper.SendPostRequestAsync<object>(SubmitUrl, wrappedItem);
         if (!result.HasError)
         {
-            _ = OnValidSubmit.InvokeAsync(wrappedItem);
+            _ = OnAfterSuccessfullSubmit.InvokeAsync(wrappedItem);
             IsSubmitting = false;
             return;
         }

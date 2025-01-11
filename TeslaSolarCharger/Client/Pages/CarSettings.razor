@@ -42,11 +42,13 @@ else
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
             <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(carBasicConfiguration)"
-                               OnValidSubmit="_ => UpdateCarConfiguration(carBasicConfiguration.Item.Id, carBasicConfiguration.Item)"
+                               OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
                                SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
                 <GenericInput For="() => carBasicConfiguration.Item.Name" />
                 <GenericInput For="() => carBasicConfiguration.Item.Vin" />
-                <GenericInput For="() => carBasicConfiguration.Item.ShouldBeManaged" />
+                <GenericInput T="bool"
+                              For="() => carBasicConfiguration.Item.ShouldBeManaged"
+                              OnValueChanged="_ => InvokeAsync(() => StateHasChanged())" />
                 @if (carBasicConfiguration.Item.ShouldBeManaged)
                 {
                     <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
@@ -68,74 +70,75 @@ else
                         <GenericInput For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields" />
                     }
                 }
-                
+
             </EditFormComponent>
-            <hr />
-            <h3>BLE Pairing and test</h3>
-            <div>
-                To come around rate limits TSC can use BLE instead of the Fleet API. This requires <a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">setting up a BLE API</a>.
-            </div>
-            @if (_pairingResults.TryGetValue(carBasicConfiguration.Item.Vin, out var result))
+            
+            @if (_vinsToShowBleTest.Contains(carBasicConfiguration.Item.Vin))
             {
-
-                <div class="alert alert-info" role="alert">
-                    <p>
-                        @result
-                    </p>
-
-                </div>
-                    
-            }
-            <div>
-                Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device.
-            </div>
-            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
-            <h5>Test BLE access</h5>
-            <div>
-                Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new "phone key" on the car's screen.
-            </div>
-            <div>
-                After clicking the test button the car 's current should be set to 7A. Note: The car needs to be awake for this test.
-            </div>
-            @if (_bleTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleResult))
-            {
-                <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
-                    <p>
-                        @bleResult.ResultMessage
-                    </p>
-                </div>
-            }
-            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
-            @if (carBasicConfiguration.Item.UseBle)
-            {
-                <h5>Test Wakeup via BLE</h5>
+                <hr />
+                <h3>BLE Pairing and test</h3>
                 <div>
-                    After this test the car should wake up.
+                    To come around rate limits TSC can use BLE instead of the Fleet API. This requires <a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">setting up a BLE API</a>.
                 </div>
-                @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleWakeUpResult))
+                @if (_pairingResults.TryGetValue(carBasicConfiguration.Item.Vin, out var result))
                 {
-                    <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
+
+                    <div class="alert alert-info" role="alert">
                         <p>
-                            @bleWakeUpResult.ResultMessage
+                            @result
+                        </p>
+
+                    </div>
+
+                }
+                <div>
+                    Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device.
+                </div>
+                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
+                <h5>Test BLE access</h5>
+                <div>
+                    Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new "phone key" on the car's screen.
+                </div>
+                <div>
+                    After clicking the test button the car 's current should be set to 7A. Note: The car needs to be awake for this test.
+                </div>
+                @if (_bleTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleResult))
+                {
+                    <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
+                        <p>
+                            @bleResult.ResultMessage
                         </p>
                     </div>
-                    
                 }
-                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText="Wake up"></RightAlignedButtonComponent>
+                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
+                @if (carBasicConfiguration.Item.UseBle)
+                {
+                    <h5>Test Wakeup via BLE</h5>
+                    <div>
+                        After this test the car should wake up.
+                    </div>
+                    @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleWakeUpResult))
+                    {
+                        <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
+                            <p>
+                                @bleWakeUpResult.ResultMessage
+                            </p>
+                        </div>
+
+                    }
+                    <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText="Wake up"></RightAlignedButtonComponent>
+                }
             }
-
-
-            </div>
+        </div>
     }
 }
 
 @code {
     private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
-    private readonly List<int> _savingCarIds = new();
     private TokenState? _fleetApiTokenState;
 
+    private HashSet<string> _vinsToShowBleTest = new();
     private Dictionary<string, string> _pairingResults = new();
-
     private Dictionary<string, DtoBleCommandResult> _bleTestResults = new();
     private Dictionary<string, DtoBleCommandResult> _bleWakeUpTestResults = new();
 
@@ -147,6 +150,7 @@ else
         var carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
         if (carBasicConfigurations != null)
         {
+            _vinsToShowBleTest = carBasicConfigurations.Where(c => c is { UseBle: true, ShouldBeManaged: true }).Select(c => c.Vin).ToHashSet();
             _carBasicConfigurations = carBasicConfigurations.Select(c => new EditableItem<CarBasicConfiguration>(c)).ToList();
         }
     }
@@ -158,22 +162,6 @@ else
         {
             _fleetApiTokenState = value.Value;
         }
-    }
-
-    private async Task UpdateCarConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
-    {
-        _savingCarIds.Add(carId);
-        // var result = await HttpClient.PostAsJsonAsync($"api/Config/UpdateCarBasicConfiguration?carId={carId}", carBasicConfiguration).ConfigureAwait(false);
-        
-        // if (result.IsSuccessStatusCode)
-        // {
-        //     Snackbar.Add("Car Configuration updated", Severity.Success);
-        // }
-        // else
-        // {
-        //     Snackbar.Add("Error updating car configuration", Severity.Error);
-        // }
-        _savingCarIds.RemoveAll(i => i == carId);
     }
 
     private async Task PairCar(CarBasicConfiguration car)
@@ -194,11 +182,11 @@ else
         var resultString = await HttpClient.GetStringAsync($"/api/Ble/SetAmp?vin={vin}&amps=7").ConfigureAwait(false);
         var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString)
                      ?? new DtoBleCommandResult
-                     {
-                         Success = false,
-                         ResultMessage = "Could not deserialize message from TSC.",
-                     };
-        if(result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
+                         {
+                             Success = false,
+                             ResultMessage = "Could not deserialize message from TSC.",
+                         };
+        if (result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
             result.ResultMessage = "Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default.";
         }
@@ -211,12 +199,12 @@ else
         _bleWakeUpTestResults.Remove(vin);
         _loadingVins.Add(vin);
         var resultString = await HttpClient.GetStringAsync($"/api/Ble/WakeUp?vin={vin}").ConfigureAwait(false);
-        var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString) 
+        var result = JsonConvert.DeserializeObject<DtoBleCommandResult>(resultString)
                      ?? new DtoBleCommandResult
-                     {
-                         Success = false,
-                         ResultMessage = "Could not deserialize message from TSC.",
-                     };
+                         {
+                             Success = false,
+                             ResultMessage = "Could not deserialize message from TSC.",
+                         };
         if (result.Success && string.IsNullOrWhiteSpace(result.ResultMessage))
         {
             result.ResultMessage = "The car accepted the wake call.";
@@ -227,8 +215,20 @@ else
 
     private void UpdateGetlocationDataViaFleetTelemetry(CarBasicConfiguration carBasicConfiguration, bool newUseFleetTelemetryValue)
     {
-            carBasicConfiguration.IncludeTrackingRelevantFields = newUseFleetTelemetryValue;
-            InvokeAsync(() => StateHasChanged());
+        carBasicConfiguration.IncludeTrackingRelevantFields = newUseFleetTelemetryValue;
+        InvokeAsync(() => StateHasChanged());
+    }
+
+    private void UpdateShouldDisplayBleTest(CarBasicConfiguration item)
+    {
+        if (item is { ShouldBeManaged: true, UseBle: true })
+        {
+            _vinsToShowBleTest.Add(item.Vin);
+        }
+        else
+        {
+            _vinsToShowBleTest.Remove(item.Vin);
+        }
     }
 
 }
