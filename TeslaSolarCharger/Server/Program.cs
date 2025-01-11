@@ -24,7 +24,8 @@ var configurationManager = builder.Configuration;
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers().AddNewtonsoftJson();
+builder.Services.AddControllers(options => options.Filters.Add<ApiExceptionFilterAttribute>())
+    .AddNewtonsoftJson();
 builder.Services.AddRazorPages();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -45,6 +46,7 @@ builder.Host.UseSerilog((context, configuration) => configuration
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
+builder.Services.AddScoped<IValidatorInterceptor, CustomValidatorInterceptor>();
 
 
 var app = builder.Build();

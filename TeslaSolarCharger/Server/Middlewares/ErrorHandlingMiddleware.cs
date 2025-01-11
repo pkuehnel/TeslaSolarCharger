@@ -62,7 +62,6 @@ public class ErrorHandlingMiddleware(ILogger<ErrorHandlingMiddleware> logger) : 
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                 problemDetails.Status = StatusCodes.Status422UnprocessableEntity;
                 problemDetails.Detail = "One or more validation failures have occurred.";
-                problemDetails.Extensions.Add("validationErrors", validationException.Errors);
                 break;
 
             case UnauthorizedAccessException e:
