@@ -1210,13 +1210,14 @@ public class TeslaFleetApiService(
         }
         settings.LastFleetApiRequestAllowedCheck = dateTimeProvider.UtcNow();
         using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(2);
+        httpClient.Timeout = TimeSpan.FromSeconds(100);
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var url = configurationWrapper.BackendApiBaseUrl() + $"Tsc/AllowUnlimitedFleetApiAccess?installationId={installationId}";
         try
         {
             logger.LogDebug("Calling url {url}", url);
             var response = await httpClient.GetAsync(url).ConfigureAwait(false);
+            logger.LogDebug("Got response");
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
