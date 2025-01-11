@@ -41,24 +41,26 @@ else
     @foreach (var carBasicConfiguration in _carBasicConfigurations)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(new EditableItem<CarBasicConfiguration>(carBasicConfiguration))"
-                               OnValidSubmit="_ => UpdateCarConfiguration(carBasicConfiguration.Id, carBasicConfiguration)"
-                               SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Id}")">
-                <GenericInput For="() => carBasicConfiguration.Name" />
-                <GenericInput For="() => carBasicConfiguration.Vin" />
-                <GenericInput For="() => carBasicConfiguration.MinimumAmpere"/>
-                <GenericInput For="() => carBasicConfiguration.MaximumAmpere" />
-                <GenericInput For="() => carBasicConfiguration.UsableEnergy" />
-                <GenericInput For="() => carBasicConfiguration.ChargingPriority" />
-                <GenericInput For="() => carBasicConfiguration.ShouldBeManaged" />
-                <GenericInput For="() => carBasicConfiguration.UseBle" />
-                <GenericInput For="() => carBasicConfiguration.BleApiBaseUrl" />
+            <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(carBasicConfiguration)"
+                               OnValidSubmit="_ => UpdateCarConfiguration(carBasicConfiguration.Item.Id, carBasicConfiguration.Item)"
+                               SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
+                <GenericInput For="() => carBasicConfiguration.Item.Name" />
+                <GenericInput For="() => carBasicConfiguration.Item.Vin" />
+                <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
+                <GenericInput For="() => carBasicConfiguration.Item.MaximumAmpere" />
+                <GenericInput For="() => carBasicConfiguration.Item.UsableEnergy" />
+                <GenericInput For="() => carBasicConfiguration.Item.ChargingPriority" />
+                <GenericInput For="() => carBasicConfiguration.Item.ShouldBeManaged" />
                 <GenericInput T="bool"
-                              For="() => carBasicConfiguration.UseFleetTelemetry"
-                              OnValueChanged="newValue => UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration, newValue)"/>
-                @if(carBasicConfiguration.UseFleetTelemetry)
+                              For="() => carBasicConfiguration.Item.UseBle"
+                              OnValueChanged="_ => carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.BleApiBaseUrl))"/>
+                <GenericInput For="() => carBasicConfiguration.Item.BleApiBaseUrl" />
+                <GenericInput T="bool"
+                              For="() => carBasicConfiguration.Item.UseFleetTelemetry"
+                              OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields));}" />
+                @if (carBasicConfiguration.Item.UseFleetTelemetry)
                 {
-                    <GenericInput For="() => carBasicConfiguration.UseFleetTelemetryForLocationData" />
+                    <GenericInput For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields" />
                 }
             </EditFormComponent>
             <hr />
@@ -66,7 +68,7 @@ else
             <div>
                 To come around rate limits TSC can use BLE instead of the Fleet API. This requires <a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">setting up a BLE API</a>.
             </div>
-            @if (_pairingResults.TryGetValue(carBasicConfiguration.Vin, out var result))
+            @if (_pairingResults.TryGetValue(carBasicConfiguration.Item.Vin, out var result))
             {
 
                 <div class="alert alert-info" role="alert">
@@ -80,7 +82,7 @@ else
             <div>
                 Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device.
             </div>
-            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
+            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => PairCar(carBasicConfiguration.Item)" ButtonText="BLE Pair"></RightAlignedButtonComponent>
             <h5>Test BLE access</h5>
             <div>
                 Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new "phone key" on the car's screen.
@@ -88,7 +90,7 @@ else
             <div>
                 After clicking the test button the car 's current should be set to 7A. Note: The car needs to be awake for this test.
             </div>
-            @if (_bleTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleResult))
+            @if (_bleTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleResult))
             {
                 <div class="@($"alert alert-{(bleResult.Success ? "success" : "danger")}")" role="alert">
                     <p>
@@ -96,14 +98,14 @@ else
                     </p>
                 </div>
             }
-            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
-            @if (carBasicConfiguration.UseBle)
+            <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => TestBle(carBasicConfiguration.Item.Vin)" ButtonText="Set to 7A"></RightAlignedButtonComponent>
+            @if (carBasicConfiguration.Item.UseBle)
             {
                 <h5>Test Wakeup via BLE</h5>
                 <div>
                     After this test the car should wake up.
                 </div>
-                @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Vin, out var bleWakeUpResult))
+                @if (_bleWakeUpTestResults.TryGetValue(carBasicConfiguration.Item.Vin, out var bleWakeUpResult))
                 {
                     <div class="@($"alert alert-{(bleWakeUpResult.Success ? "success" : "danger")}")" role="alert">
                         <p>
@@ -112,7 +114,7 @@ else
                     </div>
                     
                 }
-                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Vin)" ButtonText="Wake up"></RightAlignedButtonComponent>
+                <RightAlignedButtonComponent IsLoading="_loadingVins.Contains(carBasicConfiguration.Item.Vin)" OnButtonClicked="_ => WakeCar(carBasicConfiguration.Item.Vin)" ButtonText="Wake up"></RightAlignedButtonComponent>
             }
 
 
@@ -121,7 +123,7 @@ else
 }
 
 @code {
-    private List<CarBasicConfiguration>? _carBasicConfigurations;
+    private List<EditableItem<CarBasicConfiguration>>? _carBasicConfigurations;
     private readonly List<int> _savingCarIds = new();
     private TokenState? _fleetApiTokenState;
 
@@ -135,7 +137,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         await RefreshFleetApiTokenState();
-        _carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
+        var carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
+        if (carBasicConfigurations != null)
+        {
+            _carBasicConfigurations = carBasicConfigurations.Select(c => new EditableItem<CarBasicConfiguration>(c)).ToList();
+        }
     }
 
     private async Task RefreshFleetApiTokenState()
@@ -214,7 +220,7 @@ else
 
     private void UpdateGetlocationDataViaFleetTelemetry(CarBasicConfiguration carBasicConfiguration, bool newUseFleetTelemetryValue)
     {
-            carBasicConfiguration.UseFleetTelemetryForLocationData = newUseFleetTelemetryValue;
+            carBasicConfiguration.IncludeTrackingRelevantFields = newUseFleetTelemetryValue;
             InvokeAsync(() => StateHasChanged());
     }
 

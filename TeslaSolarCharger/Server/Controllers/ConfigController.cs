@@ -41,7 +41,6 @@ namespace TeslaSolarCharger.Server.Controllers
         [HttpPost]
         public Task UpdateCarBasicConfiguration(int carId, [FromBody] CarBasicConfiguration carBasicConfiguration)
         {
-            throw new FileNotFoundException("test");
             return _configJsonService.UpdateCarBasicConfiguration(carId, carBasicConfiguration);
         }
     }

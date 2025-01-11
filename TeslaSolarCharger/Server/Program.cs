@@ -1,8 +1,9 @@
 using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Context;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Interceptors;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
@@ -10,12 +11,12 @@ using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Middlewares;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.ServerValidators;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
-using CarBasicConfigurationValidator = TeslaSolarCharger.Server.ServerValidators.CarBasicConfigurationValidator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +47,6 @@ builder.Host.UseSerilog((context, configuration) => configuration
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
-builder.Services.AddScoped<IValidatorInterceptor, CustomValidatorInterceptor>();
 
 
 var app = builder.Build();

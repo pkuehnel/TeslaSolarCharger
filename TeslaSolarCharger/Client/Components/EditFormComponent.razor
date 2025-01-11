@@ -1,5 +1,4 @@
 ﻿@using Blazored.FluentValidation
-@using Microsoft.AspNetCore.Http
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 
@@ -10,11 +9,24 @@
 <EditForm EditContext="@WrappedElement.EditContext" OnValidSubmit="@(_ => HandleValidSubmit(WrappedElement.Item))">
     <FluentValidationValidator />
     @ChildContent
-    <ValidationSummary/>
+    <ValidationSummary />
     @if (!HideSubmitButton)
     {
         <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       ButtonType="ButtonType.Submit"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="IsSubmitting">
+                @if (IsSubmitting)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Processing</MudText>
+                }
+                else
+                {
+                    <MudText>Save</MudText>
+                }
+            </MudButton>
         </MudPaper>
     }
 </EditForm>
@@ -36,27 +48,28 @@
 
     public bool IsDirty => WrappedElement.EditContext.IsModified();
 
+    private bool IsSubmitting;
+
 
 
     private async Task HandleValidSubmit(T wrappedItem)
     {
+        IsSubmitting = true;
         if (SubmitUrl == default)
         {
             _ = OnValidSubmit.InvokeAsync(wrappedItem);
+            IsSubmitting = false;
             return;
         }
         var result = await HttpClientHelper.SendPostRequestAsync<object>(SubmitUrl, wrappedItem);
         if (!result.HasError)
         {
             _ = OnValidSubmit.InvokeAsync(wrappedItem);
-            return;
-        }
-        if (result.ValidationProblemDetails?.Status != StatusCodes.Status422UnprocessableEntity)
-        {
+            IsSubmitting = false;
             return;
         }
 
-        if (result.ValidationProblemDetails.Errors.Any())
+        if (result.ValidationProblemDetails != null && result.ValidationProblemDetails.Errors.Any())
         {
             MapErrorsToEditContext(result.ValidationProblemDetails.Errors);
         }
@@ -64,6 +77,7 @@
         {
             Console.WriteLine("No validationErrors found in ProblemDetails.Extensions.");
         }
+        IsSubmitting = false;
     }
 
     private void MapErrorsToEditContext(IDictionary<string, string[]> errors)
