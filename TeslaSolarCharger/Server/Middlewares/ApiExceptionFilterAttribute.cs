@@ -51,7 +51,8 @@ public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
             Detail = exception.Message,
             Instance = context.HttpContext.Request.Path.Value,
         };
-        context.Result = new BadRequestObjectResult(problemDetails);
+        var result = new ObjectResult(problemDetails);
+        context.Result = result;
         context.ExceptionHandled = true;
     }
 
@@ -65,7 +66,8 @@ public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
             Detail = exception?.Message,
             Instance = context.HttpContext.Request.Path.Value,
         };
-        context.Result = new UnauthorizedObjectResult(problemDetails);
+        var result = new ObjectResult(problemDetails);
+        context.Result = result;
         context.ExceptionHandled = true;
     }
 
@@ -80,7 +82,8 @@ public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
             Detail = exception?.Message,
             Instance = context.HttpContext.Request.Path.Value,
         };
-        context.Result = new NotFoundObjectResult(problemDetails);
+        var result = new ObjectResult(problemDetails);
+        context.Result = result;
         context.ExceptionHandled = true;
     }
 
@@ -94,7 +97,8 @@ public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
             Detail = exception?.Message,
             Instance = context.HttpContext.Request.Path.Value,
         };
-        context.Result = new BadRequestObjectResult(problemDetails);
+        var result = new ObjectResult(problemDetails);
+        context.Result = result;
         context.ExceptionHandled = true;
     }
 
@@ -108,7 +112,8 @@ public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
             Detail = exception?.Message,
             Instance = context.HttpContext.Request.Path.Value,
         };
-        context.Result = new BadRequestObjectResult(problemDetails);
+        var result = new ObjectResult(problemDetails);
+        context.Result = result;
         context.ExceptionHandled = true;
     }
 
@@ -122,7 +127,8 @@ public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
             Detail = exception?.Message,
             Instance = context.HttpContext.Request.Path.Value,
         };
-        context.Result = new ObjectResult(problemDetails);
+        var result = new ObjectResult(problemDetails);
+        context.Result = result;
         context.ExceptionHandled = true;
     }
 
@@ -135,7 +141,8 @@ public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
             Detail = context.Exception.Message,
             Instance = context.HttpContext.Request.Path.Value,
         };
-        context.Result = new ObjectResult(problemDetails);
+        var result = new ObjectResult(problemDetails);
+        context.Result = result;
         context.ExceptionHandled = true;
     }
 }
