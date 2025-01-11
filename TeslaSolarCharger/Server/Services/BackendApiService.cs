@@ -300,7 +300,7 @@ public class BackendApiService(
             {
                 var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
                 var message = problemDetails != null
-                    ? $"Backend Error: {problemDetails.Detail}"
+                    ? $"Cloud Error: {problemDetails.Detail}"
                     : "An error occurred while retrieving data from the backend server.";
 
                 return new Dtos.Result<T>(default, message, problemDetails);
