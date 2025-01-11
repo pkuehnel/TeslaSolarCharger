@@ -1,4 +1,4 @@
-﻿@page "/backendconnection"
+﻿@page "/cloudconnection"
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
@@ -12,7 +12,7 @@
 <MudAlert Severity="Severity.Warning"
 NoIcon="true"
 ShowCloseIcon="false">
-    <div>You need to create a <MudLink Href="https://solar4car.com/Account/Login?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions">Solar4Car.com account</MudLink> and create at least a base app subscription before you can proceed.</div>
+    <div>You need to create a <MudLink Href="https://solar4car.com/Account/Register?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions">Solar4Car.com account</MudLink> and create at least a base app subscription before you can proceed.</div>
 </MudAlert>
 
 @if (BackendTokenState == default)

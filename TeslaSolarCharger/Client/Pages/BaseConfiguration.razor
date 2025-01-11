@@ -318,7 +318,7 @@ else
         if (backendTokenState != TokenState.UpToDate)
         {
             Snackbar.Add("You need to be logged in to Solar4Car.com to generate a Fleet API Token", Severity.Error);
-            NavigationManager.NavigateTo("backendconnection");
+            NavigationManager.NavigateTo("cloudconnection");
             return;
         }
 

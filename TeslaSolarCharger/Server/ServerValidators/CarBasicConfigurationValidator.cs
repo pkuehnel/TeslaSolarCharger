@@ -1,12 +1,13 @@
 ﻿using FluentValidation;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.ServerValidators;
 
 public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationValidator
 {
-    public CarBasicConfigurationValidator(IConfigurationWrapper configurationWrapper, IBleService bleService)
+    public CarBasicConfigurationValidator(IConfigurationWrapper configurationWrapper, IBleService bleService, ITokenHelper tokenHelper)
     {
         RuleFor(x => x.MaximumAmpere).LessThanOrEqualTo(7);
         var isTeslaMateDataSource = configurationWrapper.UseTeslaMateIntegration() && !configurationWrapper.GetVehicleDataFromTesla();
@@ -22,6 +23,20 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                     .Equal(false)
                 .WithMessage("Tracking relevant fields can only be included if Fleet Telemetry is enabled.");
         });
+
+        RuleFor(x => x.UseFleetTelemetry)
+            .CustomAsync(async (fleetTelemetryEnabled, context, cancellationToken) =>
+            {
+                if (fleetTelemetryEnabled != true)
+                {
+                    return;
+                }
+                var tokenState = await tokenHelper.GetFleetApiTokenState(true);
+                if (tokenState != TokenState.UpToDate)
+                {
+                    context.AddFailure("You need a valid Fleet API token to use Fleet Telemetry. Go to BaseConfiguration to Generate a new Fleet API Token.");
+                }
+            });
 
         When(x => (x.UseBle == true), () =>
         {
