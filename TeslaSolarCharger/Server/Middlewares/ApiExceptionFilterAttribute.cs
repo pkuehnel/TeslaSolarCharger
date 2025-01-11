@@ -48,7 +48,7 @@ public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
         {
             Title = "One or more validation failures have occurred.",
             Status = StatusCodes.Status422UnprocessableEntity,
-            Detail = exception.Message,
+            Detail = exception!.Message,
             Instance = context.HttpContext.Request.Path.Value,
         };
         var result = new ObjectResult(problemDetails);

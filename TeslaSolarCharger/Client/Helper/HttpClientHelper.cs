@@ -149,7 +149,8 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
             }
             else
             {
-                var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+                var resultString = await response.Content.ReadAsStringAsync();
+                var problemDetails = JsonConvert.DeserializeObject<ValidationProblemDetails>(resultString);
                 var message = problemDetails != null
                     ? $"Error: {problemDetails.Detail}"
                     : "An error occurred on the server.";

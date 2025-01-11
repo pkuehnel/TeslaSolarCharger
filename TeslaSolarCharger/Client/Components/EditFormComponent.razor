@@ -46,28 +46,24 @@
             return;
         }
         var result = await HttpClientHelper.SendPostRequestAsync<object>(SubmitUrl, wrappedItem);
-        if (!result.HasError || (result.ProblemDetails?.Status != StatusCodes.Status422UnprocessableEntity))
+        if (!result.HasError)
+        {
+            _ = OnValidSubmit.InvokeAsync(wrappedItem);
+            return;
+        }
+        if (result.ValidationProblemDetails?.Status != StatusCodes.Status422UnprocessableEntity)
         {
             return;
         }
 
-        if (result.ProblemDetails?.Extensions.TryGetValue("validationErrors", out var validationErrors) == true)
+        if (result.ValidationProblemDetails.Errors.Any())
         {
-            // Cast the value to the expected type
-            if (validationErrors is IDictionary<string, string[]> errorsDictionary)
-            {
-                MapErrorsToEditContext(errorsDictionary);
-            }
-            else
-            {
-                Console.WriteLine("The validationErrors are not in the expected format.");
-            }
+            MapErrorsToEditContext(result.ValidationProblemDetails.Errors);
         }
         else
         {
             Console.WriteLine("No validationErrors found in ProblemDetails.Extensions.");
         }
-        _ = OnValidSubmit.InvokeAsync(wrappedItem);
     }
 
     private void MapErrorsToEditContext(IDictionary<string, string[]> errors)
