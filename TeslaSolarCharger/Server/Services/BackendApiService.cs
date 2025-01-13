@@ -162,7 +162,7 @@ public class BackendApiService(
             {
                 var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
                 var result = await SendRequestToBackend<object>(HttpMethod.Post, token.AccessToken,
-                    $"Client/NotifyInstallation?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}",
+                    $"Client/NotifyInstallation?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason={Uri.EscapeDataString(reason)}",
                     null);
                 if (!result.HasError)
                 {
@@ -173,7 +173,7 @@ public class BackendApiService(
                 logger.LogWarning("Error while sending installation information to backend. {errorMessage}", result.ErrorMessage);
             }
             var noTokenResult = await SendRequestToBackend<object>(HttpMethod.Post, null,
-                $"Client/NotifyInstallationAnonymous?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason{Uri.EscapeDataString(reason)}&installationId={Uri.EscapeDataString(installationId.ToString())}",
+                $"Client/NotifyInstallationAnonymous?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason={Uri.EscapeDataString(reason)}&installationId={Uri.EscapeDataString(installationId.ToString())}",
                 null);
             if (!noTokenResult.HasError)
             {
