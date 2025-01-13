@@ -1,4 +1,6 @@
 ﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -7,7 +9,7 @@ namespace TeslaSolarCharger.Server.ServerValidators;
 
 public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationValidator
 {
-    public CarBasicConfigurationValidator(IConfigurationWrapper configurationWrapper, IBleService bleService, ITokenHelper tokenHelper)
+    public CarBasicConfigurationValidator(IConfigurationWrapper configurationWrapper, IBleService bleService, ITokenHelper tokenHelper, ITeslaSolarChargerContext dbContext)
     {
         When(x => x.ShouldBeManaged, () =>
         {
@@ -36,6 +38,14 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                     if (tokenState != TokenState.UpToDate)
                     {
                         context.AddFailure("You need a valid Fleet API token to use Fleet Telemetry. Go to BaseConfiguration to Generate a new Fleet API Token.");
+                    }
+                    var isCarFleetTelemetryHardwareIncompatible = await dbContext.Cars
+                        .Where(c => c.Vin == context.InstanceToValidate.Vin && c.IsFleetTelemetryHardwareIncompatible)
+                        .Select(c => c.IsFleetTelemetryHardwareIncompatible)
+                        .FirstOrDefaultAsync();
+                    if (isCarFleetTelemetryHardwareIncompatible)
+                    {
+                        context.AddFailure("The selected car is not compatible with Fleet Telemetry. Please disable Fleet Telemetry.");
                     }
                 });
 

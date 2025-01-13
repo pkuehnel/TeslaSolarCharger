@@ -46,7 +46,8 @@ public class FleetTelemetryWebSocketService(
                         && (c.ShouldBeManaged == true)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotWorking)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
-                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured))
+                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured)
+                        && (c.IsFleetTelemetryHardwareIncompatible == false))
             .Select(c => new { c.Vin, c.UseFleetTelemetryForLocationData, })
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
@@ -350,10 +351,25 @@ public class FleetTelemetryWebSocketService(
         foreach (var vin in message.UnsupportedHardwareVins)
         {
             logger.LogInformation("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
+            await SetCarToFleetTelemetryHardwareIncompatible(vin).ConfigureAwait(false);
             await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
         }
 
         return true;
+    }
+
+    private async Task SetCarToFleetTelemetryHardwareIncompatible(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(SetCarToFleetTelemetryHardwareIncompatible), vin);
+        var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
+        if (car == default)
+        {
+            return;
+        }
+        car.IsFleetTelemetryHardwareIncompatible = true;
+        await context.SaveChangesAsync();
     }
 
     private async Task DisableFleetTelemetryForCar(string vin)
