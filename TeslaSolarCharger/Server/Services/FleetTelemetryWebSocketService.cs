@@ -48,7 +48,7 @@ public class FleetTelemetryWebSocketService(
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured)
                         && (c.IsFleetTelemetryHardwareIncompatible == false))
-            .Select(c => new { c.Vin, c.UseFleetTelemetryForLocationData, })
+            .Select(c => new { c.Vin, UseFleetTelemetryForLocationData = c.IncludeTrackingRelevantFields, })
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
         foreach (var car in cars)
@@ -383,7 +383,7 @@ public class FleetTelemetryWebSocketService(
             return;
         }
         car.UseFleetTelemetry = false;
-        car.UseFleetTelemetryForLocationData = false;
+        car.IncludeTrackingRelevantFields = false;
         await context.SaveChangesAsync();
     }
 

@@ -249,7 +249,7 @@ public class ConfigJsonService(
         databaseCar.UseBle = carBasicConfiguration.UseBle;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
-        databaseCar.UseFleetTelemetryForLocationData = carBasicConfiguration.IncludeTrackingRelevantFields;
+        databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var settingsCar = settings.Cars.First(c => c.Id == carId);
         settingsCar.Name = carBasicConfiguration.Name;

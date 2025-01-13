@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using TeslaSolarCharger.Shared.Attributes;
 
 namespace TeslaSolarCharger.Shared.Dtos;

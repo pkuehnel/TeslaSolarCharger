@@ -44,7 +44,7 @@ public class Car
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public bool UseFleetTelemetry { get; set; }
-    public bool UseFleetTelemetryForLocationData { get; set; }
+    public bool IncludeTrackingRelevantFields { get; set; }
     public bool IsAvailableInTeslaAccount { get; set; }
 
     public string? WakeUpCalls { get; set; }
