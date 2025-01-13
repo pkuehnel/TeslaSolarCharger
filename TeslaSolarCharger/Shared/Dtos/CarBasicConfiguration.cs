@@ -43,7 +43,7 @@ public class CarBasicConfiguration
     [HelperText("Only supported on cars with Software 2024.45.32+. Not supported on Pre 2021 Model S/X. If your car does not support fleet telemetry, this option will be disabled automatically within two minutes.")]
     public bool UseFleetTelemetry { get; set; }
 
-    [HelperText("When enabled, TSC collects data of additional fields that are not necessarily required for TSC to work, but logged data might be helpful for future visualizations.")]
+    [HelperText("When enabled, TSC collects data of additional fields that are not necessarily required for TSC to work, but logged data might be helpful for future visualizations. Note: For this a car license is required.")]
     public bool IncludeTrackingRelevantFields { get; set; }
 }
 
