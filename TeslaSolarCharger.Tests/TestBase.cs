@@ -20,7 +20,6 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Shared.TimeProviding;
-using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using TeslaSolarCharger.Tests.Data;
 using Xunit.Abstractions;
 using Constants = TeslaSolarCharger.Shared.Resources.Constants;
@@ -67,7 +66,6 @@ public class TestBase : IDisposable
         var currentFakeTime = new DateTime(2023, 2, 2, 8, 0, 0);
 
         _fake = new AutoFake();
-        _fake.Provide<IMapperConfigurationFactory, MapperConfigurationFactory>();
         _fake.Provide<IIssueKeys, IssueKeys>();
         _fake.Provide<IPossibleIssues, PossibleIssues>();
         _fake.Provide<IResultValueCalculationService, ResultValueCalculationService>();
@@ -79,7 +77,6 @@ public class TestBase : IDisposable
             b =>
             {
                 b.Register((_, _) => Context);
-                b.Register((_, _) => _fake.Resolve<IMapperConfigurationFactory>());
                 b.Register((_, _) => _fake.Resolve<IIssueKeys>());
                 b.Register((_, _) => _fake.Resolve<IPossibleIssues>());
                 b.Register((_, _) => _fake.Resolve<IResultValueCalculationService>());

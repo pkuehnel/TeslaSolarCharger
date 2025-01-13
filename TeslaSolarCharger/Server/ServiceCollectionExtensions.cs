@@ -31,7 +31,6 @@ using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
 using TeslaSolarCharger.SharedBackend;
-using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server;
 
@@ -91,7 +90,6 @@ public static class ServiceCollectionExtensions
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
             .AddTransient<IPossibleIssues, PossibleIssues>()
             .AddTransient<IChargingCostService, ChargingCostService>()
-            .AddTransient<IMapperConfigurationFactory, MapperConfigurationFactory>()
             .AddTransient<ICoreService, CoreService>()
             .AddTransient<INewVersionCheckService, NewVersionCheckService>()
             .AddTransient<INodePatternTypeHelper, NodePatternTypeHelper>()

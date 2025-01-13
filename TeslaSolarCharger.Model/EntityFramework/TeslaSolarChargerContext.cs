@@ -124,6 +124,41 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .HasConversion(timeListToString)
             .Metadata.SetValueComparer(valueComparer);
 
+        modelBuilder.Entity<Car>()
+            .Property(e => e.WakeUpCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.VehicleDataCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.VehicleCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.ChargeStartCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.ChargeStopCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.SetChargingAmpsCall)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.OtherCommandCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
     }
 
 #pragma warning disable CS8618

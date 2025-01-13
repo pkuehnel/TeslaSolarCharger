@@ -12,7 +12,6 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.LoggedError;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using TeslaSolarCharger.SharedModel.Enums;
 using Error = LanguageExt.Common.Error;
 
@@ -24,7 +23,6 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     ITeslaSolarChargerContext context,
     IDateTimeProvider dateTimeProvider,
     IConfigurationWrapper configurationWrapper,
-    IMapperConfigurationFactory mapperConfigurationFactory,
     ISettings settings,
     ITokenHelper tokenHelper,
     IPossibleIssues possibleIssues,
@@ -37,27 +35,28 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         return unfilterdErrorsFin.Match(
             Succ: unfilteredErrors =>
             {
-                var mappingConfiguration = mapperConfigurationFactory.Create(cfg =>
-                {
-                    cfg.CreateMap<LoggedError, DtoLoggedError>()
-                        .ForMember(d => d.OccurrenceCount, opt => opt.MapFrom(s => s.FurtherOccurrences.Count() + 1))
-                        .ForMember(d => d.Severity, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).IssueSeverity))
-                        .ForMember(d => d.HideOccurrenceCount, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).HideOccurrenceCount))
-                        ;
-                });
-                var mapper = mappingConfiguration.CreateMapper();
                 var errors = unfilteredErrors
                     .Where(e => e.DismissedAt == default || (e.FurtherOccurrences.Any() && (e.DismissedAt < e.FurtherOccurrences.Max())))
-                    .Select(e => mapper.Map<DtoLoggedError>(e))
+                    .Select(e => new DtoLoggedError()
+                    {
+                        Id = e.Id,
+                        Severity = possibleIssues.GetIssueByKey(e.IssueKey).IssueSeverity,
+                        Headline = e.Headline,
+                        IssueKey = e.IssueKey,
+                        OccurrenceCount = e.FurtherOccurrences.Count() + 1,
+                        Vin = e.Vin,
+                        Message = e.Message,
+                        HideOccurrenceCount = possibleIssues.GetIssueByKey(e.IssueKey).HideOccurrenceCount
+                    })
                     .ToList();
 
                 var removedErrorCount = errors.RemoveAll(e => e.OccurrenceCount < possibleIssues.GetIssueByKey(e.IssueKey).ShowErrorAfterOccurrences);
                 logger.LogDebug("{removedErrorsCount} errors removed as did not reach minimum error count", removedErrorCount);
-                return Fin<List<DtoLoggedError>>.Succ(errors);
+                return Fin<System.Collections.Generic.List<DtoLoggedError>>.Succ(errors);
             },
             Fail: error =>
             {
-                return Fin<List<DtoLoggedError>>.Fail(error);
+                return Fin<System.Collections.Generic.List<DtoLoggedError>>.Fail(error);
             });
 
     }
@@ -69,32 +68,32 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         return unfilterdErrorsFin.Match(
             Succ: unfilteredErrors =>
             {
-                var mappingConfiguration = mapperConfigurationFactory.Create(cfg =>
-                {
-                    cfg.CreateMap<LoggedError, DtoHiddenError>()
-                        .ForMember(d => d.OccurrenceCount, opt => opt.MapFrom(s => s.FurtherOccurrences.Count() + 1))
-                        .ForMember(d => d.Severity, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).IssueSeverity))
-                        .ForMember(d => d.HideOccurrenceCount, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).HideOccurrenceCount))
-                        ;
-                });
-                var mapper2 = mappingConfiguration.CreateMapper();
                 var hiddenErrors = new List<DtoHiddenError>();
                 foreach (var loggedError in unfilteredErrors)
                 {
                     var occurrences = new List<DateTime>() { loggedError.StartTimeStamp }.Concat(loggedError.FurtherOccurrences).ToList();
+                    var hiddenError = new DtoHiddenError()
+                    {
+                        Id = loggedError.Id,
+                        Severity = possibleIssues.GetIssueByKey(loggedError.IssueKey).IssueSeverity,
+                        Headline = loggedError.Headline,
+                        IssueKey = loggedError.IssueKey,
+                        OccurrenceCount = occurrences.Count,
+                        Vin = loggedError.Vin,
+                        Message = loggedError.Message,
+                        HideOccurrenceCount = possibleIssues.GetIssueByKey(loggedError.IssueKey).HideOccurrenceCount,
+                    };
                     if (occurrences.Count
                         < possibleIssues.GetIssueByKey(loggedError.IssueKey).ShowErrorAfterOccurrences)
                     {
-                        var hiddenError = mapper2.Map<DtoHiddenError>(loggedError);
                         hiddenError.HideReason = LoggedErrorHideReason.NotEnoughOccurrences;
-                        hiddenErrors.Add(hiddenError);
                     }
                     else if(loggedError.DismissedAt > occurrences.Max())
                     {
-                        var hiddenError = mapper2.Map<DtoHiddenError>(loggedError);
                         hiddenError.HideReason = LoggedErrorHideReason.Dismissed;
-                        hiddenErrors.Add(hiddenError);
+                        
                     }
+                    hiddenErrors.Add(hiddenError);
                 }
                 return Fin<List<DtoHiddenError>>.Succ(hiddenErrors);
             },

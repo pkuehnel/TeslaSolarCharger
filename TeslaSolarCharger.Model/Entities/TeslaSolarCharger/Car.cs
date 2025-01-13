@@ -47,13 +47,13 @@ public class Car
     public bool IncludeTrackingRelevantFields { get; set; }
     public bool IsAvailableInTeslaAccount { get; set; }
 
-    public string? WakeUpCalls { get; set; }
-    public string? VehicleDataCalls { get; set; }
-    public string? VehicleCalls { get; set; }
-    public string? ChargeStartCalls { get; set; }
-    public string? ChargeStopCalls { get; set; }
-    public string? SetChargingAmpsCall { get; set; }
-    public string? OtherCommandCalls { get; set; }
+    public List<DateTime> WakeUpCalls { get; set; } = new();
+    public List<DateTime> VehicleDataCalls { get; set; } = new();
+    public List<DateTime> VehicleCalls { get; set; } = new();
+    public List<DateTime> ChargeStartCalls { get; set; } = new();
+    public List<DateTime> ChargeStopCalls { get; set; } = new();
+    public List<DateTime> SetChargingAmpsCall { get; set; } = new();
+    public List<DateTime> OtherCommandCalls { get; set; } = new();
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
     public List<CarValueLog> CarValueLogs { get; set; } = new List<CarValueLog>();

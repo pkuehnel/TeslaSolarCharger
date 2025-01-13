@@ -9,26 +9,26 @@ using TeslaSolarCharger.Services.Services.Modbus;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
-using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Services.Services.Mqtt;
 
 public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
     ITeslaSolarChargerContext context,
-    IMapperConfigurationFactory mapperConfigurationFactory,
     IMqttClientHandlingService mqttClientHandlingService) : IMqttConfigurationService
 {
     public async Task<List<DtoMqttConfiguration>> GetMqttConfigurationsByPredicate(Expression<Func<MqttConfiguration, bool>> predicate)
     {
         logger.LogTrace("{method}({predicate})", nameof(GetMqttConfigurationsByPredicate), predicate);
-        var mapper = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<MqttConfiguration, DtoMqttConfiguration>()
-                ;
-        });
         var resultConfigurations = await context.MqttConfigurations
             .Where(predicate)
-            .ProjectTo<DtoMqttConfiguration>(mapper)
+            .Select(e => new DtoMqttConfiguration()
+            {
+                Id = e.Id,
+                Host = e.Host,
+                Port = e.Port,
+                Username = e.Username,
+                Password = e.Password,
+            })
             .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
     }
@@ -43,19 +43,20 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
     public async Task<int> SaveConfiguration(DtoMqttConfiguration dtoData)
     {
         logger.LogTrace("{method}({@dtoData})", nameof(SaveConfiguration), dtoData);
-        var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<DtoMqttConfiguration, MqttConfiguration>()
-                ;
-        });
         if (dtoData.Id != default)
         {
             mqttClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port, dtoData.Username);
             RemoveMqttClientsByConfigurationId(dtoData.Id);
         }
 
-        var mapper = mapperConfiguration.CreateMapper();
-        var dbData = mapper.Map<MqttConfiguration>(dtoData);
+        var dbData = new MqttConfiguration()
+        {
+            Id = dtoData.Id,
+            Host = dtoData.Host,
+            Port = dtoData.Port,
+            Username = dtoData.Username,
+            Password = dtoData.Password,
+        };
         if (dbData.Id == default)
         {
             context.MqttConfigurations.Add(dbData);
@@ -85,14 +86,21 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
     public async Task<List<DtoMqttResultConfiguration>> GetMqttResultConfigurationsByPredicate(Expression<Func<MqttResultConfiguration, bool>> predicate)
     {
         logger.LogTrace("{method}({predicate})", nameof(GetMqttResultConfigurationsByPredicate), predicate);
-        var mapper = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<MqttResultConfiguration, DtoMqttResultConfiguration>()
-                ;
-        });
         var resultConfigurations = await context.MqttResultConfigurations
             .Where(predicate)
-            .ProjectTo<DtoMqttResultConfiguration>(mapper)
+            .Select(e => new DtoMqttResultConfiguration()
+            {
+                Id = e.Id,
+                CorrectionFactor = e.CorrectionFactor,
+                UsedFor = e.UsedFor,
+                Operator = e.Operator,
+                NodePattern = e.NodePattern,
+                XmlAttributeHeaderName = e.XmlAttributeHeaderName,
+                XmlAttributeHeaderValue = e.XmlAttributeHeaderValue,
+                XmlAttributeValueName = e.XmlAttributeValueName,
+                Topic = e.Topic,
+                NodePatternType = e.NodePatternType,
+            })
             .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
     }
@@ -107,14 +115,20 @@ public class MqttConfigurationService(ILogger<MqttConfigurationService> logger,
     public async Task<int> SaveResultConfiguration(int parentId, DtoMqttResultConfiguration dtoData)
     {
         logger.LogTrace("{method}({@dtoData})", nameof(SaveResultConfiguration), dtoData);
-        var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
+        var dbData = new MqttResultConfiguration
         {
-            cfg.CreateMap<DtoMqttResultConfiguration, MqttResultConfiguration>()
-                ;
-        });
-        var mapper = mapperConfiguration.CreateMapper();
-        var dbData = mapper.Map<MqttResultConfiguration>(dtoData);
-        dbData.MqttConfigurationId = parentId;
+            Id = dtoData.Id,
+            CorrectionFactor = dtoData.CorrectionFactor,
+            UsedFor = dtoData.UsedFor,
+            Operator = dtoData.Operator,
+            NodePattern = dtoData.NodePattern,
+            XmlAttributeHeaderName = dtoData.XmlAttributeHeaderName,
+            XmlAttributeHeaderValue = dtoData.XmlAttributeHeaderValue,
+            XmlAttributeValueName = dtoData.XmlAttributeValueName,
+            Topic = dtoData.Topic,
+            NodePatternType = dtoData.NodePatternType,
+            MqttConfigurationId = parentId,
+        };
         if (dbData.Id == default)
         {
             context.MqttResultConfigurations.Add(dbData);

@@ -6,27 +6,29 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
-using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 
 public class ModbusValueConfigurationService (
     ILogger<ModbusValueConfigurationService> logger,
     ITeslaSolarChargerContext context,
-    IMapperConfigurationFactory mapperConfigurationFactory,
     IModbusClientHandlingService modbusClientHandlingService) : IModbusValueConfigurationService
 {
     public async Task<List<DtoModbusConfiguration>> GetModbusConfigurationByPredicate(Expression<Func<ModbusConfiguration, bool>> predicate)
     {
         logger.LogTrace("{method}({predicate})", nameof(GetModbusConfigurationByPredicate), predicate);
-        var mapper = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<ModbusConfiguration, DtoModbusConfiguration>()
-                ;
-        });
         var resultConfigurations = await context.ModbusConfigurations
             .Where(predicate)
-            .ProjectTo<DtoModbusConfiguration>(mapper)
+            .Select(c => new DtoModbusConfiguration()
+            {
+                Id = c.Id,
+                UnitIdentifier = c.UnitIdentifier,
+                Host = c.Host,
+                Port = c.Port,
+                Endianess = c.Endianess,
+                ConnectDelayMilliseconds = c.ConnectDelayMilliseconds,
+                ReadTimeoutMilliseconds = c.ReadTimeoutMilliseconds
+            })
             .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
     }
@@ -42,14 +44,21 @@ public class ModbusValueConfigurationService (
         Expression<Func<ModbusResultConfiguration, bool>> predicate)
     {
         logger.LogTrace("{method}({predicate})", nameof(GetModbusResultConfigurationsByPredicate), predicate);
-        var mapper = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<ModbusResultConfiguration, DtoModbusValueResultConfiguration>()
-                ;
-        });
         var resultConfigurations = await context.ModbusResultConfigurations
             .Where(predicate)
-            .ProjectTo<DtoModbusValueResultConfiguration>(mapper)
+            .Select(e => new DtoModbusValueResultConfiguration()
+            {
+                Id = e.Id,
+                CorrectionFactor = e.CorrectionFactor,
+                UsedFor = e.UsedFor,
+                Operator = e.Operator,
+                RegisterType = e.RegisterType,
+                ValueType = e.ValueType,
+                Address = e.Address,
+                Length = e.Length,
+                BitStartIndex = e.BitStartIndex,
+                InvertedByModbusResultConfigurationId = e.InvertedByModbusResultConfigurationId,
+            })
             .ToListAsync().ConfigureAwait(false);
         return resultConfigurations;
     }
@@ -64,14 +73,20 @@ public class ModbusValueConfigurationService (
     public async Task<int> SaveModbusResultConfiguration(int parentId, DtoModbusValueResultConfiguration dtoData)
     {
         logger.LogTrace("{method}({parentId}, {@dtoData})", nameof(SaveModbusResultConfiguration), parentId, dtoData);
-        var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
+        var dbData = new ModbusResultConfiguration()
         {
-            cfg.CreateMap<DtoModbusValueResultConfiguration, ModbusResultConfiguration>()
-                ;
-        });
-
-        var mapper = mapperConfiguration.CreateMapper();
-        var dbData = mapper.Map<ModbusResultConfiguration>(dtoData);
+            Id = dtoData.Id,
+            CorrectionFactor = dtoData.CorrectionFactor,
+            UsedFor = dtoData.UsedFor,
+            Operator = dtoData.Operator,
+            RegisterType = dtoData.RegisterType,
+            ValueType = dtoData.ValueType,
+            Address = dtoData.Address,
+            Length = dtoData.Length,
+            BitStartIndex = dtoData.BitStartIndex,
+            ModbusConfigurationId = parentId,
+            InvertedByModbusResultConfigurationId = dtoData.InvertedByModbusResultConfigurationId,
+        };
         dbData.ModbusConfigurationId = parentId;
         var trackedData = context.ChangeTracker.Entries<ModbusResultConfiguration>()
             .FirstOrDefault(e => e.Entity.Id == dbData.Id);
@@ -116,11 +131,6 @@ public class ModbusValueConfigurationService (
     public async Task<int> SaveModbusConfiguration(DtoModbusConfiguration dtoData)
     {
         logger.LogTrace("{method}({@dtoData})", nameof(SaveModbusConfiguration), dtoData);
-        var mapperConfiguration = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<DtoModbusConfiguration, ModbusConfiguration>()
-                ;
-        });
         if (dtoData.Id != default)
         {
             modbusClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port);
@@ -130,8 +140,16 @@ public class ModbusValueConfigurationService (
             modbusClientHandlingService.RemoveClient(hostPortCombination.Host, hostPortCombination.Port);
         }
 
-        var mapper = mapperConfiguration.CreateMapper();
-        var dbData = mapper.Map<ModbusConfiguration>(dtoData);
+        var dbData = new ModbusConfiguration()
+        {
+            Id = dtoData.Id,
+            UnitIdentifier = dtoData.UnitIdentifier ?? 0,
+            Host = dtoData.Host,
+            Port = dtoData.Port,
+            Endianess = dtoData.Endianess,
+            ConnectDelayMilliseconds = dtoData.ConnectDelayMilliseconds,
+            ReadTimeoutMilliseconds = dtoData.ReadTimeoutMilliseconds
+        };
         if (dbData.Id == default)
         {
             context.ModbusConfigurations.Add(dbData);
