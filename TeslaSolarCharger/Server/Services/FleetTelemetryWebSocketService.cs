@@ -48,7 +48,7 @@ public class FleetTelemetryWebSocketService(
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured)
                         && (c.IsFleetTelemetryHardwareIncompatible == false))
-            .Select(c => new { c.Vin, UseFleetTelemetryForLocationData = c.IncludeTrackingRelevantFields, })
+            .Select(c => new { c.Vin, IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields, })
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
         foreach (var car in cars)
@@ -93,7 +93,7 @@ public class FleetTelemetryWebSocketService(
                 Clients.Remove(existingClient);
             }
 
-            ConnectToFleetTelemetryApi(car.Vin, car.UseFleetTelemetryForLocationData);
+            ConnectToFleetTelemetryApi(car.Vin, car.IncludeTrackingRelevantFields);
         }
     }
 
@@ -115,7 +115,7 @@ public class FleetTelemetryWebSocketService(
         }
     }
 
-    private async Task ConnectToFleetTelemetryApi(string vin, bool useFleetTelemetryForLocationData)
+    private async Task ConnectToFleetTelemetryApi(string vin, bool includeTrackingRelevantFields)
     {
         logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);
         var currentDate = dateTimeProvider.UtcNow();
@@ -130,7 +130,7 @@ public class FleetTelemetryWebSocketService(
             throw new InvalidOperationException("No Decryption key found.");
         }
         var url = configurationWrapper.FleetTelemetryApiUrl() +
-                  $"vin={vin}&forceReconfiguration=false&includeTrackingRelevantFields={useFleetTelemetryForLocationData}&encryptionKey={Uri.EscapeDataString(decryptionKey)}";
+                  $"vin={vin}&forceReconfiguration=false&includeTrackingRelevantFields={includeTrackingRelevantFields}&encryptionKey={Uri.EscapeDataString(decryptionKey)}";
         var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
         if(authToken == default)
         {
