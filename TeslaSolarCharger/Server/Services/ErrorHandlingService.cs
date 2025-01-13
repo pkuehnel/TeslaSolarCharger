@@ -87,13 +87,13 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                         < possibleIssues.GetIssueByKey(loggedError.IssueKey).ShowErrorAfterOccurrences)
                     {
                         hiddenError.HideReason = LoggedErrorHideReason.NotEnoughOccurrences;
+                        hiddenErrors.Add(hiddenError);
                     }
                     else if(loggedError.DismissedAt > occurrences.Max())
                     {
                         hiddenError.HideReason = LoggedErrorHideReason.Dismissed;
-                        
+                        hiddenErrors.Add(hiddenError);
                     }
-                    hiddenErrors.Add(hiddenError);
                 }
                 return Fin<List<DtoHiddenError>>.Succ(hiddenErrors);
             },
