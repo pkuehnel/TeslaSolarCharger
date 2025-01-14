@@ -107,7 +107,7 @@ public class TeslaFleetApiService(
             logger.LogDebug("Should start charging with 0 amp. Skipping charge start.");
             return;
         }
-        await WakeUpCarIfNeeded(carId, carState).ConfigureAwait(false);
+        await WakeUpCarIfNeeded(carId).ConfigureAwait(false);
 
         var vin = GetVinByCarId(carId);
         await SetAmp(carId, startAmp).ConfigureAwait(false);
@@ -165,7 +165,7 @@ public class TeslaFleetApiService(
         var inMemoryCar = settings.Cars.First(c => c.Id == carId);
         try
         {
-            await WakeUpCarIfNeeded(carId, inMemoryCar.State).ConfigureAwait(false);
+            await WakeUpCarIfNeeded(carId).ConfigureAwait(false);
             var amps = 7;
             var commandData = $"{{\"charging_amps\":{amps}}}";
             var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps).ConfigureAwait(false);
@@ -211,48 +211,11 @@ public class TeslaFleetApiService(
             }
             try
             {
-                var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest).ConfigureAwait(false);
-                var vehicleResult = vehicle?.Response;
-                logger.LogTrace("Got vehicle {@vehicle}", vehicle);
-                if (vehicleResult == default)
-                {
-                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while getting vehicle info for car {car.Vin}",
-                                               $"Could not deserialize vehicle: {JsonConvert.SerializeObject(vehicle)}", issueKeys.GetVehicle, car.Vin, null).ConfigureAwait(false);
-                    logger.LogError("Could not deserialize vehicle for car {carId}: {@vehicle}", carId, vehicle);
-                    continue;
-                }
-                await errorHandlingService.HandleErrorResolved(issueKeys.GetVehicle, car.Vin);
-                var vehicleState = vehicleResult.State;
-                if (configurationWrapper.GetVehicleDataFromTesla())
-                {
-                    var carStateLog = new CarValueLog()
-                    {
-                        CarId = car.Id,
-                        Timestamp = dateTimeProvider.UtcNow(),
-                        Source = CarValueSource.FleetApi,
-                        Type = CarValueType.AsleepOrOffline,
-                    };
-                    if (vehicleState == "asleep")
-                    {
-                        carStateLog.BooleanValue = true;
-                        car.State = CarStateEnum.Asleep;
-                    }
-                    else if (vehicleState == "offline")
-                    {
-                        carStateLog.BooleanValue = true;
-                        car.State = CarStateEnum.Offline;
-                    }
-                    else
-                    {
-                        carStateLog.BooleanValue = false;
-                    }
-                    teslaSolarChargerContext.CarValueLogs.Add(carStateLog);
-                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-                }
+                await RefreshVehicleOnlineState(car).ConfigureAwait(false);
 
-                if (vehicleState is "asleep" or "offline")
+                if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
                 {
-                    logger.LogDebug("Do not call current vehicle data as car is {state}", vehicleState);
+                    logger.LogDebug("Do not call current vehicle data as car is {state}", car.State);
                     continue;
                 }
             }
@@ -419,6 +382,51 @@ public class TeslaFleetApiService(
                     $"Error getting vehicle data: {ex.Message} {ex.StackTrace}", issueKeys.GetVehicleData, car.Vin, ex.StackTrace).ConfigureAwait(false);
             }
         }
+    }
+
+    private async Task RefreshVehicleOnlineState(DtoCar car)
+    {
+        logger.LogTrace("{method}({carId})", nameof(RefreshVehicleOnlineState), car.Id);
+        var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest).ConfigureAwait(false);
+        var vehicleResult = vehicle?.Response;
+        logger.LogTrace("Got vehicle {@vehicle}", vehicle);
+        if (vehicleResult == default)
+        {
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error while getting vehicle info for car {car.Vin}",
+                $"Could not deserialize vehicle: {JsonConvert.SerializeObject(vehicle)}", issueKeys.GetVehicle, car.Vin, null).ConfigureAwait(false);
+            logger.LogError("Could not deserialize vehicle for car {carId}: {@vehicle}", car.Id, vehicle);
+            return;
+        }
+        await errorHandlingService.HandleErrorResolved(issueKeys.GetVehicle, car.Vin);
+        var vehicleState = vehicleResult.State;
+        if (configurationWrapper.GetVehicleDataFromTesla())
+        {
+            var carStateLog = new CarValueLog()
+            {
+                CarId = car.Id,
+                Timestamp = dateTimeProvider.UtcNow(),
+                Source = CarValueSource.FleetApi,
+                Type = CarValueType.AsleepOrOffline,
+            };
+            if (vehicleState == "asleep")
+            {
+                carStateLog.BooleanValue = true;
+                car.State = CarStateEnum.Asleep;
+            }
+            else if (vehicleState == "offline")
+            {
+                carStateLog.BooleanValue = true;
+                car.State = CarStateEnum.Offline;
+            }
+            else
+            {
+                carStateLog.BooleanValue = false;
+            }
+            teslaSolarChargerContext.CarValueLogs.Add(carStateLog);
+            await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        return;
     }
 
     public async Task RefreshFleetApiTokenIfNeeded()
@@ -785,15 +793,16 @@ public class TeslaFleetApiService(
         return chargingStartTime;
     }
 
-    private async Task WakeUpCarIfNeeded(int carId, CarStateEnum? carState)
+    private async Task WakeUpCarIfNeeded(int carId)
     {
-        if (carState is not (CarStateEnum.Asleep or CarStateEnum.Offline or CarStateEnum.Suspended))
+        logger.LogTrace("{method}({carId})", nameof(WakeUpCarIfNeeded), carId);
+        var car = settings.Cars.First(c => c.Id == carId);
+        await RefreshVehicleOnlineState(car);
+        if (car.State is not (CarStateEnum.Asleep or CarStateEnum.Offline or CarStateEnum.Suspended))
         {
             return;
         }
-
-        var car = settings.Cars.First(c => c.Id == carId);
-        switch (carState)
+        switch (car.State)
         {
             case CarStateEnum.Offline or CarStateEnum.Asleep:
                 logger.LogInformation("Wakeup car.");
