@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System.Net;
-using System.Net.Http.Headers;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -489,50 +488,52 @@ public class TeslaFleetApiService(
         var latestChangeToDetect = currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds());
         if (fleetTelemetryWebSocketService.IsClientConnected(car.Vin))
         {
-            var latestDetectedChange = latestRefresh.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds());
-            logger.LogTrace("Fleet Telemetry Client connected, check fleet telemetry changes and do not request Fleet API after commands.");
-            if (latestRefresh > latestChangeToDetect)
-            {
-                logger.LogDebug("Do not refresh data for car {vin} as latest refresh is {latestRefresh} and earliest change to detect is {earliestChangeToDetect}", car.Vin, latestRefresh, latestChangeToDetect);
-            }
-            else
-            {
-                if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsCharging, latestDetectedChange, latestChangeToDetect).ConfigureAwait(false))
-                {
-                    logger.LogDebug("Send a request as Fleet Telemetry detected a change in is charging state.");
-                    return true;
-                }
+            logger.LogDebug("Do not refresh via Fleet API as Fleet Telemetry is enabled");
+            return false;
+            //var latestDetectedChange = latestRefresh.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds());
+            //logger.LogTrace("Fleet Telemetry Client connected, check fleet telemetry changes and do not request Fleet API after commands.");
+            //if (latestRefresh > latestChangeToDetect)
+            //{
+            //    logger.LogDebug("Do not refresh data for car {vin} as latest refresh is {latestRefresh} and earliest change to detect is {earliestChangeToDetect}", car.Vin, latestRefresh, latestChangeToDetect);
+            //}
+            //else
+            //{
+            //    if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsCharging, latestDetectedChange, latestChangeToDetect).ConfigureAwait(false))
+            //    {
+            //        logger.LogDebug("Send a request as Fleet Telemetry detected a change in is charging state.");
+            //        return true;
+            //    }
 
-                if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsPluggedIn, latestDetectedChange, latestChangeToDetect).ConfigureAwait(false))
-                {
-                    logger.LogDebug("Send a request as Fleet Telemetry detected a change in plugged in state.");
-                    return true;
-                }
+            //    if (await FleetTelemetryValueChanged(car.Id, CarValueType.IsPluggedIn, latestDetectedChange, latestChangeToDetect).ConfigureAwait(false))
+            //    {
+            //        logger.LogDebug("Send a request as Fleet Telemetry detected a change in plugged in state.");
+            //        return true;
+            //    }
 
-                var latestValueBeforeLatestRefresh = await GetLatestValueBeforeTimeStamp(car.Id, CarValueType.ChargeAmps, latestDetectedChange).ConfigureAwait(false);
-                var latestValue = await GetLatestValueBeforeTimeStamp(car.Id, CarValueType.ChargeAmps, latestChangeToDetect).ConfigureAwait(false);
-                if (latestValue != default && latestValueBeforeLatestRefresh == default)
-                {
-                    logger.LogDebug("Send a request as the first charging amps value was detected.");
-                    return true;
-                }
+            //    var latestValueBeforeLatestRefresh = await GetLatestValueBeforeTimeStamp(car.Id, CarValueType.ChargeAmps, latestDetectedChange).ConfigureAwait(false);
+            //    var latestValue = await GetLatestValueBeforeTimeStamp(car.Id, CarValueType.ChargeAmps, latestChangeToDetect).ConfigureAwait(false);
+            //    if (latestValue != default && latestValueBeforeLatestRefresh == default)
+            //    {
+            //        logger.LogDebug("Send a request as the first charging amps value was detected.");
+            //        return true;
+            //    }
 
-                if (latestValue != default && latestValueBeforeLatestRefresh != default)
-                {
-                    List<CarValueLogTimeStampAndValues> values =
-                    [
-                        latestValue,
-                        latestValueBeforeLatestRefresh,
-                    ];
-                    if (AnyValueChanged(values) && values.Any(v => v.DoubleValue == 0))
-                    {
-                        logger.LogDebug("Send a request as Fleet Telemetry detected at least one 0 value in charging amps.");
-                        return true;
-                    }
-                }
-                
-            }
-            
+            //    if (latestValue != default && latestValueBeforeLatestRefresh != default)
+            //    {
+            //        List<CarValueLogTimeStampAndValues> values =
+            //        [
+            //            latestValue,
+            //            latestValueBeforeLatestRefresh,
+            //        ];
+            //        if (AnyValueChanged(values) && values.Any(v => v.DoubleValue == 0))
+            //        {
+            //            logger.LogDebug("Send a request as Fleet Telemetry detected at least one 0 value in charging amps.");
+            //            return true;
+            //        }
+            //    }
+
+            //}
+
         }
         else
         {
