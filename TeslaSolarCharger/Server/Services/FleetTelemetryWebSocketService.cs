@@ -295,7 +295,7 @@ public class FleetTelemetryWebSocketService(
                                 propertyName = nameof(DtoCar.SocLimit);
                                 break;
                             case CarValueType.ChargerPhases:
-                                propertyName = nameof(DtoCar.SocLimit);
+                                propertyName = nameof(DtoCar.ChargerPhases);
                                 break;
                             case CarValueType.ChargerVoltage:
                                 propertyName = nameof(DtoCar.ChargerVoltage);
