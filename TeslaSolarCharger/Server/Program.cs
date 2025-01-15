@@ -106,20 +106,14 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var teslaSolarChargerContext = webApplication.Services.GetRequiredService<ITeslaSolarChargerContext>();
         await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
-        var socLimit = await teslaSolarChargerContext.Cars.Where(c => c.Id == 3).Select(c => c.SocLimit).FirstOrDefaultAsync();
-        logger.LogCritical("Soc Limit line 110: {socLimit}", socLimit);
-
         var teslaFleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
         await teslaFleetApiService.RefreshFleetApiRequestsAreAllowed();
-        logger.LogCritical("Soc Limit line 114: {socLimit}", socLimit);
 
         var shouldRetry = false;
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
         var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
         var teslaMateContextWrapper = webApplication.Services.GetRequiredService<ITeslaMateDbContextWrapper>();
         var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
-        logger.LogCritical("Soc Limit line 121: {socLimit}", socLimit);
-
         if (teslaMateContext != default)
         {
             try
@@ -148,7 +142,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 }
             }
         }
-        logger.LogCritical("Soc Limit line 151: {socLimit}", socLimit);
 
 
 
@@ -160,7 +153,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         LogContext.PushProperty("Version", version);
 
         await backendApiService.PostInstallationInformation("Startup").ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 163: {socLimit}", socLimit);
 
         var coreService = webApplication.Services.GetRequiredService<ICoreService>();
         await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
@@ -173,7 +165,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var chargingCostService = webApplication.Services.GetRequiredService<IChargingCostService>();
         await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 176: {socLimit}", socLimit);
 
 
 
@@ -181,22 +172,15 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var telegramService = webApplication.Services.GetRequiredService<ITelegramService>();
         await telegramService.SendMessage("Error messages via Telegram enabled. Note: Error and error resolved messages are only sent every five minutes.").ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 184: {socLimit}", socLimit);
 
         var configJsonService = webApplication.Services.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 188: {socLimit}", socLimit);
-
         await configJsonService.AddBleBaseUrlToAllCars().ConfigureAwait(false);
         //This needs to be done after converting old cars to new cars as IDs might change
         await chargingCostService.ConvertToNewChargingProcessStructure().ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 193: {socLimit}", socLimit);
         await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 195: {socLimit}", socLimit);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 197: {socLimit}", socLimit);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 199: {socLimit}", socLimit);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
         if (!configurationWrapper.ShouldUseFakeSolarValues())
@@ -205,18 +189,13 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             try
             {
                 await carConfigurationService.AddAllMissingCarsFromTeslaAccount().ConfigureAwait(false);
-                logger.LogCritical("Soc Limit line 208: {socLimit}", socLimit);
-
             }
             catch
             {
                 // Ignore this error as this could result in never taking the first token
             }
         }
-        logger.LogCritical("Soc Limit line 216: {socLimit}", socLimit);
         await configJsonService.AddCarsToSettings().ConfigureAwait(false);
-        logger.LogCritical("Soc Limit line 218: {socLimit}", socLimit);
-        logger.LogCritical("Soc Limit dto {socLimit}", settings.Cars.Where(c => c.Id == 3).Select(c => c.SocLimit).FirstOrDefault());
 
 
         var pvValueService = webApplication.Services.GetRequiredService<IPvValueService>();
