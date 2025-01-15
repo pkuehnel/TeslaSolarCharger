@@ -235,6 +235,41 @@ public class BackendApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    public async Task<bool> IsBaseAppLicensed(bool useCache)
+    {
+        logger.LogTrace("{method}({useCache})", nameof(IsBaseAppLicensed), useCache);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
+        var isLicensed = await SendRequestToBackend<DtoValue<bool>>(HttpMethod.Get, token.AccessToken, "Client/IsBaseAppLicensed", null);
+        if (isLicensed.HasError)
+        {
+            logger.LogError("Could not check if base app is licensed. {errorMessage}", isLicensed.ErrorMessage);
+            return false;
+        }
+        return isLicensed.Data?.Value ?? false;
+    }
+
+    public async Task<bool> IsFleetApiLicensed(string vin, bool useCache)
+    {
+        logger.LogTrace("{method}({vin}, {useCache})", nameof(IsFleetApiLicensed), vin, useCache);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
+        var isLicensed = await SendRequestToBackend<DtoValue<bool>>(HttpMethod.Get, token.AccessToken, $"Client/IsFleetApiLicensed?vin={vin}", null);
+        if (isLicensed.HasError)
+        {
+            logger.LogError("Could not check if fleet api is licensed for car {vin}. {errorMessage}", vin, isLicensed.ErrorMessage);
+            return false;
+        }
+        return isLicensed.Data?.Value ?? false;
+    }
+
+    /// <summary>
+    /// Send a request to the backend API
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="httpMethod">HTTP Method to use</param>
+    /// <param name="accessToken">Backend API Token</param>
+    /// <param name="requestUrlPart">Request URL, e.g. User/Login</param>
+    /// <param name="content">Body to send to backend</param>
+    /// <returns></returns>
     public async Task<Dtos.Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
     {
         var request = new HttpRequestMessage();
@@ -321,4 +356,5 @@ public class BackendApiService(
         }
 
     }
+
 }
