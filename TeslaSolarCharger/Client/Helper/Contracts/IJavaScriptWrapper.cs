@@ -1,4 +1,4 @@
-﻿namespace Lysando.LabStorageV2.UiHelper.Wrapper.Contracts;
+﻿namespace TeslaSolarCharger.Client.Helper.Contracts;
 
 public interface IJavaScriptWrapper
 {

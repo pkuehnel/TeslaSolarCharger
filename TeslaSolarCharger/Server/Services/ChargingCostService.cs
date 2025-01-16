@@ -8,14 +8,12 @@ using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.MappingExtensions;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class ChargingCostService(
     ILogger<ChargingCostService> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    IMapperConfigurationFactory mapperConfigurationFactory,
     IServiceProvider serviceProvider,
     IConstants constants,
     ITscOnlyChargingCostService tscOnlyChargingCostService,
@@ -237,13 +235,17 @@ public class ChargingCostService(
     public async Task<List<DtoChargePrice>> GetChargePrices()
     {
         logger.LogTrace("{method}()", nameof(GetChargePrices));
-        var mapper = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<ChargePrice, DtoChargePrice>()
-                .ForMember(d => d.Id, opt => opt.MapFrom(c => c.Id));
-        });
         var chargePrices = await teslaSolarChargerContext.ChargePrices
-            .ProjectTo<DtoChargePrice>(mapper)
+            .Select(e => new DtoChargePrice()
+            {
+                Id = e.Id,
+                ValidSince = e.ValidSince,
+                EnergyProvider = e.EnergyProvider,
+                EnergyProviderConfiguration = e.EnergyProviderConfiguration,
+                SolarPrice = e.SolarPrice,
+                GridPrice = e.GridPrice,
+                AddSpotPriceToGridPrice = e.AddSpotPriceToGridPrice,
+            })
             .ToListAsync().ConfigureAwait(false);
         return chargePrices.OrderBy(p => p.ValidSince).ToList();
     }
@@ -288,15 +290,19 @@ public class ChargingCostService(
     public async Task<DtoChargePrice> GetChargePriceById(int id)
     {
         logger.LogTrace("{method}({id})", nameof(GetChargePriceById), id);
-        var mapper = mapperConfigurationFactory.Create(cfg =>
-        {
-            cfg.CreateMap<ChargePrice, DtoChargePrice>()
-                .ForMember(d => d.SpotPriceSurcharge, opt => opt.MapFrom(c => c.SpotPriceCorrectionFactor * 100))
-                ;
-        });
         var chargePrices = await teslaSolarChargerContext.ChargePrices
             .Where(c => c.Id == id)
-            .ProjectTo<DtoChargePrice>(mapper)
+            .Select(e => new DtoChargePrice()
+            {
+                Id = e.Id,
+                ValidSince = e.ValidSince,
+                EnergyProvider = e.EnergyProvider,
+                EnergyProviderConfiguration = e.EnergyProviderConfiguration,
+                SolarPrice = e.SolarPrice,
+                GridPrice = e.GridPrice,
+                AddSpotPriceToGridPrice = e.AddSpotPriceToGridPrice,
+                SpotPriceSurcharge = e.SpotPriceCorrectionFactor * 100,
+            })
             .FirstAsync().ConfigureAwait(false);
         switch (chargePrices.EnergyProvider)
         {

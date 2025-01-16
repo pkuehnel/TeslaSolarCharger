@@ -15,4 +15,5 @@ public interface IBleService
     Task CheckBleApiVersionCompatibilities();
     Task<DtoBleCommandResult> GetChargeState(string vin);
     Task<DtoBleCommandResult> GetDriveState(string vin);
+    Task<string?> CheckBleApiVersionCompatibility(string? host);
 }

@@ -16,7 +16,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<HandledCharge> HandledCharges { get; set; } = null!;
     public DbSet<PowerDistribution> PowerDistributions { get; set; } = null!;
     public DbSet<SpotPrice> SpotPrices { get; set; } = null!;
-    public DbSet<TeslaToken> TeslaTokens { get; set; } = null!;
+    public DbSet<BackendToken> BackendTokens { get; set; } = null!;
     public DbSet<TscConfiguration> TscConfigurations { get; set; } = null!;
     public DbSet<Car> Cars { get; set; } = null!;
     public DbSet<RestValueConfiguration> RestValueConfigurations { get; set; } = null!;
@@ -121,6 +121,41 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
         modelBuilder.Entity<LoggedError>()
             .Property(e => e.FurtherOccurrences)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.WakeUpCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.VehicleDataCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.VehicleCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.ChargeStartCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.ChargeStopCalls)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.SetChargingAmpsCall)
+            .HasConversion(timeListToString)
+            .Metadata.SetValueComparer(valueComparer);
+
+        modelBuilder.Entity<Car>()
+            .Property(e => e.OtherCommandCalls)
             .HasConversion(timeListToString)
             .Metadata.SetValueComparer(valueComparer);
 

@@ -2,8 +2,8 @@
 @using System.Reflection
 @using System.ComponentModel.DataAnnotations
 @using System.ComponentModel
-@using Lysando.LabStorageV2.UiHelper.Wrapper.Contracts
 @using MudExtensions
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
@@ -246,7 +246,6 @@
                                       @bind-Value="Value"
                                       For="@(For)"
                                       Required="@IsRequired"
-                                      HelperText="Leave empty if you want to keep the existing password."
                                       InputType="InputType.Password"
                                       Label="@LabelName"
                                       Disabled="IsDisabled"

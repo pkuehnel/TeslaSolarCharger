@@ -3,14 +3,11 @@
 public interface IIssueKeys
 {
     string VersionNotUpToDate { get; }
-    string FleetApiTokenNotRequested { get; }
     string FleetApiTokenUnauthorized { get; }
+    string NoFleetApiToken { get; }
     string FleetApiTokenMissingScopes { get; }
     string FleetApiTokenRequestExpired { get; }
-    string FleetApiTokenNotReceived { get; }
-    string FleetApiTokenExpired { get; }
     string FleetApiTokenRefreshNonSuccessStatusCode { get; }
-    string FleetApiTokenNoApiRequestsAllowed { get; }
     string CrashedOnStartup { get; }
     string RestartNeeded { get; }
     string GetVehicle { get; }
@@ -19,9 +16,16 @@ public interface IIssueKeys
     string FleetApiNonSuccessStatusCode { get; }
     string FleetApiNonSuccessResult { get; }
     string UnsignedCommand { get; }
-    string CarRateLimited { get; }
     string BleCommandNoSuccess { get; }
     string SolarValuesNotAvailable { get; }
     string UsingFleetApiAsBleFallback { get; }
     string BleVersionCompatibility { get; }
+    string NoBackendApiToken { get; }
+    string BackendTokenUnauthorized { get; }
+    string FleetApiTokenExpired { get; }
+    string Solar4CarSideFleetApiNonSuccessStatusCode { get; }
+    string BackendTokenNotRefreshable { get; }
+    string BaseAppNotLicensed { get; }
+    string FleetApiNotLicensed { get; }
+    string FleetTelemetryNotConnected { get; }
 }

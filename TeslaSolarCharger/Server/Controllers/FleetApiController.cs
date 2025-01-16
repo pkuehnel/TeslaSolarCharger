@@ -20,27 +20,10 @@ public class FleetApiController(
     : ApiBaseController
 {
     [HttpGet]
-    public Task<DtoValue<FleetApiTokenState>> FleetApiTokenState() => fleetApiService.GetFleetApiTokenState();
+    public Task<DtoValue<TokenState>> FleetApiTokenState() => fleetApiService.GetFleetApiTokenState();
 
     [HttpGet]
     public Task<DtoValue<string>> GetOauthUrl(string locale, string baseUrl) => backendApiService.StartTeslaOAuth(locale, baseUrl);
-
-    [HttpGet]
-    public Task RefreshFleetApiToken() => fleetApiService.GetNewTokenFromBackend();
-
-    /// <summary>
-    /// Note: This endpoint is only available in development environment
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Is thrown when not beeing in dev Mode</exception>
-    [HttpGet]
-    public Task SetChargeLimit(int carId, int percent)
-    {
-        if (!configurationWrapper.IsDevelopmentEnvironment())
-        {
-            throw new InvalidOperationException("This method is only available in development environment");
-        }
-        return teslaService.SetChargeLimit(carId, percent);
-    }
 
     [HttpGet]
     public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => fleetApiService.TestFleetApiAccess(carId);

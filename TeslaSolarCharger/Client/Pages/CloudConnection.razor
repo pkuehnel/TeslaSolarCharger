@@ -1,0 +1,93 @@
+﻿@page "/cloudconnection"
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
+
+@inject IHttpClientHelper HttpClientHelper
+@inject IBackendApiTokenCheckService IBackendApiTokenCheckService
+
+<h1>Backend Connection</h1>
+
+<MudAlert Severity="Severity.Warning"
+NoIcon="true"
+ShowCloseIcon="false">
+    <div>You need to create a <MudLink Href="https://solar4car.com/Account/Register?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions">Solar4Car.com account</MudLink> and create at least a base app subscription before you can proceed.</div>
+</MudAlert>
+
+@if (BackendTokenState == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else
+{
+    <MudAlert Severity="@Severity"
+              NoIcon="true"
+              ShowCloseIcon="false">
+        <div>@TokenStateText</div>
+    </MudAlert>
+}
+
+<GenericInput For="() => _backendLogin.UserName"></GenericInput>
+<GenericInput For="() => _backendLogin.Password"
+IsPassword="true"></GenericInput>
+
+@if (LoginErrorMessage != default)
+{
+    <div class="validation-message">
+        Login failed: @LoginErrorMessage
+    </div>
+}
+
+<RightAlignedButtonComponent OnButtonClicked="Submit"
+ButtonText="Login">
+</RightAlignedButtonComponent>
+
+
+@code {
+    private readonly DtoBackendLogin _backendLogin = new DtoBackendLogin();
+
+    private string? LoginErrorMessage { get; set; }
+
+    private TokenState? BackendTokenState { get; set; }
+
+    private Severity Severity => BackendTokenState == TokenState.UpToDate ? Severity.Success : Severity.Error;
+
+    private string TokenStateText
+    {
+        get
+        {
+            switch (BackendTokenState)
+            {
+                case TokenState.MissingPrecondition:
+                    return "Could not check Token state. Is your TSC connected to the internet?";
+                case TokenState.NotAvailable:
+                    return "No Token found, login below to get a Backend Token";
+                case TokenState.Unauthorized:
+                    return "Your Backend Token is unauthorized. Reasons could be a changed Solar4Car.com password, a second TSC running with the same installation ID (displayed on the home page at the very bottom) or your TSC was not running for quite a while.";
+                case TokenState.MissingScopes:
+                    return "Your Backend Token has missing scopes";
+                case TokenState.Expired:
+                    return "Your Backend Token is expired, which means it could not be refreshed automatically. Reasons could be a changed Solar4Car.com password, a second TSC running with the same installation ID (displayed on the home page at the very bottom) or your TSC was not running for quite a while.";
+                case TokenState.UpToDate:
+                    return "You are connected to the backend, everything is working as expected.";
+                case null:
+                    return "Could not check Token state. Is your TSC connected to the internet?";
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        BackendTokenState = await IBackendApiTokenCheckService.GetTokenState(false);
+    }
+
+    private async Task Submit()
+    {
+        var result = await HttpClientHelper.SendPostRequestAsync("api/BackendApi/LoginToBackend", _backendLogin);
+        LoginErrorMessage = result.HasError ? result.ErrorMessage : default;
+    }
+}

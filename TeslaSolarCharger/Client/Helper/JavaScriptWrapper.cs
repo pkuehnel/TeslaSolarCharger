@@ -1,5 +1,5 @@
-﻿using Lysando.LabStorageV2.UiHelper.Wrapper.Contracts;
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
+using TeslaSolarCharger.Client.Helper.Contracts;
 
 namespace Lysando.LabStorageV2.UiHelper.Wrapper;
 

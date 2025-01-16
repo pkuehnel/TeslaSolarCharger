@@ -14,8 +14,7 @@ public interface IConstants
     int MinimumSocDifference { get; }
 
     string InstallationIdKey { get; }
-    string FleetApiTokenRequested { get; }
-    string TokenMissingScopes { get; }
+    string FleetApiTokenMissingScopes { get; }
     string NextAllowedTeslaApiRequest { get; }
     string BackupZipBaseFileName { get; }
     TimeSpan MaxTokenRequestWaitTime { get; }
@@ -34,11 +33,15 @@ public interface IConstants
     string ChargeStartRequestUrl { get; }
     string ChargeStopRequestUrl { get; }
     string SetChargingAmpsRequestUrl { get; }
-    string SetScheduledChargingRequestUrl { get; }
     string SetChargeLimitRequestUrl { get; }
-    string SetSentryModeRequestUrl { get; }
-    string FlashHeadlightsRequestUrl { get; }
     string WakeUpRequestUrl { get; }
     string VehicleRequestUrl { get; }
     string VehicleDataRequestUrl { get; }
+    string TeslaTokenEncryptionKeyKey { get; }
+    string FleetApiTokenUnauthorizedKey { get; }
+    string FleetApiTokenExpirationTimeKey { get; }
+    string FleetApiTokenStateKey { get; }
+    string BackendTokenStateKey { get; }
+    string IsBaseAppLicensedKey { get; }
+    string IsFleetApiLicensedKey { get; }
 }

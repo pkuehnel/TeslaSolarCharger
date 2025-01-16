@@ -9,5 +9,4 @@ public interface ITeslaService
     Task WakeUpCar(int carId);
     Task StopCharging(int carId);
     Task SetAmp(int carId, int amps);
-    Task SetChargeLimit(int carId, int limitSoC);
 }
