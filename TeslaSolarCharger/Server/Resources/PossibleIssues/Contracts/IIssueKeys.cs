@@ -25,4 +25,7 @@ public interface IIssueKeys
     string FleetApiTokenExpired { get; }
     string Solar4CarSideFleetApiNonSuccessStatusCode { get; }
     string BackendTokenNotRefreshable { get; }
+    string BaseAppNotLicensed { get; }
+    string FleetApiNotLicensed { get; }
+    string FleetTelemetryNotConnected { get; }
 }

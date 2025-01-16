@@ -206,6 +206,33 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = true,
             }
         },
+        { issueKeys.BaseAppNotLicensed, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
+        { issueKeys.FleetApiNotLicensed, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
+        { issueKeys.FleetTelemetryNotConnected, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
     };
 
     public DtoIssue GetIssueByKey(string key)

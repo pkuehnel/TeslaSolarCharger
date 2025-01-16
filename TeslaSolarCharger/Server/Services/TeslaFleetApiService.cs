@@ -827,6 +827,16 @@ public class TeslaFleetApiService(
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {intParam})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, intParam);
+        if (!await backendApiService.IsBaseAppLicensed(true))
+        {
+            logger.LogError("Can not send request to car as base app is not licensed");
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), "Base App not licensed",
+                "Can not send commands to car as app is not licensed",
+                issueKeys.BaseAppNotLicensed, null, null).ConfigureAwait(false);
+            return null;
+        }
+        await errorHandlingService.HandleErrorResolved(issueKeys.BaseAppNotLicensed, null);
+
         var car = settings.Cars.First(c => c.Vin == vin);
         if (fleetApiRequest.BleCompatible)
         {
@@ -897,18 +907,38 @@ public class TeslaFleetApiService(
                     await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Error sending BLE command for car {car.Vin}",
                         $"Sending command to tesla via BLE did not succeed. Fleet API URL would be: {fleetApiRequest.RequestUrl}. BLE Response: {result.ResultMessage}",
                         issueKeys.BleCommandNoSuccess + fleetApiRequest.RequestUrl, car.Vin, null).ConfigureAwait(false);
-                    car.LastNonSuccessBleCall = dateTimeProvider.UtcNow();
-                    var fallbackUntilLocalTimeString =
-                        (car.LastNonSuccessBleCall + configurationWrapper.BleUsageStopAfterError()).Value.ToLocalTime();
-                    logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback until {fallbackUntil}.", fallbackUntilLocalTimeString);
-                    await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
-                        $"Using Fleet API as BLE fallback for car {car.Vin}",
-                        $"As the BLE command did not succeed, Fleet API is used as fallback until {fallbackUntilLocalTimeString}. Note: During this time it is not possible to retry BLE automatically you need to go to the car settings page and test BLE access manually.",
-                        issueKeys.UsingFleetApiAsBleFallback, car.Vin, null).ConfigureAwait(false);
+                    if (await backendApiService.IsFleetApiLicensed(car.Vin, true))
+                    {
+                        car.LastNonSuccessBleCall = dateTimeProvider.UtcNow();
+                        var fallbackUntilLocalTimeString =
+                            (car.LastNonSuccessBleCall + configurationWrapper.BleUsageStopAfterError()).Value.ToLocalTime();
+                        logger.LogWarning("Command BLE enabled but command did not succeed, using Fleet API as fallback until {fallbackUntil}.", fallbackUntilLocalTimeString);
+                        await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi),
+                            $"Using Fleet API as BLE fallback for car {car.Vin}",
+                            $"As the BLE command did not succeed, Fleet API is used as fallback until {fallbackUntilLocalTimeString}. Note: During this time it is not possible to retry BLE automatically you need to go to the car settings page and test BLE access manually.",
+                            issueKeys.UsingFleetApiAsBleFallback, car.Vin, null).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        //Do not use Fleet API if not licensed
+                        logger.LogInformation("Do not use Fleet API as Fallback as Fleet API is not licensed for car {vin}", car.Vin);
+                        return null;
+                    }
+                    
                 }
                 
             }
         }
+
+        if (!await backendApiService.IsFleetApiLicensed(car.Vin, true))
+        {
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
+                "Can not send Fleet API commands to car as Fleet API is not licensed",
+                issueKeys.FleetApiNotLicensed, car.Vin, null).ConfigureAwait(false);
+            logger.LogError("Can not send Fleet API commands to car {vin} as car is not licensed", car.Vin);
+            return null;
+        }
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
 
         var accessToken = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
         if (accessToken == default)

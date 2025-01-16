@@ -27,5 +27,8 @@ public class IssueKeys : IIssueKeys
     public string BackendTokenUnauthorized => "BackendTokenUnauthorized";
     public string BackendTokenNotRefreshable => "BackendTokenNotRefreshable";
     public string FleetApiTokenExpired => "FleetApiTokenExpired";
+    public string BaseAppNotLicensed => "BaseAppNotLicensed";
+    public string FleetApiNotLicensed => "FleetApiNotLicensed";
+    public string FleetTelemetryNotConnected => "FleetTelemetryNotConnected";
 }
 

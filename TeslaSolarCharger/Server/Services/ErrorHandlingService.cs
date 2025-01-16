@@ -26,7 +26,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     ISettings settings,
     ITokenHelper tokenHelper,
     IPossibleIssues possibleIssues,
-    IConstants constants) : IErrorHandlingService
+    IConstants constants,
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService) : IErrorHandlingService
 {
     public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
     {
@@ -137,6 +138,10 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
             "Update TSC to the latest version.", settings.IsNewVersionAvailable).ConfigureAwait(false);
 
+        //ToDO: fix next line, currently not working due to cyclic reference
+        //await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, "Base App not licensed",
+        //    "Can not send commands to car as app is not licensed", !await backendApiService.IsBaseAppLicensed(true));
+
         //ToDo: if last check there was no token related issue, only detect token related issues every x minutes as creates high load in backend
         await DetectTokenStateIssues(activeErrors);
         foreach (var car in settings.CarsToManage)
@@ -152,6 +157,20 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             {
                 //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
                 await HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
+            }
+            var fleetTelemetryEnabled = await context.Cars
+                .Where(c => c.Vin == car.Vin)
+                .Select(c => c.UseFleetTelemetry)
+                .FirstOrDefaultAsync();
+                
+            if (fleetTelemetryEnabled && (!fleetTelemetryWebSocketService.IsClientConnected(car.Vin)))
+            {
+                await HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet Telemetry not connected for car {car.Vin}",
+                    "Fleet telemetry is not connected. Please check the connection.", issueKeys.FleetTelemetryNotConnected, car.Vin, null);
+            }
+            else
+            {
+                await HandleErrorResolved(issueKeys.FleetTelemetryNotConnected, car.Vin);
             }
 
             if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
