@@ -930,7 +930,7 @@ public class TeslaFleetApiService(
             }
         }
 
-        if (!await backendApiService.IsFleetApiLicensed(car.Vin, true))
+        if (fleetApiRequest.BleCompatible && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
         {
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
                 "Can not send Fleet API commands to car as Fleet API is not licensed",
