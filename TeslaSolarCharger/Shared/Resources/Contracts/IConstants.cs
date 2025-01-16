@@ -42,4 +42,6 @@ public interface IConstants
     string FleetApiTokenExpirationTimeKey { get; }
     string FleetApiTokenStateKey { get; }
     string BackendTokenStateKey { get; }
+    string IsBaseAppLicensedKey { get; }
+    string IsFleetApiLicensedKey { get; }
 }

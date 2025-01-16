@@ -238,6 +238,13 @@ public class BackendApiService(
     public async Task<bool> IsBaseAppLicensed(bool useCache)
     {
         logger.LogTrace("{method}({useCache})", nameof(IsBaseAppLicensed), useCache);
+
+        if (useCache && memoryCache.TryGetValue(constants.IsBaseAppLicensedKey, out bool cachedIsLicense))
+        {
+            logger.LogTrace("Returning is base app licensed from cache: {isLicensed}", cachedIsLicense);
+            return cachedIsLicense;
+        }
+
         var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
         var isLicensed = await SendRequestToBackend<DtoValue<bool>>(HttpMethod.Get, token.AccessToken, "Client/IsBaseAppLicensed", null);
         if (isLicensed.HasError)
@@ -245,12 +252,22 @@ public class BackendApiService(
             logger.LogError("Could not check if base app is licensed. {errorMessage}", isLicensed.ErrorMessage);
             return false;
         }
-        return isLicensed.Data?.Value ?? false;
+        var isBaseAppLicensed = isLicensed.Data?.Value ?? false;
+        memoryCache.Set(constants.IsBaseAppLicensedKey, isBaseAppLicensed, GetLicenseCacheEntryOptions());
+        return isBaseAppLicensed;
     }
 
     public async Task<bool> IsFleetApiLicensed(string vin, bool useCache)
     {
         logger.LogTrace("{method}({vin}, {useCache})", nameof(IsFleetApiLicensed), vin, useCache);
+        var memoryCacheKey = $"{constants.IsFleetApiLicensedKey}{vin}";
+
+        if (useCache && memoryCache.TryGetValue(memoryCacheKey, out bool cachedIsLicense))
+        {
+            logger.LogTrace("Returning is base app licensed from cache: {isLicensed}", cachedIsLicense);
+            return cachedIsLicense;
+        }
+
         var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
         var isLicensed = await SendRequestToBackend<DtoValue<bool>>(HttpMethod.Get, token.AccessToken, $"Client/IsFleetApiLicensed?vin={vin}", null);
         if (isLicensed.HasError)
@@ -258,7 +275,10 @@ public class BackendApiService(
             logger.LogError("Could not check if fleet api is licensed for car {vin}. {errorMessage}", vin, isLicensed.ErrorMessage);
             return false;
         }
-        return isLicensed.Data?.Value ?? false;
+        var isFleetApiLicensed = isLicensed.Data?.Value ?? false;
+        memoryCache.Set(memoryCacheKey, isFleetApiLicensed, GetLicenseCacheEntryOptions());
+
+        return isFleetApiLicensed;
     }
 
     /// <summary>
@@ -355,6 +375,17 @@ public class BackendApiService(
             );
         }
 
+    }
+
+
+    private MemoryCacheEntryOptions GetLicenseCacheEntryOptions()
+    {
+        logger.LogTrace("{method}()", nameof(GetLicenseCacheEntryOptions));
+        var validFor = TimeSpan.FromHours(6);
+        return new()
+        {
+            AbsoluteExpirationRelativeToNow = validFor,
+        };
     }
 
 }

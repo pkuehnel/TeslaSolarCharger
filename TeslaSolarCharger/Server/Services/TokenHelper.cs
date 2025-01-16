@@ -212,6 +212,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
 
     private MemoryCacheEntryOptions GetCacheEntryOptions(DateTimeOffset? validUntil)
     {
+        logger.LogTrace("{method}({validUntil})", nameof(GetCacheEntryOptions), validUntil);
         var validFor = TimeSpan.FromMinutes(15);
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         if (validUntil != default && (validUntil < (currentDate + validFor)) && (validUntil > currentDate))
