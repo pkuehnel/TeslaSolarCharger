@@ -494,7 +494,11 @@ public class TeslaFleetApiService(
         logger.LogDebug("Latest car refresh: {latestRefresh}", latestRefresh);
         var currentUtcDate = dateTimeProvider.UtcNow();
         var latestChangeToDetect = currentUtcDate.AddSeconds(-configurationWrapper.CarRefreshAfterCommandSeconds());
-        if (fleetTelemetryWebSocketService.IsClientConnected(car.Vin))
+        var fleetTelemetryEnabled = await teslaSolarChargerContext.Cars
+            .Where(c => c.Vin == car.Vin)
+            .Select(c => c.UseFleetTelemetry)
+            .FirstOrDefaultAsync();
+        if (fleetTelemetryEnabled)
         {
             logger.LogDebug("Do not refresh via Fleet API as Fleet Telemetry is enabled");
             return false;
