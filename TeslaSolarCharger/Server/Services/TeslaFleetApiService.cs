@@ -844,6 +844,7 @@ public class TeslaFleetApiService(
             var isCarBleEnabled = car.UseBle;
             if (isCarBleEnabled)
             {
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
                 //When changing this condition also change it in ErrorHandlingService.DetectErrors as there the error will be set to resolved.
                 if ((car.LastNonSuccessBleCall != default) && (car.LastNonSuccessBleCall.Value >
                     (dateTimeProvider.UtcNow() - configurationWrapper.BleUsageStopAfterError())))
@@ -932,9 +933,13 @@ public class TeslaFleetApiService(
 
         if (fleetApiRequest.BleCompatible && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
         {
-            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
-                "Can not send Fleet API commands to car as Fleet API is not licensed",
-                issueKeys.FleetApiNotLicensed, car.Vin, null).ConfigureAwait(false);
+            if (!car.UseBle)
+            {
+                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
+                    "Can not send Fleet API commands to car as Fleet API is not licensed",
+                    issueKeys.FleetApiNotLicensed, car.Vin, null).ConfigureAwait(false);
+            }
+            
             logger.LogError("Can not send Fleet API commands to car {vin} as car is not licensed", car.Vin);
             return null;
         }
