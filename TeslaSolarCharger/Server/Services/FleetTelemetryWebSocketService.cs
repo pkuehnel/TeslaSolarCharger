@@ -303,6 +303,18 @@ public class FleetTelemetryWebSocketService(
                             case CarValueType.VehicleName:
                                 propertyName = nameof(DtoCar.Name);
                                 break;
+                            case CarValueType.AsleepOrOffline:
+                                if (carValueLog.BooleanValue == true
+                                    && (settingsCar.State != CarStateEnum.Asleep && settingsCar.State != CarStateEnum.Offline))
+                                {
+                                    settingsCar.State = CarStateEnum.Offline;
+                                }
+                                else if (carValueLog.BooleanValue == false
+                                    && (settingsCar.State == CarStateEnum.Asleep || settingsCar.State == CarStateEnum.Offline))
+                                {
+                                    settingsCar.State = CarStateEnum.Online;
+                                }
+                                break;
                         }
 
                         if (propertyName != default)
