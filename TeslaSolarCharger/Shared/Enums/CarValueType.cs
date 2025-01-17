@@ -24,5 +24,6 @@ public enum CarValueType
     Gear,
     Speed,
     VehicleName,
+    IsOnline,
     Unknown = 9999,
 }
