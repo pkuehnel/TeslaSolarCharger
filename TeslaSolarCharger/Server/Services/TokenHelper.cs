@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
+using System.IdentityModel.Tokens.Jwt;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -8,6 +9,7 @@ using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using System.Net;
+using System.Security.Claims;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -58,6 +60,33 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         var state = await GetUncachedBackendTokenState().ConfigureAwait(false);
         memoryCache.Set(constants.BackendTokenStateKey, state.TokenState, GetCacheEntryOptions(state.ExpiresAtUtc));
         return state.TokenState;
+    }
+
+    public async Task<string?> GetTokenUserName()
+    {
+        logger.LogTrace("{method}()", nameof(GetTokenUserName));
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            return null;
+        }
+        var tokenHandler = new JwtSecurityTokenHandler();
+        if (tokenHandler.ReadToken(token.AccessToken) is not JwtSecurityToken jwtToken)
+        {
+            return null;
+        }
+
+        // Extract claims
+        var claims = jwtToken.Claims;
+
+        foreach (var claim in claims)
+        {
+            if(claim.Type == ClaimTypes.Name)
+            {
+                return claim.Value;
+            }
+        }
+        return null;
     }
 
     public async Task<DateTimeOffset?> GetBackendTokenExpirationDate()

@@ -1,59 +1,103 @@
 ﻿@page "/cloudconnection"
+@using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Enums
 
 @inject IHttpClientHelper HttpClientHelper
-@inject IBackendApiTokenCheckService IBackendApiTokenCheckService
+@inject ICloudConnectionCheckService CloudConnectionCheckService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
 
-<h1>Backend Connection</h1>
+<h1>Cloud Connection</h1>
 
-<MudAlert Severity="Severity.Warning"
-NoIcon="true"
-ShowCloseIcon="false">
-    <div>You need to create a <MudLink Href="https://solar4car.com/Account/Register?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions">Solar4Car.com account</MudLink> and create at least a base app subscription before you can proceed.</div>
-</MudAlert>
-
+<h3>Solar4Car Backend connection</h3>
 @if (BackendTokenState == default)
 {
     <PlaceholderComponent></PlaceholderComponent>
 }
 else
 {
-    <MudAlert Severity="@Severity"
-              NoIcon="true"
-              ShowCloseIcon="false">
-        <div>@TokenStateText</div>
+    <MudAlert Severity="@BackendTokenAlertSeverity"
+    NoIcon="true"
+    ShowCloseIcon="false">
+        <div>@BackendTokenStateText</div>
     </MudAlert>
 }
 
-<GenericInput For="() => _backendLogin.UserName"></GenericInput>
-<GenericInput For="() => _backendLogin.Password"
-IsPassword="true"></GenericInput>
-
-@if (LoginErrorMessage != default)
+@if (BackendTokenState == TokenState.UpToDate)
 {
-    <div class="validation-message">
-        Login failed: @LoginErrorMessage
+    @if (LoggedInUserName == default)
+    {
+        <div>Logged in as unknown user</div>
+    }
+    else
+    {
+        <div>Logged in as @LoggedInUserName</div>
+    }
+    <RightAlignedButtonComponent OnButtonClicked="FakeLogout"
+    ButtonText="ChangeUser" />
+}
+else
+{
+    <GenericInput For="() => _backendLogin.EMail"></GenericInput>
+    <GenericInput For="() => _backendLogin.Password"
+    IsPassword="true"></GenericInput>
+    @if (LoginErrorMessage != default)
+    {
+        <div class="validation-message">
+            Login failed: @LoginErrorMessage
+        </div>
+    }
+    <RightAlignedButtonComponent OnButtonClicked="Submit"
+    ButtonText="Login"
+    IsLoading="@_backendLoginIsLoading">
+    </RightAlignedButtonComponent>
+    <div class="d-flex">
+        <MudSpacer></MudSpacer><MudLink Href="https://solar4car.com/Account/Register?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions" Target="_blank">Register</MudLink>
     </div>
+
 }
 
-<RightAlignedButtonComponent OnButtonClicked="Submit"
-ButtonText="Login">
-</RightAlignedButtonComponent>
+<h3>Tesla Fleet API Connection</h3>
+@if (FleetApiTokenState == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else
+{
+    <MudAlert Severity="@FleetApiTokenAlertSeverity"
+    NoIcon="true"
+    ShowCloseIcon="false">
+        <div>@FleetApiTokenStateText</div>
+    </MudAlert>
+    <div class="mt-2">
+        <RightAlignedButtonComponent OnButtonClicked="GenerateFleetApiToken"
+        ButtonText="Request Token"
+        IsLoading="@_fleetApiLoginIsLoading"
+        IsDisabled="@(BackendTokenState != TokenState.UpToDate)">
+        </RightAlignedButtonComponent>
+    </div>
+}
 
 
 @code {
     private readonly DtoBackendLogin _backendLogin = new DtoBackendLogin();
 
+    private bool _backendLoginIsLoading;
+    private bool _fleetApiLoginIsLoading;
+
     private string? LoginErrorMessage { get; set; }
 
     private TokenState? BackendTokenState { get; set; }
+    private TokenState? FleetApiTokenState { get; set; }
+    private string? LoggedInUserName { get; set; }
 
-    private Severity Severity => BackendTokenState == TokenState.UpToDate ? Severity.Success : Severity.Error;
+    private Severity BackendTokenAlertSeverity => BackendTokenState == TokenState.UpToDate ? Severity.Success : Severity.Error;
+    private Severity FleetApiTokenAlertSeverity => FleetApiTokenState == TokenState.UpToDate ? Severity.Success : Severity.Error;
 
-    private string TokenStateText
+    private string BackendTokenStateText
     {
         get
         {
@@ -79,15 +123,90 @@ ButtonText="Login">
         }
     }
 
+    private string FleetApiTokenStateText
+    {
+        get
+        {
+            switch (FleetApiTokenState)
+            {
+                case TokenState.MissingPrecondition:
+                    return "You are not logged in in the Solar4car.com account. When requesting a new Tesla Token there will also be a request to log in to your Solar4car.com account.";
+                case TokenState.NotAvailable:
+                    return "You did not request a Fleet API Token, yet. Request a new token, allow access to all scopes and enable mobile access in your car.";
+                case TokenState.Unauthorized:
+                    return "Your token is unauthorized. Request a new token, allow access to all scopes and enable mobile access in your car.";
+                case TokenState.MissingScopes:
+                    return "Your token has missing scopes. Request a new Token and allow all scopes (only required scopes are requested).";
+                case TokenState.Expired:
+                    return "Your Fleet API token is expired. Request a new Token and allow all scopes (only required scopes are requested).";
+                case TokenState.UpToDate:
+                    return "Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:";
+                case null:
+                    return "Could not check Token state. Is your TSC connected to the internet?";
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        BackendTokenState = await IBackendApiTokenCheckService.GetTokenState(false);
+        await RefreshData();
+
+    }
+
+    private async Task RefreshData()
+    {
+        BackendTokenState = await CloudConnectionCheckService.GetBackendTokenState(false);
+        LoggedInUserName = await CloudConnectionCheckService.GetBackendTokenUserName();
+        FleetApiTokenState = await CloudConnectionCheckService.GetFleetApiTokenState(false);
     }
 
     private async Task Submit()
     {
+        _backendLoginIsLoading = true;
         var result = await HttpClientHelper.SendPostRequestAsync("api/BackendApi/LoginToBackend", _backendLogin);
-        LoginErrorMessage = result.HasError ? result.ErrorMessage : default;
+        if (result.HasError)
+        {
+            LoginErrorMessage = result.ErrorMessage;
+            Snackbar.Add("Login did not succeed", Severity.Error);
+        }
+        else
+        {
+            LoginErrorMessage = default;
+            Snackbar.Add("Login succeeded", Severity.Success);
+        }
+
+        await RefreshData();
+        _backendLoginIsLoading = false;
+        StateHasChanged();
     }
+
+    private void FakeLogout()
+    {
+        BackendTokenState = TokenState.NotAvailable;
+        LoggedInUserName = default;
+        StateHasChanged();
+    }
+
+    private async Task GenerateFleetApiToken()
+    {
+        _fleetApiLoginIsLoading = true;
+        var locale = CultureInfo.CurrentCulture.ToString();
+        if (BackendTokenState != TokenState.UpToDate)
+        {
+            Snackbar.Add("You need to be logged in to Solar4Car.com to generate a Fleet API Token", Severity.Error);
+            return;
+        }
+        var baseUrl = NavigationManager.BaseUri;
+        var url = await CloudConnectionCheckService.GetTeslaLoginUrl(locale, baseUrl + "cloudconnection");
+        if (string.IsNullOrEmpty(url))
+        {
+            Snackbar.Add("Could not generate Tesla Login URL", Severity.Error);
+            return;
+        }
+        NavigationManager.NavigateTo(url);
+    }
+
 }

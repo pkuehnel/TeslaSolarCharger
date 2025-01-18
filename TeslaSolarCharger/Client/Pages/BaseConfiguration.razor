@@ -9,7 +9,7 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IHttpClientHelper HttpClientHelper
-@inject IBackendApiTokenCheckService BackendApiTokenCheckService
+@inject ICloudConnectionCheckService CloudConnectionCheckService
 @inject IDialogHelper DialogHelper
 
 
@@ -33,44 +33,6 @@ else
                 <InputNumber id="maxCombinedCurrent" @bind-Value="_dtoBaseConfiguration.MaxCombinedCurrent" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
-        <hr />
-        <h3>Tesla Fleet API:</h3>
-        @switch (_fleetApiTokenState)
-        {
-            case TokenState.MissingPrecondition:
-                <div>
-                    You are not logged in in the Solar4car.com account. When requesting a new Tesla Token there will also be a request to log in to your Solar4car.com account.
-                </div>
-                break;
-            case TokenState.NotAvailable:
-                <div>
-                    You did not request a Fleet API Token, yet. Request a new token, allow access to all scopes and enable mobile access in your car.
-                </div>
-                break;
-            case TokenState.Unauthorized:
-                <div>
-                    Your token is unauthorized. Request a new token, allow access to all scopes and enable mobile access in your car.
-                </div>
-                break;
-            case TokenState.MissingScopes:
-                <div>
-                    Your token has missing scopes. Request a new Token and allow all scopes (only required scopes are requested).
-                </div>
-                break;
-            case TokenState.Expired:
-                <div>
-                    Your Fleet API token is expired. Request a new Token and allow all scopes (only required scopes are requested).
-                </div>
-                break;
-            case TokenState.UpToDate:
-                <div>
-                    Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:
-                </div>
-                break;
-        }
-        <div>
-            <button class="btn btn-primary" disabled="@_tokenGenerationButtonDisabled" type="button" @onclick="GenerateFleetApiToken">Request Token</button>
-        </div>
         <hr />
         <h3>TeslaMate:</h3>
         <GenericInput T="bool"
@@ -275,21 +237,12 @@ else
 @code {
     private DtoBaseConfiguration? _dtoBaseConfiguration;
 
-    private TokenState? _fleetApiTokenState;
-
-    private bool _tokenGenerationButtonDisabled;
-
     private bool _telegramSettingsChanged;
     private bool _submitLoading;
 
     protected override async Task OnInitializedAsync()
     {
         _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
-        var value = await HttpClient.GetFromJsonAsync<DtoValue<TokenState>>("api/FleetApi/FleetApiTokenState").ConfigureAwait(false);
-        if (value != null)
-        {
-            _fleetApiTokenState = value.Value;
-        }
     }
 
     private async Task HandleValidSubmit()
@@ -307,26 +260,6 @@ else
         }
 
         _submitLoading = false;
-    }
-
-    private async Task GenerateFleetApiToken()
-    {
-        _tokenGenerationButtonDisabled = true;
-        var locale = CultureInfo.CurrentCulture.ToString();
-        var baseUrl = NavigationManager.BaseUri;
-        var backendTokenState = await BackendApiTokenCheckService.GetTokenState(false);
-        if (backendTokenState != TokenState.UpToDate)
-        {
-            Snackbar.Add("You need to be logged in to Solar4Car.com to generate a Fleet API Token", Severity.Error);
-            NavigationManager.NavigateTo("cloudconnection");
-            return;
-        }
-
-        var url = await HttpClient.GetFromJsonAsync<DtoValue<string>>($"api/FleetApi/GetOauthUrl?locale={Uri.EscapeDataString(locale)}&baseUrl={Uri.EscapeDataString(baseUrl)}").ConfigureAwait(false);
-        if (url?.Value != null)
-        {
-            NavigationManager.NavigateTo(url.Value);
-        }
     }
 
 

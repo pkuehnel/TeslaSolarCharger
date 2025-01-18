@@ -1133,9 +1133,9 @@ public class TeslaFleetApiService(
         
     }
 
-    public async Task<DtoValue<TokenState>> GetFleetApiTokenState()
+    public async Task<DtoValue<TokenState>> GetFleetApiTokenState(bool useCache)
     {
-        var tokenState = await tokenHelper.GetFleetApiTokenState(false);
+        var tokenState = await tokenHelper.GetFleetApiTokenState(useCache);
         return new(tokenState);
     }
 

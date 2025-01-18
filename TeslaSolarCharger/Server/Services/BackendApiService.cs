@@ -70,7 +70,7 @@ public class BackendApiService(
     {
         logger.LogTrace("{method}()", nameof(GetToken));
 
-        if (string.IsNullOrEmpty(login.UserName))
+        if (string.IsNullOrEmpty(login.EMail))
         {
             throw new InvalidOperationException("Username is empty");
         }
@@ -84,7 +84,7 @@ public class BackendApiService(
             teslaSolarChargerContext.BackendTokens.Remove(token);
         }
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-        var dtoLogin = new DtoLogin(login.UserName, login.Password, installationId.ToString());
+        var dtoLogin = new DtoLogin(login.EMail, login.Password, installationId.ToString());
         var result = await SendRequestToBackend<DtoAccessToken>(HttpMethod.Post, null, "User/Login", dtoLogin);
         if (result.HasError)
         {
