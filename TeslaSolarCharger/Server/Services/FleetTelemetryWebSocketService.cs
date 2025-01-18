@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;
@@ -270,15 +271,20 @@ public class FleetTelemetryWebSocketService(
                                 propertyName = nameof(DtoCar.PluggedIn);
                                 break;
                             case CarValueType.IsCharging:
-                                if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
+                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, nameof(DtoCar.State)))
                                 {
-                                    logger.LogDebug("Set car state for car {carId} to charging", carId);
-                                    settingsCar.State = CarStateEnum.Charging;
-                                }
-                                else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
-                                {
-                                    logger.LogDebug("Set car state for car {carId} to online", carId);
-                                    settingsCar.State = CarStateEnum.Online;
+                                    if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
+                                    {
+                                        logger.LogDebug("Set car state for car {carId} to charging", carId);
+                                        settingsCar.State = CarStateEnum.Charging;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, nameof(DtoCar.State))] = carValueLog.Timestamp;
+                                    }
+                                    else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
+                                    {
+                                        logger.LogDebug("Set car state for car {carId} to online", carId);
+                                        settingsCar.State = CarStateEnum.Online;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, nameof(DtoCar.State))] = carValueLog.Timestamp;
+                                    }
                                 }
                                 break;
                             case CarValueType.ChargerPilotCurrent:
@@ -306,15 +312,20 @@ public class FleetTelemetryWebSocketService(
                                 propertyName = nameof(DtoCar.Name);
                                 break;
                             case CarValueType.AsleepOrOffline:
-                                if (carValueLog.BooleanValue == true
-                                    && (settingsCar.State != CarStateEnum.Asleep && settingsCar.State != CarStateEnum.Offline))
+                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, nameof(DtoCar.State)))
                                 {
-                                    settingsCar.State = CarStateEnum.Offline;
-                                }
-                                else if (carValueLog.BooleanValue == false
-                                    && (settingsCar.State == CarStateEnum.Asleep || settingsCar.State == CarStateEnum.Offline))
-                                {
-                                    settingsCar.State = CarStateEnum.Online;
+                                    if (carValueLog.BooleanValue == true
+                                        && (settingsCar.State != CarStateEnum.Asleep && settingsCar.State != CarStateEnum.Offline))
+                                    {
+                                        settingsCar.State = CarStateEnum.Offline;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, nameof(DtoCar.State))] = carValueLog.Timestamp;
+                                    }
+                                    else if (carValueLog.BooleanValue == false
+                                             && (settingsCar.State == CarStateEnum.Asleep || settingsCar.State == CarStateEnum.Offline))
+                                    {
+                                        settingsCar.State = CarStateEnum.Online;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, nameof(DtoCar.State))] = carValueLog.Timestamp;
+                                    }
                                 }
                                 break;
                         }
@@ -415,18 +426,9 @@ public class FleetTelemetryWebSocketService(
     {
         logger.LogTrace("{method}({carId}, ***secret***, {propertyName})", nameof(UpdateDtoCarProperty), car.Id, propertyName);
 
-        if (_propertyUpdateTimestamps.TryGetValue((car.Id, propertyName), out var lastUpdate))
+        if (IsCarValueLogTooOld(car, carValueLog, propertyName))
         {
-            // If our stored timestamp is newer or equal, skip
-            if (carValueLog.Timestamp <= lastUpdate)
-            {
-                logger.LogInformation(
-                    "Skipping update for {propertyName} on CarId {carId} " +
-                    "because timestamp {timestamp} is not newer than {lastUpdate}",
-                    propertyName, car.Id, carValueLog.Timestamp, lastUpdate);
-
-                return;
-            }
+            return;
         }
 
         // List of relevant property names
@@ -602,5 +604,24 @@ public class FleetTelemetryWebSocketService(
                 }
             }
         }
+    }
+
+    private bool IsCarValueLogTooOld(DtoCar car, CarValueLog carValueLog, string propertyName)
+    {
+        if (_propertyUpdateTimestamps.TryGetValue((car.Id, propertyName), out var lastUpdate))
+        {
+            // If our stored timestamp is newer or equal, skip
+            if (carValueLog.Timestamp <= lastUpdate)
+            {
+                logger.LogInformation(
+                    "Skipping update for {propertyName} on CarId {carId} " +
+                    "because timestamp {timestamp} is not newer than {lastUpdate}",
+                    propertyName, car.Id, carValueLog.Timestamp, lastUpdate);
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }
