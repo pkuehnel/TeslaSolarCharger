@@ -8,4 +8,5 @@ public interface ITokenHelper
     Task<TokenState> GetBackendTokenState(bool useCache);
     Task<DateTimeOffset?> GetFleetApiTokenExpirationDate(bool useCache);
     Task<DateTimeOffset?> GetBackendTokenExpirationDate();
+    Task<string?> GetTokenUserName();
 }

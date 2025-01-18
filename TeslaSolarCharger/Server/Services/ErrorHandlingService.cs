@@ -437,22 +437,22 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         var backendTokenState = await tokenHelper.GetBackendTokenState(true);
         var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
         await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "No Backen API token",
-            "You are currently not connected to the backend. Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            "You are currently not connected to the backend. Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
             backendTokenState == TokenState.NotAvailable).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.BackendTokenUnauthorized, "Backend Token Unauthorized",
-            "You recently changed your Solar4Car password or did not use TSC for at least 30 days. Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            "You recently changed your Solar4Car password or did not use TSC for at least 30 days. Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
             backendTokenState == TokenState.Unauthorized).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
-            "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
             fleetApiTokenState == TokenState.Unauthorized).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.NoFleetApiToken, "No Fleet API Token available.",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
+            "Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
             fleetApiTokenState == TokenState.NotAvailable).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Fleet API token is expired",
-            "Either you recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            "Either you recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
             fleetApiTokenState == TokenState.Expired).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
+            "Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
             fleetApiTokenState == TokenState.MissingScopes).ConfigureAwait(false);
         
         //Remove all fleet api related issue keys on token error because very likely it is because of the underlaying token issue.

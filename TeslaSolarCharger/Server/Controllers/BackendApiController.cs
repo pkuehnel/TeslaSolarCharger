@@ -14,6 +14,12 @@ public class BackendApiController (IBackendApiService backendApiService, ITokenH
         return new(await tokenHelper.GetBackendTokenState(useCache));
     }
 
+    [HttpGet]
+    public async Task<DtoValue<string?>> GetTokenUserName()
+    {
+        return new(await tokenHelper.GetTokenUserName());
+    }
+
     [HttpPost]
     public Task LoginToBackend(DtoBackendLogin login) => backendApiService.GetToken(login);
 }
