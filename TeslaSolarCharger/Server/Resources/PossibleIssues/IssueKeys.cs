@@ -4,7 +4,9 @@ namespace TeslaSolarCharger.Server.Resources.PossibleIssues;
 
 public class IssueKeys : IIssueKeys
 {
-    public string VersionNotUpToDate => "VersionNotUpToDate";
+    public string NewSoftwareAvailable => "NewSoftwareAvailable";
+    public string NewRecommendedSoftwareAvailable => "NewRecommendedSoftwareAvailable";
+    public string NewRequiredSoftwareAvailable => "NewRequiredSoftwareAvailable";
     public string FleetApiTokenUnauthorized => "FleetApiTokenUnauthorized";
     public string NoFleetApiToken => "NoFleetApiToken";
     public string FleetApiTokenMissingScopes => "FleetApiTokenMissingScopes";

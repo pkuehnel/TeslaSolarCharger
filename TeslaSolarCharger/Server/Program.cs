@@ -106,6 +106,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var teslaSolarChargerContext = webApplication.Services.GetRequiredService<ITeslaSolarChargerContext>();
         await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
+        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
+
+
         var teslaFleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
         await teslaFleetApiService.RefreshFleetApiRequestsAreAllowed();
 
@@ -223,11 +227,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
-        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        
         var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
         await errorHandlingService.HandleErrorResolved(issueKeys.CrashedOnStartup, null)
             .ConfigureAwait(false);
-        await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
     }
     catch (Exception ex)
     {

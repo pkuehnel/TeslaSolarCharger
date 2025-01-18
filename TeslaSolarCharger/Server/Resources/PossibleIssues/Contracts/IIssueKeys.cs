@@ -2,7 +2,9 @@
 
 public interface IIssueKeys
 {
-    string VersionNotUpToDate { get; }
+    string NewSoftwareAvailable { get; }
+    string NewRecommendedSoftwareAvailable { get; }
+    string NewRequiredSoftwareAvailable { get; }
     string FleetApiTokenUnauthorized { get; }
     string NoFleetApiToken { get; }
     string FleetApiTokenMissingScopes { get; }

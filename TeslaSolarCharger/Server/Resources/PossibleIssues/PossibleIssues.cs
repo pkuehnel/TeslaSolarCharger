@@ -9,9 +9,27 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
 {
     private readonly Dictionary<string, DtoIssue> _issues = new()
     {
-        { issueKeys.VersionNotUpToDate, new DtoIssue
+        { issueKeys.NewSoftwareAvailable, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Information,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
+        { issueKeys.NewRecommendedSoftwareAvailable, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Warning,
+                IsTelegramEnabled = false,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
+        { issueKeys.NewRequiredSoftwareAvailable, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
                 IsTelegramEnabled = false,
                 ShowErrorAfterOccurrences = 1,
                 HasPlaceHolderIssueKey = false,
