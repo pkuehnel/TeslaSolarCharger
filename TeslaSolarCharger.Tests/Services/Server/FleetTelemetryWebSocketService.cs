@@ -16,6 +16,35 @@ public class FleetTelemetryWebSocketService : TestBase
     }
 
     [Fact]
+    public void OnlySetsNewerValues()
+    {
+        var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
+        {
+            Timestamp = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            IntValue = 10,
+        };
+        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var car = new DtoCar();
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
+        Assert.Equal(10, car.SoC);
+        var olderValue = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
+        {
+            Timestamp = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            IntValue = 12,
+        };
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, olderValue, nameof(DtoCar.SoC));
+        Assert.Equal(10, car.SoC);
+
+        var newerValue = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
+        {
+            Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            IntValue = 12,
+        };
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, newerValue, nameof(DtoCar.SoC));
+        Assert.Equal(12, car.SoC);
+    }
+
+    [Fact]
     public void CanDeserializeKnownEnumValues()
     {
         var message = "{\"Type\":1,\"DoubleValue\":15.0,\"IntValue\":null,\"StringValue\":null,\"UnknownValue\":null,\"TimeStamp\":\"2024-10-26T09:56:24.9895636+00:00\"}";
