@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
+using System.Configuration;
 using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
@@ -12,6 +13,7 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -28,7 +30,8 @@ public class BackendApiService(
     IIssueKeys issueKeys,
     IPasswordGenerationService passwordGenerationService,
     ITokenHelper tokenHelper,
-    IMemoryCache memoryCache)
+    IMemoryCache memoryCache,
+    ISettings settings)
     : IBackendApiService
 {
     public async Task<DtoValue<string>> StartTeslaOAuth(string locale, string baseUrl)
@@ -104,6 +107,14 @@ public class BackendApiService(
         await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenUnauthorized, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenNotRefreshable, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.NoBackendApiToken, null);
+        memoryCache.Remove(constants.BackendTokenStateKey);
+        memoryCache.Remove(constants.FleetApiTokenStateKey);
+        memoryCache.Remove(constants.IsBaseAppLicensedKey);
+        foreach (var settingsCar in settings.Cars)
+        {
+            memoryCache.Remove(constants.IsFleetApiLicensedKey+settingsCar.Vin);
+        }
+        
     }
 
     public async Task RefreshBackendTokenIfNeeded()
@@ -387,5 +398,4 @@ public class BackendApiService(
             AbsoluteExpirationRelativeToNow = validFor,
         };
     }
-
 }
