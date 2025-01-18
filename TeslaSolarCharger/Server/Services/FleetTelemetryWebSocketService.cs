@@ -4,7 +4,6 @@ using Newtonsoft.Json.Linq;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
-using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos;

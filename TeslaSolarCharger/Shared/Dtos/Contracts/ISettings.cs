@@ -9,7 +9,6 @@ public interface ISettings
     int? HomeBatterySoc { get; set; }
     int? HomeBatteryPower { get; set; }
     bool ControlledACarAtLastCycle { get; set; }
-    bool IsNewVersionAvailable { get; set; }
     DateTimeOffset LastPvValueUpdate { get; set; }
     int? AverageHomeGridVoltage { get; set; }
     bool CrashedOnStartup { get; set; }

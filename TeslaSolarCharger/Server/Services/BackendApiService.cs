@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend.User;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -163,8 +164,7 @@ public class BackendApiService(
         return url;
     }
 
-    public async Task PostInstallationInformation(string reason)
-
+    public async Task<DtoVersionRecommendation> PostInstallationInformation(string reason)
     {
         try
         {
@@ -177,33 +177,34 @@ public class BackendApiService(
             if (tokenState == TokenState.UpToDate)
             {
                 var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
-                var result = await SendRequestToBackend<object>(HttpMethod.Post, token.AccessToken,
+                var result = await SendRequestToBackend<DtoVersionRecommendation>(HttpMethod.Post, token.AccessToken,
                     $"Client/NotifyInstallation?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason={Uri.EscapeDataString(reason)}",
                     null);
                 if (!result.HasError)
                 {
                     logger.LogInformation("Sent installation information to Backend");
-                    return;
+                    return result.Data ?? throw new InvalidOperationException("Could not deserialize Version recommendation");
                 }
 
                 logger.LogWarning("Error while sending installation information to backend. {errorMessage}", result.ErrorMessage);
+                throw new InvalidOperationException(result.ErrorMessage);
             }
-            var noTokenResult = await SendRequestToBackend<object>(HttpMethod.Post, null,
+            var noTokenResult = await SendRequestToBackend<DtoVersionRecommendation>(HttpMethod.Post, null,
                 $"Client/NotifyInstallationAnonymous?version={Uri.EscapeDataString(currentVersion ?? string.Empty)}&infoReason={Uri.EscapeDataString(reason)}&installationId={Uri.EscapeDataString(installationId.ToString())}",
                 null);
             if (!noTokenResult.HasError)
             {
                 logger.LogInformation("Sent installation information to Backend");
-                return;
+                return noTokenResult.Data ?? throw new InvalidOperationException("Could not deserialize Version recommendation");
             }
-
             logger.LogWarning("Error while sending installation information to backend. {errorMessage}", noTokenResult.ErrorMessage);
+            throw new InvalidOperationException(noTokenResult.ErrorMessage);
         }
         catch (Exception e)
         {
             logger.LogError(e, "Could not post installation information");
+            throw;
         }
-
     }
 
     public Task<string?> GetCurrentVersion()

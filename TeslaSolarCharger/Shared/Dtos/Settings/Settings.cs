@@ -4,7 +4,6 @@ namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
 public class Settings : ISettings
 {
-    public bool IsNewVersionAvailable { get; set; }
     public int? InverterPower { get; set; }
     public int? Overage { get; set; }
     public List<DtoCar> CarsToManage => Cars.Where(c => c.ShouldBeManaged == true).OrderBy(c => c.ChargingPriority).ToList();

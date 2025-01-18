@@ -135,9 +135,6 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.SolarValuesNotAvailable, "Solar values are not available",
             $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", solarValuesTooOld).ConfigureAwait(false);
 
-        await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
-            "Update TSC to the latest version.", settings.IsNewVersionAvailable).ConfigureAwait(false);
-
         //ToDO: fix next line, currently not working due to cyclic reference
         //await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, "Base App not licensed",
         //    "Can not send commands to car as app is not licensed", !await backendApiService.IsBaseAppLicensed(true));
