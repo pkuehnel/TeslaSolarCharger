@@ -28,6 +28,8 @@ public class FleetTelemetryWebSocketService(
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
+    private readonly Dictionary<(int CarId, string PropertyName), DateTime> _propertyUpdateTimestamps = new();
+
     private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
 
     public bool IsClientConnected(string vin)
@@ -412,6 +414,21 @@ public class FleetTelemetryWebSocketService(
     internal void UpdateDtoCarProperty(DtoCar car, CarValueLog carValueLog, string propertyName)
     {
         logger.LogTrace("{method}({carId}, ***secret***, {propertyName})", nameof(UpdateDtoCarProperty), car.Id, propertyName);
+
+        if (_propertyUpdateTimestamps.TryGetValue((car.Id, propertyName), out var lastUpdate))
+        {
+            // If our stored timestamp is newer or equal, skip
+            if (carValueLog.Timestamp <= lastUpdate)
+            {
+                logger.LogInformation(
+                    "Skipping update for {propertyName} on CarId {carId} " +
+                    "because timestamp {timestamp} is not newer than {lastUpdate}",
+                    propertyName, car.Id, carValueLog.Timestamp, lastUpdate);
+
+                return;
+            }
+        }
+
         // List of relevant property names
         var relevantPropertyNames = new List<string>
         {
@@ -572,6 +589,7 @@ public class FleetTelemetryWebSocketService(
                     if (convertedValue != null)
                     {
                         dtoProperty.SetValue(car, convertedValue);
+                        _propertyUpdateTimestamps[(car.Id, propertyName)] = carValueLog.Timestamp;
                     }
                     else
                     {
