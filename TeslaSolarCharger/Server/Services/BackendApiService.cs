@@ -105,7 +105,6 @@ public class BackendApiService(
         };
         teslaSolarChargerContext.BackendTokens.Add(token);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenUnauthorized, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenNotRefreshable, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.NoBackendApiToken, null);
         memoryCache.Remove(constants.BackendTokenStateKey);
@@ -145,7 +144,6 @@ public class BackendApiService(
             memoryCache.Remove(constants.BackendTokenStateKey);
             throw new InvalidOperationException($"Could not refresh backend token {result.ErrorMessage}");
         }
-        await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenUnauthorized, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenNotRefreshable, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.NoBackendApiToken, null);
         var newToken = result.Data ?? throw new InvalidDataException("Could not parse new token");

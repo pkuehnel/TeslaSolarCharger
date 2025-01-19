@@ -433,12 +433,9 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
         var backendTokenState = await tokenHelper.GetBackendTokenState(true);
         var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
-        await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "No Backen API token",
+        await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "Backen API Token not up to date",
             "You are currently not connected to the backend. Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
-            backendTokenState == TokenState.NotAvailable).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.BackendTokenUnauthorized, "Backend Token Unauthorized",
-            "You recently changed your Solar4Car password or did not use TSC for at least 30 days. Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
-            backendTokenState == TokenState.Unauthorized).ConfigureAwait(false);
+            backendTokenState != TokenState.UpToDate).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
             "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
             fleetApiTokenState == TokenState.Unauthorized).ConfigureAwait(false);
