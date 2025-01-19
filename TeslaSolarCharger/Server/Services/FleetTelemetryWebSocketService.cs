@@ -28,7 +28,7 @@ public class FleetTelemetryWebSocketService(
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
-    private readonly Dictionary<(int CarId, string PropertyName), DateTime> _propertyUpdateTimestamps = new();
+    private readonly Dictionary<(int CarId, CarValueType carValueType), DateTime> _propertyUpdateTimestamps = new();
 
     private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
 
@@ -270,19 +270,19 @@ public class FleetTelemetryWebSocketService(
                                 propertyName = nameof(DtoCar.PluggedIn);
                                 break;
                             case CarValueType.IsCharging:
-                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, nameof(DtoCar.State)))
+                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
                                 {
                                     if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
                                     {
                                         logger.LogDebug("Set car state for car {carId} to charging", carId);
                                         settingsCar.State = CarStateEnum.Charging;
-                                        _propertyUpdateTimestamps[(settingsCar.Id, nameof(DtoCar.State))] = carValueLog.Timestamp;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
                                     }
                                     else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
                                     {
                                         logger.LogDebug("Set car state for car {carId} to online", carId);
                                         settingsCar.State = CarStateEnum.Online;
-                                        _propertyUpdateTimestamps[(settingsCar.Id, nameof(DtoCar.State))] = carValueLog.Timestamp;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
                                     }
                                 }
                                 break;
@@ -311,19 +311,19 @@ public class FleetTelemetryWebSocketService(
                                 propertyName = nameof(DtoCar.Name);
                                 break;
                             case CarValueType.AsleepOrOffline:
-                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, nameof(DtoCar.State)))
+                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
                                 {
                                     if (carValueLog.BooleanValue == true
                                         && (settingsCar.State != CarStateEnum.Asleep && settingsCar.State != CarStateEnum.Offline))
                                     {
                                         settingsCar.State = CarStateEnum.Offline;
-                                        _propertyUpdateTimestamps[(settingsCar.Id, nameof(DtoCar.State))] = carValueLog.Timestamp;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
                                     }
                                     else if (carValueLog.BooleanValue == false
                                              && (settingsCar.State == CarStateEnum.Asleep || settingsCar.State == CarStateEnum.Offline))
                                     {
                                         settingsCar.State = CarStateEnum.Online;
-                                        _propertyUpdateTimestamps[(settingsCar.Id, nameof(DtoCar.State))] = carValueLog.Timestamp;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
                                     }
                                 }
                                 break;
@@ -425,8 +425,9 @@ public class FleetTelemetryWebSocketService(
     {
         logger.LogTrace("{method}({carId}, ***secret***, {propertyName})", nameof(UpdateDtoCarProperty), car.Id, propertyName);
 
-        if (IsCarValueLogTooOld(car, carValueLog, propertyName))
+        if (IsCarValueLogTooOld(car, carValueLog, carValueLog.Type))
         {
+            logger.LogDebug("Do not update DtoCar property as value is to old");
             return;
         }
 
@@ -590,7 +591,7 @@ public class FleetTelemetryWebSocketService(
                     if (convertedValue != null)
                     {
                         dtoProperty.SetValue(car, convertedValue);
-                        _propertyUpdateTimestamps[(car.Id, propertyName)] = carValueLog.Timestamp;
+                        _propertyUpdateTimestamps[(car.Id, carValueLog.Type)] = carValueLog.Timestamp;
                     }
                     else
                     {
@@ -605,17 +606,17 @@ public class FleetTelemetryWebSocketService(
         }
     }
 
-    private bool IsCarValueLogTooOld(DtoCar car, CarValueLog carValueLog, string propertyName)
+    private bool IsCarValueLogTooOld(DtoCar car, CarValueLog carValueLog, CarValueType carValueType)
     {
-        if (_propertyUpdateTimestamps.TryGetValue((car.Id, propertyName), out var lastUpdate))
+        if (_propertyUpdateTimestamps.TryGetValue((car.Id, carValueType), out var lastUpdate))
         {
             // If our stored timestamp is newer or equal, skip
             if (carValueLog.Timestamp <= lastUpdate)
             {
                 logger.LogInformation(
-                    "Skipping update for {propertyName} on CarId {carId} " +
+                    "Skipping update for {carValueType} on CarId {carId} " +
                     "because timestamp {timestamp} is not newer than {lastUpdate}",
-                    propertyName, car.Id, carValueLog.Timestamp, lastUpdate);
+                    carValueType, car.Id, carValueLog.Timestamp, lastUpdate);
 
                 return true;
             }

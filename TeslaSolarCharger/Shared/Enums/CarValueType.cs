@@ -2,27 +2,27 @@
 
 public enum CarValueType
 {
-    ModuleTempMin,
-    ModuleTempMax,
-    BatteryHeaterOn,
-    ChargeState,
-    ChargeAmps,
-    ChargeCurrentRequest,
-    ChargePortLatch,
-    DetailedChargeState,
-    IsPluggedIn,
-    IsCharging,
-    ChargerPilotCurrent,
-    Location,
-    Longitude,
-    Latitude,
-    StateOfCharge,
-    StateOfChargeLimit,
-    ChargerPhases,
-    ChargerVoltage,
-    AsleepOrOffline,
-    Gear,
-    Speed,
-    VehicleName,
+    ModuleTempMin,//0
+    ModuleTempMax,//1
+    BatteryHeaterOn,//2
+    ChargeState,//3
+    ChargeAmps,//4
+    ChargeCurrentRequest,//5
+    ChargePortLatch,//6
+    DetailedChargeState,//7
+    IsPluggedIn,//8
+    IsCharging,//9
+    ChargerPilotCurrent,//10
+    Location,//11
+    Longitude,//12
+    Latitude,//13
+    StateOfCharge,//14
+    StateOfChargeLimit,//15
+    ChargerPhases,//16
+    ChargerVoltage,//17
+    AsleepOrOffline,//18
+    Gear,//19
+    Speed,//20
+    VehicleName,//21
     Unknown = 9999,
 }
