@@ -188,15 +188,6 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = true,
             }
         },
-        { issueKeys.BackendTokenUnauthorized, new DtoIssue
-            {
-                IssueSeverity = IssueSeverity.Error,
-                IsTelegramEnabled = true,
-                ShowErrorAfterOccurrences = 1,
-                HasPlaceHolderIssueKey = false,
-                HideOccurrenceCount = true,
-            }
-        },
         { issueKeys.FleetApiTokenExpired, new DtoIssue
             {
                 IssueSeverity = IssueSeverity.Error,

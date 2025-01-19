@@ -827,11 +827,17 @@ public class TeslaFleetApiService(
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {intParam})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, intParam);
+        if (await tokenHelper.GetBackendTokenState(true) != TokenState.UpToDate)
+        {
+            //Do not show base api not licensed error if not connected to backend
+            await errorHandlingService.HandleErrorResolved(issueKeys.BaseAppNotLicensed, null);
+            return null;
+        }
         if (!await backendApiService.IsBaseAppLicensed(true))
         {
             logger.LogError("Can not send request to car as base app is not licensed");
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), "Base App not licensed",
-                "Can not send commands to car as app is not licensed",
+                "Can not send commands to car as app is not licensed. Buy a subscription on <a href=\"https://solar4car.com/subscriptions\">Solar4Car Subscriptions</a> to use TSC",
                 issueKeys.BaseAppNotLicensed, null, null).ConfigureAwait(false);
             return null;
         }

@@ -26,7 +26,6 @@ public class IssueKeys : IIssueKeys
     public string UsingFleetApiAsBleFallback => "UsingFleetApiAsBleFallback";
     public string BleVersionCompatibility => "BleVersionCompatibility";
     public string NoBackendApiToken => "NoBackendApiToken";
-    public string BackendTokenUnauthorized => "BackendTokenUnauthorized";
     public string BackendTokenNotRefreshable => "BackendTokenNotRefreshable";
     public string FleetApiTokenExpired => "FleetApiTokenExpired";
     public string BaseAppNotLicensed => "BaseAppNotLicensed";

@@ -23,7 +23,6 @@ public interface IIssueKeys
     string UsingFleetApiAsBleFallback { get; }
     string BleVersionCompatibility { get; }
     string NoBackendApiToken { get; }
-    string BackendTokenUnauthorized { get; }
     string FleetApiTokenExpired { get; }
     string Solar4CarSideFleetApiNonSuccessStatusCode { get; }
     string BackendTokenNotRefreshable { get; }
