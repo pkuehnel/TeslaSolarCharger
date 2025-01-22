@@ -24,5 +24,8 @@ public enum CarValueType
     Gear,//19
     Speed,//20
     VehicleName,//21
+    LocatedAtHome,//22
+    LocatedAtWork,//23
+    LocatedAtFavorite,//24
     Unknown = 9999,
 }
