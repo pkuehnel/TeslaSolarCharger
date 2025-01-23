@@ -65,9 +65,20 @@ else
                     <GenericInput T="bool"
                     For="() => carBasicConfiguration.Item.UseFleetTelemetry"
                     OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields));}" />
+                    @if (carBasicConfiguration.Item.UseFleetTelemetry && !carBasicConfiguration.Item.IncludeTrackingRelevantFields)
+                    {
+                        <MudAlert Severity="Severity.Info"
+                                  NoIcon="true"
+                                  ContentAlignment="HorizontalAlignment.Left">
+                            <h5>Home Address of Tesla is used to determine if car is at home</h5>
+                            As tracking relevant fields are not included, the home address set in the car is used to determine if the car is at home. This means the Home Geofence set in <MudLink Href="/BaseConfiguration">Base Configuration</MudLink> is not used for this car.
+                        </MudAlert>
+                    }
                     @if (carBasicConfiguration.Item.UseFleetTelemetry)
                     {
-                        <GenericInput For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields" />
+                        <GenericInput T="bool"
+                                      For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields"
+                                      OnValueChanged="Redraw"/>
                     }
                 }
 
@@ -221,6 +232,11 @@ else
             return;
         }
         carBasicConfiguration.IncludeTrackingRelevantFields = newUseFleetTelemetryValue;
+        Redraw();
+    }
+
+    private void Redraw()
+    {
         InvokeAsync(() => StateHasChanged());
     }
 
