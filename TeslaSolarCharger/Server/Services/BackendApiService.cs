@@ -107,6 +107,8 @@ public class BackendApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenNotRefreshable, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.NoBackendApiToken, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.BaseAppNotLicensed, null);
+        await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, null);
         memoryCache.Remove(constants.BackendTokenStateKey);
         memoryCache.Remove(constants.FleetApiTokenStateKey);
         memoryCache.Remove(constants.IsBaseAppLicensedKey);

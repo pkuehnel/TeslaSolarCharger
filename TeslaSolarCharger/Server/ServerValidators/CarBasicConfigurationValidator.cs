@@ -54,7 +54,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                         var hasFleetApiLicense = await GetFleetApiLicenseCachedAsync(context);
                         return !includeTrackingRelevantFields || hasFleetApiLicense;
                     })
-                    .WithMessage("Fleet API license required to log tracking relevant fields.");
+                    .WithMessage("Car not licensed for Fleet API. Manage Fleet API subscriptions via https://solar4car.com/subscriptions.");
             });
 
 
