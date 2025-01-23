@@ -328,6 +328,16 @@ public class FleetTelemetryWebSocketService(
                                     }
                                 }
                                 break;
+                            case CarValueType.LocatedAtHome:
+                                var fleetTelemetrySettings = await context.Cars
+                                    .Where(c => c.Id == settingsCar.Id)
+                                    .Select(c => new { c.UseFleetTelemetry, c.IncludeTrackingRelevantFields })
+                                    .FirstAsync();
+                                if (fleetTelemetrySettings.UseFleetTelemetry && !fleetTelemetrySettings.IncludeTrackingRelevantFields)
+                                {
+                                    propertyName = nameof(DtoCar.IsHomeGeofence);
+                                }
+                                break;
                         }
 
                         if (propertyName != default)
