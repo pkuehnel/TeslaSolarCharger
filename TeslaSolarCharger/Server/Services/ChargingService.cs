@@ -143,23 +143,37 @@ public class ChargingService(
     private async Task UpdateChargingRelevantValues()
     {
         await UpdateChargeTimes();
-        CalculateGeofences();
+        await CalculateGeofences();
         await chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
         await latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
     }
 
-    private void CalculateGeofences()
+    private async Task CalculateGeofences()
     {
         logger.LogTrace("{method}()", nameof(CalculateGeofences));
-        foreach (var car in settings.Cars)
+        foreach (var car in settings.CarsToManage)
         {
             if (car.Longitude == null || car.Latitude == null)
             {
+                logger.LogDebug("No location data for car {carId}. Do not calculate geofence", car.Id);
+                car.DistanceToHomeGeofence = null;
+                continue;
+            }
+
+            var fleetTelemetrySettings = await context.Cars
+                .Where(c => c.Id == car.Id)
+                .Select(c => new { c.UseFleetTelemetry, c.IncludeTrackingRelevantFields })
+                .FirstAsync();
+
+            if (fleetTelemetrySettings.UseFleetTelemetry && !fleetTelemetrySettings.IncludeTrackingRelevantFields)
+            {
+                logger.LogDebug("Car {carId} uses fleet telemetry but does not include tracking relevant fields. Do not calculate geofence", car.Id);
+                car.DistanceToHomeGeofence = null;
                 continue;
             }
 
             var distance = GetDistance(car.Longitude.Value, car.Latitude.Value,
-                (double)configurationWrapper.HomeGeofenceLongitude(), (double)configurationWrapper.HomeGeofenceLatitude());
+            (double)configurationWrapper.HomeGeofenceLongitude(), (double)configurationWrapper.HomeGeofenceLatitude());
             logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
             var radius = configurationWrapper.HomeGeofenceRadius();
             car.IsHomeGeofence = distance < radius;

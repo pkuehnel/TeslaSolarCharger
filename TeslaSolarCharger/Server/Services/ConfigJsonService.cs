@@ -17,6 +17,7 @@ using TeslaSolarCharger.Model.EntityFramework;
 using System;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 [assembly: InternalsVisibleTo("TeslaSolarCharger.Tests")]
 namespace TeslaSolarCharger.Server.Services;
@@ -359,6 +360,30 @@ public class ConfigJsonService(
                 OtherCommandCalls = c.OtherCommandCalls,
             })
             .ToListAsync().ConfigureAwait(false);
+        foreach (var car in cars)
+        {
+            var fleetTelemetryConfiguration = await teslaSolarChargerContext.Cars
+                .Where(c => c.Id == car.Id)
+                .Select(c => new
+                {
+                    c.UseFleetTelemetry,
+                    c.IncludeTrackingRelevantFields,
+                })
+                .FirstOrDefaultAsync();
+            if (fleetTelemetryConfiguration != default)
+            {
+                if (fleetTelemetryConfiguration.UseFleetTelemetry && !fleetTelemetryConfiguration.IncludeTrackingRelevantFields)
+                {
+                    var isHome = await teslaSolarChargerContext.CarValueLogs
+                        .Where(c => c.CarId == car.Id
+                                    && c.Type == CarValueType.LocatedAtHome)
+                        .OrderByDescending(c => c.Id)
+                        .Select(c => c.BooleanValue)
+                        .FirstOrDefaultAsync().ConfigureAwait(false);
+                    car.IsHomeGeofence = isHome;
+                }
+            }
+        }
         return cars;
     }
 
