@@ -49,7 +49,7 @@ else
                                 <div>
                                     Hidden reason: @(error.HideReason == LoggedErrorHideReason.NotEnoughOccurrences ? "Not Enough occurrences" : "Dismissed")
                                 </div>
-                                <div>
+                                <div style="word-break: break-word;">
                                     @((MarkupString)error.Message)
                                 </div>
                             </MudAlert>
