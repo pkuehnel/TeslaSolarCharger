@@ -377,7 +377,7 @@ public class ConfigJsonService(
                     var isHome = await teslaSolarChargerContext.CarValueLogs
                         .Where(c => c.CarId == car.Id
                                     && c.Type == CarValueType.LocatedAtHome)
-                        .OrderByDescending(c => c.Id)
+                        .OrderByDescending(c => c.Timestamp)
                         .Select(c => c.BooleanValue)
                         .FirstOrDefaultAsync().ConfigureAwait(false);
                     car.IsHomeGeofence = isHome;
