@@ -243,7 +243,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 return $"BLE container does not respond properly. Could not get version from: {commandResult.Value}";
             }
 
-            var correctVersion = new Version(2, 31, 0);
+            var correctVersion = new Version(2, 35, 0);
             if (!bleContainerVersion.Equals(correctVersion))
             {
                 foreach (var vin in vins)
