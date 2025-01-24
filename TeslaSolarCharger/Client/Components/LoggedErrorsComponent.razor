@@ -19,7 +19,7 @@ else
     {
         <div class="my-2">
             <MudExpansionPanels>
-                <MudExpansionPanel IsInitiallyExpanded="true">
+                <MudExpansionPanel Expanded="true">
                     <TitleContent>
                         <div class="d-flex">
                             <div class="flex-grow-0">
@@ -45,7 +45,9 @@ else
                                           ShowCloseIcon="true"
                                           CloseIconClicked="@(_ => DismissError(error.Id))">
                                     <h4>@(error.Headline + $"{(error.HideOccurrenceCount ? string.Empty : $" occured {error.OccurrenceCount} time(s)")}")</h4>
-                                    @((MarkupString)error.Message)
+                                    <div style="word-break: break-word;">
+                                        @((MarkupString)error.Message)
+                                    </div>
                                 </MudAlert>
                             </div>
 

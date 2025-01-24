@@ -12,7 +12,6 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.LoggedError;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.MappingExtensions;
 using TeslaSolarCharger.SharedModel.Enums;
 using Error = LanguageExt.Common.Error;
 
@@ -24,11 +23,11 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     ITeslaSolarChargerContext context,
     IDateTimeProvider dateTimeProvider,
     IConfigurationWrapper configurationWrapper,
-    IMapperConfigurationFactory mapperConfigurationFactory,
     ISettings settings,
-    ITeslaFleetApiTokenHelper teslaFleetApiTokenHelper,
+    ITokenHelper tokenHelper,
     IPossibleIssues possibleIssues,
-    IConstants constants) : IErrorHandlingService
+    IConstants constants,
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService) : IErrorHandlingService
 {
     public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
     {
@@ -37,27 +36,28 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         return unfilterdErrorsFin.Match(
             Succ: unfilteredErrors =>
             {
-                var mappingConfiguration = mapperConfigurationFactory.Create(cfg =>
-                {
-                    cfg.CreateMap<LoggedError, DtoLoggedError>()
-                        .ForMember(d => d.OccurrenceCount, opt => opt.MapFrom(s => s.FurtherOccurrences.Count() + 1))
-                        .ForMember(d => d.Severity, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).IssueSeverity))
-                        .ForMember(d => d.HideOccurrenceCount, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).HideOccurrenceCount))
-                        ;
-                });
-                var mapper = mappingConfiguration.CreateMapper();
                 var errors = unfilteredErrors
                     .Where(e => e.DismissedAt == default || (e.FurtherOccurrences.Any() && (e.DismissedAt < e.FurtherOccurrences.Max())))
-                    .Select(e => mapper.Map<DtoLoggedError>(e))
+                    .Select(e => new DtoLoggedError()
+                    {
+                        Id = e.Id,
+                        Severity = possibleIssues.GetIssueByKey(e.IssueKey).IssueSeverity,
+                        Headline = e.Headline,
+                        IssueKey = e.IssueKey,
+                        OccurrenceCount = e.FurtherOccurrences.Count() + 1,
+                        Vin = e.Vin,
+                        Message = e.Message,
+                        HideOccurrenceCount = possibleIssues.GetIssueByKey(e.IssueKey).HideOccurrenceCount
+                    })
                     .ToList();
 
                 var removedErrorCount = errors.RemoveAll(e => e.OccurrenceCount < possibleIssues.GetIssueByKey(e.IssueKey).ShowErrorAfterOccurrences);
                 logger.LogDebug("{removedErrorsCount} errors removed as did not reach minimum error count", removedErrorCount);
-                return Fin<List<DtoLoggedError>>.Succ(errors);
+                return Fin<System.Collections.Generic.List<DtoLoggedError>>.Succ(errors);
             },
             Fail: error =>
             {
-                return Fin<List<DtoLoggedError>>.Fail(error);
+                return Fin<System.Collections.Generic.List<DtoLoggedError>>.Fail(error);
             });
 
     }
@@ -69,29 +69,29 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         return unfilterdErrorsFin.Match(
             Succ: unfilteredErrors =>
             {
-                var mappingConfiguration = mapperConfigurationFactory.Create(cfg =>
-                {
-                    cfg.CreateMap<LoggedError, DtoHiddenError>()
-                        .ForMember(d => d.OccurrenceCount, opt => opt.MapFrom(s => s.FurtherOccurrences.Count() + 1))
-                        .ForMember(d => d.Severity, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).IssueSeverity))
-                        .ForMember(d => d.HideOccurrenceCount, opt => opt.MapFrom(s => possibleIssues.GetIssueByKey(s.IssueKey).HideOccurrenceCount))
-                        ;
-                });
-                var mapper2 = mappingConfiguration.CreateMapper();
                 var hiddenErrors = new List<DtoHiddenError>();
                 foreach (var loggedError in unfilteredErrors)
                 {
                     var occurrences = new List<DateTime>() { loggedError.StartTimeStamp }.Concat(loggedError.FurtherOccurrences).ToList();
+                    var hiddenError = new DtoHiddenError()
+                    {
+                        Id = loggedError.Id,
+                        Severity = possibleIssues.GetIssueByKey(loggedError.IssueKey).IssueSeverity,
+                        Headline = loggedError.Headline,
+                        IssueKey = loggedError.IssueKey,
+                        OccurrenceCount = occurrences.Count,
+                        Vin = loggedError.Vin,
+                        Message = loggedError.Message,
+                        HideOccurrenceCount = possibleIssues.GetIssueByKey(loggedError.IssueKey).HideOccurrenceCount,
+                    };
                     if (occurrences.Count
                         < possibleIssues.GetIssueByKey(loggedError.IssueKey).ShowErrorAfterOccurrences)
                     {
-                        var hiddenError = mapper2.Map<DtoHiddenError>(loggedError);
                         hiddenError.HideReason = LoggedErrorHideReason.NotEnoughOccurrences;
                         hiddenErrors.Add(hiddenError);
                     }
                     else if(loggedError.DismissedAt > occurrences.Max())
                     {
-                        var hiddenError = mapper2.Map<DtoHiddenError>(loggedError);
                         hiddenError.HideReason = LoggedErrorHideReason.Dismissed;
                         hiddenErrors.Add(hiddenError);
                     }
@@ -135,11 +135,11 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.SolarValuesNotAvailable, "Solar values are not available",
             $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", solarValuesTooOld).ConfigureAwait(false);
 
-        await AddOrRemoveErrors(activeErrors, issueKeys.VersionNotUpToDate, "New software version available",
-            "Update TSC to the latest version.", settings.IsNewVersionAvailable).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNoApiRequestsAllowed, "No Fleet API requests allowed",
-            "Make sure your TSC can access the internet and TSC is on its latest version.", !settings.AllowUnlimitedFleetApiRequests).ConfigureAwait(false);
+        //ToDO: fix next line, currently not working due to cyclic reference
+        //await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, "Base App not licensed",
+        //    "Can not send commands to car as app is not licensed", !await backendApiService.IsBaseAppLicensed(true));
 
+        //ToDo: if last check there was no token related issue, only detect token related issues every x minutes as creates high load in backend
         await DetectTokenStateIssues(activeErrors);
         foreach (var car in settings.CarsToManage)
         {
@@ -154,6 +154,20 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
             {
                 //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
                 await HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
+            }
+            var fleetTelemetryEnabled = await context.Cars
+                .Where(c => c.Vin == car.Vin)
+                .Select(c => c.UseFleetTelemetry)
+                .FirstOrDefaultAsync();
+                
+            if (fleetTelemetryEnabled && (!fleetTelemetryWebSocketService.IsClientConnected(car.Vin)))
+            {
+                await HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet Telemetry not connected for car {car.Vin}",
+                    "Fleet telemetry is not connected. Please check the connection.", issueKeys.FleetTelemetryNotConnected, car.Vin, null);
+            }
+            else
+            {
+                await HandleErrorResolved(issueKeys.FleetTelemetryNotConnected, car.Vin);
             }
 
             if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
@@ -417,25 +431,26 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)
     {
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
-        var tokenState = await teslaFleetApiTokenHelper.GetFleetApiTokenState();
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenNotRequested, "Fleet API token not requested",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
-            tokenState == FleetApiTokenState.NotRequested).ConfigureAwait(false);
+        var backendTokenState = await tokenHelper.GetBackendTokenState(true);
+        var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
+        await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "Backen API Token not up to date",
+            "You are currently not connected to the backend. Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
+            backendTokenState != TokenState.UpToDate).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
-            "You recently changed your password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Important: You need to allow access to all selectable scopes.",
-            tokenState == FleetApiTokenState.TokenUnauthorized).ConfigureAwait(false);
+            "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            fleetApiTokenState == TokenState.Unauthorized).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.NoFleetApiToken, "No Fleet API Token available.",
+            "Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
+            fleetApiTokenState == TokenState.NotAvailable).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Fleet API token is expired",
+            "Either you recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            fleetApiTokenState == TokenState.Expired).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
-            tokenState == FleetApiTokenState.MissingScopes).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenRequestExpired, "Tesla Token could not be received",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            tokenState == FleetApiTokenState.TokenRequestExpired).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Tesla Token expired",
-            "Open the <a href=\"/BaseConfiguration\">Base Configuration</a> and request a new token.",
-            tokenState == FleetApiTokenState.Expired).ConfigureAwait(false);
-
-        //Remove all token related issue keys on token error because very likely it is because of the underlaying token issue.
-        if (tokenState != FleetApiTokenState.UpToDate && tokenState != FleetApiTokenState.NotNeeded)
+            "Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
+            fleetApiTokenState == TokenState.MissingScopes).ConfigureAwait(false);
+        
+        //Remove all fleet api related issue keys on token error because very likely it is because of the underlaying token issue.
+        if (fleetApiTokenState != TokenState.UpToDate)
         {
             foreach (var activeError in activeErrors.Where(activeError => activeError.IssueKey.StartsWith(issueKeys.GetVehicleData)
                                                                           || activeError.IssueKey.StartsWith(issueKeys.CarStateUnknown)

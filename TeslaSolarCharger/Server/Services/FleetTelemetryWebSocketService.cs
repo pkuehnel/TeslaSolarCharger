@@ -15,6 +15,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -23,10 +24,11 @@ public class FleetTelemetryWebSocketService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider,
-    ISettings settings,
-    ITscConfigurationService tscConfigurationService) : IFleetTelemetryWebSocketService
+    ISettings settings) : IFleetTelemetryWebSocketService
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
+
+    private readonly Dictionary<(int CarId, CarValueType carValueType), DateTime> _propertyUpdateTimestamps = new();
 
     private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
 
@@ -46,8 +48,9 @@ public class FleetTelemetryWebSocketService(
                         && (c.ShouldBeManaged == true)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotWorking)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
-                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured))
-            .Select(c => new { c.Vin, c.UseFleetTelemetryForLocationData, })
+                        && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured)
+                        && (c.IsFleetTelemetryHardwareIncompatible == false))
+            .Select(c => new { c.Vin, IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields, })
             .ToListAsync();
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
         foreach (var car in cars)
@@ -92,7 +95,7 @@ public class FleetTelemetryWebSocketService(
                 Clients.Remove(existingClient);
             }
 
-            ConnectToFleetTelemetryApi(car.Vin, car.UseFleetTelemetryForLocationData);
+            ConnectToFleetTelemetryApi(car.Vin, car.IncludeTrackingRelevantFields);
         }
     }
 
@@ -114,27 +117,32 @@ public class FleetTelemetryWebSocketService(
         }
     }
 
-    private async Task ConnectToFleetTelemetryApi(string vin, bool useFleetTelemetryForLocationData)
+    private async Task ConnectToFleetTelemetryApi(string vin, bool includeTrackingRelevantFields)
     {
         logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);
         var currentDate = dateTimeProvider.UtcNow();
         var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var token = await context.TeslaTokens
-            .Where(t => t.ExpiresAtUtc > currentDate)
-            .OrderByDescending(t => t.ExpiresAtUtc)
-            .FirstOrDefaultAsync().ConfigureAwait(false);
-        if (token == default)
+        var tscConfigurationService = scope.ServiceProvider.GetRequiredService<ITscConfigurationService>();
+        var constants = scope.ServiceProvider.GetRequiredService<IConstants>();
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            throw new InvalidOperationException("No Decryption key found.");
+        }
+        var url = configurationWrapper.FleetTelemetryApiUrl() +
+                  $"vin={vin}&forceReconfiguration=false&includeTrackingRelevantFields={includeTrackingRelevantFields}&encryptionKey={Uri.EscapeDataString(decryptionKey)}";
+        var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
+        if(authToken == default)
         {
             logger.LogError("Can not connect to WebSocket: No token found for car {vin}", vin);
             return;
         }
-        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-        var url = configurationWrapper.FleetTelemetryApiUrl() +
-                  $"teslaToken={token.AccessToken}&region={token.Region}&vin={vin}&forceReconfiguration=false&includeLocation={useFleetTelemetryForLocationData}&installationId={installationId}";
         using var client = new ClientWebSocket();
         try
         {
+            client.Options.SetRequestHeader("Authorization", $"Bearer {authToken.AccessToken}");
             await client.ConnectAsync(new Uri(url), new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
             var cancellation = new CancellationTokenSource();
             var dtoClient = new DtoFleetTelemetryWebSocketClients
@@ -262,15 +270,20 @@ public class FleetTelemetryWebSocketService(
                                 propertyName = nameof(DtoCar.PluggedIn);
                                 break;
                             case CarValueType.IsCharging:
-                                if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
+                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
                                 {
-                                    logger.LogDebug("Set car state for car {carId} to charging", carId);
-                                    settingsCar.State = CarStateEnum.Charging;
-                                }
-                                else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
-                                {
-                                    logger.LogDebug("Set car state for car {carId} to online", carId);
-                                    settingsCar.State = CarStateEnum.Online;
+                                    if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
+                                    {
+                                        logger.LogDebug("Set car state for car {carId} to charging", carId);
+                                        settingsCar.State = CarStateEnum.Charging;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
+                                    }
+                                    else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
+                                    {
+                                        logger.LogDebug("Set car state for car {carId} to online", carId);
+                                        settingsCar.State = CarStateEnum.Online;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
+                                    }
                                 }
                                 break;
                             case CarValueType.ChargerPilotCurrent:
@@ -289,10 +302,41 @@ public class FleetTelemetryWebSocketService(
                                 propertyName = nameof(DtoCar.SocLimit);
                                 break;
                             case CarValueType.ChargerPhases:
-                                propertyName = nameof(DtoCar.SocLimit);
+                                propertyName = nameof(DtoCar.ChargerPhases);
                                 break;
                             case CarValueType.ChargerVoltage:
                                 propertyName = nameof(DtoCar.ChargerVoltage);
+                                break;
+                            case CarValueType.VehicleName:
+                                propertyName = nameof(DtoCar.Name);
+                                break;
+                            case CarValueType.AsleepOrOffline:
+                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
+                                {
+                                    if (carValueLog.BooleanValue == true
+                                        //Do only overwrite these states as otherwise Charging or Driving might be overwritten
+                                        && settingsCar.State is CarStateEnum.Unknown or CarStateEnum.Suspended)
+                                    {
+                                        settingsCar.State = CarStateEnum.Offline;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
+                                    }
+                                    else if (carValueLog.BooleanValue == false
+                                             && (settingsCar.State == CarStateEnum.Asleep || settingsCar.State == CarStateEnum.Offline))
+                                    {
+                                        settingsCar.State = CarStateEnum.Online;
+                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
+                                    }
+                                }
+                                break;
+                            case CarValueType.LocatedAtHome:
+                                var fleetTelemetrySettings = await context.Cars
+                                    .Where(c => c.Id == settingsCar.Id)
+                                    .Select(c => new { c.UseFleetTelemetry, c.IncludeTrackingRelevantFields })
+                                    .FirstAsync();
+                                if (fleetTelemetrySettings.UseFleetTelemetry && !fleetTelemetrySettings.IncludeTrackingRelevantFields)
+                                {
+                                    propertyName = nameof(DtoCar.IsHomeGeofence);
+                                }
                                 break;
                         }
 
@@ -342,10 +386,25 @@ public class FleetTelemetryWebSocketService(
         foreach (var vin in message.UnsupportedHardwareVins)
         {
             logger.LogInformation("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
+            await SetCarToFleetTelemetryHardwareIncompatible(vin).ConfigureAwait(false);
             await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
         }
 
         return true;
+    }
+
+    private async Task SetCarToFleetTelemetryHardwareIncompatible(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(SetCarToFleetTelemetryHardwareIncompatible), vin);
+        var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var car = context.Cars.FirstOrDefault(c => c.Vin == vin);
+        if (car == default)
+        {
+            return;
+        }
+        car.IsFleetTelemetryHardwareIncompatible = true;
+        await context.SaveChangesAsync();
     }
 
     private async Task DisableFleetTelemetryForCar(string vin)
@@ -359,7 +418,7 @@ public class FleetTelemetryWebSocketService(
             return;
         }
         car.UseFleetTelemetry = false;
-        car.UseFleetTelemetryForLocationData = false;
+        car.IncludeTrackingRelevantFields = false;
         await context.SaveChangesAsync();
     }
 
@@ -376,6 +435,13 @@ public class FleetTelemetryWebSocketService(
     internal void UpdateDtoCarProperty(DtoCar car, CarValueLog carValueLog, string propertyName)
     {
         logger.LogTrace("{method}({carId}, ***secret***, {propertyName})", nameof(UpdateDtoCarProperty), car.Id, propertyName);
+
+        if (IsCarValueLogTooOld(car, carValueLog, carValueLog.Type))
+        {
+            logger.LogDebug("Do not update DtoCar property as value is to old");
+            return;
+        }
+
         // List of relevant property names
         var relevantPropertyNames = new List<string>
         {
@@ -536,6 +602,7 @@ public class FleetTelemetryWebSocketService(
                     if (convertedValue != null)
                     {
                         dtoProperty.SetValue(car, convertedValue);
+                        _propertyUpdateTimestamps[(car.Id, carValueLog.Type)] = carValueLog.Timestamp;
                     }
                     else
                     {
@@ -548,5 +615,24 @@ public class FleetTelemetryWebSocketService(
                 }
             }
         }
+    }
+
+    private bool IsCarValueLogTooOld(DtoCar car, CarValueLog carValueLog, CarValueType carValueType)
+    {
+        if (_propertyUpdateTimestamps.TryGetValue((car.Id, carValueType), out var lastUpdate))
+        {
+            // If our stored timestamp is newer or equal, skip
+            if (carValueLog.Timestamp <= lastUpdate)
+            {
+                logger.LogInformation(
+                    "Skipping update for {carValueType} on CarId {carId} " +
+                    "because timestamp {timestamp} is not newer than {lastUpdate}",
+                    carValueType, car.Id, carValueLog.Timestamp, lastUpdate);
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }

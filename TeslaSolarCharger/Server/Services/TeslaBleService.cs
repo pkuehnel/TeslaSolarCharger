@@ -187,80 +187,91 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             .Distinct().ToList();
         foreach (var host in hosts)
         {
-            var baseUrl = GetBleBaseUrlFromConfiguredUrl(host);
-            if (string.IsNullOrEmpty(baseUrl))
-            {
-                continue;
-            }
-            var url = baseUrl + "Hello/TscVersionCompatibility";
-            using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(3);
-            var vins = settings.Cars.Where(c => c.BleApiBaseUrl == host && c.UseBle).Select(c => c.Vin).ToList();
-            try
-            {
-                var response = await client.GetAsync(url).ConfigureAwait(false);
-                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                if (response.StatusCode == HttpStatusCode.NotFound)
-                {
-                    foreach (var vin in vins)
-                    {
-                        await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                            $"BLE container with URL {host} not up to date", $"Used for {vin}. Update the BLE container to the latest version",
-                            issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
-                    }
-                    continue;
-                }
+            await CheckBleApiVersionCompatibility(host).ConfigureAwait(false);
+        }
+    }
 
-                var commandResult = JsonConvert.DeserializeObject<DtoValue<string>>(responseContent);
-                if (commandResult == default || commandResult.Value == default)
-                {
-                    foreach (var vin in vins)
-                    {
-                        await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                            $"BLE container with URL {host} does not respond properly", $"Used for {vin}. Could not get value from {responseContent}",
-                            issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
-                    }
-                    continue;
-                }
-                var couldParse = Version.TryParse(commandResult.Value, out var bleContainerVersion);
-                if (!couldParse || bleContainerVersion == default)
-                {
-                    foreach (var vin in vins)
-                    {
-                        await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                            $"BLE container with URL {host} does not respond properly", $"Used for {vin}. Could not get version from {commandResult.Value}",
-                            issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
-                    }
-                    continue;
-                }
-
-                var correctVersion = new Version(2, 31, 0);
-                if (!bleContainerVersion.Equals(correctVersion))
-                {
-                    foreach (var vin in vins)
-                    {
-                        await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                            $"BLE container with URL {host} has an incompatible version", $"Used for {vin}. Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update TSC and BLE container to the latest version.",
-                            issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
-                    }
-                    continue;
-                }
-
-                foreach (var vin in vins)
-                {
-                    await errorHandlingService.HandleErrorResolved(issueKeys.BleVersionCompatibility, vin).ConfigureAwait(false);
-                }
-            }
-            catch (Exception ex)
+    public async Task<string?> CheckBleApiVersionCompatibility(string? host)
+    {
+        var baseUrl = GetBleBaseUrlFromConfiguredUrl(host);
+        if (string.IsNullOrEmpty(baseUrl))
+        {
+            return "Could not generate a base url based on the inserted URL";
+        }
+        var url = baseUrl + "Hello/TscVersionCompatibility";
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(3);
+        var vins = settings.Cars.Where(c => c.BleApiBaseUrl == host && c.UseBle).Select(c => c.Vin).ToList();
+        try
+        {
+            var response = await client.GetAsync(url).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 foreach (var vin in vins)
                 {
                     await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
-                        $"BLE container with URL {host} not reachable", $"Used for {vin}. Looks like the url is not correct or BLE container is not online.",
-                        issueKeys.BleVersionCompatibility, vin, ex.StackTrace).ConfigureAwait(false);
+                        $"BLE container with URL {host} not up to date", $"Used for {vin}. Update the BLE container to the latest version",
+                        issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
                 }
-                
+
+                return "BLE container is not up to date. Update the BLE container to the latest version.";
             }
+
+            var commandResult = JsonConvert.DeserializeObject<DtoValue<string>>(responseContent);
+            if (commandResult == default || commandResult.Value == default)
+            {
+                foreach (var vin in vins)
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                        $"BLE container with URL {host} does not respond properly", $"Used for {vin}. Could not get value from {responseContent}",
+                        issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
+                }
+
+                return $"BLE container does not respond properly: {responseContent}";
+            }
+            var couldParse = Version.TryParse(commandResult.Value, out var bleContainerVersion);
+            if (!couldParse || bleContainerVersion == default)
+            {
+                foreach (var vin in vins)
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                        $"BLE container with URL {host} does not respond properly", $"Used for {vin}. Could not get version from {commandResult.Value}",
+                        issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
+                }
+
+                return $"BLE container does not respond properly. Could not get version from: {commandResult.Value}";
+            }
+
+            var correctVersion = new Version(2, 35, 0);
+            if (!bleContainerVersion.Equals(correctVersion))
+            {
+                foreach (var vin in vins)
+                {
+                    await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                        $"BLE container with URL {host} has an incompatible version", $"Used for {vin}. Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update TSC and BLE container to the latest version.",
+                        issueKeys.BleVersionCompatibility, vin, null).ConfigureAwait(false);
+                }
+
+                return $"BLE container with URL {host} has an incompatible version; Correct version: {correctVersion}; BLE version: {bleContainerVersion}. Update TSC and BLE container to the latest version.";
+            }
+
+            foreach (var vin in vins)
+            {
+                await errorHandlingService.HandleErrorResolved(issueKeys.BleVersionCompatibility, vin).ConfigureAwait(false);
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            foreach (var vin in vins)
+            {
+                await errorHandlingService.HandleError(nameof(TeslaBleService), nameof(CheckBleApiVersionCompatibilities),
+                    $"BLE container with URL {host} not reachable", $"Used for {vin}. Looks like the url is not correct or BLE container is not online.",
+                    issueKeys.BleVersionCompatibility, vin, ex.StackTrace).ConfigureAwait(false);
+            }
+            return "BLE container is not reachable. Looks like the url is not correct or BLE container is not online.";
         }
     }
 
@@ -292,7 +303,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         try
         {
             //Default timeout of Tesla Command CLI is 21 seconds.
-            client.Timeout = TimeSpan.FromSeconds(22);
+            client.Timeout = TimeSpan.FromSeconds(29);
             var response = await client.PostAsJsonAsync(url, request.Parameters).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)

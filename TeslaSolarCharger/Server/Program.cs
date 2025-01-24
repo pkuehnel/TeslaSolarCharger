@@ -1,12 +1,17 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Context;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Interceptors;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Middlewares;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
+using TeslaSolarCharger.Server.ServerValidators;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Shared;
@@ -20,7 +25,8 @@ var configurationManager = builder.Configuration;
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers().AddNewtonsoftJson();
+builder.Services.AddControllers(options => options.Filters.Add<ApiExceptionFilterAttribute>())
+    .AddNewtonsoftJson();
 builder.Services.AddRazorPages();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -38,6 +44,10 @@ builder.Services.AddServicesDependencies();
 
 builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration));
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
+
 
 var app = builder.Build();
 
@@ -75,6 +85,7 @@ if (configurationWrapper.AllowCors())
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
+app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseRouting();
 
 app.UseSwagger();
@@ -95,16 +106,12 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var teslaSolarChargerContext = webApplication.Services.GetRequiredService<ITeslaSolarChargerContext>();
         await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
+        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
+
+
         var teslaFleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
         await teslaFleetApiService.RefreshFleetApiRequestsAreAllowed();
-        try
-        {
-            await teslaFleetApiService.RefreshTokensIfAllowedAndNeeded();
-        }
-        catch(Exception ex)
-        {
-            logger1.LogError(ex, "Error refreshing Tesla tokens");
-        }
 
         var shouldRetry = false;
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
@@ -220,11 +227,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
-        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        
         var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
         await errorHandlingService.HandleErrorResolved(issueKeys.CrashedOnStartup, null)
             .ConfigureAwait(false);
-        await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
     }
     catch (Exception ex)
     {

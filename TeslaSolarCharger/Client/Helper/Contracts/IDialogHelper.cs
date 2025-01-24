@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Client.Helper.Contracts;
+﻿using MudBlazor;
+
+namespace TeslaSolarCharger.Client.Helper.Contracts;
 
 public interface IDialogHelper
 {

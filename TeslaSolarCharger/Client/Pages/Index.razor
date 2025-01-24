@@ -71,18 +71,6 @@ else
                     </TooltipComponent>
                     <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargingPowerHome]">@car.HomeChargePower W</TooltipComponent>
                 </div>
-
-                @if (DateTime.UtcNow < car.RateLimitedUntil)
-                {
-                    <div class="alert alert-danger" role="alert">
-                        <div>Car currently rate limited.</div>
-                        <hr />
-                        <p>
-                            Your car is rate limited by Tesla and TSC won't be able to set the charging power until @(car.RateLimitedUntil.Value.ToLocalTime().ToString("g")). For now, the only solution for this is to set up a BLE device (see <a href="https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#install-and-setup-ble-api" target="_blank">here</a>). Currently there is no option from Tesla's side to pay for more requests per day. So even after the rate limit is over, TSC only has 50 requests for the next day. After the 50 requests within 24 hours, the rate limit is present again for the next 24 hours. Despite setting up the BLE API as a workaround, you can go to basic configuration, scroll down to advanced settings and set the Car power adjustment interval to 1800 seconds. This leads to 50 calls per day max but also means TSC can only adjust the charging power every 30 minutes.<br />
-                        </p>
-
-                    </div>
-                }
                 @if (_testingFleetApiCarIds.Any(i => i == car.CarId))
                 {
                     <div>
@@ -105,7 +93,7 @@ else
                             <hr />
                             <p>
                                 Note: For the test the car needs to be awake. If the car was not awake, wake it up and <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess(car.CarId)">test again</button>. <br />
-                                If it still does not work, go to your car and under Controls -> Locks you can check if a key named "www.teslasolarcharger.de" is present. If not try adding the key again by clicking <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button>.
+                                If it still does not work, go to your car and under Controls -> Locks you can check if a key named "solar4car.com" is present. If not try adding the key again by clicking <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage(car.CarId)">here</button>.
                             </p>
 
                         </div>
@@ -605,7 +593,7 @@ else
     private async Task OpenRegisterPublicKeyPage(int carId)
     {
         var response = await HttpClient.PostAsync($"api/Index/UpdateCarFleetApiState?carId={carId}&fleetApiState={TeslaCarFleetApiState.OpenedLinkButNotTested}", null).ConfigureAwait(false);
-        NavigationManager.NavigateTo("https://tesla.com/_ak/www.teslasolarcharger.de");
+        NavigationManager.NavigateTo("https://tesla.com/_ak/solar4car.com");
     }
 
     private async Task TestFleetApiAccess(int carId)

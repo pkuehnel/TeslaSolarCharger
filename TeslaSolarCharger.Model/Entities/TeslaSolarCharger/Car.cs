@@ -9,6 +9,7 @@ public class Car
     public string? Name { get; set; }
     public string? Vin { get; set; }
     public TeslaCarFleetApiState? TeslaFleetApiState { get; set; }
+    public bool IsFleetTelemetryHardwareIncompatible { get; set; }
     public ChargeMode ChargeMode { get; set; }
     public int MinimumSoc { get; set; }
     public DateTime LatestTimeToReachSoC { get; set; }
@@ -40,24 +41,19 @@ public class Car
     public CarStateEnum? State { get; set; }
 
     public bool VehicleCommandProtocolRequired { get; set; }
-    public DateTime? VehicleRateLimitedUntil { get; set; }
-    public DateTime? VehicleDataRateLimitedUntil { get; set; }
-    public DateTime? CommandsRateLimitedUntil { get; set; }
-    public DateTime? WakeUpRateLimitedUntil { get; set; }
-    public DateTime? ChargingCommandsRateLimitedUntil { get; set; }
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public bool UseFleetTelemetry { get; set; }
-    public bool UseFleetTelemetryForLocationData { get; set; }
+    public bool IncludeTrackingRelevantFields { get; set; }
     public bool IsAvailableInTeslaAccount { get; set; }
 
-    public string? WakeUpCalls { get; set; }
-    public string? VehicleDataCalls { get; set; }
-    public string? VehicleCalls { get; set; }
-    public string? ChargeStartCalls { get; set; }
-    public string? ChargeStopCalls { get; set; }
-    public string? SetChargingAmpsCall { get; set; }
-    public string? OtherCommandCalls { get; set; }
+    public List<DateTime> WakeUpCalls { get; set; } = new();
+    public List<DateTime> VehicleDataCalls { get; set; } = new();
+    public List<DateTime> VehicleCalls { get; set; } = new();
+    public List<DateTime> ChargeStartCalls { get; set; } = new();
+    public List<DateTime> ChargeStopCalls { get; set; } = new();
+    public List<DateTime> SetChargingAmpsCall { get; set; } = new();
+    public List<DateTime> OtherCommandCalls { get; set; } = new();
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
     public List<CarValueLog> CarValueLogs { get; set; } = new List<CarValueLog>();

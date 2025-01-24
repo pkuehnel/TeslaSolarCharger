@@ -1,5 +1,5 @@
-﻿using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
+﻿using FluentValidation;
+using System.ComponentModel;
 using TeslaSolarCharger.Shared.Attributes;
 
 namespace TeslaSolarCharger.Shared.Dtos;
@@ -21,31 +21,48 @@ public class CarBasicConfiguration
     public string? Name { get; set; }
     [Disabled]
     public string Vin { get; set; }
-    [Range(1, int.MaxValue)]
     [Postfix("A")]
     [HelperText("TSC never sets a current below this value")]
     public int MinimumAmpere { get; set; }
-    [Range(1, int.MaxValue)]
     [Postfix("A")]
     [HelperText("TSC never sets a current above this value. This value is also used in the Max Power charge mode.")]
     public int MaximumAmpere { get; set; }
-    [Range(1, int.MaxValue)]
     [Postfix("kWh")]
     [HelperText("This value is used to reach a desired SoC in time if on spot price or PVOnly charge mode.")]
     public int UsableEnergy { get; set; }
-    [Range(1, int.MaxValue)]
     [HelperText("If there is not enough power for all cars, the cars will be charged ordered by priority. Cars with the same priority are ordered randomly.")]
     public int ChargingPriority { get; set; }
     [HelperText("If disabled, this car will not show up in the overview page and TSC does not manage it.")]
     public bool ShouldBeManaged { get; set; } = true;
     [DisplayName("Use BLE")]
-    [HelperText("Use BLE communication to go around Tesla rate limits. Note: A BLE device (e.g., Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near (max 4 meters without any walls in between) your car.")]
+    [HelperText("Use BLE communication (If enabled no car license is required for this car). Note: A BLE device (e.g., Raspberry Pi) with installed TeslaSolarChargerBle Container needs to be near (max 4 meters without any walls in between) your car.")]
     public bool UseBle { get; set; }
     [HelperText("Needed to send commands via BLE to the car. An example value would be `http://raspible:7210/`")]
     public string? BleApiBaseUrl { get; set; }
-    [HelperText("Only supported on cars with Software 2024.38.2+. Not supported on Pre 2021 Model S/X. If enabled, some data will be transferred via Fleet Telemetry. This improves the delay in the TSC detection of plugin and out of the car, as well as changes in the charging speed. Note: All data transferred via Fleet Telemetry passes my server. If your car does not support fleet telemetry, this option will be disabled automatically within two minutes.")]
+    [HelperText("Only supported on cars with Software 2024.45.32+. Not supported on Pre 2021 Model S/X. If your car does not support fleet telemetry, this option will be disabled automatically within two minutes.")]
     public bool UseFleetTelemetry { get; set; }
 
-    [HelperText("This further improves the detection if the car is at home. Enabling this results in additionally streaming the field Location over my server. If you do not mind that your car location data passes my server, do not disable this option.")]
-    public bool UseFleetTelemetryForLocationData { get; set; } = true;
+    [HelperText("When enabled, TSC collects data of additional fields that are not necessarily required for TSC to work, but logged data might be helpful for future visualizations. Note: For this a car license is required.")]
+    public bool IncludeTrackingRelevantFields { get; set; }
+}
+
+
+public class CarBasicConfigurationValidator : AbstractValidator<CarBasicConfiguration>
+{
+    public CarBasicConfigurationValidator()
+    {
+        When(x => x.ShouldBeManaged, () =>
+        {
+            RuleFor(x => x.MinimumAmpere).GreaterThan(0);
+            RuleFor(x => x.MaximumAmpere).GreaterThan(0);
+            RuleFor(x => x.MaximumAmpere).LessThanOrEqualTo(64);
+            RuleFor(x => x)
+                .Must(config => config.MaximumAmpere > config.MinimumAmpere)
+                .WithMessage("MaximumAmpere must be greater than MinimumAmpere.");
+            RuleFor(x => x.UsableEnergy).GreaterThan(5);
+            RuleFor(x => x.ChargingPriority).GreaterThan(0);
+            RuleFor(x => x.UseFleetTelemetry).Equal(true).WithMessage("Enabling Fleet Telemetry is required and will be autodisabled if your car does not support it.");
+        });
+        
+    }
 }

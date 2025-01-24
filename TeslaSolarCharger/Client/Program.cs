@@ -1,5 +1,4 @@
 using Lysando.LabStorageV2.UiHelper.Wrapper;
-using Lysando.LabStorageV2.UiHelper.Wrapper.Contracts;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
@@ -8,6 +7,8 @@ using MudExtensions.Services;
 using TeslaSolarCharger.Client;
 using TeslaSolarCharger.Client.Helper;
 using TeslaSolarCharger.Client.Helper.Contracts;
+using TeslaSolarCharger.Client.Services;
+using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Helper;
@@ -25,6 +26,7 @@ builder.Services.AddScoped<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddScoped<IDialogHelper, DialogHelper>();
 builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
+builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckService>();
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();
 builder.Services.AddMudServices(config =>

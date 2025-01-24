@@ -91,6 +91,14 @@ public class ConfigurationWrapper(
         return Path.Combine(configFileDirectory, value);
     }
 
+    public int BackendPasswordDefaultLength()
+    {
+        var environmentVariableName = "BackendPasswordDefaultLength";
+        var value = configuration.GetValue<int>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return value;
+    }
+
     public string ConfigFileDirectory()
     {
         var environmentVariableName = "ConfigFileLocation";
@@ -99,13 +107,6 @@ public class ConfigurationWrapper(
         var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
         path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), value);
         return path;
-    }
-
-    public string? GetFleetApiBaseUrl()
-    {
-        var environmentVariableName = "TeslaFleetApiBaseUrl";
-        var value = configuration.GetValue<string?>(environmentVariableName);
-        return value;
     }
 
     public string GetAwattarBaseUrl()

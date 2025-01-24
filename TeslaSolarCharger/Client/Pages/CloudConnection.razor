@@ -1,0 +1,212 @@
+﻿@page "/cloudconnection"
+@using System.Globalization
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Enums
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ICloudConnectionCheckService CloudConnectionCheckService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<h1>Cloud Connection</h1>
+
+<h3>Solar4Car Backend connection</h3>
+@if (BackendTokenState == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else
+{
+    <MudAlert Severity="@BackendTokenAlertSeverity"
+    NoIcon="true"
+    ShowCloseIcon="false">
+        <div>@BackendTokenStateText</div>
+    </MudAlert>
+}
+
+@if (BackendTokenState == TokenState.UpToDate)
+{
+    @if (LoggedInUserName == default)
+    {
+        <div>Logged in as unknown user</div>
+    }
+    else
+    {
+        <div>Logged in as @LoggedInUserName</div>
+    }
+    <RightAlignedButtonComponent OnButtonClicked="FakeLogout"
+    ButtonText="ChangeUser" />
+}
+else
+{
+    <GenericInput For="() => _backendLogin.EMail"></GenericInput>
+    <GenericInput For="() => _backendLogin.Password"
+    IsPassword="true"></GenericInput>
+    @if (LoginErrorMessage != default)
+    {
+        <div class="validation-message">
+            Login failed: @LoginErrorMessage
+        </div>
+    }
+    <RightAlignedButtonComponent OnButtonClicked="Submit"
+    ButtonText="Login"
+    IsLoading="@_backendLoginIsLoading">
+    </RightAlignedButtonComponent>
+    <div class="d-flex">
+        <MudSpacer></MudSpacer><MudLink Href="https://solar4car.com/Account/Register?returnUrl=https%3A%2F%2Fsolar4car.com%2Fsubscriptions" Target="_blank">Register</MudLink>
+    </div>
+
+}
+
+<h3>Tesla Fleet API Connection</h3>
+@if (FleetApiTokenState == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else
+{
+    <MudAlert Severity="@FleetApiTokenAlertSeverity"
+    NoIcon="true"
+    ShowCloseIcon="false">
+        <div>@FleetApiTokenStateText</div>
+    </MudAlert>
+    <div class="mt-2">
+        <RightAlignedButtonComponent OnButtonClicked="GenerateFleetApiToken"
+        ButtonText="Request Token"
+        IsLoading="@_fleetApiLoginIsLoading"
+        IsDisabled="@(BackendTokenState != TokenState.UpToDate)">
+        </RightAlignedButtonComponent>
+    </div>
+}
+
+
+@code {
+    private readonly DtoBackendLogin _backendLogin = new DtoBackendLogin();
+
+    private bool _backendLoginIsLoading;
+    private bool _fleetApiLoginIsLoading;
+
+    private string? LoginErrorMessage { get; set; }
+
+    private TokenState? BackendTokenState { get; set; }
+    private TokenState? FleetApiTokenState { get; set; }
+    private string? LoggedInUserName { get; set; }
+
+    private Severity BackendTokenAlertSeverity => BackendTokenState == TokenState.UpToDate ? Severity.Success : Severity.Error;
+    private Severity FleetApiTokenAlertSeverity => FleetApiTokenState == TokenState.UpToDate ? Severity.Success : Severity.Error;
+
+    private string BackendTokenStateText
+    {
+        get
+        {
+            switch (BackendTokenState)
+            {
+                case TokenState.MissingPrecondition:
+                    return "Could not check Token state. Is your TSC connected to the internet?";
+                case TokenState.NotAvailable:
+                    return "No Token found, login below to get a Backend Token";
+                case TokenState.Unauthorized:
+                    return "Your Backend Token is unauthorized. Reasons could be a changed Solar4Car.com password, a second TSC running with the same installation ID (displayed on the home page at the very bottom) or your TSC was not running for quite a while.";
+                case TokenState.MissingScopes:
+                    return "Your Backend Token has missing scopes";
+                case TokenState.Expired:
+                    return "Your Backend Token is expired, which means it could not be refreshed automatically. Reasons could be a changed Solar4Car.com password, a second TSC running with the same installation ID (displayed on the home page at the very bottom) or your TSC was not running for quite a while.";
+                case TokenState.UpToDate:
+                    return "You are connected to the backend, everything is working as expected.";
+                case null:
+                    return "Could not check Token state. Is your TSC connected to the internet?";
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+    }
+
+    private string FleetApiTokenStateText
+    {
+        get
+        {
+            switch (FleetApiTokenState)
+            {
+                case TokenState.MissingPrecondition:
+                    return "You are not logged in in the Solar4car.com account. When requesting a new Tesla Token there will also be a request to log in to your Solar4car.com account.";
+                case TokenState.NotAvailable:
+                    return "You did not request a Fleet API Token, yet. Request a new token, allow access to all scopes and enable mobile access in your car.";
+                case TokenState.Unauthorized:
+                    return "Your token is unauthorized. Request a new token, allow access to all scopes and enable mobile access in your car.";
+                case TokenState.MissingScopes:
+                    return "Your token has missing scopes. Request a new Token and allow all scopes (only required scopes are requested).";
+                case TokenState.Expired:
+                    return "Your Fleet API token is expired. Request a new Token and allow all scopes (only required scopes are requested).";
+                case TokenState.UpToDate:
+                    return "Everything is fine! If you want to generate a new token e.g. to switch to another Tesla Account please click the button below:";
+                case null:
+                    return "Could not check Token state. Is your TSC connected to the internet?";
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await RefreshData();
+
+    }
+
+    private async Task RefreshData()
+    {
+        BackendTokenState = await CloudConnectionCheckService.GetBackendTokenState(false);
+        LoggedInUserName = await CloudConnectionCheckService.GetBackendTokenUserName();
+        FleetApiTokenState = await CloudConnectionCheckService.GetFleetApiTokenState(false);
+    }
+
+    private async Task Submit()
+    {
+        _backendLoginIsLoading = true;
+        var result = await HttpClientHelper.SendPostRequestAsync("api/BackendApi/LoginToBackend", _backendLogin);
+        if (result.HasError)
+        {
+            LoginErrorMessage = result.ErrorMessage;
+            Snackbar.Add("Login did not succeed", Severity.Error);
+        }
+        else
+        {
+            LoginErrorMessage = default;
+            Snackbar.Add("Login succeeded", Severity.Success);
+        }
+
+        await RefreshData();
+        _backendLoginIsLoading = false;
+        StateHasChanged();
+    }
+
+    private void FakeLogout()
+    {
+        BackendTokenState = TokenState.NotAvailable;
+        LoggedInUserName = default;
+        StateHasChanged();
+    }
+
+    private async Task GenerateFleetApiToken()
+    {
+        _fleetApiLoginIsLoading = true;
+        var locale = CultureInfo.CurrentCulture.ToString();
+        if (BackendTokenState != TokenState.UpToDate)
+        {
+            Snackbar.Add("You need to be logged in to Solar4Car.com to generate a Fleet API Token", Severity.Error);
+            return;
+        }
+        var baseUrl = NavigationManager.BaseUri;
+        var url = await CloudConnectionCheckService.GetTeslaLoginUrl(locale, baseUrl + "cloudconnection");
+        if (string.IsNullOrEmpty(url))
+        {
+            Snackbar.Add("Could not generate Tesla Login URL", Severity.Error);
+            return;
+        }
+        NavigationManager.NavigateTo(url);
+    }
+
+}
