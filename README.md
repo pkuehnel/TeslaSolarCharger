@@ -30,6 +30,9 @@ TeslaSolarCharger is a service to set one or multiple Teslas' charging current.
 
 You can either install the software in a Docker container or download the binaries and deploy it on any server. In June 2024, Tesla implemented rate limits to their API, so there is a BLE (Bluetooth Low Energy, implemented since Bluetooth Version 4.0) capable device needed near the car. You can find details on how to set up BLE [here](#install-and-setup-ble-api).
 
+## How to migrate to subscription version
+Check out pricing on [Solar4Car.com](https://solar4car.com/) and the migration guide [here](https://www.youtube.com/watch?v=nVP0sEyPUL0).
+
 ### Docker compose
 
 The easiest way to use TeslaSolarCharger is with Docker.
