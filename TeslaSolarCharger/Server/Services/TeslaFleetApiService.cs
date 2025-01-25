@@ -937,15 +937,12 @@ public class TeslaFleetApiService(
             }
         }
 
-        if (fleetApiRequest.BleCompatible && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
+        if (fleetApiRequest.RequestUrl != VehicleRequest.RequestUrl && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
         {
-            if (!car.UseBle)
-            {
-                await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
-                    "Can not send Fleet API commands to car as Fleet API is not licensed",
-                    issueKeys.FleetApiNotLicensed, car.Vin, null).ConfigureAwait(false);
-            }
-            
+            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
+                "Can not send Fleet API commands to car as Fleet API is not licensed",
+                issueKeys.FleetApiNotLicensed, car.Vin, null).ConfigureAwait(false);
+
             logger.LogError("Can not send Fleet API commands to car {vin} as car is not licensed", car.Vin);
             return null;
         }
