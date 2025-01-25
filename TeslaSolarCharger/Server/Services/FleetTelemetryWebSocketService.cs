@@ -142,6 +142,7 @@ public class FleetTelemetryWebSocketService(
         using var client = new ClientWebSocket();
         try
         {
+            logger.LogInformation("Connecting Fleet Telemetry for car {vin}.", vin);
             client.Options.SetRequestHeader("Authorization", $"Bearer {authToken.AccessToken}");
             await client.ConnectAsync(new Uri(url), new CancellationTokenSource(_heartbeatsendTimeout).Token).ConfigureAwait(false);
             var cancellation = new CancellationTokenSource();
