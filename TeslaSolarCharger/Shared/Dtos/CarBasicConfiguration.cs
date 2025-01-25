@@ -61,7 +61,6 @@ public class CarBasicConfigurationValidator : AbstractValidator<CarBasicConfigur
                 .WithMessage("MaximumAmpere must be greater than MinimumAmpere.");
             RuleFor(x => x.UsableEnergy).GreaterThan(5);
             RuleFor(x => x.ChargingPriority).GreaterThan(0);
-            RuleFor(x => x.UseFleetTelemetry).Equal(true).WithMessage("Enabling Fleet Telemetry is required and will be autodisabled if your car does not support it.");
         });
         
     }
