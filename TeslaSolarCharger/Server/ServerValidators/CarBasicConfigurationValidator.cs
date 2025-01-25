@@ -58,15 +58,9 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
             });
 
 
-
-
             RuleFor(x => x.UseFleetTelemetry)
                 .CustomAsync(async (fleetTelemetryEnabled, context, cancellationToken) =>
                 {
-                    if (fleetTelemetryEnabled != true)
-                    {
-                        return;
-                    }
                     var tokenState = await tokenHelper.GetFleetApiTokenState(true);
                     if (tokenState != TokenState.UpToDate)
                     {
@@ -79,6 +73,10 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                     if (isCarFleetTelemetryHardwareIncompatible)
                     {
                         context.AddFailure("The selected car is not compatible with Fleet Telemetry. Please disable Fleet Telemetry.");
+                    }
+                    else if (fleetTelemetryEnabled != true)
+                    {
+                        context.AddFailure("Enabling Fleet Telemetry is required and will be autodisabled if your car does not support it");
                     }
                 });
 
