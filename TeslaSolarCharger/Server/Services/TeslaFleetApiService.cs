@@ -827,6 +827,18 @@ public class TeslaFleetApiService(
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {intParam})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, intParam);
+        var fleetTelemetryEnabled = await teslaSolarChargerContext.Cars
+            .Where(c => c.Vin == vin)
+            .Select(c => c.UseFleetTelemetry)
+            .FirstAsync();
+        if (fleetTelemetryEnabled)
+        {
+            if(!fleetTelemetryWebSocketService.IsClientConnected(vin))
+            {
+                logger.LogError("Do not send command to car {vin} as Fleet Telemetry is enabled but client is not connected", vin);
+                return null;
+            }
+        }
         if (await tokenHelper.GetBackendTokenState(true) != TokenState.UpToDate)
         {
             //Do not show base api not licensed error if not connected to backend
