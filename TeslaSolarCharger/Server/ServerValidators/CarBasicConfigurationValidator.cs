@@ -72,7 +72,10 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                         .FirstOrDefaultAsync();
                     if (isCarFleetTelemetryHardwareIncompatible)
                     {
-                        context.AddFailure("The selected car is not compatible with Fleet Telemetry. Please disable Fleet Telemetry.");
+                        if (fleetTelemetryEnabled)
+                        {
+                            context.AddFailure("The selected car is not compatible with Fleet Telemetry. Please disable Fleet Telemetry.");
+                        }
                     }
                     else if (fleetTelemetryEnabled != true)
                     {
