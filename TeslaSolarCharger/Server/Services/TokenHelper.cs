@@ -31,7 +31,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         }
         var state = await GetUncachedFleetApiTokenState().ConfigureAwait(false);
         memoryCache.Set(constants.FleetApiTokenStateKey, state.TokenState, GetCacheEntryOptions(state.ExpiresAtUtc));
-        memoryCache.Set(constants.FleetApiTokenExpirationTimeKey, state, GetCacheEntryOptions(state.ExpiresAtUtc));
+        memoryCache.Set(constants.FleetApiTokenExpirationTimeKey, state.ExpiresAtUtc, GetCacheEntryOptions(state.ExpiresAtUtc));
         return state.TokenState;
     }
 
@@ -45,7 +45,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
         }
         var state = await GetUncachedFleetApiTokenState().ConfigureAwait(false);
         memoryCache.Set(constants.FleetApiTokenStateKey, state.TokenState, GetCacheEntryOptions(state.ExpiresAtUtc));
-        memoryCache.Set(constants.FleetApiTokenExpirationTimeKey, state, GetCacheEntryOptions(state.ExpiresAtUtc));
+        memoryCache.Set(constants.FleetApiTokenExpirationTimeKey, state.ExpiresAtUtc, GetCacheEntryOptions(state.ExpiresAtUtc));
         return state.ExpiresAtUtc;
     }
 
