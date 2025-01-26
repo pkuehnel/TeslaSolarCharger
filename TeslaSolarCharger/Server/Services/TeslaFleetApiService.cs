@@ -116,11 +116,11 @@ public class TeslaFleetApiService(
     }
 
 
-    public async Task WakeUpCar(int carId)
+    public async Task WakeUpCar(int carId, bool isFleetApiTest)
     {
         logger.LogTrace("{method}({carId})", nameof(WakeUpCar), carId);
         var car = settings.Cars.First(c => c.Id == carId);
-        var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(car.Vin, WakeUpRequest).ConfigureAwait(false);
+        var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(car.Vin, WakeUpRequest, null, true).ConfigureAwait(false);
         if (car.TeslaMateCarId != default)
         {
             //ToDo: fix with https://github.com/pkuehnel/TeslaSolarCharger/issues/1511
@@ -165,10 +165,10 @@ public class TeslaFleetApiService(
         var inMemoryCar = settings.Cars.First(c => c.Id == carId);
         try
         {
-            await WakeUpCarIfNeeded(carId).ConfigureAwait(false);
+            await WakeUpCarIfNeeded(carId, true).ConfigureAwait(false);
             var amps = 7;
             var commandData = $"{{\"charging_amps\":{amps}}}";
-            var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps).ConfigureAwait(false);
+            var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps, true).ConfigureAwait(false);
             var successResult = result?.Response?.Result == true;
             var car = teslaSolarChargerContext.Cars.First(c => c.Id == carId);
             car.TeslaFleetApiState = successResult ? TeslaCarFleetApiState.Ok : TeslaCarFleetApiState.NotWorking;
@@ -797,7 +797,7 @@ public class TeslaFleetApiService(
         return chargingStartTime;
     }
 
-    private async Task WakeUpCarIfNeeded(int carId)
+    private async Task WakeUpCarIfNeeded(int carId, bool isFleetApiTest = false)
     {
         logger.LogTrace("{method}({carId})", nameof(WakeUpCarIfNeeded), carId);
         var car = settings.Cars.First(c => c.Id == carId);
@@ -810,7 +810,7 @@ public class TeslaFleetApiService(
         {
             case CarStateEnum.Offline or CarStateEnum.Asleep:
                 logger.LogInformation("Wakeup car.");
-                await WakeUpCar(carId).ConfigureAwait(false);
+                await WakeUpCar(carId, isFleetApiTest).ConfigureAwait(false);
                 break;
             case CarStateEnum.Suspended:
                 logger.LogInformation("Resume logging as is suspended");
@@ -824,14 +824,14 @@ public class TeslaFleetApiService(
         }
     }
 
-    private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null) where T : class
+    private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null, bool isFleetApiTest = false) where T : class
     {
         logger.LogTrace("{method}({vin}, {@fleetApiRequest}, {intParam})", nameof(SendCommandToTeslaApi), vin, fleetApiRequest, intParam);
         var fleetTelemetryEnabled = await teslaSolarChargerContext.Cars
             .Where(c => c.Vin == vin)
             .Select(c => c.UseFleetTelemetry)
             .FirstAsync();
-        if (fleetTelemetryEnabled)
+        if (!isFleetApiTest && fleetTelemetryEnabled)
         {
             if(!fleetTelemetryWebSocketService.IsClientConnected(vin))
             {
@@ -856,7 +856,7 @@ public class TeslaFleetApiService(
         await errorHandlingService.HandleErrorResolved(issueKeys.BaseAppNotLicensed, null);
 
         var car = settings.Cars.First(c => c.Vin == vin);
-        if (fleetApiRequest.BleCompatible)
+        if (!isFleetApiTest && fleetApiRequest.BleCompatible)
         {
             
             var isCarBleEnabled = car.UseBle;
@@ -949,7 +949,7 @@ public class TeslaFleetApiService(
             }
         }
 
-        if (fleetApiRequest.RequestUrl != VehicleRequest.RequestUrl && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
+        if (!isFleetApiTest && fleetApiRequest.RequestUrl != VehicleRequest.RequestUrl && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
         {
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
                 "Can not send Fleet API commands to car as Fleet API is not licensed",
