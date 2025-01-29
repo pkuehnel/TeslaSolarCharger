@@ -960,6 +960,16 @@ public class TeslaFleetApiService(
         }
         await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
 
+        if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
+        {
+            var lastWakeUp = car.WakeUpCalls.OrderByDescending(c => c).FirstOrDefault();
+            if (lastWakeUp != default && lastWakeUp > dateTimeProvider.UtcNow().AddMinutes(-30))
+            {
+                logger.LogDebug("Do not send wake up command as last wake up was at {lastWakeUp}", lastWakeUp);
+                return null;
+            }
+        }
+
         var accessToken = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
         if (accessToken == default)
         {
