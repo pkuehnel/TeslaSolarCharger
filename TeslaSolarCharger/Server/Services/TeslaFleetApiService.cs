@@ -963,10 +963,10 @@ public class TeslaFleetApiService(
         if (fleetApiRequest.RequestUrl == WakeUpRequest.RequestUrl)
         {
             var lastWakeUp = car.WakeUpCalls.OrderByDescending(c => c).FirstOrDefault();
-            if (lastWakeUp != default && lastWakeUp > dateTimeProvider.UtcNow().AddMinutes(20))
+            if (lastWakeUp != default && lastWakeUp > dateTimeProvider.UtcNow().AddMinutes(-30))
             {
                 logger.LogDebug("Do not send wake up command as last wake up was at {lastWakeUp}", lastWakeUp);
-                throw new InvalidOperationException("Do not send wake up command as last wake up was at " + lastWakeUp);
+                return null;
             }
         }
 
