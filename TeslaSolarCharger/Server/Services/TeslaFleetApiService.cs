@@ -1254,7 +1254,7 @@ public class TeslaFleetApiService(
                 return Fin<List<DtoTesla>>.Fail($"Could not deserialize response body");
             }
 
-            if (teslaBackendResult.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices)
+            if (!(teslaBackendResult.StatusCode is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices))
             {
                 logger.LogError("Error while getting all cars from account due to communication issue between Solar4Car Backend and Tesla: Underlaying Status code: {statusCode}; Underlaying Result: {jsonResult}", teslaBackendResult.StatusCode, teslaBackendResult.JsonResponse);
                 var excpetion = new HttpRequestException($"Requesting {requestUri} returned following statusCode: {teslaBackendResult.StatusCode} Underlaying result: {teslaBackendResult.JsonResponse}", null,
