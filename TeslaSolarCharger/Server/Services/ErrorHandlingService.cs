@@ -433,7 +433,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
         var backendTokenState = await tokenHelper.GetBackendTokenState(true);
         var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
-        await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "Backen API Token not up to date",
+        await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "Backend API Token not up to date",
             "You are currently not connected to the backend. Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
             backendTokenState != TokenState.UpToDate).ConfigureAwait(false);
         await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
