@@ -57,7 +57,7 @@ public class CarBasicConfigurationValidator : AbstractValidator<CarBasicConfigur
             RuleFor(x => x.MaximumAmpere).GreaterThan(0);
             RuleFor(x => x.MaximumAmpere).LessThanOrEqualTo(64);
             RuleFor(x => x)
-                .Must(config => config.MaximumAmpere > config.MinimumAmpere)
+                .Must(config => config.MaximumAmpere >= config.MinimumAmpere)
                 .WithMessage("MaximumAmpere must be greater than MinimumAmpere.");
             RuleFor(x => x.UsableEnergy).GreaterThan(5);
             RuleFor(x => x.ChargingPriority).GreaterThan(0);
