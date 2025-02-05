@@ -13,7 +13,6 @@ public interface IErrorHandlingService
     Task HandleErrorResolved(string issueKey, string? vin);
     Task SendTelegramMessages();
     Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors();
-    Task DetectErrors();
     Task<DtoValue<int>> ErrorCount();
     Task<DtoValue<int>> WarningCount();
     Task<Fin<int>> DismissError(int errorIdValue);

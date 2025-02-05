@@ -111,6 +111,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IBackendNotificationService, BackendNotificationService>()
             .AddTransient<ICarConfigurationService, CarConfigurationService>()
             .AddTransient<IErrorHandlingService, ErrorHandlingService>()
+            .AddTransient<IErrorDetectionService, ErrorDetectionService>()
             .AddTransient<ITeslaMateDbContextWrapper, TeslaMateDbContextWrapper>()
             .AddTransient<ITeslaService, TeslaFleetApiService>()
             .AddTransient<IPasswordGenerationService, PasswordGenerationService>()
