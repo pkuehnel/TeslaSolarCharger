@@ -24,7 +24,8 @@ public class FleetTelemetryWebSocketService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider,
-    ISettings settings) : IFleetTelemetryWebSocketService
+    ISettings settings,
+    IBackendApiService backendApiService) : IFleetTelemetryWebSocketService
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
@@ -52,6 +53,11 @@ public class FleetTelemetryWebSocketService(
                         && (c.IsFleetTelemetryHardwareIncompatible == false))
             .Select(c => new { c.Vin, IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields, })
             .ToListAsync();
+        if (cars.Any() && (!await backendApiService.IsBaseAppLicensed(true)))
+        {
+            logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
+            return;
+        }
         var bytesToSend = Encoding.UTF8.GetBytes("Heartbeat");
         foreach (var car in cars)
         {
@@ -60,6 +66,11 @@ public class FleetTelemetryWebSocketService(
                 continue;
             }
 
+            if (car.IncludeTrackingRelevantFields && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
+            {
+                logger.LogWarning("Car {vin} is not licensed for Fleet API, do not connect as IncludeTrackingRelevant fields is enabled", car.Vin);
+                continue;
+            }
             var existingClient = Clients.FirstOrDefault(c => c.Vin == car.Vin);
             if (existingClient != default)
             {
