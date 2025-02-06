@@ -153,6 +153,7 @@ public class BackendApiService(
         token.RefreshToken = newToken.RefreshToken;
         token.ExpiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(newToken.ExpiresAt);
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        logger.LogInformation("Backend token refreshed.");
         memoryCache.Remove(constants.BackendTokenStateKey);
     }
 

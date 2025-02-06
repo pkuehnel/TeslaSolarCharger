@@ -21,11 +21,7 @@ namespace TeslaSolarCharger.Server.Services;
 
 public class FleetTelemetryWebSocketService(
     ILogger<FleetTelemetryWebSocketService> logger,
-    IConfigurationWrapper configurationWrapper,
-    IDateTimeProvider dateTimeProvider,
-    IServiceProvider serviceProvider,
-    ISettings settings,
-    IBackendApiService backendApiService) : IFleetTelemetryWebSocketService
+    IServiceProvider serviceProvider) : IFleetTelemetryWebSocketService
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
@@ -44,6 +40,8 @@ public class FleetTelemetryWebSocketService(
         logger.LogTrace("{method}", nameof(ReconnectWebSocketsForEnabledCars));
         var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
+        var backendApiService = scope.ServiceProvider.GetRequiredService<IBackendApiService>();
+        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         var cars = await context.Cars
             .Where(c => c.UseFleetTelemetry
                         && (c.ShouldBeManaged == true)
@@ -131,11 +129,13 @@ public class FleetTelemetryWebSocketService(
     private async Task ConnectToFleetTelemetryApi(string vin, bool includeTrackingRelevantFields)
     {
         logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);
-        var currentDate = dateTimeProvider.UtcNow();
         var scope = serviceProvider.CreateScope();
+        var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+        var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
         var tscConfigurationService = scope.ServiceProvider.GetRequiredService<ITscConfigurationService>();
         var constants = scope.ServiceProvider.GetRequiredService<IConstants>();
+        var currentDate = dateTimeProvider.UtcNow();
         var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
         if (decryptionKey == default)
         {
@@ -202,6 +202,9 @@ public class FleetTelemetryWebSocketService(
             try
             {
                 // Receive message from the WebSocket server
+                var scope = serviceProvider.CreateScope();
+                var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+                var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
                 logger.LogTrace("Waiting for new fleet telemetry message for car {vin}", vin);
                 var result = await client.WebSocketClient.ReceiveAsync(new(buffer), client.CancellationToken);
                 logger.LogTrace("Received new fleet telemetry message for car {vin}", vin);
@@ -249,7 +252,7 @@ public class FleetTelemetryWebSocketService(
                         logger.LogDebug("Save location message for car {carId}", carId);
                     }
 
-                    var scope = serviceProvider.CreateScope();
+                    
                     var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
                     var carValueLog = new CarValueLog
                     {
@@ -268,6 +271,7 @@ public class FleetTelemetryWebSocketService(
                     await context.SaveChangesAsync().ConfigureAwait(false);
                     if (configurationWrapper.GetVehicleDataFromTesla())
                     {
+                        var settings = scope.ServiceProvider.GetRequiredService<ISettings>();
                         var settingsCar = settings.Cars.First(c => c.Vin == vin);
                         string? propertyName = null;
                         switch (message.Type)
