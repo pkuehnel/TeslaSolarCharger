@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
@@ -65,8 +65,6 @@
 		<PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
 		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-		<PackageReference Include="Serilog.Sinks.Seq" Version="8.0.0" />
 		<PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Mvc" Version="1.4.0" />
 		<PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Shared" Version="1.4.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
@@ -74,6 +72,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\PkSoftwareService.Custom.Backend\PkSoftwareService.Custom.Backend.csproj" />
 		<ProjectReference Include="..\..\TeslaSolarCharger.Model\TeslaSolarCharger.Model.csproj" />
 		<ProjectReference Include="..\..\TeslaSolarCharger.Services\TeslaSolarCharger.Services.csproj" />
 		<ProjectReference Include="..\..\TeslaSolarCharger.SharedBackend\TeslaSolarCharger.SharedBackend.csproj" />

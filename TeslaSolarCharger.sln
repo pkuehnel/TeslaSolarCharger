@@ -33,6 +33,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeslaSolarCharger.SharedMod
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeslaSolarCharger.Services", "TeslaSolarCharger.Services\TeslaSolarCharger.Services.csproj", "{21A8DB64-E449-474E-94DD-360C30D1756A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PkSoftwareService.Custom.Backend", "PkSoftwareService.Custom.Backend\PkSoftwareService.Custom.Backend.csproj", "{B9331EFC-2B31-4447-B6C3-3E898B560946}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,10 @@ Global
 		{21A8DB64-E449-474E-94DD-360C30D1756A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21A8DB64-E449-474E-94DD-360C30D1756A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21A8DB64-E449-474E-94DD-360C30D1756A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9331EFC-2B31-4447-B6C3-3E898B560946}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9331EFC-2B31-4447-B6C3-3E898B560946}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9331EFC-2B31-4447-B6C3-3E898B560946}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9331EFC-2B31-4447-B6C3-3E898B560946}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

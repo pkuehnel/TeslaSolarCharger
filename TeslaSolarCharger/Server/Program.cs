@@ -1,7 +1,10 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using PkSoftwareService.Custom.Backend;
 using Serilog;
 using Serilog.Context;
+using Serilog.Core;
+using Serilog.Events;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Interceptors;
 using System.Reflection;
@@ -42,18 +45,31 @@ builder.Services.AddMyDependencies();
 builder.Services.AddSharedDependencies();
 builder.Services.AddServicesDependencies();
 
-builder.Host.UseSerilog((context, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration));
-
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
 
+builder.Host.UseSerilog();
+const string outputTemplate = "[{Timestamp:dd-MMM-yyyy HH:mm:ss.fff} {Level:u3} {SourceContext}] {Message:lj}{NewLine}{Exception}";
+var inMemoryLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Verbose);
+var inMemorySink = new InMemorySink(outputTemplate);
+
+builder.Services.AddSingleton(inMemoryLevelSwitch);
+builder.Services.AddSingleton(inMemorySink);
 
 var app = builder.Build();
 
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(app.Services.GetRequiredService<IConfiguration>())
-    .Enrich.FromLogContext()
+    .MinimumLevel.Verbose()// overall minimum
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("System", LogEventLevel.Error)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+    .MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
+    .MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
+    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Debug)
+    // Send events to the in–memory sink using a sub–logger and the dynamic level switch.
+    .WriteTo.Logger(lc => lc
+        .MinimumLevel.ControlledBy(inMemoryLevelSwitch)
+        .WriteTo.Sink(inMemorySink))
     .CreateLogger();
 
 
