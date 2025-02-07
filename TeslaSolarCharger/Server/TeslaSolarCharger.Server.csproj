@@ -65,6 +65,7 @@
 		<PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
 		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+		<PackageReference Include="Serilog.Sinks.Seq" Version="8.0.0" />
 		<PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Mvc" Version="1.4.0" />
 		<PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Shared" Version="1.4.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
