@@ -21,7 +21,7 @@ public class DebugController(InMemorySink inMemorySink, Serilog.Core.LoggingLeve
         var bytes = Encoding.UTF8.GetBytes(content);
 
         // Return the file with the appropriate content type and file name.
-        return File(bytes, "text/plain", "logs.txt");
+        return File(bytes, "text/plain", "logs.log");
     }
 
     /// <summary>
