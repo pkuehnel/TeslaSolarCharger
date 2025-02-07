@@ -72,6 +72,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\PkSoftwareService.Custom.Backend\PkSoftwareService.Custom.Backend.csproj" />
 		<ProjectReference Include="..\..\TeslaSolarCharger.Model\TeslaSolarCharger.Model.csproj" />
 		<ProjectReference Include="..\..\TeslaSolarCharger.Services\TeslaSolarCharger.Services.csproj" />
 		<ProjectReference Include="..\..\TeslaSolarCharger.SharedBackend\TeslaSolarCharger.SharedBackend.csproj" />
