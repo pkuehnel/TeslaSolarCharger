@@ -115,7 +115,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<ITeslaMateDbContextWrapper, TeslaMateDbContextWrapper>()
             .AddTransient<ITeslaService, TeslaFleetApiService>()
             .AddTransient<IPasswordGenerationService, PasswordGenerationService>()
-            .AddTransient<ILogService, LogService>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
