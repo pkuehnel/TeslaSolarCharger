@@ -161,7 +161,7 @@ else
             <GenericInput For="() => _dtoBaseConfiguration.SendStackTraceToTelegram"></GenericInput>
             <RightAlignedButtonComponent ButtonText="Send test message"
             IsDisabled="_telegramSettingsChanged"
-            DisableToolTipText="You need to save the configuration before testing it."
+            DisabledToolTipText="You need to save the configuration before testing it."
             OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
         </div>
 

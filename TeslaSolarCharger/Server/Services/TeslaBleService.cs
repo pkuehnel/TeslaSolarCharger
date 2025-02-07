@@ -200,8 +200,11 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         }
         var url = baseUrl + "Hello/TscVersionCompatibility";
         using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(3);
-        var vins = settings.Cars.Where(c => c.BleApiBaseUrl == host && c.UseBle).Select(c => c.Vin).ToList();
+        client.Timeout = TimeSpan.FromSeconds(5);
+        var vins = settings.Cars
+            .Where(c => c.BleApiBaseUrl == host && c.UseBle && (c.ShouldBeManaged == true))
+            .Select(c => c.Vin)
+            .ToList();
         try
         {
             var response = await client.GetAsync(url).ConfigureAwait(false);

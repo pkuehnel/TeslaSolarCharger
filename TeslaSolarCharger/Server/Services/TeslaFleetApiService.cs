@@ -120,7 +120,7 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({carId})", nameof(WakeUpCar), carId);
         var car = settings.Cars.First(c => c.Id == carId);
-        var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(car.Vin, WakeUpRequest, null, true).ConfigureAwait(false);
+        var result = await SendCommandToTeslaApi<DtoVehicleWakeUpResult>(car.Vin, WakeUpRequest, null, isFleetApiTest).ConfigureAwait(false);
         if (car.TeslaMateCarId != default)
         {
             //ToDo: fix with https://github.com/pkuehnel/TeslaSolarCharger/issues/1511
@@ -949,7 +949,9 @@ public class TeslaFleetApiService(
             }
         }
 
-        if (!isFleetApiTest && fleetApiRequest.RequestUrl != VehicleRequest.RequestUrl && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
+        if (!isFleetApiTest
+            && (fleetApiRequest.RequestUrl != VehicleRequest.RequestUrl)
+            && (!await backendApiService.IsFleetApiLicensed(car.Vin, true)))
         {
             await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), $"Fleet API not licensed for car {car.Vin}",
                 "Can not send Fleet API commands to car as Fleet API is not licensed",

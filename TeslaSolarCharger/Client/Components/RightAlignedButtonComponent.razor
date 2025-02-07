@@ -1,23 +1,23 @@
 ﻿<MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
-    @if (IsDisabled && !string.IsNullOrEmpty(DisableToolTipText))
+    @if (IsDisabled && !string.IsNullOrEmpty(DisabledToolTipText))
     {
         <MudTooltip>
             <ChildContent>
-                <MudButton Color="Color.Primary"
+                <MudButton Color="@ButtonColor"
                            Variant="Variant.Filled"
                            StartIcon="@StartIcon"
                            Disabled="true"
                            ButtonType="ButtonType">@ButtonText</MudButton>
             </ChildContent>
             <TooltipContent>
-                @DisableToolTipText
+                @DisabledToolTipText
             </TooltipContent>
         </MudTooltip>
     }
     else
     {
         <MudButton Disabled="IsLoading || IsDisabled"
-                   Color="Color.Primary"
+                   Color="@ButtonColor"
                    Variant="Variant.Filled"
                    StartIcon="@StartIcon"
                    OnClick="AddButtonClicked"
@@ -44,9 +44,12 @@
     [Parameter]
     public string StartIcon { get; set; }
     [Parameter]
-    public string? DisableToolTipText { get; set; }
+    public string? DisabledToolTipText { get; set; }
     [Parameter]
     public bool IsLoading { get; set; }
+
+    [Parameter]
+    public Color ButtonColor { get; set; } = Color.Primary;
 
     [Parameter]
     public ButtonType ButtonType { get; set; } = ButtonType.Button;
