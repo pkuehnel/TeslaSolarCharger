@@ -49,7 +49,7 @@ public class InMemorySink : ILogEventSink
     {
         lock (_syncRoot)
         {
-            return _logMessages.ToList();
+            return _logMessages.Select(x => x.Trim()).ToList();
         }
     }
 
