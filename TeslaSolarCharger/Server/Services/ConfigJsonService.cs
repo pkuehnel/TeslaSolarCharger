@@ -360,6 +360,27 @@ public class ConfigJsonService(
                 OtherCommandCalls = c.OtherCommandCalls,
             })
             .ToListAsync().ConfigureAwait(false);
+        var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
+        if (configurationWrapper.UseTeslaMateIntegration() && (teslaMateContext != default))
+        {
+            foreach (var car in cars)
+            {
+                if (!string.IsNullOrEmpty(car.Vin))
+                {
+                    var teslaMateCarId = await teslaMateContext.Cars
+                        .Where(c => c.Vin == car.Vin)
+                        .Select(c => c.Id)
+                        .FirstOrDefaultAsync();
+                    if (teslaMateCarId != default && car.TeslaMateCarId != teslaMateCarId)
+                    {
+                        var dbCar = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == car.Id);
+                        dbCar.TeslaMateCarId = teslaMateCarId;
+                        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+                        car.TeslaMateCarId = teslaMateCarId;
+                    }
+                }
+            }
+        }
         foreach (var car in cars)
         {
             var fleetTelemetryConfiguration = await teslaSolarChargerContext.Cars
