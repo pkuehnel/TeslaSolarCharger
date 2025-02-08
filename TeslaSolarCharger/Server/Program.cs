@@ -163,12 +163,14 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             }
         }
 
-
-
         var tscConfigurationService = webApplication.Services.GetRequiredService<ITscConfigurationService>();
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var backendApiService = webApplication.Services.GetRequiredService<IBackendApiService>();
         var version = await backendApiService.GetCurrentVersion().ConfigureAwait(false);
+        if (version != default && version.Contains('-'))
+        {
+            settings.IsPreRelease = true;
+        }
         LogContext.PushProperty("InstallationId", installationId);
         LogContext.PushProperty("Version", version);
 
