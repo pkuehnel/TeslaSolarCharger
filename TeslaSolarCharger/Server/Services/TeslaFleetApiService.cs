@@ -421,6 +421,10 @@ public class TeslaFleetApiService(
             else
             {
                 carStateLog.BooleanValue = false;
+                if (car.State == CarStateEnum.Asleep || car.State == CarStateEnum.Offline)
+                {
+                    car.State = CarStateEnum.Online;
+                }
             }
             teslaSolarChargerContext.CarValueLogs.Add(carStateLog);
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
