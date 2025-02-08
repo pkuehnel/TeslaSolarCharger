@@ -1,12 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using PkSoftwareService.Custom.Backend;
 using Serilog.Events;
 using System.Text;
+using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class DebugController(InMemorySink inMemorySink, Serilog.Core.LoggingLevelSwitch inMemoryLogLevelSwitch/*chaning log level switch is not tested*/) : ApiBaseController
+public class DebugController(InMemorySink inMemorySink,
+    Serilog.Core.LoggingLevelSwitch inMemoryLogLevelSwitch,
+    IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,/*chaning log level switch is not tested*/
+    ISettings settings,
+    IDebugService debugService) : ApiBaseController
 {
     [HttpGet]
     public IActionResult DownloadLogs()
@@ -38,5 +46,20 @@ public class DebugController(InMemorySink inMemorySink, Serilog.Core.LoggingLeve
         }
         inMemoryLogLevelSwitch.MinimumLevel = newLevel;
         return Ok($"In-memory sink log level changed to {newLevel}");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetFleetTelemetryConfiguration(string vin)
+    {
+        var config = await fleetTelemetryConfigurationService.GetFleetTelemetryConfiguration(vin);
+        var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
+        return Ok(new DtoValue<string>(configString));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetCars()
+    {
+        var cars = await debugService.GetCars();
+        return Ok(cars);
     }
 }
