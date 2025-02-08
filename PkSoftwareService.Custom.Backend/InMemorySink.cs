@@ -17,7 +17,7 @@ public class InMemorySink : ILogEventSink
     /// <param name="outputTemplate">The output template (should match your Console sink).</param>
     /// <param name="formatProvider">Optional format provider.</param>
     /// <param name="capacity">Max number of messages to store.</param>
-    public InMemorySink(string outputTemplate, IFormatProvider? formatProvider = null, int capacity = 10000)
+    public InMemorySink(string outputTemplate, IFormatProvider? formatProvider = null, int capacity = 20000)
     {
         _capacity = capacity;
         _logMessages = new Queue<string>(capacity);
