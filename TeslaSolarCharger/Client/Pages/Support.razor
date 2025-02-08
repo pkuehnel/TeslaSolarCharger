@@ -1,4 +1,10 @@
 ﻿@page "/support"
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.Support
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ISnackbar Snackbar
 
 <h1>Support</h1>
 
@@ -11,6 +17,76 @@
 
 <MudLink Href="api/Debug/DownloadLogs">Download Logs</MudLink>
 
-@code {
+<h2>Car Debug Details</h2>
+@if (_debugCars == default)
+{
+    <PlaceholderComponent Count="3"></PlaceholderComponent>
+}
+else
+{
+    <MudExpansionPanels MultiExpansion="true">
+        @foreach (var car in _debugCars)
+        {
+            <MudExpansionPanel Text="@car.Value.Name">
+                <div>ID: @car.Key</div>
+                <div>VIN: @car.Value.Vin</div>
+                <div>Name: @car.Value.Name</div>
 
+                <h3>Fleet Telemetry Config</h3>
+                @if (car.Value.Vin != default && _fleetTelemetryConfigs.TryGetValue(car.Value.Vin, out var config))
+                {
+                    <pre>@config</pre>
+                }
+
+                <RightAlignedButtonComponent ButtonText="Get Fleet Telemetry Config"
+                                             IsLoading="@_isFleetTelemetryLoading"
+                                             IsDisabled="@(car.Value.Vin == default)"
+                                             OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Value.Vin))"></RightAlignedButtonComponent>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
+
+
+@code {
+    private readonly Dictionary<string, string> _fleetTelemetryConfigs = new();
+
+    private Dictionary<int, DtoDebugCar>? _debugCars;
+
+    private bool _isFleetTelemetryLoading;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cars = await HttpClientHelper.SendGetRequestWithSnackbarAsync<Dictionary<int, DtoDebugCar>>("api/Debug/GetCars");
+        if (cars != default)
+        {
+            _debugCars = cars;
+        }
+    }
+
+
+    private async Task GetFleetTelemetryConfig(string? vin)
+    {
+        if (vin == default)
+        {
+            Snackbar.Add("VIN is unknown", Severity.Error);
+            return;
+        }
+
+        _isFleetTelemetryLoading = true;
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>($"api/Config/GetFleetTelemetryConfiguration?vin={Uri.EscapeDataString(vin)}");
+        string stringToDisplay;
+        if (result.HasError)
+        {
+            stringToDisplay = result.ErrorMessage ?? "No error message";
+        }
+        else
+        {
+            stringToDisplay = result.Data?.Value ?? "No data";
+        }
+        _fleetTelemetryConfigs[vin] = stringToDisplay;
+        _isFleetTelemetryLoading = false;
+    }
 }
