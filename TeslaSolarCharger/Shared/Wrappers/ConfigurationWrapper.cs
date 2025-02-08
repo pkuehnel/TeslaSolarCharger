@@ -209,6 +209,11 @@ public class ConfigurationWrapper(
     public string BackendApiBaseUrl()
     {
         var environmentVariableName = "BackendApiBaseUrl";
+        var useBetaEndpoints = configuration.GetValue<bool>("UseBetaEndpoints");
+        if (useBetaEndpoints)
+        {
+            environmentVariableName = "Beta" + environmentVariableName;
+        }
         var value = configuration.GetValue<string>(environmentVariableName);
         return value;
     }
@@ -216,6 +221,11 @@ public class ConfigurationWrapper(
     public string FleetTelemetryApiUrl()
     {
         var environmentVariableName = "FleetTelemetryApiUrl";
+        var useBetaEndpoints = configuration.GetValue<bool>("UseBetaEndpoints");
+        if (useBetaEndpoints)
+        {
+            environmentVariableName = "Beta" + environmentVariableName;
+        }
         var value = configuration.GetValue<string>(environmentVariableName);
         return value;
     }
