@@ -51,7 +51,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValida
 builder.Host.UseSerilog();
 const string outputTemplate = "[{Timestamp:dd-MMM-yyyy HH:mm:ss.fff} {Level:u3} {SourceContext}] {Message:lj}{NewLine}{Exception}";
 var inMemoryLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Verbose);
-var inMemorySink = new InMemorySink(outputTemplate);
+var inMemorySink = new InMemorySink(outputTemplate, capacity: 20000);
 
 builder.Services.AddSingleton(inMemoryLevelSwitch);
 builder.Services.AddSingleton(inMemorySink);
