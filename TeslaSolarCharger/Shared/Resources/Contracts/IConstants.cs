@@ -44,4 +44,5 @@ public interface IConstants
     string BackendTokenStateKey { get; }
     string IsBaseAppLicensedKey { get; }
     string IsFleetApiLicensedKey { get; }
+    string FleetTelemetryConfigurationExpiryKey { get; }
 }

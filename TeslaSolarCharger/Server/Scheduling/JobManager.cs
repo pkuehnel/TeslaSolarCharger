@@ -101,6 +101,8 @@ public class JobManager(
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(59)).Build();
 
         var fleetApiTokenRefreshTrigger = TriggerBuilder.Create().WithIdentity("fleetApiTokenRefreshTrigger")
+            //start 5 seconds later, so backend token is already refreshed
+            .StartAt(currentDate.AddSeconds(5))
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(58)).Build();
 
         var vehicleDataRefreshTrigger = TriggerBuilder.Create().WithIdentity("vehicleDataRefreshTrigger")
@@ -118,12 +120,13 @@ public class JobManager(
 
         var errorDetectionTrigger = TriggerBuilder.Create()
             .WithIdentity("errorDetectionTrigger")
-            .StartAt(latestTriggerStartTime.Add(TimeSpan.FromSeconds(5)))
+            .StartAt(latestTriggerStartTime.Add(TimeSpan.FromSeconds(12)))
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(62)).Build();
 
         var bleApiVersionDetectionTrigger = TriggerBuilder.Create().WithIdentity("bleApiVersionDetectionTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(61)).Build();
         var fleetTelemetryReconnectionTrigger = TriggerBuilder.Create().WithIdentity("fleetTelemetryReconnectionTrigger")
+            .StartAt(currentDate.AddSeconds(10))
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(61)).Build();
 
         var random = new Random();
