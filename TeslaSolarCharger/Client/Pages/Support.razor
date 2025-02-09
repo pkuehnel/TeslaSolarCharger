@@ -31,6 +31,8 @@ else
                 <div>ID: @car.Key</div>
                 <div>VIN: @car.Value.Vin</div>
                 <div>Name: @car.Value.Name</div>
+                <div>Is Available in Tesla account: @car.Value.IsAvailableInTeslaAccount</div>
+                <div>Should be managed: @car.Value.ShouldBeManaged</div>
 
                 <h3>Fleet Telemetry Config</h3>
                 @if (car.Value.Vin != default && _fleetTelemetryConfigs.TryGetValue(car.Value.Vin, out var config))
