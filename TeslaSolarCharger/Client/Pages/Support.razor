@@ -42,7 +42,8 @@ else
 
                 <RightAlignedButtonComponent ButtonText="Get Fleet Telemetry Config"
                                              IsLoading="@_isFleetTelemetryLoading"
-                                             IsDisabled="@(car.Value.Vin == default)"
+                                             IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
                                              OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Value.Vin))"></RightAlignedButtonComponent>
             </MudExpansionPanel>
         }
