@@ -388,22 +388,27 @@ public class FleetTelemetryWebSocketService(
             {
                 continue;
             }
-            logger.LogInformation("Set Fleet API state for car {vin} to not working", vin);
+            logger.LogError("Set Fleet API state for car {vin} to not working", vin);
             car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
             await context.SaveChangesAsync();
         }
 
         foreach (var vin in message.UnsupportedFirmwareVins)
         {
-            logger.LogInformation("Disable Fleet Telemetry for car {vin} as firmware is not supported", vin);
+            logger.LogError("Disable Fleet Telemetry for car {vin} as firmware is not supported", vin);
             await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
         }
 
         foreach (var vin in message.UnsupportedHardwareVins)
         {
-            logger.LogInformation("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
+            logger.LogError("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
             await SetCarToFleetTelemetryHardwareIncompatible(vin).ConfigureAwait(false);
             await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
+        }
+
+        foreach (var vin in message.MaxConfigsVins)
+        {
+            logger.LogError("Car {vin} has already has max allowed Fleet Telemetry configs", vin);
         }
 
         return true;
