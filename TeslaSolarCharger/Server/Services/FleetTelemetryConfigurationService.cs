@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
+using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -36,5 +37,66 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
             throw new InvalidOperationException("No data returned from backend");
         }
         return result.Data;
+    }
+
+    public async Task<DtoFleetTelemetryConfigurationResult> SetFleetTelemetryConfiguration(string vin, bool forceReconfiguration)
+    {
+        logger.LogTrace("{method}({vin}, {forceReconfiguration})", nameof(SetFleetTelemetryConfiguration), vin, forceReconfiguration);
+        var carSettings = teslaSolarChargerContext.Cars
+            .Where(c => c.Vin == vin)
+            .Select(c =>  new
+            {
+                c.IncludeTrackingRelevantFields,
+                c.IsFleetTelemetryHardwareIncompatible,
+            })
+            .FirstOrDefault();
+        if (carSettings == default)
+        {
+            return new DtoFleetTelemetryConfigurationResult
+            {
+                Success = false,
+                ErrorMessage = "Car not found in local TSC database",
+            };
+        }
+
+        if (carSettings.IsFleetTelemetryHardwareIncompatible)
+        {
+            return new DtoFleetTelemetryConfigurationResult
+            {
+                Success = false,
+                ErrorMessage = "Car hardware is not compatible with fleet telemetry",
+                ConfigurationErrorType = TeslaFleetTelemetryConfigurationErrorType.UnsupportedHardware,
+            };
+        }
+
+        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
+        //Fleet API Proxy is required to set fleet Telemetry configuration
+        var fleetApiProxyRequired = true;
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            throw new InvalidOperationException("Decryption key not found do not send command");
+        }
+        var result = await backendApiService.SendRequestToBackend<DtoFleetTelemetryConfigurationResult>(HttpMethod.Post, token.AccessToken,
+            $"FleetTelemetryConfiguration/SetFleetTelemetryConfiguration?encryptionKey={Uri.EscapeDataString(decryptionKey)}&vin={vin}&carRequiresProxy={fleetApiProxyRequired}&includeTrackingRelevantFields={carSettings.IncludeTrackingRelevantFields}&forceReconfiguration={forceReconfiguration}", null);
+        if (result.HasError)
+        {
+            return new DtoFleetTelemetryConfigurationResult
+            {
+                Success = false,
+                ErrorMessage = result.ErrorMessage,
+            };
+        }
+        var cloudData = result.Data;
+        if (cloudData == default)
+        {
+            return new DtoFleetTelemetryConfigurationResult
+            {
+                Success = false,
+                ErrorMessage = "No data returned from backend",
+            };
+        }
+        return cloudData;
     }
 }

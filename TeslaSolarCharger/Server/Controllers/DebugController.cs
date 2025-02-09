@@ -57,6 +57,14 @@ public class DebugController(InMemorySink inMemorySink,
     }
 
     [HttpGet]
+    public async Task<IActionResult> SetFleetTelemetryConfiguration(string vin, bool forceReconfiguration)
+    {
+        var config = await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(vin, forceReconfiguration);
+        var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
+        return Ok(new DtoValue<string>(configString));
+    }
+
+    [HttpGet]
     public async Task<IActionResult> GetCars()
     {
         var cars = await debugService.GetCars();

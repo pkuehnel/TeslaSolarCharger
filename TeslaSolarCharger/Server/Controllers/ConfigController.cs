@@ -35,13 +35,5 @@ namespace TeslaSolarCharger.Server.Controllers
         {
             return configJsonService.UpdateCarBasicConfiguration(carId, carBasicConfiguration);
         }
-
-        [HttpGet]
-        public async Task<IActionResult> GetFleetTelemetryConfiguration(string vin)
-        {
-            var config = await fleetTelemetryConfigurationService.GetFleetTelemetryConfiguration(vin);
-            var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
-            return Ok(new DtoValue<string>(configString));
-        }
     }
 }
