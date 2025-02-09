@@ -8,6 +8,7 @@ public class DtoFleetTelemetryConfigurationResult
     public bool ConfigurationSent { get; set; }
     public string? ReconfigurationReason { get; set; }
     public string? ErrorMessage { get; set; }
+    public long? ValidUntil { get; set; }
 
     public TeslaFleetTelemetryConfigurationErrorType? ConfigurationErrorType { get; set; }
 }

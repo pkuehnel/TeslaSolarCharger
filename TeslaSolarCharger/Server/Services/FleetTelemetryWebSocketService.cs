@@ -104,7 +104,7 @@ public class FleetTelemetryWebSocketService(
                 Clients.Remove(existingClient);
             }
 
-            ConnectToFleetTelemetryApi(car.Vin, car.IncludeTrackingRelevantFields);
+            ConnectToFleetTelemetryApi(car.Vin);
         }
     }
 
@@ -126,24 +126,15 @@ public class FleetTelemetryWebSocketService(
         }
     }
 
-    private async Task ConnectToFleetTelemetryApi(string vin, bool includeTrackingRelevantFields)
+    private async Task ConnectToFleetTelemetryApi(string vin)
     {
         logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);
         var scope = serviceProvider.CreateScope();
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var tscConfigurationService = scope.ServiceProvider.GetRequiredService<ITscConfigurationService>();
-        var constants = scope.ServiceProvider.GetRequiredService<IConstants>();
         var currentDate = dateTimeProvider.UtcNow();
-        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
-        if (decryptionKey == default)
-        {
-            logger.LogError("Decryption key not found do not send command");
-            throw new InvalidOperationException("No Decryption key found.");
-        }
-        var url = configurationWrapper.FleetTelemetryApiUrl() +
-                  $"vin={vin}&forceReconfiguration=false&includeTrackingRelevantFields={includeTrackingRelevantFields}&encryptionKey={Uri.EscapeDataString(decryptionKey)}";
+        var url = configurationWrapper.FleetTelemetryApiUrl() + $"vin={vin}";
         var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
         if(authToken == default)
         {
