@@ -56,7 +56,7 @@ public class DebugController(InMemorySink inMemorySink,
         return Ok(new DtoValue<string>(configString));
     }
 
-    [HttpGet]
+    [HttpPost]
     public async Task<IActionResult> SetFleetTelemetryConfiguration(string vin, bool forceReconfiguration)
     {
         var config = await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(vin, forceReconfiguration);

@@ -9,5 +9,5 @@ public class DtoFleetTelemetryConfigurationResult
     public string? ReconfigurationReason { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public TeslaFleetTelemetryConfigurationErrorType? ConfigurationErrorType { get; set; } = new();
+    public TeslaFleetTelemetryConfigurationErrorType? ConfigurationErrorType { get; set; }
 }
