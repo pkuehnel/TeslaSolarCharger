@@ -51,11 +51,19 @@ else
             </InputComponent>
 
             <InputComponent ValueId="teslaMateDbPort"
-            LabelText="TeslaMate Database Server Port"
-            UnitText=""
-            HelpText="You can use the internal port of the TeslaMate database container">
+                            LabelText="TeslaMate Database Server Port"
+                            UnitText=""
+                            HelpText="You can use the internal port of the TeslaMate database container">
                 <InputFragment>
                     <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" " />
+                </InputFragment>
+            </InputComponent>
+            <InputComponent ValueId="teslaMateDbName"
+                            LabelText="TeslaMate Database Name"
+                            UnitText=""
+                            HelpText="">
+                <InputFragment>
+                    <InputText id="teslaMateDbName" @bind-Value="_dtoBaseConfiguration.TeslaMateDbDatabaseName" class="form-control" placeholder=" " />
                 </InputFragment>
             </InputComponent>
             <InputComponent ValueId="teslaMateDbUser"
