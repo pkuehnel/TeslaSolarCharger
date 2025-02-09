@@ -3,6 +3,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -96,6 +97,39 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
                 Success = false,
                 ErrorMessage = "No data returned from backend",
             };
+        }
+
+        if (cloudData.ConfigurationErrorType != default)
+        {
+            logger.LogError("Error setting fleet telemetry configuration: {errorType}", cloudData.ConfigurationErrorType);
+            var car = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Vin == vin);
+            switch (cloudData.ConfigurationErrorType)
+            {
+                case TeslaFleetTelemetryConfigurationErrorType.MissingKey:
+                    car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
+                    break;
+                case TeslaFleetTelemetryConfigurationErrorType.UnsupportedFirmware:
+                    logger.LogWarning("Disable Fleet Telemetry for car {vin} as firmware is not supported", vin);
+                    car.UseFleetTelemetry = false;
+                    car.IncludeTrackingRelevantFields = false;
+                    break;
+                case TeslaFleetTelemetryConfigurationErrorType.UnsupportedHardware:
+                    logger.LogWarning("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
+                    car.IsFleetTelemetryHardwareIncompatible = true;
+                    car.UseFleetTelemetry = false;
+                    car.IncludeTrackingRelevantFields = false;
+                    break;
+                case TeslaFleetTelemetryConfigurationErrorType.MaxConfigs:
+                    logger.LogWarning("Disable Fleet Telemetry for car {vin} as max configurations reached", vin);
+                    car.UseFleetTelemetry = false;
+                    car.IncludeTrackingRelevantFields = false;
+                    break;
+                case null:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            await teslaSolarChargerContext.SaveChangesAsync();
         }
         return cloudData;
     }
