@@ -104,7 +104,7 @@ public class FleetTelemetryWebSocketService(
                 Clients.Remove(existingClient);
             }
 
-            ConnectToFleetTelemetryApi(car.Vin, car.IncludeTrackingRelevantFields);
+            ConnectToFleetTelemetryApi(car.Vin);
         }
     }
 
@@ -126,24 +126,15 @@ public class FleetTelemetryWebSocketService(
         }
     }
 
-    private async Task ConnectToFleetTelemetryApi(string vin, bool includeTrackingRelevantFields)
+    private async Task ConnectToFleetTelemetryApi(string vin)
     {
         logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);
         var scope = serviceProvider.CreateScope();
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var tscConfigurationService = scope.ServiceProvider.GetRequiredService<ITscConfigurationService>();
-        var constants = scope.ServiceProvider.GetRequiredService<IConstants>();
         var currentDate = dateTimeProvider.UtcNow();
-        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
-        if (decryptionKey == default)
-        {
-            logger.LogError("Decryption key not found do not send command");
-            throw new InvalidOperationException("No Decryption key found.");
-        }
-        var url = configurationWrapper.FleetTelemetryApiUrl() +
-                  $"vin={vin}&forceReconfiguration=false&includeTrackingRelevantFields={includeTrackingRelevantFields}&encryptionKey={Uri.EscapeDataString(decryptionKey)}";
+        var url = configurationWrapper.FleetTelemetryApiUrl() + $"vin={vin}";
         var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
         if(authToken == default)
         {
@@ -388,22 +379,27 @@ public class FleetTelemetryWebSocketService(
             {
                 continue;
             }
-            logger.LogInformation("Set Fleet API state for car {vin} to not working", vin);
+            logger.LogError("Set Fleet API state for car {vin} to not working", vin);
             car.TeslaFleetApiState = TeslaCarFleetApiState.NotWorking;
             await context.SaveChangesAsync();
         }
 
         foreach (var vin in message.UnsupportedFirmwareVins)
         {
-            logger.LogInformation("Disable Fleet Telemetry for car {vin} as firmware is not supported", vin);
+            logger.LogError("Disable Fleet Telemetry for car {vin} as firmware is not supported", vin);
             await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
         }
 
         foreach (var vin in message.UnsupportedHardwareVins)
         {
-            logger.LogInformation("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
+            logger.LogError("Disable Fleet Telemetry for car {vin} as hardware is not supported", vin);
             await SetCarToFleetTelemetryHardwareIncompatible(vin).ConfigureAwait(false);
             await DisableFleetTelemetryForCar(vin).ConfigureAwait(false);
+        }
+
+        foreach (var vin in message.MaxConfigsVins)
+        {
+            logger.LogError("Car {vin} has already has max allowed Fleet Telemetry configs", vin);
         }
 
         return true;

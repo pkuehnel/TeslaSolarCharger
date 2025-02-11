@@ -25,4 +25,5 @@ public interface ISettings
     string? ChargePricesUpdateText { get; set; }
     DateTime StartupTime { get; set; }
     int LastPvDemoCase { get; set; }
+    bool IsPreRelease { get; set; }
 }

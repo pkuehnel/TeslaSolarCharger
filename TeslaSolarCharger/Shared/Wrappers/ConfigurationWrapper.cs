@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Configuration;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -209,6 +210,11 @@ public class ConfigurationWrapper(
     public string BackendApiBaseUrl()
     {
         var environmentVariableName = "BackendApiBaseUrl";
+        if (settings.IsPreRelease)
+        {
+            logger.LogInformation("Use beta endpoints as is prerelease");
+            environmentVariableName = "Beta" + environmentVariableName;
+        }
         var value = configuration.GetValue<string>(environmentVariableName);
         return value;
     }
@@ -216,6 +222,11 @@ public class ConfigurationWrapper(
     public string FleetTelemetryApiUrl()
     {
         var environmentVariableName = "FleetTelemetryApiUrl";
+        if (settings.IsPreRelease)
+        {
+            logger.LogInformation("Use beta endpoints as is prerelease");
+            environmentVariableName = "Beta" + environmentVariableName;
+        }
         var value = configuration.GetValue<string>(environmentVariableName);
         return value;
     }

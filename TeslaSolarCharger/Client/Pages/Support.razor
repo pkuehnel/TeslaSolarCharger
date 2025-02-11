@@ -1,0 +1,142 @@
+﻿@page "/support"
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.Support
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<h1>Support</h1>
+
+<MudAlert Severity="Severity.Warning"
+          NoIcon="true"
+          ContentAlignment="HorizontalAlignment.Left">
+    <h5>Never share logs publicly</h5>
+    Logs might contain sensitive information like your vehicle's location. Do not share logs publicly.
+</MudAlert>
+<h3>General</h3>
+
+<RightAlignedButtonComponent ButtonText="Download Logs"
+                             StartIcon="@Icons.Material.Filled.Download"
+                             OnButtonClicked="@(_ => NavigationManager.NavigateTo("api/Debug/DownloadLogs", true))"></RightAlignedButtonComponent>
+
+<h3>Car Debug Details</h3>
+@if (_debugCars == default)
+{
+    <PlaceholderComponent Count="3"></PlaceholderComponent>
+}
+else
+{
+    <MudExpansionPanels MultiExpansion="true">
+        @foreach (var car in _debugCars)
+        {
+            <MudExpansionPanel Text="@car.Value.Name">
+                <div>ID: @car.Key</div>
+                <div>VIN: @car.Value.Vin</div>
+                <div>Name: @car.Value.Name</div>
+                <div>Is Available in Tesla account: @car.Value.IsAvailableInTeslaAccount</div>
+                <div>Should be managed: @car.Value.ShouldBeManaged</div>
+
+                
+                @if (car.Value.Vin != default && _fleetTelemetryGetConfigs.TryGetValue(car.Value.Vin, out var config))
+                {
+                    <h4>Fleet Telemetry Config</h4>
+                    <pre>@config</pre>
+                }
+
+                <RightAlignedButtonComponent ButtonText="Get Fleet Telemetry Config"
+                                             IsLoading="@_isFleetTelemetryLoading"
+                                             IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
+                                             OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Value.Vin))"></RightAlignedButtonComponent>
+                
+                @if (car.Value.Vin != default && _fleetTelemetrySetResults.TryGetValue(car.Value.Vin, out var result))
+                {
+                    <h4>Fleet Telemetry SetResult</h4>
+                    <pre>@result</pre>
+                }
+                
+                <RightAlignedButtonComponent ButtonText="Normal Fleet Configuration Set"
+                                             IsLoading="@_isFleetTelemetryLoading"
+                                             IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not set config as car is not part of Tesla account")"
+                                             OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Value.Vin, false))"></RightAlignedButtonComponent>
+                <RightAlignedButtonComponent ButtonText="Force Fleet Configuration Set"
+                                             IsLoading="@_isFleetTelemetryLoading"
+                                             IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not set config as car is not part of Tesla account")"
+                                             OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Value.Vin, true))"></RightAlignedButtonComponent>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
+
+
+@code {
+    private readonly Dictionary<string, string> _fleetTelemetryGetConfigs = new();
+
+    private readonly Dictionary<string, string> _fleetTelemetrySetResults = new();
+
+    private Dictionary<int, DtoDebugCar>? _debugCars;
+
+    private bool _isFleetTelemetryLoading;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cars = await HttpClientHelper.SendGetRequestWithSnackbarAsync<Dictionary<int, DtoDebugCar>>("api/Debug/GetCars");
+        if (cars != default)
+        {
+            _debugCars = cars;
+        }
+    }
+
+
+    private async Task GetFleetTelemetryConfig(string? vin)
+    {
+        if (vin == default)
+        {
+            Snackbar.Add("VIN is unknown", Severity.Error);
+            return;
+        }
+
+        _isFleetTelemetryLoading = true;
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>($"api/Debug/GetFleetTelemetryConfiguration?vin={Uri.EscapeDataString(vin)}");
+        string stringToDisplay;
+        if (result.HasError)
+        {
+            stringToDisplay = result.ErrorMessage ?? "No error message";
+        }
+        else
+        {
+            stringToDisplay = result.Data?.Value ?? "No data";
+        }
+        _fleetTelemetryGetConfigs[vin] = stringToDisplay;
+        _isFleetTelemetryLoading = false;
+    }
+
+    private async Task SetFleetTelemetryConfig(string? vin, bool forceReconfiguration)
+    {
+        if (vin == default)
+        {
+            Snackbar.Add("VIN is unknown", Severity.Error);
+            return;
+        }
+
+        _isFleetTelemetryLoading = true;
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/SetFleetTelemetryConfiguration?vin={Uri.EscapeDataString(vin)}&forceReconfiguration={forceReconfiguration}", null);
+        string stringToDisplay;
+        if (result.HasError)
+        {
+            stringToDisplay = result.ErrorMessage ?? "No error message";
+        }
+        else
+        {
+            stringToDisplay = result.Data?.Value ?? "No data";
+        }
+        _fleetTelemetrySetResults[vin] = stringToDisplay;
+        _isFleetTelemetryLoading = false;
+    }
+}
