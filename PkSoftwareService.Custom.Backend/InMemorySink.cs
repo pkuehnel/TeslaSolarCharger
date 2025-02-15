@@ -4,10 +4,10 @@ using Serilog.Formatting.Display;
 
 namespace PkSoftwareService.Custom.Backend;
 
-public class InMemorySink : ILogEventSink
+public class InMemorySink : ILogEventSink, IInMemorySink
 {
-    private readonly int _capacity;
-    private readonly Queue<string> _logMessages;
+    private int _capacity;
+    private Queue<string> _logMessages;
     private readonly object _syncRoot = new object();
     private readonly MessageTemplateTextFormatter _formatter;
 
@@ -17,7 +17,7 @@ public class InMemorySink : ILogEventSink
     /// <param name="outputTemplate">The output template (should match your Console sink).</param>
     /// <param name="formatProvider">Optional format provider.</param>
     /// <param name="capacity">Max number of messages to store.</param>
-    public InMemorySink(string outputTemplate, IFormatProvider? formatProvider = null, int capacity = 20000)
+    public InMemorySink(string outputTemplate, int capacity, IFormatProvider? formatProvider = null)
     {
         _capacity = capacity;
         _logMessages = new Queue<string>(capacity);
@@ -53,14 +53,25 @@ public class InMemorySink : ILogEventSink
         }
     }
 
-    /// <summary>
-    /// Optionally clear all logs.
-    /// </summary>
-    public void Clear()
+    public int GetCapacity()
     {
-        lock (_syncRoot)
+        return _capacity;
+    }
+
+    public void UpdateCapacity(int newCapacity)
+    {
+        if (newCapacity < 1)
         {
-            _logMessages.Clear();
+            throw new ArgumentException("Log capacity can not be lower than 1");
         }
+
+        if (newCapacity < _capacity)
+        {
+            lock (_syncRoot)
+            {
+                _logMessages = new(_logMessages.TakeLast(newCapacity));
+            }
+        }
+        _capacity = newCapacity;
     }
 }

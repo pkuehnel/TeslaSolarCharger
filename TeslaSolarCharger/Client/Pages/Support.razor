@@ -9,17 +9,54 @@
 
 <h1>Support</h1>
 
+
+<h3>Logging</h3>
+
 <MudAlert Severity="Severity.Warning"
           NoIcon="true"
           ContentAlignment="HorizontalAlignment.Left">
     <h5>Never share logs publicly</h5>
     Logs might contain sensitive information like your vehicle's location. Do not share logs publicly.
 </MudAlert>
-<h3>General</h3>
 
 <RightAlignedButtonComponent ButtonText="Download Logs"
                              StartIcon="@Icons.Material.Filled.Download"
                              OnButtonClicked="@(_ => NavigationManager.NavigateTo("api/Debug/DownloadLogs", true))"></RightAlignedButtonComponent>
+
+<MudAlert Severity="Severity.Warning"
+          NoIcon="true"
+          ContentAlignment="HorizontalAlignment.Left">
+    Do not change the configuration as this might lead to extremly high memory usage. All Settings will be reset after a restart.
+</MudAlert>
+
+<div class="row">
+    @if (_logCapacity == default || _logLevel == default)
+    {
+        <PlaceholderComponent></PlaceholderComponent>
+    }
+    else
+    {
+        <div class="col">
+            <GenericInput For="() => _logLevel.Value"
+                          LabelName="Log Level"
+                          ShouldBeInErrorState="@(_logLevelSetErrorMessage != default)"
+                          ErrorMessage="@_logLevelSetErrorMessage"
+                          OnButtonClicked="@(UpdateLogLevel)"
+                          StringIdDropDownOptions="LogLevelOptions"
+                          PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
+        </div>
+        <div class="col">
+            <GenericInput For="() => _logCapacity.Value"
+                          LabelName="Log Capacity"
+                          ShouldBeInErrorState="@(_logCapacitySetErrorMessage != default)"
+                          ErrorMessage="@_logCapacitySetErrorMessage"
+                          OnButtonClicked="@(UpdateLogCapacity)"
+                          PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
+        </div>
+    }
+</div>
+
+<hr />
 
 <h3>Car Debug Details</h3>
 @if (_debugCars == default)
@@ -38,7 +75,7 @@ else
                 <div>Is Available in Tesla account: @car.Value.IsAvailableInTeslaAccount</div>
                 <div>Should be managed: @car.Value.ShouldBeManaged</div>
 
-                
+
                 @if (car.Value.Vin != default && _fleetTelemetryGetConfigs.TryGetValue(car.Value.Vin, out var config))
                 {
                     <h4>Fleet Telemetry Config</h4>
@@ -50,13 +87,13 @@ else
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
                                              DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
                                              OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Value.Vin))"></RightAlignedButtonComponent>
-                
+
                 @if (car.Value.Vin != default && _fleetTelemetrySetResults.TryGetValue(car.Value.Vin, out var result))
                 {
                     <h4>Fleet Telemetry SetResult</h4>
                     <pre>@result</pre>
                 }
-                
+
                 <RightAlignedButtonComponent ButtonText="Normal Fleet Configuration Set"
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
@@ -83,6 +120,20 @@ else
 
     private bool _isFleetTelemetryLoading;
 
+    private DtoValue<string>? _logLevel;
+    private string? _logLevelSetErrorMessage;
+    private DtoValue<int>? _logCapacity;
+    private string? _logCapacitySetErrorMessage;
+
+    private Dictionary<string, string> LogLevelOptions => new()
+    {
+        { "Verbose", "Verbose" },
+        { "Debug", "Debug" },
+        { "Information", "Information" },
+        { "Warning", "Warning" },
+        { "Error", "Error" },
+        { "Fatal", "Fatal" },
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,6 +142,8 @@ else
         {
             _debugCars = cars;
         }
+        _logLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetLogLevel");
+        _logCapacity = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<int>>("api/Debug/GetLogCapacity");
     }
 
 
@@ -139,4 +192,40 @@ else
         _fleetTelemetrySetResults[vin] = stringToDisplay;
         _isFleetTelemetryLoading = false;
     }
+
+    private async Task UpdateLogLevel()
+    {
+        if (_logLevel == default)
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_logLevel.Value))
+        {
+            return;
+        }
+        var result = await HttpClientHelper.SendPostRequestAsync<object>($"api/Debug/SetLogLevel?level={Uri.EscapeDataString(_logLevel.Value)}", null);
+        if (result.HasError)
+        {
+            _logLevelSetErrorMessage = result.ErrorMessage;
+            return;
+        }
+        Snackbar.Add("Log level updated", Severity.Success);
+    }
+
+    private async Task UpdateLogCapacity()
+    {
+        if (_logCapacity == default)
+        {
+            return;
+        }
+        var result = await HttpClientHelper.SendPostRequestAsync<object>($"api/Debug/SetLogCapacity?capacity={_logCapacity.Value}", null);
+        if (result.HasError)
+        {
+            _logCapacitySetErrorMessage = result.ErrorMessage;
+            return;
+        }
+        Snackbar.Add("Log capacity updated", Severity.Success);
+    }
+
 }
