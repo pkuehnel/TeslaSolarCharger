@@ -108,24 +108,6 @@ public class FleetTelemetryWebSocketService(
         }
     }
 
-    public async Task DisconnectWebSocketsByVin(string vin)
-    {
-        logger.LogTrace("{method}({vin})", nameof(DisconnectWebSocketsByVin), vin);
-        var client = Clients.FirstOrDefault(c => c.Vin == vin);
-        if (client != default)
-        {
-            if (client.WebSocketClient.State == WebSocketState.Open)
-            {
-                await client.WebSocketClient
-                    .CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", new CancellationTokenSource(_heartbeatsendTimeout).Token)
-                    .ConfigureAwait(false);
-            }
-
-            client.WebSocketClient.Dispose();
-            Clients.Remove(client);
-        }
-    }
-
     private async Task ConnectToFleetTelemetryApi(string vin)
     {
         logger.LogTrace("{method}({carId})", nameof(ConnectToFleetTelemetryApi), vin);

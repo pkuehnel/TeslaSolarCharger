@@ -266,12 +266,6 @@ public class ConfigJsonService(
         settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         settingsCar.UseBle = carBasicConfiguration.UseBle;
         settingsCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
-        await fleetTelemetryWebSocketService.DisconnectWebSocketsByVin(carBasicConfiguration.Vin);
-    }
-
-    public Task UpdateCarConfiguration(int carId, DepricatedCarConfiguration carConfiguration)
-    {
-        throw new NotImplementedException();
     }
 
     public async Task SaveOrUpdateCar(DtoCar car)
