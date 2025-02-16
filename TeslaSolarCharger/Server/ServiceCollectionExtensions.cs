@@ -57,6 +57,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ErrorDetectionJob>()
             .AddTransient<BleApiVersionDetectionJob>()
             .AddTransient<FleetTelemetryReconnectionJob>()
+            .AddTransient<FleetTelemetryReconfigurationJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()

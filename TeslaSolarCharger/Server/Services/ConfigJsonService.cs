@@ -28,10 +28,8 @@ public class ConfigJsonService(
     IConfigurationWrapper configurationWrapper,
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
-    IDateTimeProvider dateTimeProvider,
-    JobManager jobManager,
     ITeslaMateDbContextWrapper teslaMateDbContextWrapper,
-    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService)
+    IFleetTelemetryConfigurationService fleetTelemetryConfigurationService)
     : IConfigJsonService
 {
     private bool CarConfigurationFileExists()
@@ -266,6 +264,7 @@ public class ConfigJsonService(
         settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
         settingsCar.UseBle = carBasicConfiguration.UseBle;
         settingsCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
+        await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(settingsCar.Vin, false);
     }
 
     public async Task SaveOrUpdateCar(DtoCar car)
