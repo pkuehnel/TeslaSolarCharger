@@ -5,7 +5,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
 [DisallowConcurrentExecution]
-public class ErrorDetectionJob(ILogger<ErrorMessagingJob> logger, IErrorDetectionService service) : IJob
+public class ErrorDetectionJob(ILogger<ErrorDetectionJob> logger, IErrorDetectionService service) : IJob
 {
     public async Task Execute(IJobExecutionContext context)
     {

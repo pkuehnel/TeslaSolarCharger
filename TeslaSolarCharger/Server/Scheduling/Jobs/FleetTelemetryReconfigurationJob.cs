@@ -4,7 +4,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
 public class FleetTelemetryReconfigurationJob(
-    ILogger<BleApiVersionDetectionJob> logger,
+    ILogger<FleetTelemetryReconfigurationJob> logger,
     IFleetTelemetryConfigurationService service) : IJob
 {
     public async Task Execute(IJobExecutionContext context)
