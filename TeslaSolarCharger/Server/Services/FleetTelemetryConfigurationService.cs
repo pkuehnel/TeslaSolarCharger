@@ -180,7 +180,7 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
                 !memoryCache.TryGetValue(constants.FleetTelemetryConfigurationExpiryKey + car.Vin, out DateTimeOffset expiryTime);
             if(!reconfigurationRequired)
             {
-                reconfigurationRequired = expiryTime < currentDate;
+                reconfigurationRequired = expiryTime < currentDate.AddHours(constants.FleetTelemetryReconfigurationBufferHours);
             }
             if (!reconfigurationRequired)
             {

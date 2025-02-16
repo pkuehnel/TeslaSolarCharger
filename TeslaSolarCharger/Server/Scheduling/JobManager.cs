@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Spi;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
@@ -129,9 +130,10 @@ public class JobManager(
         var fleetTelemetryReconnectionTrigger = TriggerBuilder.Create().WithIdentity("fleetTelemetryReconnectionTrigger")
             .StartAt(currentDate.AddSeconds(10))
             .WithSchedule(SimpleScheduleBuilder.RepeatSecondlyForever(61)).Build();
+
         var fleetTelemetryReconfigurationTrigger = TriggerBuilder.Create().WithIdentity("fleetTelemetryReconfigurationTrigger")
             .StartAt(currentDate.AddSeconds(13))
-            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(3)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.FleetTelemetryReconfigurationBufferHours)).Build();
 
         var random = new Random();
         var hour = random.Next(0, 5);
