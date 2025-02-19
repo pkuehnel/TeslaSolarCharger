@@ -306,6 +306,7 @@ public class BackendApiService(
     /// <returns></returns>
     public async Task<Dtos.Result<T>> SendRequestToBackend<T>(HttpMethod httpMethod, string? accessToken, string requestUrlPart, object? content)
     {
+        logger.LogTrace("{method}({httpMethod}, {accessToken}, {requestUrlPart}, {content}, {@serializedContent})", nameof(SendRequestToBackend), httpMethod, accessToken, requestUrlPart, content, content);
         var request = new HttpRequestMessage();
         var finalUrl = configurationWrapper.BackendApiBaseUrl() + requestUrlPart;
         request.RequestUri = new Uri(finalUrl);
@@ -330,6 +331,7 @@ public class BackendApiService(
                         JsonConvert.SerializeObject(content),
                         System.Text.Encoding.UTF8,
                         "application/json");
+                    logger.LogTrace("Sending content: {content}", await jsonContent.ReadAsStringAsync());
                     request.Content = jsonContent;
                 }
             }
@@ -342,12 +344,13 @@ public class BackendApiService(
                 );
             }
             var response = await httpClient.SendAsync(request).ConfigureAwait(false);
+            var responseContentString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            logger.LogTrace("Response: {responseContent}", responseContentString);
             if (response.IsSuccessStatusCode)
             {
-                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (typeof(T) != typeof(object))
                 {
-                    var deserializedObject = JsonConvert.DeserializeObject<T>(responseContent);
+                    var deserializedObject = JsonConvert.DeserializeObject<T>(responseContentString);
 
                     if (deserializedObject == null)
                     {
