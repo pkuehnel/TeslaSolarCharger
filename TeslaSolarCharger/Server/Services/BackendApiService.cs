@@ -327,11 +327,12 @@ public class BackendApiService(
                 request.Method = HttpMethod.Post;
                 if (content != default)
                 {
+                    var serializedContent = JsonConvert.SerializeObject(content);
                     var jsonContent = new StringContent(
-                        JsonConvert.SerializeObject(content),
+                        serializedContent,
                         System.Text.Encoding.UTF8,
                         "application/json");
-                    logger.LogTrace("Sending content: {content}", await jsonContent.ReadAsStringAsync());
+                    logger.LogTrace("Sending content: {serializedContent}", serializedContent);
                     request.Content = jsonContent;
                 }
             }
