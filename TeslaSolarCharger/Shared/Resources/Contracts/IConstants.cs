@@ -45,4 +45,5 @@ public interface IConstants
     string IsBaseAppLicensedKey { get; }
     string IsFleetApiLicensedKey { get; }
     string FleetTelemetryConfigurationExpiryKey { get; }
+    int FleetTelemetryReconfigurationBufferHours { get; }
 }
