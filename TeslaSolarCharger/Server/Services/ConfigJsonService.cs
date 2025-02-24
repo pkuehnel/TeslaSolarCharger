@@ -189,6 +189,7 @@ public class ConfigJsonService(
                 BleApiBaseUrl = c.BleApiBaseUrl,
                 UseFleetTelemetry = c.UseFleetTelemetry,
                 IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields,
+                HomeDetectionVia = c.HomeDetectionVia,
             })
             .ToListAsync().ConfigureAwait(false);
 
@@ -253,6 +254,7 @@ public class ConfigJsonService(
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
         databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
+        databaseCar.HomeDetectionVia = carBasicConfiguration.HomeDetectionVia;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var settingsCar = settings.Cars.First(c => c.Id == carId);
         settingsCar.Name = carBasicConfiguration.Name;

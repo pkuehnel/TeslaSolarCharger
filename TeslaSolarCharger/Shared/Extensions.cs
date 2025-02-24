@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.RegularExpressions;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -13,6 +14,18 @@ public static class Extensions
         var arr = (T[])Enum.GetValues(src.GetType());
         var j = Array.IndexOf(arr, src) + 1;
         return (arr.Length==j) ? arr[0] : arr[j];
+    }
+
+    public static string ToFriendlyName(this HomeDetectionVia enumValue)
+    {
+        return enumValue switch
+        {
+            HomeDetectionVia.GpsLocation => "GPS Location",
+            HomeDetectionVia.LocatedAtHome => "At Home",
+            HomeDetectionVia.LocatedAtWork => "At Work",
+            HomeDetectionVia.LocatedAtFavorite => "At Favorite",
+            _ => Regex.Replace(enumValue.ToString(), "(\\B[A-Z])", " $1"),
+        };
     }
 
     public static string ToFriendlyString(this ChargeMode chargeMode)

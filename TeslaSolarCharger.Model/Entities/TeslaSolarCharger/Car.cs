@@ -46,6 +46,7 @@ public class Car
     public bool UseFleetTelemetry { get; set; }
     public bool IncludeTrackingRelevantFields { get; set; }
     public bool IsAvailableInTeslaAccount { get; set; }
+    public HomeDetectionVia HomeDetectionVia { get; set; }
 
     public List<DateTime> WakeUpCalls { get; set; } = new();
     public List<DateTime> VehicleDataCalls { get; set; } = new();
