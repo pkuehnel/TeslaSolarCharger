@@ -109,6 +109,7 @@ else
                     }
                     <div class="px-2 pt-2">
                         <MudSelect T="HomeDetectionVia"
+                                   For="() => carBasicConfiguration.Item.HomeDetectionVia"
                                    Class="@Constants.DefaultMargin"
                                    Variant="Variant.Outlined"
                                    Value="@carBasicConfiguration.Item.HomeDetectionVia"
@@ -123,12 +124,12 @@ else
                     </div>
                     <GenericInput T="bool"
                                   For="() => carBasicConfiguration.Item.UseFleetTelemetry"
-                                  OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields));}" />
+                                  OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields), nameof(carBasicConfiguration.Item.HomeDetectionVia));}" />
                     @if (carBasicConfiguration.Item.UseFleetTelemetry)
                     {
                         <GenericInput T="bool"
                                       For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields"
-                                      OnValueChanged="Redraw" />
+                                      OnValueChanged="_ => { carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.HomeDetectionVia)); Redraw(); }" />
                     }
                 }
 
