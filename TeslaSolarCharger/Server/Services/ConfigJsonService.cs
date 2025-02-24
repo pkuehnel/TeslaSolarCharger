@@ -249,13 +249,15 @@ public class ConfigJsonService(
         var cars = await teslaSolarChargerContext.Cars.ToListAsync().ConfigureAwait(false);
         foreach (var car in cars)
         {
-            if (car.IncludeTrackingRelevantFields)
+            if (car.UseFleetTelemetry
+                && !car.IncludeTrackingRelevantFields
+                && configurationWrapper.GetVehicleDataFromTesla())
             {
-                car.HomeDetectionVia = HomeDetectionVia.GpsLocation;
+                car.HomeDetectionVia = HomeDetectionVia.LocatedAtHome;
             }
             else
             {
-                car.HomeDetectionVia = HomeDetectionVia.LocatedAtHome;
+                car.HomeDetectionVia = HomeDetectionVia.GpsLocation;
             }
         }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);

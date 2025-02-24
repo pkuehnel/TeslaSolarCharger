@@ -160,14 +160,12 @@ public class ChargingService(
                 continue;
             }
 
-            var fleetTelemetrySettings = await context.Cars
+            var homeDetectionVia = await context.Cars
                 .Where(c => c.Id == car.Id)
-                .Select(c => new { c.UseFleetTelemetry, c.IncludeTrackingRelevantFields })
+                .Select(c => c.HomeDetectionVia)
                 .FirstAsync();
 
-            if (fleetTelemetrySettings.UseFleetTelemetry
-                && !fleetTelemetrySettings.IncludeTrackingRelevantFields
-                && configurationWrapper.GetVehicleDataFromTesla())
+            if (homeDetectionVia != HomeDetectionVia.GpsLocation)
             {
                 logger.LogDebug("Car {carId} uses fleet telemetry but does not include tracking relevant fields. Do not calculate geofence", car.Id);
                 car.DistanceToHomeGeofence = null;
