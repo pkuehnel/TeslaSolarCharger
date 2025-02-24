@@ -1,4 +1,3 @@
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
@@ -10,12 +9,8 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
-using TeslaSolarCharger.Model.EntityFramework;
-using System;
-using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -29,7 +24,8 @@ public class ConfigJsonService(
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
     ITeslaMateDbContextWrapper teslaMateDbContextWrapper,
-    IFleetTelemetryConfigurationService fleetTelemetryConfigurationService)
+    IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
+    ITscConfigurationService tscConfigurationService)
     : IConfigJsonService
 {
     private bool CarConfigurationFileExists()
@@ -189,6 +185,7 @@ public class ConfigJsonService(
                 BleApiBaseUrl = c.BleApiBaseUrl,
                 UseFleetTelemetry = c.UseFleetTelemetry,
                 IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields,
+                HomeDetectionVia = c.HomeDetectionVia,
             })
             .ToListAsync().ConfigureAwait(false);
 
@@ -238,6 +235,35 @@ public class ConfigJsonService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    public async Task SetCorrectHomeDetectionVia()
+    {
+        logger.LogTrace("{method}()", nameof(SetCorrectHomeDetectionVia));
+        var homeDetectionViaConvertedValue = await tscConfigurationService
+            .GetConfigurationValueByKey(constants.HomeDetectionViaConvertedKey).ConfigureAwait(false);
+        if (!string.IsNullOrEmpty(homeDetectionViaConvertedValue))
+        {
+            logger.LogDebug("Home detection via already converted");
+            return;
+        }
+
+        var cars = await teslaSolarChargerContext.Cars.ToListAsync().ConfigureAwait(false);
+        foreach (var car in cars)
+        {
+            if (car.UseFleetTelemetry
+                && !car.IncludeTrackingRelevantFields
+                && configurationWrapper.GetVehicleDataFromTesla())
+            {
+                car.HomeDetectionVia = HomeDetectionVia.LocatedAtHome;
+            }
+            else
+            {
+                car.HomeDetectionVia = HomeDetectionVia.GpsLocation;
+            }
+        }
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        await tscConfigurationService.SetConfigurationValueByKey(constants.HomeDetectionViaConvertedKey, "true").ConfigureAwait(false);
+    }
+
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         logger.LogTrace("{method}({carId}, {@carBasicConfiguration})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
@@ -253,6 +279,7 @@ public class ConfigJsonService(
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
         databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
+        databaseCar.HomeDetectionVia = carBasicConfiguration.HomeDetectionVia;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         var settingsCar = settings.Cars.First(c => c.Id == carId);
         settingsCar.Name = carBasicConfiguration.Name;

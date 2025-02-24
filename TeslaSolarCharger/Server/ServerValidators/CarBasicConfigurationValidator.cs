@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services;
@@ -44,6 +44,9 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                 RuleFor(x => x.IncludeTrackingRelevantFields)
                     .Equal(false)
                     .WithMessage("Tracking relevant fields can only be included if Fleet Telemetry is enabled.");
+                RuleFor(x => x.HomeDetectionVia)
+                    .Equal(HomeDetectionVia.GpsLocation)
+                    .WithMessage("Without Fleet Telemetry only home detection via GPS location is supported.");
             });
 
             When(x => x.UseFleetTelemetry, () =>
@@ -55,6 +58,14 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                         return !includeTrackingRelevantFields || hasFleetApiLicense;
                     })
                     .WithMessage("Car not licensed for Fleet API. Manage Fleet API subscriptions via https://solar4car.com/subscriptions.");
+
+                When(x => x.IncludeTrackingRelevantFields == false && isTeslaMateDataSource == false, () =>
+                {
+                    RuleFor(x => x.HomeDetectionVia)
+                        .NotEqual(HomeDetectionVia.GpsLocation)
+                        .WithMessage("GPS location can not be used for home detection if tracking relevant fields are not enabled.");
+                });
+
             });
 
 

@@ -46,4 +46,5 @@ public interface IConstants
     string IsFleetApiLicensedKey { get; }
     string FleetTelemetryConfigurationExpiryKey { get; }
     int FleetTelemetryReconfigurationBufferHours { get; }
+    string HomeDetectionViaConvertedKey { get; }
 }

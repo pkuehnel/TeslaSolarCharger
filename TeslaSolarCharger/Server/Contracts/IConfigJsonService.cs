@@ -16,4 +16,5 @@ public interface IConfigJsonService
     ISettings GetSettings();
     Task AddCarsToSettings();
     Task AddBleBaseUrlToAllCars();
+    Task SetCorrectHomeDetectionVia();
 }

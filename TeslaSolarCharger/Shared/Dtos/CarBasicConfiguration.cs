@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using System.ComponentModel;
 using TeslaSolarCharger.Shared.Attributes;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos;
 
@@ -44,6 +45,7 @@ public class CarBasicConfiguration
 
     [HelperText("When enabled, TSC collects data of additional fields that are not necessarily required for TSC to work, but logged data might be helpful for future visualizations. Note: For this a car license is required.")]
     public bool IncludeTrackingRelevantFields { get; set; }
+    public HomeDetectionVia HomeDetectionVia { get; set; }
 }
 
 
