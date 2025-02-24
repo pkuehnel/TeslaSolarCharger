@@ -1,4 +1,3 @@
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
@@ -10,12 +9,8 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
-using TeslaSolarCharger.Model.EntityFramework;
-using System;
-using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
@@ -29,7 +24,8 @@ public class ConfigJsonService(
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IConstants constants,
     ITeslaMateDbContextWrapper teslaMateDbContextWrapper,
-    IFleetTelemetryConfigurationService fleetTelemetryConfigurationService)
+    IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
+    ITscConfigurationService tscConfigurationService)
     : IConfigJsonService
 {
     private bool CarConfigurationFileExists()
@@ -237,6 +233,33 @@ public class ConfigJsonService(
             Value = "true",
         });
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public async Task SetCorrectHomeDetectionVia()
+    {
+        logger.LogTrace("{method}()", nameof(SetCorrectHomeDetectionVia));
+        var homeDetectionViaConvertedValue = await tscConfigurationService
+            .GetConfigurationValueByKey(constants.HomeDetectionViaConvertedKey).ConfigureAwait(false);
+        if (!string.IsNullOrEmpty(homeDetectionViaConvertedValue))
+        {
+            logger.LogDebug("Home detection via already converted");
+            return;
+        }
+
+        var cars = await teslaSolarChargerContext.Cars.ToListAsync().ConfigureAwait(false);
+        foreach (var car in cars)
+        {
+            if (car.IncludeTrackingRelevantFields)
+            {
+                car.HomeDetectionVia = HomeDetectionVia.GpsLocation;
+            }
+            else
+            {
+                car.HomeDetectionVia = HomeDetectionVia.LocatedAtHome;
+            }
+        }
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+        await tscConfigurationService.SetConfigurationValueByKey(constants.HomeDetectionViaConvertedKey, "true").ConfigureAwait(false);
     }
 
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
