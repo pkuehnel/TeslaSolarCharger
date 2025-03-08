@@ -20,7 +20,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
     IIssueKeys issueKeys,
     ITokenHelper tokenHelper,
     IConstants constants,
-    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService) : IErrorDetectionService
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
+    IBackendApiService backendApiService) : IErrorDetectionService
 {
     public async Task DetectErrors()
     {
@@ -52,9 +53,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.SolarValuesNotAvailable, "Solar values are not available",
             $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", solarValuesTooOld).ConfigureAwait(false);
 
-        //ToDO: fix next line, currently not working due to cyclic reference
-        //await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, "Base App not licensed",
-        //    "Can not send commands to car as app is not licensed", !await backendApiService.IsBaseAppLicensed(true));
+        await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, "Base App not licensed",
+            "Can not send commands to car as app is not licensed", !await backendApiService.IsBaseAppLicensed(true));
 
         //ToDo: if last check there was no token related issue, only detect token related issues every x minutes as creates high load in backend
         await DetectTokenStateIssues(activeErrors);
