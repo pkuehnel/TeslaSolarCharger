@@ -72,12 +72,17 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
                 //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
                 await errorHandlingService.HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
             }
-            var fleetTelemetryEnabled = await context.Cars
+            var carSettings = await context.Cars
                 .Where(c => c.Vin == car.Vin)
-                .Select(c => c.UseFleetTelemetry)
+                .Select(c => new
+                {
+                    c.UseFleetTelemetry,
+                    c.IncludeTrackingRelevantFields,
+                    c.UseBle,
+                })
                 .FirstOrDefaultAsync();
 
-            if (fleetTelemetryEnabled && (!fleetTelemetryWebSocketService.IsClientConnected(car.Vin)))
+            if ((carSettings?.UseFleetTelemetry == true) && (!fleetTelemetryWebSocketService.IsClientConnected(car.Vin)))
             {
                 await errorHandlingService.HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet Telemetry not connected for car {car.Vin}",
                     "Fleet telemetry is not connected. Please check the connection.", issueKeys.FleetTelemetryNotConnected, car.Vin, null);
@@ -85,6 +90,18 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
             else
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetTelemetryNotConnected, car.Vin);
+            }
+
+            var isFleetApiLicensed = await backendApiService.IsFleetApiLicensed(car.Vin, true).ConfigureAwait(false);
+            if (((carSettings?.IncludeTrackingRelevantFields == true) || (carSettings?.UseBle != true))
+                && (!isFleetApiLicensed))
+            {
+                await errorHandlingService.HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet API not licensed for car {car.Vin}",
+                    "Fleet API is not licensed. Enable BLE for the car and disable include tracking relevant fields as otherwise a Fleet API license is required", issueKeys.FleetApiNotLicensed, car.Vin, null);
+            }
+            else
+            {
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
             }
 
             if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
