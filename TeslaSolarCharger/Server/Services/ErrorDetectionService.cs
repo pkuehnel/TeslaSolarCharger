@@ -20,7 +20,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
     IIssueKeys issueKeys,
     ITokenHelper tokenHelper,
     IConstants constants,
-    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService) : IErrorDetectionService
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
+    IBackendApiService backendApiService) : IErrorDetectionService
 {
     public async Task DetectErrors()
     {
@@ -52,9 +53,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.SolarValuesNotAvailable, "Solar values are not available",
             $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", solarValuesTooOld).ConfigureAwait(false);
 
-        //ToDO: fix next line, currently not working due to cyclic reference
-        //await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, "Base App not licensed",
-        //    "Can not send commands to car as app is not licensed", !await backendApiService.IsBaseAppLicensed(true));
+        await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, "Base App not licensed",
+            "Can not send commands to car as app is not licensed", !await backendApiService.IsBaseAppLicensed(true));
 
         //ToDo: if last check there was no token related issue, only detect token related issues every x minutes as creates high load in backend
         await DetectTokenStateIssues(activeErrors);
@@ -72,12 +72,17 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
                 //ToDo: In a future release this should only be done if no fleet api request was sent the last x minutes (BleUsageStopAfterError)
                 await errorHandlingService.HandleErrorResolved(issueKeys.UsingFleetApiAsBleFallback, car.Vin);
             }
-            var fleetTelemetryEnabled = await context.Cars
+            var carSettings = await context.Cars
                 .Where(c => c.Vin == car.Vin)
-                .Select(c => c.UseFleetTelemetry)
+                .Select(c => new
+                {
+                    c.UseFleetTelemetry,
+                    c.IncludeTrackingRelevantFields,
+                    c.UseBle,
+                })
                 .FirstOrDefaultAsync();
 
-            if (fleetTelemetryEnabled && (!fleetTelemetryWebSocketService.IsClientConnected(car.Vin)))
+            if ((carSettings?.UseFleetTelemetry == true) && (!fleetTelemetryWebSocketService.IsClientConnected(car.Vin)))
             {
                 await errorHandlingService.HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet Telemetry not connected for car {car.Vin}",
                     "Fleet telemetry is not connected. Please check the connection.", issueKeys.FleetTelemetryNotConnected, car.Vin, null);
@@ -85,6 +90,18 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
             else
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetTelemetryNotConnected, car.Vin);
+            }
+
+            var isFleetApiLicensed = await backendApiService.IsFleetApiLicensed(car.Vin, true).ConfigureAwait(false);
+            if (((carSettings?.IncludeTrackingRelevantFields == true) || (carSettings?.UseBle != true))
+                && (!isFleetApiLicensed))
+            {
+                await errorHandlingService.HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet API not licensed for car {car.Vin}",
+                    "Fleet API is not licensed. Enable BLE for the car and disable include tracking relevant or buy a Fleet API license for that car. Note: After buying a Fleet API license you need to restart TSC as otherwise it takes up to six hours until TSC detects the change.", issueKeys.FleetApiNotLicensed, car.Vin, null);
+            }
+            else
+            {
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
             }
 
             if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
