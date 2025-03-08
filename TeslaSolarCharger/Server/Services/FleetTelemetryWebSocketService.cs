@@ -247,6 +247,16 @@ public class FleetTelemetryWebSocketService(
                         var settings = scope.ServiceProvider.GetRequiredService<ISettings>();
                         var settingsCar = settings.Cars.First(c => c.Vin == vin);
                         string? propertyName = null;
+                        HomeDetectionVia? homeDetectionVia = null;
+                        if (message.Type == CarValueType.LocatedAtHome
+                            || message.Type == CarValueType.LocatedAtWork
+                            || message.Type == CarValueType.LocatedAtFavorite)
+                        {
+                            homeDetectionVia = await context.Cars
+                                .Where(c => c.Id == settingsCar.Id)
+                                .Select(c => c.HomeDetectionVia)
+                                .FirstAsync();
+                        }
                         switch (message.Type)
                         {
                             case CarValueType.ChargeAmps:
@@ -304,7 +314,7 @@ public class FleetTelemetryWebSocketService(
                                 {
                                     if (carValueLog.BooleanValue == true
                                         //Do only overwrite these states as otherwise Charging or Driving might be overwritten
-                                        && settingsCar.State is CarStateEnum.Unknown or CarStateEnum.Suspended)
+                                        && settingsCar.State is CarStateEnum.Unknown or CarStateEnum.Suspended or CarStateEnum.Online)
                                     {
                                         settingsCar.State = CarStateEnum.Offline;
                                         _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
@@ -318,11 +328,19 @@ public class FleetTelemetryWebSocketService(
                                 }
                                 break;
                             case CarValueType.LocatedAtHome:
-                                var fleetTelemetrySettings = await context.Cars
-                                    .Where(c => c.Id == settingsCar.Id)
-                                    .Select(c => new { c.UseFleetTelemetry, c.IncludeTrackingRelevantFields })
-                                    .FirstAsync();
-                                if (fleetTelemetrySettings.UseFleetTelemetry && !fleetTelemetrySettings.IncludeTrackingRelevantFields)
+                                if (homeDetectionVia == HomeDetectionVia.LocatedAtHome)
+                                {
+                                    propertyName = nameof(DtoCar.IsHomeGeofence);
+                                }
+                                break;
+                            case CarValueType.LocatedAtWork:
+                                if (homeDetectionVia == HomeDetectionVia.LocatedAtWork)
+                                {
+                                    propertyName = nameof(DtoCar.IsHomeGeofence);
+                                }
+                                break;
+                            case CarValueType.LocatedAtFavorite:
+                                if (homeDetectionVia == HomeDetectionVia.LocatedAtFavorite)
                                 {
                                     propertyName = nameof(DtoCar.IsHomeGeofence);
                                 }

@@ -305,7 +305,6 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
         using var client = new HttpClient();
         try
         {
-            //Default timeout of Tesla Command CLI is 21 seconds.
             client.Timeout = TimeSpan.FromSeconds(29);
             var response = await client.PostAsJsonAsync(url, request.Parameters).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

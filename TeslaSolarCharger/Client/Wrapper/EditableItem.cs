@@ -29,17 +29,23 @@ public class EditableItem<T>
     /// <summary>
     /// Removes all validation errors for the specified property name.
     /// </summary>
-    /// <param name="propertyName">The name of the property for which to clear errors.</param>
-    public void ClearErrors(string propertyName)
+    /// <param name="propertyNames">The names of the properties for which to clear errors.</param>
+    public void ClearErrors(params string[] propertyNames)
     {
-        if (string.IsNullOrEmpty(propertyName)) return;
+        if (propertyNames.Length == 0)
+        {
+            return;
+        }
 
-        var fieldIdentifier = new FieldIdentifier(Item, propertyName);
+        foreach (var propertyName in propertyNames)
+        {
+            if (string.IsNullOrEmpty(propertyName)) continue;
 
-        // Clear validation messages for the specified property
-        MessageStore.Clear(fieldIdentifier);
+            var fieldIdentifier = new FieldIdentifier(Item, propertyName);
+            MessageStore.Clear(fieldIdentifier);
+        }
 
-        // Notify the EditContext to update the UI
+        // Notify the EditContext to update the UI once after all properties are cleared
         EditContext.NotifyValidationStateChanged();
     }
 }
