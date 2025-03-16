@@ -314,7 +314,7 @@ public class FleetTelemetryWebSocketService(
                                 {
                                     if (carValueLog.BooleanValue == true
                                         //Do only overwrite these states as otherwise Charging or Driving might be overwritten
-                                        && settingsCar.State is CarStateEnum.Unknown or CarStateEnum.Suspended or CarStateEnum.Online)
+                                        && settingsCar.State is CarStateEnum.Unknown or CarStateEnum.Suspended)
                                     {
                                         settingsCar.State = CarStateEnum.Offline;
                                         _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
