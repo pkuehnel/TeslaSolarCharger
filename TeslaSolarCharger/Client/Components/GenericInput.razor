@@ -365,7 +365,6 @@
 
 
     private bool? _isReadOnlyParameter;
-    private bool _isIosDevice;
 
     private IDictionary<string, object> NumericFieldAttributes()
     {
@@ -375,11 +374,6 @@
         {
             attributes["Error"] = ShouldBeInErrorState.Value;
             attributes["ErrorText"] = ErrorMessage ?? string.Empty;
-        }
-
-        if (_isIosDevice)
-        {
-            attributes["InputMode"] = InputMode.text;
         }
 
         return attributes;
@@ -726,18 +720,6 @@
             property.SetValue(target, value);
 
             OnValueChanged.InvokeAsync(Value);
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            _isIosDevice = await JavaScriptWrapper.IsIosDevice();
-        }
-        catch (Exception)
-        {
-            _isIosDevice = false;
         }
     }
 
