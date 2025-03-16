@@ -1,17 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
-using MQTTnet.Client;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
-using MQTTnet.Server;
-using MudBlazor;
 using System.Text;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
-using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
-using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 
 namespace TeslaSolarCharger.Services.Services.Mqtt;
@@ -20,7 +15,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
     IServiceProvider serviceProvider,
     IRestValueExecutionService restValueExecutionService,
     IDateTimeProvider dateTimeProvider,
-    MqttFactory mqttFactory)
+    MqttClientFactory mqttClientFactory)
     : IMqttClientHandlingService
 {
     private readonly Dictionary<string, IMqttClient> _mqttClients = new();
@@ -98,7 +93,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
         };
         await mqttClient.ConnectAsync(mqttClientOptions);
         
-        var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
+        var mqttSubscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder()
             .Build();
 
         if (resultConfigurations.Count > 0)

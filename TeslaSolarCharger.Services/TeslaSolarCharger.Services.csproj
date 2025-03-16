@@ -11,7 +11,7 @@
     <PackageReference Include="FluentModbus" Version="5.3.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
-    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+    <PackageReference Include="MQTTnet" Version="5.0.1.1416" />
   </ItemGroup>
 
   <ItemGroup>
