@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MQTTnet;
 using MQTTnet.Adapter;
-using MQTTnet.Client;
-using MQTTnet.Diagnostics;
+using MQTTnet.Diagnostics.Logger;
 using MQTTnet.Implementations;
 using Quartz;
 using Quartz.Impl;
@@ -10,7 +9,6 @@ using Quartz.Spi;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Server.Middlewares;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -71,7 +69,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IMqttNetLogger, MqttNetNullLogger>()
             .AddTransient<IMqttClientAdapterFactory, MqttClientAdapterFactory>()
             .AddTransient<IMqttClient, MqttClient>()
-            .AddTransient<MqttFactory>()
+            .AddTransient<MqttClientFactory>()
             .AddSingleton<ITeslaMateMqttService, TeslaMateMqttService>()
             .AddSingleton<IMqttConnectionService, MqttConnectionService>()
             .AddTransient<IPvValueService, PvValueService>()
