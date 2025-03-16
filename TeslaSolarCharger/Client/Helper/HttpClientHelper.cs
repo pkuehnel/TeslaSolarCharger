@@ -78,7 +78,7 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
             {
                 config.Action = "Details";
                 config.ActionColor = Color.Primary;
-                config.Onclick = snackbar1 => dialogHelper.ShowTextDialog(
+                config.OnClick = snackbar1 => dialogHelper.ShowTextDialog(
                     "Error Details",
                     $"Unexpected error while calling {url}: {ex.Message}{Environment.NewLine}{ex.StackTrace}"
                 );

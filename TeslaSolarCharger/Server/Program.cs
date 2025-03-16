@@ -69,7 +69,7 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
     .MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
     .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Debug)
-    // Send events to the in–memory sink using a sub–logger and the dynamic level switch.
+    // Send events to the inâ€“memory sink using a subâ€“logger and the dynamic level switch.
     .WriteTo.Logger(lc => lc
         .MinimumLevel.ControlledBy(inMemoryLevelSwitch)
         .WriteTo.Sink(inMemorySink))
@@ -231,7 +231,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
         var homeGeofenceName = configurationWrapper.GeoFence();
-        
+
         if (teslaMateContext != default && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 52.5185238, HomeGeofenceLongitude: 13.3761736 })
         {
             logger.LogInformation("Convert home geofence from TeslaMate.");
@@ -249,7 +249,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
-        
+
         var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
         await errorHandlingService.HandleErrorResolved(issueKeys.CrashedOnStartup, null)
             .ConfigureAwait(false);

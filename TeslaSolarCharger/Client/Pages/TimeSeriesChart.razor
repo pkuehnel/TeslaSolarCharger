@@ -1,6 +1,5 @@
 ﻿@page "/TimeSeries/{carId:int}/{startEpoch:long}/{endEpoch:long}"
 
-@using MudBlazor.Components.Chart.Models
 @using TeslaSolarCharger.Shared.Dtos.TimeSeries
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Helper.Contracts
@@ -61,7 +60,7 @@
                     Name = StringHelper.GenerateFriendlyStringFromPascalString(carValueType.ToString()),
                 Data = response.Select(d => new TimeSeriesChartSeries.TimeValue(d.Timestamp, d.Value ?? 0)).ToList(),
                 IsVisible = true,
-                Type = TimeSeriesDiplayType.Line,
+                LineDisplayType = LineDisplayType.Line,
             };
             _series.Add(chartSeries);
         }
