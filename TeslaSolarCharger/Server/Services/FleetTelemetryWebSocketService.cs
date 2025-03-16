@@ -312,7 +312,8 @@ public class FleetTelemetryWebSocketService(
                             case CarValueType.AsleepOrOffline:
                                 if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
                                 {
-                                    if (carValueLog.BooleanValue == true
+                                    //ToDo: use this again as soon as offline and charging are separated. Currently if the connection drops araound the time charging is finished this results in car displayed as online while it is charging
+                                    /*if (carValueLog.BooleanValue == true
                                         //Do only overwrite these states as otherwise Charging or Driving might be overwritten
                                         && settingsCar.State is CarStateEnum.Unknown or CarStateEnum.Suspended or CarStateEnum.Online)
                                     {
@@ -320,11 +321,11 @@ public class FleetTelemetryWebSocketService(
                                         _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
                                     }
                                     else if (carValueLog.BooleanValue == false
-                                             && (settingsCar.State == CarStateEnum.Asleep || settingsCar.State == CarStateEnum.Offline))
+                                             && settingsCar.State is CarStateEnum.Asleep or CarStateEnum.Offline)
                                     {
                                         settingsCar.State = CarStateEnum.Online;
                                         _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
-                                    }
+                                    }*/
                                 }
                                 break;
                             case CarValueType.LocatedAtHome:
