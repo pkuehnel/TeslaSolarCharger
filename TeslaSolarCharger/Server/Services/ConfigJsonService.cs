@@ -326,7 +326,6 @@ public class ConfigJsonService(
         entity.ChargerPilotCurrent = car.ChargerPilotCurrent;
         entity.ChargerRequestedCurrent = car.ChargerRequestedCurrent;
         entity.PluggedIn = car.PluggedIn;
-        entity.ClimateOn = car.ClimateOn;
         entity.Latitude = car.Latitude;
         entity.Longitude = car.Longitude;
         entity.State = car.State;
@@ -365,7 +364,6 @@ public class ConfigJsonService(
                 ChargerPilotCurrent = c.ChargerPilotCurrent,
                 ChargerRequestedCurrent = c.ChargerRequestedCurrent,
                 PluggedIn = c.PluggedIn,
-                ClimateOn = c.ClimateOn,
                 Latitude = c.Latitude,
                 Longitude = c.Longitude,
                 State = c.State,
@@ -447,7 +445,6 @@ public class ConfigJsonService(
             dbCar.ChargerPilotCurrent = car.ChargerPilotCurrent;
             dbCar.ChargerRequestedCurrent = car.ChargerRequestedCurrent;
             dbCar.PluggedIn = car.PluggedIn;
-            dbCar.ClimateOn = car.ClimateOn;
             dbCar.Latitude = car.Latitude;
             dbCar.Longitude = car.Longitude;
             dbCar.State = car.State;
@@ -492,7 +489,6 @@ public class ConfigJsonService(
             car.ChargerPilotCurrent = carState.ChargerPilotCurrent;
             car.ChargerRequestedCurrent = carState.ChargerRequestedCurrent;
             car.PluggedIn = carState.PluggedIn;
-            car.ClimateOn = carState.ClimateOn;
             car.Latitude = carState.Latitude;
             car.Longitude = carState.Longitude;
         }

@@ -351,10 +351,6 @@ public class TeslaMateMqttService(
                 }
                 break;
             case TopicIsClimateOn:
-                if (!string.IsNullOrWhiteSpace(value.Value))
-                {
-                    car.ClimateOn = Convert.ToBoolean(value.Value);
-                }
                 break;
             case TopicTimeToFullCharge:
                 if (!string.IsNullOrWhiteSpace(value.Value))
