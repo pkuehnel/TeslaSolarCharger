@@ -310,7 +310,6 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         BooleanValue = vehicleDataResult.ChargeState.ChargingState != "Disconnected",
                     });
-                    car.ClimateOn = vehicleDataResult.ClimateState.IsClimateOn;
                     car.TimeUntilFullCharge = TimeSpan.FromHours(vehicleDataResult.ChargeState.TimeToFullCharge);
                     var teslaCarStateString = vehicleDataResult.State;
                     var teslaCarShiftState = vehicleDataResult.DriveState.ShiftState;
