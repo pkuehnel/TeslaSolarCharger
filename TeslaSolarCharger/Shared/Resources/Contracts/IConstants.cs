@@ -44,7 +44,6 @@ public interface IConstants
     string BackendTokenStateKey { get; }
     string IsBaseAppLicensedKey { get; }
     string IsFleetApiLicensedKey { get; }
-    string FleetTelemetryConfigurationExpiryKey { get; }
     int FleetTelemetryReconfigurationBufferHours { get; }
     string HomeDetectionViaConvertedKey { get; }
 }

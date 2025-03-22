@@ -242,6 +242,15 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = true,
             }
         },
+        { issueKeys.FleetTelemetryConfigurationError, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = false,
+            }
+        },
     };
 
     public DtoIssue GetIssueByKey(string key)

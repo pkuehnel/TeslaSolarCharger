@@ -1,10 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 using TeslaSolarCharger.Server.Enums;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -16,8 +15,8 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
     ITscConfigurationService tscConfigurationService,
     ITeslaFleetApiService teslaFleetApiService,
     IConstants constants,
-    IMemoryCache memoryCache,
-    IDateTimeProvider dateTimeProvider) : IFleetTelemetryConfigurationService
+    IErrorHandlingService errorHandlingService,
+    IIssueKeys issueKeys) : IFleetTelemetryConfigurationService
 {
     public async Task<DtoGetFleetTelemetryConfiguration> GetFleetTelemetryConfiguration(string vin)
     {
@@ -160,38 +159,30 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
     public async Task ReconfigureAllCarsIfRequired()
     {
         logger.LogTrace("{method}", nameof(ReconfigureAllCarsIfRequired));
-        var cars = await teslaSolarChargerContext.Cars
+        var vins = await teslaSolarChargerContext.Cars
             .Where(c => c.UseFleetTelemetry
                         && (c.ShouldBeManaged == true)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotWorking)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured)
                         && (c.IsFleetTelemetryHardwareIncompatible == false))
-            .Select(c => new { c.Vin, IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields, })
+            .Select(c => c.Vin)
             .ToListAsync();
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        foreach (var car in cars)
+        foreach (var vin in vins)
         {
-            if (car.Vin == default)
+            if (vin == default)
             {
                 continue;
             }
-            var reconfigurationRequired =
-                !memoryCache.TryGetValue(constants.FleetTelemetryConfigurationExpiryKey + car.Vin, out DateTimeOffset expiryTime);
-            //This tests if memory cache value does exist.
-            if(!reconfigurationRequired)
+            var result = await SetFleetTelemetryConfiguration(vin, false);
+            if (result.Success)
             {
-                reconfigurationRequired = expiryTime < currentDate.AddHours(constants.FleetTelemetryReconfigurationBufferHours);
+                await errorHandlingService.HandleErrorResolved(issueKeys.FleetTelemetryConfigurationError, vin).ConfigureAwait(false);
             }
-            if (!reconfigurationRequired)
+            else
             {
-                logger.LogDebug("Fleet Telemetry reconfiguration for car {vin} not required as expires in the future", car.Vin);
-                continue;
-            }
-            var result = await SetFleetTelemetryConfiguration(car.Vin, false);
-            if (result.Success && (result.ValidUntil != default))
-            {
-                memoryCache.Set(constants.FleetTelemetryConfigurationExpiryKey + car.Vin, DateTimeOffset.FromUnixTimeSeconds(result.ValidUntil.Value));
+                await errorHandlingService.HandleError(nameof(FleetTelemetryConfigurationService), nameof(ReconfigureAllCarsIfRequired),
+                    $"Error while configuring Fleet Telemetry for car {vin}", $"{result.ErrorMessage}\r\nNote: The error only disappears after fxing the root cause, restarting TSC and waiting for 2 minutes.", issueKeys.FleetTelemetryConfigurationError, vin, null).ConfigureAwait(false);
             }
         }
     }
