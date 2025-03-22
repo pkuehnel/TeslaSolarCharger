@@ -178,6 +178,7 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
             }
             var reconfigurationRequired =
                 !memoryCache.TryGetValue(constants.FleetTelemetryConfigurationExpiryKey + car.Vin, out DateTimeOffset expiryTime);
+            //This tests if memory cache value does exist.
             if(!reconfigurationRequired)
             {
                 reconfigurationRequired = expiryTime < currentDate.AddHours(constants.FleetTelemetryReconfigurationBufferHours);

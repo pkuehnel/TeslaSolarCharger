@@ -18,7 +18,7 @@ jobs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '9.0.x'
 
     - name: Install minver CLI
       run: dotnet tool install --tool-path ./minver minver-cli --version 4.3.0

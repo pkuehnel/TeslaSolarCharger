@@ -35,7 +35,6 @@ public class Car
     public int? ChargerPilotCurrent { get; set; }
     public int? ChargerRequestedCurrent { get; set; }
     public bool? PluggedIn { get; set; }
-    public bool? ClimateOn { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public CarStateEnum? State { get; set; }

@@ -1,5 +1,4 @@
-﻿using MQTTnet.Client;
-using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
+﻿using MQTTnet;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 
 namespace TeslaSolarCharger.Services.Services.Mqtt.Contracts;

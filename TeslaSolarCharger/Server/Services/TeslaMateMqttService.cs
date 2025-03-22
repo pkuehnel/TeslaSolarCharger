@@ -1,5 +1,4 @@
 using MQTTnet;
-using MQTTnet.Client;
 using System.Globalization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -13,7 +12,7 @@ namespace TeslaSolarCharger.Server.Services;
 public class TeslaMateMqttService(
     ILogger<TeslaMateMqttService> logger,
     IMqttClient mqttClient,
-    MqttFactory mqttFactory,
+    MqttClientFactory mqttClientFactory,
     ISettings settings,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
@@ -102,7 +101,7 @@ public class TeslaMateMqttService(
 
         var topicPrefix = "teslamate/cars/+/";
 
-        var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
+        var mqttSubscribeOptions = mqttClientFactory.CreateSubscribeOptionsBuilder()
             .WithTopicFilter(f =>
             {
                 f.WithTopic($"{topicPrefix}{TopicDisplayName}");
@@ -352,10 +351,6 @@ public class TeslaMateMqttService(
                 }
                 break;
             case TopicIsClimateOn:
-                if (!string.IsNullOrWhiteSpace(value.Value))
-                {
-                    car.ClimateOn = Convert.ToBoolean(value.Value);
-                }
                 break;
             case TopicTimeToFullCharge:
                 if (!string.IsNullOrWhiteSpace(value.Value))
