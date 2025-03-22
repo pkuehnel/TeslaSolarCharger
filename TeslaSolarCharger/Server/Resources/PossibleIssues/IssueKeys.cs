@@ -31,5 +31,6 @@ public class IssueKeys : IIssueKeys
     public string BaseAppNotLicensed => "BaseAppNotLicensed";
     public string FleetApiNotLicensed => "FleetApiNotLicensed";
     public string FleetTelemetryNotConnected => "FleetTelemetryNotConnected";
+    public string FleetTelemetryConfigurationError => "FleetTelemetryConfigurationError";
 }
 

@@ -29,4 +29,5 @@ public interface IIssueKeys
     string BaseAppNotLicensed { get; }
     string FleetApiNotLicensed { get; }
     string FleetTelemetryNotConnected { get; }
+    string FleetTelemetryConfigurationError { get; }
 }
