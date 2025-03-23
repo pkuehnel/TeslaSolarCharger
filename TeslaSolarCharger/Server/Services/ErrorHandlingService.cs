@@ -40,7 +40,7 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                         OccurrenceCount = e.FurtherOccurrences.Count() + 1,
                         Vin = e.Vin,
                         Message = e.Message,
-                        HideOccurrenceCount = possibleIssues.GetIssueByKey(e.IssueKey).HideOccurrenceCount
+                        HideOccurrenceCount = possibleIssues.GetIssueByKey(e.IssueKey).HideOccurrenceCount,
                     })
                     .ToList();
 
