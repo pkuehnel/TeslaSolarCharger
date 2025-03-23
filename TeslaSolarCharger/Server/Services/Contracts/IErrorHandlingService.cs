@@ -14,7 +14,6 @@ public interface IErrorHandlingService
     Task SendTelegramMessages();
     Task<List<DtoLoggedError>> GetActiveLoggedErrors();
     Task<DtoValue<int>> ErrorCount();
-    Task<DtoValue<int>> WarningCount();
     Task<int> DismissError(int errorIdValue);
     Task RemoveInvalidLoggedErrorsAsync();
     Task<List<DtoHiddenError>> GetHiddenErrors();

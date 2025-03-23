@@ -3,7 +3,6 @@ using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -39,7 +38,6 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
                 HideOccurrenceCount = possibleIssues.GetIssueByKey(e.IssueKey).HideOccurrenceCount,
             })
             .ToList();
-
         var removedErrorCount = errors.RemoveAll(e => e.OccurrenceCount < possibleIssues.GetIssueByKey(e.IssueKey).ShowErrorAfterOccurrences);
         logger.LogDebug("{removedErrorsCount} errors removed as did not reach minimum error count", removedErrorCount);
         return errors;
@@ -83,14 +81,8 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
     public async Task<DtoValue<int>> ErrorCount()
     {
-        var count = await GetActiveIssueCountBySeverity(IssueSeverity.Error).ConfigureAwait(false);
-        return new(count);
-    }
-
-    public async Task<DtoValue<int>> WarningCount()
-    {
-        var count = await GetActiveIssueCountBySeverity(IssueSeverity.Warning).ConfigureAwait(false);
-        return new(count);
+        var errors = await GetActiveLoggedErrors().ConfigureAwait(false);
+        return new(errors.Count);
     }
     
     public async Task<int> DismissError(int errorIdValue)
@@ -297,17 +289,4 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
         return keys!;
     }
-
-    private async Task<int> GetActiveIssueCountBySeverity(IssueSeverity severity)
-    {
-        var activeIssueKeys = await context.LoggedErrors
-            .Where(e => e.EndTimeStamp == null)
-            .Select(e => new { e.IssueKey, Occurrences = e.FurtherOccurrences.Count + 1, })
-            .ToListAsync().ConfigureAwait(false);
-        activeIssueKeys.RemoveAll(i => i.Occurrences < possibleIssues.GetIssueByKey(i.IssueKey).ShowErrorAfterOccurrences);
-
-        return activeIssueKeys.Count(activeIssueKey => possibleIssues.GetIssueByKey(activeIssueKey.IssueKey).IssueSeverity == severity);
-    }
-
-
 }
