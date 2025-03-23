@@ -17,18 +17,10 @@ public class ErrorHandlingService(ITestOutputHelper outputHelper) : TestBase(out
     public async Task CanGetActiveErrors()
     {
         var errorHandlingService = Mock.Create<TeslaSolarCharger.Server.Services.ErrorHandlingService>();
-        var errorsToDisplayFin = await errorHandlingService.GetActiveLoggedErrors();
-        errorsToDisplayFin.Match(
-            Succ: unfilteredErrors =>
-            {
-                Assert.Equal(2, unfilteredErrors.Count);
-                Assert.Single(unfilteredErrors, e => e.Id == -1);
-                Assert.Single(unfilteredErrors, e => e.Id == -2);
-            },
-            Fail: error =>
-            {
-                throw new Exception(error.Message);
-            });
+        var unfilteredErrors = await errorHandlingService.GetActiveLoggedErrors();
+        Assert.Equal(2, unfilteredErrors.Count);
+        Assert.Single(unfilteredErrors, e => e.Id == -1);
+        Assert.Single(unfilteredErrors, e => e.Id == -2);
 
     }
 
@@ -36,23 +28,14 @@ public class ErrorHandlingService(ITestOutputHelper outputHelper) : TestBase(out
     public async Task CanGetHiddenErrors()
     {
         var errorHandlingService = Mock.Create<TeslaSolarCharger.Server.Services.ErrorHandlingService>();
-        var errorsToDisplayFin = await errorHandlingService.GetHiddenErrors();
-        errorsToDisplayFin.Match(
-            Succ: unfilteredErrors =>
-            {
-                Assert.Equal(2, unfilteredErrors.Count);
-                Assert.Single(unfilteredErrors, e => e.Id == -3);
-                Assert.Single(unfilteredErrors, e => e.Id == -4);
-                var notEnoughOccurrencesElement = unfilteredErrors.Single(e => e.Id == -3);
-                Assert.Equal(LoggedErrorHideReason.NotEnoughOccurrences, notEnoughOccurrencesElement.HideReason);
+        var unfilteredErrors = await errorHandlingService.GetHiddenErrors();
+        Assert.Equal(2, unfilteredErrors.Count);
+        Assert.Single(unfilteredErrors, e => e.Id == -3);
+        Assert.Single(unfilteredErrors, e => e.Id == -4);
+        var notEnoughOccurrencesElement = unfilteredErrors.Single(e => e.Id == -3);
+        Assert.Equal(LoggedErrorHideReason.NotEnoughOccurrences, notEnoughOccurrencesElement.HideReason);
 
-                var dismissedElement = unfilteredErrors.Single(e => e.Id == -4);
-                Assert.Equal(LoggedErrorHideReason.Dismissed, dismissedElement.HideReason);
-            },
-            Fail: error =>
-            {
-                throw new Exception(error.Message);
-            });
-
+        var dismissedElement = unfilteredErrors.Single(e => e.Id == -4);
+        Assert.Equal(LoggedErrorHideReason.Dismissed, dismissedElement.HideReason);
     }
 }

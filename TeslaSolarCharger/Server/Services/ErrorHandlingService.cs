@@ -1,5 +1,4 @@
-﻿using LanguageExt;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -10,7 +9,6 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.LoggedError;
 using TeslaSolarCharger.Shared.Enums;
-using Error = LanguageExt.Common.Error;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -22,113 +20,83 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
     IConfigurationWrapper configurationWrapper,
     IPossibleIssues possibleIssues) : IErrorHandlingService
 {
-    public async Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors()
+    public async Task<List<DtoLoggedError>> GetActiveLoggedErrors()
     {
         logger.LogTrace("{method}()", nameof(GetActiveLoggedErrors));
-        var unfilterdErrorsFin = await GetUnfilterdLoggedErrors();
-        return unfilterdErrorsFin.Match(
-            Succ: unfilteredErrors =>
+        var unfilteredErrors = await GetUnfilterdLoggedErrors();
+        var errors = unfilteredErrors
+            .Where(e => e.DismissedAt == default || (e.FurtherOccurrences.Any() && (e.DismissedAt < e.FurtherOccurrences.Max())))
+            .Select(e => new DtoLoggedError()
             {
-                var errors = unfilteredErrors
-                    .Where(e => e.DismissedAt == default || (e.FurtherOccurrences.Any() && (e.DismissedAt < e.FurtherOccurrences.Max())))
-                    .Select(e => new DtoLoggedError()
-                    {
-                        Id = e.Id,
-                        Severity = possibleIssues.GetIssueByKey(e.IssueKey).IssueSeverity,
-                        Headline = e.Headline,
-                        IssueKey = e.IssueKey,
-                        OccurrenceCount = e.FurtherOccurrences.Count() + 1,
-                        Vin = e.Vin,
-                        Message = e.Message,
-                        HideOccurrenceCount = possibleIssues.GetIssueByKey(e.IssueKey).HideOccurrenceCount
-                    })
-                    .ToList();
-
-                var removedErrorCount = errors.RemoveAll(e => e.OccurrenceCount < possibleIssues.GetIssueByKey(e.IssueKey).ShowErrorAfterOccurrences);
-                logger.LogDebug("{removedErrorsCount} errors removed as did not reach minimum error count", removedErrorCount);
-                return Fin<System.Collections.Generic.List<DtoLoggedError>>.Succ(errors);
-            },
-            Fail: error =>
-            {
-                return Fin<System.Collections.Generic.List<DtoLoggedError>>.Fail(error);
-            });
-
+                Id = e.Id,
+                Severity = possibleIssues.GetIssueByKey(e.IssueKey).IssueSeverity,
+                Headline = e.Headline,
+                IssueKey = e.IssueKey,
+                OccurrenceCount = e.FurtherOccurrences.Count() + 1,
+                Vin = e.Vin,
+                Message = e.Message,
+                HideOccurrenceCount = possibleIssues.GetIssueByKey(e.IssueKey).HideOccurrenceCount,
+            })
+            .ToList();
+        var removedErrorCount = errors.RemoveAll(e => e.OccurrenceCount < possibleIssues.GetIssueByKey(e.IssueKey).ShowErrorAfterOccurrences);
+        logger.LogDebug("{removedErrorsCount} errors removed as did not reach minimum error count", removedErrorCount);
+        return errors;
     }
 
-    public async Task<Fin<List<DtoHiddenError>>> GetHiddenErrors()
+    public async Task<List<DtoHiddenError>> GetHiddenErrors()
     {
         logger.LogTrace("{method}()", nameof(GetHiddenErrors));
-        var unfilterdErrorsFin = await GetUnfilterdLoggedErrors();
-        return unfilterdErrorsFin.Match(
-            Succ: unfilteredErrors =>
+        var unfilteredErrors = await GetUnfilterdLoggedErrors();
+        var hiddenErrors = new List<DtoHiddenError>();
+        foreach (var loggedError in unfilteredErrors)
+        {
+            var occurrences = new List<DateTime>() { loggedError.StartTimeStamp }.Concat(loggedError.FurtherOccurrences).ToList();
+            var hiddenError = new DtoHiddenError()
             {
-                var hiddenErrors = new List<DtoHiddenError>();
-                foreach (var loggedError in unfilteredErrors)
-                {
-                    var occurrences = new List<DateTime>() { loggedError.StartTimeStamp }.Concat(loggedError.FurtherOccurrences).ToList();
-                    var hiddenError = new DtoHiddenError()
-                    {
-                        Id = loggedError.Id,
-                        Severity = possibleIssues.GetIssueByKey(loggedError.IssueKey).IssueSeverity,
-                        Headline = loggedError.Headline,
-                        IssueKey = loggedError.IssueKey,
-                        OccurrenceCount = occurrences.Count,
-                        Vin = loggedError.Vin,
-                        Message = loggedError.Message,
-                        HideOccurrenceCount = possibleIssues.GetIssueByKey(loggedError.IssueKey).HideOccurrenceCount,
-                    };
-                    if (occurrences.Count
-                        < possibleIssues.GetIssueByKey(loggedError.IssueKey).ShowErrorAfterOccurrences)
-                    {
-                        hiddenError.HideReason = LoggedErrorHideReason.NotEnoughOccurrences;
-                        hiddenErrors.Add(hiddenError);
-                    }
-                    else if(loggedError.DismissedAt > occurrences.Max())
-                    {
-                        hiddenError.HideReason = LoggedErrorHideReason.Dismissed;
-                        hiddenErrors.Add(hiddenError);
-                    }
-                }
-                return Fin<List<DtoHiddenError>>.Succ(hiddenErrors);
-            },
-            Fail: error =>
+                Id = loggedError.Id,
+                Severity = possibleIssues.GetIssueByKey(loggedError.IssueKey).IssueSeverity,
+                Headline = loggedError.Headline,
+                IssueKey = loggedError.IssueKey,
+                OccurrenceCount = occurrences.Count,
+                Vin = loggedError.Vin,
+                Message = loggedError.Message,
+                HideOccurrenceCount = possibleIssues.GetIssueByKey(loggedError.IssueKey).HideOccurrenceCount,
+            };
+            if (occurrences.Count
+                < possibleIssues.GetIssueByKey(loggedError.IssueKey).ShowErrorAfterOccurrences)
             {
-                return Fin<List<DtoHiddenError>>.Fail(error);
-            });
+                hiddenError.HideReason = LoggedErrorHideReason.NotEnoughOccurrences;
+                hiddenErrors.Add(hiddenError);
+            }
+            else if (loggedError.DismissedAt > occurrences.Max())
+            {
+                hiddenError.HideReason = LoggedErrorHideReason.Dismissed;
+                hiddenErrors.Add(hiddenError);
+            }
+        }
+
+        return hiddenErrors;
     }
 
 
     public async Task<DtoValue<int>> ErrorCount()
     {
-        var count = await GetActiveIssueCountBySeverity(IssueSeverity.Error).ConfigureAwait(false);
-        return new(count);
-    }
-
-    public async Task<DtoValue<int>> WarningCount()
-    {
-        var count = await GetActiveIssueCountBySeverity(IssueSeverity.Warning).ConfigureAwait(false);
-        return new(count);
+        var errors = await GetActiveLoggedErrors().ConfigureAwait(false);
+        return new(errors.Count);
     }
     
-    public async Task<Fin<int>> DismissError(int errorIdValue)
+    public async Task<int> DismissError(int errorIdValue)
     {
         logger.LogTrace("{method}({errorId})", nameof(DismissError), errorIdValue);
         var error = await context.LoggedErrors.FindAsync(errorIdValue);
         if (error == default)
         {
-            return Fin<int>.Fail(Error.New(new KeyNotFoundException("Could not find error with specified ID")));
+            return errorIdValue;
         }
 
         error.DismissedAt = dateTimeProvider.UtcNow();
-        try
-        {
-            await context.SaveChangesAsync();
-            return Fin<int>.Succ(errorIdValue);
-        }
-        catch (Exception ex)
-        {
-            return Fin<int>.Fail(Error.New(ex));
-        }
+        await context.SaveChangesAsync();
+        return errorIdValue;
     }
 
     public async Task HandleError(string source, string methodName, string headline, string message, string issueKey, string? vin,
@@ -300,21 +268,13 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
         await context.SaveChangesAsync();
     }
 
-    private async Task<Fin<List<LoggedError>>> GetUnfilterdLoggedErrors()
+    private async Task<List<LoggedError>> GetUnfilterdLoggedErrors()
     {
         logger.LogTrace("{method}()", nameof(GetActiveLoggedErrors));
-        try
-        {
-            var loggedErrors = await context.LoggedErrors
-                .Where(e => e.EndTimeStamp == default)
-                .ToListAsync();
-            return Fin<List<LoggedError>>.Succ(loggedErrors);
-        }
-        catch (Exception ex)
-        {
-            return Fin<List<LoggedError>>.Fail(Error.New(ex));
-        }
-
+        var loggedErrors = await context.LoggedErrors
+            .Where(e => e.EndTimeStamp == default)
+            .ToListAsync();
+        return loggedErrors;
     }
 
     private List<string> GetIssueKeysUsingReflection()
@@ -329,17 +289,4 @@ public class ErrorHandlingService(ILogger<ErrorHandlingService> logger,
 
         return keys!;
     }
-
-    private async Task<int> GetActiveIssueCountBySeverity(IssueSeverity severity)
-    {
-        var activeIssueKeys = await context.LoggedErrors
-            .Where(e => e.EndTimeStamp == null)
-            .Select(e => new { e.IssueKey, Occurrences = e.FurtherOccurrences.Count + 1, })
-            .ToListAsync().ConfigureAwait(false);
-        activeIssueKeys.RemoveAll(i => i.Occurrences < possibleIssues.GetIssueByKey(i.IssueKey).ShowErrorAfterOccurrences);
-
-        return activeIssueKeys.Count(activeIssueKey => possibleIssues.GetIssueByKey(activeIssueKey.IssueKey).IssueSeverity == severity);
-    }
-
-
 }

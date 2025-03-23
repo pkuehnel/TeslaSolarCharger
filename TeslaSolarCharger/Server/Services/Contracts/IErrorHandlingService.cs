@@ -12,10 +12,9 @@ public interface IErrorHandlingService
 
     Task HandleErrorResolved(string issueKey, string? vin);
     Task SendTelegramMessages();
-    Task<Fin<List<DtoLoggedError>>> GetActiveLoggedErrors();
+    Task<List<DtoLoggedError>> GetActiveLoggedErrors();
     Task<DtoValue<int>> ErrorCount();
-    Task<DtoValue<int>> WarningCount();
-    Task<Fin<int>> DismissError(int errorIdValue);
+    Task<int> DismissError(int errorIdValue);
     Task RemoveInvalidLoggedErrorsAsync();
-    Task<Fin<List<DtoHiddenError>>> GetHiddenErrors();
+    Task<List<DtoHiddenError>> GetHiddenErrors();
 }
