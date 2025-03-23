@@ -86,12 +86,12 @@ else
 
     private async Task DismissError(int errorId)
     {
-        var idToRemove = await HttpClient.SendPostRequestWithSnackbarAsync<int>("api/LoggedErrors/DismissError", new DtoValue<int>(errorId));
-        if (_errors == default)
+        var idToRemove = await HttpClient.SendPostRequestWithSnackbarAsync<DtoValue<int>>("api/LoggedErrors/DismissError", new DtoValue<int>(errorId));
+        if (_errors == default || idToRemove == default)
         {
             return;
         }
-        _errors.RemoveAll(e => e.Id == idToRemove);
+        _errors.RemoveAll(e => e.Id == idToRemove.Value);
     }
 
     private Severity GetSeverity(IssueSeverity issueSeverity)

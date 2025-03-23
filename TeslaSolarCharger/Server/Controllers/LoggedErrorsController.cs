@@ -13,7 +13,7 @@ public class LoggedErrorsController(IErrorHandlingService service) : ApiBaseCont
     public async Task<IActionResult> GetActiveLoggedErrors()
     {
         var result = await service.GetActiveLoggedErrors().ConfigureAwait(false);
-        return result.ToOk();
+        return Ok(result);
 
     }
 
@@ -21,7 +21,7 @@ public class LoggedErrorsController(IErrorHandlingService service) : ApiBaseCont
     public async Task<IActionResult> GetHiddenErrors()
     {
         var result = await service.GetHiddenErrors().ConfigureAwait(false);
-        return result.ToOk();
+        return Ok(result);
 
     }
 
@@ -29,6 +29,6 @@ public class LoggedErrorsController(IErrorHandlingService service) : ApiBaseCont
     public async Task<IActionResult> DismissError([FromBody] DtoValue<int> errorId)
     {
         var result = await service.DismissError(errorId.Value);
-        return result.ToOk();
+        return Ok(new DtoValue<int>(result));
     }
 }
