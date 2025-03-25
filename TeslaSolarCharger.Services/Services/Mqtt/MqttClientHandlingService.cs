@@ -52,7 +52,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             .WithClientId(mqqtClientId)
             .WithTimeout(TimeSpan.FromSeconds(5))
             .WithTcpServer(mqttConfiguration.Host, mqttConfiguration.Port)
-            //Required as iobroker does not support newer versions
+            //Required as iobroker does not support newer versions, see https://tff-forum.de/t/teslasolarcharger-pv-ueberschussladen-mit-beliebiger-wallbox-teil-2/350867/1697?u=mane123
             .WithProtocolVersion(MqttProtocolVersion.V311)
             .Build();
 
