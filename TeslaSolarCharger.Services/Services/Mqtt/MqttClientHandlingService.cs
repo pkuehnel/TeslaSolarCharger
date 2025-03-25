@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
+using MQTTnet.Client;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
 using System.Text;
@@ -15,7 +16,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
     IServiceProvider serviceProvider,
     IRestValueExecutionService restValueExecutionService,
     IDateTimeProvider dateTimeProvider,
-    MqttClientFactory mqttClientFactory)
+    MqttFactory mqttClientFactory)
     : IMqttClientHandlingService
 {
     private readonly Dictionary<string, IMqttClient> _mqttClients = new();

@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using MQTTnet;
 using MQTTnet.Adapter;
-using MQTTnet.Diagnostics.Logger;
+using MQTTnet.Client;
+using MQTTnet.Diagnostics;
 using MQTTnet.Implementations;
 using Quartz;
 using Quartz.Impl;
@@ -69,7 +70,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IMqttNetLogger, MqttNetNullLogger>()
             .AddTransient<IMqttClientAdapterFactory, MqttClientAdapterFactory>()
             .AddTransient<IMqttClient, MqttClient>()
-            .AddTransient<MqttClientFactory>()
+            .AddTransient<MqttFactory>()
             .AddSingleton<ITeslaMateMqttService, TeslaMateMqttService>()
             .AddSingleton<IMqttConnectionService, MqttConnectionService>()
             .AddTransient<IPvValueService, PvValueService>()

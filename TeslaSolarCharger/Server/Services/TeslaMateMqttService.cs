@@ -1,4 +1,5 @@
 using MQTTnet;
+using MQTTnet.Client;
 using System.Globalization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -12,7 +13,7 @@ namespace TeslaSolarCharger.Server.Services;
 public class TeslaMateMqttService(
     ILogger<TeslaMateMqttService> logger,
     IMqttClient mqttClient,
-    MqttClientFactory mqttClientFactory,
+    MqttFactory mqttClientFactory,
     ISettings settings,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
