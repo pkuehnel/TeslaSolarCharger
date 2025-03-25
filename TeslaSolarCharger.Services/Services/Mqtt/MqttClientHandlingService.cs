@@ -55,7 +55,7 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
 
         if (!string.IsNullOrWhiteSpace(mqttConfiguration.Username) && !string.IsNullOrEmpty(mqttConfiguration.Password))
         {
-            logger.LogTrace("Add username and password to mqtt client options");
+            logger.LogTrace("Add username {userName} and password {password} to mqtt client options", mqttConfiguration.Username, mqttConfiguration.Password);
             var utf8 = Encoding.UTF8;
             var passwordBytes = utf8.GetBytes(mqttConfiguration.Password);
             mqttClientOptions.Credentials = new MqttClientCredentials(mqttConfiguration.Username, passwordBytes);
