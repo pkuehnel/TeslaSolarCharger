@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
+using MQTTnet.Formatter;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
 using System.Text;
@@ -51,10 +52,13 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             .WithClientId(mqqtClientId)
             .WithTimeout(TimeSpan.FromSeconds(5))
             .WithTcpServer(mqttConfiguration.Host, mqttConfiguration.Port)
+            //Required as iobroker does not support newer versions, see https://tff-forum.de/t/teslasolarcharger-pv-ueberschussladen-mit-beliebiger-wallbox-teil-2/350867/1697?u=mane123
+            .WithProtocolVersion(MqttProtocolVersion.V311)
             .Build();
 
         if (!string.IsNullOrWhiteSpace(mqttConfiguration.Username) && !string.IsNullOrEmpty(mqttConfiguration.Password))
         {
+            logger.LogTrace("Add username and password to mqtt client options");
             var utf8 = Encoding.UTF8;
             var passwordBytes = utf8.GetBytes(mqttConfiguration.Password);
             mqttClientOptions.Credentials = new MqttClientCredentials(mqttConfiguration.Username, passwordBytes);

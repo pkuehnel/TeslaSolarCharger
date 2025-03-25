@@ -69,7 +69,7 @@
 		<PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Mvc" Version="1.5.0" />
 		<PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Shared" Version="1.5.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="8.0.0" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.1" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0" />
 	</ItemGroup>
 
 	<ItemGroup>
