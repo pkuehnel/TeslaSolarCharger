@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
+using MQTTnet.Formatter;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
 using System.Text;
@@ -51,6 +52,8 @@ public class MqttClientHandlingService(ILogger<MqttClientHandlingService> logger
             .WithClientId(mqqtClientId)
             .WithTimeout(TimeSpan.FromSeconds(5))
             .WithTcpServer(mqttConfiguration.Host, mqttConfiguration.Port)
+            //Required as iobroker does not support newer versions
+            .WithProtocolVersion(MqttProtocolVersion.V311)
             .Build();
 
         if (!string.IsNullOrWhiteSpace(mqttConfiguration.Username) && !string.IsNullOrEmpty(mqttConfiguration.Password))
