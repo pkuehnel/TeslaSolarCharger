@@ -116,6 +116,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IPasswordGenerationService, PasswordGenerationService>()
             .AddTransient<IDebugService, DebugService>()
             .AddTransient<IFleetTelemetryConfigurationService, FleetTelemetryConfigurationService>()
+            .AddTransient<IMeterValueLogService, MeterValueLogService>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()

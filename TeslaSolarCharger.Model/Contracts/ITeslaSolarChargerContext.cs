@@ -30,5 +30,6 @@ public interface ITeslaSolarChargerContext
     DbSet<BackendNotification> BackendNotifications { get; set; }
     DbSet<LoggedError> LoggedErrors { get; set; }
     DbSet<CarValueLog> CarValueLogs { get; set; }
+    DbSet<MeterValue> MeterValues { get; set; }
     void RejectChanges();
 }
