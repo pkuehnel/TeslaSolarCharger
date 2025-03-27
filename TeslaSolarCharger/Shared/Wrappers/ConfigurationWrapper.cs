@@ -159,6 +159,13 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
+    public bool ShouldGetWeatherForecast()
+    {
+        var environmentVariableName = "ShouldGetWeatherForecast";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public bool GetVehicleDataFromTesla()
     {
         if (!UseTeslaMateIntegration())
