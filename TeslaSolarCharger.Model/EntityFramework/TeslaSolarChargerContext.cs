@@ -32,6 +32,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<LoggedError> LoggedErrors { get; set; } = null!;
     public DbSet<CarValueLog> CarValueLogs { get; set; } = null!;
     public DbSet<MeterValue> MeterValues { get; set; } = null!;
+    public DbSet<SolarRadiation> SolarRadiations { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -128,6 +129,19 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<MeterValue>()
             .Property(m => m.Timestamp)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<SolarRadiation>()
+            .Property(m => m.Start)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<SolarRadiation>()
+            .Property(m => m.End)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<SolarRadiation>()
+            .Property(m => m.CreatedAt)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
 
         modelBuilder.Entity<LoggedError>()
             .Property(e => e.FurtherOccurrences)
