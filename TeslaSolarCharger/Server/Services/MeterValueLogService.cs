@@ -45,7 +45,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             Timestamp = timestamp,
             MeterValueKind = meterValueKind,
             MeasuredPower = measuredPower,
-            MeasuredEnergy = measuredEnergy,
+            MeasuredEnergyWs = measuredEnergy,
         };
         context.MeterValues.Add(meterDatum);
         await context.SaveChangesAsync();

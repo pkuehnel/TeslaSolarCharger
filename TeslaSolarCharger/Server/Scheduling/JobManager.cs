@@ -55,6 +55,7 @@ public class JobManager(
         var fleetTelemetryReconnectionJob = JobBuilder.Create<FleetTelemetryReconnectionJob>().WithIdentity(nameof(FleetTelemetryReconnectionJob)).Build();
         var fleetTelemetryReconfigurationJob = JobBuilder.Create<FleetTelemetryReconfigurationJob>().WithIdentity(nameof(FleetTelemetryReconfigurationJob)).Build();
         var weatherDataRefreshJob = JobBuilder.Create<WeatherDataRefreshJob>().WithIdentity(nameof(WeatherDataRefreshJob)).Build();
+        var meterValueEstimationJob = JobBuilder.Create<MeterValueEstimationJob>().WithIdentity(nameof(MeterValueEstimationJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -136,9 +137,12 @@ public class JobManager(
             .StartAt(currentDate.AddSeconds(13))
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.FleetTelemetryReconfigurationBufferHours)).Build();
 
-        var weatherDataRefreshTrigger = TriggerBuilder.Create().WithIdentity("fleetTelemetryReconfigurationTrigger")
+        var weatherDataRefreshTrigger = TriggerBuilder.Create().WithIdentity("weatherDataRefreshTrigger")
             .StartAt(currentDate.AddSeconds(30))
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.WeatherDateRefreshIntervall)).Build();
+
+        var meterValueEstimationTrigger = TriggerBuilder.Create().WithIdentity("meterValueEstimationTrigger")
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(14)).Build();
 
         var random = new Random();
         var hour = random.Next(0, 5);
@@ -166,6 +170,7 @@ public class JobManager(
             {fleetTelemetryReconnectionJob, new HashSet<ITrigger> {fleetTelemetryReconnectionTrigger}},
             {fleetTelemetryReconfigurationJob, new HashSet<ITrigger> {fleetTelemetryReconfigurationTrigger}},
             {weatherDataRefreshJob, new HashSet<ITrigger> {weatherDataRefreshTrigger}},
+            {meterValueEstimationJob, new HashSet<ITrigger> {meterValueEstimationTrigger}},
         };
 
         if (!configurationWrapper.ShouldUseFakeSolarValues())
