@@ -119,6 +119,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IFleetTelemetryConfigurationService, FleetTelemetryConfigurationService>()
             .AddTransient<IMeterValueLogService, MeterValueLogService>()
             .AddTransient<IWeatherDataService, WeatherDataService>()
+            .AddTransient<ISolarProductionPredictionService, SolarProductionPredictionService>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
