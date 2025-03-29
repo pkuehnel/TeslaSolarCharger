@@ -220,13 +220,13 @@ public class BackendApiService(
     public async Task GetNewBackendNotifications()
     {
         logger.LogTrace("{method}()", nameof(GetNewBackendNotifications));
-        var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
         var lastKnownNotificationId = await teslaSolarChargerContext.BackendNotifications
             .OrderByDescending(n => n.BackendIssueId)
             .Select(n => n.BackendIssueId)
             .FirstOrDefaultAsync().ConfigureAwait(false);
-        var result = await SendRequestToBackend<List<DtoBackendNotification>>(HttpMethod.Get, null,
-            $"Tsc/GetBackendNotifications?installationId={installationId}&lastKnownNotificationId={lastKnownNotificationId}", null);
+        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
+        var result = await SendRequestToBackend<List<DtoBackendNotification>>(HttpMethod.Get, token.AccessToken,
+            $"Client/GetBackendNotifications?lastKnownNotificationId={lastKnownNotificationId}", null);
         if (result.HasError)
         {
             logger.LogError("Could not load new Backend Information. {errorMessage}", result.ErrorMessage);

@@ -31,6 +31,8 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<BackendNotification> BackendNotifications { get; set; } = null!;
     public DbSet<LoggedError> LoggedErrors { get; set; } = null!;
     public DbSet<CarValueLog> CarValueLogs { get; set; } = null!;
+    public DbSet<MeterValue> MeterValues { get; set; } = null!;
+    public DbSet<SolarRadiation> SolarRadiations { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -82,11 +84,11 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             }
         }
 
-        var converter = new LocalDateTimeConverter();
+        var localDateTimeConverter = new LocalDateTimeConverter();
 
         modelBuilder.Entity<Car>()
             .Property(c => c.LatestTimeToReachSoC)
-            .HasConversion(converter);
+            .HasConversion(localDateTimeConverter);
 
         modelBuilder.Entity<ChargePrice>()
             .Property(c => c.EnergyProvider)
@@ -108,7 +110,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
 
-        var timeListToString = new ValueConverter<List<DateTime>, string?>(
+        var timeListToStringValueConverter = new ValueConverter<List<DateTime>, string?>(
             v => JsonConvert.SerializeObject(v),
             v => v == null ? new() : JsonConvert.DeserializeObject<List<DateTime>>(v) ?? new List<DateTime>()
         );
@@ -119,44 +121,66 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             c => c.ToList() // Makes a snapshot copy
         );
 
+        var dateTimeOffsetToEpochMilliSecondsConverter = new ValueConverter<DateTimeOffset, long>(
+            v => v.ToUnixTimeMilliseconds(),
+            v => DateTimeOffset.FromUnixTimeMilliseconds(v)
+            );
+
+        modelBuilder.Entity<MeterValue>()
+            .Property(m => m.Timestamp)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<SolarRadiation>()
+            .Property(m => m.Start)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<SolarRadiation>()
+            .Property(m => m.End)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<SolarRadiation>()
+            .Property(m => m.CreatedAt)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+
         modelBuilder.Entity<LoggedError>()
             .Property(e => e.FurtherOccurrences)
-            .HasConversion(timeListToString)
+            .HasConversion(timeListToStringValueConverter)
             .Metadata.SetValueComparer(valueComparer);
 
         modelBuilder.Entity<Car>()
             .Property(e => e.WakeUpCalls)
-            .HasConversion(timeListToString)
+            .HasConversion(timeListToStringValueConverter)
             .Metadata.SetValueComparer(valueComparer);
 
         modelBuilder.Entity<Car>()
             .Property(e => e.VehicleDataCalls)
-            .HasConversion(timeListToString)
+            .HasConversion(timeListToStringValueConverter)
             .Metadata.SetValueComparer(valueComparer);
 
         modelBuilder.Entity<Car>()
             .Property(e => e.VehicleCalls)
-            .HasConversion(timeListToString)
+            .HasConversion(timeListToStringValueConverter)
             .Metadata.SetValueComparer(valueComparer);
 
         modelBuilder.Entity<Car>()
             .Property(e => e.ChargeStartCalls)
-            .HasConversion(timeListToString)
+            .HasConversion(timeListToStringValueConverter)
             .Metadata.SetValueComparer(valueComparer);
 
         modelBuilder.Entity<Car>()
             .Property(e => e.ChargeStopCalls)
-            .HasConversion(timeListToString)
+            .HasConversion(timeListToStringValueConverter)
             .Metadata.SetValueComparer(valueComparer);
 
         modelBuilder.Entity<Car>()
             .Property(e => e.SetChargingAmpsCall)
-            .HasConversion(timeListToString)
+            .HasConversion(timeListToStringValueConverter)
             .Metadata.SetValueComparer(valueComparer);
 
         modelBuilder.Entity<Car>()
             .Property(e => e.OtherCommandCalls)
-            .HasConversion(timeListToString)
+            .HasConversion(timeListToStringValueConverter)
             .Metadata.SetValueComparer(valueComparer);
 
     }
