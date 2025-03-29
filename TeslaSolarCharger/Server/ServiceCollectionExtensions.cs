@@ -57,6 +57,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<FleetTelemetryReconnectionJob>()
             .AddTransient<FleetTelemetryReconfigurationJob>()
             .AddTransient<WeatherDataRefreshJob>()
+            .AddTransient<MeterValueEstimationJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -120,6 +121,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IMeterValueLogService, MeterValueLogService>()
             .AddTransient<IWeatherDataService, WeatherDataService>()
             .AddTransient<ISolarProductionPredictionService, SolarProductionPredictionService>()
+            .AddTransient<IMeterValueEstimationService, MeterValueEstimationService>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
