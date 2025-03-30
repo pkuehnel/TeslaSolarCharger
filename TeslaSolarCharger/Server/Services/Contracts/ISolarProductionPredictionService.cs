@@ -2,5 +2,5 @@
 
 public interface ISolarProductionPredictionService
 {
-    Task<Dictionary<int, int>> GetPredictedProductionByLocalHour(DateOnly date);
+    Task<Dictionary<DateTimeOffset, double>> GetPredictedSolarProductionByLocalHour(DateOnly date);
 }

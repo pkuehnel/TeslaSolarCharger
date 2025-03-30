@@ -12,10 +12,10 @@ public class SolarProductionPredictionController(ISolarProductionPredictionServi
     {
         if (date == default)
         {
-            date = new DateOnly(2025, 3, 29);
+            date = new DateOnly(2025, 3, 31);
         }
 
-        var result = await solarProductionPredictionService.GetPredictedProductionByLocalHour(date.Value);
+        var result = await solarProductionPredictionService.GetPredictedSolarProductionByLocalHour(date.Value);
         return Ok(result);
     }
 }
