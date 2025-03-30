@@ -12,93 +12,142 @@ public class PredictionService(ILogger<PredictionService> logger,
     public async Task<Dictionary<DateTimeOffset, double>> GetPredictedSolarProductionByLocalHour(DateOnly date)
     {
         logger.LogTrace("{method}({date})", nameof(GetPredictedSolarProductionByLocalHour), date);
+
+        // Task 1: Compute prediction and search times
+        var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
+
+        // Task 2: Retrieve historical solar radiation data
+        var latestRadiations = await GetLatestSolarRadiationsAsync(historicPredictionsSearchStart, utcPredictionEnd);
+
+        // Task 3: Generate hourly timestamps (note: GetHourlyTimestamps already exists)
+        var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
+
+        // Task 4: Retrieve meter energy differences for hourly timestamps
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps);
+
+        // Task 5: Compute weighted average conversion factors per UTC hour
+        var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(hourlyTimeStamps, createdWh, latestRadiations, historicPredictionsSearchStart);
+
+        // Task 6: Retrieve forecast solar radiation data for the prediction period
+        var forecastSolarRadiations = await GetForecastSolarRadiationsAsync(utcPredictionStart, utcPredictionEnd);
+
+        // Task 7: Predict production based on forecasted radiation and computed factors
+        var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors);
+
+        return predictedProduction;
+    }
+
+    private (DateTimeOffset utcPredictionStart, DateTimeOffset utcPredictionEnd, DateTimeOffset historicPredictionsSearchStart) ComputePredictionTimes(DateOnly date)
+    {
         var localPredictionStart = date.ToDateTime(TimeOnly.MinValue);
         var localStartOffset = new DateTimeOffset(localPredictionStart, TimeZoneInfo.Local.GetUtcOffset(localPredictionStart));
         var utcPredictionStart = localStartOffset.ToUniversalTime();
         var utcPredictionEnd = utcPredictionStart.AddDays(1);
-        var predictionStartSearchDaysBeforePredictionStart = 21; //three weeeks
+        const int predictionStartSearchDaysBeforePredictionStart = 21; // three weeks
         var historicPredictionsSearchStart = utcPredictionStart.AddDays(-predictionStartSearchDaysBeforePredictionStart);
+        return (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart);
+    }
+
+    private async Task<List<SolarRadiation>> GetLatestSolarRadiationsAsync(DateTimeOffset historicStart, DateTimeOffset utcPredictionEnd)
+    {
         var latestRadiations = await context.SolarRadiations
-            .Where(r => r.Start >= historicPredictionsSearchStart && r.End <= utcPredictionEnd)
+            .Where(r => r.Start >= historicStart && r.End <= utcPredictionEnd)
             .GroupBy(r => new { r.Start, r.End })
             .Select(g => g.OrderByDescending(r => r.CreatedAt).First())
             .AsNoTracking()
             .ToListAsync();
-        latestRadiations = latestRadiations.OrderBy(r => r.Start).ToList();
-        var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
-        var index = 0;
+
+        return latestRadiations.OrderBy(r => r.Start).ToList();
+    }
+
+    private async Task<Dictionary<long, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps)
+    {
         var createdWh = new Dictionary<long, int>();
-        MeterValue lastMeterValue = null;
+        MeterValue? lastMeterValue = null;
+
         foreach (var hourlyTimeStamp in hourlyTimeStamps)
         {
-            var meterValue = context.MeterValues
+            var meterValue = await context.MeterValues
                 .Where(m => m.MeterValueKind == MeterValueKind.SolarGeneration && m.Timestamp <= hourlyTimeStamp)
                 .OrderByDescending(m => m.Id)
                 .AsNoTracking()
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
+
             if (meterValue == default)
             {
                 continue;
             }
+
             if (lastMeterValue != default)
             {
-                createdWh.Add(hourlyTimeStamp.ToUnixTimeMilliseconds(), Convert.ToInt32((meterValue.EstimatedEnergyWs - lastMeterValue.EstimatedEnergyWs) / 3600));
+                var energyDifference = Convert.ToInt32((meterValue.EstimatedEnergyWs - lastMeterValue.EstimatedEnergyWs) / 3600);
+                createdWh.Add(hourlyTimeStamp.ToUnixTimeMilliseconds(), energyDifference);
             }
+
             lastMeterValue = meterValue;
         }
 
-        // Step 1: Compute weighted conversion factors per UTC hour using historical data
-        // We'll store for each hour a list of tuples: (conversion factor, weight)
+        return createdWh;
+    }
+
+    private Dictionary<int, double> ComputeWeightedAverageFactors(
+        List<DateTimeOffset> hourlyTimeStamps,
+        Dictionary<long, int> createdWh,
+        List<SolarRadiation> latestRadiations,
+        DateTimeOffset historicStart)
+    {
+        // Compute weighted conversion factors per UTC hour.
         var hourlyFactorsWeighted = new Dictionary<int, List<(double factor, double weight)>>();
 
         foreach (var hourStamp in hourlyTimeStamps)
         {
-            // Get produced energy (in Wh) for this hour.
-            if (!createdWh.TryGetValue(hourStamp.ToUnixTimeMilliseconds(), out int producedWh))
+            if (!createdWh.TryGetValue(hourStamp.ToUnixTimeMilliseconds(), out var producedWh))
+            {
                 continue; // skip if no produced energy sample
+            }
 
-            // Find the corresponding solar radiation record for the same UTC year, day, and hour.
+            // Find the matching solar radiation record for the same UTC year, day, and hour.
             var matchingRadiation = latestRadiations.FirstOrDefault(r =>
                 r.Start.UtcDateTime.Year == hourStamp.UtcDateTime.Year &&
                 r.Start.UtcDateTime.DayOfYear == hourStamp.UtcDateTime.DayOfYear &&
                 r.Start.UtcDateTime.Hour == hourStamp.UtcDateTime.Hour);
 
-            // Skip if there is no matching radiation data or if the radiation value is zero or negative.
             if (matchingRadiation == null || matchingRadiation.SolarRadiationWhPerM2 <= 0)
+            {
                 continue;
+            }
 
-            // Calculate the conversion factor: produced Wh per unit of solar radiation (Wh/m²)
+            // Calculate conversion factor: produced Wh per unit of solar radiation.
             double factor = producedWh / matchingRadiation.SolarRadiationWhPerM2;
 
-            // Compute a weight based on recency.
-            // Here, samples at the historic start get weight=1, and more recent samples get higher weight.
-            var sampleDate = hourStamp.UtcDateTime;
-            double weight = 1 + (sampleDate - historicPredictionsSearchStart.UtcDateTime).TotalDays;
+            // Compute a weight based on recency (older samples get lower weight).
+            var weight = 1 + (hourStamp.UtcDateTime - historicStart.UtcDateTime).TotalDays;
 
-            // Group conversion factors by the UTC hour
-            int hour = hourStamp.UtcDateTime.Hour;
+            var hour = hourStamp.UtcDateTime.Hour;
             if (!hourlyFactorsWeighted.ContainsKey(hour))
+            {
                 hourlyFactorsWeighted[hour] = new List<(double factor, double weight)>();
+            }
 
             hourlyFactorsWeighted[hour].Add((factor, weight));
         }
 
-        // Now, compute the weighted average conversion factor for each UTC hour.
+        // Compute the weighted average conversion factor for each UTC hour.
         var avgHourlyWeightedFactors = new Dictionary<int, double>();
         foreach (var kvp in hourlyFactorsWeighted)
         {
-            int hour = kvp.Key;
+            var hour = kvp.Key;
             var weightedSamples = kvp.Value;
-            // Weighted average: sum(weight * factor) / sum(weight)
-            double weightedSum = weightedSamples.Sum(item => item.factor * item.weight);
-            double weightTotal = weightedSamples.Sum(item => item.weight);
+            var weightedSum = weightedSamples.Sum(item => item.factor * item.weight);
+            var weightTotal = weightedSamples.Sum(item => item.weight);
             avgHourlyWeightedFactors[hour] = weightedSum / weightTotal;
         }
 
-        // Step 2: Predict hourly production for the target date using forecasted solar radiation data.
-        // Assume forecastSolarRadiations is a collection of forecast records with a Start timestamp and SolarRadiationWhPerM2 value.
-        var predictedProduction = new Dictionary<DateTimeOffset, double>();
+        return avgHourlyWeightedFactors;
+    }
 
+    private async Task<List<SolarRadiation>> GetForecastSolarRadiationsAsync(DateTimeOffset utcPredictionStart, DateTimeOffset utcPredictionEnd)
+    {
         var forecastSolarRadiations = await context.SolarRadiations
             .Where(r => r.Start >= utcPredictionStart && r.End <= utcPredictionEnd)
             .GroupBy(r => new { r.Start, r.End })
@@ -106,26 +155,33 @@ public class PredictionService(ILogger<PredictionService> logger,
             .AsNoTracking()
             .ToListAsync();
 
+        return forecastSolarRadiations;
+    }
+
+    private Dictionary<DateTimeOffset, double> ComputePredictedProduction(
+        List<SolarRadiation> forecastSolarRadiations,
+        Dictionary<int, double> avgHourlyWeightedFactors)
+    {
+        var predictedProduction = new Dictionary<DateTimeOffset, double>();
+
         foreach (var forecast in forecastSolarRadiations)
         {
-            int forecastHour = forecast.Start.UtcDateTime.Hour;
-            // Only predict if a weighted conversion factor exists for this hour
-            if (!avgHourlyWeightedFactors.TryGetValue(forecastHour, out double factor))
+            var forecastHour = forecast.Start.UtcDateTime.Hour;
+            if (!avgHourlyWeightedFactors.TryGetValue(forecastHour, out var factor))
             {
-                // Skip hours where we don't have historical samples.
-                continue;
+                continue; // skip hours without historical samples
             }
-            // Calculate predicted energy produced in Wh: forecasted radiation * conversion factor.
-            double predictedWh = forecast.SolarRadiationWhPerM2 * factor;
-            // Convert Wh to kWh.
-            double predictedKWh = predictedWh / 1000.0;
+
+            // Calculate predicted energy produced in Wh and then convert to kWh.
+            var predictedWh = forecast.SolarRadiationWhPerM2 * factor;
+            var predictedKWh = predictedWh / 1000.0;
             predictedProduction.Add(forecast.Start, predictedKWh);
         }
 
         return predictedProduction;
     }
 
-
+    // The existing GetHourlyTimestamps method remains unchanged.
     private List<DateTimeOffset> GetHourlyTimestamps(DateTimeOffset start, DateTimeOffset end)
     {
         if (start > end)
@@ -138,10 +194,9 @@ public class PredictionService(ILogger<PredictionService> logger,
             throw new ArgumentException("Both DateTimeOffset values need to be UTC timed");
         }
 
-        // Create a DateTimeOffset for the start hour (ignoring minutes, seconds, etc.)
         var firstHour = new DateTimeOffset(start.Year, start.Month, start.Day, start.Hour, 0, 0, start.Offset);
-
         var hourlyList = new List<DateTimeOffset>();
+
         for (var current = firstHour; current <= end; current = current.AddHours(1))
         {
             hourlyList.Add(current);
