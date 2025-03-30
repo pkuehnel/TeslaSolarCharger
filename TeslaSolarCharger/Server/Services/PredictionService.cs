@@ -19,7 +19,7 @@ public class PredictionService(ILogger<PredictionService> logger,
         // Task 2: Retrieve historical solar radiation data
         var latestRadiations = await GetLatestSolarRadiationsAsync(historicPredictionsSearchStart, utcPredictionEnd);
 
-        // Task 3: Generate hourly timestamps (note: GetHourlyTimestamps already exists)
+        // Task 3: Generate hourly timestamps (using GetHourlyTimestamps)
         var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
 
         // Task 4: Retrieve meter energy differences for hourly timestamps
@@ -60,9 +60,9 @@ public class PredictionService(ILogger<PredictionService> logger,
         return latestRadiations.OrderBy(r => r.Start).ToList();
     }
 
-    private async Task<Dictionary<long, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps)
+    private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps)
     {
-        var createdWh = new Dictionary<long, int>();
+        var createdWh = new Dictionary<DateTimeOffset, int>();
         MeterValue? lastMeterValue = null;
 
         foreach (var hourlyTimeStamp in hourlyTimeStamps)
@@ -81,7 +81,7 @@ public class PredictionService(ILogger<PredictionService> logger,
             if (lastMeterValue != default)
             {
                 var energyDifference = Convert.ToInt32((meterValue.EstimatedEnergyWs - lastMeterValue.EstimatedEnergyWs) / 3600);
-                createdWh.Add(hourlyTimeStamp.ToUnixTimeMilliseconds(), energyDifference);
+                createdWh.Add(hourlyTimeStamp, energyDifference);
             }
 
             lastMeterValue = meterValue;
@@ -92,7 +92,7 @@ public class PredictionService(ILogger<PredictionService> logger,
 
     private Dictionary<int, double> ComputeWeightedAverageFactors(
         List<DateTimeOffset> hourlyTimeStamps,
-        Dictionary<long, int> createdWh,
+        Dictionary<DateTimeOffset, int> createdWh,
         List<SolarRadiation> latestRadiations,
         DateTimeOffset historicStart)
     {
@@ -101,7 +101,7 @@ public class PredictionService(ILogger<PredictionService> logger,
 
         foreach (var hourStamp in hourlyTimeStamps)
         {
-            if (!createdWh.TryGetValue(hourStamp.ToUnixTimeMilliseconds(), out var producedWh))
+            if (!createdWh.TryGetValue(hourStamp, out var producedWh))
             {
                 continue; // skip if no produced energy sample
             }
@@ -181,7 +181,6 @@ public class PredictionService(ILogger<PredictionService> logger,
         return predictedProduction;
     }
 
-    // The existing GetHourlyTimestamps method remains unchanged.
     private List<DateTimeOffset> GetHourlyTimestamps(DateTimeOffset start, DateTimeOffset end)
     {
         if (start > end)
