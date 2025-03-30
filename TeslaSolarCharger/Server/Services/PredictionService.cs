@@ -22,6 +22,7 @@ public class PredictionService(ILogger<PredictionService> logger,
             .Where(r => r.Start >= historicPredictionsSearchStart && r.End <= utcPredictionEnd)
             .GroupBy(r => new { r.Start, r.End })
             .Select(g => g.OrderByDescending(r => r.CreatedAt).First())
+            .AsNoTracking()
             .ToListAsync();
         latestRadiations = latestRadiations.OrderBy(r => r.Start).ToList();
         var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
@@ -102,6 +103,7 @@ public class PredictionService(ILogger<PredictionService> logger,
             .Where(r => r.Start >= utcPredictionStart && r.End <= utcPredictionEnd)
             .GroupBy(r => new { r.Start, r.End })
             .Select(g => g.OrderByDescending(r => r.CreatedAt).First())
+            .AsNoTracking()
             .ToListAsync();
 
         foreach (var forecast in forecastSolarRadiations)
