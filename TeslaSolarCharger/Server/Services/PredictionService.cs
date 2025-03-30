@@ -9,32 +9,29 @@ namespace TeslaSolarCharger.Server.Services;
 public class PredictionService(ILogger<PredictionService> logger,
     ITeslaSolarChargerContext context) : ISolarProductionPredictionService
 {
-    public async Task<Dictionary<DateTimeOffset, double>> GetPredictedSolarProductionByLocalHour(DateOnly date)
+    public async Task<Dictionary<int, double>> GetPredictedSolarProductionByLocalHour(DateOnly date)
     {
         logger.LogTrace("{method}({date})", nameof(GetPredictedSolarProductionByLocalHour), date);
 
-        // Task 1: Compute prediction and search times
         var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
-
-        // Task 2: Retrieve historical solar radiation data
-        var latestRadiations = await GetLatestSolarRadiationsAsync(historicPredictionsSearchStart, utcPredictionEnd);
-
-        // Task 3: Generate hourly timestamps (using GetHourlyTimestamps)
         var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
-
-        // Task 4: Retrieve meter energy differences for hourly timestamps
-        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps);
-
-        // Task 5: Compute weighted average conversion factors per UTC hour
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration);
+        var latestRadiations = await GetLatestSolarRadiationsAsync(historicPredictionsSearchStart, utcPredictionEnd);
         var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(hourlyTimeStamps, createdWh, latestRadiations, historicPredictionsSearchStart);
-
-        // Task 6: Retrieve forecast solar radiation data for the prediction period
         var forecastSolarRadiations = await GetForecastSolarRadiationsAsync(utcPredictionStart, utcPredictionEnd);
-
-        // Task 7: Predict production based on forecasted radiation and computed factors
         var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors);
 
         return predictedProduction;
+    }
+
+    public async Task<Dictionary<int, double>> GetPredictedHouseConsumptionByLocalHour(DateOnly date)
+    {
+        logger.LogTrace("{method}({date})", nameof(GetPredictedHouseConsumptionByLocalHour), date);
+        var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
+        var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption);
+        var result = ComputeWeightedMeterValueChanges(hourlyTimeStamps, createdWh, historicPredictionsSearchStart);
+        return result;
     }
 
     private (DateTimeOffset utcPredictionStart, DateTimeOffset utcPredictionEnd, DateTimeOffset historicPredictionsSearchStart) ComputePredictionTimes(DateOnly date)
@@ -60,7 +57,7 @@ public class PredictionService(ILogger<PredictionService> logger,
         return latestRadiations.OrderBy(r => r.Start).ToList();
     }
 
-    private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps)
+    private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps, MeterValueKind meterValueKind)
     {
         var createdWh = new Dictionary<DateTimeOffset, int>();
         MeterValue? lastMeterValue = null;
@@ -68,7 +65,7 @@ public class PredictionService(ILogger<PredictionService> logger,
         foreach (var hourlyTimeStamp in hourlyTimeStamps)
         {
             var meterValue = await context.MeterValues
-                .Where(m => m.MeterValueKind == MeterValueKind.SolarGeneration && m.Timestamp <= hourlyTimeStamp)
+                .Where(m => m.MeterValueKind == meterValueKind && m.Timestamp <= hourlyTimeStamp)
                 .OrderByDescending(m => m.Id)
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
@@ -146,6 +143,47 @@ public class PredictionService(ILogger<PredictionService> logger,
         return avgHourlyWeightedFactors;
     }
 
+    private Dictionary<int, double> ComputeWeightedMeterValueChanges(
+    List<DateTimeOffset> hourlyTimeStamps,
+    Dictionary<DateTimeOffset, int> createdWh,
+    DateTimeOffset historicStart)
+    {
+        // Compute weighted conversion factors per UTC hour.
+        var hourlyFactorsWeighted = new Dictionary<int, List<(double meterValueChange, double weight)>>();
+
+        foreach (var hourStamp in hourlyTimeStamps)
+        {
+            if (!createdWh.TryGetValue(hourStamp, out var producedWh))
+            {
+                continue; // skip if no produced energy sample
+            }
+
+            // Compute a weight based on recency (older samples get lower weight).
+            var weight = 1 + (hourStamp.UtcDateTime - historicStart.UtcDateTime).TotalDays;
+
+            var hour = hourStamp.LocalDateTime.Hour;
+            if (!hourlyFactorsWeighted.ContainsKey(hour))
+            {
+                hourlyFactorsWeighted[hour] = new List<(double meterValueChange, double weight)>();
+            }
+
+            hourlyFactorsWeighted[hour].Add((producedWh, weight));
+        }
+
+        // Compute the weighted average conversion factor for each UTC hour.
+        var avgHourlyWeightedFactors = new Dictionary<int, double>();
+        foreach (var kvp in hourlyFactorsWeighted)
+        {
+            var hour = kvp.Key;
+            var weightedSamples = kvp.Value;
+            var weightedSum = weightedSamples.Sum(item => item.meterValueChange * item.weight);
+            var weightTotal = weightedSamples.Sum(item => item.weight);
+            avgHourlyWeightedFactors[hour] = weightedSum / weightTotal;
+        }
+
+        return avgHourlyWeightedFactors;
+    }
+
     private async Task<List<SolarRadiation>> GetForecastSolarRadiationsAsync(DateTimeOffset utcPredictionStart, DateTimeOffset utcPredictionEnd)
     {
         var forecastSolarRadiations = await context.SolarRadiations
@@ -158,11 +196,11 @@ public class PredictionService(ILogger<PredictionService> logger,
         return forecastSolarRadiations;
     }
 
-    private Dictionary<DateTimeOffset, double> ComputePredictedProduction(
+    private Dictionary<int, double> ComputePredictedProduction(
         List<SolarRadiation> forecastSolarRadiations,
         Dictionary<int, double> avgHourlyWeightedFactors)
     {
-        var predictedProduction = new Dictionary<DateTimeOffset, double>();
+        var predictedProduction = new Dictionary<int, double>();
 
         foreach (var forecast in forecastSolarRadiations)
         {
@@ -174,8 +212,7 @@ public class PredictionService(ILogger<PredictionService> logger,
 
             // Calculate predicted energy produced in Wh and then convert to kWh.
             var predictedWh = forecast.SolarRadiationWhPerM2 * factor;
-            var predictedKWh = predictedWh / 1000.0;
-            predictedProduction.Add(forecast.Start, predictedKWh);
+            predictedProduction.Add(forecast.Start.LocalDateTime.Hour, predictedWh);
         }
 
         return predictedProduction;
