@@ -77,9 +77,9 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
                 if (elapsedSeconds < 0)
                 {
                     // Handle edge cases like identical timestamps.
-                    logger.LogWarning("The timestamp of the meter value {@meterValue} is not not newer than the last meterValue {@lastMeterValueId}", meterValue, latestKnownValue);
+                    logger.LogWarning("The timestamp of the meter value {@meterValue} is not newer than the last meterValue {@lastMeterValueId}", meterValue, latestKnownValue);
                     throw new InvalidDataException(
-                        $"The timestamp of the meter value {meterValue.Id} is not not newer than the last meterValue {latestKnownValue.Id}");
+                        $"The timestamp of the meter value {meterValue.Id} is not newer than the last meterValue {latestKnownValue.Id}");
                 }
 
                 // Fill in EstimatedEnergy if MeasuredEnergy is missing.
