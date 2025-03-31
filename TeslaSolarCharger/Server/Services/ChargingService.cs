@@ -307,7 +307,7 @@ public class ChargingService(
                 //next line changed from == true to != false due to issue https://github.com/pkuehnel/TeslaSolarCharger/issues/365
                 && c.PluggedIn != false
                 && (c.ChargerActualCurrent > 0 ||
-                    c.SoC < (c.SocLimit - constants.MinimumSocDifference)))
+                    (c.SoC < (c.SocLimit - constants.MinimumSocDifference))))
             .Select(c => c.Id)
             .ToList();
 
