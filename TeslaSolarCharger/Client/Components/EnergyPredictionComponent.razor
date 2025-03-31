@@ -1,0 +1,126 @@
+﻿@page "/Prediction"
+
+@using TeslaSolarCharger.Client.Services.Contracts
+
+@inject IEnergyPredictionService EnergyPredictionService
+@inject TimeProvider TimeProvider
+
+<div class="d-flex align-items-center justify-content-center mb-3">
+    <MudButton OnClick="PreviousDay" Disabled="@IsPreviousDisabled">
+        <MudIcon Icon="@Icons.Material.Filled.ArrowLeft" />
+    </MudButton>
+    <GenericInput For="() => SelectedDate" LabelName="Date"></GenericInput>
+    <MudButton OnClick="NextDay" Disabled="@IsNextDisabled">
+        <MudIcon Icon="@Icons.Material.Filled.ArrowRight" />
+    </MudButton>
+</div>
+
+@if (HouseConsumptionData == default)
+{
+    <div class="align-items-center justify-content-center mb-3">
+        <PlaceholderComponent Count="8"></PlaceholderComponent>
+    </div>
+}
+else
+{
+
+    <div class="d-flex align-items-center justify-content-center mb-3">
+        <MudChart ChartType="ChartType.Line"
+                  ChartSeries="@_series"
+                  @bind-SelectedIndex="_index"
+                  XAxisLabels="@_xAxisLabels"
+                  ChartOptions="@_options"
+                  Height="350px"
+                  Width="650px"
+                  AxisChartOptions="_axisChartOptions"
+                  CanHideSeries="true"/>
+    </div>
+
+}
+
+
+@code {
+    private Dictionary<int, int>? HouseConsumptionData { get; set; }
+    private Dictionary<int, int>? SolarProductionData { get; set; }
+    private List<ChartSeries> _series = new();
+    private string[] _xAxisLabels = Enumerable.Range(0, 24).Select(i => $"{i:00}:00").ToArray();
+    private ChartOptions _options = new() { InterpolationOption = InterpolationOption.NaturalSpline, YAxisTicks = 1,};
+    private AxisChartOptions _axisChartOptions = new() { LabelRotation = 90, LabelExtraHeight = 10};
+    private int _index = -1;
+    private DateTime? SelectedDate { get; set; }
+    private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var currentTime = TimeProvider.GetLocalNow();
+        SelectedDate = currentTime.Date;
+        await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+        UpdateChartSeries();
+    }
+
+    private async Task RefreshData(DateOnly date)
+    {
+        HouseConsumptionData = default;
+        SolarProductionData = default;
+        var houseConsumptionDataTask = EnergyPredictionService.GetPredictedHouseConsumptionByLocalHour(date);
+        var solarProductionDataTask = EnergyPredictionService.GetPredictedSolarProductionByLocalHour(date);
+        HouseConsumptionData = await houseConsumptionDataTask;
+        SolarProductionData = await solarProductionDataTask;
+        UpdateChartSeries();
+        StateHasChanged();
+    }
+
+    private void UpdateChartSeries()
+    {
+        _series.Clear();
+        if (HouseConsumptionData != null)
+        {
+            _series.Add(new ChartSeries
+                {
+                    Name = "House Consumption",
+                    Data = Enumerable.Range(0, 24)
+                            .Select(h => HouseConsumptionData.ContainsKey(h) ? HouseConsumptionData[h]/1000.0 : 0.0)
+                            .ToArray(),
+                    ShowDataMarkers = true,
+                });
+        }
+        if (SolarProductionData != null)
+        {
+            _series.Add(new ChartSeries
+                {
+                    Name = "Solar Production",
+                    Data = Enumerable.Range(0, 24)
+                            .Select(h => SolarProductionData.ContainsKey(h) ? SolarProductionData[h]/1000.0 : 0.0)
+                            .ToArray(),
+                    ShowDataMarkers = true,
+                });
+        }
+    }
+
+    private async Task PreviousDay()
+    {
+        if (SelectedDate == default)
+        {
+            return;
+        }
+        SelectedDate = SelectedDate.Value.AddDays(-1);
+        await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+    }
+
+    private async Task NextDay()
+    {
+        if (SelectedDate == default)
+        {
+            return;
+        }
+        if (SelectedDate < MaxAllowedDate)
+        {
+            SelectedDate = SelectedDate.Value.AddDays(1);
+            await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+        }
+    }
+
+    private bool IsPreviousDisabled => false; // No limit for going back
+    private bool IsNextDisabled => SelectedDate >= MaxAllowedDate;
+}

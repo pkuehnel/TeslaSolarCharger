@@ -6,10 +6,10 @@ using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class PredictionService(ILogger<PredictionService> logger,
-    ITeslaSolarChargerContext context) : ISolarProductionPredictionService
+public class EnergyPredictionService(ILogger<EnergyPredictionService> logger,
+    ITeslaSolarChargerContext context) : IEnergyPredictionService
 {
-    public async Task<Dictionary<int, double>> GetPredictedSolarProductionByLocalHour(DateOnly date)
+    public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date)
     {
         logger.LogTrace("{method}({date})", nameof(GetPredictedSolarProductionByLocalHour), date);
 
@@ -24,7 +24,7 @@ public class PredictionService(ILogger<PredictionService> logger,
         return predictedProduction;
     }
 
-    public async Task<Dictionary<int, double>> GetPredictedHouseConsumptionByLocalHour(DateOnly date)
+    public async Task<Dictionary<int, int>> GetPredictedHouseConsumptionByLocalHour(DateOnly date)
     {
         logger.LogTrace("{method}({date})", nameof(GetPredictedHouseConsumptionByLocalHour), date);
         var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
@@ -143,7 +143,7 @@ public class PredictionService(ILogger<PredictionService> logger,
         return avgHourlyWeightedFactors;
     }
 
-    private Dictionary<int, double> ComputeWeightedMeterValueChanges(
+    private Dictionary<int, int> ComputeWeightedMeterValueChanges(
     List<DateTimeOffset> hourlyTimeStamps,
     Dictionary<DateTimeOffset, int> createdWh,
     DateTimeOffset historicStart)
@@ -171,14 +171,14 @@ public class PredictionService(ILogger<PredictionService> logger,
         }
 
         // Compute the weighted average conversion factor for each UTC hour.
-        var avgHourlyWeightedFactors = new Dictionary<int, double>();
+        var avgHourlyWeightedFactors = new Dictionary<int, int>();
         foreach (var kvp in hourlyFactorsWeighted)
         {
             var hour = kvp.Key;
             var weightedSamples = kvp.Value;
             var weightedSum = weightedSamples.Sum(item => item.meterValueChange * item.weight);
             var weightTotal = weightedSamples.Sum(item => item.weight);
-            avgHourlyWeightedFactors[hour] = weightedSum / weightTotal;
+            avgHourlyWeightedFactors[hour] = (int)(weightedSum / weightTotal);
         }
 
         return avgHourlyWeightedFactors;
@@ -196,11 +196,11 @@ public class PredictionService(ILogger<PredictionService> logger,
         return forecastSolarRadiations;
     }
 
-    private Dictionary<int, double> ComputePredictedProduction(
+    private Dictionary<int, int> ComputePredictedProduction(
         List<SolarRadiation> forecastSolarRadiations,
         Dictionary<int, double> avgHourlyWeightedFactors)
     {
-        var predictedProduction = new Dictionary<int, double>();
+        var predictedProduction = new Dictionary<int, int>();
 
         foreach (var forecast in forecastSolarRadiations)
         {
@@ -212,7 +212,7 @@ public class PredictionService(ILogger<PredictionService> logger,
 
             // Calculate predicted energy produced in Wh and then convert to kWh.
             var predictedWh = forecast.SolarRadiationWhPerM2 * factor;
-            predictedProduction.Add(forecast.Start.LocalDateTime.Hour, predictedWh);
+            predictedProduction.Add(forecast.Start.LocalDateTime.Hour, (int)predictedWh);
         }
 
         return predictedProduction;

@@ -27,6 +27,8 @@ builder.Services.AddScoped<IDialogHelper, DialogHelper>();
 builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
 builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckService>();
+builder.Services.AddScoped<IEnergyPredictionService, EnergyPredictionService>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();
 builder.Services.AddMudServices(config =>

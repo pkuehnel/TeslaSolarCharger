@@ -161,8 +161,7 @@ public class ConfigurationWrapper(
 
     public bool ShouldGetWeatherForecast()
     {
-        var environmentVariableName = "ShouldGetWeatherForecast";
-        var value = configuration.GetValue<bool>(environmentVariableName);
+        var value = GetBaseConfiguration().PredictSolarPowerGeneration;
         return value;
     }
 

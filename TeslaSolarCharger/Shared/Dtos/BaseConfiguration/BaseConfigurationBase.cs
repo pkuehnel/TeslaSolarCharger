@@ -47,6 +47,8 @@ public class BaseConfigurationBase
     public int PowerBuffer { get; set; } = 0;
     [HelperText("If enabled, the configured power buffer is displayed on the home screen, including the option to directly change it.")]
     public bool AllowPowerBufferChangeOnHome { get; set; }
+    [HelperText("If enabled, your home geofence location is transfered to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data.")]
+    public bool PredictSolarPowerGeneration { get; set; }
     public string? CurrentPowerToGridJsonPattern { get; set; }
     public decimal CurrentPowerToGridCorrectionFactor { get; set; } = 1;
     public string? CurrentInverterPowerJsonPattern { get; set; }

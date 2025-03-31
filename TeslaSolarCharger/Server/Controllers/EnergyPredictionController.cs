@@ -5,7 +5,7 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class SolarProductionPredictionController(ISolarProductionPredictionService solarProductionPredictionService) : ApiBaseController
+public class EnergyPredictionController(IEnergyPredictionService energyPredictionService) : ApiBaseController
 {
     [HttpGet]
     public async Task<IActionResult> GetSolarPrediction(DateOnly? date = default)
@@ -15,7 +15,7 @@ public class SolarProductionPredictionController(ISolarProductionPredictionServi
             date = new DateOnly(2025, 3, 30);
         }
 
-        var result = await solarProductionPredictionService.GetPredictedSolarProductionByLocalHour(date.Value);
+        var result = await energyPredictionService.GetPredictedSolarProductionByLocalHour(date.Value);
         return Ok(result);
     }
 
@@ -27,7 +27,7 @@ public class SolarProductionPredictionController(ISolarProductionPredictionServi
             date = new DateOnly(2025, 3, 30);
         }
 
-        var result = await solarProductionPredictionService.GetPredictedHouseConsumptionByLocalHour(date.Value);
+        var result = await energyPredictionService.GetPredictedHouseConsumptionByLocalHour(date.Value);
         return Ok(result);
     }
 }
