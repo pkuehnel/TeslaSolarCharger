@@ -159,6 +159,12 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
+    public bool ShouldGetWeatherForecast()
+    {
+        var value = GetBaseConfiguration().PredictSolarPowerGeneration;
+        return value;
+    }
+
     public bool GetVehicleDataFromTesla()
     {
         if (!UseTeslaMateIntegration())
