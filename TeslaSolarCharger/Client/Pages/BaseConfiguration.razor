@@ -106,13 +106,15 @@ else
         </div>
 
         <InputComponent ValueId="HomeGeofenceRadius"
-        LabelText="Home Radius"
-        UnitText="m"
-        HelpText="Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended">
+                        LabelText="Home Radius"
+                        UnitText="m"
+                        HelpText="Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended">
             <InputFragment>
                 <InputNumber id="HomeGeofenceRadius" @bind-Value="_dtoBaseConfiguration.HomeGeofenceRadius" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
+
+        <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
 
         <InputComponent ValueId="powerBuffer"
         LabelText="Power Buffer"
