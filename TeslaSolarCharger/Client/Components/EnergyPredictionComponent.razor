@@ -1,8 +1,10 @@
 ﻿@page "/Prediction"
 
 @using TeslaSolarCharger.Client.Services.Contracts
+@using ApexCharts
+@using TeslaSolarCharger.Client.Dtos
 
-@inject IEnergyPredictionService EnergyPredictionService
+@inject IEnergyDataService EnergyDataService
 @inject TimeProvider TimeProvider
 
 <div class="d-flex align-items-center justify-content-center mb-3">
@@ -15,7 +17,7 @@
     </MudButton>
 </div>
 
-@if (HouseConsumptionData == default)
+@if (HousePredictionData == default || SolarPredictionData == default)
 {
     <div class="align-items-center justify-content-center mb-3">
         <PlaceholderComponent Count="8"></PlaceholderComponent>
@@ -25,77 +27,147 @@ else
 {
 
     <div class="d-flex align-items-center justify-content-center mb-3">
-        <MudChart ChartType="ChartType.Line"
-                  ChartSeries="@_series"
-                  @bind-SelectedIndex="_index"
-                  XAxisLabels="@_xAxisLabels"
-                  ChartOptions="@_options"
-                  Height="350px"
-                  Width="650px"
-                  AxisChartOptions="_axisChartOptions"
-                  CanHideSeries="true"/>
+        <ApexChart TItem="DtoChartValue<int, int>"
+        Title="Wh"
+        Options="_options"
+        Width="800"
+        Height="600">
+
+
+            <ApexPointSeries TItem="DtoChartValue<int, int>"
+            Items="SolarPredictionData"
+            Name="Solar Prediction"
+            SeriesType="SeriesType.Line"
+            XValue="@(e => e.Key)"
+            YValue="@(e => e.Value)" />
+
+            <ApexPointSeries TItem="DtoChartValue<int, int>"
+            Items="HousePredictionData"
+            Name="House Prediction"
+            SeriesType="SeriesType.Line"
+            XValue="@(e => e.Key)"
+            YValue="@(e => e.Value)" />
+
+
+            @if (SolarActualData != default)
+            {
+                <ApexPointSeries TItem="DtoChartValue<int, int>"
+                Items="SolarActualData"
+                Name="Solar Actual"
+                SeriesType="SeriesType.Line"
+                XValue="@(e => e.Key)"
+                YValue="@(e => e.Value)" />
+            }
+
+            @if (HouseActualData != default)
+            {
+                <ApexPointSeries TItem="DtoChartValue<int, int>"
+                Items="HouseActualData"
+                Name="House Actual"
+                SeriesType="SeriesType.Line"
+                XValue="@(e => e.Key)"
+                YValue="@(e => e.Value)" />
+            }
+
+        </ApexChart>
     </div>
 
 }
 
 
 @code {
-    private Dictionary<int, int>? HouseConsumptionData { get; set; }
-    private Dictionary<int, int>? SolarProductionData { get; set; }
-    private List<ChartSeries> _series = new();
-    private string[] _xAxisLabels = Enumerable.Range(0, 24).Select(i => $"{i:00}:00").ToArray();
-    private ChartOptions _options = new() { InterpolationOption = InterpolationOption.NaturalSpline, YAxisTicks = 1,};
-    private AxisChartOptions _axisChartOptions = new() { LabelRotation = 90, LabelExtraHeight = 10};
-    private int _index = -1;
+    private List<DtoChartValue<int, int>>? SolarPredictionData { get; set; }
+    private List<DtoChartValue<int, int>>? HousePredictionData { get; set; }
+    private List<DtoChartValue<int, int>>? SolarActualData { get; set; }
+    private List<DtoChartValue<int, int>>? HouseActualData { get; set; }
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(1);
+    private ApexChartOptions<DtoChartValue<int, int>>? _options;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        _options = new ApexChartOptions<DtoChartValue<int, int>>
+        {
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar
+                {
+                    Show = false,
+                },
+                DropShadow = new DropShadow
+                {
+                    Enabled = true,
+                    Color = "",
+                    Top = 18,
+                    Left = 7,
+                    Blur = 10,
+                    Opacity = 0.2d,
+                }
+            },
+            DataLabels = new ApexCharts.DataLabels
+            {
+                // OffsetY = -6d,
+            },
+            Grid = new Grid
+            {
+                BorderColor = "#e7e7e7",
+                Row = new GridRow
+                {
+                    Colors = new List<string> { "#f3f3f3", "transparent" },
+                    Opacity = 0.5d
+                }
+            },
+
+            Colors = new List<string> { "#77B6EA", "#545454", "orange", "pink" },
+            Markers = new Markers { Shape = ShapeEnum.Circle, Size = 5, FillOpacity = new Opacity(0.8d),  },
+            Stroke = new Stroke { Curve = Curve.Smooth },
+            Legend = new Legend
+            {
+                Position = LegendPosition.Bottom,
+                HorizontalAlign = ApexCharts.Align.Center,
+                Floating = false,
+                // OffsetX = -5,
+                // OffsetY = 25,
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = "function(value) { return value.toLocaleString(); }"
+                    },
+                },
+            },
+
+        };
+
+
         var currentTime = TimeProvider.GetLocalNow();
         SelectedDate = currentTime.Date;
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
-        UpdateChartSeries();
     }
 
     private async Task RefreshData(DateOnly date)
     {
-        HouseConsumptionData = default;
-        SolarProductionData = default;
-        var houseConsumptionDataTask = EnergyPredictionService.GetPredictedHouseConsumptionByLocalHour(date);
-        var solarProductionDataTask = EnergyPredictionService.GetPredictedSolarProductionByLocalHour(date);
-        HouseConsumptionData = await houseConsumptionDataTask;
-        SolarProductionData = await solarProductionDataTask;
-        UpdateChartSeries();
+        HousePredictionData = default;
+        SolarPredictionData = default;
+        HouseActualData = default;
+        SolarActualData = default;
+        var solarPredictionTask = EnergyDataService.GetPredictedSolarProductionByLocalHour(date);
+        var housePredictionTask = EnergyDataService.GetPredictedHouseConsumptionByLocalHour(date);
+        var solarActualTask = EnergyDataService.GetActualSolarProductionByLocalHour(date);
+        var houseActualTask = EnergyDataService.GetActualHouseConsumptionByLocalHour(date);
+        var solarPredictionData = await solarPredictionTask;
+        var housePredictionData = await housePredictionTask;
+        var solarActualData = await solarActualTask;
+        var houseActualData = await houseActualTask;
+        SolarPredictionData = solarPredictionData.Select(e => new DtoChartValue<int, int>(e.Key, e.Value)).ToList();
+        HousePredictionData = housePredictionData.Select(e => new DtoChartValue<int, int>(e.Key, e.Value)).ToList();
+        SolarActualData = solarActualData.Select(e => new DtoChartValue<int, int>(e.Key, e.Value)).ToList();
+        HouseActualData = houseActualData.Select(e => new DtoChartValue<int, int>(e.Key, e.Value)).ToList();
         StateHasChanged();
-    }
-
-    private void UpdateChartSeries()
-    {
-        _series.Clear();
-        if (HouseConsumptionData != null)
-        {
-            _series.Add(new ChartSeries
-                {
-                    Name = "House Consumption",
-                    Data = Enumerable.Range(0, 24)
-                            .Select(h => HouseConsumptionData.ContainsKey(h) ? HouseConsumptionData[h]/1000.0 : 0.0)
-                            .ToArray(),
-                    ShowDataMarkers = true,
-                });
-        }
-        if (SolarProductionData != null)
-        {
-            _series.Add(new ChartSeries
-                {
-                    Name = "Solar Production",
-                    Data = Enumerable.Range(0, 24)
-                            .Select(h => SolarProductionData.ContainsKey(h) ? SolarProductionData[h]/1000.0 : 0.0)
-                            .ToArray(),
-                    ShowDataMarkers = true,
-                });
-        }
     }
 
     private async Task PreviousDay()

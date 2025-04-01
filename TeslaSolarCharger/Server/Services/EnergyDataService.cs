@@ -6,8 +6,8 @@ using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class EnergyPredictionService(ILogger<EnergyPredictionService> logger,
-    ITeslaSolarChargerContext context) : IEnergyPredictionService
+public class EnergyDataService(ILogger<EnergyDataService> logger,
+    ITeslaSolarChargerContext context) : IEnergyDataService
 {
     public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date)
     {
@@ -34,6 +34,26 @@ public class EnergyPredictionService(ILogger<EnergyPredictionService> logger,
         return result;
     }
 
+    public async Task<Dictionary<int, int>> GetActualSolarProductionByLocalHour(DateOnly date)
+    {
+        logger.LogTrace("{method}({date})", nameof(GetActualSolarProductionByLocalHour), date);
+        var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
+        var hourlyTimeStamps = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration);
+        var result = CreateHourlyDictionary(createdWh);
+        return result;
+    }
+
+    public async Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date)
+    {
+        logger.LogTrace("{method}({date})", nameof(GetActualHouseConsumptionByLocalHour), date);
+        var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
+        var hourlyTimeStamps = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption);
+        var result = CreateHourlyDictionary(createdWh);
+        return result;
+    }
+
     private (DateTimeOffset utcPredictionStart, DateTimeOffset utcPredictionEnd, DateTimeOffset historicPredictionsSearchStart) ComputePredictionTimes(DateOnly date)
     {
         var localPredictionStart = date.ToDateTime(TimeOnly.MinValue);
@@ -55,6 +75,17 @@ public class EnergyPredictionService(ILogger<EnergyPredictionService> logger,
             .ToListAsync();
 
         return latestRadiations.OrderBy(r => r.Start).ToList();
+    }
+
+    private Dictionary<int, int> CreateHourlyDictionary(Dictionary<DateTimeOffset, int> inputs)
+    {
+        var result = new Dictionary<int, int>();
+        foreach (var input in inputs)
+        {
+            result[input.Key.LocalDateTime.Hour] = input.Value;
+        }
+
+        return result;
     }
 
     private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps, MeterValueKind meterValueKind)

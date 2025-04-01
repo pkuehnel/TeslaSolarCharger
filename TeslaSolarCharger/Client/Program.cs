@@ -1,3 +1,4 @@
+using ApexCharts;
 using Lysando.LabStorageV2.UiHelper.Wrapper;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -27,7 +28,7 @@ builder.Services.AddScoped<IDialogHelper, DialogHelper>();
 builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
 builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckService>();
-builder.Services.AddScoped<IEnergyPredictionService, EnergyPredictionService>();
+builder.Services.AddScoped<IEnergyDataService, EnergyDataService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();
@@ -43,4 +44,5 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
 })
     .AddMudExtensions();
+builder.Services.AddApexCharts();
 await builder.Build().RunAsync().ConfigureAwait(false);
