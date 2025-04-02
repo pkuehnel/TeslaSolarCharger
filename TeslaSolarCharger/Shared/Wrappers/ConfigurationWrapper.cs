@@ -165,6 +165,12 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool ShowEnergyDataOnHome()
+    {
+        var value = GetBaseConfiguration().ShowEnergyDataOnHome;
+        return value;
+    }
+
     public bool GetVehicleDataFromTesla()
     {
         if (!UseTeslaMateIntegration())

@@ -68,8 +68,5 @@ namespace TeslaSolarCharger.Server.Controllers
             return result.ToOk();
             
         }
-
-        [HttpGet]
-        public DtoValue<bool> IsPredictSolarValuesEnabled() => new(coreService.IsPredictSolarValuesEnabled());
     }
 }

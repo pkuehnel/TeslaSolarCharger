@@ -24,5 +24,4 @@ public interface ICoreService
     Dictionary<int, decimal?> GetCalculatedRestValue();
     bool IsStartupCompleted();
     Task<Fin<DtoValue<string>>> SendTestTelegramMessage();
-    bool IsPredictSolarValuesEnabled();
 }

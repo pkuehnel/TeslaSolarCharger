@@ -39,7 +39,18 @@ public class EnergyDataService(ILogger<EnergyDataService> logger, IHttpClientHel
     public async Task<bool> SolarPowerPredictionEnabled()
     {
         logger.LogTrace("{method}()", nameof(SolarPowerPredictionEnabled));
-        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<bool>>("api/Hello/IsPredictSolarValuesEnabled");
+        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<bool>>("api/BaseConfiguration/IsPredictSolarPowerGenerationEnabled");
+        if (response == default)
+        {
+            return false;
+        }
+        return response.Value;
+    }
+
+    public async Task<bool> ShowEnergyDataOnHome()
+    {
+        logger.LogTrace("{method}()", nameof(ShowEnergyDataOnHome));
+        var response = await httpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<bool>>("api/BaseConfiguration/ShowEnergyDataOnHome");
         if (response == default)
         {
             return false;

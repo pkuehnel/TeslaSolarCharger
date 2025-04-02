@@ -8,6 +8,7 @@
 
 @inject IEnergyDataService EnergyDataService
 @inject TimeProvider TimeProvider
+@inject ISnackbar Snackbar
 
 <MudExpansionPanels>
     <MudExpansionPanel>
@@ -91,7 +92,10 @@
                         Size="Size.Small"
                         OnClick="PreviousDay"
                         Disabled="IsPreviousDisabled" />
-                        <GenericInput For="() => SelectedDate" LabelName="Date" />
+                        <GenericInput T="DateTime?"
+                        For="() => SelectedDate"
+                        LabelName="Date"
+                        OnValueChanged="newDate => SelectedDateChanged(newDate)"/>
                         <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
                         Color="Color.Primary"
                         Size="Size.Small"
@@ -108,19 +112,6 @@
             </div>
         </TitleContent>
         <ChildContent>
-            <div class="d-flex align-items-center justify-content-center mb-3">
-                <MudFab StartIcon="@Icons.Material.Filled.ArrowLeft"
-                Color="Color.Primary"
-                Size="Size.Small"
-                OnClick="PreviousDay"
-                Disabled="IsPreviousDisabled" />
-                <GenericInput For="() => SelectedDate" LabelName="Date"></GenericInput>
-                <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
-                Color="Color.Primary"
-                Size="Size.Small"
-                OnClick="NextDay"
-                Disabled="IsNextDisabled" />
-            </div>
             @if (HousePredictionData == default || SolarActualData == default || HouseActualData == default || (SolarPredictionData == default && _isSolarPredictionEnabled))
             {
                 <div class="align-items-center justify-content-center mb-3">
@@ -297,4 +288,21 @@
 
     private bool IsPreviousDisabled => false; // No limit for going back
     private bool IsNextDisabled => SelectedDate >= MaxAllowedDate;
+
+    private async Task SelectedDateChanged(DateTime? newDate)
+    {
+        if (newDate == default)
+        {
+            return;
+        }
+
+        if (SelectedDate > MaxAllowedDate)
+        {
+            Snackbar.Add("Cannot select a date more than one day in the future", Severity.Error);
+            return;
+        }
+        SelectedDate = newDate;
+        await RefreshData(DateOnly.FromDateTime(newDate.Value));
+    }
+
 }

@@ -110,4 +110,5 @@ public interface IConfigurationWrapper
     TimeSpan FleetApiRefreshInterval();
     int BackendPasswordDefaultLength();
     bool IsPredictSolarPowerGenerationEnabled();
+    bool ShowEnergyDataOnHome();
 }

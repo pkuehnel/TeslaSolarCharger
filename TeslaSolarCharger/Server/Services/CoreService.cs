@@ -199,10 +199,4 @@ public class CoreService : ICoreService
         }
         return Fin<DtoValue<string>>.Fail($"Sending error message failed with status code {statusCode}");
     }
-
-    public bool IsPredictSolarValuesEnabled()
-    {
-        _logger.LogTrace("{method}()", nameof(IsPredictSolarValuesEnabled));
-        return _configurationWrapper.IsPredictSolarPowerGenerationEnabled();
-    }
 }
