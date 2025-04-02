@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
@@ -21,37 +21,37 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var forecastSolarRadiations = await GetForecastSolarRadiationsAsync(utcPredictionStart, utcPredictionEnd);
         var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors);
 
-        return predictedProduction;
+        return predictedProduction.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
     public async Task<Dictionary<int, int>> GetPredictedHouseConsumptionByLocalHour(DateOnly date)
     {
         logger.LogTrace("{method}({date})", nameof(GetPredictedHouseConsumptionByLocalHour), date);
-        var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
+        var (utcPredictionStart, _, historicPredictionsSearchStart) = ComputePredictionTimes(date);
         var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
         var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption);
         var result = ComputeWeightedMeterValueChanges(hourlyTimeStamps, createdWh, historicPredictionsSearchStart);
-        return result;
+        return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
     public async Task<Dictionary<int, int>> GetActualSolarProductionByLocalHour(DateOnly date)
     {
         logger.LogTrace("{method}({date})", nameof(GetActualSolarProductionByLocalHour), date);
-        var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
+        var (utcPredictionStart, utcPredictionEnd, _) = ComputePredictionTimes(date);
         var hourlyTimeStamps = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
         var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration);
         var result = CreateHourlyDictionary(createdWh);
-        return result;
+        return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
     public async Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date)
     {
         logger.LogTrace("{method}({date})", nameof(GetActualHouseConsumptionByLocalHour), date);
-        var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
+        var (utcPredictionStart, utcPredictionEnd, _) = ComputePredictionTimes(date);
         var hourlyTimeStamps = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
         var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption);
         var result = CreateHourlyDictionary(createdWh);
-        return result;
+        return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
     private (DateTimeOffset utcPredictionStart, DateTimeOffset utcPredictionEnd, DateTimeOffset historicPredictionsSearchStart) ComputePredictionTimes(DateOnly date)

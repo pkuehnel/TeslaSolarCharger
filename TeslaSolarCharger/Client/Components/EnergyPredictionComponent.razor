@@ -82,7 +82,7 @@ else
     private List<DtoChartValue<int, decimal>>? HouseActualData { get; set; }
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(1);
-    private ApexChartOptions<DtoChartValue<int, decimal>> _options;
+    private ApexChartOptions<DtoChartValue<int, decimal>>? _options;
 
     protected override async Task OnInitializedAsync()
     {
