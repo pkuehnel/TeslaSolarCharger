@@ -82,8 +82,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var result = new Dictionary<int, int>();
         foreach (var input in inputs)
         {
-            var hour = input.Key.LocalDateTime.Hour;
-            result[hour] = input.Value;
+            result[input.Key.LocalDateTime.Hour] = input.Value;
         }
 
         return result;
