@@ -1,78 +1,147 @@
-﻿@page "/Prediction"
+@page "/Prediction"
 
 @using TeslaSolarCharger.Client.Services.Contracts
 @using ApexCharts
 @using TeslaSolarCharger.Client.Dtos
+@using TeslaSolarCharger.Shared.TimeProviding
+@using Color = MudBlazor.Color
+@using Size = MudBlazor.Size
 
 @inject IEnergyDataService EnergyDataService
 @inject TimeProvider TimeProvider
 
-<div class="d-flex align-items-center justify-content-center mb-3">
-    <MudButton OnClick="PreviousDay" Disabled="@IsPreviousDisabled">
-        <MudIcon Icon="@Icons.Material.Filled.ArrowLeft" />
-    </MudButton>
-    <GenericInput For="() => SelectedDate" LabelName="Date"></GenericInput>
-    <MudButton OnClick="NextDay" Disabled="@IsNextDisabled">
-        <MudIcon Icon="@Icons.Material.Filled.ArrowRight" />
-    </MudButton>
-</div>
+<MudExpansionPanels>
+    <MudExpansionPanel>
+        <TitleContent>
+            <div class="d-flex justify-content-between align-items-center">
+                @if (SelectedDate == TimeProvider.GetLocalNow().Date)
+                {
+                    <!-- Today: show remaining solar production -->
+                    <span>Remaining Solar Production:</span>
+                    @if (SolarPredictionData != null && SolarActualData != null)
+                    {
+                        var currentTime = TimeProvider.GetLocalNow();
+                        @*ToDo: Fraction of current hour needs to be added *@
+                        var remaining = SolarPredictionData.Where(v => v.Key > currentTime.Hour).Sum(v => v.Value);
+                        <span>@($"{remaining:F1} kWh")</span>
+                    }
+                    else
+                    {
+                        <MudSkeleton Width="100px" Height="24px" />
+                    }
 
-@if (HousePredictionData == default || SolarActualData == default || HouseActualData == default || (SolarPredictionData == default && _isSolarPredictionEnabled))
-{
-    <div class="align-items-center justify-content-center mb-3">
-        <PlaceholderComponent Count="8"></PlaceholderComponent>
-    </div>
-}
-else
-{
-
-    <div class="d-flex align-items-center justify-content-center mb-3">
-        <ApexChart TItem="DtoChartValue<int, decimal>"
-                   Title="kWh"
-                   Options="_options"
-                   Width="600"
-                   Height="400">
-
-            @if (SolarPredictionData != default)
+                }
+                else if (SelectedDate < TimeProvider.GetLocalNow().Date)
+                {
+                    <!-- Past Date: show actual solar production and actual house consumption -->
+                    <span>Solar Actual:</span>
+                    @if (SolarActualData != null)
+                    {
+                        <span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
+                    }
+                    else
+                    {
+                        <MudSkeleton Width="100px" Height="24px" />
+                    }
+                    <span>House Actual:</span>
+                    @if (HouseActualData != null)
+                    {
+                        <span>@($"{HouseActualData.Sum(v => v.Value):F1} kWh")</span>
+                    }
+                    else
+                    {
+                        <MudSkeleton Width="100px" Height="24px" />
+                    }
+                }
+                else
+                {
+                    <!-- Future Date: show estimated solar production and house consumption -->
+                    <span>Solar Prediction:</span>
+                    @if (SolarPredictionData != null)
+                    {
+                        <span>@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    }
+                    else
+                    {
+                        <MudSkeleton Width="100px" Height="24px" />
+                    }
+                    <span>House Prediction:</span>
+                    @if (HousePredictionData != null)
+                    {
+                        <span>@($"{HousePredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    }
+                    else
+                    {
+                        <MudSkeleton Width="100px" Height="24px" />
+                    }
+                }
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <div class="d-flex align-items-center justify-content-center mb-3">
+                <MudFab StartIcon="@Icons.Material.Filled.ArrowLeft"
+                        Color="Color.Primary"
+                        Size="Size.Small"
+                        OnClick="PreviousDay"
+                        Disabled="IsPreviousDisabled" />
+                <GenericInput For="() => SelectedDate" LabelName="Date"></GenericInput>
+                <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
+                        Color="Color.Primary"
+                        Size="Size.Small"
+                        OnClick="NextDay"
+                        Disabled="IsNextDisabled" />
+            </div>
+            @if (HousePredictionData == default || SolarActualData == default || HouseActualData == default || (SolarPredictionData == default && _isSolarPredictionEnabled))
             {
-                <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                 Items="SolarPredictionData"
-                                 Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                 SeriesType="SeriesType.Line"
-                                 XValue="@(e => e.Key)"
-                                 YValue="@(e => (decimal?)e.Value)"
-                                 Color="#FFD580" />
+                <div class="align-items-center justify-content-center mb-3">
+                    <PlaceholderComponent Count="8"></PlaceholderComponent>
+                </div>
             }
-
-            <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                             Items="HousePredictionData"
-                             Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                             SeriesType="SeriesType.Line"
-                             XValue="@(e => e.Key)"
-                             YValue="@(e => (decimal?)e.Value)"
-                             Color="lightpink" />
-
-            <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                             Items="SolarActualData"
-                             Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                             SeriesType="SeriesType.Line"
-                             XValue="@(e => e.Key)"
-                             YValue="@(e => (decimal?)e.Value)"
-                             Color="orange" />
-
-            <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                             Items="HouseActualData"
-                             Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                             SeriesType="SeriesType.Line"
-                             XValue="@(e => e.Key)"
-                             YValue="@(e => (decimal?)e.Value)"
-                             Color="deeppink" />
-
-        </ApexChart>
-    </div>
-
-}
-
+            else
+            {
+                <div class="d-flex align-items-center justify-content-center mb-3">
+                    <ApexChart TItem="DtoChartValue<int, decimal>"
+                               Title="kWh"
+                               Options="_options"
+                               Width="600"
+                               Height="400">
+                        @if (SolarPredictionData != default)
+                        {
+                            <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                                             Items="SolarPredictionData"
+                                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                             SeriesType="SeriesType.Line"
+                                             XValue="@(e => e.Key)"
+                                             YValue="@(e => (decimal?)e.Value)"
+                                             Color="#FFD580"/>
+                        }
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                                         Items="HousePredictionData"
+                                         Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => (decimal?)e.Value)"
+                                         Color="lightpink"/>
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                                         Items="SolarActualData"
+                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => (decimal?)e.Value)"
+                                         Color="orange"/>
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                                         Items="HouseActualData"
+                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => (decimal?)e.Value)"
+                                         Color="deeppink"/>
+                    </ApexChart>
+                </div>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+</MudExpansionPanels>
 
 @code {
     private List<DtoChartValue<int, decimal>>? SolarPredictionData { get; set; }
