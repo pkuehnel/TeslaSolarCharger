@@ -159,7 +159,7 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
-    public bool ShouldGetWeatherForecast()
+    public bool IsPredictSolarPowerGenerationEnabled()
     {
         var value = GetBaseConfiguration().PredictSolarPowerGeneration;
         return value;
