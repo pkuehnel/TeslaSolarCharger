@@ -25,12 +25,16 @@
                     rightLabel = "Produced today:";
 
                     leftValue = SolarPredictionData != null
-                        ? @<span>@($"{SolarPredictionData.Where(v => v.Key > TimeProvider.GetLocalNow().Hour).Sum(v => v.Value):F1} kWh")</span>
-                    : @<MudSkeleton Width="100px" Height="24px" />;
+                        ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Where(v => v.Key > TimeProvider.GetLocalNow().Hour).Sum(v => v.Value):F1} kWh")</span>
+                    : @<div class="d-flex justify-content-start w-100">
+                    <MudSkeleton Width="100px" Height="24px" />
+                </div>;
 
                     rightValue = SolarActualData != null
-                        ? @<span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<MudSkeleton Width="100px" Height="24px" />;
+                        ? @<span class="d-block text-md-end">@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<div class="d-flex justify-content-end w-100">
+                    <MudSkeleton Width="100px" Height="24px" />
+                </div>;
                 }
                 else if (SelectedDate < TimeProvider.GetLocalNow().Date)
                 {
@@ -38,12 +42,16 @@
                     rightLabel = "Actual Production:";
 
                     leftValue = SolarPredictionData != null
-                        ? @<span>@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<MudSkeleton Width="100px" Height="24px" />;
+                        ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<div class="d-flex justify-content-start w-100">
+                    <MudSkeleton Width="100px" Height="24px" />
+                </div>;
 
                     rightValue = SolarActualData != null
-                        ? @<span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<MudSkeleton Width="100px" Height="24px" />;
+                        ? @<span class="d-block text-md-end">@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<div class="d-flex justify-content-end w-100">
+                    <MudSkeleton Width="100px" Height="24px" />
+                </div>;
                 }
                 else
                 {
@@ -51,62 +59,67 @@
                     rightLabel = "House Prediction:";
 
                     leftValue = SolarPredictionData != null
-                        ? @<span>@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<MudSkeleton Width="100px" Height="24px" />;
+                        ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<div class="d-flex justify-content-start w-100">
+                    <MudSkeleton Width="100px" Height="24px" />
+                </div>;
 
                     rightValue = HousePredictionData != null
-                        ? @<span>@($"{HousePredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<MudSkeleton Width="100px" Height="24px" />;
+                        ? @<span class="d-block text-md-end">@($"{HousePredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<div class="d-flex justify-content-end w-100">
+                    <MudSkeleton Width="100px" Height="24px" />
+                </div>;
                 }
             }
-            <div class="row align-items-center">
-                <!-- Left Column -->
-                <div class="col d-flex flex-column align-items-start">
-                    <span class="fw-bold">@leftLabel</span>
-                    <div>
-                        @leftValue
+            <!-- Outer container that stacks on small screens and arranges items in a row on md+ screens -->
+            <div class="d-flex flex-column flex-md-row align-items-center justify-content-between">
+                <!-- Left Section -->
+                @if (_isSolarPredictionEnabled)
+                {
+                    <div class="flex-fill text-md-start text-center mb-3 mb-md-0">
+                        <span class="fw-bold">@leftLabel</span>
+                        <div>@leftValue</div>
                     </div>
-                </div>
+                }
 
-                <!-- Center: Date Input with Navigation Buttons -->
-                <div class="col-auto d-flex flex-column align-items-center">
-                    <div class="d-flex align-items-center">
+
+                <!-- Center Section: Date input with navigation buttons -->
+                <div class="flex-fill text-center mb-3 mb-md-0">
+                    <div class="d-flex justify-content-center align-items-center">
                         <MudFab StartIcon="@Icons.Material.Filled.ArrowLeft"
-                                Color="Color.Primary"
-                                Size="Size.Small"
-                                OnClick="PreviousDay"
-                                Disabled="IsPreviousDisabled" />
+                        Color="Color.Primary"
+                        Size="Size.Small"
+                        OnClick="PreviousDay"
+                        Disabled="IsPreviousDisabled" />
                         <GenericInput For="() => SelectedDate" LabelName="Date" />
                         <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
-                                Color="Color.Primary"
-                                Size="Size.Small"
-                                OnClick="NextDay"
-                                Disabled="IsNextDisabled" />
+                        Color="Color.Primary"
+                        Size="Size.Small"
+                        OnClick="NextDay"
+                        Disabled="IsNextDisabled" />
                     </div>
                 </div>
 
-                <!-- Right Column -->
-                <div class="col d-flex flex-column align-items-end">
+                <!-- Right Section -->
+                <div class="flex-fill text-md-end text-center">
                     <span class="fw-bold">@rightLabel</span>
-                    <div>
-                        @rightValue
-                    </div>
+                    <div>@rightValue</div>
                 </div>
             </div>
         </TitleContent>
         <ChildContent>
             <div class="d-flex align-items-center justify-content-center mb-3">
                 <MudFab StartIcon="@Icons.Material.Filled.ArrowLeft"
-                        Color="Color.Primary"
-                        Size="Size.Small"
-                        OnClick="PreviousDay"
-                        Disabled="IsPreviousDisabled" />
+                Color="Color.Primary"
+                Size="Size.Small"
+                OnClick="PreviousDay"
+                Disabled="IsPreviousDisabled" />
                 <GenericInput For="() => SelectedDate" LabelName="Date"></GenericInput>
                 <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
-                        Color="Color.Primary"
-                        Size="Size.Small"
-                        OnClick="NextDay"
-                        Disabled="IsNextDisabled" />
+                Color="Color.Primary"
+                Size="Size.Small"
+                OnClick="NextDay"
+                Disabled="IsNextDisabled" />
             </div>
             @if (HousePredictionData == default || SolarActualData == default || HouseActualData == default || (SolarPredictionData == default && _isSolarPredictionEnabled))
             {
@@ -118,41 +131,41 @@
             {
                 <div class="d-flex align-items-center justify-content-center mb-3">
                     <ApexChart TItem="DtoChartValue<int, decimal>"
-                               Title="kWh"
-                               Options="_options"
-                               Width="600"
-                               Height="400">
+                    Title="kWh"
+                    Options="_options"
+                    Width="600"
+                    Height="400">
                         @if (SolarPredictionData != default)
                         {
                             <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                             Items="SolarPredictionData"
-                                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                             SeriesType="SeriesType.Line"
-                                             XValue="@(e => e.Key)"
-                                             YValue="@(e => (decimal?)e.Value)"
-                                             Color="#FFD580"/>
+                            Items="SolarPredictionData"
+                            Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                            SeriesType="SeriesType.Line"
+                            XValue="@(e => e.Key)"
+                            YValue="@(e => (decimal?)e.Value)"
+                            Color="#FFD580"/>
                         }
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="HousePredictionData"
-                                         Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
-                                         Color="lightpink"/>
+                        Items="HousePredictionData"
+                        Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                        SeriesType="SeriesType.Line"
+                        XValue="@(e => e.Key)"
+                        YValue="@(e => (decimal?)e.Value)"
+                        Color="lightpink"/>
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="SolarActualData"
-                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
-                                         Color="orange"/>
+                        Items="SolarActualData"
+                        Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                        SeriesType="SeriesType.Line"
+                        XValue="@(e => e.Key)"
+                        YValue="@(e => (decimal?)e.Value)"
+                        Color="orange"/>
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="HouseActualData"
-                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
-                                         Color="deeppink"/>
+                        Items="HouseActualData"
+                        Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                        SeriesType="SeriesType.Line"
+                        XValue="@(e => e.Key)"
+                        YValue="@(e => (decimal?)e.Value)"
+                        Color="deeppink"/>
                     </ApexChart>
                 </div>
             }
@@ -176,6 +189,7 @@
         SelectedDate = currentTime.Date;
         await base.OnInitializedAsync();
         _isSolarPredictionEnabled = await EnergyDataService.SolarPowerPredictionEnabled();
+        await InvokeAsync(() => StateHasChanged());
         _options = new ApexChartOptions<DtoChartValue<int, decimal>>
             {
                 Chart = new Chart
