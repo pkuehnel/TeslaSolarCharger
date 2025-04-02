@@ -82,7 +82,8 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var result = new Dictionary<int, int>();
         foreach (var input in inputs)
         {
-            result[input.Key.LocalDateTime.Hour] = input.Value;
+            var hour = input.Key.LocalDateTime.Hour;
+            result[hour] = input.Value;
         }
 
         return result;
@@ -92,6 +93,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     {
         var createdWh = new Dictionary<DateTimeOffset, int>();
         MeterValue? lastMeterValue = null;
+        DateTimeOffset? lastHourlyTimeStamp = null;
 
         foreach (var hourlyTimeStamp in hourlyTimeStamps)
         {
@@ -106,13 +108,14 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                 continue;
             }
 
-            if (lastMeterValue != default)
+            if (lastMeterValue != default && lastHourlyTimeStamp != default)
             {
                 var energyDifference = Convert.ToInt32((meterValue.EstimatedEnergyWs - lastMeterValue.EstimatedEnergyWs) / 3600);
-                createdWh.Add(hourlyTimeStamp, energyDifference);
+                createdWh.Add(lastHourlyTimeStamp.Value, energyDifference);
             }
 
             lastMeterValue = meterValue;
+            lastHourlyTimeStamp = hourlyTimeStamp;
         }
 
         return createdWh;
