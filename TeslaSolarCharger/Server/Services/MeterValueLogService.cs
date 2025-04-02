@@ -3,12 +3,15 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     ITeslaSolarChargerContext context,
-    IIndexService indexService) : IMeterValueLogService
+    IIndexService indexService,
+    IConfigurationWrapper configurationWrapper,
+    IDateTimeProvider dateTimeProvider) : IMeterValueLogService
 {
     public async Task LogPvValues()
     {
@@ -17,6 +20,14 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         if(pvValues.LastUpdated == default)
         {
             logger.LogWarning("Unknown last updated of PV values, do not log pv meter values");
+            return;
+        }
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        var solarRefreshRate = configurationWrapper.PvValueJobUpdateIntervall();
+        var minimumPvValueTimeStamp = currentDate - (2 * solarRefreshRate);
+        if (pvValues.LastUpdated.Value <= minimumPvValueTimeStamp)
+        {
+            logger.LogWarning("Pv Values are to old, do not log");
             return;
         }
         if (pvValues.InverterPower == default)
