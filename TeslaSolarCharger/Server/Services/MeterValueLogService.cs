@@ -27,7 +27,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         var minimumPvValueTimeStamp = currentDate - (2 * solarRefreshRate);
         if (pvValues.LastUpdated.Value <= minimumPvValueTimeStamp)
         {
-            logger.LogWarning("Pv Values are to old, do not log");
+            logger.LogWarning("Pv Values are too old, do not log");
             return;
         }
         if (pvValues.InverterPower == default)
