@@ -16,25 +16,17 @@
             <div class="d-flex justify-content-between align-items-center">
                 @if (SelectedDate == TimeProvider.GetLocalNow().Date)
                 {
-                    <!-- Today: show remaining solar production -->
-                    <span>Remaining Solar Production:</span>
-                    @if (SolarPredictionData != null && SolarActualData != null)
+                    <span>Prediction from now:</span>
+                    @if (SolarPredictionData != null)
                     {
-                        var currentTime = TimeProvider.GetLocalNow();
-                        @*ToDo: Fraction of current hour needs to be added *@
-                        var remaining = SolarPredictionData.Where(v => v.Key > currentTime.Hour).Sum(v => v.Value);
-                        <span>@($"{remaining:F1} kWh")</span>
+                        var currentHour = TimeProvider.GetLocalNow().Hour;
+                        <span>@($"{SolarPredictionData.Where(v => v.Key > currentHour).Sum(v => v.Value):F1} kWh")</span>
                     }
                     else
                     {
                         <MudSkeleton Width="100px" Height="24px" />
                     }
-
-                }
-                else if (SelectedDate < TimeProvider.GetLocalNow().Date)
-                {
-                    <!-- Past Date: show actual solar production and actual house consumption -->
-                    <span>Solar Actual:</span>
+                    <span>Produced today:</span>
                     @if (SolarActualData != null)
                     {
                         <span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
@@ -43,15 +35,29 @@
                     {
                         <MudSkeleton Width="100px" Height="24px" />
                     }
-                    <span>House Actual:</span>
-                    @if (HouseActualData != null)
+                    
+                }
+                else if (SelectedDate < TimeProvider.GetLocalNow().Date)
+                {
+                    <span>Estimated Production:</span>
+                    @if (SolarPredictionData != null)
                     {
-                        <span>@($"{HouseActualData.Sum(v => v.Value):F1} kWh")</span>
+                        <span>@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
                     }
                     else
                     {
                         <MudSkeleton Width="100px" Height="24px" />
                     }
+                    <span>Actual Production:</span>
+                    @if (SolarActualData != null)
+                    {
+                        <span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
+                    }
+                    else
+                    {
+                        <MudSkeleton Width="100px" Height="24px" />
+                    }
+                    
                 }
                 else
                 {
