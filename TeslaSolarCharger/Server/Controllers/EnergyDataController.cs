@@ -8,50 +8,30 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class EnergyDataController(IEnergyDataService energyDataService) : ApiBaseController
 {
     [HttpGet]
-    public async Task<IActionResult> GetSolarPrediction(DateOnly? date = default)
+    public async Task<IActionResult> GetSolarPrediction(DateOnly date)
     {
-        if (date == default)
-        {
-            date = new DateOnly(2025, 3, 30);
-        }
-
-        var result = await energyDataService.GetPredictedSolarProductionByLocalHour(date.Value);
+        var result = await energyDataService.GetPredictedSolarProductionByLocalHour(date);
         return Ok(result);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetHouseConsumptionPrediction(DateOnly? date = default)
+    public async Task<IActionResult> GetHouseConsumptionPrediction(DateOnly date)
     {
-        if (date == default)
-        {
-            date = new DateOnly(2025, 3, 30);
-        }
-
-        var result = await energyDataService.GetPredictedHouseConsumptionByLocalHour(date.Value);
+        var result = await energyDataService.GetPredictedHouseConsumptionByLocalHour(date);
         return Ok(result);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetSolarActual(DateOnly? date = default)
+    public async Task<IActionResult> GetSolarActual(DateOnly date)
     {
-        if (date == default)
-        {
-            date = new DateOnly(2025, 3, 30);
-        }
-
-        var result = await energyDataService.GetActualSolarProductionByLocalHour(date.Value);
+        var result = await energyDataService.GetActualSolarProductionByLocalHour(date);
         return Ok(result);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetHouseActual(DateOnly? date = default)
+    public async Task<IActionResult> GetHouseActual(DateOnly date)
     {
-        if (date == default)
-        {
-            date = new DateOnly(2025, 3, 30);
-        }
-
-        var result = await energyDataService.GetActualHouseConsumptionByLocalHour(date.Value);
+        var result = await energyDataService.GetActualHouseConsumptionByLocalHour(date);
         return Ok(result);
     }
 }
