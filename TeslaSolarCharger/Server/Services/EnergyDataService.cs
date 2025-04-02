@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
@@ -96,11 +96,21 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
         foreach (var hourlyTimeStamp in hourlyTimeStamps)
         {
-            var meterValue = await context.MeterValues
+            var meterValueQuery = context.MeterValues
                 .Where(m => m.MeterValueKind == meterValueKind && m.Timestamp <= hourlyTimeStamp)
+                .AsQueryable();
+
+            var capturedLastTimeStamp = lastHourlyTimeStamp;
+            if (capturedLastTimeStamp != default)
+            {
+                meterValueQuery = meterValueQuery.Where(m => m.Timestamp > capturedLastTimeStamp);
+            }
+
+            var meterValue = await meterValueQuery
                 .OrderByDescending(m => m.Id)
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
+
 
             if (meterValue == default)
             {
