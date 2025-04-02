@@ -28,11 +28,11 @@ else
 
     <div class="d-flex align-items-center justify-content-center mb-3">
         <ApexChart TItem="DtoChartValue<int, decimal>"
-        Title="kWh"
-        Options="_options"
-        Width="600"
-        Height="400">
-            
+                   Title="kWh"
+                   Options="_options"
+                   Width="600"
+                   Height="400">
+
             @if (SolarPredictionData != default)
             {
                 <ApexPointSeries TItem="DtoChartValue<int, decimal>"
@@ -51,15 +51,15 @@ else
                              XValue="@(e => e.Key)"
                              YValue="@(e => (decimal?)e.Value)"
                              Color="lightpink" />
-            
+
             <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                              Items="SolarActualData"
                              Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
                              SeriesType="SeriesType.Line"
                              XValue="@(e => e.Key)"
                              YValue="@(e => (decimal?)e.Value)"
-                             Color="orange"/>
-            
+                             Color="orange" />
+
             <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                              Items="HouseActualData"
                              Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
@@ -86,6 +86,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var currentTime = TimeProvider.GetLocalNow();
+        SelectedDate = currentTime.Date;
         await base.OnInitializedAsync();
         _isSolarPredictionEnabled = await EnergyDataService.SolarPowerPredictionEnabled();
         _options = new ApexChartOptions<DtoChartValue<int, decimal>>
@@ -143,9 +145,6 @@ else
 
             };
 
-
-        var currentTime = TimeProvider.GetLocalNow();
-        SelectedDate = currentTime.Date;
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
     }
 
