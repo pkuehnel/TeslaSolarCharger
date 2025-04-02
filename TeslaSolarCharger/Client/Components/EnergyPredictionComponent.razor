@@ -3,7 +3,6 @@
 @using TeslaSolarCharger.Client.Services.Contracts
 @using ApexCharts
 @using TeslaSolarCharger.Client.Dtos
-@using TeslaSolarCharger.Shared.TimeProviding
 @using Color = MudBlazor.Color
 @using Size = MudBlazor.Size
 
@@ -13,74 +12,86 @@
 <MudExpansionPanels>
     <MudExpansionPanel>
         <TitleContent>
-            <div class="d-flex justify-content-between align-items-center">
-                @if (SelectedDate == TimeProvider.GetLocalNow().Date)
+            @{
+                // Set labels and values based on the SelectedDate.
+                string leftLabel = "";
+                string rightLabel = "";
+                RenderFragment leftValue;
+                RenderFragment rightValue;
+
+                if (SelectedDate == TimeProvider.GetLocalNow().Date)
                 {
-                    <span>Prediction from now:</span>
-                    @if (SolarPredictionData != null)
-                    {
-                        var currentHour = TimeProvider.GetLocalNow().Hour;
-                        <span>@($"{SolarPredictionData.Where(v => v.Key > currentHour).Sum(v => v.Value):F1} kWh")</span>
-                    }
-                    else
-                    {
-                        <MudSkeleton Width="100px" Height="24px" />
-                    }
-                    <span>Produced today:</span>
-                    @if (SolarActualData != null)
-                    {
-                        <span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
-                    }
-                    else
-                    {
-                        <MudSkeleton Width="100px" Height="24px" />
-                    }
-                    
+                    leftLabel = "Prediction from now:";
+                    rightLabel = "Produced today:";
+
+                    leftValue = SolarPredictionData != null
+                        ? @<span>@($"{SolarPredictionData.Where(v => v.Key > TimeProvider.GetLocalNow().Hour).Sum(v => v.Value):F1} kWh")</span>
+                    : @<MudSkeleton Width="100px" Height="24px" />;
+
+                    rightValue = SolarActualData != null
+                        ? @<span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<MudSkeleton Width="100px" Height="24px" />;
                 }
                 else if (SelectedDate < TimeProvider.GetLocalNow().Date)
                 {
-                    <span>Estimated Production:</span>
-                    @if (SolarPredictionData != null)
-                    {
-                        <span>@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    }
-                    else
-                    {
-                        <MudSkeleton Width="100px" Height="24px" />
-                    }
-                    <span>Actual Production:</span>
-                    @if (SolarActualData != null)
-                    {
-                        <span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
-                    }
-                    else
-                    {
-                        <MudSkeleton Width="100px" Height="24px" />
-                    }
-                    
+                    leftLabel = "Estimated Production:";
+                    rightLabel = "Actual Production:";
+
+                    leftValue = SolarPredictionData != null
+                        ? @<span>@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<MudSkeleton Width="100px" Height="24px" />;
+
+                    rightValue = SolarActualData != null
+                        ? @<span>@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<MudSkeleton Width="100px" Height="24px" />;
                 }
                 else
                 {
-                    <!-- Future Date: show estimated solar production and house consumption -->
-                    <span>Solar Prediction:</span>
-                    @if (SolarPredictionData != null)
-                    {
-                        <span>@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    }
-                    else
-                    {
-                        <MudSkeleton Width="100px" Height="24px" />
-                    }
-                    <span>House Prediction:</span>
-                    @if (HousePredictionData != null)
-                    {
-                        <span>@($"{HousePredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    }
-                    else
-                    {
-                        <MudSkeleton Width="100px" Height="24px" />
-                    }
+                    leftLabel = "Solar Prediction:";
+                    rightLabel = "House Prediction:";
+
+                    leftValue = SolarPredictionData != null
+                        ? @<span>@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<MudSkeleton Width="100px" Height="24px" />;
+
+                    rightValue = HousePredictionData != null
+                        ? @<span>@($"{HousePredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    : @<MudSkeleton Width="100px" Height="24px" />;
                 }
+            }
+            <div class="row align-items-center">
+                <!-- Left Column -->
+                <div class="col d-flex flex-column align-items-start">
+                    <span class="fw-bold">@leftLabel</span>
+                    <div>
+                        @leftValue
+                    </div>
+                </div>
+
+                <!-- Center: Date Input with Navigation Buttons -->
+                <div class="col-auto d-flex flex-column align-items-center">
+                    <div class="d-flex align-items-center">
+                        <MudFab StartIcon="@Icons.Material.Filled.ArrowLeft"
+                                Color="Color.Primary"
+                                Size="Size.Small"
+                                OnClick="PreviousDay"
+                                Disabled="IsPreviousDisabled" />
+                        <GenericInput For="() => SelectedDate" LabelName="Date" />
+                        <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
+                                Color="Color.Primary"
+                                Size="Size.Small"
+                                OnClick="NextDay"
+                                Disabled="IsNextDisabled" />
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col d-flex flex-column align-items-end">
+                    <span class="fw-bold">@rightLabel</span>
+                    <div>
+                        @rightValue
+                    </div>
+                </div>
             </div>
         </TitleContent>
         <ChildContent>
