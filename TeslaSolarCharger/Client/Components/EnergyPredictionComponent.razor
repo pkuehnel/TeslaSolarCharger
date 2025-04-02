@@ -27,46 +27,46 @@ else
 {
 
     <div class="d-flex align-items-center justify-content-center mb-3">
-        <ApexChart TItem="DtoChartValue<int, int>"
-        Title="Wh"
-        Options="_options"
-        Width="800"
-        Height="600">
+        <ApexChart TItem="DtoChartValue<int, decimal>"
+                   Title="kWh"
+                   Options="_options"
+                   Width="600"
+                   Height="400">
 
 
-            <ApexPointSeries TItem="DtoChartValue<int, int>"
-            Items="SolarPredictionData"
-            Name="Solar Prediction"
-            SeriesType="SeriesType.Line"
-            XValue="@(e => e.Key)"
-            YValue="@(e => e.Value)" />
+            <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                             Items="SolarPredictionData"
+                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(e => e.Key)"
+                             YValue="@(e => (decimal?)e.Value)" />
 
-            <ApexPointSeries TItem="DtoChartValue<int, int>"
-            Items="HousePredictionData"
-            Name="House Prediction"
-            SeriesType="SeriesType.Line"
-            XValue="@(e => e.Key)"
-            YValue="@(e => e.Value)" />
+            <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                             Items="HousePredictionData"
+                             Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(e => e.Key)"
+                             YValue="@(e => (decimal?)e.Value)" />
 
 
             @if (SolarActualData != default)
             {
-                <ApexPointSeries TItem="DtoChartValue<int, int>"
-                Items="SolarActualData"
-                Name="Solar Actual"
-                SeriesType="SeriesType.Line"
-                XValue="@(e => e.Key)"
-                YValue="@(e => e.Value)" />
+                <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                                 Items="SolarActualData"
+                                 Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(e => e.Key)"
+                                 YValue="@(e => (decimal?)e.Value)" />
             }
 
             @if (HouseActualData != default)
             {
-                <ApexPointSeries TItem="DtoChartValue<int, int>"
-                Items="HouseActualData"
-                Name="House Actual"
-                SeriesType="SeriesType.Line"
-                XValue="@(e => e.Key)"
-                YValue="@(e => e.Value)" />
+                <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                                 Items="HouseActualData"
+                                 Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(e => e.Key)"
+                                 YValue="@(e => (decimal?)e.Value)" />
             }
 
         </ApexChart>
@@ -76,61 +76,61 @@ else
 
 
 @code {
-    private List<DtoChartValue<int, int>>? SolarPredictionData { get; set; }
-    private List<DtoChartValue<int, int>>? HousePredictionData { get; set; }
-    private List<DtoChartValue<int, int>>? SolarActualData { get; set; }
-    private List<DtoChartValue<int, int>>? HouseActualData { get; set; }
+    private List<DtoChartValue<int, decimal>>? SolarPredictionData { get; set; }
+    private List<DtoChartValue<int, decimal>>? HousePredictionData { get; set; }
+    private List<DtoChartValue<int, decimal>>? SolarActualData { get; set; }
+    private List<DtoChartValue<int, decimal>>? HouseActualData { get; set; }
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(1);
-    private ApexChartOptions<DtoChartValue<int, int>>? _options;
+    private ApexChartOptions<DtoChartValue<int, decimal>> _options;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        _options = new ApexChartOptions<DtoChartValue<int, int>>
-        {
-            Chart = new Chart
+        _options = new ApexChartOptions<DtoChartValue<int, decimal>>
             {
-                Toolbar = new Toolbar
+                Chart = new Chart
                 {
-                    Show = false,
+                    Toolbar = new Toolbar
+                    {
+                        Show = false,
+                    },
+                    DropShadow = new DropShadow
+                    {
+                        Enabled = true,
+                        Color = "",
+                        Top = 18,
+                        Left = 7,
+                        Blur = 10,
+                        Opacity = 0.2d,
+                    }
                 },
-                DropShadow = new DropShadow
+                DataLabels = new ApexCharts.DataLabels
                 {
-                    Enabled = true,
-                    Color = "",
-                    Top = 18,
-                    Left = 7,
-                    Blur = 10,
-                    Opacity = 0.2d,
-                }
-            },
-            DataLabels = new ApexCharts.DataLabels
-            {
                 // OffsetY = -6d,
-            },
-            Grid = new Grid
-            {
-                BorderColor = "#e7e7e7",
-                Row = new GridRow
+                },
+                Grid = new Grid
                 {
-                    Colors = new List<string> { "#f3f3f3", "transparent" },
-                    Opacity = 0.5d
-                }
-            },
+                    BorderColor = "#e7e7e7",
+                    Row = new GridRow
+                    {
+                        Colors = new List<string> { "#f3f3f3", "transparent" },
+                        Opacity = 0.5d
+                    }
+                },
 
-            Colors = new List<string> { "#77B6EA", "#545454", "orange", "pink" },
-            Markers = new Markers { Shape = ShapeEnum.Circle, Size = 5, FillOpacity = new Opacity(0.8d),  },
-            Stroke = new Stroke { Curve = Curve.Smooth },
-            Legend = new Legend
-            {
-                Position = LegendPosition.Bottom,
-                HorizontalAlign = ApexCharts.Align.Center,
-                Floating = false,
+                Colors = new List<string> { "#77B6EA", "#545454", "orange", "pink" },
+                Markers = new Markers { Shape = ShapeEnum.Circle, Size = 5, FillOpacity = new Opacity(0.8d), },
+                Stroke = new Stroke { Curve = Curve.Smooth },
+                Legend = new Legend
+                {
+                    Position = LegendPosition.Bottom,
+                    HorizontalAlign = ApexCharts.Align.Center,
+                    Floating = false,
                 // OffsetX = -5,
                 // OffsetY = 25,
-            },
-            Yaxis = new List<YAxis>
+                },
+                Yaxis = new List<YAxis>
             {
                 new YAxis
                 {
@@ -141,7 +141,7 @@ else
                 },
             },
 
-        };
+            };
 
 
         var currentTime = TimeProvider.GetLocalNow();
@@ -163,10 +163,10 @@ else
         var housePredictionData = await housePredictionTask;
         var solarActualData = await solarActualTask;
         var houseActualData = await houseActualTask;
-        SolarPredictionData = solarPredictionData.Select(e => new DtoChartValue<int, int>(e.Key, e.Value)).ToList();
-        HousePredictionData = housePredictionData.Select(e => new DtoChartValue<int, int>(e.Key, e.Value)).ToList();
-        SolarActualData = solarActualData.Select(e => new DtoChartValue<int, int>(e.Key, e.Value)).ToList();
-        HouseActualData = houseActualData.Select(e => new DtoChartValue<int, int>(e.Key, e.Value)).ToList();
+        SolarPredictionData = solarPredictionData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
+        HousePredictionData = housePredictionData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
+        SolarActualData = solarActualData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
+        HouseActualData = houseActualData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
         StateHasChanged();
     }
 
