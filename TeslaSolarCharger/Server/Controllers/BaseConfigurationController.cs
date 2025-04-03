@@ -18,6 +18,12 @@ namespace TeslaSolarCharger.Server.Controllers
         [HttpGet]
         public DtoValue<bool> AllowPowerBufferChangeOnHome() => new(configurationWrapper.AllowPowerBufferChangeOnHome());
 
+        [HttpGet]
+        public DtoValue<bool> IsPredictSolarPowerGenerationEnabled() => new(configurationWrapper.IsPredictSolarPowerGenerationEnabled());
+
+        [HttpGet]
+        public DtoValue<bool> ShowEnergyDataOnHome() => new(configurationWrapper.ShowEnergyDataOnHome());
+
         [HttpPut]
         public Task UpdateBaseConfiguration([FromBody] DtoBaseConfiguration baseConfiguration) =>
             service.UpdateBaseConfigurationAsync(baseConfiguration);

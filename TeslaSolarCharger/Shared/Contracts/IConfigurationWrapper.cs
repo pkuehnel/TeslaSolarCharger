@@ -109,5 +109,6 @@ public interface IConfigurationWrapper
     bool AllowPowerBufferChangeOnHome();
     TimeSpan FleetApiRefreshInterval();
     int BackendPasswordDefaultLength();
-    bool ShouldGetWeatherForecast();
+    bool IsPredictSolarPowerGenerationEnabled();
+    bool ShowEnergyDataOnHome();
 }
