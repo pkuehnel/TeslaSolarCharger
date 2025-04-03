@@ -93,19 +93,19 @@
                 <div class="flex-fill text-center mb-3 mb-md-0">
                     <div class="d-flex justify-content-center align-items-center">
                         <MudFab StartIcon="@Icons.Material.Filled.ArrowLeft"
-                        Color="Color.Primary"
-                        Size="Size.Small"
-                        OnClick="PreviousDay"
-                        Disabled="IsPreviousDisabled" />
+                                Color="Color.Primary"
+                                Size="Size.Small"
+                                OnClick="PreviousDay"
+                                Disabled="IsPreviousDisabled" />
                         <GenericInput T="DateTime?"
-                        For="() => SelectedDate"
-                        LabelName="Date"
-                        OnValueChanged="newDate => SelectedDateChanged(newDate)" />
+                                      For="() => SelectedDate"
+                                      LabelName="Date"
+                                      OnValueChanged="newDate => SelectedDateChanged(newDate)" />
                         <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
-                        Color="Color.Primary"
-                        Size="Size.Small"
-                        OnClick="NextDay"
-                        Disabled="IsNextDisabled" />
+                                Color="Color.Primary"
+                                Size="Size.Small"
+                                OnClick="NextDay"
+                                Disabled="IsNextDisabled" />
                     </div>
                 </div>
 
@@ -127,42 +127,43 @@
             {
                 <div class="d-flex align-items-center justify-content-center mb-3">
                     <ApexChart TItem="DtoChartValue<int, decimal>"
-                    Title="kWh"
-                    Options="_options"
-                    Width="ChartWidth"
-                    Height="ChartHeight"
-                    @ref="_chart">
+                               Title="kWh"
+                               Options="_options"
+                               Width="ChartWidth"
+                               Height="ChartHeight"
+                               XAxisType="XAxisType.Category"
+                               @ref="_chart">
                         @if (SolarPredictionData != default)
                         {
                             <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                            Items="SolarPredictionData"
-                            Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                            SeriesType="SeriesType.Line"
-                            XValue="@(e => e.Key)"
-                            YValue="@(e => (decimal?)e.Value)"
-                            Color="#FFD580" />
+                                             Items="SolarPredictionData"
+                                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                             SeriesType="SeriesType.Line"
+                                             XValue="@(e => e.Key)"
+                                             YValue="@(e => (decimal?)e.Value)"
+                                             Color="#FFD580" />
                         }
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                        Items="HousePredictionData"
-                        Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                        SeriesType="SeriesType.Line"
-                        XValue="@(e => e.Key)"
-                        YValue="@(e => (decimal?)e.Value)"
-                        Color="lightpink" />
+                                         Items="HousePredictionData"
+                                         Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => (decimal?)e.Value)"
+                                         Color="lightpink" />
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                        Items="SolarActualData"
-                        Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                        SeriesType="SeriesType.Line"
-                        XValue="@(e => e.Key)"
-                        YValue="@(e => (decimal?)e.Value)"
-                        Color="orange" />
+                                         Items="SolarActualData"
+                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => (decimal?)e.Value)"
+                                         Color="orange" />
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                        Items="HouseActualData"
-                        Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                        SeriesType="SeriesType.Line"
-                        XValue="@(e => e.Key)"
-                        YValue="@(e => (decimal?)e.Value)"
-                        Color="deeppink" />
+                                         Items="HouseActualData"
+                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => (decimal?)e.Value)"
+                                         Color="deeppink" />
                     </ApexChart>
                 </div>
             }
@@ -216,18 +217,14 @@
                         Enabled = false,
                     },
                 },
-                DataLabels = new ApexCharts.DataLabels
-                {
-                // OffsetY = -6d,
-                },
                 Grid = new Grid
                 {
                     BorderColor = "#e7e7e7",
                     Row = new GridRow
                     {
                         Colors = new List<string> { "#f3f3f3", "transparent" },
-                        Opacity = 0.5d
-                    }
+                        Opacity = 0.5d,
+                    },
                 },
 
                 Markers = new Markers { Shape = ShapeEnum.Circle, Size = 5, FillOpacity = new Opacity(0.8d), },
@@ -237,8 +234,6 @@
                     Position = LegendPosition.Bottom,
                     HorizontalAlign = ApexCharts.Align.Center,
                     Floating = false,
-                // OffsetX = -5,
-                // OffsetY = 25,
                 },
                 Yaxis = new List<YAxis>
                 {
@@ -252,7 +247,7 @@
                 },
                 Xaxis = new XAxis()
                 {
-                    Max = 24,
+                    Max = 23,
                 },
 
             };
