@@ -187,6 +187,7 @@
 
     private string ChartWidth { get; set; } = "600px";
     private string ChartHeight { get; set; } = "400px";
+    private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
     protected override async Task OnInitializedAsync()
     {
@@ -266,43 +267,73 @@
 
     private async Task RefreshData(DateOnly date)
     {
+        // Cancel any ongoing refresh tasks.
+        _refreshCancellationTokenSource.Cancel();
+        _refreshCancellationTokenSource.Dispose();
+        _refreshCancellationTokenSource = new CancellationTokenSource();
+        CancellationToken token = _refreshCancellationTokenSource.Token;
+
         HousePredictionData = default;
         SolarPredictionData = default;
         HouseActualData = default;
         SolarActualData = default;
-        var housePredictionTask = EnergyDataService.GetPredictedHouseConsumptionByLocalHour(date);
-        var solarActualTask = EnergyDataService.GetActualSolarProductionByLocalHour(date);
-        var houseActualTask = EnergyDataService.GetActualHouseConsumptionByLocalHour(date);
-        if (_isSolarPredictionEnabled)
+        try
         {
-            var solarPredictionTask = EnergyDataService.GetPredictedSolarProductionByLocalHour(date);
-            var solarPredictionData = await solarPredictionTask;
-            SolarPredictionData = solarPredictionData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
+            // Start tasks with the cancellation token.
+            var housePredictionTask = EnergyDataService.GetPredictedHouseConsumptionByLocalHour(date, token);
+            var solarActualTask = EnergyDataService.GetActualSolarProductionByLocalHour(date, token);
+            var houseActualTask = EnergyDataService.GetActualHouseConsumptionByLocalHour(date, token);
+
+            if (_isSolarPredictionEnabled)
+            {
+                var solarPredictionTask = EnergyDataService.GetPredictedSolarProductionByLocalHour(date, token);
+                var solarPredictionData = await solarPredictionTask;
+                token.ThrowIfCancellationRequested();
+                SolarPredictionData = solarPredictionData
+                    .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
+                    .ToList();
+            }
+
+            var housePredictionData = await housePredictionTask;
+            token.ThrowIfCancellationRequested();
+            var solarActualData = await solarActualTask;
+            token.ThrowIfCancellationRequested();
+            var houseActualData = await houseActualTask;
+            token.ThrowIfCancellationRequested();
+
+            HousePredictionData = housePredictionData
+                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
+                .ToList();
+            SolarActualData = solarActualData
+                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
+                .ToList();
+            HouseActualData = houseActualData
+                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
+                .ToList();
+
+            if (_chart != null)
+            {
+                await _chart.UpdateSeriesAsync();
+            }
+
+            StateHasChanged();
         }
-        var housePredictionData = await housePredictionTask;
-        var solarActualData = await solarActualTask;
-        var houseActualData = await houseActualTask;
-        HousePredictionData = housePredictionData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
-        SolarActualData = solarActualData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
-        HouseActualData = houseActualData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
-        if (_chart != default)
+        catch (OperationCanceledException)
         {
-            await _chart.UpdateSeriesAsync();
+            // The refresh was canceled. Optionally log or handle the cancellation.
         }
-        StateHasChanged();
     }
 
-    private async Task PreviousDay()
+    private void PreviousDay()
     {
         if (SelectedDate == default)
         {
             return;
         }
         SelectedDate = SelectedDate.Value.AddDays(-1);
-        await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
     }
 
-    private async Task NextDay()
+    private void NextDay()
     {
         if (SelectedDate == default)
         {
@@ -311,7 +342,6 @@
         if (SelectedDate < MaxAllowedDate)
         {
             SelectedDate = SelectedDate.Value.AddDays(1);
-            await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
         }
     }
 

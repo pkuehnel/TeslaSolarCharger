@@ -9,47 +9,50 @@ namespace TeslaSolarCharger.Server.Services;
 public class EnergyDataService(ILogger<EnergyDataService> logger,
     ITeslaSolarChargerContext context) : IEnergyDataService
 {
-    public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date)
+    public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({date})", nameof(GetPredictedSolarProductionByLocalHour), date);
 
         var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
         var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
-        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration);
-        var latestRadiations = await GetLatestSolarRadiationsAsync(historicPredictionsSearchStart, utcPredictionEnd);
-        var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(hourlyTimeStamps, createdWh, latestRadiations, historicPredictionsSearchStart);
-        var forecastSolarRadiations = await GetForecastSolarRadiationsAsync(utcPredictionStart, utcPredictionEnd);
-        var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors);
 
+        // Pass cancellationToken to your helper methods
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration, cancellationToken);
+        var latestRadiations = await GetLatestSolarRadiationsAsync(historicPredictionsSearchStart, utcPredictionEnd, cancellationToken);
+        var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(hourlyTimeStamps, createdWh, latestRadiations, historicPredictionsSearchStart);
+        var forecastSolarRadiations = await GetForecastSolarRadiationsAsync(utcPredictionStart, utcPredictionEnd, cancellationToken);
+
+        var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors);
         return predictedProduction.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
-    public async Task<Dictionary<int, int>> GetPredictedHouseConsumptionByLocalHour(DateOnly date)
+    public async Task<Dictionary<int, int>> GetPredictedHouseConsumptionByLocalHour(DateOnly date,
+        CancellationToken httpContextRequestAborted)
     {
         logger.LogTrace("{method}({date})", nameof(GetPredictedHouseConsumptionByLocalHour), date);
         var (utcPredictionStart, _, historicPredictionsSearchStart) = ComputePredictionTimes(date);
         var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
-        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption);
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption, httpContextRequestAborted);
         var result = ComputeWeightedMeterValueChanges(hourlyTimeStamps, createdWh, historicPredictionsSearchStart);
         return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
-    public async Task<Dictionary<int, int>> GetActualSolarProductionByLocalHour(DateOnly date)
+    public async Task<Dictionary<int, int>> GetActualSolarProductionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted)
     {
         logger.LogTrace("{method}({date})", nameof(GetActualSolarProductionByLocalHour), date);
         var (utcPredictionStart, utcPredictionEnd, _) = ComputePredictionTimes(date);
         var hourlyTimeStamps = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
-        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration);
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration, httpContextRequestAborted);
         var result = CreateHourlyDictionary(createdWh);
         return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
-    public async Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date)
+    public async Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted)
     {
         logger.LogTrace("{method}({date})", nameof(GetActualHouseConsumptionByLocalHour), date);
         var (utcPredictionStart, utcPredictionEnd, _) = ComputePredictionTimes(date);
         var hourlyTimeStamps = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
-        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption);
+        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption, httpContextRequestAborted);
         var result = CreateHourlyDictionary(createdWh);
         return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
@@ -65,14 +68,15 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart);
     }
 
-    private async Task<List<SolarRadiation>> GetLatestSolarRadiationsAsync(DateTimeOffset historicStart, DateTimeOffset utcPredictionEnd)
+    private async Task<List<SolarRadiation>> GetLatestSolarRadiationsAsync(DateTimeOffset historicStart, DateTimeOffset utcPredictionEnd,
+        CancellationToken cancellationToken)
     {
         var latestRadiations = await context.SolarRadiations
             .Where(r => r.Start >= historicStart && r.End <= utcPredictionEnd)
             .GroupBy(r => new { r.Start, r.End })
             .Select(g => g.OrderByDescending(r => r.CreatedAt).First())
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken: cancellationToken);
 
         return latestRadiations.OrderBy(r => r.Start).ToList();
     }
@@ -88,7 +92,8 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return result;
     }
 
-    private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps, MeterValueKind meterValueKind)
+    private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps,
+        MeterValueKind meterValueKind, CancellationToken cancellationToken)
     {
         var createdWh = new Dictionary<DateTimeOffset, int>();
         MeterValue? lastMeterValue = null;
@@ -109,7 +114,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             var meterValue = await meterValueQuery
                 .OrderByDescending(m => m.Id)
                 .AsNoTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(cancellationToken: cancellationToken);
 
 
             if (meterValue == default)
@@ -227,14 +232,15 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return avgHourlyWeightedFactors;
     }
 
-    private async Task<List<SolarRadiation>> GetForecastSolarRadiationsAsync(DateTimeOffset utcPredictionStart, DateTimeOffset utcPredictionEnd)
+    private async Task<List<SolarRadiation>> GetForecastSolarRadiationsAsync(DateTimeOffset utcPredictionStart,
+        DateTimeOffset utcPredictionEnd, CancellationToken cancellationToken)
     {
         var forecastSolarRadiations = await context.SolarRadiations
             .Where(r => r.Start >= utcPredictionStart && r.End <= utcPredictionEnd)
             .GroupBy(r => new { r.Start, r.End })
             .Select(g => g.OrderByDescending(r => r.CreatedAt).First())
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken: cancellationToken);
 
         return forecastSolarRadiations;
     }
