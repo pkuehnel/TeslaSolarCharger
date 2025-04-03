@@ -2,6 +2,7 @@
 
 @using TeslaSolarCharger.Client.Services.Contracts
 @using ApexCharts
+@using MudBlazor.Services
 @using TeslaSolarCharger.Client.Dtos
 @using Color = MudBlazor.Color
 @using Size = MudBlazor.Size
@@ -9,14 +10,18 @@
 @inject IEnergyDataService EnergyDataService
 @inject TimeProvider TimeProvider
 @inject ISnackbar Snackbar
+@inject IBrowserViewportService BrowserViewportService
+
+@implements IBrowserViewportObserver
+@implements IAsyncDisposable
 
 <MudExpansionPanels>
-    <MudExpansionPanel>
+    <MudExpansionPanel ExpandedChanged="isExpanded => ExpandedChanged(isExpanded)">
         <TitleContent>
             @{
                 // Set labels and values based on the SelectedDate.
-                string leftLabel = "";
-                string rightLabel = "";
+                string leftLabel;
+                string rightLabel;
                 RenderFragment leftValue;
                 RenderFragment rightValue;
 
@@ -95,7 +100,7 @@
                         <GenericInput T="DateTime?"
                         For="() => SelectedDate"
                         LabelName="Date"
-                        OnValueChanged="newDate => SelectedDateChanged(newDate)"/>
+                        OnValueChanged="newDate => SelectedDateChanged(newDate)" />
                         <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
                         Color="Color.Primary"
                         Size="Size.Small"
@@ -124,8 +129,9 @@
                     <ApexChart TItem="DtoChartValue<int, decimal>"
                     Title="kWh"
                     Options="_options"
-                    Width="600"
-                    Height="400">
+                    Width="ChartWidth"
+                    Height="ChartHeight"
+                    @ref="_chart">
                         @if (SolarPredictionData != default)
                         {
                             <ApexPointSeries TItem="DtoChartValue<int, decimal>"
@@ -134,7 +140,7 @@
                             SeriesType="SeriesType.Line"
                             XValue="@(e => e.Key)"
                             YValue="@(e => (decimal?)e.Value)"
-                            Color="#FFD580"/>
+                            Color="#FFD580" />
                         }
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                         Items="HousePredictionData"
@@ -142,21 +148,21 @@
                         SeriesType="SeriesType.Line"
                         XValue="@(e => e.Key)"
                         YValue="@(e => (decimal?)e.Value)"
-                        Color="lightpink"/>
+                        Color="lightpink" />
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                         Items="SolarActualData"
                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
                         SeriesType="SeriesType.Line"
                         XValue="@(e => e.Key)"
                         YValue="@(e => (decimal?)e.Value)"
-                        Color="orange"/>
+                        Color="orange" />
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                         Items="HouseActualData"
                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
                         SeriesType="SeriesType.Line"
                         XValue="@(e => e.Key)"
                         YValue="@(e => (decimal?)e.Value)"
-                        Color="deeppink"/>
+                        Color="deeppink" />
                     </ApexChart>
                 </div>
             }
@@ -173,6 +179,13 @@
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(1);
     private ApexChartOptions<DtoChartValue<int, decimal>>? _options;
     private bool _isSolarPredictionEnabled;
+    private ApexChart<DtoChartValue<int, decimal>>? _chart;
+
+    public Guid Id { get; } = Guid.NewGuid();
+    public ResizeOptions ResizeOptions { get; } = new ResizeOptions { ReportRate = 500, NotifyOnBreakpointOnly = false };
+
+    private string ChartWidth { get; set; } = "600px";
+    private string ChartHeight { get; set; } = "400px";
 
     protected override async Task OnInitializedAsync()
     {
@@ -228,19 +241,32 @@
                 // OffsetY = 25,
                 },
                 Yaxis = new List<YAxis>
-            {
-                new YAxis
                 {
-                    Labels = new YAxisLabels
+                    new YAxis
                     {
-                        Formatter = "function(value) { return value.toLocaleString(); }"
+                        Labels = new YAxisLabels
+                        {
+                            Formatter = "function(value) { return value.toLocaleString(); }"
+                        },
                     },
                 },
-            },
+                Xaxis = new XAxis()
+                {
+                    Max = 24,
+                },
 
             };
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await BrowserViewportService.SubscribeAsync(this);
+        }
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task RefreshData(DateOnly date)
@@ -264,6 +290,10 @@
         HousePredictionData = housePredictionData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
         SolarActualData = solarActualData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
         HouseActualData = houseActualData.Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0))).ToList();
+        if (_chart != default)
+        {
+            await _chart.UpdateSeriesAsync();
+        }
         StateHasChanged();
     }
 
@@ -307,6 +337,37 @@
         }
         SelectedDate = newDate;
         await RefreshData(DateOnly.FromDateTime(newDate.Value));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await BrowserViewportService.UnsubscribeAsync(this);
+    }
+
+    private CancellationTokenSource? _debounceTokenSource;
+
+    public async Task NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
+    {
+        Snackbar.Add($"Viewport changed: {browserViewportEventArgs.BrowserWindowSize.Width}x{browserViewportEventArgs.BrowserWindowSize.Height}", Severity.Info);
+        var width = browserViewportEventArgs.BrowserWindowSize.Width;
+        var isMenuVisible = width > 640;
+        ChartWidth = isMenuVisible ? ($"{width - 450}px") : $"{width - 50}px";
+        // After 500ms with no interruption, execute the update logic.
+        if (_chart == default)
+        {
+            return;
+        }
+        await _chart.UpdateOptionsAsync(false, false, false);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ExpandedChanged(bool isExpanded)
+    {
+        if ((_chart == default) || (!isExpanded))
+        {
+            return;
+        }
+        await _chart.UpdateOptionsAsync(false, false, false);
     }
 
 }
