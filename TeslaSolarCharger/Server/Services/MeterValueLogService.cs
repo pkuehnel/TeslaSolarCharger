@@ -16,6 +16,10 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     public async Task LogPvValues()
     {
         logger.LogTrace("{method}()", nameof(LogPvValues));
+        if (!configurationWrapper.IsLogMeterValuesEnabled())
+        {
+            return;
+        }
         var pvValues = indexService.GetPvValues();
         if(pvValues.LastUpdated == default)
         {

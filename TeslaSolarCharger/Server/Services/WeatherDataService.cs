@@ -18,7 +18,7 @@ public class WeatherDataService(ILogger<WeatherDataService> logger,
     public async Task RefreshWeatherData()
     {
         logger.LogTrace("{method}()", nameof(RefreshWeatherData));
-        if (!configurationWrapper.IsPredictSolarPowerGenerationEnabled())
+        if (!configurationWrapper.IsLogMeterValuesEnabled() || !configurationWrapper.IsPredictSolarPowerGenerationEnabled())
         {
             return;
         }

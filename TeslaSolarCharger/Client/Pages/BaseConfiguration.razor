@@ -114,7 +114,11 @@ else
             </InputFragment>
         </InputComponent>
 
-        <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
+        <GenericInput For="() => _dtoBaseConfiguration.LogMeterValues"></GenericInput>
+        @if (_dtoBaseConfiguration.LogMeterValues)
+        {
+            <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
+        }
         <GenericInput For="() => _dtoBaseConfiguration.ShowEnergyDataOnHome"></GenericInput>
 
         <InputComponent ValueId="powerBuffer"
