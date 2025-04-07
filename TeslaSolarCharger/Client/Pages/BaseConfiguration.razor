@@ -51,17 +51,17 @@ else
             </InputComponent>
 
             <InputComponent ValueId="teslaMateDbPort"
-                            LabelText="TeslaMate Database Server Port"
-                            UnitText=""
-                            HelpText="You can use the internal port of the TeslaMate database container">
+            LabelText="TeslaMate Database Server Port"
+            UnitText=""
+            HelpText="You can use the internal port of the TeslaMate database container">
                 <InputFragment>
                     <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" " />
                 </InputFragment>
             </InputComponent>
             <InputComponent ValueId="teslaMateDbName"
-                            LabelText="TeslaMate Database Name"
-                            UnitText=""
-                            HelpText="">
+            LabelText="TeslaMate Database Name"
+            UnitText=""
+            HelpText="">
                 <InputFragment>
                     <InputText id="teslaMateDbName" @bind-Value="_dtoBaseConfiguration.TeslaMateDbDatabaseName" class="form-control" placeholder=" " />
                 </InputFragment>
@@ -106,16 +106,22 @@ else
         </div>
 
         <InputComponent ValueId="HomeGeofenceRadius"
-                        LabelText="Home Radius"
-                        UnitText="m"
-                        HelpText="Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended">
+        LabelText="Home Radius"
+        UnitText="m"
+        HelpText="Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended">
             <InputFragment>
                 <InputNumber id="HomeGeofenceRadius" @bind-Value="_dtoBaseConfiguration.HomeGeofenceRadius" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
 
-        <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
-        <GenericInput For="() => _dtoBaseConfiguration.ShowEnergyDataOnHome"></GenericInput>
+        <GenericInput T="bool"
+        For="() => _dtoBaseConfiguration.LogMeterValues"
+                      OnValueChanged="LogMeterValuesUpdated"></GenericInput>
+        @if (_dtoBaseConfiguration.LogMeterValues)
+        {
+            <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
+            <GenericInput For="() => _dtoBaseConfiguration.ShowEnergyDataOnHome"></GenericInput>
+        }
 
         <InputComponent ValueId="powerBuffer"
         LabelText="Power Buffer"
@@ -286,6 +292,16 @@ else
         }
 
         Snackbar.Add(result.Value, Severity.Success);
+    }
+
+    private async Task LogMeterValuesUpdated(bool enabled)
+    {
+        if ((!enabled) && (_dtoBaseConfiguration != default))
+        {
+            _dtoBaseConfiguration.ShowEnergyDataOnHome = false;
+            _dtoBaseConfiguration.PredictSolarPowerGeneration = false;
+        }
+        await InvokeAsync(StateHasChanged);
     }
 
 }
