@@ -373,7 +373,6 @@
 
     public async Task NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
     {
-        Snackbar.Add($"Viewport changed: {browserViewportEventArgs.BrowserWindowSize.Width}x{browserViewportEventArgs.BrowserWindowSize.Height}", Severity.Info);
         var width = browserViewportEventArgs.BrowserWindowSize.Width;
         var isMenuVisible = width > 640;
         ChartWidth = isMenuVisible ? ($"{width - 450}px") : $"{width - 50}px";
