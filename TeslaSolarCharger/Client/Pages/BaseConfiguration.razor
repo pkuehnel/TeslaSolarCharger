@@ -116,7 +116,7 @@ else
 
         <GenericInput T="bool"
         For="() => _dtoBaseConfiguration.LogMeterValues"
-                      OnValueChanged="RerenderComponent"></GenericInput>
+                      OnValueChanged="LogMeterValuesUpdated"></GenericInput>
         @if (_dtoBaseConfiguration.LogMeterValues)
         {
             <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
@@ -279,11 +279,6 @@ else
         _submitLoading = false;
     }
 
-    private async Task RerenderComponent()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
-
 
     private string _correctionFactorHelpText = "Use this to correct the returned value. E.g. if the returned value is 1 but should bei -1 insert -1";
 
@@ -297,6 +292,16 @@ else
         }
 
         Snackbar.Add(result.Value, Severity.Success);
+    }
+
+    private async Task LogMeterValuesUpdated(bool enabled)
+    {
+        if ((!enabled) && (_dtoBaseConfiguration != default))
+        {
+            _dtoBaseConfiguration.ShowEnergyDataOnHome = false;
+            _dtoBaseConfiguration.PredictSolarPowerGeneration = false;
+        }
+        await InvokeAsync(StateHasChanged);
     }
 
 }
