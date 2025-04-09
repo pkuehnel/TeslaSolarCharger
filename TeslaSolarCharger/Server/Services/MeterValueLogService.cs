@@ -15,9 +15,9 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     IMeterValueBufferService meterValueBufferService,
     IMeterValueEstimationService meterValueEstimationService) : IMeterValueLogService
 {
-    public void AdPvValuesToBuffer()
+    public void AddPvValuesToBuffer()
     {
-        logger.LogTrace("{method}()", nameof(AdPvValuesToBuffer));
+        logger.LogTrace("{method}()", nameof(AddPvValuesToBuffer));
         if (!configurationWrapper.IsLogMeterValuesEnabled())
         {
             return;
