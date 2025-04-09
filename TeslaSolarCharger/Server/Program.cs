@@ -248,7 +248,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var meterValueEstimationService = webApplication.Services.GetRequiredService<IMeterValueEstimationService>();
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
 
-
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {
