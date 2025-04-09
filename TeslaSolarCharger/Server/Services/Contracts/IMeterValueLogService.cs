@@ -2,6 +2,6 @@
 
 public interface IMeterValueLogService
 {
-    void AdPvValuesToBuffer();
+    void AddPvValuesToBuffer();
     Task SaveBufferdMeterValuesToDatabase();
 }
