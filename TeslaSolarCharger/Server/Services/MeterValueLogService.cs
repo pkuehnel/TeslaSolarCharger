@@ -11,11 +11,13 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     ITeslaSolarChargerContext context,
     IIndexService indexService,
     IConfigurationWrapper configurationWrapper,
-    IDateTimeProvider dateTimeProvider) : IMeterValueLogService
+    IDateTimeProvider dateTimeProvider,
+    IMeterValueBufferService meterValueBufferService,
+    IMeterValueEstimationService meterValueEstimationService) : IMeterValueLogService
 {
-    public async Task LogPvValues()
+    public void AdPvValuesToBuffer()
     {
-        logger.LogTrace("{method}()", nameof(LogPvValues));
+        logger.LogTrace("{method}()", nameof(AdPvValuesToBuffer));
         if (!configurationWrapper.IsLogMeterValuesEnabled())
         {
             return;
@@ -39,7 +41,14 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             logger.LogInformation("Unknown inverter power, do not log pv meter values");
             return;
         }
-        await LogValue(pvValues.LastUpdated.Value, MeterValueKind.SolarGeneration, pvValues.InverterPower, null).ConfigureAwait(false);
+        var solarMeterValue = new MeterValue
+        {
+            Timestamp = pvValues.LastUpdated.Value,
+            MeterValueKind = MeterValueKind.SolarGeneration,
+            MeasuredPower = pvValues.InverterPower,
+            MeasuredEnergyWs = null,
+        };
+        meterValueBufferService.Add(solarMeterValue);
         var homeBatteryPower = pvValues.HomeBatteryPower ?? 0;
         var chargingPower = pvValues.CarCombinedChargingPowerAtHome ?? 0;
         var homePower = pvValues.InverterPower - pvValues.GridPower - homeBatteryPower - chargingPower;
@@ -48,21 +57,32 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             logger.LogInformation("Unknown home power, do not log pv meter values");
             return;
         }
-        await LogValue(pvValues.LastUpdated.Value, MeterValueKind.HouseConsumption, homePower, null).ConfigureAwait(false);
+        var houseMeterValue = new MeterValue
+        {
+            Timestamp = pvValues.LastUpdated.Value,
+            MeterValueKind = MeterValueKind.HouseConsumption,
+            MeasuredPower = homePower,
+            MeasuredEnergyWs = null,
+        };
+        meterValueBufferService.Add(houseMeterValue);
     }
 
-    private async Task LogValue(DateTimeOffset timestamp, MeterValueKind meterValueKind, int? measuredPower, int? measuredEnergy)
+    public async Task SaveBufferdMeterValuesToDatabase()
     {
-        logger.LogTrace("{method}({timestamp}, {meterValueKind}, {measuredPower}, {measuredEnergy})",
-            nameof(LogValue), timestamp, meterValueKind, measuredPower, measuredEnergy);
-        var meterDatum = new MeterValue
+        logger.LogTrace("{method}()", nameof(SaveBufferdMeterValuesToDatabase));
+        var meterValues = meterValueBufferService.DrainAll();
+        var meterValueGroups = meterValues.GroupBy(m => m.MeterValueKind);
+        foreach (var meterValueGroup in meterValueGroups)
         {
-            Timestamp = timestamp,
-            MeterValueKind = meterValueKind,
-            MeasuredPower = measuredPower,
-            MeasuredEnergyWs = measuredEnergy,
-        };
-        context.MeterValues.Add(meterDatum);
-        await context.SaveChangesAsync();
+            var elements = meterValueGroup.OrderBy(m => m.Timestamp).ToList();
+            MeterValue? latestKnownElement = null;
+            foreach (var element in elements)
+            {
+                latestKnownElement = await meterValueEstimationService.UpdateMeterValueEstimation(element, latestKnownElement).ConfigureAwait(false);
+                context.MeterValues.Add(element);
+            }
+
+        }
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 }

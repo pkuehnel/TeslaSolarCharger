@@ -55,7 +55,7 @@ public class JobManager(
         var fleetTelemetryReconnectionJob = JobBuilder.Create<FleetTelemetryReconnectionJob>().WithIdentity(nameof(FleetTelemetryReconnectionJob)).Build();
         var fleetTelemetryReconfigurationJob = JobBuilder.Create<FleetTelemetryReconfigurationJob>().WithIdentity(nameof(FleetTelemetryReconfigurationJob)).Build();
         var weatherDataRefreshJob = JobBuilder.Create<WeatherDataRefreshJob>().WithIdentity(nameof(WeatherDataRefreshJob)).Build();
-        var meterValueEstimationJob = JobBuilder.Create<MeterValueEstimationJob>().WithIdentity(nameof(MeterValueEstimationJob)).Build();
+        var meterValueEstimationJob = JobBuilder.Create<MeterValueDatabaseSaveJob>().WithIdentity(nameof(MeterValueDatabaseSaveJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);

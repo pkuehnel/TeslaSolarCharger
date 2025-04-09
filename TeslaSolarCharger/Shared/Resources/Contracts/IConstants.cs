@@ -47,5 +47,5 @@ public interface IConstants
     int FleetTelemetryReconfigurationBufferHours { get; }
     string HomeDetectionViaConvertedKey { get; }
     int WeatherDateRefreshIntervall { get; }
-    string LatestEstimatedMeterValueIdKey { get; }
+    string MeterValueEstimatesCreated { get; }
 }
