@@ -93,7 +93,8 @@ public class ChargingService(
         var carsToSetToMaxCurrent = settings.CarsToManage
             .Where(c => c.State == CarStateEnum.Online
                         && c.IsHomeGeofence == true
-                        && c.PluggedIn == true)
+                        && c.PluggedIn == true
+                        && c.ChargerRequestedCurrent != c.MaximumAmpere)
             .ToList();
 
         foreach (var car in carsToSetToMaxCurrent)
