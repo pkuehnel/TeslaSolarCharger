@@ -89,6 +89,17 @@ public class ChargingService(
             var irrelevantCarsJson = JsonConvert.SerializeObject(irrelevantCars, jsonSerializerSettings);
             logger.LogDebug("Irrelevant cars: {irrelevantCarsJson}", irrelevantCarsJson);
         }
+
+        var carsToSetToMaxCurrent = settings.CarsToManage
+            .Where(c => c.State == CarStateEnum.Online
+                        && c.IsHomeGeofence == true
+                        && c.PluggedIn == true)
+            .ToList();
+
+        foreach (var car in carsToSetToMaxCurrent)
+        {
+            await teslaService.SetAmp(car.Id, car.MaximumAmpere).ConfigureAwait(false);
+        }
         
 
         if (relevantCarIds.Count < 1)
