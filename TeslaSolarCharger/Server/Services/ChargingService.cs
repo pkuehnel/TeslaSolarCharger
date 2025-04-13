@@ -99,6 +99,7 @@ public class ChargingService(
 
         foreach (var car in carsToSetToMaxCurrent)
         {
+            logger.LogDebug("Set current of car {carId} to max as is not charging", car.Id);
             await teslaService.SetAmp(car.Id, car.MaximumAmpere).ConfigureAwait(false);
         }
         
