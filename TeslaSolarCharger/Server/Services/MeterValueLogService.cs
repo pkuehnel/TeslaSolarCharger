@@ -63,9 +63,9 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         meterValueBufferService.Add(houseMeterValue);
     }
 
-    public async Task SaveBufferdMeterValuesToDatabase()
+    public async Task SaveBufferedMeterValuesToDatabase()
     {
-        logger.LogTrace("{method}()", nameof(SaveBufferdMeterValuesToDatabase));
+        logger.LogTrace("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
         var meterValues = meterValueBufferService.DrainAll();
         var meterValueGroups = meterValues.GroupBy(m => m.MeterValueKind);
         foreach (var meterValueGroup in meterValueGroups)
