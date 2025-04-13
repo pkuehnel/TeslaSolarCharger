@@ -2,7 +2,6 @@
 using System.Globalization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -18,7 +17,7 @@ public class WeatherDataService(ILogger<WeatherDataService> logger,
     public async Task RefreshWeatherData()
     {
         logger.LogTrace("{method}()", nameof(RefreshWeatherData));
-        if (!configurationWrapper.IsLogMeterValuesEnabled() || !configurationWrapper.IsPredictSolarPowerGenerationEnabled())
+        if (!configurationWrapper.IsPredictSolarPowerGenerationEnabled())
         {
             return;
         }

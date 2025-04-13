@@ -164,12 +164,6 @@ public class ConfigurationWrapper(
         return value;
     }
 
-    public bool IsLogMeterValuesEnabled()
-    {
-        var value = GetBaseConfiguration().LogMeterValues;
-        return value;
-    }
-
     public bool ShowEnergyDataOnHome()
     {
         var value = GetBaseConfiguration().ShowEnergyDataOnHome;

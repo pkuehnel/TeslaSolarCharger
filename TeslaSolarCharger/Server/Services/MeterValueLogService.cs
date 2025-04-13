@@ -18,10 +18,6 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     public void AddPvValuesToBuffer()
     {
         logger.LogTrace("{method}()", nameof(AddPvValuesToBuffer));
-        if (!configurationWrapper.IsLogMeterValuesEnabled())
-        {
-            return;
-        }
         var pvValues = indexService.GetPvValues();
         if(pvValues.LastUpdated == default)
         {
