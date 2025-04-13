@@ -113,15 +113,9 @@ else
                 <InputNumber id="HomeGeofenceRadius" @bind-Value="_dtoBaseConfiguration.HomeGeofenceRadius" class="form-control" placeholder=" " />
             </InputFragment>
         </InputComponent>
-
-        <GenericInput T="bool"
-        For="() => _dtoBaseConfiguration.LogMeterValues"
-                      OnValueChanged="LogMeterValuesUpdated"></GenericInput>
-        @if (_dtoBaseConfiguration.LogMeterValues)
-        {
-            <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
-            <GenericInput For="() => _dtoBaseConfiguration.ShowEnergyDataOnHome"></GenericInput>
-        }
+        
+        <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
+        <GenericInput For="() => _dtoBaseConfiguration.ShowEnergyDataOnHome"></GenericInput>
 
         <InputComponent ValueId="powerBuffer"
         LabelText="Power Buffer"
@@ -292,16 +286,6 @@ else
         }
 
         Snackbar.Add(result.Value, Severity.Success);
-    }
-
-    private async Task LogMeterValuesUpdated(bool enabled)
-    {
-        if ((!enabled) && (_dtoBaseConfiguration != default))
-        {
-            _dtoBaseConfiguration.ShowEnergyDataOnHome = false;
-            _dtoBaseConfiguration.PredictSolarPowerGeneration = false;
-        }
-        await InvokeAsync(StateHasChanged);
     }
 
 }

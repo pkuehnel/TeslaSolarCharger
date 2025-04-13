@@ -111,5 +111,4 @@ public interface IConfigurationWrapper
     int BackendPasswordDefaultLength();
     bool IsPredictSolarPowerGenerationEnabled();
     bool ShowEnergyDataOnHome();
-    bool IsLogMeterValuesEnabled();
 }
