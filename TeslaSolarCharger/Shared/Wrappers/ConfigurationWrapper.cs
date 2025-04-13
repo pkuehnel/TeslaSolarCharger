@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System.Configuration;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -159,9 +158,15 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
-    public bool ShouldGetWeatherForecast()
+    public bool IsPredictSolarPowerGenerationEnabled()
     {
         var value = GetBaseConfiguration().PredictSolarPowerGeneration;
+        return value;
+    }
+
+    public bool ShowEnergyDataOnHome()
+    {
+        var value = GetBaseConfiguration().ShowEnergyDataOnHome;
         return value;
     }
 

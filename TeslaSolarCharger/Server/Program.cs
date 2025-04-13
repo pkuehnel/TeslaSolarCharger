@@ -15,6 +15,7 @@ using TeslaSolarCharger.Server.Middlewares;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.ServerValidators;
+using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Shared;
@@ -231,7 +232,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
         var homeGeofenceName = configurationWrapper.GeoFence();
-
         if (teslaMateContext != default && !string.IsNullOrEmpty(homeGeofenceName) && baseConfiguration is { HomeGeofenceLatitude: 52.5185238, HomeGeofenceLongitude: 13.3761736 })
         {
             logger.LogInformation("Convert home geofence from TeslaMate.");
@@ -244,6 +244,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             }
         }
         await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
+
+        var meterValueEstimationService = webApplication.Services.GetRequiredService<IMeterValueEstimationService>();
+        await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
+
         var jobManager = webApplication.Services.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {

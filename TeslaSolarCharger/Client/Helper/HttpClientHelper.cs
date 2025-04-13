@@ -1,78 +1,74 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MudBlazor;
 using Newtonsoft.Json;
-using System.Net.Http.Json;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
-using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Client.Helper;
 
 public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialogHelper dialogHelper) : IHttpClientHelper
 {
-    public async Task<T?> SendGetRequestWithSnackbarAsync<T>(string url)
+    public async Task<T?> SendGetRequestWithSnackbarAsync<T>(string url, CancellationToken cancellationToken)
     {
-        return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Get, url, null);
+        return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Get, url, null, cancellationToken);
     }
 
-    public async Task SendGetRequestWithSnackbarAsync(string url)
+    public async Task SendGetRequestWithSnackbarAsync(string url, CancellationToken cancellationToken)
     {
-        await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Get, url, null);
+        await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Get, url, null, cancellationToken);
     }
 
-    public async Task<T?> SendPostRequestWithSnackbarAsync<T>(string url, object? content)
+    public async Task<T?> SendPostRequestWithSnackbarAsync<T>(string url, object? content, CancellationToken cancellationToken)
     {
-        return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Post, url, content);
+        return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Post, url, content, cancellationToken);
     }
 
-    public async Task SendPostRequestWithSnackbarAsync(string url, object? content)
+    public async Task SendPostRequestWithSnackbarAsync(string url, object? content, CancellationToken cancellationToken)
     {
-        await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Post, url, content);
+        await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Post, url, content, cancellationToken);
     }
 
-    public async Task<Result<T>> SendGetRequestAsync<T>(string url)
+    public async Task<Result<T>> SendGetRequestAsync<T>(string url, CancellationToken cancellationToken)
     {
-        return await SendRequestCoreAsync<T>(HttpMethod.Get, url, null);
+        return await SendRequestCoreAsync<T>(HttpMethod.Get, url, null, cancellationToken);
     }
 
-    public async Task<Result<object>> SendGetRequestAsync(string url)
+    public async Task<Result<object>> SendGetRequestAsync(string url, CancellationToken cancellationToken)
     {
-        return await SendRequestCoreAsync<object>(HttpMethod.Get, url, null);
+        return await SendRequestCoreAsync<object>(HttpMethod.Get, url, null, cancellationToken);
     }
 
-    public async Task<Result<T>> SendPostRequestAsync<T>(string url, object? content)
+    public async Task<Result<T>> SendPostRequestAsync<T>(string url, object? content, CancellationToken cancellationToken)
     {
-        return await SendRequestCoreAsync<T>(HttpMethod.Post, url, content);
+        return await SendRequestCoreAsync<T>(HttpMethod.Post, url, content, cancellationToken);
     }
 
-    public async Task<Result<object>> SendPostRequestAsync(string url, object? content)
+    public async Task<Result<object>> SendPostRequestAsync(string url, object? content, CancellationToken cancellationToken)
     {
-        return await SendRequestCoreAsync<object>(HttpMethod.Post, url, content);
+        return await SendRequestCoreAsync<object>(HttpMethod.Post, url, content, cancellationToken);
     }
 
-    private async Task<T?> SendRequestWithSnackbarInternalAsync<T>(
-        HttpMethod method,
+    private async Task<T?> SendRequestWithSnackbarInternalAsync<T>(HttpMethod method,
         string url,
-        object? content)
+        object? content, CancellationToken cancellationToken)
     {
         try
         {
-            // Call the same core method
-            var result = await SendRequestCoreAsync<T>(method, url, content);
-
+            var result = await SendRequestCoreAsync<T>(method, url, content, cancellationToken);
             if (result.HasError)
             {
-                // Show error in Snackbar
                 snackbar.Add(result.ErrorMessage ?? "EmptyErrorMessage", Severity.Error);
                 return default;
             }
 
-            // Return the deserialized data
             return result.Data;
+        }
+        catch (TaskCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            // If you need special catch logic that includes a Snackbar, do it here.
             var message = $"{url}: Unexpected error: {ex.Message}";
             snackbar.Add(message, Severity.Error, config =>
             {
@@ -80,10 +76,8 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
                 config.ActionColor = Color.Primary;
                 config.OnClick = snackbar1 => dialogHelper.ShowTextDialog(
                     "Error Details",
-                    $"Unexpected error while calling {url}: {ex.Message}{Environment.NewLine}{ex.StackTrace}"
-                );
+                    $"Unexpected error while calling {url}: {ex.Message}{Environment.NewLine}{ex.StackTrace}");
             });
-
             return default;
         }
     }
@@ -91,7 +85,8 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
     private async Task<Result<T>> SendRequestCoreAsync<T>(
         HttpMethod method,
         string url,
-        object? content)
+        object? content,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -99,7 +94,7 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
 
             if (method == HttpMethod.Get)
             {
-                response = await httpClient.GetAsync(url);
+                response = await httpClient.GetAsync(url, cancellationToken);
             }
             else if (method == HttpMethod.Post)
             {
@@ -107,66 +102,52 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
                     JsonConvert.SerializeObject(content),
                     System.Text.Encoding.UTF8,
                     "application/json");
-                response = await httpClient.PostAsync(url, jsonContent);
+                response = await httpClient.PostAsync(url, jsonContent, cancellationToken);
             }
             else
             {
-                return new Result<T>(
-                    default,
-                    $"Unsupported HTTP method: {method}",
-                    null
-                );
+                return new Result<T>(default, $"Unsupported HTTP method: {method}", null);
             }
 
             if (response.IsSuccessStatusCode)
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
-
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 if (typeof(T) != typeof(object))
                 {
                     var deserializedObject = JsonConvert.DeserializeObject<T>(responseContent);
-
                     if (deserializedObject == null)
                     {
-                        return new Result<T>(
-                            default,
-                            $"{url}: Could not deserialize response to {typeof(T).Name}.",
-                            null
-                        );
+                        return new Result<T>(default,
+                            $"{url}: Could not deserialize response to {typeof(T).Name}.", null);
                     }
-
                     return new Result<T>(deserializedObject, null, null);
                 }
                 else
                 {
-                    // If T=object, we don't do any deserialization
-                    return new Result<T>(
-                        default,
-                        null,
-                        null
-                    );
+                    return new Result<T>(default, null, null);
                 }
             }
             else
             {
-                var resultString = await response.Content.ReadAsStringAsync();
+                var resultString = await response.Content.ReadAsStringAsync(cancellationToken);
                 var problemDetails = JsonConvert.DeserializeObject<ValidationProblemDetails>(resultString);
                 var message = problemDetails != null
                     ? $"Error: {problemDetails.Detail}"
                     : "An error occurred on the server.";
-
                 return new Result<T>(default, message, problemDetails);
             }
         }
+        catch(TaskCanceledException)
+        {
+            throw;
+        }
         catch (HttpRequestException ex)
         {
-            // Network-level error
             var message = $"{url}: Network error: {ex.Message}";
             return new Result<T>(default, message, null);
         }
         catch (Exception ex)
         {
-            // Any other unexpected error
             var message = $"{url}: Unexpected error: {ex.Message}";
             return new Result<T>(default, message, null);
         }

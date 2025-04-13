@@ -131,18 +131,19 @@ public class CurrentValuesService : ICurrentValuesService
     {
         _logger.LogTrace("{method}()", nameof(GetLatestValue));
         string? jsonString;
+        var numberOfRelevantCars = await GetNumberOfRelevantCars().ConfigureAwait(false);
         try
         {
-            jsonString = await GetCloudApiString().ConfigureAwait(false);
+            jsonString = await GetCloudApiString(numberOfRelevantCars).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not get json string from solarEdge.");
-            return await FakeLastValue().ConfigureAwait(false);
+            return await FakeLastValue(numberOfRelevantCars).ConfigureAwait(false);
         }
         if (string.IsNullOrEmpty(jsonString))
         {
-            return await FakeLastValue().ConfigureAwait(false);
+            return await FakeLastValue(numberOfRelevantCars).ConfigureAwait(false);
         }
         var cloudApiValue = GetCloudApiValueFromString(jsonString);
         AddCloudApiValueToSharedValues(cloudApiValue);
@@ -151,10 +152,14 @@ public class CurrentValuesService : ICurrentValuesService
         return latestValue;
     }
 
-    private async Task<CloudApiValue> FakeLastValue()
+    private async Task<CloudApiValue> FakeLastValue(int numberOfRelevantCars)
     {
         _logger.LogTrace("{method}()", nameof(FakeLastValue));
         var fakedValue = _sharedValues.CloudApiValues.Last().Value;
+        if (numberOfRelevantCars < 1)
+        {
+            return fakedValue;
+        }
         fakedValue.SiteCurrentPowerFlow.Grid.CurrentPower = 0;
         if (fakedValue.SiteCurrentPowerFlow.Storage != null)
         {
@@ -201,12 +206,11 @@ public class CurrentValuesService : ICurrentValuesService
         _sharedValues.CloudApiValues.Add(currentDateTime, cloudApiValue);
     }
 
-    private async Task<string?> GetCloudApiString()
+    private async Task<string?> GetCloudApiString(int numberOfRelevantCars)
     {
         _logger.LogTrace("{method}()", nameof(GetCloudApiString));
         
         var solarEdgeTooManyRequestsResetTime = GetSolarEdgeRequestResetTimeSpan();
-        var numberOfRelevantCars = await GetNumberOfRelevantCars().ConfigureAwait(false);
         //Never call SolarEdge API if there was a TooManyRequests Status within the last request Reset time. This could result in errors after restarts
         if (_sharedValues.LastTooManyRequests > (_dateTimeProvider.UtcNow() - solarEdgeTooManyRequestsResetTime))
         {
@@ -215,7 +219,8 @@ public class CurrentValuesService : ICurrentValuesService
         }
         //If there are already values there and there is no relevant car, call API everytime reset minutes are over.
         if ((_sharedValues.CloudApiValues.Count > 0)
-            && numberOfRelevantCars < 1
+            && (numberOfRelevantCars < 1)
+            && (_sharedValues.CloudApiValues.Count > 0)
             && (_sharedValues.CloudApiValues.MaxBy(v => v.Key).Key > (DateTime.UtcNow - solarEdgeTooManyRequestsResetTime)))
         {
             _logger.LogDebug("Prevent calling SolarEdge API as relevantCarCount is {relevantCarCount}", numberOfRelevantCars);
