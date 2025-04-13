@@ -9,6 +9,6 @@ public class MeterValueDatabaseSaveJob(ILogger<MeterValueDatabaseSaveJob> logger
     public async Task Execute(IJobExecutionContext context)
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
-        await service.SaveBufferdMeterValuesToDatabase().ConfigureAwait(false);
+        await service.SaveBufferedMeterValuesToDatabase().ConfigureAwait(false);
     }
 }
