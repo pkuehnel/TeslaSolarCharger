@@ -57,7 +57,7 @@ public class WeatherDataService(ILogger<WeatherDataService> logger,
         {
             throw new InvalidOperationException("Can not radiation data without backend token");
         }
-        var weatherDataFromBackend = await backendApiService.SendRequestToBackend<List<DtoWeatherDatum>>(HttpMethod.Get, token.AccessToken, $"WeatherData/GetWeatherData?from={currentDate.ToUnixTimeSeconds()}&to={currentDate.AddHours(24).ToUnixTimeSeconds()}&latitude={homeGeofenceLatitude.ToString(CultureInfo.InvariantCulture)}&longitude={homeGeofenceLongitude.ToString(CultureInfo.InvariantCulture)}", null);
+        var weatherDataFromBackend = await backendApiService.SendRequestToBackend<List<DtoWeatherDatum>>(HttpMethod.Get, token.AccessToken, $"WeatherData/GetWeatherData?from={currentDate.ToUnixTimeSeconds()}&to={currentDate.AddDays(7).ToUnixTimeSeconds()}&latitude={homeGeofenceLatitude.ToString(CultureInfo.InvariantCulture)}&longitude={homeGeofenceLongitude.ToString(CultureInfo.InvariantCulture)}", null);
         if (weatherDataFromBackend.HasError)
         {
             logger.LogError("Failed to get weather data from backend: {error}", weatherDataFromBackend.ErrorMessage);

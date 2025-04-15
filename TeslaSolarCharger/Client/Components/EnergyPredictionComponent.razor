@@ -177,7 +177,7 @@
     private List<DtoChartValue<int, decimal>>? SolarActualData { get; set; }
     private List<DtoChartValue<int, decimal>>? HouseActualData { get; set; }
     private DateTime? SelectedDate { get; set; }
-    private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(1);
+    private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(7);
     private ApexChartOptions<DtoChartValue<int, decimal>>? _options;
     private bool _isSolarPredictionEnabled;
     private ApexChart<DtoChartValue<int, decimal>>? _chart;
