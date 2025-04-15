@@ -50,7 +50,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                 return cachedResult;
             }
         }
-        
+
         var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
         var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
 
@@ -199,10 +199,36 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     private string GetCacheKey(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, int? hour = null)
     {
         var key = $"{meterValueKind}_{predictedValue}_{date:yyyyMMdd}";
-        if(hour != null)
+        if (hour != null)
         {
             key += $"_{hour}";
         }
+        return key;
+    }
+
+    private MeterValue? GetCachedMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp)
+    {
+        var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp);
+        if (memoryCache.TryGetValue(key, out MeterValue? value))
+        {
+            logger.LogTrace("Cached value found for key {key}", key);
+            return value;
+        }
+        logger.LogTrace("No cached value found for key {key}", key);
+        return default;
+    }
+
+    private void CacheMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, MeterValue value)
+    {
+        logger.LogTrace("{method}({meterValueKind}, {hourlyTimeStamp}, {value})",
+            nameof(CacheMeterValue), meterValueKind, hourlyTimeStamp, value);
+        var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp);
+        SetCacheValue(false, value, key);
+    }
+
+    private string GetMeterValueCacheKey(MeterValueKind meterValueKind, DateTimeOffset dateTimeOffset)
+    {
+        var key = $"{meterValueKind}_{dateTimeOffset}";
         return key;
     }
 
@@ -259,16 +285,24 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             }
         }
         var hoursToGetMeterValues = hourlyTimeStamps.Union(missingHours).ToList();
-
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         var queryTasks = hoursToGetMeterValues.Select(async dateTimeOffset =>
         {
             using var scope = serviceProvider.CreateScope();
             var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
             var minimumAge = dateTimeOffset.AddHours(-1);
-            var meterValue = await scopedContext.MeterValues
-                .Where(m => m.MeterValueKind == meterValueKind && m.Timestamp <= dateTimeOffset && m.Timestamp > minimumAge)
-                .OrderByDescending(m => m.Id)
-                .FirstOrDefaultAsync(cancellationToken);
+            var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset);
+            if (meterValue == default && currentDate > dateTimeOffset)
+            {
+                meterValue = await scopedContext.MeterValues
+                    .Where(m => m.MeterValueKind == meterValueKind && m.Timestamp <= dateTimeOffset && m.Timestamp > minimumAge)
+                    .OrderByDescending(m => m.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (meterValue != default)
+                {
+                    CacheMeterValue(meterValueKind, dateTimeOffset, meterValue);
+                }
+            }
             return new { Timestamp = dateTimeOffset, MeterValue = meterValue };
         });
 
