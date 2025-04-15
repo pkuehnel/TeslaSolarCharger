@@ -1,7 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using System.Reactive;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
@@ -135,7 +133,9 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date}, {values})",
             nameof(CacheValues), meterValueKind, predictedValue, date, values);
         var key = GetCacheKey(meterValueKind, predictedValue, date);
-        SetCacheValue(predictedValue, values, key);
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        var currentlocalDate = DateOnly.FromDateTime(currentDate.LocalDateTime);
+        SetCacheValue(currentlocalDate >= date, values, key);
     }
 
     private int? GetCachedValue(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, int hour)
@@ -155,13 +155,15 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date}, {hour}, {value})",
             nameof(CacheValue), meterValueKind, predictedValue, date, hour, value);
         var key = GetCacheKey(meterValueKind, predictedValue, date, hour);
-        SetCacheValue(predictedValue, value, key);
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        var currentlocalDate = DateOnly.FromDateTime(currentDate.LocalDateTime);
+        SetCacheValue(currentlocalDate >= date, value, key);
     }
 
-    private void SetCacheValue(bool predictedValue, object value, string key)
+    private void SetCacheValue(bool shouldExpire, object value, string key)
     {
         var options = new MemoryCacheEntryOptions();
-        if (predictedValue)
+        if (shouldExpire)
         {
             options.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(constants.WeatherDateRefreshIntervallHours + 1);
         }
