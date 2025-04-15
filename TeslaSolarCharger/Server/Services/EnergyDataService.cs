@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Diagnostics;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
@@ -23,6 +24,8 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var cacheInPastDays = 10;
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         var localDateOnly = DateOnly.FromDateTime(currentDate.LocalDateTime);
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
         for (var i = -cacheInPastDays; i <= constants.WeatherPredictionInFutureDays; i++)
         {
             var useCache = i < (-1);
@@ -32,6 +35,8 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             await GetActualSolarProductionByLocalHour(date, contextCancellationToken, useCache).ConfigureAwait(false);
             await GetActualHouseConsumptionByLocalHour(date, contextCancellationToken, useCache).ConfigureAwait(false);
         }
+        stopWatch.Stop();
+        logger.LogInformation("Cache refresh took {elapsed}", stopWatch.Elapsed);
     }
 
     public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date, CancellationToken cancellationToken, bool useCache)
