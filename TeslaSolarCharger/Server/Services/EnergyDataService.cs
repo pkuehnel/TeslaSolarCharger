@@ -18,17 +18,13 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider) : IEnergyDataService
 {
-    private readonly string _solarPredictionCachePrefix = "SolarPrediction_";
-    private readonly string _housePredictionCachePrefix = "HousePrediction_";
-    private readonly string _solarActualCachePrefix = "SolarActual_";
-    private readonly string _houseActualCachePrefix = "HouseActual_";
 
     public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date, CancellationToken cancellationToken, bool useCache)
     {
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetPredictedSolarProductionByLocalHour), date, useCache);
         if (useCache)
         {
-            var cachedResult = GetSolarPredictionFromCache(date);
+            var cachedResult = GetCachedValues(MeterValueKind.SolarGeneration, true, date);
             if (cachedResult != default)
             {
                 return cachedResult;
@@ -45,8 +41,9 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var forecastSolarRadiations = await GetForecastSolarRadiationsAsync(utcPredictionStart, utcPredictionEnd, cancellationToken);
 
         var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors);
-        CacheSolarPrediction(date, predictedProduction);
-        return predictedProduction.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
+        var result = predictedProduction.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
+        CacheValues(MeterValueKind.SolarGeneration, true, date, result);
+        return result;
     }
 
     public async Task<Dictionary<int, int>> GetPredictedHouseConsumptionByLocalHour(DateOnly date,
@@ -55,7 +52,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetPredictedHouseConsumptionByLocalHour), date, useCache);
         if (useCache)
         {
-            var cachedResult = GetHousePredictionFromCache(date);
+            var cachedResult = GetCachedValues(MeterValueKind.HouseConsumption, true, date);
             if (cachedResult != default)
             {
                 return cachedResult;
@@ -66,34 +63,25 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
         var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption, httpContextRequestAborted);
         var result = ComputeWeightedMeterValueChanges(hourlyTimeStamps, createdWh, historicPredictionsSearchStart);
-        CacheHousePrediction(date, result);
+        CacheValues(MeterValueKind.HouseConsumption, true, date, result);
         return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
     public async Task<Dictionary<int, int>> GetActualSolarProductionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted, bool useCache)
     {
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetActualSolarProductionByLocalHour), date, useCache);
-        var (utcPredictionStart, utcPredictionEnd, _) = ComputePredictionTimes(date);
-        var hourlyTimeStamps = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
-        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration, httpContextRequestAborted);
-        var result = CreateHourlyDictionary(createdWh);
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        //Only cache values if they are already saved in the database for sure
-        var savedMeterValuesHour = currentDate.LocalDateTime.AddMinutes((-constants.MeterValueDatabaseSaveIntervallMinutes)*2).Hour;
-        foreach (var i in result)
-        {
-            if(i.Key > savedMeterValuesHour)
-            {
-                continue;
-            }
-            CacheHistoricSolarValue(date, i.Key, i.Value);
-        }
-        return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
+        return await GetActualValuesByLocalHour(MeterValueKind.SolarGeneration, date, httpContextRequestAborted, useCache);
     }
 
     public async Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted, bool useCache)
     {
         logger.LogTrace("{method}({date})", nameof(GetActualHouseConsumptionByLocalHour), date);
+        return await GetActualValuesByLocalHour(MeterValueKind.HouseConsumption, date, httpContextRequestAborted, useCache);
+    }
+
+    private async Task<Dictionary<int, int>> GetActualValuesByLocalHour(MeterValueKind meterValueKind, DateOnly date,
+        CancellationToken httpContextRequestAborted, bool useCache)
+    {
         var (utcPredictionStart, utcPredictionEnd, _) = ComputePredictionTimes(date);
         var resultHours = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
         var hoursToGetEnergyMeterDifferencesFrom = resultHours.ToList();
@@ -103,7 +91,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             foreach (var hourlyTimeStamp in resultHours)
             {
                 var hour = hourlyTimeStamp.ToLocalTime().Hour;
-                var value = GetHouseHistoricValueFromCache(date, hour);
+                var value = GetCachedValue(meterValueKind, false, date, hour);
                 if (value != default)
                 {
                     dateTimeOffsetDictionary[hourlyTimeStamp] = value.Value;
@@ -111,7 +99,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                 }
             }
         }
-        var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(hoursToGetEnergyMeterDifferencesFrom, MeterValueKind.HouseConsumption, httpContextRequestAborted);
+        var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(hoursToGetEnergyMeterDifferencesFrom, meterValueKind, httpContextRequestAborted);
         foreach (var databaseValue in dateTimeOffsetDictionaryFromDatabase)
         {
             dateTimeOffsetDictionary[databaseValue.Key] = databaseValue.Value;
@@ -122,77 +110,37 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         {
             if (maxCacheDate >= dateTimeOffsetValue.Key)
             {
-                CacheHistoricHouseValue(dateTimeOffsetValue.Key, dateTimeOffsetValue.Value);
+                CacheValue(meterValueKind, false, date, dateTimeOffsetValue.Key.LocalDateTime.Hour, dateTimeOffsetValue.Value);
             }
         }
         var result = CreateHourlyDictionary(dateTimeOffsetDictionary);
         return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
-    private Dictionary<int, int>? GetSolarPredictionFromCache(DateOnly date)
+    private Dictionary<int, int>? GetCachedValues(MeterValueKind meterValueKind, bool predictedValue, DateOnly date)
     {
-        logger.LogTrace("{method}({date})", nameof(GetSolarPredictionFromCache), date);
-        var key = GetCacheKey(_solarPredictionCachePrefix, date);
-        return GetCachedPrediction(key);
-    }
-
-    private Dictionary<int, int>? GetHousePredictionFromCache(DateOnly date)
-    {
-        logger.LogTrace("{method}({date})", nameof(GetHousePredictionFromCache), date);
-        var key = GetCacheKey(_housePredictionCachePrefix, date);
-        return GetCachedPrediction(key);
-    }
-
-    private Dictionary<int, int>? GetCachedPrediction(string key)
-    {
-        if (memoryCache.TryGetValue(key, out Dictionary<int, int>? values))
+        logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date})", nameof(GetCachedValues), meterValueKind, predictedValue, date);
+        var key = GetCacheKey(meterValueKind, predictedValue, date);
+        if (memoryCache.TryGetValue(key, out Dictionary<int, int>? value))
         {
-            logger.LogTrace("Cached values found for key {key}", key);
-            return values;
+            logger.LogTrace("Cached value found for key {key}", key);
+            return value;
         }
-        logger.LogTrace("No cached values found for key {key}", key);
+        logger.LogTrace("No cached value found for key {key}", key);
         return default;
     }
 
-    private void CacheSolarPrediction(DateOnly date, Dictionary<int, int> values)
+    private void CacheValues(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, Dictionary<int, int> values)
     {
-        logger.LogTrace("{method}({date}, {values})", nameof(CacheSolarPrediction), date, values);
-        CachePrediction(_solarPredictionCachePrefix, date, values);
+        logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date}, {values})",
+            nameof(CacheValues), meterValueKind, predictedValue, date, values);
+        var key = GetCacheKey(meterValueKind, predictedValue, date);
+        SetCacheValue(predictedValue, values, key);
     }
 
-    private void CacheHousePrediction(DateOnly date, Dictionary<int, int> values)
+    private int? GetCachedValue(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, int hour)
     {
-        logger.LogTrace("{method}({date}, {values})", nameof(CacheHousePrediction), date, values);
-        CachePrediction(_housePredictionCachePrefix, date, values);
-    }
-
-    private void CachePrediction(string prefix, DateOnly date, Dictionary<int, int> values)
-    {
-        logger.LogTrace("{method}({prefix}, {date}, {values})", nameof(CachePrediction), prefix, date, values);
-        var key = GetCacheKey(prefix, date);
-        var options = new MemoryCacheEntryOptions()
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(constants.WeatherDateRefreshIntervallHours + 1),
-        };
-        memoryCache.Set(key, values, options);
-    }
-
-    private int? GetSolarHistoricValueFromCache(DateOnly date, int hour)
-    {
-        logger.LogTrace("{method}({date}, {hour})", nameof(GetSolarPredictionFromCache), date, hour);
-        var key = GetCacheKey(_solarActualCachePrefix, date, hour);
-        return GetCachedHistoricValue(key);
-    }
-
-    private int? GetHouseHistoricValueFromCache(DateOnly date, int hour)
-    {
-        logger.LogTrace("{method}({date}, {hour})", nameof(GetHousePredictionFromCache), date, hour);
-        var key = GetCacheKey(_houseActualCachePrefix, date, hour);
-        return GetCachedHistoricValue(key);
-    }
-
-    private int? GetCachedHistoricValue(string key)
-    {
+        var key = GetCacheKey(meterValueKind, predictedValue, date, hour);
         if (memoryCache.TryGetValue(key, out int? value))
         {
             logger.LogTrace("Cached value found for key {key}", key);
@@ -202,41 +150,35 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return default;
     }
 
-    private void CacheHistoricHouseValue(DateTimeOffset timestamp, int value)
+    private void CacheValue(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, int hour, int value)
     {
-        logger.LogTrace("{method}({timestamp}, {value})", nameof(CacheHistoricHouseValue), timestamp, value);
-        var localDateTime = timestamp.LocalDateTime;
-        var date = DateOnly.FromDateTime(localDateTime);
-        var hour = localDateTime.Hour;
-        CacheHistoricValue(_houseActualCachePrefix, date, hour, value);
+        logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date}, {hour}, {value})",
+            nameof(CacheValue), meterValueKind, predictedValue, date, hour, value);
+        var key = GetCacheKey(meterValueKind, predictedValue, date, hour);
+        SetCacheValue(predictedValue, value, key);
     }
 
-    private void CacheHistoricSolarValue(DateOnly date, int hour, int value)
+    private void SetCacheValue(bool predictedValue, object value, string key)
     {
-        logger.LogTrace("{method}({date}, {hour}, {value})", nameof(CacheHistoricSolarValue), date, hour, value);
-        CacheHistoricValue(_solarActualCachePrefix, date, hour, value);
-    }
-
-    private void CacheHistoricValue(string prefix, DateOnly date, int hour, int value)
-    {
-        logger.LogTrace("{method}({prefix}, {date}, {hour}, {value})", nameof(CacheHistoricValue), prefix, date, hour, value);
-        var key = GetCacheKey(prefix, date, hour);
-        var options = new MemoryCacheEntryOptions()
+        var options = new MemoryCacheEntryOptions();
+        if (predictedValue)
         {
-            SlidingExpiration = TimeSpan.FromDays(90),
-        };
+            options.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(constants.WeatherDateRefreshIntervallHours + 1);
+        }
+        else
+        {
+            options.SlidingExpiration = TimeSpan.FromDays(90);
+        }
         memoryCache.Set(key, value, options);
     }
 
-    private string GetCacheKey(string prefix, DateOnly date)
+    private string GetCacheKey(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, int? hour = null)
     {
-        var key = $"{prefix}{date:yyyyMMdd}";
-        return key;
-    }
-
-    private string GetCacheKey(string prefix, DateOnly date, int hour)
-    {
-        var key = $"{prefix}{date:yyyyMMdd}_{hour}";
+        var key = $"{meterValueKind}_{predictedValue}_{date:yyyyMMdd}";
+        if(hour != null)
+        {
+            key += $"_{hour}";
+        }
         return key;
     }
 
