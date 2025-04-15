@@ -10,4 +10,6 @@ public interface IEnergyDataService
         bool useCache);
     Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted,
         bool useCache);
+
+    Task RefreshCachedValues(CancellationToken contextCancellationToken);
 }

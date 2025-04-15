@@ -49,4 +49,5 @@ public interface IConstants
     int WeatherDateRefreshIntervallHours { get; }
     string MeterValueEstimatesCreated { get; }
     int MeterValueDatabaseSaveIntervallMinutes { get; }
+    int WeatherPredictionInFutureDays { get; }
 }
