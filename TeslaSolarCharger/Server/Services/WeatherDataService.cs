@@ -5,6 +5,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -12,7 +13,8 @@ public class WeatherDataService(ILogger<WeatherDataService> logger,
     ITeslaSolarChargerContext context,
     IConfigurationWrapper configurationWrapper,
     IBackendApiService backendApiService,
-    IDateTimeProvider dateTimeProvider) : IWeatherDataService
+    IDateTimeProvider dateTimeProvider,
+    IConstants constants) : IWeatherDataService
 {
     public async Task RefreshWeatherData()
     {
@@ -57,7 +59,7 @@ public class WeatherDataService(ILogger<WeatherDataService> logger,
         {
             throw new InvalidOperationException("Can not radiation data without backend token");
         }
-        var weatherDataFromBackend = await backendApiService.SendRequestToBackend<List<DtoWeatherDatum>>(HttpMethod.Get, token.AccessToken, $"WeatherData/GetWeatherData?from={currentDate.ToUnixTimeSeconds()}&to={currentDate.AddHours(24).ToUnixTimeSeconds()}&latitude={homeGeofenceLatitude.ToString(CultureInfo.InvariantCulture)}&longitude={homeGeofenceLongitude.ToString(CultureInfo.InvariantCulture)}", null);
+        var weatherDataFromBackend = await backendApiService.SendRequestToBackend<List<DtoWeatherDatum>>(HttpMethod.Get, token.AccessToken, $"WeatherData/GetWeatherData?from={currentDate.ToUnixTimeSeconds()}&to={currentDate.AddDays(constants.WeatherPredictionInFutureDays).ToUnixTimeSeconds()}&latitude={homeGeofenceLatitude.ToString(CultureInfo.InvariantCulture)}&longitude={homeGeofenceLongitude.ToString(CultureInfo.InvariantCulture)}", null);
         if (weatherDataFromBackend.HasError)
         {
             logger.LogError("Failed to get weather data from backend: {error}", weatherDataFromBackend.ErrorMessage);
