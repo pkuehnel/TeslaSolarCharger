@@ -43,14 +43,15 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
             {
                 if (meterValue.Timestamp < minimumTimeStamp)
                 {
+                    context.MeterValues.Remove(meterValue);
                     continue;
                 }
                 latestKnownValue = await UpdateMeterValueEstimation(meterValue, latestKnownValue).ConfigureAwait(false);
             }
 
             await context.SaveChangesAsync();
-            await tscConfigurationService.SetConfigurationValueByKey(constants.MeterValueEstimatesCreated, alreadyUpdatedValue);
         }
+        await tscConfigurationService.SetConfigurationValueByKey(constants.MeterValueEstimatesCreated, alreadyUpdatedValue);
     }
 
     /// <summary>
