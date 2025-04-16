@@ -125,7 +125,9 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             dateTimeOffsetDictionary[databaseValue.Key] = databaseValue.Value;
         }
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        var maxCacheDate = currentDate.AddMinutes((-constants.MeterValueDatabaseSaveIntervallMinutes) * 2);
+        //reduce by one hour as dateTimeOffsetDictionary key is one hour older as last relevant value withing that hour
+        //reduce by twice the save intervals to make sure values are only cached after they have been saved to the database
+        var maxCacheDate = currentDate.AddHours(-1).AddMinutes((-constants.MeterValueDatabaseSaveIntervallMinutes) * 2);
         foreach (var dateTimeOffsetValue in dateTimeOffsetDictionary)
         {
             if (maxCacheDate >= dateTimeOffsetValue.Key)
