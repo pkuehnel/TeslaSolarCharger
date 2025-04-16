@@ -26,7 +26,7 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
             .Where(v => v.EstimatedEnergyWs == null)
             .AsQueryable();
         var meterValuesToUpdateGroups = await meterValuesQuery
-            .OrderBy(v => v.Id)
+            .OrderBy(v => v.Timestamp)
             .GroupBy(m => m.MeterValueKind)
             .ToListAsync();
         foreach (var group in meterValuesToUpdateGroups)
@@ -37,8 +37,13 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
             }
 
             MeterValue? latestKnownValue = null;
+            var minimumTimeStamp = new DateTimeOffset(2025, 3, 1, 0, 0, 0, TimeSpan.Zero);
             foreach (var meterValue in group)
             {
+                if (meterValue.Timestamp < minimumTimeStamp)
+                {
+                    continue;
+                }
                 latestKnownValue = await UpdateMeterValueEstimation(meterValue, latestKnownValue).ConfigureAwait(false);
             }
 
