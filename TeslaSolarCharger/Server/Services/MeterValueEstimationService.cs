@@ -37,6 +37,7 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
             }
 
             MeterValue? latestKnownValue = null;
+            //As before that date no values were saved, they must be invalid and therefore ignored
             var minimumTimeStamp = new DateTimeOffset(2025, 3, 1, 0, 0, 0, TimeSpan.Zero);
             foreach (var meterValue in group)
             {
