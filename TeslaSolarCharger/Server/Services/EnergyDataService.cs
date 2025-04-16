@@ -124,10 +124,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         {
             dateTimeOffsetDictionary[databaseValue.Key] = databaseValue.Value;
         }
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        //reduce by one hour as dateTimeOffsetDictionary key is one hour older as last relevant value withing that hour
-        //reduce by twice the save intervals to make sure values are only cached after they have been saved to the database
-        var maxCacheDate = currentDate.AddHours(-1).AddMinutes((-constants.MeterValueDatabaseSaveIntervallMinutes) * 2);
+        var maxCacheDate = GetMaxCacheDate();
         foreach (var dateTimeOffsetValue in dateTimeOffsetDictionary)
         {
             if (maxCacheDate >= dateTimeOffsetValue.Key)
@@ -137,6 +134,15 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         }
         var result = CreateHourlyDictionary(dateTimeOffsetDictionary);
         return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
+    }
+
+    private DateTimeOffset GetMaxCacheDate()
+    {
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        //reduce by one hour as dateTimeOffsetDictionary key is one hour older as last relevant value withing that hour
+        //reduce by twice the save intervals to make sure values are only cached after they have been saved to the database
+        var maxCacheDate = currentDate.AddHours(-1).AddMinutes((-constants.MeterValueDatabaseSaveIntervallMinutes) * 2);
+        return maxCacheDate;
     }
 
     private Dictionary<int, int>? GetCachedValues(MeterValueKind meterValueKind, bool predictedValue, DateOnly date)
@@ -300,7 +306,8 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                     .Where(m => m.MeterValueKind == meterValueKind && m.Timestamp <= dateTimeOffset && m.Timestamp > minimumAge)
                     .OrderByDescending(m => m.Id)
                     .FirstOrDefaultAsync(cancellationToken);
-                if (meterValue != default)
+                //Only cache if value exists
+                if ((meterValue != default) && (meterValue.Timestamp < GetMaxCacheDate()))
                 {
                     CacheMeterValue(meterValueKind, dateTimeOffset, meterValue);
                 }
