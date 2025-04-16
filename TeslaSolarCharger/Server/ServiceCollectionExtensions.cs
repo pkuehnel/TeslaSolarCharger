@@ -127,6 +127,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
             .AddSingleton<IMeterValueBufferService, MeterValueBufferService>()
             .AddScoped<ErrorHandlingMiddleware>()
+            .AddHostedService<MeterValueFlushService>()
             .AddSharedBackendDependencies();
         return services;
     }

@@ -48,6 +48,6 @@ public interface IConstants
     string HomeDetectionViaConvertedKey { get; }
     int WeatherDateRefreshIntervallHours { get; }
     string MeterValueEstimatesCreated { get; }
-    int MeterValueDatabaseSaveIntervallMinutes { get; }
+    int MeterValueDatabaseSaveIntervalMinutes { get; }
     int WeatherPredictionInFutureDays { get; }
 }

@@ -143,7 +143,7 @@ public class JobManager(
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.WeatherDateRefreshIntervallHours)).Build();
 
         var meterValueDatabaseSaveTrigger = TriggerBuilder.Create().WithIdentity("meterValueDatabaseSaveTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.MeterValueDatabaseSaveIntervallMinutes)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.MeterValueDatabaseSaveIntervalMinutes)).Build();
 
         var random = new Random();
         var hour = random.Next(0, 5);
