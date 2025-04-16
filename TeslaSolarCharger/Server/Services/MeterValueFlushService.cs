@@ -1,5 +1,4 @@
-﻿using TeslaSolarCharger.Server.Services.Contracts;
-
+using TeslaSolarCharger.Server.Services.Contracts;
 namespace TeslaSolarCharger.Server.Services;
 
 public class MeterValueFlushService(ILogger<MeterValueFlushService> logger, IMeterValueLogService meterValueLogService) : IHostedService
