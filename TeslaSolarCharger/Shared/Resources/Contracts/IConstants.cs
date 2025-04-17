@@ -46,6 +46,8 @@ public interface IConstants
     string IsFleetApiLicensedKey { get; }
     int FleetTelemetryReconfigurationBufferHours { get; }
     string HomeDetectionViaConvertedKey { get; }
-    int WeatherDateRefreshIntervall { get; }
+    int WeatherDateRefreshIntervallHours { get; }
     string MeterValueEstimatesCreated { get; }
+    int MeterValueDatabaseSaveIntervalMinutes { get; }
+    int WeatherPredictionInFutureDays { get; }
 }

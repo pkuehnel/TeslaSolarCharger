@@ -26,7 +26,7 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
             .Where(v => v.EstimatedEnergyWs == null)
             .AsQueryable();
         var meterValuesToUpdateGroups = await meterValuesQuery
-            .OrderBy(v => v.Id)
+            .OrderBy(v => v.Timestamp)
             .GroupBy(m => m.MeterValueKind)
             .ToListAsync();
         foreach (var group in meterValuesToUpdateGroups)
@@ -37,14 +37,21 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
             }
 
             MeterValue? latestKnownValue = null;
+            //As before that date no values were saved, they must be invalid and therefore ignored
+            var minimumTimeStamp = new DateTimeOffset(2025, 3, 1, 0, 0, 0, TimeSpan.Zero);
             foreach (var meterValue in group)
             {
+                if (meterValue.Timestamp < minimumTimeStamp)
+                {
+                    context.MeterValues.Remove(meterValue);
+                    continue;
+                }
                 latestKnownValue = await UpdateMeterValueEstimation(meterValue, latestKnownValue).ConfigureAwait(false);
             }
 
             await context.SaveChangesAsync();
-            await tscConfigurationService.SetConfigurationValueByKey(constants.MeterValueEstimatesCreated, alreadyUpdatedValue);
         }
+        await tscConfigurationService.SetConfigurationValueByKey(constants.MeterValueEstimatesCreated, alreadyUpdatedValue);
     }
 
     /// <summary>

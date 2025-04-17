@@ -18,6 +18,7 @@ public class JobManager(
     IConstants constants)
 {
     private IScheduler? _scheduler;
+    private readonly string _weatherDataRefreshTriggerIdentity = "weatherDataRefreshTrigger";
 
 
     public async Task StartJobs()
@@ -137,12 +138,12 @@ public class JobManager(
             .StartAt(currentDate.AddSeconds(13))
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.FleetTelemetryReconfigurationBufferHours)).Build();
 
-        var weatherDataRefreshTrigger = TriggerBuilder.Create().WithIdentity("weatherDataRefreshTrigger")
+        var weatherDataRefreshTrigger = TriggerBuilder.Create().WithIdentity(_weatherDataRefreshTriggerIdentity)
             .StartAt(currentDate.AddSeconds(30))
-            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.WeatherDateRefreshIntervall)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.WeatherDateRefreshIntervallHours)).Build();
 
         var meterValueDatabaseSaveTrigger = TriggerBuilder.Create().WithIdentity("meterValueDatabaseSaveTrigger")
-            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(14)).Build();
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.MeterValueDatabaseSaveIntervalMinutes)).Build();
 
         var random = new Random();
         var hour = random.Next(0, 5);
@@ -189,6 +190,34 @@ public class JobManager(
         await _scheduler.ScheduleJobs(triggersAndJobs, false).ConfigureAwait(false);
 
         await _scheduler.Start().ConfigureAwait(false);
+    }
+
+    public async Task<DateTimeOffset?> GetWeatherDataRefreshNextFireTimeAsync()
+    {
+        logger.LogTrace("{method}()", nameof(GetWeatherDataRefreshNextFireTimeAsync));
+        // Create the TriggerKey using the same identity as used in JobManager
+        var triggerKey = new TriggerKey(_weatherDataRefreshTriggerIdentity);
+
+        if (_scheduler == default)
+        {
+            logger.LogError("Scheduler is not initialized.");
+            return default;
+        }
+        // Retrieve the trigger from the scheduler
+        var trigger = await _scheduler.GetTrigger(triggerKey);
+
+        if (trigger != null)
+        {
+            
+            // Return the next scheduled fire time in UTC
+            var nextFiretime = trigger.GetNextFireTimeUtc();
+            logger.LogTrace("Trigger {triggername} found, next firetime: {nextFireTime}", _weatherDataRefreshTriggerIdentity, nextFiretime);
+            return nextFiretime;
+        }
+
+        // If the trigger isn't found, you could log or handle this case as needed.
+        logger.LogError("Trigger {triggername} not found.", _weatherDataRefreshTriggerIdentity);
+        return default;
     }
 
     public async Task<bool> StopJobs()
