@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Shared.Dtos.ChargingCost;
