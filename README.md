@@ -335,7 +335,7 @@ As value for `<TZ>` use the appropriate time zone identifier from https://en.wik
 
 You can also copy the complete content from here:
 <details>
-  <summary>Complete file using Solax plugin</summary>
+  <summary>Complete file using Tesla Powerwall plugin</summary>
 
 ```yaml
 version: '3.3'
