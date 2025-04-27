@@ -305,6 +305,78 @@ volumes:
   
 </details>
 
+##### Using the Tesla Powerwall plugin
+
+Although Tesla offers the "Charge on Solar" feature to charge the car with solar energy, using the TeslaSolarCharger can still be beneficial, especially when taking advantage of a dynamic electricity tariff. With the help of the external Powerwall plugin, the Tesla Powerwall can easily be integrated into the TeslaSolarCharger. The documentation for the plugin can be found here: https://github.com/jbuchner/pwgateway
+
+```yaml
+pwplugin:
+    image: jbuchner/pwplugin:latest
+    container_name: pwplugin
+    restart: always
+    environment:
+      - POWERWALL=<Host or IP>
+      - USER_EMAIL=<Email>
+      - USER_PASSWORD=<Password>
+      - TZ=<TZ>
+    ports:
+      - 8081:80
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+```
+Replace the variables `<Host or IP>`, `<Email>`, `<Password>` and `<TZ>` with the appropriate values for your Powerwall.
+
+Note: `<Email>` and `<Password>` are not the credentials for your Tesla account (which you use in your car and your app), but different credentials for your Powerwall.
+
+As value for `<TZ>` use the appropriate time zone identifier from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. For example, use the value `Europe/Berlin` for Germany.
+
+You can also copy the complete content from here:
+<details>
+  <summary>Complete file using Solax plugin</summary>
+
+```yaml
+version: '3.3'
+services:
+  teslasolarcharger:
+    image: pkuehnel/teslasolarcharger:latest
+    container_name: teslasolarcharger
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "10"
+            max-size: "100m"
+    restart: always
+    environment:
+#      - Serilog__MinimumLevel__Default=Verbose #uncomment this line and recreate container with docker compose up -d for more detailed logs
+      - TZ=Europe/Berlin ##You can change your Timezone here
+    ports:
+      - 7190:80
+    volumes:
+      - teslasolarcharger-configs:/app/configs
+  
+  pwplugin:
+    image: jbuchner/pwplugin:latest
+    container_name: pwplugin
+    restart: always
+    environment:
+      - POWERWALL=<Host or IP>
+      - USER_EMAIL=<Email>
+      - USER_PASSWORD=<Password>
+      - TZ=<TZ>
+    ports:
+      - 8081:80
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+```
+  
+</details>
+
 #### First startup of the application
 
 1. Move to your above created directory with your `docker-compose.yml`.
