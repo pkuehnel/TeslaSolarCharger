@@ -1225,6 +1225,86 @@ public class TeslaFleetApiService(
         });
     }
 
+    public async Task<DtoBackendApiTeslaResponse> GetAllProductsFromTeslaAccount()
+    {
+        logger.LogTrace("{method}()", nameof(GetAllProductsFromTeslaAccount));
+        var accessToken = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if(accessToken == default)
+        {
+            logger.LogError("Can not get products from Tesla account as no Backend token was found.");
+            throw new InvalidOperationException("Can not get products from Tesla account as no Backend token was found.");
+        }
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            throw new InvalidOperationException("Decryption key not found do not send command");
+        }
+        var requestUri = $"FleetApiRequests/GetAllProductsFromAccount?encryptionKey={Uri.EscapeDataString(decryptionKey)}";
+        try
+        {
+            var backendResponse = await backendApiService.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Get,
+                accessToken.AccessToken, requestUri, null);
+            if (backendResponse.HasError)
+            {
+                logger.LogError("Error while getting all products from account: {errorMessage}", backendResponse.ErrorMessage);
+                throw new HttpRequestException($"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", null);
+            }
+            var teslaBackendResult = backendResponse.Data;
+            if (teslaBackendResult == null)
+            {
+                logger.LogError("Could not deserialize Solar4CarBackend response body");
+                throw new InvalidOperationException("Could not deserialize response body");
+            }
+            return teslaBackendResult;
+        }
+        catch (HttpRequestException e)
+        {
+            logger.LogError(e, "An HTTP request error occured");
+            throw;
+        }
+    }
+
+    public async Task<DtoBackendApiTeslaResponse> GetEnergyLiveStatus(string energySiteId)
+    {
+        logger.LogTrace("{method}()", nameof(GetEnergyLiveStatus));
+        var accessToken = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        if (accessToken == default)
+        {
+            logger.LogError("Can not get GetEnergyLiveStatus from Tesla account as no Backend token was found.");
+            throw new InvalidOperationException("Can not get GetEnergyLiveStatus from Tesla account as no Backend token was found.");
+        }
+        var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
+        if (decryptionKey == default)
+        {
+            logger.LogError("Decryption key not found do not send command");
+            throw new InvalidOperationException("Decryption key not found do not send command");
+        }
+        var requestUri = $"FleetApiRequests/GetEnergyLiveStatus?encryptionKey={Uri.EscapeDataString(decryptionKey)}&energySiteId={Uri.EscapeDataString(energySiteId)}";
+        try
+        {
+            var backendResponse = await backendApiService.SendRequestToBackend<DtoBackendApiTeslaResponse>(HttpMethod.Get,
+                accessToken.AccessToken, requestUri, null);
+            if (backendResponse.HasError)
+            {
+                logger.LogError("Error while getting all products from account: {errorMessage}", backendResponse.ErrorMessage);
+                throw new HttpRequestException($"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", null);
+            }
+            var teslaBackendResult = backendResponse.Data;
+            if (teslaBackendResult == null)
+            {
+                logger.LogError("Could not deserialize Solar4CarBackend response body");
+                throw new InvalidOperationException("Could not deserialize response body");
+            }
+            return teslaBackendResult;
+        }
+        catch (HttpRequestException e)
+        {
+            logger.LogError(e, "An HTTP request error occured");
+            throw;
+        }
+    }
+
     public async Task<Fin<List<DtoTesla>>> GetAllCarsFromAccount()
     {
         logger.LogTrace("{method}()", nameof(GetAllCarsFromAccount));
@@ -1232,7 +1312,7 @@ public class TeslaFleetApiService(
         if (accessToken == default)
         {
             logger.LogError("Can not add cars to TSC as no Backend Token was found");
-            return Fin<List<DtoTesla>>.Fail("No Backend token found or existing token expired.");
+            return Fin<List<DtoTesla>>.Fail("No Backend token found.");
         }
         var decryptionKey = await tscConfigurationService.GetConfigurationValueByKey(constants.TeslaTokenEncryptionKeyKey);
         if (decryptionKey == default)
