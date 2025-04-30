@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Enums;
+﻿using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Contracts;
 
