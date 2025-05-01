@@ -11,7 +11,8 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 namespace TeslaSolarCharger.Server.Controllers;
 
 public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
-    IDebugService debugService) : ApiBaseController
+    IDebugService debugService,
+    ITeslaFleetApiService teslaFleetApiService) : ApiBaseController
 {
     [HttpGet]
     public IActionResult DownloadLogs()
@@ -77,4 +78,19 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
         var cars = await debugService.GetCars();
         return Ok(cars);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllProductsFromTeslaAccount()
+    {
+        var products = await teslaFleetApiService.GetAllProductsFromTeslaAccount();
+        return Ok(products.JsonResponse);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetEnergyLiveStatus(string energySiteId)
+    {
+        var products = await teslaFleetApiService.GetEnergyLiveStatus(energySiteId);
+        return Ok(products.JsonResponse);
+    }
+
 }
