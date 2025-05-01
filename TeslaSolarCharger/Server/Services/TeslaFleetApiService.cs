@@ -1287,7 +1287,7 @@ public class TeslaFleetApiService(
                 accessToken.AccessToken, requestUri, null);
             if (backendResponse.HasError)
             {
-                logger.LogError("Error while getting all products from account: {errorMessage}", backendResponse.ErrorMessage);
+                logger.LogError("Error while getting powerwall live status: {errorMessage}", backendResponse.ErrorMessage);
                 throw new HttpRequestException($"Requesting {requestUri} returned following error: {backendResponse.ErrorMessage}", null);
             }
             var teslaBackendResult = backendResponse.Data;
