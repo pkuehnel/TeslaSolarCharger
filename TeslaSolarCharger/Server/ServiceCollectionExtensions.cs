@@ -126,6 +126,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
             .AddSingleton<IMeterValueBufferService, MeterValueBufferService>()
+            .AddSingleton<IOcppWebSocketConnectionHandlingService, OcppWebSocketConnectionHandlingService>()
             .AddScoped<ErrorHandlingMiddleware>()
             .AddHostedService<MeterValueFlushService>()
             .AddSharedBackendDependencies();
