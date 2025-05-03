@@ -17,6 +17,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private readonly TimeSpan _clientSideHeartbeatTimeout = TimeSpan.FromSeconds(120);
+    private TimeSpan ClientSideHeartbeatConfigured => (_clientSideHeartbeatTimeout / 2) + _sendTimeout;
 
     private readonly ConcurrentDictionary<string, DtoOcppWebSocket> _connections = new();
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -126,7 +127,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
     /// <summary>
     /// Inspects an incoming OCPP frame and returns the JSON to send back.
     /// </summary>
-    private static string HandleIncoming(string jsonMessage)
+    private string HandleIncoming(string jsonMessage)
     {
         using var doc = JsonDocument.Parse(jsonMessage);
         var root = doc.RootElement;
@@ -158,7 +159,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         };
     }
 
-    private static string HandleBootNotification(string uniqueId, JsonElement payload)
+    private string HandleBootNotification(string uniqueId, JsonElement payload)
     {
         // a) Deserialize the request payload
         var req = payload.Deserialize<BootNotificationRequest>(JsonOpts);
@@ -170,7 +171,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             Status = RegistrationStatus.Accepted,
             CurrentTimeUtc = DateTime.UtcNow,
-            IntervalSeconds = 300                      // tell CP to heartbeat every 5 min
+            IntervalSeconds = (int) ClientSideHeartbeatConfigured.TotalSeconds,                      // tell CP to heartbeat every 5 min
         };
 
         // c) Wrap in an envelope and serialize
@@ -178,7 +179,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private static string HandleHeartbeat(string uniqueId)
+    private string HandleHeartbeat(string uniqueId)
     {
         var respPayload = new HeartbeatResponse
         {
@@ -189,7 +190,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private static string BuildError(string code, string description,
+    private string BuildError(string code, string description,
         string? uniqueId, object? details)
     {
         var error = new CallError(uniqueId ?? Guid.NewGuid().ToString("N"),
