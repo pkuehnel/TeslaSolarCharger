@@ -111,6 +111,7 @@ app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseWebSockets();
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
