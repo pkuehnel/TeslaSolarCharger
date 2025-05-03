@@ -1,13 +1,14 @@
-﻿using Newtonsoft.Json.Serialization;
-using Newtonsoft.Json;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
-using TeslaSolarCharger.Server.Dtos.Ocpp.RequestTypes;
 using TeslaSolarCharger.Server.Services.Contracts;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -18,15 +19,13 @@ public sealed class OcppWebSocketConnectionHandlingService(
     private readonly TimeSpan _clientSideHeartbeatTimeout = TimeSpan.FromSeconds(120);
 
     private readonly ConcurrentDictionary<string, DtoOcppWebSocket> _connections = new();
-
-    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
+    private static readonly JsonSerializerOptions JsonOpts = new()
     {
-        ContractResolver = new DefaultContractResolver
+        Converters =
         {
-            NamingStrategy = new CamelCaseNamingStrategy()
+            new JsonStringEnumConverter(),
+            new OcppArrayConverter(),
         },
-        NullValueHandling = NullValueHandling.Ignore,
-        Converters = { new OcppFrameConverter() }
     };
 
     public void AddWebSocket(string chargePointId,
@@ -123,45 +122,79 @@ public sealed class OcppWebSocketConnectionHandlingService(
             linked.Dispose();
         }
     }
-    /// <summary>Simulates one incoming message from a charge‑point.</summary>
-    private string HandleIncoming(string cpJson)
+
+    /// <summary>
+    /// Inspects an incoming OCPP frame and returns the JSON to send back.
+    /// </summary>
+    private static string HandleIncoming(string jsonMessage)
     {
-        // 1. Parse to the *correct* CLR type
-        var frame = JsonConvert.DeserializeObject<OcppFrame>(cpJson, JsonSerializerSettings)!;
+        using var doc = JsonDocument.Parse(jsonMessage);
+        var root = doc.RootElement;
 
-        // 2. Route by pattern‑matching on that type
-        return frame switch
+        // 1) Sanity checks -----------------------------------------------------
+        if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 3)
+            return BuildError("FormationViolation", "Frame is not a valid OCPP array", null, null);
+
+        var messageTypeId = root[0].GetInt32();
+        var uniqueId = root[1].GetString()!;   // spec guarantees it’s a string
+
+        // 2) Only CALLs (MessageTypeId == 2) need an immediate reply
+        if (messageTypeId != (int)MessageTypeId.Call)
         {
-            Call<BootNotificationRequest> boot =>
-                ReplyBootNotification(boot),
+            // For CALLRESULT/CALLERROR we have nothing to send back to the CP.
+            return string.Empty;
+        }
 
-            Call<HeartbeatRequest> hb =>
-                ReplyHeartbeat(hb),
+        var action = root[2].GetString()!;
+        var payload = root.GetArrayLength() >= 4 ? root[3] : default;
 
-            _ => JsonConvert.SerializeObject(
-                new CallError(frame.UniqueId, "NotImplemented",
-                    $"Action not supported by backend"),
-                JsonSerializerSettings)
+        // 3) Dispatch by action -----------------------------------------------
+        return action switch
+        {
+            "BootNotification" => HandleBootNotification(uniqueId, payload),
+            "Heartbeat" => HandleHeartbeat(uniqueId),      // payload is empty
+            _ => BuildError("NotSupported", $"Action '{action}' not supported",
+                uniqueId, null)
         };
     }
 
-    // -------- business logic per action ----------
-    private string ReplyBootNotification(Call<BootNotificationRequest> boot)
+    private static string HandleBootNotification(string uniqueId, JsonElement payload)
     {
-        var response = new CallResult<BootNotificationResponse>(
-            boot.UniqueId, boot.Action,
-            new BootNotificationResponse(DateTime.UtcNow, (int)_clientSideHeartbeatTimeout.TotalSeconds/2, "Accepted"));
+        // a) Deserialize the request payload
+        var req = payload.Deserialize<BootNotificationRequest>(JsonOpts);
 
-        return JsonConvert.SerializeObject(response, JsonSerializerSettings);
+        // TODO: validate req & maybe persist CP information here …
+
+        // b) Build the response payload
+        var respPayload = new BootNotificationResponse
+        {
+            Status = RegistrationStatus.Accepted,
+            CurrentTimeUtc = DateTime.UtcNow,
+            IntervalSeconds = 300                      // tell CP to heartbeat every 5 min
+        };
+
+        // c) Wrap in an envelope and serialize
+        var envelope = new CallResult<BootNotificationResponse>(uniqueId, respPayload);
+        return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private string ReplyHeartbeat(Call<HeartbeatRequest> hb)
+    private static string HandleHeartbeat(string uniqueId)
     {
-        var response = new CallResult<HeartbeatResponse>(
-            hb.UniqueId, hb.Action,
-            new HeartbeatResponse(DateTime.UtcNow));
+        var respPayload = new HeartbeatResponse
+        {
+            CurrentTimeUtc = DateTime.UtcNow
+        };
 
-        return JsonConvert.SerializeObject(response, JsonSerializerSettings);
+        var envelope = new CallResult<HeartbeatResponse>(uniqueId, respPayload);
+        return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private static string BuildError(string code, string description,
+        string? uniqueId, object? details)
+    {
+        var error = new CallError(uniqueId ?? Guid.NewGuid().ToString("N"),
+            code, description, details);
+        return JsonSerializer.Serialize(error, JsonOpts);
     }
 
     private async Task SendInternalAsync(DtoOcppWebSocket dto,
