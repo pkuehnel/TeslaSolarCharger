@@ -1,8 +1,12 @@
-﻿using System.Buffers;
+﻿using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.Ocpp;
+using TeslaSolarCharger.Server.Dtos.Ocpp.RequestTypes;
 using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -14,6 +18,16 @@ public sealed class OcppWebSocketConnectionHandlingService(
     private readonly TimeSpan _clientSideHeartbeatTimeout = TimeSpan.FromSeconds(120);
 
     private readonly ConcurrentDictionary<string, DtoOcppWebSocket> _connections = new();
+
+    private static readonly JsonSerializerSettings JsonSerializerSettings = new()
+    {
+        ContractResolver = new DefaultContractResolver
+        {
+            NamingStrategy = new CamelCaseNamingStrategy()
+        },
+        NullValueHandling = NullValueHandling.Ignore,
+        Converters = { new OcppFrameConverter() }
+    };
 
     public void AddWebSocket(string chargePointId,
                              WebSocket webSocket,
@@ -81,6 +95,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 var result = await dto.WebSocket.ReceiveAsync(new(buffer), linked.Token);
                 var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                var responseString = HandleIncoming(jsonMessage);
+                await SendTextAsync(dto.ChargePointId, responseString, new CancellationTokenSource(_sendTimeout).Token);
                 logger.LogTrace("Received from {chargePointId}: {message}",dto.ChargePointId, jsonMessage);
                 // reset heartbeat timer whenever something arrives
                 watchdog.CancelAfter(_clientSideHeartbeatTimeout);
@@ -106,6 +122,46 @@ public sealed class OcppWebSocketConnectionHandlingService(
             watchdog.Dispose();
             linked.Dispose();
         }
+    }
+    /// <summary>Simulates one incoming message from a charge‑point.</summary>
+    private string HandleIncoming(string cpJson)
+    {
+        // 1. Parse to the *correct* CLR type
+        var frame = JsonConvert.DeserializeObject<OcppFrame>(cpJson, JsonSerializerSettings)!;
+
+        // 2. Route by pattern‑matching on that type
+        return frame switch
+        {
+            Call<BootNotificationRequest> boot =>
+                ReplyBootNotification(boot),
+
+            Call<HeartbeatRequest> hb =>
+                ReplyHeartbeat(hb),
+
+            _ => JsonConvert.SerializeObject(
+                new CallError(frame.UniqueId, "NotImplemented",
+                    $"Action not supported by backend"),
+                JsonSerializerSettings)
+        };
+    }
+
+    // -------- business logic per action ----------
+    private string ReplyBootNotification(Call<BootNotificationRequest> boot)
+    {
+        var response = new CallResult<BootNotificationResponse>(
+            boot.UniqueId, boot.Action,
+            new BootNotificationResponse(DateTime.UtcNow, (int)_clientSideHeartbeatTimeout.TotalSeconds/2, "Accepted"));
+
+        return JsonConvert.SerializeObject(response, JsonSerializerSettings);
+    }
+
+    private string ReplyHeartbeat(Call<HeartbeatRequest> hb)
+    {
+        var response = new CallResult<HeartbeatResponse>(
+            hb.UniqueId, hb.Action,
+            new HeartbeatResponse(DateTime.UtcNow));
+
+        return JsonConvert.SerializeObject(response, JsonSerializerSettings);
     }
 
     private async Task SendInternalAsync(DtoOcppWebSocket dto,
