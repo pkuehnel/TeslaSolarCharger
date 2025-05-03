@@ -6,12 +6,11 @@ namespace TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
 /// Successful reply to a CALL. Position 2 = typed Payload.
 /// </summary>
 /// <typeparam name="TPayload">POCO that models the response payload.</typeparam>
-public sealed record CallResult<TPayload>(string UniqueId, TPayload Payload)
-    : OcppMessage(MessageTypeId.CallResult)
+public sealed record CallResult<TPayload>(
+    string UniqueId,          // forwarded
+    TPayload Payload)
+    : OcppMessage(MessageTypeId.CallResult, UniqueId)
 {
-    [JsonPropertyOrder(1)]
-    public new string UniqueId { get; init; } = UniqueId;
-
     [JsonPropertyOrder(2)]
     public TPayload Payload { get; init; } = Payload;
 }

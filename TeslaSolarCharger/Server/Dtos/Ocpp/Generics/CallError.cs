@@ -9,7 +9,7 @@ public sealed record CallError(string UniqueId,
     string ErrorCode,
     string ErrorDescription,
     object? ErrorDetails = null)
-    : OcppMessage(MessageTypeId.CallError)
+    : OcppMessage(MessageTypeId.CallError, UniqueId)
 {
     [JsonPropertyOrder(1)]
     public new string UniqueId { get; init; } = UniqueId;
