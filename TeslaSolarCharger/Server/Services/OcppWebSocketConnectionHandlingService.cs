@@ -95,9 +95,9 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 var result = await dto.WebSocket.ReceiveAsync(new(buffer), linked.Token);
                 var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                logger.LogTrace("Received from {chargePointId}: {message}", dto.ChargePointId, jsonMessage);
                 var responseString = HandleIncoming(jsonMessage);
                 await SendTextAsync(dto.ChargePointId, responseString, new CancellationTokenSource(_sendTimeout).Token);
-                logger.LogTrace("Received from {chargePointId}: {message}",dto.ChargePointId, jsonMessage);
                 // reset heartbeat timer whenever something arrives
                 watchdog.CancelAfter(_clientSideHeartbeatTimeout);
                 if (result.MessageType == WebSocketMessageType.Close)
@@ -153,7 +153,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return action switch
         {
             "BootNotification" => HandleBootNotification(uniqueId, payload),
-            "Heartbeat" => HandleHeartbeat(uniqueId),      // payload is empty
+            "Heartbeat" => HandleHeartbeat(uniqueId),
+            "StatusNotification" => HandleStatusNotification(uniqueId, payload),
             _ => BuildError("NotSupported", $"Action '{action}' not supported",
                 uniqueId, null)
         };
@@ -164,7 +165,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         // a) Deserialize the request payload
         var req = payload.Deserialize<BootNotificationRequest>(JsonOpts);
 
-        // TODO: validate req & maybe persist CP information here …
+        // TODO: validate req & maybe persist CP information here … but here is charging station only
 
         // b) Build the response payload
         var respPayload = new BootNotificationResponse
@@ -183,10 +184,27 @@ public sealed class OcppWebSocketConnectionHandlingService(
     {
         var respPayload = new HeartbeatResponse
         {
-            CurrentTimeUtc = DateTime.UtcNow
+            CurrentTimeUtc = DateTime.UtcNow,
         };
 
         var envelope = new CallResult<HeartbeatResponse>(uniqueId, respPayload);
+        return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private string HandleStatusNotification(string uniqueId, JsonElement payload)
+    {
+        // a) Deserialize the request payload
+        var req = payload.Deserialize<StatusNotificationRequest>(JsonOpts);
+
+        // TODO: validate req & maybe persist CP information here … here at charge point level
+
+        // b) Build the response payload
+        var respPayload = new StatusNotificationResponse()
+        {
+        };
+
+        // c) Wrap in an envelope and serialize
+        var envelope = new CallResult<StatusNotificationResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
