@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿using LanguageExt;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
@@ -7,6 +8,7 @@ using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -16,6 +18,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         ILogger<OcppWebSocketConnectionHandlingService> logger) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
+    private TimeSpan RoundTripTimeout => _sendTimeout * 2;
     private readonly TimeSpan _clientSideHeartbeatTimeout = TimeSpan.FromSeconds(120);
     private TimeSpan ClientSideHeartbeatConfigured => (_clientSideHeartbeatTimeout / 2) + _sendTimeout;
 
@@ -82,6 +85,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 RemoveWebSocket(id);
         });
 
+
+
     private async Task ReceiveLoopAsync(DtoOcppWebSocket dto)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(4 * 1024);
@@ -96,8 +101,56 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 var result = await dto.WebSocket.ReceiveAsync(new(buffer), linked.Token);
                 var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 logger.LogTrace("Received from {chargePointId}: {message}", dto.ChargePointId, jsonMessage);
-                var responseString = HandleIncoming(jsonMessage);
-                await SendTextAsync(dto.ChargePointId, responseString, new CancellationTokenSource(_sendTimeout).Token);
+                using var doc = JsonDocument.Parse(jsonMessage);
+                var root = doc.RootElement;
+                string? responseString = null;
+                // 1) Sanity checks -----------------------------------------------------
+                if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 3)
+                {
+                    responseString = BuildError("FormationViolation", "Frame is not a valid OCPP array", null, null);
+                }
+                else
+                {
+                    var messageTypeIdInt = root[0].GetInt32();
+                    var uniqueId = root[1].GetString()!;
+                    if (!TryGetMessageType(messageTypeIdInt, out var messageTypeId))
+                    {
+                        responseString = BuildError("FormationViolation", "Message Type ID is undefined", uniqueId, null);
+                    }
+                    else
+                    {
+                        switch (messageTypeId)
+                        {
+                            case MessageTypeId.Call:
+                                responseString = HandleIncomingCall(uniqueId, root);
+                                break;
+                            case MessageTypeId.CallResult:
+                                if (dto.Pending.TryRemove(uniqueId, out var tcsOk))
+                                {
+                                    // index 2 holds the payload for CALLRESULT
+                                    tcsOk.TrySetResult(root[2]);
+                                }
+                                break;
+                            case MessageTypeId.CallError:
+                                if (dto.Pending.TryRemove(uniqueId, out var tcsErr))
+                                {
+                                    var code = root[2].GetString();
+                                    var desc = root[3].GetString();
+                                    tcsErr.TrySetException(new OcppCallErrorException(code!, desc!));
+                                }
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                    }
+                        
+                    
+                }
+
+                if (!string.IsNullOrEmpty(responseString))
+                {
+                    await SendTextAsync(dto.ChargePointId, responseString, new CancellationTokenSource(_sendTimeout).Token);
+                }
                 // reset heartbeat timer whenever something arrives
                 watchdog.CancelAfter(_clientSideHeartbeatTimeout);
                 if (result.MessageType == WebSocketMessageType.Close)
@@ -124,28 +177,50 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
+    private async Task<TResp> SendRequestAsync<TResp>(DtoOcppWebSocket dto,
+        string action,
+        object requestPayload,
+        CancellationToken outerCt)
+    {
+        // 1) Build array frame [ 2, "<uid>", "Action", {…payload…} ]
+        var uid = Guid.NewGuid().ToString("N");
+        object envelope = new object?[] { (int)MessageTypeId.Call, uid, action, requestPayload };
+
+        var json = JsonSerializer.Serialize(envelope, JsonOpts);
+
+        // 2) Prepare a TCS that will complete when the CP answers
+        var tcs = new TaskCompletionSource<JsonElement>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        if (!dto.Pending.TryAdd(uid, tcs))
+            throw new InvalidOperationException("UID collision—should never happen");
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(outerCt);
+        cts.CancelAfter(RoundTripTimeout);           // response timeout
+
+        try
+        {
+            await SendTextAsync(dto.ChargePointId, json, cts.Token);
+
+            // 3) Wait until ReceiveLoop completes the TCS
+            await using (cts.Token.Register(() => tcs.TrySetCanceled(cts.Token),
+                             useSynchronizationContext: false))
+            {
+                var raw = await tcs.Task;             // ← suspends here
+                return raw.Deserialize<TResp>(JsonOpts)!;     // typed payload back
+            }
+        }
+        finally
+        {
+            dto.Pending.TryRemove(uid, out _);
+        }
+    }
+
     /// <summary>
     /// Inspects an incoming OCPP frame and returns the JSON to send back.
     /// </summary>
-    private string HandleIncoming(string jsonMessage)
+    private string HandleIncomingCall(string uniqueId, JsonElement root)
     {
-        using var doc = JsonDocument.Parse(jsonMessage);
-        var root = doc.RootElement;
-
-        // 1) Sanity checks -----------------------------------------------------
-        if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 3)
-            return BuildError("FormationViolation", "Frame is not a valid OCPP array", null, null);
-
-        var messageTypeId = root[0].GetInt32();
-        var uniqueId = root[1].GetString()!;   // spec guarantees it’s a string
-
-        // 2) Only CALLs (MessageTypeId == 2) need an immediate reply
-        if (messageTypeId != (int)MessageTypeId.Call)
-        {
-            // For CALLRESULT/CALLERROR we have nothing to send back to the CP.
-            return string.Empty;
-        }
-
         var action = root[2].GetString()!;
         var payload = root.GetArrayLength() >= 4 ? root[3] : default;
 
@@ -324,5 +399,24 @@ public sealed class OcppWebSocketConnectionHandlingService(
             }
             catch { /* swallow */ }
         }
+    }
+
+    public bool TryGetMessageType(int raw, out MessageTypeId result)
+    {
+        // passing ignoreCase: false is irrelevant for numbers,
+        // but keeps the signature consistent for other enums
+        return Enum.TryParse(raw.ToString(), ignoreCase: false, out result)
+               && Enum.IsDefined(typeof(MessageTypeId), result);
+    }
+}
+
+internal class OcppCallErrorException : Exception
+{
+    public string Code { get; }
+    public string Description { get; }
+    public OcppCallErrorException(string code, string desc)
+    {
+        Code = code;
+        Description = desc;
     }
 }

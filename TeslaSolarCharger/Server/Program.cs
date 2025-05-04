@@ -63,13 +63,14 @@ builder.Services.AddSingleton(inMemoryLevelSwitch);
 var app = builder.Build();
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Verbose()// overall minimum
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("System", LogEventLevel.Error)
-    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
-    .MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
-    .MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
-    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Debug)
+    .MinimumLevel.Fatal()// overall minimum
+    //.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    //.MinimumLevel.Override("System", LogEventLevel.Error)
+    //.MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+    //.MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
+    //.MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
+    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppWebSocketConnectionHandlingService", LogEventLevel.Verbose)
+    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Verbose)
     // Send events to the in–memory sink using a sub–logger and the dynamic level switch.
     .WriteTo.Logger(lc => lc
         .MinimumLevel.ControlledBy(inMemoryLevelSwitch)
