@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PkSoftwareService.Custom.Backend;
-using Serilog;
 using Serilog.Events;
 using System.Text;
 using TeslaSolarCharger.Model.Contracts;

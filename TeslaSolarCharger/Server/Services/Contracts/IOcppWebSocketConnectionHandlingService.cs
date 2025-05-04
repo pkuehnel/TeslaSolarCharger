@@ -1,4 +1,5 @@
 ﻿using System.Net.WebSockets;
+using TeslaSolarCharger.Server.Dtos;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
@@ -9,9 +10,10 @@ public interface IOcppWebSocketConnectionHandlingService
         WebSocket webSocket,
         TaskCompletionSource<object?> lifetimeTcs);
 
-    /// <summary>Send raw bytes to a single charge‑point.</summary>
-    Task SendTextAsync(string chargePointId, string message,
-        CancellationToken ct = default);
-
     void CleanupDeadConnections();
+
+    Task<TResp> SendRequestAsync<TResp>(string chargePointIdentifier,
+        string action,
+        object requestPayload,
+        CancellationToken outerCt);
 }
