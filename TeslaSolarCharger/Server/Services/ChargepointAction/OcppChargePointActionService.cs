@@ -159,17 +159,35 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
 
     private string GetChargePointAndConnectorId(string chargepointIdentifier, out int connectorId)
     {
-        var splittedChargePointIdentifier = chargepointIdentifier.Split(constants.OcppChargePointConnectorIdDelimiter);
-        var chargePointId = splittedChargePointIdentifier[0];
+        if (string.IsNullOrEmpty(chargepointIdentifier))
+            throw new ArgumentNullException(nameof(chargepointIdentifier));
+
+        // default connector
         connectorId = 1;
-        if (splittedChargePointIdentifier.Length > 1)
+
+        var delimiter = constants.OcppChargePointConnectorIdDelimiter;
+        // if your delimiter is a string, use LastIndexOf(string), otherwise this works for char
+        var lastPos = chargepointIdentifier.LastIndexOf(delimiter, StringComparison.Ordinal);
+        if (lastPos < 0)
         {
-            var connectorIdString = splittedChargePointIdentifier[1];
-            if (!int.TryParse(connectorIdString, out connectorId))
-            {
-                logger.LogError("Could not parse connectorId {connectorId} to valid integer", connectorIdString);
-                throw new ArgumentException($"Could not parse connectorId {connectorIdString} to valid integer");
-            }
+            // no delimiter found → whole identifier is the CP ID
+            return chargepointIdentifier;
+        }
+
+        // split into two parts
+        var chargePointId = chargepointIdentifier.Substring(0, lastPos);
+        var connectorIdString = chargepointIdentifier.Substring(lastPos + delimiter.Length);
+
+        // try parse connector
+        if (!int.TryParse(connectorIdString, out connectorId))
+        {
+            logger.LogError(
+                "Could not parse connectorId {connectorId} to valid integer",
+                connectorIdString
+            );
+            throw new ArgumentException(
+                $"Could not parse connectorId '{connectorIdString}' to valid integer"
+            );
         }
 
         return chargePointId;
