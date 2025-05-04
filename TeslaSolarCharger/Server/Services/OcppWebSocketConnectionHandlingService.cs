@@ -54,20 +54,6 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
-    /// <summary>Send raw bytes to a single charge‑point.</summary>
-    public Task SendTextAsync(string chargePointId, string message,
-                               CancellationToken ct = default)
-    {
-        logger.LogTrace("{method}({chargePointId}, {message})", nameof(SendTextAsync), chargePointId, message);
-        if (!_connections.TryGetValue(chargePointId, out var dto))
-        {
-            logger.LogWarning("No open WS for {chargePointId}", chargePointId);
-            return Task.CompletedTask;
-        }
-        var payload = Encoding.UTF8.GetBytes(message);
-        return SendInternalAsync(dto, payload, WebSocketMessageType.Text, ct);
-    }
-
     public void CleanupDeadConnections()
         => _ = Task.Run(() =>
         {
@@ -177,7 +163,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
-    private async Task<TResp> SendRequestAsync<TResp>(DtoOcppWebSocket dto,
+    public async Task<TResp> SendRequestAsync<TResp>(string chargePointIdentifier,
         string action,
         object requestPayload,
         CancellationToken outerCt)
@@ -192,6 +178,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var tcs = new TaskCompletionSource<JsonElement>(
             TaskCreationOptions.RunContinuationsAsynchronously);
 
+        var dto = _connections[chargePointIdentifier];
         if (!dto.Pending.TryAdd(uid, tcs))
             throw new InvalidOperationException("UID collision—should never happen");
 
@@ -214,6 +201,19 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             dto.Pending.TryRemove(uid, out _);
         }
+    }
+
+    private Task SendTextAsync(string chargePointId, string message,
+        CancellationToken ct = default)
+    {
+        logger.LogTrace("{method}({chargePointId}, {message})", nameof(SendTextAsync), chargePointId, message);
+        if (!_connections.TryGetValue(chargePointId, out var dto))
+        {
+            logger.LogWarning("No open WS for {chargePointId}", chargePointId);
+            return Task.CompletedTask;
+        }
+        var payload = Encoding.UTF8.GetBytes(message);
+        return SendInternalAsync(dto, payload, WebSocketMessageType.Text, ct);
     }
 
     /// <summary>
@@ -295,7 +295,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         // b) Build the response payload
         var respPayload = new StartTransactionResponse()
         {
-            TransactionId = 1, // TODO: get from DB
+            TransactionId = 1, // TODO: SaveToDb
             IdTagInfo = new IdTagInfo
             {
                 Status = AuthorizationStatus.Accepted,
