@@ -10,12 +10,14 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public sealed class OcppWebSocketConnectionHandlingService(
-        ILogger<OcppWebSocketConnectionHandlingService> logger) : IOcppWebSocketConnectionHandlingService
+        ILogger<OcppWebSocketConnectionHandlingService> logger,
+        IConstants constants) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private TimeSpan RoundTripTimeout => _sendTimeout * 2;
@@ -25,6 +27,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
     private readonly ConcurrentDictionary<string, DtoOcppWebSocket> _connections = new();
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+
         Converters =
         {
             new JsonStringEnumConverter(),
@@ -87,7 +91,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 var result = await dto.WebSocket.ReceiveAsync(new(buffer), linked.Token);
                 var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 logger.LogTrace("Received from {chargePointId}: {message}", dto.ChargePointId, jsonMessage);
-                using var doc = JsonDocument.Parse(jsonMessage);
+                var doc = JsonDocument.Parse(jsonMessage);
                 var root = doc.RootElement;
                 string? responseString = null;
                 // 1) Sanity checks -----------------------------------------------------
@@ -233,8 +237,9 @@ public sealed class OcppWebSocketConnectionHandlingService(
             "StartTransaction" => HandleStartTransaction(uniqueId, payload),
             "StopTransaction" => HandleStopTransaction(uniqueId, payload),
             "MeterValues" => HandleMeterValues(uniqueId, payload),
+            "Authorize" => HandleAuthorize(uniqueId, payload),
             _ => BuildError("NotSupported", $"Action '{action}' not supported",
-                uniqueId, null)
+                uniqueId, null),
         };
     }
 
@@ -343,6 +348,27 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         // c) Wrap in an envelope and serialize
         var envelope = new CallResult<MeterValuesResponse>(uniqueId, respPayload) { };
+        return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private string HandleAuthorize(string uniqueId, JsonElement payload)
+    {
+        // a) Deserialize the request payload
+        var req = payload.Deserialize<AuthorizeRequest>(JsonOpts);
+
+        // TODO: validate req & maybe persist CP information here … here at charge point level
+
+        // b) Build the response payload
+        var respPayload = new AuthorizeResponse()
+        {
+            IdTagInfo = new IdTagInfo
+            {
+                Status = (req != default && string.Equals(req.IdTag, constants.DefaultIdTag)) ? AuthorizationStatus.Accepted : AuthorizationStatus.Invalid,
+            },
+        };
+
+        // c) Wrap in an envelope and serialize
+        var envelope = new CallResult<AuthorizeResponse>(uniqueId, respPayload) { };
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
