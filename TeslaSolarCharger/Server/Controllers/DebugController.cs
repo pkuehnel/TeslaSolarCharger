@@ -99,7 +99,7 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     }
 
     [HttpPost]
-    public async Task<IActionResult> StopOccppCharging(string chargepointId, int connectorId)
+    public async Task<IActionResult> StopOcppCharging(string chargepointId, int connectorId)
     {
         var result = await ocppChargePointActionService.StopCharging(chargepointId + "_" + connectorId, HttpContext.RequestAborted);
         return Ok(result);
