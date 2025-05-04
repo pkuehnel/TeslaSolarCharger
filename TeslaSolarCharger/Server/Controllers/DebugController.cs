@@ -1,18 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using PkSoftwareService.Custom.Backend;
-using Serilog.Events;
-using System.Text;
+using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
-using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
 public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     IDebugService debugService,
-    ITeslaFleetApiService teslaFleetApiService) : ApiBaseController
+    ITeslaFleetApiService teslaFleetApiService,
+    IChargePointActionService ocppChargePointActionService) : ApiBaseController
 {
     [HttpGet]
     public IActionResult DownloadLogs()
@@ -93,4 +91,24 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
         return Ok(products.JsonResponse);
     }
 
+    [HttpPost]
+    public async Task<IActionResult> StartOcppCharging(string chargepointId, int connectorId, decimal current)
+    {
+        var result = await ocppChargePointActionService.StartCharging(chargepointId + "_" + connectorId, current, 3, HttpContext.RequestAborted);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StopOccppCharging(string chargepointId, int connectorId)
+    {
+        var result = await ocppChargePointActionService.StopCharging(chargepointId + "_" + connectorId, HttpContext.RequestAborted);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetChargingCurrent(string chargepointId, int connectorId, decimal current)
+    {
+        var result = await ocppChargePointActionService.SetChargingCurrent(chargepointId + "_" + connectorId, current, 3, HttpContext.RequestAborted);
+        return Ok(result);
+    }
 }

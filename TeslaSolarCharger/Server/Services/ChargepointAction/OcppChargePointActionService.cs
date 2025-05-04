@@ -125,7 +125,7 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
         var setChargingProfile = new SetChargingProfileRequest()
         {
             ConnectorId = connectorId,
-            CsChargingProfiles = GenerateChargingProfile(currentToSet, numberOfPhases),
+            CsChargingProfiles = GenerateChargingProfile(currentToSet, numberOfPhases, 1),
         };
         try
         {
@@ -175,12 +175,13 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
         return chargePointId;
     }
 
-    private ChargingProfile GenerateChargingProfile(decimal currentToSet, int numberOfPhases)
+    private ChargingProfile GenerateChargingProfile(decimal currentToSet, int numberOfPhases, int? transactionId = null)
     {
         logger.LogTrace("{method}({currentToSet})", nameof(GenerateChargingProfile), currentToSet);
         var chargingProfile = new ChargingProfile()
         {
             ChargingProfileId = 1,
+            TransactionId = transactionId,
             StackLevel = 0,
             ChargingProfilePurpose = ChargingProfilePurposeType.TxProfile,
             ChargingProfileKind = ChargingProfileKindType.Relative,
