@@ -142,12 +142,12 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
         }
         catch (OcppCallErrorException ex)
         {
-            logger.LogError(ex, "Error while sending RemoteStopTransaction to charge point {chargePointId}", chargePointId);
+            logger.LogError(ex, "Error while sending SetChargingCurrent to charge point {chargePointId}", chargePointId);
             return new(null, ex.Code + " " + ex.Description, null);
         }
         catch (OperationCanceledException ex)
         {
-            logger.LogError(ex, "Timeout while sending RemoteStopTransaction to charge point {chargePointId}", chargePointId);
+            logger.LogError(ex, "Timeout while sending SetChargingCurrent to charge point {chargePointId}", chargePointId);
             return new(null, ex.Message, null);
         }
         catch (Exception ex)
