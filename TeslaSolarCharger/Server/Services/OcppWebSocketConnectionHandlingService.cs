@@ -155,6 +155,9 @@ public sealed class OcppWebSocketConnectionHandlingService(
             "BootNotification" => HandleBootNotification(uniqueId, payload),
             "Heartbeat" => HandleHeartbeat(uniqueId),
             "StatusNotification" => HandleStatusNotification(uniqueId, payload),
+            "StartTransaction" => HandleStartTransaction(uniqueId, payload),
+            "StopTransaction" => HandleStopTransaction(uniqueId, payload),
+            "MeterValues" => HandleMeterValues(uniqueId, payload),
             _ => BuildError("NotSupported", $"Action '{action}' not supported",
                 uniqueId, null)
         };
@@ -172,7 +175,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             Status = RegistrationStatus.Accepted,
             CurrentTimeUtc = DateTime.UtcNow,
-            IntervalSeconds = (int) ClientSideHeartbeatConfigured.TotalSeconds,                      // tell CP to heartbeat every 5 min
+            IntervalSeconds = (int)ClientSideHeartbeatConfigured.TotalSeconds,                      // tell CP to heartbeat every 5 min
         };
 
         // c) Wrap in an envelope and serialize
@@ -205,6 +208,66 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         // c) Wrap in an envelope and serialize
         var envelope = new CallResult<StatusNotificationResponse>(uniqueId, respPayload);
+        return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+    private string HandleStartTransaction(string uniqueId, JsonElement payload)
+    {
+        // a) Deserialize the request payload
+        var req = payload.Deserialize<StartTransactionRequest>(JsonOpts);
+
+        // TODO: validate req & maybe persist CP information here … here at charge point level
+
+        // b) Build the response payload
+        var respPayload = new StartTransactionResponse()
+        {
+            TransactionId = 1, // TODO: get from DB
+            IdTagInfo = new IdTagInfo
+            {
+                Status = AuthorizationStatus.Accepted,
+            },
+        };
+
+        // c) Wrap in an envelope and serialize
+        var envelope = new CallResult<StartTransactionResponse>(uniqueId, respPayload){};
+        return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private string HandleStopTransaction(string uniqueId, JsonElement payload)
+    {
+        // a) Deserialize the request payload
+        var req = payload.Deserialize<StopTransactionRequest>(JsonOpts);
+
+        // TODO: validate req & maybe persist CP information here … here at charge point level
+
+        // b) Build the response payload
+        var respPayload = new StopTransactionResponse()
+        {
+            IdTagInfo = new IdTagInfo
+            {
+                Status = AuthorizationStatus.Accepted,
+            },
+        };
+
+        // c) Wrap in an envelope and serialize
+        var envelope = new CallResult<StopTransactionResponse>(uniqueId, respPayload) { };
+        return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private string HandleMeterValues(string uniqueId, JsonElement payload)
+    {
+        // a) Deserialize the request payload
+        var req = payload.Deserialize<MeterValuesRequest>(JsonOpts);
+
+        // TODO: validate req & maybe persist CP information here … here at charge point level
+
+        // b) Build the response payload
+        var respPayload = new MeterValuesResponse()
+        {
+
+        };
+
+        // c) Wrap in an envelope and serialize
+        var envelope = new CallResult<MeterValuesResponse>(uniqueId, respPayload) { };
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
