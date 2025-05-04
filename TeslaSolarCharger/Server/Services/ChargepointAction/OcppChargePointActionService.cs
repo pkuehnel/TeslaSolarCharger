@@ -12,6 +12,7 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
     public async Task<Result<object?>> StartCharging(string chargepointIdentifier, decimal currentToSet, int numberOfPhases,
         CancellationToken cancellationToken)
     {
+        //ToDo: set correct transactionIds
         logger.LogTrace("{method}({chargePointIdentifier}, {currentToSet})", nameof(StartCharging), chargepointIdentifier, currentToSet);
         string chargePointId;
         int connectorId;
