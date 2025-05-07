@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Net.WebSockets;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -13,6 +12,7 @@ public class OcppController(ILogger<OcppController> logger, IOcppWebSocketConnec
     [HttpGet]
     public async Task Get(string chargePointId)
     {
+        logger.LogTrace("{method}({chargePointId})", nameof(Get), chargePointId);
         if (!HttpContext.WebSockets.IsWebSocketRequest)
             throw new ProtocolViolationException("WebSocket required");
 
