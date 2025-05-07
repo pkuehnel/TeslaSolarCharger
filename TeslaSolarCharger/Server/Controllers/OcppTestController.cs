@@ -50,4 +50,11 @@ public class OcppTestController(
         var result = await ocppChargePointConfigurationService.SetMeterValuesSampleIntervalConfiguration(chargepointId, HttpContext.RequestAborted);
         return Ok(result);
     }
+
+    [HttpPost]
+    public async Task<IActionResult> RebootCharger(string chargepointId)
+    {
+        var result = await ocppChargePointConfigurationService.RebootCharger(chargepointId, HttpContext.RequestAborted);
+        return Ok(result);
+    }
 }
