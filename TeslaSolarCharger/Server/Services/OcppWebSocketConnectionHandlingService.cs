@@ -9,6 +9,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -17,7 +18,8 @@ namespace TeslaSolarCharger.Server.Services;
 
 public sealed class OcppWebSocketConnectionHandlingService(
         ILogger<OcppWebSocketConnectionHandlingService> logger,
-        IConstants constants) : IOcppWebSocketConnectionHandlingService
+        IConstants constants,
+        IServiceProvider serviceProvider) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private TimeSpan RoundTripTimeout => _sendTimeout * 2;
@@ -36,13 +38,12 @@ public sealed class OcppWebSocketConnectionHandlingService(
         },
     };
 
-    public void AddWebSocket(string chargePointId,
-                             WebSocket webSocket,
-                             TaskCompletionSource<object?> lifetimeTcs)
+    public async Task AddWebSocket(string chargePointId,
+        WebSocket webSocket,
+        TaskCompletionSource<object?> lifetimeTcs, CancellationToken httpContextRequestAborted)
     {
         logger.LogTrace("{method}({chargePointId})", nameof(AddWebSocket), chargePointId);
         RemoveWebSocket(chargePointId); // clear any stale entry first
-
         var dto = new DtoOcppWebSocket(chargePointId, webSocket, lifetimeTcs);
 
         if (_connections.TryAdd(chargePointId, dto))
@@ -51,6 +52,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
             // fire‑and‑forget the receive loop
             _ = Task.Run(() => ReceiveLoopAsync(dto));
+
+            using var scope = serviceProvider.CreateScope();
+            var chargingStationConfigurationService = scope.ServiceProvider
+                .GetRequiredService<IOcppChargingStationConfigurationService>();
+            await chargingStationConfigurationService.AddChargingStationIfNotExisting(chargePointId, httpContextRequestAborted);
         }
         else
         {

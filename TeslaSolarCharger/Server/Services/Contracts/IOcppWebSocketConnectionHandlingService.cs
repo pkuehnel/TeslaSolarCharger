@@ -6,9 +6,9 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 public interface IOcppWebSocketConnectionHandlingService
 {
 
-    void AddWebSocket(string chargePointId,
+    Task AddWebSocket(string chargePointId,
         WebSocket webSocket,
-        TaskCompletionSource<object?> lifetimeTcs);
+        TaskCompletionSource<object?> lifetimeTcs, CancellationToken httpContextRequestAborted);
 
     void CleanupDeadConnections();
 
