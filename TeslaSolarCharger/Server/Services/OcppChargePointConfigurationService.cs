@@ -7,6 +7,31 @@ namespace TeslaSolarCharger.Server.Services;
 public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigurationService> logger,
     IOcppWebSocketConnectionHandlingService ocppWebSocketConnectionHandlingService) : IOcppChargePointConfigurationService
 {
+
+    public async Task<Result<object>> RebootCharger(string chargepointId, CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargepointId})", nameof(RebootCharger), chargepointId);
+        var request = new ResetRequest() { Type = ResetType.Hard, };
+
+        try
+        {
+            var ocppResponse = await ocppWebSocketConnectionHandlingService.SendRequestAsync<ResetResponse>(chargepointId,
+                "Reset",
+                request,
+                cancellationToken);
+            if (ocppResponse.Status == ResetStatus.Accepted)
+            {
+                return new(ocppResponse, null, null);
+            }
+            return new(ocppResponse, $"The chargepoint responded with status {ocppResponse.Status}", null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not send message to charge point {chargePointId} or charge point did not answer properly", chargepointId);
+            return new(null, ex.Message, null);
+        }
+    }
+
     public async Task<Result<GetConfigurationResponse>> GetOcppConfigurations(string chargepointId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargepointId})", nameof(GetOcppConfigurations), chargepointId);
@@ -54,7 +79,7 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
     }
 
 
-    public async Task<Result<ChangeConfigurationResponse>> SetOcppConfiguration(string chargepointId, string key, string value, CancellationToken cancellationToken)
+    private async Task<Result<ChangeConfigurationResponse>> SetOcppConfiguration(string chargepointId, string key, string value, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargepointId}, {key}, {value})", nameof(SetOcppConfiguration), chargepointId, key, value);
         var changeConfigurationRequest = new ChangeConfigurationRequest()
