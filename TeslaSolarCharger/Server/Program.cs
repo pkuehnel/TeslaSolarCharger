@@ -63,7 +63,7 @@ builder.Services.AddSingleton(inMemoryLevelSwitch);
 var app = builder.Build();
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Fatal()// overall minimum
+    .MinimumLevel.Information()// overall minimum
     //.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
     //.MinimumLevel.Override("System", LogEventLevel.Error)
     //.MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
@@ -112,6 +112,21 @@ app.UseRouting();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseWhen(
+    ctx => ctx.Request.Path.StartsWithSegments("/api/ocpp"),
+    branch => branch.Use(async (ctx, next) =>
+    {
+        var state = ctx.RequestServices.GetRequiredService<ISettings>();
+        if (!state.IsStartupCompleted)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await ctx.Response.WriteAsync("OCPP endpoint not ready");
+            return;
+        }
+        await next();
+    })
+);
 
 app.UseWebSockets();
 app.MapRazorPages();
