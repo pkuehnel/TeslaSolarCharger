@@ -19,7 +19,7 @@ public class OcppController(ILogger<OcppController> logger, IOcppWebSocketConnec
         using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
         var lifetime = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        ocppWebSocketConnectionHandlingService.AddWebSocket(chargePointId, ws, lifetime);
+        await ocppWebSocketConnectionHandlingService.AddWebSocket(chargePointId, ws, lifetime, HttpContext.RequestAborted);
 
         // keep HTTP request open until the socket (or the client) drops
         await lifetime.Task;

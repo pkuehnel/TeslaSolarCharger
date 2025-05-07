@@ -32,5 +32,6 @@ public interface ITeslaSolarChargerContext
     DbSet<CarValueLog> CarValueLogs { get; set; }
     DbSet<MeterValue> MeterValues { get; set; }
     DbSet<SolarRadiation> SolarRadiations { get; set; }
+    DbSet<OcppChargingStation> OcppChargingStations { get; set; }
     void RejectChanges();
 }

@@ -14,4 +14,7 @@ public interface IOcppChargePointConfigurationService
         CancellationToken cancellationToken);
 
     Task<Result<object>> RebootCharger(string chargepointId, CancellationToken cancellationToken);
+    Task<Result<bool?>> IsReconfigurationRequired(string chargepointId, CancellationToken cancellationToken);
+    Task<Result<int?>> NumberOfConnectors(string chargepointId, CancellationToken cancellationToken);
+    Task<Result<bool?>> CanSwitchBetween1And3Phases(string chargepointId, CancellationToken cancellationToken);
 }
