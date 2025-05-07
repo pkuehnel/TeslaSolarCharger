@@ -68,7 +68,13 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
                 "ChangeConfiguration",
                 changeConfigurationRequest,
                 cancellationToken);
-            return new Result<ChangeConfigurationResponse>(ocppResponse, null, null);
+            if (ocppResponse.Status == ConfigurationStatus.Accepted)
+            {
+                return new Result<ChangeConfigurationResponse>(ocppResponse, null, null);
+            }
+
+            return new Result<ChangeConfigurationResponse>(ocppResponse,
+                $"The chargepoint responded with configuration status {ocppResponse.Status}", null);
         }
         catch (Exception ex)
         {
