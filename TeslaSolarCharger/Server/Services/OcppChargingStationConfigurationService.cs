@@ -1,8 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.ChargingStation;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -11,6 +14,29 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
     IOcppChargePointConfigurationService ocppChargePointConfigurationService) : IOcppChargingStationConfigurationService
 {
     private const int CurrentConfigurationVersion = 1;
+
+    public async Task<List<DtoChargingStation>> GetChargingStations()
+    {
+        logger.LogTrace("{method}()", nameof(GetChargingStations));
+        var chargingStations = await teslaSolarChargerContext.OcppChargingStations
+            .Select(c => new DtoChargingStation(c.ChargepointId)
+            {
+                Id = c.Id,
+                MaxCurrent = c.MaxCurrent,
+                CanSwitchBetween1And3Phases = c.CanSwitchBetween1And3Phases,
+            })
+            .ToListAsync().ConfigureAwait(false);
+        return chargingStations;
+    }
+
+    public async Task UpdateChargingStation(DtoChargingStation dtoChargingStation)
+    {
+        logger.LogTrace("{method}({@dto})", nameof(UpdateChargingStation), dtoChargingStation);
+        var existingChargingStation = await teslaSolarChargerContext.OcppChargingStations.FirstAsync(c => c.Id == dtoChargingStation.Id);
+        existingChargingStation.MaxCurrent = dtoChargingStation.MaxCurrent;
+        existingChargingStation.AutoSwitchBetween1And3PhasesEnabled = dtoChargingStation.AutoSwitchBetween1And3PhasesEnabled;
+        await teslaSolarChargerContext.SaveChangesAsync();
+    }
 
     public async Task AddChargingStationIfNotExisting(string chargepointId, CancellationToken httpContextRequestAborted)
     {
