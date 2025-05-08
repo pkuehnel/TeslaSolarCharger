@@ -4,6 +4,8 @@ public class OcppChargingStationConnector
 {
     public int Id { get; set; }
     public int ConnectorId { get; set; }
+    public bool AutoSwitchBetween1And3PhasesEnabled { get; set; }
+    public int? MaxCurrent { get; set; }
 
     public int OcppChargingStationId { get; set; }
 
