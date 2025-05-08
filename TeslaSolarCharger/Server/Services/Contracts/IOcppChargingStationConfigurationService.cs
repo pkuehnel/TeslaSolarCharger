@@ -7,5 +7,5 @@ public interface IOcppChargingStationConfigurationService
 {
     Task AddChargingStationIfNotExisting(string chargepointId, CancellationToken httpContextRequestAborted);
     Task<List<DtoChargingStation>> GetChargingStations();
-    Task UpdateChargingStation(DtoChargingStation dtoChargingStation);
+    Task UpdateChargingStationConnector(DtoChargingStationConnector dtoChargingStation);
 }
