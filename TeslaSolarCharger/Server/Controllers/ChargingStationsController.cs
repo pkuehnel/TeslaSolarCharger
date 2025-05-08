@@ -21,9 +21,9 @@ public class ChargingStationsController : ApiBaseController
     }
 
     [HttpPost]
-    public async Task<IActionResult> UpdateChargingStation(DtoChargingStation chargingStation)
+    public async Task<IActionResult> UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector)
     {
-        await _ocppChargingStationConfigurationService.UpdateChargingStation(chargingStation).ConfigureAwait(false);
+        await _ocppChargingStationConfigurationService.UpdateChargingStationConnector(chargingStationConnector).ConfigureAwait(false);
         return Ok();
     }
 }

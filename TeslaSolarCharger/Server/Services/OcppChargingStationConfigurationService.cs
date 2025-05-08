@@ -22,17 +22,16 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             .Select(c => new DtoChargingStation(c.ChargepointId)
             {
                 Id = c.Id,
-                MaxCurrent = c.MaxCurrent,
                 CanSwitchBetween1And3Phases = c.CanSwitchBetween1And3Phases,
             })
             .ToListAsync().ConfigureAwait(false);
         return chargingStations;
     }
 
-    public async Task UpdateChargingStation(DtoChargingStation dtoChargingStation)
+    public async Task UpdateChargingStationConnector(DtoChargingStationConnector dtoChargingStation)
     {
-        logger.LogTrace("{method}({@dto})", nameof(UpdateChargingStation), dtoChargingStation);
-        var existingChargingStation = await teslaSolarChargerContext.OcppChargingStations.FirstAsync(c => c.Id == dtoChargingStation.Id);
+        logger.LogTrace("{method}({@dto})", nameof(UpdateChargingStationConnector), dtoChargingStation);
+        var existingChargingStation = await teslaSolarChargerContext.OcppChargingStationConnectors.FirstAsync(c => c.Id == dtoChargingStation.Id);
         existingChargingStation.MaxCurrent = dtoChargingStation.MaxCurrent;
         existingChargingStation.AutoSwitchBetween1And3PhasesEnabled = dtoChargingStation.AutoSwitchBetween1And3PhasesEnabled;
         await teslaSolarChargerContext.SaveChangesAsync();

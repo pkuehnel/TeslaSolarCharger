@@ -5,9 +5,9 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.ServerValidators;
 
-public class ChargingStationValidator : Shared.Dtos.ChargingStation.ChargingStationValidator
+public class ChargingStationConnectorValidator : Shared.Dtos.ChargingStation.ChargingStationConnectorValidator
 {
-    public ChargingStationValidator(ITeslaSolarChargerContext teslaSolarChargerContext)
+    public ChargingStationConnectorValidator(ITeslaSolarChargerContext teslaSolarChargerContext)
     {
         When(x => x.AutoSwitchBetween1And3PhasesEnabled, () =>
         {
@@ -15,7 +15,7 @@ public class ChargingStationValidator : Shared.Dtos.ChargingStation.ChargingStat
                 .MustAsync(async (model, propertyValue, context, ct) =>
                 {
                     var canSwitchBetween1And3Phase = await teslaSolarChargerContext.OcppChargingStations
-                        .Where(c => c.Id == model.Id)
+                        .Where(c => c.Id == model.ChargingStationId)
                         .Select(c => c.CanSwitchBetween1And3Phases)
                         .FirstOrDefaultAsync();
                     return canSwitchBetween1And3Phase == true;
