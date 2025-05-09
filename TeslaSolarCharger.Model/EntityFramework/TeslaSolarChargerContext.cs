@@ -33,6 +33,8 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<CarValueLog> CarValueLogs { get; set; } = null!;
     public DbSet<MeterValue> MeterValues { get; set; } = null!;
     public DbSet<SolarRadiation> SolarRadiations { get; set; } = null!;
+    public DbSet<OcppChargingStation> OcppChargingStations { get; set; } = null!;
+    public DbSet<OcppChargingStationConnector> OcppChargingStationConnectors { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 

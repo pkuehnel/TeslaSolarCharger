@@ -1,11 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using PkSoftwareService.Custom.Backend;
-using Serilog.Events;
-using System.Text;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
-using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
@@ -92,5 +88,4 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
         var products = await teslaFleetApiService.GetEnergyLiveStatus(energySiteId);
         return Ok(products.JsonResponse);
     }
-
 }
