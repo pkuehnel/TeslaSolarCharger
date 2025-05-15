@@ -1,5 +1,35 @@
 ﻿@page "/ChargingStations"
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingStation
+
+@inject IChargingStationsService ChargingStationsService
+
+@if (_chargingStations == default)
+{
+
+    <PlaceholderComponent Count="5"></PlaceholderComponent>
+}
+else
+{
+    foreach (var chargingStation in _chargingStations)
+    {
+        <ChargingStationConnectorsComponent ChargingStationId="chargingStation.Id"></ChargingStationConnectorsComponent>
+    }
+}
+
 
 @code {
+    private List<DtoChargingStation>? _chargingStations;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+
+    }
+
+    public async Task RefreshChargingStations()
+    {
+        _chargingStations = await ChargingStationsService.GetChargingStations();
+    }
 }
