@@ -20,8 +20,14 @@ public class ChargingStationsController : ApiBaseController
         return Ok(await _ocppChargingStationConfigurationService.GetChargingStations());
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetChargingStationConnectors(int chargingStationId)
+    {
+        return Ok(await _ocppChargingStationConfigurationService.GetChargingStationConnectors(chargingStationId));
+    }
+
     [HttpPost]
-    public async Task<IActionResult> UpdateChargingStationConnector(DtoChargingStationConnector chargingStationConnector)
+    public async Task<IActionResult> UpdateChargingStationConnector([FromBody] DtoChargingStationConnector chargingStationConnector)
     {
         await _ocppChargingStationConfigurationService.UpdateChargingStationConnector(chargingStationConnector).ConfigureAwait(false);
         return Ok();

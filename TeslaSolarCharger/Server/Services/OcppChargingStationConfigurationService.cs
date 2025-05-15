@@ -28,10 +28,28 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         return chargingStations;
     }
 
+    public async Task<List<DtoChargingStationConnector>> GetChargingStationConnectors(int chargingStationId)
+    {
+        logger.LogTrace("{method}({chargingStationId})", nameof(GetChargingStationConnectors), chargingStationId);
+        var chargingConnectors = await teslaSolarChargerContext.OcppChargingStationConnectors
+            .Where(cc => cc.OcppChargingStationId == chargingStationId)
+            .Select(cc => new DtoChargingStationConnector()
+            {
+                Id = cc.Id,
+                ChargingStationId = cc.OcppChargingStationId,
+                AutoSwitchBetween1And3PhasesEnabled = cc.AutoSwitchBetween1And3PhasesEnabled,
+                MinCurrent = cc.MinCurrent,
+                MaxCurrent = cc.MaxCurrent,
+            })
+            .ToListAsync().ConfigureAwait(false);
+        return chargingConnectors;
+    }
+
     public async Task UpdateChargingStationConnector(DtoChargingStationConnector dtoChargingStation)
     {
         logger.LogTrace("{method}({@dto})", nameof(UpdateChargingStationConnector), dtoChargingStation);
         var existingChargingStation = await teslaSolarChargerContext.OcppChargingStationConnectors.FirstAsync(c => c.Id == dtoChargingStation.Id);
+        existingChargingStation.MinCurrent = dtoChargingStation.MinCurrent;
         existingChargingStation.MaxCurrent = dtoChargingStation.MaxCurrent;
         existingChargingStation.AutoSwitchBetween1And3PhasesEnabled = dtoChargingStation.AutoSwitchBetween1And3PhasesEnabled;
         await teslaSolarChargerContext.SaveChangesAsync();
