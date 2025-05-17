@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -11,6 +12,16 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     IDebugService debugService,
     ITeslaFleetApiService teslaFleetApiService) : ApiBaseController
 {
+
+    private JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
+    {
+        Formatting = Formatting.Indented,
+        Converters = new List<JsonConverter>
+        {
+            new StringEnumConverter(),
+        },
+    };
+
     [HttpGet]
     public IActionResult DownloadLogs()
     {
@@ -57,7 +68,7 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     public async Task<IActionResult> GetFleetTelemetryConfiguration(string vin)
     {
         var config = await fleetTelemetryConfigurationService.GetFleetTelemetryConfiguration(vin);
-        var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
+        var configString = JsonConvert.SerializeObject(config, _serializerSettings);
         return Ok(new DtoValue<string>(configString));
     }
 
@@ -65,7 +76,7 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     public async Task<IActionResult> SetFleetTelemetryConfiguration(string vin, bool forceReconfiguration)
     {
         var config = await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(vin, forceReconfiguration);
-        var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
+        var configString = JsonConvert.SerializeObject(config, _serializerSettings);
         return Ok(new DtoValue<string>(configString));
     }
 
@@ -87,7 +98,23 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     public async Task<IActionResult> StartCharging(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases)
     {
         var result = await debugService.StartCharging(chargepointId, connectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
-        var resultString = JsonConvert.SerializeObject(result, Formatting.Indented);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StopCharging(string chargepointId, int connectorId)
+    {
+        var result = await debugService.StopCharging(chargepointId, connectorId,HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetCurrentAndPhases(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases)
+    {
+        var result = await debugService.SetCurrentAndPhases(chargepointId, connectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }
 
