@@ -9,11 +9,11 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
     IConstants constants,
     IOcppWebSocketConnectionHandlingService ocppWebSocketConnectionHandlingService) : IChargePointActionService
 {
-    public async Task<Result<object?>> StartCharging(string chargepointIdentifier, decimal currentToSet, int numberOfPhases,
+    public async Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargepointIdentifier, decimal currentToSet, int? numberOfPhases,
         CancellationToken cancellationToken)
     {
         //ToDo: set correct transactionIds
-        logger.LogTrace("{method}({chargePointIdentifier}, {currentToSet})", nameof(StartCharging), chargepointIdentifier, currentToSet);
+        logger.LogTrace("{method}({chargePointIdentifier}, {currentToSet}, {numberOfPhases})", nameof(StartCharging), chargepointIdentifier, currentToSet, numberOfPhases);
         string chargePointId;
         int connectorId;
         try
@@ -40,9 +40,9 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
             if(ocppResponse.Status != RemoteStartStopStatus.Accepted)
             {
                 logger.LogError("Error while sending RemoteStartTransaction to charge point {chargePointId}: Not Accepted", chargePointId);
-                return new(null, $"The Charge point {chargePointId} did not accept the request", null);
+                return new(ocppResponse, $"The Charge point {chargePointId} did not accept the request", null);
             }
-            return new Result<object?>(null, null, null);
+            return new(ocppResponse, null, null);
         }
         catch (OcppCallErrorException ex)
         {
@@ -110,9 +110,9 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
         }
     }
 
-    public async Task<Result<object?>> SetChargingCurrent(string chargepointIdentifier, decimal currentToSet, int numberOfPhases, CancellationToken cancellationToken)
+    public async Task<Result<object?>> SetChargingCurrent(string chargepointIdentifier, decimal currentToSet, int? numberOfPhases, CancellationToken cancellationToken)
     {
-        logger.LogTrace("{method}({chargePointIdentifier}, {currentToSet})", nameof(SetChargingCurrent), chargepointIdentifier, currentToSet);
+        logger.LogTrace("{method}({chargePointIdentifier}, {currentToSet}, {numberOfPhases)", nameof(SetChargingCurrent), chargepointIdentifier, currentToSet, numberOfPhases);
         string chargePointId;
         int connectorId;
         try
@@ -194,9 +194,9 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
         return chargePointId;
     }
 
-    private ChargingProfile GenerateChargingProfile(decimal currentToSet, int numberOfPhases, int? transactionId = null)
+    private ChargingProfile GenerateChargingProfile(decimal currentToSet, int? numberOfPhases, int? transactionId = null)
     {
-        logger.LogTrace("{method}({currentToSet})", nameof(GenerateChargingProfile), currentToSet);
+        logger.LogTrace("{method}({currentToSet}, {numberOfPhases}, {transactionId})", nameof(GenerateChargingProfile), currentToSet, numberOfPhases, transactionId);
         var chargingProfile = new ChargingProfile()
         {
             ChargingProfileId = 1,

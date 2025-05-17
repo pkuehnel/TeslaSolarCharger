@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.SharedBackend.Abstracts;
@@ -73,6 +74,21 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     {
         var cars = await debugService.GetCars();
         return Ok(cars);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetChargingConnectors()
+    {
+        var connectors = await debugService.GetChargingConnectors();
+        return Ok(connectors);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StartCharging(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases)
+    {
+        var result = await debugService.StartCharging(chargepointId, connectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, Formatting.Indented);
+        return Ok(new DtoValue<string>(resultString));
     }
 
     [HttpGet]
