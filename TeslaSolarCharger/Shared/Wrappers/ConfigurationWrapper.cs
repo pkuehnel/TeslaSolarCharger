@@ -130,6 +130,20 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool UseFakeEnergyPredictions()
+    {
+        var environmentVariableName = "UseFakeEnergyPredictions";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
+    public bool UseFakeEnergyHistory()
+    {
+        var environmentVariableName = "UseFakeEnergyHistory";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public int MaxTravelSpeedMetersPerSecond()
     {
         var environmentVariableName = "MaxTravelSpeedMetersPerSecond";

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250507164036_AddOccpChargingStations")]
+    partial class AddOccpChargingStations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.3");
@@ -665,6 +668,9 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("ConfigurationVersion")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("MaxCurrent")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.ToTable("OcppChargingStations");
@@ -676,16 +682,7 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("AutoSwitchBetween1And3PhasesEnabled")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("ConnectorId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("MaxCurrent")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("MinCurrent")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("OcppChargingStationId")

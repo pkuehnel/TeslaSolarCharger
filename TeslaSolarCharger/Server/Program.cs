@@ -63,13 +63,17 @@ builder.Services.AddSingleton(inMemoryLevelSwitch);
 var app = builder.Build();
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Verbose()// overall minimum
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("System", LogEventLevel.Error)
-    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
-    .MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
-    .MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
-    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Debug)
+    .MinimumLevel.Error()// overall minimum
+    //.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    //.MinimumLevel.Override("System", LogEventLevel.Error)
+    //.MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+    //.MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
+    //.MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
+    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppWebSocketConnectionHandlingService", LogEventLevel.Verbose)
+    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppChargePointConfigurationService", LogEventLevel.Verbose)
+    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppChargingStationConfigurationService", LogEventLevel.Verbose)
+    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.ChargepointAction.OcppChargePointActionService", LogEventLevel.Verbose)
+    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Verbose)
     // Send events to the in–memory sink using a sub–logger and the dynamic level switch.
     .WriteTo.Logger(lc => lc
         .MinimumLevel.ControlledBy(inMemoryLevelSwitch)
@@ -111,6 +115,22 @@ app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseWhen(
+    ctx => ctx.Request.Path.StartsWithSegments("/api/ocpp"),
+    branch => branch.Use(async (ctx, next) =>
+    {
+        var state = ctx.RequestServices.GetRequiredService<ISettings>();
+        if (!state.IsStartupCompleted)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await ctx.Response.WriteAsync("OCPP endpoint not ready");
+            return;
+        }
+        await next();
+    })
+);
+
+app.UseWebSockets();
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
