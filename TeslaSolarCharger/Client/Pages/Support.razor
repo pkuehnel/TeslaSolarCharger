@@ -137,17 +137,17 @@ else
                 <div class="row">
                     <div class="col">
                         <RightAlignedButtonComponent ButtonText="Start Charging"
-                                                     IsLoading="@_loadingOcppCommands.Any(x => x == connector.Key)"
+                                                     IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                      OnButtonClicked="@(() => StartCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
                     </div>
                     <div class="col">
                         <RightAlignedButtonComponent ButtonText="Stop Charging"
-                                                     IsLoading="@_loadingOcppCommands.Any(x => x == connector.Key)"
+                                                     IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                      OnButtonClicked="@(() => StopCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
                     </div>
                     <div class="col">
                         <RightAlignedButtonComponent ButtonText="Set Current and Phases"
-                                                     IsLoading="@_loadingOcppCommands.Any(x => x == connector.Key)"
+                                                     IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                      OnButtonClicked="@(() => SetCurrentAndPhases(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
                     </div>
                 </div>
