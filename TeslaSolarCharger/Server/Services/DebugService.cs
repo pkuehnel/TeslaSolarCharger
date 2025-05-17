@@ -3,16 +3,49 @@ using PkSoftwareService.Custom.Backend;
 using Serilog.Events;
 using System.Text;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.Ocpp;
+using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Support;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class DebugService(ILogger<DebugService> logger,
     ITeslaSolarChargerContext context,
     IInMemorySink inMemorySink,
-    Serilog.Core.LoggingLevelSwitch inMemoryLogLevelSwitch) : IDebugService
+    Serilog.Core.LoggingLevelSwitch inMemoryLogLevelSwitch,
+    IChargePointActionService chargePointActionService,
+    IConstants constants) : IDebugService
 {
+    public async Task<Dictionary<int, DtoDebugChargingConnector>> GetChargingConnectors()
+    {
+        logger.LogTrace("{method}()", nameof(GetChargingConnectors));
+        var connectors = await context.OcppChargingStationConnectors
+            .Include(x => x.OcppChargingStation)
+            .ToDictionaryAsync(x => x.Id, x => new DtoDebugChargingConnector(x.OcppChargingStation.ChargepointId)
+            {
+                ConnectorId = x.ConnectorId,
+            }).ConfigureAwait(false);
+        logger.LogDebug("Found {connectorCount} connectors", connectors.Count);
+        return connectors;
+    }
+
+    public async Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases,
+        CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargepointIdentifier}, {connectorId}, {currentToSet}, {numberOfPhases})", nameof(StartCharging),
+            chargepointId, connectorId, currentToSet, numberOfPhases);
+        
+        var result = await chargePointActionService.StartCharging(
+            chargepointId + constants.OcppChargePointConnectorIdDelimiter + connectorId,
+            currentToSet,
+            numberOfPhases,
+            cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
     public async Task<Dictionary<int, DtoDebugCar>> GetCars()
     {
         logger.LogTrace("{method}", nameof(GetCars));
