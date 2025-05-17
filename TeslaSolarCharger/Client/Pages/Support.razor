@@ -109,6 +109,48 @@ else
     </MudExpansionPanels>
 }
 
+<h3>Charging station debug details</h3>
+@if (_debugChargingConnectors == default)
+{
+    <PlaceholderComponent Count="3"></PlaceholderComponent>
+}
+else
+{
+    <MudExpansionPanels MultiExpansion="true">
+        @foreach (var connector in _debugChargingConnectors)
+        {
+            <MudExpansionPanel Text="@($"{connector.Value.ChargePointId} Connector: {connector.Value.ConnectorId}")">
+                <div>ID: @connector.Key</div>
+                <div class="row">
+                    <div class="col">
+                        <GenericInput For="() => _chargingCurrentsToSet[connector.Key].Value"
+                                      LabelName="Charging Current to set"
+                                      HelperText="When starting a charge or changing the current, this value will be used"></GenericInput>
+                    </div>
+                    <div class="col">
+                        <GenericInput For="() => _chargingPhasesToSet[connector.Key].Value"
+                                      LabelName="Charging Phases to set"
+                                      HelperText="When starting a charge or changing the current, this value will be used. Note: The charger might reject the request if it does not support phase switching or you enter 3 on a charger that is only connected to one phase. Leave empty to not set the value for the charger."></GenericInput>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col">
+                        <RightAlignedButtonComponent ButtonText="Start Charging"
+                                                     IsLoading="@_loadingOcppCommands.Any(x => x == connector.Key)"
+                                                     OnButtonClicked="@(() => StartCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
+                    </div>
+                </div>
+                @if (_commandResults.TryGetValue(connector.Key, out var result))
+                {
+                    <h4>Command Result: </h4>
+                    <pre>@result</pre>
+                }
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
 
 
 @code {
@@ -117,8 +159,14 @@ else
     private readonly Dictionary<string, string> _fleetTelemetrySetResults = new();
 
     private Dictionary<int, DtoDebugCar>? _debugCars;
-
     private bool _isFleetTelemetryLoading;
+
+    private Dictionary<int, DtoDebugChargingConnector>? _debugChargingConnectors;
+    private readonly HashSet<int> _loadingOcppCommands = new();
+    private readonly Dictionary<int, DtoValue<decimal>> _chargingCurrentsToSet = new();
+    private readonly Dictionary<int, DtoValue<int?>> _chargingPhasesToSet = new();
+    private readonly Dictionary<int, string> _commandResults = new();
+
 
     private DtoValue<string>? _logLevel;
     private string? _logLevelSetErrorMessage;
@@ -142,8 +190,26 @@ else
         {
             _debugCars = cars;
         }
+        await RefreshChargingConnectors();
         _logLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetLogLevel");
         _logCapacity = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<int>>("api/Debug/GetLogCapacity");
+    }
+
+    private async Task RefreshChargingConnectors()
+    {
+        var connectors = await HttpClientHelper.SendGetRequestWithSnackbarAsync<Dictionary<int, DtoDebugChargingConnector>>("api/Debug/GetChargingConnectors");
+        if (connectors != default)
+        {
+            _chargingCurrentsToSet.Clear();
+            _chargingPhasesToSet.Clear();
+            var defaultChargingCurrent = 6;
+            foreach (var connector in connectors)
+            {
+                _chargingCurrentsToSet.Add(connector.Key, new(defaultChargingCurrent));
+                _chargingPhasesToSet.Add(connector.Key, new(null));
+            }
+            _debugChargingConnectors = connectors;
+        }
     }
 
 
@@ -226,6 +292,17 @@ else
             return;
         }
         Snackbar.Add("Log capacity updated", Severity.Success);
+    }
+
+    private async Task StartCharging(string chargePointId, int connectorId, int connectorKey)
+    {
+        _loadingOcppCommands.Add(connectorKey);
+        var currentToSet = _chargingCurrentsToSet[connectorKey].Value;
+        var phasesToSet = _chargingPhasesToSet[connectorKey].Value;
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
+            $"api/Debug/StartCharging?chargepointId={chargePointId}&connectorId={connectorId}&currentToSet={currentToSet}&numberOfPhases={phasesToSet}", null);
+        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _loadingOcppCommands.Remove(connectorKey);
     }
 
 }
