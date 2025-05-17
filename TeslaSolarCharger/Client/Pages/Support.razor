@@ -133,24 +133,35 @@ else
                                       HelperText="When starting a charge or changing the current, this value will be used. Note: The charger might reject the request if it does not support phase switching or you enter 3 on a charger that is only connected to one phase. Leave empty to not set the value for the charger."></GenericInput>
                     </div>
                 </div>
-                
-                <div class="row">
-                    <div class="col">
-                        <RightAlignedButtonComponent ButtonText="Start Charging"
-                                                     IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
-                                                     OnButtonClicked="@(() => StartCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
-                    </div>
-                    <div class="col">
-                        <RightAlignedButtonComponent ButtonText="Stop Charging"
-                                                     IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
-                                                     OnButtonClicked="@(() => StopCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
-                    </div>
-                    <div class="col">
-                        <RightAlignedButtonComponent ButtonText="Set Current and Phases"
-                                                     IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
-                                                     OnButtonClicked="@(() => SetCurrentAndPhases(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
-                    </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <RightAlignedButtonComponent ButtonText="Start Charging"
+                                                 IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
+                                                 OnButtonClicked="@(() => StartCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Stop Charging"
+                                                 IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
+                                                 OnButtonClicked="@(() => StopCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Set Current and Phases"
+                                                 IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
+                                                 OnButtonClicked="@(() => SetCurrentAndPhases(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
                 </div>
+                <hr/>
+                <div class="d-flex flex-wrap gap-2">
+                    <RightAlignedButtonComponent ButtonText="Get Configuration Keys"
+                                                 IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
+                                                 OnButtonClicked="@(() => GetConfigurationKeys(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Set Meter data configuration"
+                                                 IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
+                                                 OnButtonClicked="@(() => SetMeterDataConfiguration(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Set Meter interval Configuration"
+                                                 IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
+                                                 OnButtonClicked="@(() => SetMeterIntervalConfiguration(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Reboot Charger"
+                                                 IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
+                                                 OnButtonClicked="@(() => RebootCharger(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
+                </div>
+                
+
                 @if (_commandResults.TryGetValue(connector.Key, out var result))
                 {
                     <h4>Command Result: </h4>
@@ -334,4 +345,41 @@ else
         _commandResults[connectorKey] = result.Data?.Value ?? "No data";
         _loadingOcppCommands.Remove(connectorKey);
     }
+
+    private async Task GetConfigurationKeys(string chargePointId, int connectorKey)
+    {
+        _loadingOcppCommands.Add(connectorKey);
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>(
+            $"api/Debug/GetChargePointConfigurationKeys?chargepointId={chargePointId}");
+        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _loadingOcppCommands.Remove(connectorKey);
+    }
+
+    private async Task SetMeterDataConfiguration(string chargePointId, int connectorKey)
+    {
+        _loadingOcppCommands.Add(connectorKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
+            $"api/Debug/SetMeterValuesSampledDataConfiguration?chargepointId={chargePointId}", null);
+        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _loadingOcppCommands.Remove(connectorKey);
+    }
+
+    private async Task SetMeterIntervalConfiguration(string chargePointId, int connectorKey)
+    {
+        _loadingOcppCommands.Add(connectorKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
+            $"api/Debug/SetMeterValuesSampleIntervalConfiguration?chargepointId={chargePointId}", null);
+        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _loadingOcppCommands.Remove(connectorKey);
+    }
+
+    private async Task RebootCharger(string chargePointId, int connectorKey)
+    {
+        _loadingOcppCommands.Add(connectorKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
+            $"api/Debug/RebootCharger?chargepointId={chargePointId}", null);
+        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _loadingOcppCommands.Remove(connectorKey);
+    }
+
 }
