@@ -1,7 +1,6 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.ChargingStation
-<h3>ChargingConnectorEditComponent</h3>
 
 @inject IChargingStationsService ChargingStationsService
 @inject ISnackbar Snackbar
@@ -12,30 +11,41 @@
 }
 else
 {
-    foreach (var chargingStationConnector in _chargingStationConnectors)
-    {
-        <EditFormComponent T="DtoChargingStationConnector" WrappedElement="@(chargingStationConnector)"
-                           OnAfterSuccessfullSubmit="ShowSuccessMessage"
-                           SubmitUrl="@($"api/ChargingStations/UpdateChargingStationConnector")">
-            @if (chargingStationConnector.Item.MinCurrent < 6)
-            {
-                <MudAlert Severity="Severity.Warning"
-                          NoIcon="true"
-                          ContentAlignment="HorizontalAlignment.Left">
-                    <h5>Current below 6A not recommended</h5>
-                    The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result int unexpected behaviour like the car not charging at all.
-                </MudAlert>
-            }
-            <GenericInput For="() => chargingStationConnector.Item.MinCurrent"></GenericInput>
-            <GenericInput For="() => chargingStationConnector.Item.MaxCurrent"></GenericInput>
-            <GenericInput For="() => chargingStationConnector.Item.AutoSwitchBetween1And3PhasesEnabled"></GenericInput>
-        </EditFormComponent>
-    }
+    <MudExpansionPanels>
+        @foreach (var chargingStationConnector in _chargingStationConnectors)
+        {
+            <MudExpansionPanel Text="@($"Connector {chargingStationConnector.Item.ConnectorId}")">
+                <EditFormComponent T="DtoChargingStationConnector" WrappedElement="@(chargingStationConnector)"
+                                   OnAfterSuccessfullSubmit="ShowSuccessMessage"
+                                   SubmitUrl="@($"api/ChargingStations/UpdateChargingStationConnector")">
+                    @if (chargingStationConnector.Item.MinCurrent < 6)
+                    {
+                        <MudAlert Severity="Severity.Warning"
+                                  NoIcon="true"
+                                  ContentAlignment="HorizontalAlignment.Left">
+                            <h5>Current below 6A not recommended</h5>
+                            The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result int unexpected behaviour like the car not charging at all.
+                        </MudAlert>
+                    }
+                    <GenericInput For="() => chargingStationConnector.Item.MinCurrent"></GenericInput>
+                    <GenericInput For="() => chargingStationConnector.Item.MaxCurrent"></GenericInput>
+                    @if (AutoPhaseSwitchingSupported)
+                    {
+                        <GenericInput For="() => chargingStationConnector.Item.AutoSwitchBetween1And3PhasesEnabled"></GenericInput>
+                    }
+
+                </EditFormComponent>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+
 }
 
 @code {
     [Parameter]
     public int? ChargingStationId { get; set; }
+    [Parameter]
+    public bool AutoPhaseSwitchingSupported { get; set; }
 
     private List<EditableItem<DtoChargingStationConnector>>? _chargingStationConnectors;
 

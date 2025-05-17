@@ -4,16 +4,36 @@
 
 @inject IChargingStationsService ChargingStationsService
 
+<h1>Charging Stations</h1>
+
+<MudAlert Severity="Severity.Info"
+          NoIcon="true"
+          ContentAlignment="HorizontalAlignment.Left">
+    <h5>How to connect a new Charging station</h5>
+    <div>Charging stations are added automatically as soon as they connect via OCPP.</div>
+    <div>To connect, set the OCPP URL to the following: <code>ws://YOUR-TSC-IP:7190/api/Ocpp/</code> followed by a charging point ID.</div>
+    <div>Note: Many charging stations automatically add a charging point ID to the url, just make sure, that the resulting URL looks similar to the following example. Mind the single <code>/</code> after <code>Ocpp</code></div>
+    <div><code>ws://192.168.178.36:7190/api/Ocpp/C00485L</code></div>
+</MudAlert>
+
 @if (_chargingStations == default)
 {
 
     <PlaceholderComponent Count="5"></PlaceholderComponent>
 }
+else if (_chargingStations.Count == 0)
+{
+    <h3>No charging stations found</h3>
+}
 else
 {
     foreach (var chargingStation in _chargingStations)
     {
-        <ChargingStationConnectorsComponent ChargingStationId="chargingStation.Id"></ChargingStationConnectorsComponent>
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            <h3>@chargingStation.ChargepointId</h3>
+            <ChargingStationConnectorsComponent ChargingStationId="chargingStation.Id"
+                                                AutoPhaseSwitchingSupported="@(chargingStation.CanSwitchBetween1And3Phases == true)"></ChargingStationConnectorsComponent>
+        </div>
     }
 }
 
@@ -24,11 +44,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
+        await RefreshChargingStations();
 
     }
 
-    public async Task RefreshChargingStations()
+    private async Task RefreshChargingStations()
     {
         _chargingStations = await ChargingStationsService.GetChargingStations();
     }
