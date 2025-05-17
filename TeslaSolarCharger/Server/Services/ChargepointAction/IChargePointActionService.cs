@@ -7,7 +7,7 @@ public interface IChargePointActionService
 {
     Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargepointIdentifier, decimal currentToSet, int? numberOfPhases,
         CancellationToken cancellationToken);
-    Task<Result<object?>> StopCharging(string chargepointIdentifier, CancellationToken cancellationToken);
-    Task<Result<object?>> SetChargingCurrent(string chargepointIdentifier, decimal currentToSet, int? numberOfPhases,
+    Task<Result<RemoteStopTransactionResponse?>> StopCharging(string chargepointIdentifier, CancellationToken cancellationToken);
+    Task<Result<SetChargingProfileResponse?>> SetChargingCurrent(string chargepointIdentifier, decimal currentToSet, int? numberOfPhases,
         CancellationToken cancellationToken);
 }
