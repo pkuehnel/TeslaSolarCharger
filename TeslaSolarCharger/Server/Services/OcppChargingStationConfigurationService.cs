@@ -33,10 +33,12 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         logger.LogTrace("{method}({chargingStationId})", nameof(GetChargingStationConnectors), chargingStationId);
         var chargingConnectors = await teslaSolarChargerContext.OcppChargingStationConnectors
             .Where(cc => cc.OcppChargingStationId == chargingStationId)
+            .OrderBy(c => c.ConnectorId)
             .Select(cc => new DtoChargingStationConnector()
             {
                 Id = cc.Id,
                 ChargingStationId = cc.OcppChargingStationId,
+                ConnectorId = cc.ConnectorId,
                 AutoSwitchBetween1And3PhasesEnabled = cc.AutoSwitchBetween1And3PhasesEnabled,
                 MinCurrent = cc.MinCurrent,
                 MaxCurrent = cc.MaxCurrent,
