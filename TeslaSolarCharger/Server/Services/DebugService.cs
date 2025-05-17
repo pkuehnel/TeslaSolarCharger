@@ -32,14 +32,36 @@ public class DebugService(ILogger<DebugService> logger,
         return connectors;
     }
 
-    public async Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases,
+    public async Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargePointId, int connectorId, decimal currentToSet, int? numberOfPhases,
         CancellationToken cancellationToken)
     {
-        logger.LogTrace("{method}({chargepointIdentifier}, {connectorId}, {currentToSet}, {numberOfPhases})", nameof(StartCharging),
-            chargepointId, connectorId, currentToSet, numberOfPhases);
+        logger.LogTrace("{method}({chargePointId}, {connectorId}, {currentToSet}, {numberOfPhases})", nameof(StartCharging),
+            chargePointId, connectorId, currentToSet, numberOfPhases);
         
         var result = await chargePointActionService.StartCharging(
-            chargepointId + constants.OcppChargePointConnectorIdDelimiter + connectorId,
+            chargePointId + constants.OcppChargePointConnectorIdDelimiter + connectorId,
+            currentToSet,
+            numberOfPhases,
+            cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    public async Task<Result<RemoteStopTransactionResponse?>> StopCharging(string chargePointId, int connectorId, CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargePointId}, {connectorId})", nameof(StopCharging), chargePointId, connectorId);
+        var result = await chargePointActionService.StopCharging(
+            chargePointId + constants.OcppChargePointConnectorIdDelimiter + connectorId, cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    public async Task<Result<SetChargingProfileResponse?>> SetCurrentAndPhases(string chargePointId, int connectorId, decimal currentToSet, int? numberOfPhases,
+        CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargePointId}, {connectorId}, {currentToSet}, {numberOfPhases})", nameof(SetCurrentAndPhases),
+            chargePointId, connectorId, currentToSet, numberOfPhases);
+
+        var result = await chargePointActionService.SetChargingCurrent(
+            chargePointId + constants.OcppChargePointConnectorIdDelimiter + connectorId,
             currentToSet,
             numberOfPhases,
             cancellationToken).ConfigureAwait(false);

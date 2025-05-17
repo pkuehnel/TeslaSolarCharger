@@ -140,6 +140,16 @@ else
                                                      IsLoading="@_loadingOcppCommands.Any(x => x == connector.Key)"
                                                      OnButtonClicked="@(() => StartCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
                     </div>
+                    <div class="col">
+                        <RightAlignedButtonComponent ButtonText="Stop Charging"
+                                                     IsLoading="@_loadingOcppCommands.Any(x => x == connector.Key)"
+                                                     OnButtonClicked="@(() => StopCharging(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
+                    </div>
+                    <div class="col">
+                        <RightAlignedButtonComponent ButtonText="Set Current and Phases"
+                                                     IsLoading="@_loadingOcppCommands.Any(x => x == connector.Key)"
+                                                     OnButtonClicked="@(() => SetCurrentAndPhases(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
+                    </div>
                 </div>
                 @if (_commandResults.TryGetValue(connector.Key, out var result))
                 {
@@ -305,4 +315,23 @@ else
         _loadingOcppCommands.Remove(connectorKey);
     }
 
+    private async Task StopCharging(string chargePointId, int connectorId, int connectorKey)
+    {
+        _loadingOcppCommands.Add(connectorKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
+            $"api/Debug/StopCharging?chargepointId={chargePointId}&connectorId={connectorId}", null);
+        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _loadingOcppCommands.Remove(connectorKey);
+    }
+
+    private async Task SetCurrentAndPhases(string chargePointId, int connectorId, int connectorKey)
+    {
+        _loadingOcppCommands.Add(connectorKey);
+        var currentToSet = _chargingCurrentsToSet[connectorKey].Value;
+        var phasesToSet = _chargingPhasesToSet[connectorKey].Value;
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
+            $"api/Debug/SetCurrentAndPhases?chargepointId={chargePointId}&connectorId={connectorId}&currentToSet={currentToSet}&numberOfPhases={phasesToSet}", null);
+        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _loadingOcppCommands.Remove(connectorKey);
+    }
 }

@@ -14,6 +14,11 @@ public interface IDebugService
     int GetLogCapacity();
     Task<Dictionary<int, DtoDebugChargingConnector>> GetChargingConnectors();
 
-    Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases,
+    Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargePointId, int connectorId, decimal currentToSet, int? numberOfPhases,
+        CancellationToken cancellationToken);
+
+    Task<Result<RemoteStopTransactionResponse?>> StopCharging(string chargePointId, int connectorId, CancellationToken cancellationToken);
+
+    Task<Result<SetChargingProfileResponse?>> SetCurrentAndPhases(string chargePointId, int connectorId, decimal currentToSet, int? numberOfPhases,
         CancellationToken cancellationToken);
 }
