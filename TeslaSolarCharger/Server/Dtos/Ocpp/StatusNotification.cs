@@ -13,7 +13,7 @@ public enum ChargePointStatus
     Finishing,
     Reserved,
     Unavailable,
-    Faulted
+    Faulted,
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -34,7 +34,7 @@ public enum ChargePointErrorCode
     ResetFailure,
     UnderVoltage,
     OverVoltage,
-    WeakSignal
+    WeakSignal,
 }
 
 // ---------------------------------------------------------------------

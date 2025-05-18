@@ -27,44 +27,7 @@ public enum StopReason
     OvercurrentFailure
 }
 
-// The following two records reproduce the MeterValue / SampledValue
-// objects used in transactionData (tables 56‑58).  Only the required
-// fields are marked non‑nullable.  Extend as needed.
 
-public sealed record SampledValue
-{
-    [JsonPropertyName("value")]
-    public string Value { get; init; } = default!;            // required
-
-    // optional fields -----------------------------------------------------
-    [JsonPropertyName("context")]
-    public string? Context { get; init; }
-
-    [JsonPropertyName("format")]
-    public string? Format { get; init; }
-
-    [JsonPropertyName("measurand")]
-    public string? Measurand { get; init; }
-
-    [JsonPropertyName("phase")]
-    public string? Phase { get; init; }
-
-    [JsonPropertyName("location")]
-    public string? Location { get; init; }
-
-    [JsonPropertyName("unit")]
-    public string? Unit { get; init; }
-}
-
-public sealed record MeterValue
-{
-    [JsonPropertyName("timestamp")]
-    public DateTime TimestampUtc { get; init; }               // required
-
-    [JsonPropertyName("sampledValue")]
-    public IList<SampledValue> SampledValue { get; init; } =
-        new List<SampledValue>();                            // ≥ 1 required
-}
 
 // ──────────────────────────────────────────────────────────────────────
 //  StopTransaction.req  (charge point → central system)
