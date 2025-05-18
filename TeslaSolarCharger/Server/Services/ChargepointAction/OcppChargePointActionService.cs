@@ -1,4 +1,6 @@
-﻿using TeslaSolarCharger.Server.Dtos;
+﻿using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
@@ -7,12 +9,12 @@ namespace TeslaSolarCharger.Server.Services.ChargepointAction;
 
 public class OcppChargePointActionService(ILogger<OcppChargePointActionService> logger,
     IConstants constants,
-    IOcppWebSocketConnectionHandlingService ocppWebSocketConnectionHandlingService) : IChargePointActionService
+    IOcppWebSocketConnectionHandlingService ocppWebSocketConnectionHandlingService,
+    ITeslaSolarChargerContext context) : IChargePointActionService
 {
     public async Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargepointIdentifier, decimal currentToSet, int? numberOfPhases,
         CancellationToken cancellationToken)
     {
-        //ToDo: set correct transactionIds
         logger.LogTrace("{method}({chargePointIdentifier}, {currentToSet}, {numberOfPhases})", nameof(StartCharging), chargepointIdentifier, currentToSet, numberOfPhases);
         string chargePointId;
         int connectorId;
@@ -76,9 +78,10 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
             return new(null, ex.Message, null);
         }
 
+        var transactionId = await GetTransactionId(chargePointId, connectorId, cancellationToken).ConfigureAwait(false);
         var remoteStartTransaction = new RemoteStopTransactionRequest()
         {
-            TransactionId = 1,//ToDo: Get the transaction id from the database
+            TransactionId = transactionId,
         };
         try
         {
@@ -123,10 +126,12 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
         {
             return new(null, ex.Message, null);
         }
+
+        var transactionId = await GetTransactionId(chargePointId, connectorId, cancellationToken).ConfigureAwait(false);
         var setChargingProfile = new SetChargingProfileRequest()
         {
             ConnectorId = connectorId,
-            CsChargingProfiles = GenerateChargingProfile(currentToSet, numberOfPhases, 1),
+            CsChargingProfiles = GenerateChargingProfile(currentToSet, numberOfPhases, transactionId),
         };
         try
         {
@@ -156,6 +161,18 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
             logger.LogError(ex, "Could not send message to charge point {chargePointId} or charge point did not answer properly", chargePointId);
             return new(null, ex.Message, null);
         }
+    }
+
+    private async Task<int> GetTransactionId(string chargepointIdentifier, int connectorId, CancellationToken cancellationToken)
+    {
+        var transactionId = await context.OcppTransactions
+            .Where(t => t.EndDate == null
+                        && t.ChargingStationConnector.OcppChargingStation.ChargepointId == chargepointIdentifier
+                        && t.ChargingStationConnector.ConnectorId == connectorId)
+            .OrderByDescending(t => t.Id)
+            .Select(t => t.Id)
+            .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        return transactionId;
     }
 
     private string GetChargePointAndConnectorId(string chargepointIdentifier, out int connectorId)

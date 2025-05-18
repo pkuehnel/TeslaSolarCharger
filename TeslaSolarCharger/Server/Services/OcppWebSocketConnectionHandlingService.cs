@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
@@ -8,9 +8,10 @@ using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
 using System.Text.Json.Serialization;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -19,7 +20,8 @@ namespace TeslaSolarCharger.Server.Services;
 public sealed class OcppWebSocketConnectionHandlingService(
         ILogger<OcppWebSocketConnectionHandlingService> logger,
         IConstants constants,
-        IServiceProvider serviceProvider) : IOcppWebSocketConnectionHandlingService
+        IServiceProvider serviceProvider,
+        IDateTimeProvider dateTimeProvider) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private TimeSpan RoundTripTimeout => _sendTimeout * 2;
@@ -108,27 +110,27 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 else
                 {
                     var messageTypeIdInt = root[0].GetInt32();
-                    var uniqueId = root[1].GetString()!;
+                    var uniqueMessageId = root[1].GetString()!;
                     if (!TryGetMessageType(messageTypeIdInt, out var messageTypeId))
                     {
-                        responseString = BuildError("FormationViolation", "Message Type ID is undefined", uniqueId, null);
+                        responseString = BuildError("FormationViolation", "Message Type ID is undefined", uniqueMessageId, null);
                     }
                     else
                     {
                         switch (messageTypeId)
                         {
                             case MessageTypeId.Call:
-                                responseString = HandleIncomingCall(uniqueId, root);
+                                responseString = await HandleIncomingCall(dto.ChargePointId, uniqueMessageId, root);
                                 break;
                             case MessageTypeId.CallResult:
-                                if (dto.Pending.TryRemove(uniqueId, out var tcsOk))
+                                if (dto.Pending.TryRemove(uniqueMessageId, out var tcsOk))
                                 {
                                     // index 2 holds the payload for CALLRESULT
                                     tcsOk.TrySetResult(root[2]);
                                 }
                                 break;
                             case MessageTypeId.CallError:
-                                if (dto.Pending.TryRemove(uniqueId, out var tcsErr))
+                                if (dto.Pending.TryRemove(uniqueMessageId, out var tcsErr))
                                 {
                                     var code = root[2].GetString();
                                     var desc = root[3].GetString();
@@ -229,7 +231,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
     /// <summary>
     /// Inspects an incoming OCPP frame and returns the JSON to send back.
     /// </summary>
-    private string HandleIncomingCall(string uniqueId, JsonElement root)
+    private async Task<string> HandleIncomingCall(string chargePointId, string uniqueMessageId, JsonElement root)
     {
         var action = root[2].GetString()!;
         var payload = root.GetArrayLength() >= 4 ? root[3] : default;
@@ -237,15 +239,15 @@ public sealed class OcppWebSocketConnectionHandlingService(
         // 3) Dispatch by action -----------------------------------------------
         return action switch
         {
-            "BootNotification" => HandleBootNotification(uniqueId, payload),
-            "Heartbeat" => HandleHeartbeat(uniqueId),
-            "StatusNotification" => HandleStatusNotification(uniqueId, payload),
-            "StartTransaction" => HandleStartTransaction(uniqueId, payload),
-            "StopTransaction" => HandleStopTransaction(uniqueId, payload),
-            "MeterValues" => HandleMeterValues(uniqueId, payload),
-            "Authorize" => HandleAuthorize(uniqueId, payload),
+            "BootNotification" => HandleBootNotification(uniqueMessageId, payload),
+            "Heartbeat" => HandleHeartbeat(uniqueMessageId),
+            "StatusNotification" => HandleStatusNotification(uniqueMessageId, payload),
+            "StartTransaction" => await HandleStartTransaction(chargePointId, uniqueMessageId, payload),
+            "StopTransaction" => await HandleStopTransaction(uniqueMessageId, payload),
+            "MeterValues" => HandleMeterValues(uniqueMessageId, payload),
+            "Authorize" => HandleAuthorize(uniqueMessageId, payload),
             _ => BuildError("NotSupported", $"Action '{action}' not supported",
-                uniqueId, null),
+                uniqueMessageId, null),
         };
     }
 
@@ -296,17 +298,46 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var envelope = new CallResult<StatusNotificationResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
-    private string HandleStartTransaction(string uniqueId, JsonElement payload)
+    private async Task<string> HandleStartTransaction(string chargePointId, string uniqueId, JsonElement payload)
     {
         // a) Deserialize the request payload
         var req = payload.Deserialize<StartTransactionRequest>(JsonOpts);
 
-        // TODO: validate req & maybe persist CP information here … here at charge point level
+        if (req == default)
+        {
+            throw new OcppCallErrorException("FormationViolation", "StartTransaction payload is malformed");
+        }
+
+        using var scope = serviceProvider.CreateScope();
+        var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var openTransactions = await scopedContext.OcppTransactions
+            .Where(t => t.ChargingStationConnector.OcppChargingStation.ChargepointId == chargePointId
+                        && t.ChargingStationConnector.ConnectorId == req.ConnectorId
+                        && t.EndDate == null)
+            .ToListAsync().ConfigureAwait(false);
+        var stopDate = new DateTimeOffset(req.TimestampUtc, TimeSpan.Zero).AddSeconds(-1);
+        foreach (var openTransaction in openTransactions)
+        {
+            openTransaction.EndDate = stopDate;
+        }
+        await scopedContext.SaveChangesAsync();
+
+        var chargingStationConnector = await scopedContext.OcppChargingStationConnectors
+            .Where(c => c.OcppChargingStation.ChargepointId == chargePointId
+                        && c.ConnectorId == req.ConnectorId)
+            .FirstAsync().ConfigureAwait(false);
+        var ocppTransaction = new OcppTransaction()
+        {
+            StartDate = new DateTimeOffset(req.TimestampUtc, TimeSpan.Zero),
+            ChargingStationConnectorId = chargingStationConnector.Id,
+        };
+        scopedContext.OcppTransactions.Add(ocppTransaction);
+        await scopedContext.SaveChangesAsync().ConfigureAwait(false);
 
         // b) Build the response payload
         var respPayload = new StartTransactionResponse()
         {
-            TransactionId = 1, // TODO: SaveToDb
+            TransactionId = ocppTransaction.Id,
             IdTagInfo = new IdTagInfo
             {
                 Status = AuthorizationStatus.Accepted,
@@ -318,12 +349,22 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private string HandleStopTransaction(string uniqueId, JsonElement payload)
+    private async Task<string> HandleStopTransaction(string uniqueId, JsonElement payload)
     {
         // a) Deserialize the request payload
         var req = payload.Deserialize<StopTransactionRequest>(JsonOpts);
 
-        // TODO: validate req & maybe persist CP information here … here at charge point level
+        if (req == default)
+        {
+            throw new OcppCallErrorException("FormationViolation", "StopTransaction payload is malformed");
+        }
+
+        using var scope = serviceProvider.CreateScope();
+        var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var ocppTransaction = await scopedContext.OcppTransactions
+            .FirstAsync(t => t.Id == req.TransactionId);
+        ocppTransaction.EndDate = new DateTimeOffset(req.TimestampUtc, TimeSpan.Zero);
+        await scopedContext.SaveChangesAsync().ConfigureAwait(false);
 
         // b) Build the response payload
         var respPayload = new StopTransactionResponse()
