@@ -209,29 +209,6 @@ public sealed record SetChargingProfileResponse
     public ChargingProfileStatus Status { get; init; }
 }
 
-
-// ──────────────────────────────────────────────────────────────────────
-//  MeterValues.req  (charge point → central system)
-// ──────────────────────────────────────────────────────────────────────
-
-public sealed record MeterValuesRequest
-{
-    // required ------------------------------------------------------------
-    [JsonPropertyName("connectorId")]
-    public int ConnectorId { get; init; }
-
-    [JsonPropertyName("meterValue")]
-    public IList<MeterValue> MeterValue { get; init; } =
-        new List<MeterValue>();                          // ≥ 1 required
-
-    // optional ------------------------------------------------------------
-    /// <summary>
-    /// ID of the running transaction these values belong to.
-    /// </summary>
-    [JsonPropertyName("transactionId")]
-    public int? TransactionId { get; init; }
-}
-
 // ──────────────────────────────────────────────────────────────────────
 //  MeterValues.conf  (central system → charge point)
 //  – the specification defines an empty payload.
