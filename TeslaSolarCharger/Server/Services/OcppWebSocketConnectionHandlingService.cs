@@ -378,7 +378,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private string HandleMeterValues(string uniqueId, JsonElement payload)
+    internal string HandleMeterValues(string uniqueId, JsonElement payload)
     {
         // a) Deserialize the request payload
         var req = payload.Deserialize<MeterValuesRequest>(JsonOpts);
