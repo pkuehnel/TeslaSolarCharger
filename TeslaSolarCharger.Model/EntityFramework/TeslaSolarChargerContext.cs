@@ -35,6 +35,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<SolarRadiation> SolarRadiations { get; set; } = null!;
     public DbSet<OcppChargingStation> OcppChargingStations { get; set; } = null!;
     public DbSet<OcppChargingStationConnector> OcppChargingStationConnectors { get; set; } = null!;
+    public DbSet<OcppTransaction> OcppTransactions { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -123,9 +124,9 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             c => c.ToList() // Makes a snapshot copy
         );
 
-        var dateTimeOffsetToEpochMilliSecondsConverter = new ValueConverter<DateTimeOffset, long>(
-            v => v.ToUnixTimeMilliseconds(),
-            v => DateTimeOffset.FromUnixTimeMilliseconds(v)
+        var dateTimeOffsetToEpochMilliSecondsConverter = new ValueConverter<DateTimeOffset?, long?>(
+            v => v == default ? default : v.Value.ToUnixTimeMilliseconds(),
+            v => v == default ? default : DateTimeOffset.FromUnixTimeMilliseconds(v.Value)
             );
 
         modelBuilder.Entity<MeterValue>()
@@ -142,6 +143,14 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
         modelBuilder.Entity<SolarRadiation>()
             .Property(m => m.CreatedAt)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<OcppTransaction>()
+            .Property(m => m.StartDate)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<OcppTransaction>()
+            .Property(m => m.EndDate)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 
 
