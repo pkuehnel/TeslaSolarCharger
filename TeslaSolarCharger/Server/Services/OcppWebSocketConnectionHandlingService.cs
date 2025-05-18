@@ -11,7 +11,6 @@ using System.Text.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -20,8 +19,7 @@ namespace TeslaSolarCharger.Server.Services;
 public sealed class OcppWebSocketConnectionHandlingService(
         ILogger<OcppWebSocketConnectionHandlingService> logger,
         IConstants constants,
-        IServiceProvider serviceProvider,
-        IDateTimeProvider dateTimeProvider) : IOcppWebSocketConnectionHandlingService
+        IServiceProvider serviceProvider) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private TimeSpan RoundTripTimeout => _sendTimeout * 2;
@@ -182,7 +180,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
     {
         // 1) Build array frame [ 2, "<uid>", "Action", {…payload…} ]
         var uid = Guid.NewGuid().ToString("N");
-        object envelope = new object?[] { (int)MessageTypeId.Call, uid, action, requestPayload };
+        object envelope = new[] { (int)MessageTypeId.Call, uid, action, requestPayload };
 
         var json = JsonSerializer.Serialize(envelope, JsonOpts);
 
@@ -203,7 +201,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
             // 3) Wait until ReceiveLoop completes the TCS
             await using (cts.Token.Register(() => tcs.TrySetCanceled(cts.Token),
-                             useSynchronizationContext: false))
+                             useSynchronizationContext: false).ConfigureAwait(false))
             {
                 var raw = await tcs.Task;             // ← suspends here
                 return raw.Deserialize<TResp>(JsonOpts)!;     // typed payload back
@@ -345,7 +343,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         };
 
         // c) Wrap in an envelope and serialize
-        var envelope = new CallResult<StartTransactionResponse>(uniqueId, respPayload){};
+        var envelope = new CallResult<StartTransactionResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
@@ -376,7 +374,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         };
 
         // c) Wrap in an envelope and serialize
-        var envelope = new CallResult<StopTransactionResponse>(uniqueId, respPayload) { };
+        var envelope = new CallResult<StopTransactionResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
@@ -394,7 +392,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         };
 
         // c) Wrap in an envelope and serialize
-        var envelope = new CallResult<MeterValuesResponse>(uniqueId, respPayload) { };
+        var envelope = new CallResult<MeterValuesResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
@@ -415,7 +413,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         };
 
         // c) Wrap in an envelope and serialize
-        var envelope = new CallResult<AuthorizeResponse>(uniqueId, respPayload) { };
+        var envelope = new CallResult<AuthorizeResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
