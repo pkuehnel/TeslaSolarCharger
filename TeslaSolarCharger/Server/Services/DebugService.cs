@@ -7,6 +7,7 @@ using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Support;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -17,7 +18,8 @@ public class DebugService(ILogger<DebugService> logger,
     IInMemorySink inMemorySink,
     Serilog.Core.LoggingLevelSwitch inMemoryLogLevelSwitch,
     IChargePointActionService chargePointActionService,
-    IConstants constants) : IDebugService
+    IConstants constants,
+    ISettings settings) : IDebugService
 {
     public async Task<Dictionary<int, DtoDebugChargingConnector>> GetChargingConnectors()
     {
@@ -29,6 +31,10 @@ public class DebugService(ILogger<DebugService> logger,
                 ConnectorId = x.ConnectorId,
             }).ConfigureAwait(false);
         logger.LogDebug("Found {connectorCount} connectors", connectors.Count);
+        foreach (var connector in connectors)
+        {
+            connector.Value.ConnectorState = settings.OcppConnectorStates.TryGetValue(connector.Key, out var state) ? state : null;
+        }
         return connectors;
     }
 
