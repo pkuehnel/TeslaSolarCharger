@@ -1,17 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
-using TeslaSolarCharger.Server.Dtos;
-using TeslaSolarCharger.Server.Dtos.Ocpp;
-using TeslaSolarCharger.Server.Services.Contracts;
-using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
+using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -21,7 +24,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
         ILogger<OcppWebSocketConnectionHandlingService> logger,
         IConstants constants,
         IServiceProvider serviceProvider,
-        ISettings settings) : IOcppWebSocketConnectionHandlingService
+        ISettings settings,
+        IDateTimeProvider dateTimeProvider) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private TimeSpan RoundTripTimeout => _sendTimeout * 2;
@@ -52,7 +56,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             logger.LogInformation("Added WebSocket connection for {chargePointId}", chargePointId);
 
-            // fire‑and‑forget the receive loop
+            // fire‑and‑forget the receive loop before everything else as is required to configure charge point
             _ = Task.Run(() => ReceiveLoopAsync(dto));
 
             using var scope = serviceProvider.CreateScope();
@@ -62,7 +66,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             var chargingConnectorIds = await GetChargingConnectorIds(chargePointId);
             foreach (var chargingConnectorId in chargingConnectorIds)
             {
-                settings.OcppConnectorStates[chargingConnectorId] = new();
+                settings.OcppConnectorStates.TryAdd(chargingConnectorId, new());
             }
         }
         else
@@ -244,7 +248,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 "StatusNotification" => await HandleStatusNotification(chargePointId, uniqueMessageId, payload),
                 "StartTransaction" => await HandleStartTransaction(chargePointId, uniqueMessageId, payload),
                 "StopTransaction" => await HandleStopTransaction(uniqueMessageId, payload),
-                "MeterValues" => HandleMeterValues(uniqueMessageId, payload),
+                "MeterValues" => await HandleMeterValues(chargePointId, uniqueMessageId, payload),
                 "Authorize" => HandleAuthorize(uniqueMessageId, payload),
                 _ => BuildError("NotSupported", $"Action '{action}' not supported",
                     uniqueMessageId, null),
@@ -321,7 +325,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         foreach (var databaseChargePointId in chargingConnectorIds)
         {
-            UpdateCacheBasedOnState(databaseChargePointId, req.Status);
+            UpdateCacheBasedOnState(databaseChargePointId, req.Status, req.Timestamp);
         }
 
         // b) Build the response payload
@@ -334,49 +338,52 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private void UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus)
+    private void UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus, DateTime? reqTimestamp)
     {
         logger.LogTrace("{method}({id}, {status})", nameof(UpdateCacheBasedOnState), databaseChargePointId, reqStatus);
-        if (!settings.OcppConnectorStates.TryGetValue(databaseChargePointId, out var value))
+        var value = settings.OcppConnectorStates.GetOrAdd(databaseChargePointId, id =>
         {
-            logger.LogWarning("Could not find a charge point in cache with ID {id}", databaseChargePointId);
-            return;
-        }
+            logger.LogWarning("Charge point ID {id} not found in cache. Adding default entry.", id);
+            return new();
+        });
         logger.LogTrace("Cache value before update: {@cache}", value);
+        var timestamp = reqTimestamp == default
+            ? dateTimeProvider.DateTimeOffSetUtcNow()
+            : new DateTimeOffset(reqTimestamp.Value, TimeSpan.Zero);
         switch (reqStatus)
         {
             case ChargePointStatus.Available:
-                value.IsConnected = false;
-                value.IsCharging = false;
-                value.IsCarFullyCharged = null;
-                value.ChargingPower = 0;
+                value.IsConnected = new(timestamp, false);
+                value.IsCharging = new(timestamp, false);
+                value.IsCarFullyCharged = new(timestamp, null);
+                value.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Preparing:
-                value.IsConnected = true;
-                value.IsCharging = false;
-                value.IsCarFullyCharged = null;
-                value.ChargingPower = 0;
+                value.IsConnected = new(timestamp, true);
+                value.IsCharging = new(timestamp, false);
+                value.IsCarFullyCharged = new(timestamp, null);
+                value.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Charging:
-                value.IsConnected = true;
-                value.IsCharging = true;
-                value.IsCarFullyCharged = false;
+                value.IsConnected = new(timestamp, true);
+                value.IsCharging = new(timestamp, true);
+                value.IsCarFullyCharged = new(timestamp, false);
                 break;
             case ChargePointStatus.SuspendedEVSE:
-                value.IsConnected = true;
-                value.IsCharging = false;
-                value.ChargingPower = 0;
+                value.IsConnected = new(timestamp, true);
+                value.IsCharging = new(timestamp, false);
+                value.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.SuspendedEV:
-                value.IsConnected = true;
-                value.IsCharging = false;
-                value.IsCarFullyCharged = true;
-                value.ChargingPower = 0;
+                value.IsConnected = new(timestamp, true);
+                value.IsCharging = new(timestamp, false);
+                value.IsCarFullyCharged = new(timestamp, true);
+                value.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Finishing:
-                value.IsConnected = true;
-                value.IsCharging = false;
-                value.ChargingPower = 0;
+                value.IsConnected = new(timestamp, true);
+                value.IsCharging = new(timestamp, false);
+                value.ChargingPower = new(timestamp, 0);
                 break;
             default:
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
@@ -467,12 +474,52 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    internal string HandleMeterValues(string uniqueId, JsonElement payload)
+    internal async Task<string> HandleMeterValues(string chargePointId, string uniqueId, JsonElement payload)
     {
         // a) Deserialize the request payload
         var req = payload.Deserialize<MeterValuesRequest>(JsonOpts);
 
-        // TODO: validate req & maybe persist CP information here … here at charge point level
+        if (req == default)
+        {
+            throw new OcppCallErrorException(CallErrorCode.FormationViolation);
+        }
+
+        using var scope = serviceProvider.CreateScope();
+        var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+
+        var chargePointQuery = scopedContext.OcppChargingStationConnectors.AsQueryable()
+            .Where(c => c.OcppChargingStation.ChargepointId == chargePointId);
+        if (req.ConnectorId != 0)
+        {
+            chargePointQuery = chargePointQuery.Where(c => c.ConnectorId == req.ConnectorId);
+        }
+        var chargingConnectorIds = await chargePointQuery
+            .Select(c => c.Id)
+            .ToHashSetAsync().ConfigureAwait(false);
+        if (chargingConnectorIds.Count < 1)
+        {
+            throw new OcppCallErrorException(CallErrorCode.PropertyConstraintViolation,
+                "The connector ID does not exist for charging station.");
+        }
+
+        var latestMeterValue = req.MeterValue.OrderByDescending(m => m.Timestamp).First();
+        foreach (var chargingConnectorId in chargingConnectorIds)
+        {
+            if (!settings.OcppConnectorStates.TryGetValue(chargingConnectorId, out var ocppConnector))
+            {
+                logger.LogWarning("Can not find a cached OCPP connector with ID {chargingConnectorId}. Do not update values", chargingConnectorId);
+                continue;
+            }
+            SetVoltage(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
+            if (chargingConnectorIds.Count > 1)
+            {
+                logger.LogWarning("The charging station has more than one charge point, only setting voltage");
+                continue;
+            }
+            SetPower(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
+            SetCurrent(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
+            SetPhases(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
+        }
 
         // b) Build the response payload
         var respPayload = new MeterValuesResponse()
@@ -483,6 +530,77 @@ public sealed class OcppWebSocketConnectionHandlingService(
         // c) Wrap in an envelope and serialize
         var envelope = new CallResult<MeterValuesResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private void SetPhases(List<SampledValue> sampledValue, DateTime timestamp, DtoOcppConnectorState ocppConnector)
+    {
+        logger.LogTrace("{method}({@values}, {ocppConnector})", nameof(SetPhases), sampledValue, ocppConnector);
+        var relevantValues = sampledValue
+            .Where(v => v.Measurand == Measurand.CurrentImport && v.Phase != default)
+            .GroupBy(v => v.Phase)
+            .Select(g => g.First())
+            .ToList();
+        if (relevantValues.Count < 1)
+        {
+            logger.LogWarning("Can not set phases as no phases values are present");
+            return;
+        }
+        var maxCurrent = relevantValues.Select(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture)).Max();
+        var phaseCount = relevantValues
+            .Count(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture) > (maxCurrent * 0.8m));
+        ocppConnector.PhaseCount = new(new(timestamp, TimeSpan.Zero), phaseCount);
+    }
+
+    private void SetCurrent(List<SampledValue> sampledValue, DateTime timestamp, DtoOcppConnectorState ocppConnector)
+    {
+        logger.LogTrace("{method}({@values}, {ocppConnector})", nameof(SetCurrent), sampledValue, ocppConnector);
+        var relevantValues = sampledValue.Where(v => v.Measurand == Measurand.CurrentImport).ToList();
+        if (relevantValues.Count < 1)
+        {
+            logger.LogWarning("Can not set current as no current values are present");
+            return;
+        }
+        var maxCurrent = relevantValues.Select(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture)).Max();
+        ocppConnector.ChargingCurrent = new(new(timestamp, TimeSpan.Zero), maxCurrent);
+    }
+
+    private void SetPower(List<SampledValue> sampledValue, DateTime timestamp, DtoOcppConnectorState ocppConnector)
+    {
+        logger.LogTrace("{method}({@values}, {ocppConnector})", nameof(SetPower), sampledValue, ocppConnector);
+        var relevantValues = sampledValue.Where(v => v.Measurand == Measurand.PowerActiveImport).ToList();
+        if (relevantValues.Count < 1)
+        {
+            logger.LogWarning("Can not set power as not power values are present");
+            return;
+        }
+        var combinedPower = relevantValues.Where(v => v.Phase == default).ToList();
+        if (combinedPower.Count == 1)
+        {
+            logger.LogTrace("Using combined power as power");
+            var element = combinedPower.First();
+            var correctionFactor = element.Unit == UnitOfMeasure.KW ? 1000 : 1;
+            ocppConnector.ChargingPower = new(new(timestamp, TimeSpan.Zero), Convert.ToInt32(decimal.Parse(element.Value, CultureInfo.InvariantCulture) * correctionFactor));
+            return;
+        }
+        var phaseBasedPowers = relevantValues.Where(v => v.Phase != default).ToList();
+        logger.LogTrace("Using sum of phases as power");
+        ocppConnector.ChargingPower = new(new(timestamp, TimeSpan.Zero), Convert.ToInt32(phaseBasedPowers.Select(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture) * (v.Unit == UnitOfMeasure.KW ? 1000 : 1)).Sum()));
+    }
+
+    private void SetVoltage(List<SampledValue> sampledValue, DateTime timestamp, DtoOcppConnectorState ocppConnector)
+    {
+        logger.LogTrace("{method}({@values}, {ocppConnector})", nameof(SetVoltage), sampledValue, ocppConnector);
+        var voltageValues = sampledValue.Where(v => v.Measurand == Measurand.Voltage).ToList();
+        if (voltageValues.Count < 1)
+        {
+            logger.LogWarning("Can not set voltage value as not present");
+            return;
+        }
+        var decimalVoltageValues = voltageValues.Select(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture)).ToList();
+        var maxVoltage = decimalVoltageValues.Max();
+        var maxVoltageDifference = 20;
+        decimalVoltageValues.RemoveAll(v => v < (maxVoltage - maxVoltageDifference));
+        ocppConnector.ChargingVoltage = new(new(timestamp, TimeSpan.Zero), decimalVoltageValues.Average());
     }
 
     private string HandleAuthorize(string uniqueId, JsonElement payload)
