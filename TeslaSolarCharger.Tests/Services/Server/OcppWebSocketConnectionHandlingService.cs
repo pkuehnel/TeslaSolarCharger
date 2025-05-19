@@ -24,6 +24,6 @@ public class OcppWebSocketConnectionHandlingService : TestBase
         var root = doc.RootElement;
         var payload = root.GetArrayLength() >= 4 ? root[3] : default;
         var service = Mock.Create<TeslaSolarCharger.Server.Services.OcppWebSocketConnectionHandlingService>();
-        var response = service.HandleMeterValues("asdf", payload);
+        var response = service.HandleMeterValues("asdf", "asdf", payload);
     }
 }

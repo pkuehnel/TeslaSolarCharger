@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Dtos.Support;
+﻿using TeslaSolarCharger.Shared.Dtos.Settings;
+
+namespace TeslaSolarCharger.Shared.Dtos.Support;
 
 public class DtoDebugChargingConnector
 {
@@ -9,4 +11,5 @@ public class DtoDebugChargingConnector
 
     public int ConnectorId { get; set; }
     public string ChargePointId { get; set; }
+    public DtoOcppConnectorState? ConnectorState { get; set; }
 }
