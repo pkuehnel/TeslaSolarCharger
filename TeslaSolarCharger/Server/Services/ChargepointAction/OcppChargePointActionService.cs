@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
+using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
