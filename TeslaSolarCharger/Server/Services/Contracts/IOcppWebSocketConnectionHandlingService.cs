@@ -10,8 +10,6 @@ public interface IOcppWebSocketConnectionHandlingService
         WebSocket webSocket,
         TaskCompletionSource<object?> lifetimeTcs, CancellationToken httpContextRequestAborted);
 
-    void CleanupDeadConnections();
-
     Task<TResp> SendRequestAsync<TResp>(string chargePointIdentifier,
         string action,
         object requestPayload,
