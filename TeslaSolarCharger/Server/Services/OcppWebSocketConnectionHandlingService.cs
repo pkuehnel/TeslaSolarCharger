@@ -11,6 +11,7 @@ using System.Text.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -19,7 +20,8 @@ namespace TeslaSolarCharger.Server.Services;
 public sealed class OcppWebSocketConnectionHandlingService(
         ILogger<OcppWebSocketConnectionHandlingService> logger,
         IConstants constants,
-        IServiceProvider serviceProvider) : IOcppWebSocketConnectionHandlingService
+        IServiceProvider serviceProvider,
+        ISettings settings) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private TimeSpan RoundTripTimeout => _sendTimeout * 2;
@@ -43,7 +45,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         TaskCompletionSource<object?> lifetimeTcs, CancellationToken httpContextRequestAborted)
     {
         logger.LogTrace("{method}({chargePointId})", nameof(AddWebSocket), chargePointId);
-        RemoveWebSocket(chargePointId); // clear any stale entry first
+        await RemoveWebSocket(chargePointId); // clear any stale entry first
         var dto = new DtoOcppWebSocket(chargePointId, webSocket, lifetimeTcs);
 
         if (_connections.TryAdd(chargePointId, dto))
@@ -57,6 +59,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
             var chargingStationConfigurationService = scope.ServiceProvider
                 .GetRequiredService<IOcppChargingStationConfigurationService>();
             await chargingStationConfigurationService.AddChargingStationIfNotExisting(chargePointId, httpContextRequestAborted);
+            var chargingConnectorIds = await GetChargingConnectorIds(chargePointId);
+            foreach (var chargingConnectorId in chargingConnectorIds)
+            {
+                settings.OcppConnectorStates[chargingConnectorId] = new();
+            }
         }
         else
         {
@@ -64,23 +71,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
-    public void CleanupDeadConnections()
-        => _ = Task.Run(() =>
-        {
-            var dead = _connections
-                       .Where(kvp => kvp.Value.WebSocket.State != WebSocketState.Open)
-                       .Select(kvp => kvp.Key)
-                       .ToList();
-
-            if (dead.Count == 0) return;
-
-            logger.LogInformation("Cleaning up {dead} / {total} WS connections",
-                                  dead.Count, _connections.Count);
-
-            foreach (var id in dead)
-                RemoveWebSocket(id);
-        });
-
+    private async Task<HashSet<int>> GetChargingConnectorIds(string chargePointId)
+    {
+        logger.LogTrace("{method}({chargePointId})", nameof(GetChargingConnectorIds), chargePointId);
+        using var scope = serviceProvider.CreateScope();
+        var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var connectorIds = await scopedContext.OcppChargingStationConnectors
+            .Where(c => c.OcppChargingStation.ChargepointId == chargePointId)
+            .Select(c => c.Id)
+            .ToHashSetAsync().ConfigureAwait(false);
+        return connectorIds;
+    }
 
 
     private async Task ReceiveLoopAsync(DtoOcppWebSocket dto)
@@ -139,8 +140,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
                                 throw new ArgumentOutOfRangeException();
                         }
                     }
-                        
-                    
+
+
                 }
 
                 if (!string.IsNullOrEmpty(responseString))
@@ -166,7 +167,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
-            RemoveWebSocket(dto.ChargePointId);
+            await RemoveWebSocket(dto.ChargePointId);
             dto.LifetimeTsc.TrySetResult(null);
             watchdog.Dispose();
             linked.Dispose();
@@ -234,19 +235,25 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var action = root[2].GetString()!;
         var payload = root.GetArrayLength() >= 4 ? root[3] : default;
 
-        // 3) Dispatch by action -----------------------------------------------
-        return action switch
+        try
         {
-            "BootNotification" => HandleBootNotification(uniqueMessageId, payload),
-            "Heartbeat" => HandleHeartbeat(uniqueMessageId),
-            "StatusNotification" => HandleStatusNotification(uniqueMessageId, payload),
-            "StartTransaction" => await HandleStartTransaction(chargePointId, uniqueMessageId, payload),
-            "StopTransaction" => await HandleStopTransaction(uniqueMessageId, payload),
-            "MeterValues" => HandleMeterValues(uniqueMessageId, payload),
-            "Authorize" => HandleAuthorize(uniqueMessageId, payload),
-            _ => BuildError("NotSupported", $"Action '{action}' not supported",
-                uniqueMessageId, null),
-        };
+            return action switch
+            {
+                "BootNotification" => HandleBootNotification(uniqueMessageId, payload),
+                "Heartbeat" => HandleHeartbeat(uniqueMessageId),
+                "StatusNotification" => await HandleStatusNotification(chargePointId, uniqueMessageId, payload),
+                "StartTransaction" => await HandleStartTransaction(chargePointId, uniqueMessageId, payload),
+                "StopTransaction" => await HandleStopTransaction(uniqueMessageId, payload),
+                "MeterValues" => HandleMeterValues(uniqueMessageId, payload),
+                "Authorize" => HandleAuthorize(uniqueMessageId, payload),
+                _ => BuildError("NotSupported", $"Action '{action}' not supported",
+                    uniqueMessageId, null),
+            };
+        }
+        catch (OcppCallErrorException ex)
+        {
+            return BuildError(ex.ToString(), ex.Description, null, null);
+        }
     }
 
     private string HandleBootNotification(string uniqueId, JsonElement payload)
@@ -280,12 +287,42 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private string HandleStatusNotification(string uniqueId, JsonElement payload)
+    private async Task<string> HandleStatusNotification(string chargePointId, string uniqueId, JsonElement payload)
     {
         // a) Deserialize the request payload
         var req = payload.Deserialize<StatusNotificationRequest>(JsonOpts);
+        if (req == default)
+        {
+            throw new OcppCallErrorException(CallErrorCode.FormationViolation);
+        }
 
-        // TODO: validate req & maybe persist CP information here … here at charge point level
+
+        using var scope = serviceProvider.CreateScope();
+        var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var chargingConnectorQuery = scopedContext.OcppChargingStationConnectors.AsQueryable()
+            .Where(c => c.OcppChargingStation.ChargepointId == chargePointId);
+
+        //Connector ID 0 means it is not related to a specific charge point but to all of them, so limit to connector only if not 0
+        if (req.ConnectorId != 0)
+        {
+            chargingConnectorQuery = chargingConnectorQuery.Where(c => c.ConnectorId == req.ConnectorId);
+        }
+
+        var chargingConnectorIds = await chargingConnectorQuery
+            .Select(c => c.Id)
+            .ToHashSetAsync();
+
+
+        if (chargingConnectorIds.Count < 1)
+        {
+            throw new OcppCallErrorException(CallErrorCode.PropertyConstraintViolation,
+                "The connector ID does not exist for charging station.");
+        }
+
+        foreach (var databaseChargePointId in chargingConnectorIds)
+        {
+            UpdateCacheBasedOnState(databaseChargePointId, req.Status);
+        }
 
         // b) Build the response payload
         var respPayload = new StatusNotificationResponse()
@@ -296,6 +333,58 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var envelope = new CallResult<StatusNotificationResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
+
+    private void UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus)
+    {
+        logger.LogTrace("{method}({id}, {status})", nameof(UpdateCacheBasedOnState), databaseChargePointId, reqStatus);
+        if (!settings.OcppConnectorStates.TryGetValue(databaseChargePointId, out var value))
+        {
+            logger.LogWarning("Could not find a charge point in cache with ID {id}", databaseChargePointId);
+            return;
+        }
+        logger.LogTrace("Cache value before update: {@cache}", value);
+        switch (reqStatus)
+        {
+            case ChargePointStatus.Available:
+                value.IsConnected = false;
+                value.IsCharging = false;
+                value.IsCarFullyCharged = null;
+                value.ChargingPower = 0;
+                break;
+            case ChargePointStatus.Preparing:
+                value.IsConnected = true;
+                value.IsCharging = false;
+                value.IsCarFullyCharged = null;
+                value.ChargingPower = 0;
+                break;
+            case ChargePointStatus.Charging:
+                value.IsConnected = true;
+                value.IsCharging = true;
+                value.IsCarFullyCharged = false;
+                break;
+            case ChargePointStatus.SuspendedEVSE:
+                value.IsConnected = true;
+                value.IsCharging = false;
+                value.ChargingPower = 0;
+                break;
+            case ChargePointStatus.SuspendedEV:
+                value.IsConnected = true;
+                value.IsCharging = false;
+                value.IsCarFullyCharged = true;
+                value.ChargingPower = 0;
+                break;
+            case ChargePointStatus.Finishing:
+                value.IsConnected = true;
+                value.IsCharging = false;
+                value.ChargingPower = 0;
+                break;
+            default:
+                logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
+                break;
+        }
+        logger.LogTrace("Updated cache to {@cache}", value);
+    }
+
     private async Task<string> HandleStartTransaction(string chargePointId, string uniqueId, JsonElement payload)
     {
         // a) Deserialize the request payload
@@ -303,7 +392,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         if (req == default)
         {
-            throw new OcppCallErrorException("FormationViolation", "StartTransaction payload is malformed");
+            throw new OcppCallErrorException(CallErrorCode.FormationViolation);
         }
 
         using var scope = serviceProvider.CreateScope();
@@ -354,7 +443,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         if (req == default)
         {
-            throw new OcppCallErrorException("FormationViolation", "StopTransaction payload is malformed");
+            throw new OcppCallErrorException(CallErrorCode.FormationViolation);
         }
 
         using var scope = serviceProvider.CreateScope();
@@ -432,7 +521,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
     {
         if (dto.WebSocket.State != WebSocketState.Open)
         {
-            RemoveWebSocket(dto.ChargePointId);
+            await RemoveWebSocket(dto.ChargePointId);
             return;
         }
 
@@ -447,11 +536,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error sending to {chargePointId}", dto.ChargePointId);
-            RemoveWebSocket(dto.ChargePointId);
+            await RemoveWebSocket(dto.ChargePointId);
         }
     }
 
-    private void RemoveWebSocket(string chargePointId)
+    private async Task RemoveWebSocket(string chargePointId)
     {
         if (_connections.TryRemove(chargePointId, out var dto))
         {
@@ -470,9 +559,20 @@ public sealed class OcppWebSocketConnectionHandlingService(
             }
             catch { /* swallow */ }
         }
+
+        using var scope = serviceProvider.CreateScope();
+        var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var chargingConnectorIds = await scopedContext.OcppChargingStationConnectors
+            .Where(c => c.OcppChargingStation.ChargepointId == chargePointId)
+            .Select(c => c.Id)
+            .ToHashSetAsync();
+        foreach (var chargingConnectorId in chargingConnectorIds)
+        {
+            settings.OcppConnectorStates.Remove(chargingConnectorId, out _);
+        }
     }
 
-    public bool TryGetMessageType(int raw, out MessageTypeId result)
+    private bool TryGetMessageType(int raw, out MessageTypeId result)
     {
         // passing ignoreCase: false is irrelevant for numbers,
         // but keeps the signature consistent for other enums
@@ -481,13 +581,4 @@ public sealed class OcppWebSocketConnectionHandlingService(
     }
 }
 
-internal class OcppCallErrorException : Exception
-{
-    public string Code { get; }
-    public string Description { get; }
-    public OcppCallErrorException(string code, string desc)
-    {
-        Code = code;
-        Description = desc;
-    }
-}
+

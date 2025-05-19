@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos.Settings;
+﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Shared.Dtos.Contracts;
 
@@ -26,4 +27,9 @@ public interface ISettings
     DateTime StartupTime { get; set; }
     int LastPvDemoCase { get; set; }
     bool IsPreRelease { get; set; }
+
+    /// <summary>
+    /// Key is Id of the connector in database
+    /// </summary>
+    ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; }
 }
