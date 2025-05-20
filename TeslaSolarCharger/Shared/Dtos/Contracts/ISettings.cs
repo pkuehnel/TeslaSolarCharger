@@ -14,8 +14,6 @@ public interface ISettings
     int? AverageHomeGridVoltage { get; set; }
     bool CrashedOnStartup { get; set; }
     string? StartupCrashMessage { get; set; }
-    bool AllowUnlimitedFleetApiRequests { get; set; }
-    DateTime LastFleetApiRequestAllowedCheck { get; set; }
     List<DtoCar> Cars { get; set; }
     List<DtoCar> CarsToManage { get; }
     bool RestartNeeded { get; set; }

@@ -65,7 +65,6 @@ public class ChargeTimeCalculationService : TestBase
         var car = new DtoCar()
         {
             Id = 1,
-            PluggedIn = true,
             SoC = 30,
             ChargerPhases = numberOfPhases,
             MinimumSoC = 45,
@@ -75,6 +74,7 @@ public class ChargeTimeCalculationService : TestBase
 
 
         var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
+        car.UpdatePluggedIn(new DateTimeOffset(dateTime, TimeSpan.Zero), true);
         Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
 
@@ -93,7 +93,6 @@ public class ChargeTimeCalculationService : TestBase
         var car = new DtoCar()
         {
             Id = 1,
-            PluggedIn = true,
             SoC = 30,
             ChargerPhases = 1,
             MinimumSoC = 30,
@@ -103,6 +102,7 @@ public class ChargeTimeCalculationService : TestBase
 
 
         var dateTime = new DateTime(2022, 4, 1, 14, 0, 0);
+        car.UpdatePluggedIn(new DateTimeOffset(dateTime, TimeSpan.Zero), true);
         Mock.Mock<IDateTimeProvider>().Setup(d => d.Now()).Returns(dateTime);
         var chargeTimeCalculationService = Mock.Create<TeslaSolarCharger.Server.Services.ChargeTimeCalculationService>();
 

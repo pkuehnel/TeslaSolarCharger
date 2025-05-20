@@ -15,6 +15,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -28,6 +29,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         IDateTimeProvider dateTimeProvider) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
+    private readonly TimeSpan _messageHandlingTimeout = TimeSpan.FromSeconds(20);
     private TimeSpan RoundTripTimeout => _sendTimeout * 2;
     private readonly TimeSpan _clientSideHeartbeatTimeout = TimeSpan.FromSeconds(120);
     private TimeSpan ClientSideHeartbeatConfigured => (_clientSideHeartbeatTimeout / 2) + _sendTimeout;
@@ -75,7 +77,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
-    private async Task<HashSet<int>> GetChargingConnectorIds(string chargePointId)
+    private async Task<System.Collections.Generic.HashSet<int>> GetChargingConnectorIds(string chargePointId)
     {
         logger.LogTrace("{method}({chargePointId})", nameof(GetChargingConnectorIds), chargePointId);
         using var scope = serviceProvider.CreateScope();
@@ -123,7 +125,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
                         switch (messageTypeId)
                         {
                             case MessageTypeId.Call:
-                                responseString = await HandleIncomingCall(dto.ChargePointId, uniqueMessageId, root);
+                                // fire‐and‐forget the handler _and_ its SendTextAsync
+                                _ = Task.Run(async () =>
+                                {
+                                    var resp = await HandleIncomingCall(dto.ChargePointId, uniqueMessageId, root, new CancellationTokenSource(_messageHandlingTimeout).Token);
+                                    if (!string.IsNullOrEmpty(resp))
+                                    {
+                                        await SendTextAsync(dto.ChargePointId,
+                                            resp,
+                                            new CancellationTokenSource(_sendTimeout).Token);
+                                    }
+                                }, linked.Token);
                                 break;
                             case MessageTypeId.CallResult:
                                 if (dto.Pending.TryRemove(uniqueMessageId, out var tcsOk))
@@ -234,7 +246,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
     /// <summary>
     /// Inspects an incoming OCPP frame and returns the JSON to send back.
     /// </summary>
-    private async Task<string> HandleIncomingCall(string chargePointId, string uniqueMessageId, JsonElement root)
+    private async Task<string> HandleIncomingCall(string chargePointId, string uniqueMessageId, JsonElement root, CancellationToken cancellationToken)
     {
         var action = root[2].GetString()!;
         var payload = root.GetArrayLength() >= 4 ? root[3] : default;
@@ -245,7 +257,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 "BootNotification" => HandleBootNotification(uniqueMessageId, payload),
                 "Heartbeat" => HandleHeartbeat(uniqueMessageId),
-                "StatusNotification" => await HandleStatusNotification(chargePointId, uniqueMessageId, payload),
+                "StatusNotification" => await HandleStatusNotification(chargePointId, uniqueMessageId, payload, cancellationToken),
                 "StartTransaction" => await HandleStartTransaction(chargePointId, uniqueMessageId, payload),
                 "StopTransaction" => await HandleStopTransaction(uniqueMessageId, payload),
                 "MeterValues" => await HandleMeterValues(chargePointId, uniqueMessageId, payload),
@@ -291,7 +303,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private async Task<string> HandleStatusNotification(string chargePointId, string uniqueId, JsonElement payload)
+    private async Task<string> HandleStatusNotification(string chargePointId, string uniqueId, JsonElement payload,
+        CancellationToken cancellationToken)
     {
         // a) Deserialize the request payload
         var req = payload.Deserialize<StatusNotificationRequest>(JsonOpts);
@@ -314,7 +327,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         var chargingConnectorIds = await chargingConnectorQuery
             .Select(c => c.Id)
-            .ToHashSetAsync();
+            .ToHashSetAsync(cancellationToken: cancellationToken);
 
 
         if (chargingConnectorIds.Count < 1)
@@ -325,8 +338,25 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         foreach (var databaseChargePointId in chargingConnectorIds)
         {
-            UpdateCacheBasedOnState(databaseChargePointId, req.Status, req.Timestamp);
+            var ocppConnectorState = await GetConnectorStateAsync(databaseChargePointId, cancellationToken);
+            var timestamp = req.Timestamp == default
+                ? dateTimeProvider.DateTimeOffSetUtcNow()
+                : new(req.Timestamp.Value, TimeSpan.Zero);
+            UpdateCacheBasedOnState(databaseChargePointId, req.Status, ocppConnectorState, timestamp);
+            //Only add value if with this timestamp it was updated
+            if (timestamp == ocppConnectorState.IsConnected.Timestamp)
+            {
+                scopedContext.OcppChargingStationConnectorValueLogs.Add(new()
+                {
+                    Timestamp = ocppConnectorState.IsConnected.Timestamp,
+                    Type = OcppChargingStationConnectorValueType.IsPluggedIn,
+                    BooleanValue = ocppConnectorState.IsConnected.Value,
+                    OcppChargingStationConnectorId = databaseChargePointId,
+                });
+            }
+            
         }
+        await scopedContext.SaveChangesAsync(cancellationToken);
 
         // b) Build the response payload
         var respPayload = new StatusNotificationResponse()
@@ -338,58 +368,62 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
-    private void UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus, DateTime? reqTimestamp)
+    private async Task<DtoOcppConnectorState> GetConnectorStateAsync(int databaseChargePointId, CancellationToken ct = default)
+    {
+        DtoOcppConnectorState? state;
+        while (!settings.OcppConnectorStates.TryGetValue(databaseChargePointId, out state!))
+        {
+            logger.LogDebug("Waiting for connector state for ChargePoint {Id}", databaseChargePointId);
+            await Task.Delay(100, ct);   // poll every 100 ms (tweak as needed)
+        }
+        return state;
+    }
+
+    private void UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus,
+        DtoOcppConnectorState ocppConnectorState, DateTimeOffset timestamp)
     {
         logger.LogTrace("{method}({id}, {status})", nameof(UpdateCacheBasedOnState), databaseChargePointId, reqStatus);
-        var value = settings.OcppConnectorStates.GetOrAdd(databaseChargePointId, id =>
-        {
-            logger.LogWarning("Charge point ID {id} not found in cache. Adding default entry.", id);
-            return new();
-        });
-        logger.LogTrace("Cache value before update: {@cache}", value);
-        var timestamp = reqTimestamp == default
-            ? dateTimeProvider.DateTimeOffSetUtcNow()
-            : new DateTimeOffset(reqTimestamp.Value, TimeSpan.Zero);
+        logger.LogTrace("Cache value before update: {@cache}", ocppConnectorState);
         switch (reqStatus)
         {
             case ChargePointStatus.Available:
-                value.IsConnected = new(timestamp, false);
-                value.IsCharging = new(timestamp, false);
-                value.IsCarFullyCharged = new(timestamp, null);
-                value.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsConnected = new(timestamp, false);
+                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.IsCarFullyCharged = new(timestamp, null);
+                ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Preparing:
-                value.IsConnected = new(timestamp, true);
-                value.IsCharging = new(timestamp, false);
-                value.IsCarFullyCharged = new(timestamp, null);
-                value.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsConnected = new(timestamp, true);
+                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.IsCarFullyCharged = new(timestamp, null);
+                ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Charging:
-                value.IsConnected = new(timestamp, true);
-                value.IsCharging = new(timestamp, true);
-                value.IsCarFullyCharged = new(timestamp, false);
+                ocppConnectorState.IsConnected = new(timestamp, true);
+                ocppConnectorState.UpdateIsCharging(timestamp, true);
+                ocppConnectorState.IsCarFullyCharged = new(timestamp, false);
                 break;
             case ChargePointStatus.SuspendedEVSE:
-                value.IsConnected = new(timestamp, true);
-                value.IsCharging = new(timestamp, false);
-                value.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsConnected = new(timestamp, true);
+                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.SuspendedEV:
-                value.IsConnected = new(timestamp, true);
-                value.IsCharging = new(timestamp, false);
-                value.IsCarFullyCharged = new(timestamp, true);
-                value.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsConnected = new(timestamp, true);
+                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.IsCarFullyCharged = new(timestamp, true);
+                ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Finishing:
-                value.IsConnected = new(timestamp, true);
-                value.IsCharging = new(timestamp, false);
-                value.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsConnected = new(timestamp, true);
+                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             default:
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
                 break;
         }
-        logger.LogTrace("Updated cache to {@cache}", value);
+        logger.LogTrace("Updated cache to {@cache}", ocppConnectorState);
     }
 
     private async Task<string> HandleStartTransaction(string chargePointId, string uniqueId, JsonElement payload)

@@ -301,7 +301,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargerActualCurrent,
                     });
-                    car.PluggedIn = vehicleDataResult.ChargeState.ChargingState != "Disconnected";
+                    car.UpdatePluggedIn(new(timeStamp, TimeSpan.Zero), vehicleDataResult.ChargeState.ChargingState != "Disconnected");
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
