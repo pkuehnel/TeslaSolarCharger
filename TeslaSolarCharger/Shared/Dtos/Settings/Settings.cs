@@ -16,11 +16,6 @@ public class Settings : ISettings
 
     public bool CrashedOnStartup { get; set; }
     public string? StartupCrashMessage { get; set; }
-
-    public bool FleetApiProxyNeeded { get; set; }
-
-    public bool AllowUnlimitedFleetApiRequests { get; set; }
-    public DateTime LastFleetApiRequestAllowedCheck { get; set; }
     public bool RestartNeeded { get; set; }
 
     public List<DtoCar> Cars { get; set; } = new();

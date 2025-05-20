@@ -11,4 +11,6 @@ public class OcppChargingStationConnector
     public int OcppChargingStationId { get; set; }
 
     public OcppChargingStation OcppChargingStation { get; set; } = null!;
+
+    public List<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; } = new();
 }
