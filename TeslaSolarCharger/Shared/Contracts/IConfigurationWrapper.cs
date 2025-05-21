@@ -113,4 +113,5 @@ public interface IConfigurationWrapper
     bool ShowEnergyDataOnHome();
     bool UseFakeEnergyPredictions();
     bool UseFakeEnergyHistory();
+    TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
 }

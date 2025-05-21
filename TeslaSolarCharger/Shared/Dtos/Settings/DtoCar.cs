@@ -61,6 +61,10 @@ public class DtoCar
         {
             LastPluggedIn = timestamp;
         }
+        if (!pluggedIn)
+        {
+            LastPluggedIn = default;
+        }
         PluggedIn = pluggedIn;
     }
 
