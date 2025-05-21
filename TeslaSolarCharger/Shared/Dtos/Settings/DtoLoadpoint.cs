@@ -17,4 +17,16 @@ public class DtoLoadpoint
             return Car?.ChargingPowerAtHome;
         }
     }
+
+    public int? ActualVoltage
+    {
+        get
+        {
+            if (OcppConnectorState != default)
+            {
+                return (int)OcppConnectorState.ChargingVoltage.Value;
+            }
+            return Car?.ChargerVoltage;
+        }
+    }
 }
