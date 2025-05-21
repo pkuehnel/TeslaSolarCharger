@@ -29,6 +29,7 @@ builder.Services.AddScoped<IJavaScriptWrapper, JavaScriptWrapper>();
 builder.Services.AddScoped<IHttpClientHelper, HttpClientHelper>();
 builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckService>();
 builder.Services.AddScoped<IEnergyDataService, EnergyDataService>();
+builder.Services.AddScoped<IChargingStationsService, ChargingStationsService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();

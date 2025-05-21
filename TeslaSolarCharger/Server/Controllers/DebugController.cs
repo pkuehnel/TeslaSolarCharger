@@ -1,19 +1,28 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using PkSoftwareService.Custom.Backend;
-using Serilog.Events;
-using System.Text;
+using Newtonsoft.Json.Converters;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
-using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
 public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     IDebugService debugService,
-    ITeslaFleetApiService teslaFleetApiService) : ApiBaseController
+    ITeslaFleetApiService teslaFleetApiService,
+    IOcppChargePointConfigurationService ocppChargePointConfigurationService,
+    ILoadPointManagementService loadPointManagementService) : ApiBaseController
 {
+
+    private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
+    {
+        Formatting = Formatting.Indented,
+        Converters = new List<JsonConverter>
+        {
+            new StringEnumConverter(),
+        },
+    };
+
     [HttpGet]
     public IActionResult DownloadLogs()
     {
@@ -60,7 +69,7 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     public async Task<IActionResult> GetFleetTelemetryConfiguration(string vin)
     {
         var config = await fleetTelemetryConfigurationService.GetFleetTelemetryConfiguration(vin);
-        var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
+        var configString = JsonConvert.SerializeObject(config, _serializerSettings);
         return Ok(new DtoValue<string>(configString));
     }
 
@@ -68,7 +77,7 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     public async Task<IActionResult> SetFleetTelemetryConfiguration(string vin, bool forceReconfiguration)
     {
         var config = await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(vin, forceReconfiguration);
-        var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
+        var configString = JsonConvert.SerializeObject(config, _serializerSettings);
         return Ok(new DtoValue<string>(configString));
     }
 
@@ -77,6 +86,77 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     {
         var cars = await debugService.GetCars();
         return Ok(cars);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetChargingConnectors()
+    {
+        var connectors = await debugService.GetChargingConnectors();
+        return Ok(connectors);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StartCharging(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases)
+    {
+        var result = await debugService.StartCharging(chargepointId, connectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StopCharging(string chargepointId, int connectorId)
+    {
+        var result = await debugService.StopCharging(chargepointId, connectorId,HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetCurrentAndPhases(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases)
+    {
+        var result = await debugService.SetCurrentAndPhases(chargepointId, connectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetChargePointConfigurationKeys(string chargepointId)
+    {
+        var result = await ocppChargePointConfigurationService.GetOcppConfigurations(chargepointId, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetMeterValuesSampledDataConfiguration(string chargepointId)
+    {
+        var result = await ocppChargePointConfigurationService.SetMeterValuesSampledDataConfiguration(chargepointId, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetMeterValuesSampleIntervalConfiguration(string chargepointId)
+    {
+        var result = await ocppChargePointConfigurationService.SetMeterValuesSampleIntervalConfiguration(chargepointId, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RebootCharger(string chargepointId)
+    {
+        var result = await ocppChargePointConfigurationService.RebootCharger(chargepointId, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetPluggedInLoadpoints()
+    {
+        var result = await loadPointManagementService.GetPluggedInLoadPoints();
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
     }
 
     [HttpGet]
@@ -92,5 +172,4 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
         var products = await teslaFleetApiService.GetEnergyLiveStatus(energySiteId);
         return Ok(products.JsonResponse);
     }
-
 }

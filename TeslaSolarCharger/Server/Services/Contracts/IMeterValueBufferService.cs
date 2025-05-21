@@ -1,6 +1,6 @@
 ﻿using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
-namespace TeslaSolarCharger.Server.Services;
+namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IMeterValueBufferService
 {

@@ -17,6 +17,7 @@ using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.ApiServices;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
@@ -122,10 +123,16 @@ public static class ServiceCollectionExtensions
             .AddTransient<IWeatherDataService, WeatherDataService>()
             .AddTransient<IEnergyDataService, EnergyDataService>()
             .AddTransient<IMeterValueEstimationService, MeterValueEstimationService>()
+            .AddTransient<IOcppChargePointActionService, OcppOcppChargePointActionService>()
+            .AddTransient<IOcppChargePointConfigurationService, OcppChargePointConfigurationService>()
+            .AddTransient<IOcppChargingStationConfigurationService, OcppChargingStationConfigurationService>()
+            .AddTransient<ILoadPointManagementService, LoadPointManagementService>()
+            .AddTransient<IChargingServiceV2, ChargingServiceV2>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
             .AddSingleton<IMeterValueBufferService, MeterValueBufferService>()
+            .AddSingleton<IOcppWebSocketConnectionHandlingService, OcppWebSocketConnectionHandlingService>()
             .AddScoped<ErrorHandlingMiddleware>()
             .AddHostedService<MeterValueFlushService>()
             .AddSharedBackendDependencies();

@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos.Contracts;
+﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -15,14 +16,14 @@ public class Settings : ISettings
 
     public bool CrashedOnStartup { get; set; }
     public string? StartupCrashMessage { get; set; }
-
-    public bool FleetApiProxyNeeded { get; set; }
-
-    public bool AllowUnlimitedFleetApiRequests { get; set; }
-    public DateTime LastFleetApiRequestAllowedCheck { get; set; }
     public bool RestartNeeded { get; set; }
 
     public List<DtoCar> Cars { get; set; } = new();
+    /// <summary>
+    /// Key is Id of the connector in database
+    /// </summary>
+    public ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; } = new();
+
 
     public Dictionary<int, string> RawRestRequestResults { get; set; } = new();
     public Dictionary<int, string> RawRestValues { get; set; } = new();

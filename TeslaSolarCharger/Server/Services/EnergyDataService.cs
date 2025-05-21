@@ -15,7 +15,8 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     IMemoryCache memoryCache,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
-    IServiceProvider serviceProvider) : IEnergyDataService
+    IServiceProvider serviceProvider,
+    IConfigurationWrapper configurationWrapper) : IEnergyDataService
 {
 
     public async Task RefreshCachedValues(CancellationToken contextCancellationToken)
@@ -42,6 +43,11 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date, CancellationToken cancellationToken, bool useCache)
     {
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetPredictedSolarProductionByLocalHour), date, useCache);
+        if (configurationWrapper.UseFakeEnergyPredictions())
+        {
+            var fakedResult = GenerateFakeResult();
+            return fakedResult;
+        }
         if (useCache)
         {
             var cachedResult = GetCachedValues(MeterValueKind.SolarGeneration, true, date);
@@ -70,6 +76,11 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         CancellationToken httpContextRequestAborted, bool useCache)
     {
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetPredictedHouseConsumptionByLocalHour), date, useCache);
+        if (configurationWrapper.UseFakeEnergyPredictions())
+        {
+            var fakedResult = GenerateFakeResult();
+            return fakedResult;
+        }
         if (useCache)
         {
             var cachedResult = GetCachedValues(MeterValueKind.HouseConsumption, true, date);
@@ -87,15 +98,34 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
+    private static Dictionary<int, int> GenerateFakeResult()
+    {
+        var fakedResult = new Dictionary<int, int>();
+        for (var i = 0; i < 24; i++)
+        {
+            fakedResult[i] = 1000;
+        }
+
+        return fakedResult;
+    }
+
     public async Task<Dictionary<int, int>> GetActualSolarProductionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted, bool useCache)
     {
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetActualSolarProductionByLocalHour), date, useCache);
+        if (configurationWrapper.UseFakeEnergyHistory())
+        {
+            return GenerateFakeResult();
+        }
         return await GetActualValuesByLocalHour(MeterValueKind.SolarGeneration, date, httpContextRequestAborted, useCache);
     }
 
     public async Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted, bool useCache)
     {
         logger.LogTrace("{method}({date})", nameof(GetActualHouseConsumptionByLocalHour), date);
+        if (configurationWrapper.UseFakeEnergyHistory())
+        {
+            return GenerateFakeResult();
+        }
         return await GetActualValuesByLocalHour(MeterValueKind.HouseConsumption, date, httpContextRequestAborted, useCache);
     }
 
