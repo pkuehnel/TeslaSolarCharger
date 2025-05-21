@@ -17,7 +17,7 @@ public class DebugService(ILogger<DebugService> logger,
     ITeslaSolarChargerContext context,
     IInMemorySink inMemorySink,
     Serilog.Core.LoggingLevelSwitch inMemoryLogLevelSwitch,
-    IChargePointActionService chargePointActionService,
+    IOcppChargePointActionService ocppChargePointActionService,
     IConstants constants,
     ISettings settings) : IDebugService
 {
@@ -44,7 +44,7 @@ public class DebugService(ILogger<DebugService> logger,
         logger.LogTrace("{method}({chargePointId}, {connectorId}, {currentToSet}, {numberOfPhases})", nameof(StartCharging),
             chargePointId, connectorId, currentToSet, numberOfPhases);
         
-        var result = await chargePointActionService.StartCharging(
+        var result = await ocppChargePointActionService.StartCharging(
             chargePointId + constants.OcppChargePointConnectorIdDelimiter + connectorId,
             currentToSet,
             numberOfPhases,
@@ -55,7 +55,7 @@ public class DebugService(ILogger<DebugService> logger,
     public async Task<Result<RemoteStopTransactionResponse?>> StopCharging(string chargePointId, int connectorId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargePointId}, {connectorId})", nameof(StopCharging), chargePointId, connectorId);
-        var result = await chargePointActionService.StopCharging(
+        var result = await ocppChargePointActionService.StopCharging(
             chargePointId + constants.OcppChargePointConnectorIdDelimiter + connectorId, cancellationToken).ConfigureAwait(false);
         return result;
     }
@@ -66,7 +66,7 @@ public class DebugService(ILogger<DebugService> logger,
         logger.LogTrace("{method}({chargePointId}, {connectorId}, {currentToSet}, {numberOfPhases})", nameof(SetCurrentAndPhases),
             chargePointId, connectorId, currentToSet, numberOfPhases);
 
-        var result = await chargePointActionService.SetChargingCurrent(
+        var result = await ocppChargePointActionService.SetChargingCurrent(
             chargePointId + constants.OcppChargePointConnectorIdDelimiter + connectorId,
             currentToSet,
             numberOfPhases,

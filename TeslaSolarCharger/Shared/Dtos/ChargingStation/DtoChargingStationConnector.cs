@@ -14,6 +14,9 @@ public class DtoChargingStationConnector
     public bool AutoSwitchBetween1And3PhasesEnabled { get; set; }
     public int? MinCurrent { get; set; }
     public int? MaxCurrent { get; set; }
+
+    [HelperText("Number of connected phases on your charging station. If you do not know the number, enter 3. Note: Do not enter the number of phases the car can handle, just the number of phases the charging connector is connected to!")]
+    public int ConnectedPhasesCount { get; set; } = 3;
 }
 
 
@@ -24,6 +27,8 @@ public class ChargingStationConnectorValidator : AbstractValidator<DtoChargingSt
         RuleFor(x => x.MaxCurrent)
             .NotEmpty();
         RuleFor(x => x.MinCurrent)
+            .NotEmpty();
+        RuleFor(x => x.ConnectedPhasesCount)
             .NotEmpty();
         RuleFor(x => x)
             .Must(config => config.MaxCurrent >= config.MinCurrent)
