@@ -344,13 +344,13 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 : new(req.Timestamp.Value, TimeSpan.Zero);
             UpdateCacheBasedOnState(databaseChargePointId, req.Status, ocppConnectorState, timestamp);
             //Only add value if with this timestamp it was updated
-            if (timestamp == ocppConnectorState.IsConnected.Timestamp)
+            if (timestamp == ocppConnectorState.IsPluggedIn.Timestamp)
             {
                 scopedContext.OcppChargingStationConnectorValueLogs.Add(new()
                 {
-                    Timestamp = ocppConnectorState.IsConnected.Timestamp,
+                    Timestamp = ocppConnectorState.IsPluggedIn.Timestamp,
                     Type = OcppChargingStationConnectorValueType.IsPluggedIn,
-                    BooleanValue = ocppConnectorState.IsConnected.Value,
+                    BooleanValue = ocppConnectorState.IsPluggedIn.Value,
                     OcppChargingStationConnectorId = databaseChargePointId,
                 });
             }
@@ -387,36 +387,36 @@ public sealed class OcppWebSocketConnectionHandlingService(
         switch (reqStatus)
         {
             case ChargePointStatus.Available:
-                ocppConnectorState.IsConnected = new(timestamp, false);
-                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.UpdateIsPluggedIn(timestamp, false);
+                ocppConnectorState.IsCharging = new(timestamp, false);
                 ocppConnectorState.IsCarFullyCharged = new(timestamp, null);
                 ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Preparing:
-                ocppConnectorState.IsConnected = new(timestamp, true);
-                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
+                ocppConnectorState.IsCharging = new(timestamp, false);
                 ocppConnectorState.IsCarFullyCharged = new(timestamp, null);
                 ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Charging:
-                ocppConnectorState.IsConnected = new(timestamp, true);
-                ocppConnectorState.UpdateIsCharging(timestamp, true);
+                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
+                ocppConnectorState.IsCharging = new(timestamp, true);
                 ocppConnectorState.IsCarFullyCharged = new(timestamp, false);
                 break;
             case ChargePointStatus.SuspendedEVSE:
-                ocppConnectorState.IsConnected = new(timestamp, true);
-                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
+                ocppConnectorState.IsCharging = new(timestamp, false);
                 ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.SuspendedEV:
-                ocppConnectorState.IsConnected = new(timestamp, true);
-                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
+                ocppConnectorState.IsCharging = new(timestamp, false);
                 ocppConnectorState.IsCarFullyCharged = new(timestamp, true);
                 ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             case ChargePointStatus.Finishing:
-                ocppConnectorState.IsConnected = new(timestamp, true);
-                ocppConnectorState.UpdateIsCharging(timestamp, false);
+                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
+                ocppConnectorState.IsCharging = new(timestamp, false);
                 ocppConnectorState.ChargingPower = new(timestamp, 0);
                 break;
             default:

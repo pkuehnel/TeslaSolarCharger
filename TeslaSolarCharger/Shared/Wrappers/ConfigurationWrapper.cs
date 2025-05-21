@@ -172,6 +172,13 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
+    public TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector()
+    {
+        var environmentVariableName = "MaxPluggedInTimeDifferenceToMatchCarAndOcppConnectorSeconds";
+        var value = configuration.GetValue<int>(environmentVariableName);
+        return TimeSpan.FromSeconds(value);
+    }
+
     public bool IsPredictSolarPowerGenerationEnabled()
     {
         var value = GetBaseConfiguration().PredictSolarPowerGeneration;
