@@ -63,17 +63,17 @@ builder.Services.AddSingleton(inMemoryLevelSwitch);
 var app = builder.Build();
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Error()// overall minimum
-    //.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    //.MinimumLevel.Override("System", LogEventLevel.Error)
-    //.MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
-    //.MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
-    //.MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
-    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppWebSocketConnectionHandlingService", LogEventLevel.Verbose)
-    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppChargePointConfigurationService", LogEventLevel.Verbose)
-    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppChargingStationConfigurationService", LogEventLevel.Verbose)
-    .MinimumLevel.Override("TeslaSolarCharger.Server.Services.ChargepointAction.OcppChargePointActionService", LogEventLevel.Verbose)
-    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Verbose)
+    .MinimumLevel.Verbose()// overall minimum
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("System", LogEventLevel.Error)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+    .MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
+    .MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
+    //.MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppWebSocketConnectionHandlingService", LogEventLevel.Verbose)
+    //.MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppChargePointConfigurationService", LogEventLevel.Verbose)
+    //.MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppChargingStationConfigurationService", LogEventLevel.Verbose)
+    //.MinimumLevel.Override("TeslaSolarCharger.Server.Services.ChargepointAction.OcppChargePointActionService", LogEventLevel.Verbose)
+    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Information)
     // Send events to the in–memory sink using a sub–logger and the dynamic level switch.
     .WriteTo.Logger(lc => lc
         .MinimumLevel.ControlledBy(inMemoryLevelSwitch)
