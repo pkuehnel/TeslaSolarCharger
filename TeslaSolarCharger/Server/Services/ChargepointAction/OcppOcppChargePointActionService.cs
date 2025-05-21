@@ -8,11 +8,20 @@ using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.ChargepointAction;
 
-public class OcppChargePointActionService(ILogger<OcppChargePointActionService> logger,
+public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionService> logger,
     IConstants constants,
     IOcppWebSocketConnectionHandlingService ocppWebSocketConnectionHandlingService,
-    ITeslaSolarChargerContext context) : IChargePointActionService
+    ITeslaSolarChargerContext context) : IOcppChargePointActionService
 {
+    public async Task<Result<RemoteStartTransactionResponse?>> StartCharging(int chargingConnectorId, decimal currentToSet,
+        int? numberOfPhases,
+        CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargingConnectorId}, {currentToSet}, {numberOfPhases})", nameof(StartCharging), chargingConnectorId, currentToSet, numberOfPhases);
+        var chargePointIdentifier = await GetChargePointIdentifierByChargingConnectorId(chargingConnectorId, cancellationToken).ConfigureAwait(false);
+        return await StartCharging(chargePointIdentifier, currentToSet, numberOfPhases, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<Result<RemoteStartTransactionResponse?>> StartCharging(string chargepointIdentifier, decimal currentToSet, int? numberOfPhases,
         CancellationToken cancellationToken)
     {
@@ -65,6 +74,13 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
 
     }
 
+    public async Task<Result<RemoteStopTransactionResponse?>> StopCharging(int chargingConnectorId, CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargingConnectorId})", nameof(StopCharging), chargingConnectorId);
+        var chargePointIdentifier = await GetChargePointIdentifierByChargingConnectorId(chargingConnectorId, cancellationToken).ConfigureAwait(false);
+        return await StopCharging(chargePointIdentifier, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<Result<RemoteStopTransactionResponse?>> StopCharging(string chargepointIdentifier, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargePointIdentifier})", nameof(StopCharging), chargepointIdentifier);
@@ -112,6 +128,15 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
             logger.LogError(ex, "Could not send message to charge point {chargePointId} or charge point did not answer properly", chargePointId);
             return new(null, ex.Message, null);
         }
+    }
+
+    public async Task<Result<SetChargingProfileResponse?>> SetChargingCurrent(int chargingConnectorId, decimal currentToSet,
+        int? numberOfPhases,
+        CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargingConnectorId}, {currentToSet}, {numberOfPhases})", nameof(SetChargingCurrent), chargingConnectorId, currentToSet, numberOfPhases);
+        var chargePointIdentifier = await GetChargePointIdentifierByChargingConnectorId(chargingConnectorId, cancellationToken).ConfigureAwait(false);
+        return await SetChargingCurrent(chargePointIdentifier, currentToSet, numberOfPhases, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<SetChargingProfileResponse?>> SetChargingCurrent(string chargepointIdentifier, decimal currentToSet, int? numberOfPhases, CancellationToken cancellationToken)
@@ -162,6 +187,22 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
             logger.LogError(ex, "Could not send message to charge point {chargePointId} or charge point did not answer properly", chargePointId);
             return new(null, ex.Message, null);
         }
+    }
+
+    private async Task<string> GetChargePointIdentifierByChargingConnectorId(int chargingConnectorId,
+        CancellationToken cancellationToken)
+    {
+        var delimiter = constants.OcppChargePointConnectorIdDelimiter;
+        var chargePointData = await context.OcppChargingStationConnectors
+            .Where(c => c.Id == chargingConnectorId)
+            .Select(c => new
+            {
+                c.OcppChargingStation.ChargepointId,
+                c.ConnectorId,
+            })
+            .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var chargePointIdentifier = chargePointData.ChargepointId + delimiter + chargePointData.ConnectorId;
+        return chargePointIdentifier;
     }
 
     private async Task<int> GetTransactionId(string chargepointIdentifier, int connectorId, CancellationToken cancellationToken)
@@ -230,7 +271,7 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
                     new ChargingSchedulePeriod()
                     {
                         StartPeriodSeconds = 0,
-                        Limit = (double)currentToSet,
+                        Limit = Math.Round((double)currentToSet, 1),
                         NumberPhases = numberOfPhases,
                     },
                 },
