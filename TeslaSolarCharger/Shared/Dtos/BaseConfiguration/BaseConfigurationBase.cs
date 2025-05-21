@@ -102,6 +102,8 @@ public class BaseConfigurationBase
     public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
     public double HomeGeofenceLatitude { get; set; } = 52.5185238; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
     public int HomeGeofenceRadius { get; set; } = 50;
+    [HelperText("If enabled OCPP charging stations are charged based on solar power. This is an experimental feature.")]
+    public bool UseChargingServiceV2 { get; set; }
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 

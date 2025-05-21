@@ -123,10 +123,11 @@ public static class ServiceCollectionExtensions
             .AddTransient<IWeatherDataService, WeatherDataService>()
             .AddTransient<IEnergyDataService, EnergyDataService>()
             .AddTransient<IMeterValueEstimationService, MeterValueEstimationService>()
-            .AddTransient<IChargePointActionService, OcppChargePointActionService>()
+            .AddTransient<IOcppChargePointActionService, OcppOcppChargePointActionService>()
             .AddTransient<IOcppChargePointConfigurationService, OcppChargePointConfigurationService>()
             .AddTransient<IOcppChargingStationConfigurationService, OcppChargingStationConfigurationService>()
             .AddTransient<ILoadPointManagementService, LoadPointManagementService>()
+            .AddTransient<IChargingServiceV2, ChargingServiceV2>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()

@@ -114,4 +114,5 @@ public interface IConfigurationWrapper
     bool UseFakeEnergyPredictions();
     bool UseFakeEnergyHistory();
     TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
+    bool UseChargingServiceV2();
 }

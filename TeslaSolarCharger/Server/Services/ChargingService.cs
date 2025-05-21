@@ -35,7 +35,7 @@ public class ChargingService(
     : IChargingService
 {
 
-    public async Task SetNewChargingValues()
+    public async Task<int?> SetNewChargingValues()
     {
         logger.LogTrace("{method}()", nameof(SetNewChargingValues));
         await UpdateChargingRelevantValues().ConfigureAwait(false);
@@ -102,16 +102,16 @@ public class ChargingService(
             logger.LogDebug("Set current of car {carId} to max as is not charging", car.Id);
             await teslaService.SetAmp(car.Id, car.MaximumAmpere).ConfigureAwait(false);
         }
-        
 
+        var powerToControl = await CalculatePowerToControl().ConfigureAwait(false);
         if (relevantCarIds.Count < 1)
         {
             logger.LogDebug("No car was charging this cycle.");
             settings.ControlledACarAtLastCycle = false;
-            return;
+            //Return null here as soon as charging value calculation is finished in ChargingServiceV2
+            return powerToControl;
         }
 
-        var powerToControl = await CalculatePowerToControl().ConfigureAwait(false);
 
         logger.LogDebug("At least one car is charging.");
         settings.ControlledACarAtLastCycle = true;
@@ -143,6 +143,8 @@ public class ChargingService(
             }
             powerToControl -= await ChangeCarAmp(relevantCar, requestedAmpChange, maxAmpIncrease).ConfigureAwait(false);
         }
+
+        return powerToControl;
     }
 
     private void SetAllPlannedChargingSlotsToInactive(DtoCar dtoCar)
