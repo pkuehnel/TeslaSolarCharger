@@ -15,10 +15,10 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     IMeterValueBufferService meterValueBufferService,
     IMeterValueEstimationService meterValueEstimationService) : IMeterValueLogService
 {
-    public void AddPvValuesToBuffer()
+    public async Task AddPvValuesToBuffer()
     {
         logger.LogTrace("{method}()", nameof(AddPvValuesToBuffer));
-        var pvValues = indexService.GetPvValues();
+        var pvValues = await indexService.GetPvValues();
         if(pvValues.LastUpdated == default)
         {
             logger.LogWarning("Unknown last updated of PV values, do not log pv meter values");

@@ -27,10 +27,11 @@ public class IndexService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ITscOnlyChargingCostService tscOnlyChargingCostService)
+    ITscOnlyChargingCostService tscOnlyChargingCostService,
+    ILoadPointManagementService loadPointManagementService)
     : IIndexService
 {
-    public DtoPvValues GetPvValues()
+    public async Task<DtoPvValues> GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
         int? powerBuffer = configurationWrapper.PowerBuffer();
@@ -38,17 +39,18 @@ public class IndexService(
         {
             powerBuffer = null;
         }
-
-        return new DtoPvValues()
+        var loadPoints = await loadPointManagementService.GetPluggedInLoadPoints();
+        var pvValues = new DtoPvValues()
         {
             GridPower = settings.Overage,
             InverterPower = settings.InverterPower,
             HomeBatteryPower = settings.HomeBatteryPower,
             HomeBatterySoc = settings.HomeBatterySoc,
-            PowerBuffer = powerBuffer, 
-            CarCombinedChargingPowerAtHome = settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum(),
+            PowerBuffer = powerBuffer,
+            CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ActualChargingPower ?? 0).Sum(),
             LastUpdated = settings.LastPvValueUpdate,
         };
+        return pvValues;
     }
 
     public async Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars()
