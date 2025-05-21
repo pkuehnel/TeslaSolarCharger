@@ -89,7 +89,11 @@ public class ChargingServiceV2 : IChargingServiceV2
                     phasesToCalculateWith = chargerInformation.ConnectedPhasesCount.Value;
                 }
             }
-            var currentIncrease = ((decimal) restPowerToUse.Value) / voltage / phasesToCalculateWith;
+            else
+            {
+                phasesToCalculateWith = loadPoint.OcppConnectorState.PhaseCount.Value.Value;
+            }
+            var currentIncrease = ((decimal)restPowerToUse.Value) / voltage / phasesToCalculateWith;
             var currentCurrent = loadPoint.OcppConnectorState.ChargingCurrent.Value;
             var currentToSet = currentCurrent + currentIncrease;
             if (chargerInformation.MaxCurrent < currentToSet)
@@ -117,7 +121,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         restPowerToUse -= (int)(currentIncrease * voltage * phasesToCalculateWith);
                     }
                 }
-                    
+
             }
             else
             {
