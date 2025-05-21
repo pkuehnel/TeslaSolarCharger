@@ -10,7 +10,8 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     IDebugService debugService,
     ITeslaFleetApiService teslaFleetApiService,
-    IOcppChargePointConfigurationService ocppChargePointConfigurationService) : ApiBaseController
+    IOcppChargePointConfigurationService ocppChargePointConfigurationService,
+    ILoadPointManagementService loadPointManagementService) : ApiBaseController
 {
 
     private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
@@ -146,6 +147,14 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     public async Task<IActionResult> RebootCharger(string chargepointId)
     {
         var result = await ocppChargePointConfigurationService.RebootCharger(chargepointId, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetPluggedInLoadpoints()
+    {
+        var result = await loadPointManagementService.GetPluggedInLoadPoints();
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }

@@ -2,12 +2,12 @@
 
 public class DtoOcppConnectorState
 {
-    private DtoTimeStampedValue<bool> _isCharging = new(DateTimeOffset.MinValue, false);
-    public DtoTimeStampedValue<bool> IsConnected { get; set; } = new(DateTimeOffset.MinValue, false);
+    private DtoTimeStampedValue<bool> _isPluggedIn = new (DateTimeOffset.MinValue, false);
+    public DtoTimeStampedValue<bool> IsCharging { get; set; } = new(DateTimeOffset.MinValue, false);
 
-    public DtoTimeStampedValue<bool> IsCharging
+    public DtoTimeStampedValue<bool> IsPluggedIn
     {
-        get => _isCharging;
+        get => _isPluggedIn;
     }
 
     public DtoTimeStampedValue<bool?> IsCarFullyCharged { get; set; } = new(DateTimeOffset.MinValue, null);
@@ -17,12 +17,12 @@ public class DtoOcppConnectorState
     public DtoTimeStampedValue<int?> PhaseCount { get; set; } = new DtoTimeStampedValue<int?>(DateTimeOffset.MinValue, null);
     public DateTimeOffset? LastPluggedIn { get; private set; }
 
-    public void UpdateIsCharging(DateTimeOffset timestamp, bool value)
+    public void UpdateIsPluggedIn(DateTimeOffset timestamp, bool value)
     {
-        if (value && (!_isCharging.Value))
+        if (value && (!_isPluggedIn.Value))
         {
             LastPluggedIn = timestamp;
         }
-        _isCharging = new DtoTimeStampedValue<bool>(timestamp, value);
+        _isPluggedIn = new(timestamp, value);
     }
 }
