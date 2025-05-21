@@ -11,9 +11,11 @@ public class ChargingProcess
     public decimal? Cost { get; set; }
     public int? OldHandledChargeId { get; set; }
 
-    public int CarId { get; set; }
+    public int? CarId { get; set; }
+    public int? OcppChargingStationConnectorId { get; set; }
 
-    public Car Car { get; set; } = null!;
+    public Car? Car { get; set; }
+    public OcppChargingStationConnector? OcppChargingStationConnector { get; set; }
 
     public List<ChargingDetail> ChargingDetails { get; set; } = new();
 }
