@@ -14,4 +14,5 @@ public class OcppChargingStationConnector
     public OcppChargingStation OcppChargingStation { get; set; } = null!;
 
     public List<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; } = new();
+    public List<ChargingProcess> ChargingProcesses { get; set; } = new();
 }
