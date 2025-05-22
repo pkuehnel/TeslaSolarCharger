@@ -1,9 +1,10 @@
 ﻿using TeslaSolarCharger.Client.Helper.Contracts;
+using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 
 namespace TeslaSolarCharger.Client.Services;
 
-public class HomeService
+public class HomeService : IHomeService
 {
     private readonly ILogger<HomeService> _logger;
     private readonly IHttpClientHelper _httpClientHelper;
@@ -15,9 +16,14 @@ public class HomeService
         _httpClientHelper = httpClientHelper;
     }
 
-    public async Task<List<DtoLoadPointOverview>> GetPluggedInLoadPoints()
+    public async Task<List<DtoLoadPointOverview>?> GetPluggedInLoadPoints()
     {
         _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
-        return new List<DtoLoadPointOverview>();
+        var result = await _httpClientHelper.SendGetRequestAsync<List<DtoLoadPointOverview>>("api/Home/GetLoadPointOverviews");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+        }
+        return result.Data;
     }
 }

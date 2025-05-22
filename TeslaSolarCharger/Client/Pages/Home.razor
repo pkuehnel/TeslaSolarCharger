@@ -1,8 +1,10 @@
 ﻿@page "/Home"
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject IEnergyDataService EnergyDataService
+@inject IHomeService HomeService
 
 <PageTitle>Solar 4 Car</PageTitle>
 
@@ -21,12 +23,18 @@
 
 @code {
     private bool _showEnergyData;
+    private List<DtoLoadPointOverview>? _loadPoints;
 
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+        await RefreshLoadPoints();
     }
 
+    private async Task RefreshLoadPoints()
+    {
+        _loadPoints = await HomeService.GetPluggedInLoadPoints();
+    }
 }

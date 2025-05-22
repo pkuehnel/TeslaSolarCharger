@@ -4,5 +4,5 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IHomeService
 {
-    Task<List<DtoLoadPointOverview>> GetPluggedInLoadPoints();
+    Task<List<DtoLoadPointOverview>> GetLoadPointOverviews();
 }
