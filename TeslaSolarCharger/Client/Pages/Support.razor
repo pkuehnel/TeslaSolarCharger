@@ -119,7 +119,7 @@ else
     <MudExpansionPanels MultiExpansion="true">
         @foreach (var connector in _debugChargingConnectors)
         {
-            <MudExpansionPanel Text="@($"{connector.Value.ChargePointId} Connector: {connector.Value.ConnectorId}")">
+            <MudExpansionPanel Text="@($"{connector.Value.ChargePointId} Connector: {connector.Value.ConnectorId} ({connector.Value.Name})")">
                 <div>ID: @connector.Key</div>
                 <div class="row">
                     <div class="col">
@@ -170,6 +170,8 @@ else
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
+
+    <InstallationInformation></InstallationInformation>
 }
 
 

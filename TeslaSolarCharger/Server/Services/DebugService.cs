@@ -26,7 +26,7 @@ public class DebugService(ILogger<DebugService> logger,
         logger.LogTrace("{method}()", nameof(GetChargingConnectors));
         var connectors = await context.OcppChargingStationConnectors
             .Include(x => x.OcppChargingStation)
-            .ToDictionaryAsync(x => x.Id, x => new DtoDebugChargingConnector(x.OcppChargingStation.ChargepointId)
+            .ToDictionaryAsync(x => x.Id, x => new DtoDebugChargingConnector(x.OcppChargingStation.ChargepointId, x.Name)
             {
                 ConnectorId = x.ConnectorId,
             }).ConfigureAwait(false);

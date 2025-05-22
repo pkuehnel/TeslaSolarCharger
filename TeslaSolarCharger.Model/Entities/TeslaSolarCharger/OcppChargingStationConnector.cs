@@ -2,7 +2,13 @@
 
 public class OcppChargingStationConnector
 {
+    public OcppChargingStationConnector(string name)
+    {
+        Name = name;
+    }
+
     public int Id { get; set; }
+    public string Name { get; set; }
     public int ConnectorId { get; set; }
     public bool AutoSwitchBetween1And3PhasesEnabled { get; set; }
     public int? MinCurrent { get; set; }
