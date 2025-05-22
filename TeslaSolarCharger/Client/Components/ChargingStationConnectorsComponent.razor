@@ -14,7 +14,7 @@ else
     <MudExpansionPanels>
         @foreach (var chargingStationConnector in _chargingStationConnectors)
         {
-            <MudExpansionPanel Text="@($"Connector {chargingStationConnector.Item.ConnectorId}")">
+            <MudExpansionPanel Text="@($"{chargingStationConnector.Item.Name}")">
                 <EditFormComponent T="DtoChargingStationConnector" WrappedElement="@(chargingStationConnector)"
                                    OnAfterSuccessfullSubmit="ShowSuccessMessage"
                                    SubmitUrl="@($"api/ChargingStations/UpdateChargingStationConnector")">
@@ -27,6 +27,7 @@ else
                             The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result int unexpected behaviour like the car not charging at all.
                         </MudAlert>
                     }
+                    <GenericInput For="() => chargingStationConnector.Item.Name"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.MinCurrent"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.MaxCurrent"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.ConnectedPhasesCount"></GenericInput>

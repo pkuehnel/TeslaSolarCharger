@@ -1,0 +1,103 @@
+﻿@using System.Globalization
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+
+@inject IHttpClientHelper HttpClientHelper
+@inject ISnackbar Snackbar
+
+<div class="shadow p-3 mb-5 bg-white rounded auto-scroll">
+    @if (_serverTimeZoneDisplayName != default)
+    {
+        <div>
+            <TooltipComponent Text="This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml">
+                Server Timezone: @_serverTimeZoneDisplayName
+            </TooltipComponent>
+        </div>
+    }
+    @if (_serverTime != default)
+    {
+        <div>
+            <TooltipComponent Text="This is needed to properly start charging sessions. If this time does not match your current time, check your server time.">
+                Current Server Time: @_serverTime?.ToString()
+            </TooltipComponent>
+        </div>
+    }
+    @if (string.IsNullOrWhiteSpace(_version))
+    {
+        <p>
+            <em>Could not load version</em>
+        </p>
+    }
+    else
+    {
+        <p>
+            <em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em>
+        </p>
+    }
+    <div>
+        <b>Installation ID</b>:
+        <TextShortenComponent InputString="@_installationId"
+                              MaxLength="18"
+                              ShouldDisplayTruncatedCharCount="true"
+                              TooltipText="Do not share the complete ID with anyone"
+                              OnCopyClicked="ShowInstallationIdWarning"></TextShortenComponent>
+    </div>
+    <div>
+        <b>Language settings</b>: @CultureInfo.CurrentCulture
+    </div>
+</div>
+
+@code {
+    private DateTime? _serverTime;
+    private string? _serverTimeZoneDisplayName;
+    private string _installationId = "";
+    private string _version = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshServerTime();
+        await RefreshServerTimeZone();
+        await RefreshVersion();
+        await RefreshInstallationId();
+    }
+
+    private async Task RefreshServerTime()
+    {
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<DateTime>>("api/Hello/GetServerLocalTime");
+        _serverTime = result.Data?.Value;
+    }
+
+    private async Task RefreshServerTimeZone()
+    {
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>?>("api/Hello/GetServerTimeZoneDisplayName");
+        _serverTimeZoneDisplayName = result.Data?.Value;
+    }
+
+    private async Task RefreshVersion()
+    {
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string?>?>("api/Hello/ProductVersion");
+        if (result.HasError)
+        {
+            _version = string.Empty;
+            return;
+        }
+        _version = result.Data?.Value ?? string.Empty;
+    }
+
+    private async Task RefreshInstallationId()
+    {
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>?>("api/Hello/GetInstallationId");
+        if (result.HasError)
+        {
+            _installationId = string.Empty;
+            return;
+        }
+        _installationId = result.Data?.Value ?? string.Empty;
+    }
+
+    private void ShowInstallationIdWarning()
+    {
+        Snackbar.Add("Do not share the ID with anyone", Severity.Warning);
+    }
+}

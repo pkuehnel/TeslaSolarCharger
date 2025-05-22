@@ -34,7 +34,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         var chargingConnectors = await teslaSolarChargerContext.OcppChargingStationConnectors
             .Where(cc => cc.OcppChargingStationId == chargingStationId)
             .OrderBy(c => c.ConnectorId)
-            .Select(cc => new DtoChargingStationConnector()
+            .Select(cc => new DtoChargingStationConnector(cc.Name)
             {
                 Id = cc.Id,
                 ChargingStationId = cc.OcppChargingStationId,
@@ -52,6 +52,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
     {
         logger.LogTrace("{method}({@dto})", nameof(UpdateChargingStationConnector), dtoChargingStation);
         var existingChargingStation = await teslaSolarChargerContext.OcppChargingStationConnectors.FirstAsync(c => c.Id == dtoChargingStation.Id);
+        existingChargingStation.Name = dtoChargingStation.Name;
         existingChargingStation.MinCurrent = dtoChargingStation.MinCurrent;
         existingChargingStation.MaxCurrent = dtoChargingStation.MaxCurrent;
         existingChargingStation.ConnectedPhasesCount = dtoChargingStation.ConnectedPhasesCount;
@@ -80,7 +81,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                 logger.LogError("Could not check if reconfiguration is required for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, reconfigurationRequiredResult.ErrorMessage);
                 return;
             }
-            if(reconfigurationRequiredResult.Data == true)
+            if (reconfigurationRequiredResult.Data == true)
             {
                 var rebootIsRequired = false;
                 logger.LogInformation("Reconfiguration is required for charge point {chargePointId}.", chargepointId);
@@ -133,7 +134,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             logger.LogInformation("Adding {numberOfConnectors} connectors to charge point {chargePointId}.", numberOfConnectors.Data, chargepointId);
             for (var i = existingChargingStation.Connectors.Count; i < numberOfConnectors.Data; i++)
             {
-                existingChargingStation.Connectors.Add(new OcppChargingStationConnector
+                existingChargingStation.Connectors.Add(new(existingChargingStation.ChargepointId + "; Connector: " + (i + 1))
                 {
                     ConnectorId = i + 1,
                 });
