@@ -9,6 +9,6 @@ public class DtoLoadPointOverview
     public int ChargingPower { get; set; }
     public int? MaxPhaseCount { get; set; }
     public int? ChargingPhaseCount { get; set; }
-    public int MaxCurrent { get; set; }
+    public int? MaxCurrent { get; set; }
     public decimal ChargingCurrent { get; set; }
 }
