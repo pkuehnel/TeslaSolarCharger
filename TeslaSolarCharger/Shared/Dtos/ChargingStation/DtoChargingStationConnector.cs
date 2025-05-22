@@ -22,7 +22,7 @@ public class DtoChargingStationConnector
     [HelperText("The minimum current that the charging point is allowed to use. Charging will never be slower than this current. Note: This value does not have any influence on when charging stops completly, you will find more details on \"Switch Off Current\". Recommended Value: 6.")]
     public int? MinCurrent { get; set; }
     [Postfix("A")]
-    [HelperText("The charging point will stop charging when the available current drops below this value. This allows charging to continue for a while even if the current dips slightly, preventing unnecessary interruptions. Note: If you set this value to e.g. 3A while Min Current is set to 6A, charging will continue with 6A as long as there is enough solar power for 3A. Recomended Value: 6.")]
+    [HelperText("The charging point will stop charging when the available current drops below this value. This allows charging to continue for a while even if the current dips slightly, preventing unnecessary interruptions. Note: If you set this value to e.g. 3A while Min Current is set to 6A, charging will continue with 6A as long as there is enough solar power for 3A. Recommended Value: 6.")]
     public int? SwitchOffAtCurrent { get; set; }
     [Postfix("A")]
     [HelperText("The charging point will only begin charging when the available current exceeds this value. Helps to avoid starting the charging process too frequently due to small current fluctuations. Recommended Value: 8.")]
