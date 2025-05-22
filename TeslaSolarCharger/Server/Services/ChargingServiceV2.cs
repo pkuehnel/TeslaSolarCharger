@@ -77,6 +77,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                 .Select(c => new
                 {
                     c.MinCurrent,
+                    c.SwitchOffAtCurrent,
+                    c.SwitchOnAtCurrent,
                     c.MaxCurrent,
                     c.ConnectedPhasesCount,
                 })
@@ -93,17 +95,22 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 phasesToCalculateWith = loadPoint.OcppConnectorState.PhaseCount.Value.Value;
             }
-            var currentIncrease = ((decimal)restPowerToUse.Value) / voltage / phasesToCalculateWith;
+            var currentIncreaseBeforeMinMaxChecks = ((decimal)restPowerToUse.Value) / voltage / phasesToCalculateWith;
+            var currentIncreaseAfterMinMaxChecks = currentIncreaseBeforeMinMaxChecks;
             var currentCurrent = loadPoint.OcppConnectorState.ChargingCurrent.Value;
-            var currentToSet = currentCurrent + currentIncrease;
-            if (chargerInformation.MaxCurrent < currentToSet)
+            var currentToSetBeforeMinMaxChecks = currentCurrent + currentIncreaseBeforeMinMaxChecks;
+            var currentToSetAfterMinMaxChecks = currentToSetBeforeMinMaxChecks;
+            if (chargerInformation.MaxCurrent < currentToSetBeforeMinMaxChecks)
             {
-                currentIncrease -= currentToSet - chargerInformation.MaxCurrent.Value;
-                currentToSet = chargerInformation.MaxCurrent.Value;
+                currentToSetAfterMinMaxChecks = chargerInformation.MaxCurrent.Value;            }
+            else if (chargerInformation.MinCurrent > currentToSetBeforeMinMaxChecks)
+            {
+                currentToSetAfterMinMaxChecks = chargerInformation.MinCurrent.Value;
             }
+            currentIncreaseAfterMinMaxChecks += currentToSetAfterMinMaxChecks - currentToSetBeforeMinMaxChecks;
             if (loadPoint.OcppConnectorState.IsCharging.Value)
             {
-                if (currentToSet < chargerInformation.MinCurrent)
+                if (currentToSetBeforeMinMaxChecks < chargerInformation.SwitchOffAtCurrent)
                 {
                     var result = await _ocppChargePointActionService.StopCharging(loadPoint.OcppConnectorId.Value, cancellationToken)
                         .ConfigureAwait(false);
@@ -114,30 +121,30 @@ public class ChargingServiceV2 : IChargingServiceV2
                 }
                 else
                 {
-                    var result = await _ocppChargePointActionService.SetChargingCurrent(loadPoint.OcppConnectorId.Value, currentToSet, null,
+                    var result = await _ocppChargePointActionService.SetChargingCurrent(loadPoint.OcppConnectorId.Value, currentToSetAfterMinMaxChecks, null,
                         cancellationToken).ConfigureAwait(false);
                     if (!result.HasError)
                     {
-                        restPowerToUse -= (int)(currentIncrease * voltage * phasesToCalculateWith);
+                        restPowerToUse -= (int)(currentIncreaseAfterMinMaxChecks * voltage * phasesToCalculateWith);
                     }
                 }
 
             }
             else
             {
-                if (currentToSet < chargerInformation.MinCurrent)
+                if (currentToSetBeforeMinMaxChecks > chargerInformation.SwitchOnAtCurrent)
                 {
-                    _logger.LogTrace("Do not start charging as current to set {currentToSet} is lower than minimum current {minimumCurrent}",
-                        currentToSet, chargerInformation.MinCurrent);
-                }
-                else
-                {
-                    var result = await _ocppChargePointActionService.StartCharging(loadPoint.OcppConnectorId.Value, currentToSet, null,
+                    var result = await _ocppChargePointActionService.StartCharging(loadPoint.OcppConnectorId.Value, currentToSetAfterMinMaxChecks, null,
                         cancellationToken).ConfigureAwait(false);
                     if (!result.HasError)
                     {
-                        restPowerToUse -= (int)(currentIncrease * voltage * phasesToCalculateWith);
+                        restPowerToUse -= (int)(currentIncreaseAfterMinMaxChecks * voltage * phasesToCalculateWith);
                     }
+                }
+                else
+                {
+                    _logger.LogTrace("Do not start charging as current to set {currentToSet} is lower than switch on current {minimumCurrent}",
+                        currentToSetAfterMinMaxChecks, chargerInformation.SwitchOnAtCurrent);
                 }
             }
         }
