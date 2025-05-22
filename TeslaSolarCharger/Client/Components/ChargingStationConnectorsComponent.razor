@@ -29,6 +29,8 @@ else
                     }
                     <GenericInput For="() => chargingStationConnector.Item.Name"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.MinCurrent"></GenericInput>
+                    <GenericInput For="() => chargingStationConnector.Item.SwitchOffAtCurrent"></GenericInput>
+                    <GenericInput For="() => chargingStationConnector.Item.SwitchOnAtCurrent"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.MaxCurrent"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.ConnectedPhasesCount"></GenericInput>
                     @if (AutoPhaseSwitchingSupported)
