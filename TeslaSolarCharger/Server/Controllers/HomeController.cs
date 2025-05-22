@@ -16,7 +16,7 @@ public class HomeController : ApiBaseController
     [HttpGet]
     public async Task<IActionResult> GetLoadPointOverviews()
     {
-        var result = await _homeService.GetPluggedInLoadPoints();
+        var result = await _homeService.GetLoadPointOverviews();
         return Ok(result);
     }
 }

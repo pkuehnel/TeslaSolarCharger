@@ -21,9 +21,9 @@ public class HomeService : IHomeService
     }
 
 
-    public async Task<List<DtoLoadPointOverview>> GetPluggedInLoadPoints()
+    public async Task<List<DtoLoadPointOverview>> GetLoadPointOverviews()
     {
-        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
+        _logger.LogTrace("{method}()", nameof(GetLoadPointOverviews));
         var rawLoadPoints = await _loadPointManagementService.GetPluggedInLoadPoints();
         var result = new List<DtoLoadPointOverview>();
         foreach (var dtoLoadpoint in rawLoadPoints)
