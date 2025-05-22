@@ -29,4 +29,16 @@ public class DtoLoadpoint
             return Car?.ChargerVoltage;
         }
     }
+
+    public decimal? ActualCurrent
+    {
+        get
+        {
+            if (OcppConnectorState != default)
+            {
+                return (int)OcppConnectorState.ChargingCurrent.Value;
+            }
+            return Car?.ChargerActualCurrent;
+        }
+    }
 }

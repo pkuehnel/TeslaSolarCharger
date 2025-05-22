@@ -128,6 +128,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IOcppChargingStationConfigurationService, OcppChargingStationConfigurationService>()
             .AddTransient<ILoadPointManagementService, LoadPointManagementService>()
             .AddTransient<IChargingServiceV2, ChargingServiceV2>()
+            .AddTransient<IHomeService, HomeService>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
