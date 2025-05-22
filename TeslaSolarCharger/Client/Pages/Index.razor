@@ -10,6 +10,7 @@
 @using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
+@using TeslaSolarCharger.Client.Components.StartPage
 
 @implements IDisposable
 
@@ -23,22 +24,7 @@
 
 <PageTitle>Tesla Solar Charger</PageTitle>
 
-@if (_serverTime != default)
-{
-    if (_serverTime.Value is { Day: 24, Month: 12, Hour: > 15 } or { Day: 25, Month: 12 })
-    {
-        <div class="alert alert-info" role="alert">
-            Merry Christmas! &#127876; &#127877; &#127873;
-        </div>
-    }
-
-    if (_serverTime.Value is { Day: 31, Month: 12, Hour: > 15 } or { Day: 1, Month: 1 })
-    {
-        <div class="alert alert-info" role="alert">
-            Happy New Year! &#127878; &#127881; &#127882;
-        </div>
-    }
-}
+<MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
 
 <BackendInformationDisplayComponent></BackendInformationDisplayComponent>
 <LoggedErrorsComponent></LoggedErrorsComponent>
@@ -328,48 +314,6 @@ else
 
     <HiddenErrorsComponent></HiddenErrorsComponent>
 
-    <div class="shadow p-3 mb-5 bg-white rounded auto-scroll">
-        @if (_serverTimeZoneDisplayName != default)
-        {
-            <div>
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTimeZone]">
-                    Server Timezone: @_serverTimeZoneDisplayName
-                </TooltipComponent>
-            </div>
-        }
-        @if (_serverTime != default)
-        {
-            <div>
-                <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.ServerTime]">
-                    Current Server Time: @_serverTime?.ToString()
-                </TooltipComponent>
-            </div>
-        }
-        @if (string.IsNullOrWhiteSpace(_version))
-        {
-            <p>
-                <em>Could not load version</em>
-            </p>
-        }
-        else
-        {
-            <p>
-                <em>Version: <a href="https://github.com/pkuehnel/TeslaSolarCharger/releases/tag/v@_version" target="_blank">@_version</a></em>
-            </p>
-        }
-        <div>
-            <b>Installation ID</b>:
-            <TextShortenComponent InputString="@_installationId"
-            MaxLength="18"
-            ShouldDisplayTruncatedCharCount="true"
-            TooltipText="Do not share the complete ID with anyone"
-            OnCopyClicked="ShowInstallationIdWarning"></TextShortenComponent>
-        </div>
-        <div>
-            <b>Language settings</b>: @CultureInfo.CurrentCulture
-        </div>
-    </div>
-
     <div style="text-align:center">
         Use my referral code for ordering any Tesla product or schedule a Demo Drive: <a href="https://ts.la/patrick63887" target="_blank">https://ts.la/patrick63887</a>
     </div>
@@ -393,11 +337,9 @@ else
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
     private readonly List<int> _savingCarIds = new();
-    private string _version = "";
+
     private HashSet<int> _collapsedCarDetails = new HashSet<int>();
-    private DateTime? _serverTime;
-    private string? _serverTimeZoneDisplayName;
-    private string _installationId = "";
+
     private Dictionary<int, bool?> _isFleetApiWorkingForCar = new();
     private readonly HashSet<int> _testingFleetApiCarIds = new();
     private bool _showEnergyData;
@@ -407,14 +349,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts").ConfigureAwait(false);
-        _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome().ConfigureAwait(false);
-        await RefreshCarBaseSettings().ConfigureAwait(false);
-        await RefreshCarBaseStates().ConfigureAwait(false);
-        await RefreshServerTime().ConfigureAwait(false);
-        await RefreshServerTimeZone().ConfigureAwait(false);
-        _version = await HttpClient.GetStringAsync("api/Hello/ProductVersion").ConfigureAwait(false);
-        _installationId = await HttpClient.GetStringAsync("api/Hello/GetInstallationId").ConfigureAwait(false);
+        _toolTipTexts = await HttpClient.GetFromJsonAsync<Dictionary<string, string>>("api/Index/GetToolTipTexts");
+        _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+        await RefreshCarBaseSettings();
+        await RefreshCarBaseStates();
         foreach (var carBaseState in _carBaseStates!)
         {
             _collapsedCarDetails.Add(carBaseState.CarId);
@@ -522,18 +460,6 @@ else
         }
     }
 
-    private async Task RefreshServerTime()
-    {
-        var dtoTimeValue = await HttpClient.GetFromJsonAsync<DateTime>("api/Hello/GetServerLocalTime").ConfigureAwait(false);
-        _serverTime = dtoTimeValue;
-    }
-
-    private async Task RefreshServerTimeZone()
-    {
-        var dtoServerTimeZoneId = await HttpClient.GetFromJsonAsync<DtoValue<string>>("api/Hello/GetServerTimeZoneDisplayName").ConfigureAwait(false);
-        _serverTimeZoneDisplayName = dtoServerTimeZoneId?.Value;
-    }
-
     private async Task OnCollapseChanged(bool changedToExpanded, int carId)
     {
         if (changedToExpanded)
@@ -587,7 +513,6 @@ else
         {
             await RefreshCarBaseStates().ConfigureAwait(false);
             await RefreshAllVisableCarDetails().ConfigureAwait(false);
-            await RefreshServerTime().ConfigureAwait(false);
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception)
@@ -620,11 +545,6 @@ else
         }
 
         _testingFleetApiCarIds.Remove(carId);
-    }
-
-    private void ShowInstallationIdWarning()
-    {
-        Snackbar.Add("Do not share the ID with anyone", Severity.Warning);
     }
 
     private string GetBatteryIconBySoc(int? soc)
