@@ -6,7 +6,13 @@ namespace TeslaSolarCharger.Shared.Dtos.ChargingStation;
 
 public class DtoChargingStationConnector
 {
+    public DtoChargingStationConnector(string name)
+    {
+        Name = name;
+    }
+
     public int Id { get; set; }
+    public string Name { get; set; }
     public int ChargingStationId { get; set; }
     public int ConnectorId { get; set; }
     [DisplayName("Auto switch between 1 and 3 phases")]
@@ -29,6 +35,8 @@ public class ChargingStationConnectorValidator : AbstractValidator<DtoChargingSt
         RuleFor(x => x.MinCurrent)
             .NotEmpty();
         RuleFor(x => x.ConnectedPhasesCount)
+            .NotEmpty();
+        RuleFor(x => x.Name)
             .NotEmpty();
         RuleFor(x => x)
             .Must(config => config.MaxCurrent >= config.MinCurrent)

@@ -48,7 +48,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Components\BackendInformationDisplayComponent.razor">
+    <Content Update="Components\StartPage\BackendInformationDisplayComponent.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
   </ItemGroup>
