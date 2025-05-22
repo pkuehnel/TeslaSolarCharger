@@ -56,9 +56,9 @@ public class HomeService : IHomeService
                 {
                     loadPointOverview.ChargingPhaseCount = dtoLoadpoint.OcppConnectorState.PhaseCount.Value;
                 }
-                if (relevantConnectorValues.MaxCurrent < loadPointOverview.MaxCurrent)
+                if (relevantConnectorValues.MaxCurrent < loadPointOverview.MaxCurrent || dtoLoadpoint.Car == default)
                 {
-                    loadPointOverview.MaxCurrent = relevantConnectorValues.MaxCurrent.Value;
+                    loadPointOverview.MaxCurrent = relevantConnectorValues.MaxCurrent;
                 }
             }
             loadPointOverview.ChargingPower = dtoLoadpoint.ActualChargingPower ?? 0;
