@@ -261,7 +261,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
             ChargingProfileId = 1,
             TransactionId = transactionId,
             StackLevel = 0,
-            ChargingProfilePurpose = ChargingProfilePurposeType.TxProfile,
+            ChargingProfilePurpose = ChargingProfilePurposeType.TxDefaultProfile,
             ChargingProfileKind = ChargingProfileKindType.Relative,
             ChargingSchedule = new ChargingSchedule()
             {
