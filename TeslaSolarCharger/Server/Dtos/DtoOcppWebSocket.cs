@@ -11,6 +11,7 @@ public class DtoOcppWebSocket(
 {
     public string ChargePointId { get; set; } = chargePointId;
     public WebSocket WebSocket { get; set; } = webSocket;
+    public bool FullyConfigured { get; set; }
     public TaskCompletionSource<object?> LifetimeTsc { get; set; } = lifetimeTsc;
 
     public ConcurrentDictionary<string, TaskCompletionSource<JsonElement>> Pending { get; } = new();
