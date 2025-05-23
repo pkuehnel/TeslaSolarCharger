@@ -75,6 +75,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             dto.FullyConfigured = true;
             var ocppChargePointConfigurationService = scope.ServiceProvider.GetRequiredService<IOcppChargePointConfigurationService>();
             await ocppChargePointConfigurationService.TriggerStatusNotification(chargePointId, httpContextRequestAborted);
+            await ocppChargePointConfigurationService.TriggerMeterValues(chargePointId, httpContextRequestAborted);
         }
         else
         {
