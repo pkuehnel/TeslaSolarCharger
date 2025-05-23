@@ -19,9 +19,22 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
     public async Task<Result<object>> TriggerStatusNotification(string chargepointId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargePointId})", nameof(TriggerStatusNotification), chargepointId);
+        return await TriggerMessage(chargepointId, RequestedMessage.StatusNotification, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<object>> TriggerMeterValues(string chargepointId, CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargePointId})", nameof(TriggerMeterValues), chargepointId);
+        return await TriggerMessage(chargepointId, RequestedMessage.MeterValues, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<Result<object>> TriggerMessage(string chargepointId, RequestedMessage messageType,
+        CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargePointId}, {messageType})", nameof(TriggerMessage), chargepointId, messageType);
         var request = new TriggerMessageRequest()
         {
-            RequestedMessage = RequestedMessage.StatusNotification,
+            RequestedMessage = messageType,
         };
 
         try
