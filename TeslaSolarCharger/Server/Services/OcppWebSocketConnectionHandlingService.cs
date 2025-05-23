@@ -729,18 +729,25 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             logger.LogInformation("Removed WS for {chargePointId}", chargePointId);
             dto.LifetimeTsc.TrySetResult(null);
-
             try
             {
                 if (dto.WebSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
                 {
-                    _ = dto.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
-                                                 "Server closing",
-                                                 CancellationToken.None);
+                    logger.LogInformation("Connection is not closed, yet. Trying to close it");
+                    await dto.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                        "Server closing",
+                        new CancellationTokenSource(_sendTimeout).Token);
+                    logger.LogInformation("Connection closed.");
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error while trying to close WS for {chargepointId}", chargePointId);
+            }
+            finally
+            {
                 dto.WebSocket.Dispose();
             }
-            catch { /* swallow */ }
         }
 
         using var scope = serviceProvider.CreateScope();
