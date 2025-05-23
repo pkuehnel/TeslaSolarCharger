@@ -649,6 +649,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
             return;
         }
         var maxCurrent = relevantValues.Select(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture)).Max();
+        if (maxCurrent < 0.5m)
+        {
+            //Do not update value if not charging
+            return;
+        }
         var phaseCount = relevantValues
             .Count(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture) > (maxCurrent * 0.8m));
         ocppConnector.PhaseCount = new(new(timestamp, TimeSpan.Zero), phaseCount);
