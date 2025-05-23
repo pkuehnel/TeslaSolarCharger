@@ -27,7 +27,7 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
         try
         {
             var ocppResponse = await ocppWebSocketConnectionHandlingService.SendRequestAsync<TriggerMessageResponse>(chargepointId,
-                "Reset",
+                "TriggerMessage",
                 request,
                 cancellationToken);
             if (ocppResponse.Status == TriggerMessageStatus.Accepted)
