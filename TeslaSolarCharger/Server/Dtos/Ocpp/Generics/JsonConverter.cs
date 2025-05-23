@@ -104,35 +104,3 @@ public sealed class OcppArrayConverter : JsonConverterFactory
     }
 }
 
-
-public class UtcDateTimeConverter : JsonConverter<DateTime?>
-{
-    private const string Format = "yyyy-MM-dd'T'HH:mm:ss.ffffff";
-
-    public override DateTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        if (reader.TokenType == JsonTokenType.Null)
-            return null;
-
-        // parse back into UTC
-        var s = reader.GetString()!;
-        return DateTime.SpecifyKind(DateTime.ParseExact(s, Format, CultureInfo.InvariantCulture), DateTimeKind.Utc);
-    }
-
-    public override void Write(Utf8JsonWriter writer, DateTime? value, JsonSerializerOptions options)
-    {
-        if (value.HasValue)
-        {
-            // ensure it really is UTC
-            var utc = value.Value.Kind == DateTimeKind.Utc
-                ? value.Value
-                : value.Value.ToUniversalTime();
-
-            writer.WriteStringValue(utc.ToString(Format, CultureInfo.InvariantCulture));
-        }
-        else
-        {
-            writer.WriteNullValue();
-        }
-    }
-}
