@@ -159,6 +159,9 @@ else
                     <RightAlignedButtonComponent ButtonText="Reboot Charger"
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => RebootCharger(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Trigger Status Notification"
+                                                 IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
+                                                 OnButtonClicked="@(() => TriggerStatusNotification(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
                 </div>
                 
 
@@ -380,6 +383,15 @@ else
         _loadingOcppCommands.Add(connectorKey);
         var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
             $"api/Debug/RebootCharger?chargepointId={chargePointId}", null);
+        _commandResults[connectorKey] = result.Data?.Value ?? "No data";
+        _loadingOcppCommands.Remove(connectorKey);
+    }
+    
+    private async Task TriggerStatusNotification(string chargePointId, int connectorKey)
+    {
+        _loadingOcppCommands.Add(connectorKey);
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>(
+            $"api/Debug/TriggerStatusNotification?chargepointId={chargePointId}", null);
         _commandResults[connectorKey] = result.Data?.Value ?? "No data";
         _loadingOcppCommands.Remove(connectorKey);
     }
