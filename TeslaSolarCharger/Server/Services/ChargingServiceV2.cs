@@ -37,7 +37,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     public async Task SetNewChargingValues(int? restPowerToUse, CancellationToken cancellationToken)
     {
-        _logger.LogTrace("{method}({restPowerToUse}", nameof(SetNewChargingValues), restPowerToUse);
+        _logger.LogTrace("{method}({restPowerToUse})", nameof(SetNewChargingValues), restPowerToUse);
         if (!_configurationWrapper.UseChargingServiceV2())
         {
             _logger.LogDebug("Charging Service V2 not enabled, skip setting charging values");
