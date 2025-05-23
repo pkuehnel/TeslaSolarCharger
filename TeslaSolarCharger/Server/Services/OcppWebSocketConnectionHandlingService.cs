@@ -263,6 +263,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 "StopTransaction" => await HandleStopTransaction(uniqueMessageId, payload),
                 "MeterValues" => await HandleMeterValues(chargePointId, uniqueMessageId, payload),
                 "Authorize" => HandleAuthorize(uniqueMessageId, payload),
+                "DataTransfer" => HandleDataTransfer(uniqueMessageId, payload),
                 _ => BuildError("NotSupported", $"Action '{action}' not supported",
                     uniqueMessageId, null),
             };
@@ -656,6 +657,24 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         // c) Wrap in an envelope and serialize
         var envelope = new CallResult<AuthorizeResponse>(uniqueId, respPayload);
+        return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private string HandleDataTransfer(string uniqueId, JsonElement payload)
+    {
+        // a) Deserialize the request payload
+        var req = payload.Deserialize<DataTransferRequest>(JsonOpts);
+
+        // TODO: validate req & maybe persist CP information here … here at charge point level
+
+        // b) Build the response payload
+        var respPayload = new DataTransferResponse()
+        {
+            Status = DataTransferStatus.Accepted,
+        };
+
+        // c) Wrap in an envelope and serialize
+        var envelope = new CallResult<DataTransferResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
     }
 
