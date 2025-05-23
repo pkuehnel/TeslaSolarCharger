@@ -324,28 +324,44 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         }
         var hoursToGetMeterValues = hourlyTimeStamps.Union(missingHours).ToList();
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        var maxDbConcurrency = 5;
+        var throttler = new SemaphoreSlim(maxDbConcurrency);
+
         var queryTasks = hoursToGetMeterValues.Select(async dateTimeOffset =>
         {
-            using var scope = serviceProvider.CreateScope();
-            var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
-            var minimumAge = dateTimeOffset.AddHours(-1);
-            var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset);
-            if (meterValue == default && currentDate > dateTimeOffset)
+            // wait our turn
+            await throttler.WaitAsync(cancellationToken);
+            try
             {
-                meterValue = await scopedContext.MeterValues
-                    .Where(m => m.MeterValueKind == meterValueKind && m.Timestamp <= dateTimeOffset && m.Timestamp > minimumAge)
-                    .OrderByDescending(m => m.Id)
-                    .FirstOrDefaultAsync(cancellationToken);
-                //Only cache if value exists
-                if ((meterValue != default) && (meterValue.Timestamp < GetMaxCacheDate()))
+                using var scope = serviceProvider.CreateScope();
+                var scopedCtx = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+                var minimumAge = dateTimeOffset.AddHours(-1);
+
+                var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset);
+                if (meterValue == default && currentDate > dateTimeOffset)
                 {
-                    CacheMeterValue(meterValueKind, dateTimeOffset, meterValue);
+                    meterValue = await scopedCtx.MeterValues
+                        .Where(m => m.MeterValueKind == meterValueKind
+                                    && m.Timestamp <= dateTimeOffset
+                                    && m.Timestamp > minimumAge)
+                        .OrderByDescending(m => m.Id)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (meterValue != default && meterValue.Timestamp < GetMaxCacheDate())
+                        CacheMeterValue(meterValueKind, dateTimeOffset, meterValue);
+
+                    // optional: small delay so you don’t slam the DB in bursts
+                    await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
                 }
+
+                return new { Timestamp = dateTimeOffset, MeterValue = meterValue };
             }
-            return new { Timestamp = dateTimeOffset, MeterValue = meterValue };
+            finally
+            {
+                throttler.Release();
+            }
         });
 
-        // Await all tasks concurrently.
         var results = await Task.WhenAll(queryTasks);
         var orderedResults = results.ToDictionary(result => result.Timestamp, result => result.MeterValue);
 

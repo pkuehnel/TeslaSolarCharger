@@ -151,6 +151,22 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
         return Ok(new DtoValue<string>(resultString));
     }
 
+    [HttpPost]
+    public async Task<IActionResult> TriggerStatusNotification(string chargepointId)
+    {
+        var result = await ocppChargePointConfigurationService.TriggerStatusNotification(chargepointId, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> TriggerMeterValues(string chargepointId)
+    {
+        var result = await ocppChargePointConfigurationService.TriggerMeterValues(chargepointId, HttpContext.RequestAborted);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetPluggedInLoadpoints()
     {

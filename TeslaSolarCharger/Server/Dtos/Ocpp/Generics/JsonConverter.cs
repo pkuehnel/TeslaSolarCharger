@@ -1,6 +1,7 @@
-﻿using System.Reflection;
-using System.Text.Json.Serialization;
+﻿using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
 
@@ -102,3 +103,4 @@ public sealed class OcppArrayConverter : JsonConverterFactory
                 "Server parses incoming frames manually; deserialization is not required here.");
     }
 }
+

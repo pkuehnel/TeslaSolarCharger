@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.ChargepointAction;
@@ -11,7 +12,8 @@ namespace TeslaSolarCharger.Server.Services.ChargepointAction;
 public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionService> logger,
     IConstants constants,
     IOcppWebSocketConnectionHandlingService ocppWebSocketConnectionHandlingService,
-    ITeslaSolarChargerContext context) : IOcppChargePointActionService
+    ITeslaSolarChargerContext context,
+    IDateTimeProvider dateTimeProvider) : IOcppChargePointActionService
 {
     public async Task<Result<RemoteStartTransactionResponse?>> StartCharging(int chargingConnectorId, decimal currentToSet,
         int? numberOfPhases,
@@ -36,12 +38,12 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
         {
             return new(null, ex.Message, null);
         }
-        
+
         var remoteStartTransaction = new RemoteStartTransactionRequest()
         {
             ConnectorId = connectorId,
             IdTag = constants.DefaultIdTag,
-            ChargingProfile = GenerateChargingProfile(currentToSet, numberOfPhases),
+            ChargingProfile = GenerateChargingProfile(true, currentToSet, numberOfPhases),
         };
         try
         {
@@ -49,7 +51,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
                 "RemoteStartTransaction",
                 remoteStartTransaction,
                 cancellationToken);
-            if(ocppResponse.Status != RemoteStartStopStatus.Accepted)
+            if (ocppResponse.Status != RemoteStartStopStatus.Accepted)
             {
                 logger.LogError("Error while sending RemoteStartTransaction to charge point {chargePointId}: Not Accepted", chargePointId);
                 return new(ocppResponse, $"The Charge point {chargePointId} did not accept the request", null);
@@ -157,7 +159,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
         var setChargingProfile = new SetChargingProfileRequest()
         {
             ConnectorId = connectorId,
-            CsChargingProfiles = GenerateChargingProfile(currentToSet, numberOfPhases, transactionId),
+            CsChargingProfiles = GenerateChargingProfile(false, currentToSet, numberOfPhases, transactionId),
         };
         try
         {
@@ -253,9 +255,9 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
         return chargePointId;
     }
 
-    private ChargingProfile GenerateChargingProfile(decimal currentToSet, int? numberOfPhases, int? transactionId = null)
+    private ChargingProfile GenerateChargingProfile(bool isChargeStart, decimal currentToSet, int? numberOfPhases, int? transactionId = null)
     {
-        logger.LogTrace("{method}({currentToSet}, {numberOfPhases}, {transactionId})", nameof(GenerateChargingProfile), currentToSet, numberOfPhases, transactionId);
+        logger.LogTrace("{method}({isChargeStart}, {currentToSet}, {numberOfPhases}, {transactionId})", nameof(GenerateChargingProfile), isChargeStart, currentToSet, numberOfPhases, transactionId);
         var chargingProfile = new ChargingProfile()
         {
             ChargingProfileId = 1,
@@ -277,6 +279,15 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
                 },
             },
         };
+        if (isChargeStart)
+        {
+            chargingProfile.ChargingProfileKind = ChargingProfileKindType.Relative;
+        }
+        else
+        {
+            chargingProfile.ChargingProfileKind = ChargingProfileKindType.Absolute;
+            chargingProfile.ValidFrom = dateTimeProvider.UtcNow();
+        }
         return chargingProfile;
     }
 }

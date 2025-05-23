@@ -16,6 +16,46 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
     private const int MeterValuesSampleIntervalDefaultValue = 5;
     private readonly HashSet<string> _meterValuesSampledDataDefaultValue = ["Power.Active.Import","Current.Import","Voltage"];
 
+    public async Task<Result<object>> TriggerStatusNotification(string chargepointId, CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargePointId})", nameof(TriggerStatusNotification), chargepointId);
+        return await TriggerMessage(chargepointId, RequestedMessage.StatusNotification, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<object>> TriggerMeterValues(string chargepointId, CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargePointId})", nameof(TriggerMeterValues), chargepointId);
+        return await TriggerMessage(chargepointId, RequestedMessage.MeterValues, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<Result<object>> TriggerMessage(string chargepointId, RequestedMessage messageType,
+        CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({chargePointId}, {messageType})", nameof(TriggerMessage), chargepointId, messageType);
+        var request = new TriggerMessageRequest()
+        {
+            RequestedMessage = messageType,
+        };
+
+        try
+        {
+            var ocppResponse = await ocppWebSocketConnectionHandlingService.SendRequestAsync<TriggerMessageResponse>(chargepointId,
+                "TriggerMessage",
+                request,
+                cancellationToken);
+            if (ocppResponse.Status == TriggerMessageStatus.Accepted)
+            {
+                return new(ocppResponse, null, null);
+            }
+            return new(ocppResponse, $"The chargepoint responded with status {ocppResponse.Status}", null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not send message to charge point {chargePointId} or charge point did not answer properly", chargepointId);
+            return new(null, ex.Message, null);
+        }
+    }
+
     public async Task<Result<object>> RebootCharger(string chargepointId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargepointId})", nameof(RebootCharger), chargepointId);
