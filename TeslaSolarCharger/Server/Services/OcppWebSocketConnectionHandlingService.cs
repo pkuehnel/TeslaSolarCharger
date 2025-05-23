@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.Migrations;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
@@ -70,7 +71,9 @@ public sealed class OcppWebSocketConnectionHandlingService(
             foreach (var chargingConnectorId in chargingConnectorIds)
             {
                 settings.OcppConnectorStates.TryAdd(chargingConnectorId, new());
+                logger.LogInformation("Added charging connector state for chargingconnectorId {chargingConnectorId}", chargingConnectorId);
             }
+            dto.FullyConfigured = true;
         }
         else
         {
@@ -78,7 +81,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
-    private async Task<System.Collections.Generic.HashSet<int>> GetChargingConnectorIds(string chargePointId)
+    private async Task<HashSet<int>> GetChargingConnectorIds(string chargePointId)
     {
         logger.LogTrace("{method}({chargePointId})", nameof(GetChargingConnectorIds), chargePointId);
         using var scope = serviceProvider.CreateScope();
@@ -122,7 +125,6 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     {
                         responseString = BuildError("FormationViolation", "Frame is not a valid OCPP array", null, null);
                     }
-                    else
                     {
                         var messageTypeIdInt = root[0].GetInt32();
                         var uniqueMessageId = root[1].GetString()!;
@@ -135,18 +137,14 @@ public sealed class OcppWebSocketConnectionHandlingService(
                             switch (messageTypeId)
                             {
                                 case MessageTypeId.Call:
-                                    // fire‐and‐forget the handler _and_ its SendTextAsync
-                                    _ = Task.Run(async () =>
+                                    var resp = await HandleIncomingCall(dto.ChargePointId, uniqueMessageId, root,
+                                        new CancellationTokenSource(_messageHandlingTimeout).Token);
+                                    if (!string.IsNullOrEmpty(resp))
                                     {
-                                        var resp = await HandleIncomingCall(dto.ChargePointId, uniqueMessageId, root,
-                                            new CancellationTokenSource(_messageHandlingTimeout).Token);
-                                        if (!string.IsNullOrEmpty(resp))
-                                        {
-                                            await SendTextAsync(dto.ChargePointId,
-                                                resp,
-                                                new CancellationTokenSource(_sendTimeout).Token);
-                                        }
-                                    }, linked.Token);
+                                        await SendTextAsync(dto.ChargePointId,
+                                            resp,
+                                            new CancellationTokenSource(_sendTimeout).Token);
+                                    }
                                     break;
                                 case MessageTypeId.CallResult:
                                     if (dto.Pending.TryRemove(uniqueMessageId, out var tcsOk))
@@ -265,19 +263,50 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         try
         {
-            return action switch
+            if (action == "BootNotification")
             {
-                "BootNotification" => HandleBootNotification(uniqueMessageId, payload),
-                "Heartbeat" => HandleHeartbeat(uniqueMessageId),
-                "StatusNotification" => await HandleStatusNotification(chargePointId, uniqueMessageId, payload, cancellationToken),
-                "StartTransaction" => await HandleStartTransaction(chargePointId, uniqueMessageId, payload),
-                "StopTransaction" => await HandleStopTransaction(uniqueMessageId, payload),
-                "MeterValues" => await HandleMeterValues(chargePointId, uniqueMessageId, payload),
-                "Authorize" => HandleAuthorize(uniqueMessageId, payload),
-                "DataTransfer" => HandleDataTransfer(uniqueMessageId, payload),
-                _ => BuildError("NotSupported", $"Action '{action}' not supported",
-                    uniqueMessageId, null),
-            };
+                return HandleBootNotification(chargePointId, uniqueMessageId, payload);
+            }
+            if (action == "Heartbeat")
+            {
+                return HandleHeartbeat(uniqueMessageId);
+            }
+
+            if (!IsChargePointConfigured(chargePointId))
+            {
+                return BuildError("Internal error", "Service not ready, retry", uniqueMessageId, null);
+            }
+            if (action == "StatusNotification")
+            {
+                return await HandleStatusNotification(chargePointId, uniqueMessageId, payload, cancellationToken);
+            }
+
+            if (action == "StartTransaction")
+            {
+                return await HandleStartTransaction(chargePointId, uniqueMessageId, payload);
+            }
+
+            if (action == "StopTransaction")
+            {
+                return await HandleStopTransaction(uniqueMessageId, payload);
+            }
+
+            if (action == "MeterValues")
+            {
+                return await HandleMeterValues(chargePointId, uniqueMessageId, payload);
+            }
+
+            if (action == "Authorize")
+            {
+                return HandleAuthorize(uniqueMessageId, payload);
+            }
+
+            if (action == "DataTransfer")
+            {
+                return HandleDataTransfer(uniqueMessageId, payload);
+            }
+
+            return BuildError("NotImplemented", $"Action '{action}' not supported", uniqueMessageId, null);
         }
         catch (OcppCallErrorException ex)
         {
@@ -285,17 +314,18 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
     }
 
-    private string HandleBootNotification(string uniqueId, JsonElement payload)
+    private string HandleBootNotification(string chargePointId, string uniqueId, JsonElement payload)
     {
+        logger.LogTrace("{method}({chargePointId}, {uniqueId})", nameof(HandleBootNotification), chargePointId, uniqueId);
         // a) Deserialize the request payload
         var req = payload.Deserialize<BootNotificationRequest>(JsonOpts);
 
-        // TODO: validate req & maybe persist CP information here … but here is charging station only
+        var isConfigured = IsChargePointConfigured(chargePointId);
 
         // b) Build the response payload
         var respPayload = new BootNotificationResponse
         {
-            Status = RegistrationStatus.Accepted,
+            Status = isConfigured ? RegistrationStatus.Accepted : RegistrationStatus.Pending,
             CurrentTimeUtc = DateTime.UtcNow,
             IntervalSeconds = (int)ClientSideHeartbeatConfigured.TotalSeconds,                      // tell CP to heartbeat every 5 min
         };
@@ -303,6 +333,27 @@ public sealed class OcppWebSocketConnectionHandlingService(
         // c) Wrap in an envelope and serialize
         var envelope = new CallResult<BootNotificationResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private bool IsChargePointConfigured(string chargePointId)
+    {
+        var isConfigured = true;
+        var isConnected = _connections.TryGetValue(chargePointId, out var chargePoint);
+        if (!isConnected)
+        {
+            logger.LogInformation("Chargepoint {chargepointId} is not connected.", chargePoint);
+            isConfigured = false;
+        }
+        else
+        {
+            logger.LogInformation("Chargepoint {chargepointId} is not fully configured.", chargePoint);
+            if (chargePoint?.FullyConfigured != true)
+            {
+                isConfigured = false;
+            }
+        }
+
+        return isConfigured;
     }
 
     private string HandleHeartbeat(string uniqueId)
@@ -368,7 +419,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     OcppChargingStationConnectorId = databaseChargePointId,
                 });
             }
-            
+
         }
         await scopedContext.SaveChangesAsync(cancellationToken);
 
