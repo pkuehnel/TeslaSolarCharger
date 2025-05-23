@@ -307,6 +307,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
     private string HandleHeartbeat(string uniqueId)
     {
+        logger.LogTrace("{method}({uniqueId})", nameof(HandleHeartbeat), uniqueId);
         var respPayload = new HeartbeatResponse
         {
             CurrentTimeUtc = DateTime.UtcNow,
@@ -319,14 +320,14 @@ public sealed class OcppWebSocketConnectionHandlingService(
     private async Task<string> HandleStatusNotification(string chargePointId, string uniqueId, JsonElement payload,
         CancellationToken cancellationToken)
     {
+        logger.LogTrace("{method}({chargePointId}, {uniqueId})", nameof(HandleStatusNotification), chargePointId, uniqueId);
         // a) Deserialize the request payload
         var req = payload.Deserialize<StatusNotificationRequest>(JsonOpts);
         if (req == default)
         {
+            logger.LogError("Error while handling status notification as req is null for chargepointID {chargepointId} and uniqueId {uniqueId}", chargePointId, uniqueId);
             throw new OcppCallErrorException(CallErrorCode.FormationViolation);
         }
-
-
         using var scope = serviceProvider.CreateScope();
         var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var chargingConnectorQuery = scopedContext.OcppChargingStationConnectors.AsQueryable()
@@ -383,6 +384,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
     private async Task<DtoOcppConnectorState> GetConnectorStateAsync(int databaseChargePointId, CancellationToken ct = default)
     {
+        logger.LogTrace("{method}({chargingConnectorId})", nameof(GetConnectorStateAsync), databaseChargePointId);
         DtoOcppConnectorState? state;
         while (!settings.OcppConnectorStates.TryGetValue(databaseChargePointId, out state!))
         {
@@ -725,6 +727,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
     private async Task RemoveWebSocket(string chargePointId)
     {
+        logger.LogTrace("{method}({chargePointId})", nameof(RemoveWebSocket), chargePointId);
         if (_connections.TryRemove(chargePointId, out var dto))
         {
             logger.LogInformation("Removed WS for {chargePointId}", chargePointId);
