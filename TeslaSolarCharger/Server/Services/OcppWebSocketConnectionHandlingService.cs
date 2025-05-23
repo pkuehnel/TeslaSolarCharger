@@ -43,6 +43,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             new JsonStringEnumConverter(),
             new OcppArrayConverter(),
+            new UtcDateTimeConverter(),
         },
     };
 

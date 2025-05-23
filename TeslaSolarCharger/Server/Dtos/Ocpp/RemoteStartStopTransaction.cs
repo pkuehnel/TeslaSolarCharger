@@ -89,13 +89,13 @@ public sealed record ChargingProfile
     public ChargingProfilePurposeType ChargingProfilePurpose { get; init; }
 
     [JsonPropertyName("chargingProfileKind")]
-    public ChargingProfileKindType ChargingProfileKind { get; init; }
+    public ChargingProfileKindType ChargingProfileKind { get; set; }
 
     [JsonPropertyName("recurrencyKind")]
     public RecurrencyKindType? RecurrencyKind { get; init; }
 
     [JsonPropertyName("validFrom")]
-    public DateTime? ValidFrom { get; init; }
+    public DateTime? ValidFrom { get; set; }
 
     [JsonPropertyName("validTo")]
     public DateTime? ValidTo { get; init; }
