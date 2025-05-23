@@ -41,7 +41,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
         {
             ConnectorId = connectorId,
             IdTag = constants.DefaultIdTag,
-            ChargingProfile = GenerateChargingProfile(currentToSet, numberOfPhases),
+            ChargingProfile = GenerateChargingProfile(true, currentToSet, numberOfPhases),
         };
         try
         {
@@ -157,7 +157,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
         var setChargingProfile = new SetChargingProfileRequest()
         {
             ConnectorId = connectorId,
-            CsChargingProfiles = GenerateChargingProfile(currentToSet, numberOfPhases, transactionId),
+            CsChargingProfiles = GenerateChargingProfile(false, currentToSet, numberOfPhases, transactionId),
         };
         try
         {
@@ -253,15 +253,15 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
         return chargePointId;
     }
 
-    private ChargingProfile GenerateChargingProfile(decimal currentToSet, int? numberOfPhases, int? transactionId = null)
+    private ChargingProfile GenerateChargingProfile(bool isChargeStart, decimal currentToSet, int? numberOfPhases, int? transactionId = null)
     {
-        logger.LogTrace("{method}({currentToSet}, {numberOfPhases}, {transactionId})", nameof(GenerateChargingProfile), currentToSet, numberOfPhases, transactionId);
+        logger.LogTrace("{method}({isChargeStart}, {currentToSet}, {numberOfPhases}, {transactionId})", nameof(GenerateChargingProfile), isChargeStart, currentToSet, numberOfPhases, transactionId);
         var chargingProfile = new ChargingProfile()
         {
             ChargingProfileId = 1,
             TransactionId = transactionId,
             StackLevel = 0,
-            ChargingProfilePurpose = ChargingProfilePurposeType.TxDefaultProfile,
+            ChargingProfilePurpose = isChargeStart ? ChargingProfilePurposeType.TxProfile : ChargingProfilePurposeType.TxDefaultProfile,
             ChargingProfileKind = ChargingProfileKindType.Relative,
             ChargingSchedule = new ChargingSchedule()
             {
