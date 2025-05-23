@@ -103,6 +103,13 @@ public sealed class OcppWebSocketConnectionHandlingService(
             while (dto.WebSocket.State == WebSocketState.Open && !linked.IsCancellationRequested)
             {
                 var result = await dto.WebSocket.ReceiveAsync(new(buffer), linked.Token);
+                // reset heartbeat timer whenever something arrives
+                watchdog.CancelAfter(_clientSideHeartbeatTimeout);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    logger.LogInformation("Reveived Message Type Close from chargepoint {chargePointId}", dto.ChargePointId);
+                    break;
+                }
                 try
                 {
                     var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
@@ -174,13 +181,6 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Swallowed error within receive loop to keep up WebSocketConnection for {chargePointId}", dto.ChargePointId);
-                }
-                
-                // reset heartbeat timer whenever something arrives
-                watchdog.CancelAfter(_clientSideHeartbeatTimeout);
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    break;
                 }
             }
         }
