@@ -289,11 +289,6 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 return HandleHeartbeat(uniqueMessageId);
             }
-
-            if (!IsChargePointConfigured(chargePointId))
-            {
-                return BuildError("Internal error", "Service not ready, retry", uniqueMessageId, null);
-            }
             if (action == "StatusNotification")
             {
                 return await HandleStatusNotification(chargePointId, uniqueMessageId, payload, cancellationToken);
