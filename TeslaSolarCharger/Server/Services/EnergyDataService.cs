@@ -177,14 +177,13 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
     private Dictionary<int, int>? GetCachedValues(MeterValueKind meterValueKind, bool predictedValue, DateOnly date)
     {
-        logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date})", nameof(GetCachedValues), meterValueKind, predictedValue, date);
+        //Do not log this as it is super noisy
+        //logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date})", nameof(GetCachedValues), meterValueKind, predictedValue, date);
         var key = GetCacheKey(meterValueKind, predictedValue, date);
         if (memoryCache.TryGetValue(key, out Dictionary<int, int>? value))
         {
-            logger.LogTrace("Cached value found for key {key}", key);
             return value;
         }
-        logger.LogTrace("No cached value found for key {key}", key);
         return default;
     }
 
