@@ -103,68 +103,79 @@ public sealed class OcppWebSocketConnectionHandlingService(
             while (dto.WebSocket.State == WebSocketState.Open && !linked.IsCancellationRequested)
             {
                 var result = await dto.WebSocket.ReceiveAsync(new(buffer), linked.Token);
-                var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                logger.LogTrace("Received from {chargePointId}: {message}", dto.ChargePointId, jsonMessage);
-                var doc = JsonDocument.Parse(jsonMessage);
-                var root = doc.RootElement;
-                string? responseString = null;
-                // 1) Sanity checks -----------------------------------------------------
-                if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 3)
+                try
                 {
-                    responseString = BuildError("FormationViolation", "Frame is not a valid OCPP array", null, null);
-                }
-                else
-                {
-                    var messageTypeIdInt = root[0].GetInt32();
-                    var uniqueMessageId = root[1].GetString()!;
-                    if (!TryGetMessageType(messageTypeIdInt, out var messageTypeId))
+                    var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    logger.LogTrace("Received from {chargePointId}: {message}", dto.ChargePointId, jsonMessage);
+                    var doc = JsonDocument.Parse(jsonMessage);
+                    var root = doc.RootElement;
+                    string? responseString = null;
+                    // 1) Sanity checks -----------------------------------------------------
+                    if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 3)
                     {
-                        responseString = BuildError("FormationViolation", "Message Type ID is undefined", uniqueMessageId, null);
+                        responseString = BuildError("FormationViolation", "Frame is not a valid OCPP array", null, null);
                     }
                     else
                     {
-                        switch (messageTypeId)
+                        var messageTypeIdInt = root[0].GetInt32();
+                        var uniqueMessageId = root[1].GetString()!;
+                        if (!TryGetMessageType(messageTypeIdInt, out var messageTypeId))
                         {
-                            case MessageTypeId.Call:
-                                // fire‐and‐forget the handler _and_ its SendTextAsync
-                                _ = Task.Run(async () =>
-                                {
-                                    var resp = await HandleIncomingCall(dto.ChargePointId, uniqueMessageId, root, new CancellationTokenSource(_messageHandlingTimeout).Token);
-                                    if (!string.IsNullOrEmpty(resp))
-                                    {
-                                        await SendTextAsync(dto.ChargePointId,
-                                            resp,
-                                            new CancellationTokenSource(_sendTimeout).Token);
-                                    }
-                                }, linked.Token);
-                                break;
-                            case MessageTypeId.CallResult:
-                                if (dto.Pending.TryRemove(uniqueMessageId, out var tcsOk))
-                                {
-                                    // index 2 holds the payload for CALLRESULT
-                                    tcsOk.TrySetResult(root[2]);
-                                }
-                                break;
-                            case MessageTypeId.CallError:
-                                if (dto.Pending.TryRemove(uniqueMessageId, out var tcsErr))
-                                {
-                                    var code = root[2].GetString();
-                                    var desc = root[3].GetString();
-                                    tcsErr.TrySetException(new OcppCallErrorException(code!, desc!));
-                                }
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException();
+                            responseString = BuildError("FormationViolation", "Message Type ID is undefined", uniqueMessageId, null);
                         }
+                        else
+                        {
+                            switch (messageTypeId)
+                            {
+                                case MessageTypeId.Call:
+                                    // fire‐and‐forget the handler _and_ its SendTextAsync
+                                    _ = Task.Run(async () =>
+                                    {
+                                        var resp = await HandleIncomingCall(dto.ChargePointId, uniqueMessageId, root,
+                                            new CancellationTokenSource(_messageHandlingTimeout).Token);
+                                        if (!string.IsNullOrEmpty(resp))
+                                        {
+                                            await SendTextAsync(dto.ChargePointId,
+                                                resp,
+                                                new CancellationTokenSource(_sendTimeout).Token);
+                                        }
+                                    }, linked.Token);
+                                    break;
+                                case MessageTypeId.CallResult:
+                                    if (dto.Pending.TryRemove(uniqueMessageId, out var tcsOk))
+                                    {
+                                        // index 2 holds the payload for CALLRESULT
+                                        tcsOk.TrySetResult(root[2]);
+                                    }
+
+                                    break;
+                                case MessageTypeId.CallError:
+                                    if (dto.Pending.TryRemove(uniqueMessageId, out var tcsErr))
+                                    {
+                                        var code = root[2].GetString();
+                                        var desc = root[3].GetString();
+                                        tcsErr.TrySetException(new OcppCallErrorException(code!, desc!));
+                                    }
+
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException();
+                            }
+                        }
+
+
                     }
 
-
+                    if (!string.IsNullOrEmpty(responseString))
+                    {
+                        await SendTextAsync(dto.ChargePointId, responseString, new CancellationTokenSource(_sendTimeout).Token);
+                    }
                 }
-
-                if (!string.IsNullOrEmpty(responseString))
+                catch (Exception ex)
                 {
-                    await SendTextAsync(dto.ChargePointId, responseString, new CancellationTokenSource(_sendTimeout).Token);
+                    logger.LogError(ex, "Swallowed error within receive loop to keep up WebSocketConnection for {chargePointId}", dto.ChargePointId);
                 }
+                
                 // reset heartbeat timer whenever something arrives
                 watchdog.CancelAfter(_clientSideHeartbeatTimeout);
                 if (result.MessageType == WebSocketMessageType.Close)
