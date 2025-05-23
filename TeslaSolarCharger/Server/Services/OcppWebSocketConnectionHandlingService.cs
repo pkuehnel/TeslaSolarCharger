@@ -73,6 +73,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 logger.LogInformation("Added charging connector state for chargingconnectorId {chargingConnectorId}", chargingConnectorId);
             }
             dto.FullyConfigured = true;
+            var ocppChargePointConfigurationService = scope.ServiceProvider.GetRequiredService<IOcppChargePointConfigurationService>();
+            await ocppChargePointConfigurationService.TriggerStatusNotification(chargePointId, httpContextRequestAborted);
         }
         else
         {
