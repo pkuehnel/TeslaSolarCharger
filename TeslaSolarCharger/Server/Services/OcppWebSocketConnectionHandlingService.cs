@@ -338,12 +338,12 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             chargingConnectorQuery = chargingConnectorQuery.Where(c => c.ConnectorId == req.ConnectorId);
         }
-
+        logger.LogTrace("Getting chargingConnectorIds");
         var chargingConnectorIds = await chargingConnectorQuery
             .Select(c => c.Id)
             .ToHashSetAsync(cancellationToken: cancellationToken);
 
-
+        logger.LogTrace("Received chargingConnectorIds");
         if (chargingConnectorIds.Count < 1)
         {
             throw new OcppCallErrorException(CallErrorCode.PropertyConstraintViolation,
@@ -443,6 +443,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
     private async Task<string> HandleStartTransaction(string chargePointId, string uniqueId, JsonElement payload)
     {
+        logger.LogTrace("{method}({chargePointId}, {uniqueId})", nameof(HandleStartTransaction), chargePointId, uniqueId);
         // a) Deserialize the request payload
         var req = payload.Deserialize<StartTransactionRequest>(JsonOpts);
 
