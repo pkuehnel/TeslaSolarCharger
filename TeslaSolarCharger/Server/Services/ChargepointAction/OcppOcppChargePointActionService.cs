@@ -258,6 +258,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
     private ChargingProfile GenerateChargingProfile(bool isChargeStart, decimal currentToSet, int? numberOfPhases, int? transactionId = null)
     {
         logger.LogTrace("{method}({isChargeStart}, {currentToSet}, {numberOfPhases}, {transactionId})", nameof(GenerateChargingProfile), isChargeStart, currentToSet, numberOfPhases, transactionId);
+        var startDate = dateTimeProvider.UtcNow().AddMinutes(-1);
         var chargingProfile = new ChargingProfile()
         {
             ChargingProfileId = 1,
@@ -268,6 +269,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
             ChargingSchedule = new ChargingSchedule()
             {
                 ChargingRateUnit = ChargingRateUnitType.A,
+                StartSchedule = startDate,
                 ChargingSchedulePeriod =
                 {
                     new ChargingSchedulePeriod()
@@ -286,7 +288,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
         else
         {
             chargingProfile.ChargingProfileKind = ChargingProfileKindType.Absolute;
-            chargingProfile.ValidFrom = dateTimeProvider.UtcNow();
+            chargingProfile.ValidFrom = startDate;
         }
         return chargingProfile;
     }
