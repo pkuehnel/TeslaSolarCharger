@@ -2,5 +2,8 @@
 version: 2
 
 queries:
+  uses:
+    - security-extended
+    - security-and-quality
   disable:
     - security/log-injection
