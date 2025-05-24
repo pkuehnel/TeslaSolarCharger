@@ -466,37 +466,37 @@ public sealed class OcppWebSocketConnectionHandlingService(
         switch (reqStatus)
         {
             case ChargePointStatus.Available:
-                ocppConnectorState.UpdateIsPluggedIn(timestamp, false);
-                ocppConnectorState.IsCharging = new(timestamp, false);
-                ocppConnectorState.IsCarFullyCharged = new(timestamp, null);
-                ocppConnectorState.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsPluggedIn.Update(timestamp, false);
+                ocppConnectorState.IsCharging.Update(timestamp, false);
+                ocppConnectorState.IsCarFullyCharged.Update(timestamp, null);
+                ocppConnectorState.ChargingPower.Update(timestamp, 0);
                 break;
             case ChargePointStatus.Preparing:
-                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
-                ocppConnectorState.IsCharging = new(timestamp, false);
-                ocppConnectorState.IsCarFullyCharged = new(timestamp, null);
-                ocppConnectorState.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsPluggedIn.Update(timestamp, true);
+                ocppConnectorState.IsCharging.Update(timestamp, false);
+                ocppConnectorState.IsCarFullyCharged.Update(timestamp, null);
+                ocppConnectorState.ChargingPower.Update(timestamp, 0);
                 break;
             case ChargePointStatus.Charging:
-                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
-                ocppConnectorState.IsCharging = new(timestamp, true);
-                ocppConnectorState.IsCarFullyCharged = new(timestamp, false);
+                ocppConnectorState.IsPluggedIn.Update(timestamp, true);
+                ocppConnectorState.IsCharging.Update(timestamp, true);
+                ocppConnectorState.IsCarFullyCharged.Update(timestamp, false);
                 break;
             case ChargePointStatus.SuspendedEVSE:
-                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
-                ocppConnectorState.IsCharging = new(timestamp, false);
-                ocppConnectorState.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsPluggedIn.Update(timestamp, true);
+                ocppConnectorState.IsCharging.Update(timestamp, false);
+                ocppConnectorState.ChargingPower.Update(timestamp, 0);
                 break;
             case ChargePointStatus.SuspendedEV:
-                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
-                ocppConnectorState.IsCharging = new(timestamp, false);
-                ocppConnectorState.IsCarFullyCharged = new(timestamp, true);
-                ocppConnectorState.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsPluggedIn.Update(timestamp, true);
+                ocppConnectorState.IsCharging.Update(timestamp, false);
+                ocppConnectorState.IsCarFullyCharged.Update(timestamp, true);
+                ocppConnectorState.ChargingPower.Update(timestamp, 0);
                 break;
             case ChargePointStatus.Finishing:
-                ocppConnectorState.UpdateIsPluggedIn(timestamp, true);
-                ocppConnectorState.IsCharging = new(timestamp, false);
-                ocppConnectorState.ChargingPower = new(timestamp, 0);
+                ocppConnectorState.IsPluggedIn.Update(timestamp, true);
+                ocppConnectorState.IsCharging.Update(timestamp, false);
+                ocppConnectorState.ChargingPower.Update(timestamp, 0);
                 break;
             default:
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
@@ -667,7 +667,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         }
         var phaseCount = relevantValues
             .Count(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture) > (maxCurrent * 0.8m));
-        ocppConnector.PhaseCount = new(new(timestamp, TimeSpan.Zero), phaseCount);
+        ocppConnector.PhaseCount.Update(new(timestamp, TimeSpan.Zero), phaseCount);
     }
 
     private void SetCurrent(List<SampledValue> sampledValue, DateTime timestamp, DtoOcppConnectorState ocppConnector)
@@ -680,7 +680,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             return;
         }
         var maxCurrent = relevantValues.Select(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture)).Max();
-        ocppConnector.ChargingCurrent = new(new(timestamp, TimeSpan.Zero), maxCurrent);
+        ocppConnector.ChargingCurrent.Update(new(timestamp, TimeSpan.Zero), maxCurrent);
     }
 
     private void SetPower(List<SampledValue> sampledValue, DateTime timestamp, DtoOcppConnectorState ocppConnector)
@@ -698,12 +698,12 @@ public sealed class OcppWebSocketConnectionHandlingService(
             logger.LogTrace("Using combined power as power");
             var element = combinedPower.First();
             var correctionFactor = element.Unit == UnitOfMeasure.KW ? 1000 : 1;
-            ocppConnector.ChargingPower = new(new(timestamp, TimeSpan.Zero), Convert.ToInt32(decimal.Parse(element.Value, CultureInfo.InvariantCulture) * correctionFactor));
+            ocppConnector.ChargingPower.Update(new(timestamp, TimeSpan.Zero), Convert.ToInt32(decimal.Parse(element.Value, CultureInfo.InvariantCulture) * correctionFactor));
             return;
         }
         var phaseBasedPowers = relevantValues.Where(v => v.Phase != default).ToList();
         logger.LogTrace("Using sum of phases as power");
-        ocppConnector.ChargingPower = new(new(timestamp, TimeSpan.Zero), Convert.ToInt32(phaseBasedPowers.Select(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture) * (v.Unit == UnitOfMeasure.KW ? 1000 : 1)).Sum()));
+        ocppConnector.ChargingPower.Update(new(timestamp, TimeSpan.Zero), Convert.ToInt32(phaseBasedPowers.Select(v => decimal.Parse(v.Value, CultureInfo.InvariantCulture) * (v.Unit == UnitOfMeasure.KW ? 1000 : 1)).Sum()));
     }
 
     private void SetVoltage(List<SampledValue> sampledValue, DateTime timestamp, DtoOcppConnectorState ocppConnector)
@@ -719,7 +719,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var maxVoltage = decimalVoltageValues.Max();
         var maxVoltageDifference = 20;
         decimalVoltageValues.RemoveAll(v => v < (maxVoltage - maxVoltageDifference));
-        ocppConnector.ChargingVoltage = new(new(timestamp, TimeSpan.Zero), decimalVoltageValues.Average());
+        ocppConnector.ChargingVoltage.Update(new(timestamp, TimeSpan.Zero), decimalVoltageValues.Average());
     }
 
     private string HandleAuthorize(string uniqueId, JsonElement payload)
