@@ -258,6 +258,7 @@ public class OcppOcppChargePointActionService(ILogger<OcppOcppChargePointActionS
     private ChargingProfile GenerateChargingProfile(bool isChargeStart, decimal currentToSet, int? numberOfPhases, int? transactionId = null)
     {
         logger.LogTrace("{method}({isChargeStart}, {currentToSet}, {numberOfPhases}, {transactionId})", nameof(GenerateChargingProfile), isChargeStart, currentToSet, numberOfPhases, transactionId);
+        //Set Startdate to one minute earlier so definetly all other profiles get overriden
         var startDate = dateTimeProvider.UtcNow().AddMinutes(-1);
         var chargingProfile = new ChargingProfile()
         {
