@@ -75,6 +75,13 @@ else
                         </MudText>
                     </MudProgressLinear>
                 }
+                @if (loadPoint.MinSoc != default)
+                {
+                    <GenericInput T="int?"
+                                  For="() => loadPoint.MinSoc"
+                                  PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                                  OnButtonClicked="_ => UpdateMinSoc(loadPoint)"></GenericInput>
+                }
             </div>
             <div>
                 @if (loadPoint.CarId != default)
@@ -118,4 +125,15 @@ else
             });
         }
     }
+
+    private async Task UpdateMinSoc(DtoLoadPointOverview loadPoint)
+    {
+        if (loadPoint.CarId == default)
+        {
+            return;
+        }
+        loadPoint.MinSoc ??= 0;
+        await HomeService.UpdateCarMinSoc(loadPoint.CarId.Value, loadPoint.MinSoc.Value);
+    }
+
 }
