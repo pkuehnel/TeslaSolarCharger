@@ -34,4 +34,12 @@ public class HomeController : ApiBaseController
         var result = await _homeService.SaveCarChargingSchedule(carId, dto);
         return Ok(result);
     }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateCarMinSoc(int carId, int minSoc)
+    {
+        await _homeService.UpdateCarMinSoc(carId, minSoc);
+        return Ok();
+    }
+
 }

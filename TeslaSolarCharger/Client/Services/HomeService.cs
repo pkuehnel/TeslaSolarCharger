@@ -39,6 +39,12 @@ public class HomeService : IHomeService
         return result.Data;
     }
 
+    public async Task UpdateCarMinSoc(int carId, int minSoc)
+    {
+        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
+        await _httpClientHelper.SendPostRequestWithSnackbarAsync<Result<object>>($"api/Home/UpdateCarMinSoc?carId={carId}&minSoc={minSoc}", null);
+    }
+
     public async Task<Result<Result<int>>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto)
     {
         _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
