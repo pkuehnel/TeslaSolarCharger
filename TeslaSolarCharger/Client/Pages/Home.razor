@@ -29,7 +29,7 @@ else
 {
     foreach (var loadPoint in _loadPoints)
     {
-        <div class="shadow p-3 mb-5 bg-white rounded d-flex align-items-center">
+        <div class="shadow p-3 mb-5 bg-white rounded">
             <div>
                 @if (loadPoint.ChargingConnectorName != default && loadPoint.CarName != default)
                 {
@@ -59,6 +59,23 @@ else
                 {
                     <span>@($"{loadPoint.ChargingPower:N0} W")</span>
                 }
+            </div>
+            <div>
+                @if (loadPoint.Soc != default)
+                {
+                    <MudProgressLinear Color="Color.Primary"
+                                       Striped="loadPoint.ChargingPower > 0"
+                                       Size="Size.Large"
+                                       Value="(double)loadPoint.Soc"
+                                       Class="my-7"
+                                       Buffer="@(loadPoint.CarSideSocLimit != default)"
+                                       BufferValue="@(loadPoint.CarSideSocLimit == default ? 0 : (double)loadPoint.CarSideSocLimit.Value)">
+                        <MudText Typo="Typo.subtitle1" Color="Color.Dark">
+                            <b>@(loadPoint.Soc.Value.ToString("F1"))%</b>
+                        </MudText>
+                    </MudProgressLinear>
+                }
+                
             </div>
         </div>
     }
@@ -93,6 +110,8 @@ else
                 ChargingPower = 3000,
                 MaxCurrent = 16,
                 MaxPhaseCount = 3,
+                Soc = 34,
+                CarSideSocLimit = 88,
             });
         }
     }

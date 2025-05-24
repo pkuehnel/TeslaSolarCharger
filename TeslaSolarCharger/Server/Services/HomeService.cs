@@ -36,6 +36,8 @@ public class HomeService : IHomeService
                 loadPointOverview.ChargingPhaseCount = dtoLoadpoint.Car.ActualPhases;
                 loadPointOverview.MaxCurrent = dtoLoadpoint.Car.MaximumAmpere;
                 loadPointOverview.ChargingCurrent = dtoLoadpoint.Car.ChargerActualCurrent ?? 0;
+                loadPointOverview.Soc = dtoLoadpoint.Car.SoC;
+                loadPointOverview.CarSideSocLimit = dtoLoadpoint.Car.SocLimit;
             }
             if (dtoLoadpoint.OcppConnectorId != default)
             {
