@@ -55,11 +55,11 @@ public class LoadPointManagementService : ILoadPointManagementService
         var anyConnectorWithMultipleMatchingCars = false;
         foreach (var pluggedInCharingConnector in pluggedInChargingConnectors)
         {
-            if (pluggedInCharingConnector.Value.LastPluggedIn != default)
+            if (pluggedInCharingConnector.Value.IsPluggedIn.LastChanged != default)
             {
                 var matchingLoadPoints = result
-                    .Where(l => l.Car?.LastPluggedIn < pluggedInCharingConnector.Value.LastPluggedIn.Value.Add(_configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector())
-                                && l.Car?.LastPluggedIn > pluggedInCharingConnector.Value.LastPluggedIn.Value.Add(-_configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector()))
+                    .Where(l => l.Car?.LastPluggedIn < pluggedInCharingConnector.Value.IsPluggedIn.LastChanged.Value.Add(_configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector())
+                                && l.Car?.LastPluggedIn > pluggedInCharingConnector.Value.IsPluggedIn.LastChanged.Value.Add(-_configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector()))
                     .ToList();
                 if (matchingLoadPoints.Count < 1)
                 {
