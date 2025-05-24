@@ -2,17 +2,26 @@
 
 public class DtoTimeStampedValue<T> : DtoValue<T>
 {
+    public DateTimeOffset Timestamp { get; private set; }
+    public DateTimeOffset? LastChanged { get; private set; }
+
+    // Hide the base setter completely:
+    public new T? Value => base.Value;
+
     public DtoTimeStampedValue(DateTimeOffset timestamp, T? value)
     {
         Timestamp = timestamp;
-        Value = value;
+
+        // Bypass the hidden setter here:
+        base.Value = value;
     }
 
-    public DtoTimeStampedValue(T? value)
+    public void Update(DateTimeOffset newTimestamp, T? newValue)
     {
-        Timestamp = DateTimeOffset.UtcNow;
-        Value = value;
-    }
+        Timestamp = newTimestamp;
+        if (!EqualityComparer<T?>.Default.Equals(base.Value, newValue))
+            LastChanged = newTimestamp;
 
-    public DateTimeOffset Timestamp { get; set; }
+        base.Value = newValue;
+    }
 }
