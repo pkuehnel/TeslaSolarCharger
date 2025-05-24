@@ -13,4 +13,5 @@ public class DtoLoadPointOverview
     public decimal ChargingCurrent { get; set; }
     public decimal? Soc { get; set; }
     public decimal? CarSideSocLimit { get; set; }
+    public int? MinSoc { get; set; }
 }
