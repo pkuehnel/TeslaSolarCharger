@@ -113,7 +113,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 watchdog.CancelAfter(_clientSideHeartbeatTimeout);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    logger.LogInformation("Reveived Message Type Close from chargepoint {chargePointId}", dto.ChargePointId);
+                    logger.LogInformation("Received Message Type Close from chargepoint {chargePointId}", dto.ChargePointId);
                     break;
                 }
                 var jsonMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
@@ -354,12 +354,12 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var isConnected = _connections.TryGetValue(chargePointId, out var chargePoint);
         if (!isConnected)
         {
-            logger.LogInformation("Chargepoint {chargepointId} is not connected.", chargePoint);
+            logger.LogInformation("Chargepoint {chargepointId} is not connected.", chargePointId);
             isConfigured = false;
         }
         else
         {
-            logger.LogInformation("Chargepoint {chargepointId} is not fully configured.", chargePoint);
+            logger.LogInformation("Chargepoint {chargepointId} is not fully configured.", chargePointId);
             if (chargePoint?.FullyConfigured != true)
             {
                 isConfigured = false;

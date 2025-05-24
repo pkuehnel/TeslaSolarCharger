@@ -333,13 +333,13 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             try
             {
                 using var scope = serviceProvider.CreateScope();
-                var scopedCtx = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+                var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
                 var minimumAge = dateTimeOffset.AddHours(-1);
 
                 var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset);
                 if (meterValue == default && currentDate > dateTimeOffset)
                 {
-                    meterValue = await scopedCtx.MeterValues
+                    meterValue = await scopedContext.MeterValues
                         .Where(m => m.MeterValueKind == meterValueKind
                                     && m.Timestamp <= dateTimeOffset
                                     && m.Timestamp > minimumAge)
