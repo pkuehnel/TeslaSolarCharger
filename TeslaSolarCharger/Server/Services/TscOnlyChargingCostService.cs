@@ -407,4 +407,85 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         }
         return chargingDetail;
     }
+
+    public async Task<DtoChargeSummary> GetCurrentChargeSummary(int? carId, int? ocppConnectorId)
+    {
+        var query = context.ChargingProcesses.AsQueryable();
+        if (carId != null)
+        {
+            query = query.Where(cp => cp.CarId == carId);
+        }
+        if (ocppConnectorId != null)
+        {
+            query = query.Where(cp => cp.OcppChargingStationConnectorId == ocppConnectorId);
+        }
+        var chargingProcess = await query.Where(cp => cp.EndDate == null)
+            .OrderByDescending(cp => cp.StartDate)
+            .FirstOrDefaultAsync().ConfigureAwait(false);
+        if (chargingProcess == null)
+        {
+            return new DtoChargeSummary();
+        }
+
+        var chargingDetails = await context.ChargingDetails
+            .Where(cd => cd.ChargingProcessId == chargingProcess.Id)
+            .OrderBy(cd => cd.TimeStamp)
+            .ToListAsync().ConfigureAwait(false);
+        if (chargingDetails.Count == 0)
+        {
+            return new DtoChargeSummary();
+        }
+
+        decimal usedSolarEnergyWh = 0;
+        decimal usedHomeBatteryEnergyWh = 0;
+        decimal usedGridEnergyWh = 0;
+        decimal cost = 0;
+        var now = dateTimeProvider.UtcNow();
+        var prices = await GetPricesInTimeSpan(chargingDetails.First().TimeStamp, now).ConfigureAwait(false);
+        var maxDuration = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds).Add(TimeSpan.FromSeconds(10));
+
+        for (var index = 1; index < chargingDetails.Count; index++)
+        {
+            var detail = chargingDetails[index];
+            var timeSpanSinceLast = detail.TimeStamp - chargingDetails[index - 1].TimeStamp;
+            if (timeSpanSinceLast > maxDuration)
+            {
+                continue;
+            }
+            var price = GetPriceByTimeStamp(prices, detail.TimeStamp);
+            var solarWh = (decimal)(detail.SolarPower * timeSpanSinceLast.TotalHours);
+            var homeWh = (decimal)(detail.HomeBatteryPower * timeSpanSinceLast.TotalHours);
+            var gridWh = (decimal)(detail.GridPower * timeSpanSinceLast.TotalHours);
+            usedSolarEnergyWh += solarWh;
+            usedHomeBatteryEnergyWh += homeWh;
+            usedGridEnergyWh += gridWh;
+            cost += gridWh * price.Value;
+            cost += solarWh * price.SolarPrice;
+            cost += homeWh * price.SolarPrice;
+        }
+
+        var lastDetail = chargingDetails.Last();
+        var lastSpan = now - lastDetail.TimeStamp;
+        if (lastSpan <= maxDuration)
+        {
+            var price = GetPriceByTimeStamp(prices, now);
+            var solarWh = (decimal)(lastDetail.SolarPower * lastSpan.TotalHours);
+            var homeWh = (decimal)(lastDetail.HomeBatteryPower * lastSpan.TotalHours);
+            var gridWh = (decimal)(lastDetail.GridPower * lastSpan.TotalHours);
+            usedSolarEnergyWh += solarWh;
+            usedHomeBatteryEnergyWh += homeWh;
+            usedGridEnergyWh += gridWh;
+            cost += gridWh * price.Value;
+            cost += solarWh * price.SolarPrice;
+            cost += homeWh * price.SolarPrice;
+        }
+
+        return new DtoChargeSummary
+        {
+            ChargedSolarEnergy = usedSolarEnergyWh / 1000m,
+            ChargedHomeBatteryEnergy = usedHomeBatteryEnergyWh / 1000m,
+            ChargedGridEnergy = usedGridEnergyWh / 1000m,
+            ChargeCost = cost / 1000m,
+        };
+    }
 }

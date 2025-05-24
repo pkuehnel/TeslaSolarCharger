@@ -1,0 +1,47 @@
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@inject HttpClient HttpClient
+
+@if (_summary == null)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <div class="mt-2">
+        <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower" />
+        @_summary.ChargedSolarEnergy.ToString("0.00") kWh
+    </div>
+    <div class="mt-1">
+        <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.BatteryFull" />
+        @_summary.ChargedHomeBatteryEnergy.ToString("0.00") kWh
+    </div>
+    <div class="mt-1">
+        <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon" />
+        @_summary.ChargedGridEnergy.ToString("0.00") kWh
+    </div>
+    <div class="mt-1">
+        <span class="material-symbols-outlined">attach_money</span>
+        @_summary.ChargeCost.ToString("0.00")
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int? CarId { get; set; }
+
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
+
+    private DtoChargeSummary? _summary;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var url = $"api/ChargingCost/GetCurrentChargeSummary?carId={CarId}&ocppConnectorId={ChargingConnectorId}";
+        _summary = await HttpClient.GetFromJsonAsync<DtoChargeSummary>(url).ConfigureAwait(false) ?? new DtoChargeSummary();
+    }
+}

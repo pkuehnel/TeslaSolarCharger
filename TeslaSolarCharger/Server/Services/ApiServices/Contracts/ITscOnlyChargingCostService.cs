@@ -10,4 +10,6 @@ public interface ITscOnlyChargingCostService
     Task<DtoChargeSummary> GetChargeSummary(int carId);
     Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries();
     Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int carId);
+
+    Task<DtoChargeSummary> GetCurrentChargeSummary(int? carId, int? ocppConnectorId);
 }
