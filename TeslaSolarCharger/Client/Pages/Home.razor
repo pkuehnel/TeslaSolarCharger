@@ -70,7 +70,7 @@ else
                                        Class="my-7"
                                        Buffer="@(loadPoint.CarSideSocLimit != default)"
                                        BufferValue="@(loadPoint.CarSideSocLimit == default ? 0 : (double)loadPoint.CarSideSocLimit.Value)">
-                        <MudText Typo="Typo.subtitle1" Color="Color.Dark">
+                        <MudText Typo="Typo.subtitle1" Color="Color.Dark" Style="z-index: 1">
                             <b>@(loadPoint.Soc.Value.ToString("F1"))%</b>
                         </MudText>
                     </MudProgressLinear>
