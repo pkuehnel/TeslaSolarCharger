@@ -178,58 +178,60 @@ else
 
         <MudExpansionPanels>
             <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
+                <GenericInput For="() => _dtoBaseConfiguration.UseChargingServiceV2"></GenericInput>
+
                 <InputComponent ValueId="updateIntervalSeconds"
-                LabelText="Car power adjustment interval"
-                UnitText="s"
-                HelpText="Note: It is not possible to use values below 25 seconds here, as there is a delay between the car changing its current and the Tesla API getting notified about this change.">
+                                LabelText="Car power adjustment interval"
+                                UnitText="s"
+                                HelpText="Note: It is not possible to use values below 25 seconds here, as there is a delay between the car changing its current and the Tesla API getting notified about this change.">
                     <InputFragment>
-                        <InputNumber id="updateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.UpdateIntervalSeconds" class="form-control" placeholder=" " />
+                        <InputNumber id="updateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.UpdateIntervalSeconds" class="form-control" placeholder=" "/>
                     </InputFragment>
                 </InputComponent>
 
                 <InputComponent ValueId="pvValueUpdateIntervalSeconds"
-                LabelText="Solar plant adjustment interval"
-                UnitText="s"
-                HelpText="">
+                                LabelText="Solar plant adjustment interval"
+                                UnitText="s"
+                                HelpText="">
                     <InputFragment>
-                        <InputNumber id="pvValueUpdateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.PvValueUpdateIntervalSeconds" class="form-control" placeholder=" " />
+                        <InputNumber id="pvValueUpdateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.PvValueUpdateIntervalSeconds" class="form-control" placeholder=" "/>
                     </InputFragment>
                 </InputComponent>
 
                 <InputComponent ValueId="minutesUntilSwitchOn"
-                LabelText="Time with enough solar power until charging starts"
-                UnitText="min"
-                HelpText="">
+                                LabelText="Time with enough solar power until charging starts"
+                                UnitText="min"
+                                HelpText="">
                     <InputFragment>
-                        <InputNumber id="minutesUntilSwitchOn" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOn" class="form-control" placeholder=" " />
+                        <InputNumber id="minutesUntilSwitchOn" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOn" class="form-control" placeholder=" "/>
                     </InputFragment>
                 </InputComponent>
 
                 <InputComponent ValueId="minutesUntilSwitchOff"
-                LabelText="Time without enough solar power until charging stops"
-                UnitText="min"
-                HelpText="">
+                                LabelText="Time without enough solar power until charging stops"
+                                UnitText="min"
+                                HelpText="">
                     <InputFragment>
-                        <InputNumber id="minutesUntilSwitchOff" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" " />
+                        <InputNumber id="minutesUntilSwitchOff" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" "/>
                     </InputFragment>
                 </InputComponent>
-                <hr />
+                <hr/>
                 <InputComponent ValueId="mqqtClientId"
-                LabelText="Mqqt ClientId"
-                UnitText=""
-                HelpText="">
+                                LabelText="Mqqt ClientId"
+                                UnitText=""
+                                HelpText="">
                     <InputFragment>
-                        <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.MqqtClientId" class="form-control" placeholder=" " />
+                        <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.MqqtClientId" class="form-control" placeholder=" "/>
                     </InputFragment>
                 </InputComponent>
-                <hr />
+                <hr/>
 
                 <InputComponent ValueId="homeBatteryPowerInversionUrl"
-                LabelText="HomeBatteryPowerInversion Url"
-                UnitText=""
-                HelpText="Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.">
+                                LabelText="HomeBatteryPowerInversion Url"
+                                UnitText=""
+                                HelpText="Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.">
                     <InputFragment>
-                        <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" placeholder=" " />
+                        <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" placeholder=" "/>
                     </InputFragment>
                 </InputComponent>
             </MudExpansionPanel>

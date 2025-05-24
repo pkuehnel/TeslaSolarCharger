@@ -15,7 +15,8 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     IMemoryCache memoryCache,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
-    IServiceProvider serviceProvider) : IEnergyDataService
+    IServiceProvider serviceProvider,
+    IConfigurationWrapper configurationWrapper) : IEnergyDataService
 {
 
     public async Task RefreshCachedValues(CancellationToken contextCancellationToken)
@@ -42,6 +43,11 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date, CancellationToken cancellationToken, bool useCache)
     {
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetPredictedSolarProductionByLocalHour), date, useCache);
+        if (configurationWrapper.UseFakeEnergyPredictions())
+        {
+            var fakedResult = GenerateFakeResult();
+            return fakedResult;
+        }
         if (useCache)
         {
             var cachedResult = GetCachedValues(MeterValueKind.SolarGeneration, true, date);
@@ -70,6 +76,11 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         CancellationToken httpContextRequestAborted, bool useCache)
     {
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetPredictedHouseConsumptionByLocalHour), date, useCache);
+        if (configurationWrapper.UseFakeEnergyPredictions())
+        {
+            var fakedResult = GenerateFakeResult();
+            return fakedResult;
+        }
         if (useCache)
         {
             var cachedResult = GetCachedValues(MeterValueKind.HouseConsumption, true, date);
@@ -87,15 +98,34 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
     }
 
+    private static Dictionary<int, int> GenerateFakeResult()
+    {
+        var fakedResult = new Dictionary<int, int>();
+        for (var i = 0; i < 24; i++)
+        {
+            fakedResult[i] = 1000;
+        }
+
+        return fakedResult;
+    }
+
     public async Task<Dictionary<int, int>> GetActualSolarProductionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted, bool useCache)
     {
         logger.LogTrace("{method}({date}, {useCache})", nameof(GetActualSolarProductionByLocalHour), date, useCache);
+        if (configurationWrapper.UseFakeEnergyHistory())
+        {
+            return GenerateFakeResult();
+        }
         return await GetActualValuesByLocalHour(MeterValueKind.SolarGeneration, date, httpContextRequestAborted, useCache);
     }
 
     public async Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted, bool useCache)
     {
         logger.LogTrace("{method}({date})", nameof(GetActualHouseConsumptionByLocalHour), date);
+        if (configurationWrapper.UseFakeEnergyHistory())
+        {
+            return GenerateFakeResult();
+        }
         return await GetActualValuesByLocalHour(MeterValueKind.HouseConsumption, date, httpContextRequestAborted, useCache);
     }
 
@@ -147,14 +177,13 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
     private Dictionary<int, int>? GetCachedValues(MeterValueKind meterValueKind, bool predictedValue, DateOnly date)
     {
-        logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date})", nameof(GetCachedValues), meterValueKind, predictedValue, date);
+        //Do not log this as it is super noisy
+        //logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date})", nameof(GetCachedValues), meterValueKind, predictedValue, date);
         var key = GetCacheKey(meterValueKind, predictedValue, date);
         if (memoryCache.TryGetValue(key, out Dictionary<int, int>? value))
         {
-            logger.LogTrace("Cached value found for key {key}", key);
             return value;
         }
-        logger.LogTrace("No cached value found for key {key}", key);
         return default;
     }
 
@@ -294,28 +323,44 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         }
         var hoursToGetMeterValues = hourlyTimeStamps.Union(missingHours).ToList();
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        var maxDbConcurrency = 5;
+        var throttler = new SemaphoreSlim(maxDbConcurrency);
+
         var queryTasks = hoursToGetMeterValues.Select(async dateTimeOffset =>
         {
-            using var scope = serviceProvider.CreateScope();
-            var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
-            var minimumAge = dateTimeOffset.AddHours(-1);
-            var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset);
-            if (meterValue == default && currentDate > dateTimeOffset)
+            // wait our turn
+            await throttler.WaitAsync(cancellationToken);
+            try
             {
-                meterValue = await scopedContext.MeterValues
-                    .Where(m => m.MeterValueKind == meterValueKind && m.Timestamp <= dateTimeOffset && m.Timestamp > minimumAge)
-                    .OrderByDescending(m => m.Id)
-                    .FirstOrDefaultAsync(cancellationToken);
-                //Only cache if value exists
-                if ((meterValue != default) && (meterValue.Timestamp < GetMaxCacheDate()))
+                using var scope = serviceProvider.CreateScope();
+                var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+                var minimumAge = dateTimeOffset.AddHours(-1);
+
+                var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset);
+                if (meterValue == default && currentDate > dateTimeOffset)
                 {
-                    CacheMeterValue(meterValueKind, dateTimeOffset, meterValue);
+                    meterValue = await scopedContext.MeterValues
+                        .Where(m => m.MeterValueKind == meterValueKind
+                                    && m.Timestamp <= dateTimeOffset
+                                    && m.Timestamp > minimumAge)
+                        .OrderByDescending(m => m.Id)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (meterValue != default && meterValue.Timestamp < GetMaxCacheDate())
+                        CacheMeterValue(meterValueKind, dateTimeOffset, meterValue);
+
+                    // optional: small delay so you don’t slam the DB in bursts
+                    await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
                 }
+
+                return new { Timestamp = dateTimeOffset, MeterValue = meterValue };
             }
-            return new { Timestamp = dateTimeOffset, MeterValue = meterValue };
+            finally
+            {
+                throttler.Release();
+            }
         });
 
-        // Await all tasks concurrently.
         var results = await Task.WhenAll(queryTasks);
         var orderedResults = results.ToDictionary(result => result.Timestamp, result => result.MeterValue);
 

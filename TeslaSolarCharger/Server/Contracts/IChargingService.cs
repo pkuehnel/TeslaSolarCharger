@@ -4,7 +4,7 @@ namespace TeslaSolarCharger.Server.Contracts;
 
 public interface IChargingService
 {
-    Task SetNewChargingValues();
+    Task<int?> SetNewChargingValues();
     List<int> GetRelevantCarIds();
     int GetBatteryTargetChargingPower();
 }

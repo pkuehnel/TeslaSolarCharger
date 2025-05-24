@@ -1,10 +1,12 @@
 ﻿@inherits LayoutComponentBase
 @using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos
 @implements IDisposable
 
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
-@inject HttpClient HttpClient
+@inject IHttpClientHelper HttpClientHelper
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
 <MudPopoverProvider />
@@ -56,7 +58,12 @@
     {
         try
         {
-            var version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
+            var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string?>>("api/Hello/ProductVersion");
+            if (result.HasError)
+            {
+                return;
+            }
+            var version = result.Data?.Value;
             if (!string.IsNullOrEmpty(_version) && version != _version)
             {
                 var reloadTimeout = TimeSpan.FromSeconds(10);

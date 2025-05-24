@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 

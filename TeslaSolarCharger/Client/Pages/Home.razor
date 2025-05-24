@@ -1,0 +1,55 @@
+﻿@page "/Home"
+@using TeslaSolarCharger.Client.Components.StartPage
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+
+@inject IEnergyDataService EnergyDataService
+@inject IHomeService HomeService
+
+<PageTitle>Solar 4 Car</PageTitle>
+
+<MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
+
+<BackendInformationDisplayComponent></BackendInformationDisplayComponent>
+<LoggedErrorsComponent></LoggedErrorsComponent>
+
+<PowerFlowComponent></PowerFlowComponent>
+<PowerBufferComponent></PowerBufferComponent>
+@if(_showEnergyData)
+{
+    <EnergyPredictionComponent></EnergyPredictionComponent>
+}
+
+@if (_loadPoints == default)
+{
+    <PlaceholderComponent Count="6"></PlaceholderComponent>
+}
+else
+{
+    foreach (var loadPoint in _loadPoints)
+    {
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            @($"{(loadPoint.ChargingConnectorName != default ? loadPoint.ChargingConnectorName + " | " : string.Empty)}"
+                + $"{(loadPoint.CarName != default ? loadPoint.CarName + " | " : string.Empty)}"
+                + $"{loadPoint.ChargingPower.ToString("N0")} W")
+        </div>
+    }
+}
+
+@code {
+    private bool _showEnergyData;
+    private List<DtoLoadPointOverview>? _loadPoints;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+        await RefreshLoadPoints();
+    }
+
+    private async Task RefreshLoadPoints()
+    {
+        _loadPoints = await HomeService.GetPluggedInLoadPoints();
+    }
+}

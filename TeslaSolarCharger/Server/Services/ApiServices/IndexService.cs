@@ -12,7 +12,6 @@ using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.ApiServices;
 
@@ -27,10 +26,11 @@ public class IndexService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ITscOnlyChargingCostService tscOnlyChargingCostService)
+    ITscOnlyChargingCostService tscOnlyChargingCostService,
+    ILoadPointManagementService loadPointManagementService)
     : IIndexService
 {
-    public DtoPvValues GetPvValues()
+    public async Task<DtoPvValues> GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
         int? powerBuffer = configurationWrapper.PowerBuffer();
@@ -38,17 +38,18 @@ public class IndexService(
         {
             powerBuffer = null;
         }
-
-        return new DtoPvValues()
+        var loadPoints = await loadPointManagementService.GetPluggedInLoadPoints();
+        var pvValues = new DtoPvValues()
         {
             GridPower = settings.Overage,
             InverterPower = settings.InverterPower,
             HomeBatteryPower = settings.HomeBatteryPower,
             HomeBatterySoc = settings.HomeBatterySoc,
-            PowerBuffer = powerBuffer, 
-            CarCombinedChargingPowerAtHome = settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum(),
+            PowerBuffer = powerBuffer,
+            CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ActualChargingPower ?? 0).Sum(),
             LastUpdated = settings.LastPvValueUpdate,
         };
+        return pvValues;
     }
 
     public async Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars()
@@ -211,8 +212,6 @@ public class IndexService(
             { toolTipTextKeys.CarNotHealthy, "Your car has no optimal internet connection or there is an issue with the Tesla API." },
             { toolTipTextKeys.CarPluggedIn, "Your car is plugged in" },
             { toolTipTextKeys.CarChargeMode, "ChargeMode of your car. Click <a href=\"https://github.com/pkuehnel/TeslaSolarCharger#charge-modes\"  target=\"_blank\">here</a> for details."},
-            { toolTipTextKeys.ServerTime, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time." },
-            { toolTipTextKeys.ServerTimeZone, "This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" },
         };
     }
 
