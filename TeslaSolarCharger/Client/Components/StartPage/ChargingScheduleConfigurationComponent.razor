@@ -1,0 +1,84 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+
+@inject IHomeService HomeService
+
+<h3>Schedules</h3>
+@if (_schedules == default)
+{
+    <PlaceholderComponent Count="3"></PlaceholderComponent>
+}
+else if (_schedules.Count < 1)
+{
+    <div>Nothing planned</div>
+}
+else
+{
+    foreach (var dtoCarChargingSchedule in _schedules)
+    {
+        <div>Next execution: @(dtoCarChargingSchedule.NextOccurrence == default ? "Unknown" : dtoCarChargingSchedule.NextOccurrence.Value.LocalDateTime)</div>
+        @if (dtoCarChargingSchedule.RepeatOnMondays
+             || dtoCarChargingSchedule.RepeatOnTuesdays
+             || dtoCarChargingSchedule.RepeatOnWednesdays
+             || dtoCarChargingSchedule.RepeatOnThursdays
+             || dtoCarChargingSchedule.RepeatOnFridays
+             || dtoCarChargingSchedule.RepeatOnSaturdays
+             || dtoCarChargingSchedule.RepeatOnSundays)
+        {
+            <div>
+                Repeat on:
+                <ul>
+                    @if (dtoCarChargingSchedule.RepeatOnMondays)
+                    {
+                        <li>Monday</li>
+                    }
+                    @if (dtoCarChargingSchedule.RepeatOnTuesdays)
+                    {
+                        <li>Tuesday</li>
+                    }
+                    @if (dtoCarChargingSchedule.RepeatOnWednesdays)
+                    {
+                        <li>Wednesday</li>
+                    }
+                    @if (dtoCarChargingSchedule.RepeatOnThursdays)
+                    {
+                        <li>Thursday</li>
+                    }
+                    @if (dtoCarChargingSchedule.RepeatOnFridays)
+                    {
+                        <li>Friday</li>
+                    }
+                    @if (dtoCarChargingSchedule.RepeatOnSaturdays)
+                    {
+                        <li>Saturday</li>
+                    }
+                    @if (dtoCarChargingSchedule.RepeatOnSundays)
+                    {
+                        <li>Sunday</li>
+                    }
+                </ul>
+            </div>
+        }
+
+    }
+}
+
+@code {
+    [Parameter]
+    public int CarId { get; set; }
+
+    private List<DtoCarChargingSchedule>? _schedules;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await RefreshChargingSchedules();
+
+    }
+
+    private async Task RefreshChargingSchedules()
+    {
+        _schedules = await HomeService.GetCarChargingSchedules(CarId);
+    }
+}

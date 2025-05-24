@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Client.Helper.Contracts;
+﻿using TeslaSolarCharger.Client.Dtos;
+using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 
@@ -25,5 +26,27 @@ public class HomeService : IHomeService
             _logger.LogError(result.ErrorMessage);
         }
         return result.Data;
+    }
+
+    public async Task<List<DtoCarChargingSchedule>?> GetCarChargingSchedules(int carId)
+    {
+        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
+        var result = await _httpClientHelper.SendGetRequestAsync<List<DtoCarChargingSchedule>>($"api/Home/GetCarChargingSchedules?carId={carId}");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+        }
+        return result.Data;
+    }
+
+    public async Task<Result<Result<int>>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto)
+    {
+        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
+        var result = await _httpClientHelper.SendPostRequestAsync<Result<int>>($"api/Home/SaveCarChargingSchedule?carId={carId}", dto);
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+        }
+        return result;
     }
 }
