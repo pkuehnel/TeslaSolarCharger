@@ -16,10 +16,10 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
     private const int MeterValuesSampleIntervalDefaultValue = 5;
     private readonly HashSet<string> _meterValuesSampledDataDefaultValue = ["Power.Active.Import","Current.Import","Voltage"];
 
-    public async Task<Result<object>> TriggerStatusNotification(string chargepointId, CancellationToken cancellationToken)
+    public async Task<Result<object>> TriggerStatusNotification(string chargePointId, CancellationToken cancellationToken)
     {
-        logger.LogTrace("{method}({chargePointId})", nameof(TriggerStatusNotification), chargepointId);
-        return await TriggerMessage(chargepointId, RequestedMessage.StatusNotification, cancellationToken).ConfigureAwait(false);
+        logger.LogTrace("{method}({chargePointId})", nameof(TriggerStatusNotification), chargePointId);
+        return await TriggerMessage(chargePointId, RequestedMessage.StatusNotification, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<object>> TriggerMeterValues(string chargepointId, CancellationToken cancellationToken)
