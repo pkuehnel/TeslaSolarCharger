@@ -75,7 +75,12 @@ else
                         </MudText>
                     </MudProgressLinear>
                 }
-                
+            </div>
+            <div>
+                @if (loadPoint.CarId != default)
+                {
+                    <ChargingScheduleConfigurationComponent CarId="loadPoint.CarId.Value"></ChargingScheduleConfigurationComponent>
+                }
             </div>
         </div>
     }
@@ -84,8 +89,6 @@ else
 @code {
     private bool _showEnergyData;
     private List<DtoLoadPointOverview>? _loadPoints;
-
-    private int value = 0;
 
     protected override async Task OnInitializedAsync()
     {

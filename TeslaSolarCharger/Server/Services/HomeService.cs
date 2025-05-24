@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 
@@ -68,5 +70,53 @@ public class HomeService : IHomeService
             result.Add(loadPointOverview);
         }
         return result;
+    }
+
+    public async Task<List<DtoCarChargingSchedule>> GetCarChargingSchedules(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(GetCarChargingSchedules), carId);
+        var chargingSchedules = await _context.CarChargingSchedules
+            .Where(s => s.CarId == carId)
+            .Select(s => new DtoCarChargingSchedule()
+            {
+                Id = s.Id,
+                TargetSoc = s.TargetSoc,
+                NextOccurrence = s.NextOccurrence,
+                RepeatOnMondays = s.RepeatOnMondays,
+                RepeatOnTuesdays = s.RepeatOnTuesdays,
+                RepeatOnWednesdays = s.RepeatOnWednesdays,
+                RepeatOnThursdays = s.RepeatOnThursdays,
+                RepeatOnFridays = s.RepeatOnFridays,
+                RepeatOnSaturdays = s.RepeatOnSaturdays,
+                RepeatOnSundays = s.RepeatOnSundays,
+            })
+            .ToListAsync().ConfigureAwait(false);
+        return chargingSchedules;
+    }
+
+    public async Task<Result<int>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto)
+    {
+        _logger.LogTrace("{method}({carId}, {@chargingSchedule})", nameof(SaveCarChargingSchedule), carId, dto);
+        var dbValue = await _context.CarChargingSchedules
+            .FirstOrDefaultAsync(s => s.Id == dto.Id).ConfigureAwait(false);
+        if (dbValue == null)
+        {
+            dbValue = new();
+            _context.CarChargingSchedules.Add(dbValue);
+        }
+
+        dbValue.CarId = carId;
+        dbValue.TargetSoc = dto.TargetSoc;
+        //Next occurrence can not be null as is validated
+        dbValue.NextOccurrence = dto.NextOccurrence!.Value;
+        dbValue.RepeatOnMondays = dto.RepeatOnMondays;
+        dbValue.RepeatOnTuesdays = dto.RepeatOnTuesdays;
+        dbValue.RepeatOnWednesdays = dto.RepeatOnWednesdays;
+        dbValue.RepeatOnThursdays = dto.RepeatOnThursdays;
+        dbValue.RepeatOnFridays = dto.RepeatOnFridays;
+        dbValue.RepeatOnSaturdays = dto.RepeatOnSaturdays;
+        dbValue.RepeatOnSundays = dto.RepeatOnSundays;
+        await _context.SaveChangesAsync();
+        return new(dbValue.Id, null, null);
     }
 }
