@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -10,14 +12,17 @@ public class HomeService : IHomeService
     private readonly ILogger<HomeService> _logger;
     private readonly ITeslaSolarChargerContext _context;
     private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly ISettings _settings;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
-        ILoadPointManagementService loadPointManagementService)
+        ILoadPointManagementService loadPointManagementService,
+        ISettings settings)
     {
         _logger = logger;
         _context = context;
         _loadPointManagementService = loadPointManagementService;
+        _settings = settings;
     }
 
 
@@ -36,6 +41,9 @@ public class HomeService : IHomeService
                 loadPointOverview.ChargingPhaseCount = dtoLoadpoint.Car.ActualPhases;
                 loadPointOverview.MaxCurrent = dtoLoadpoint.Car.MaximumAmpere;
                 loadPointOverview.ChargingCurrent = dtoLoadpoint.Car.ChargerActualCurrent ?? 0;
+                loadPointOverview.Soc = dtoLoadpoint.Car.SoC;
+                loadPointOverview.CarSideSocLimit = dtoLoadpoint.Car.SocLimit;
+                loadPointOverview.MinSoc = dtoLoadpoint.Car.MinimumSoC;
             }
             if (dtoLoadpoint.OcppConnectorId != default)
             {
@@ -66,5 +74,63 @@ public class HomeService : IHomeService
             result.Add(loadPointOverview);
         }
         return result;
+    }
+
+    public async Task<List<DtoCarChargingSchedule>> GetCarChargingSchedules(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(GetCarChargingSchedules), carId);
+        var chargingSchedules = await _context.CarChargingSchedules
+            .Where(s => s.CarId == carId)
+            .Select(s => new DtoCarChargingSchedule()
+            {
+                Id = s.Id,
+                TargetSoc = s.TargetSoc,
+                NextOccurrence = s.NextOccurrence,
+                RepeatOnMondays = s.RepeatOnMondays,
+                RepeatOnTuesdays = s.RepeatOnTuesdays,
+                RepeatOnWednesdays = s.RepeatOnWednesdays,
+                RepeatOnThursdays = s.RepeatOnThursdays,
+                RepeatOnFridays = s.RepeatOnFridays,
+                RepeatOnSaturdays = s.RepeatOnSaturdays,
+                RepeatOnSundays = s.RepeatOnSundays,
+            })
+            .ToListAsync().ConfigureAwait(false);
+        return chargingSchedules;
+    }
+
+    public async Task<Result<int>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto)
+    {
+        _logger.LogTrace("{method}({carId}, {@chargingSchedule})", nameof(SaveCarChargingSchedule), carId, dto);
+        var dbValue = await _context.CarChargingSchedules
+            .FirstOrDefaultAsync(s => s.Id == dto.Id).ConfigureAwait(false);
+        if (dbValue == null)
+        {
+            dbValue = new();
+            _context.CarChargingSchedules.Add(dbValue);
+        }
+
+        dbValue.CarId = carId;
+        dbValue.TargetSoc = dto.TargetSoc;
+        //Next occurrence can not be null as is validated
+        dbValue.NextOccurrence = dto.NextOccurrence!.Value;
+        dbValue.RepeatOnMondays = dto.RepeatOnMondays;
+        dbValue.RepeatOnTuesdays = dto.RepeatOnTuesdays;
+        dbValue.RepeatOnWednesdays = dto.RepeatOnWednesdays;
+        dbValue.RepeatOnThursdays = dto.RepeatOnThursdays;
+        dbValue.RepeatOnFridays = dto.RepeatOnFridays;
+        dbValue.RepeatOnSaturdays = dto.RepeatOnSaturdays;
+        dbValue.RepeatOnSundays = dto.RepeatOnSundays;
+        await _context.SaveChangesAsync();
+        return new(dbValue.Id, null, null);
+    }
+
+    public async Task UpdateCarMinSoc(int carId, int newMinSoc)
+    {
+        _logger.LogTrace("{method}({carId}, {minSoc})", nameof(UpdateCarMinSoc), carId, newMinSoc);
+        var dbCar = await _context.Cars.FirstAsync(c => c.Id == carId).ConfigureAwait(false);
+        dbCar.MinimumSoc = newMinSoc;
+        await _context.SaveChangesAsync();
+        var dtoCar = _settings.Cars.First(c => c.Id == carId);
+        dtoCar.MinimumSoC = newMinSoc;
     }
 }

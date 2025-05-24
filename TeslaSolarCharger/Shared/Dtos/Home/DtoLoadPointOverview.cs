@@ -11,4 +11,7 @@ public class DtoLoadPointOverview
     public int? ChargingPhaseCount { get; set; }
     public int? MaxCurrent { get; set; }
     public decimal ChargingCurrent { get; set; }
+    public decimal? Soc { get; set; }
+    public decimal? CarSideSocLimit { get; set; }
+    public int? MinSoc { get; set; }
 }

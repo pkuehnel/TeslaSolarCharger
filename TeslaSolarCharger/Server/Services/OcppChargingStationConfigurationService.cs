@@ -1,8 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
@@ -13,8 +10,6 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
     ITeslaSolarChargerContext teslaSolarChargerContext,
     IOcppChargePointConfigurationService ocppChargePointConfigurationService) : IOcppChargingStationConfigurationService
 {
-    private const int CurrentConfigurationVersion = 1;
-
     public async Task<List<DtoChargingStation>> GetChargingStations()
     {
         logger.LogTrace("{method}()", nameof(GetChargingStations));
@@ -76,56 +71,73 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             existingChargingStation = new(chargepointId);
             teslaSolarChargerContext.OcppChargingStations.Add(existingChargingStation);
         }
-
-        if (existingChargingStation.ConfigurationVersion != CurrentConfigurationVersion)
+        var reconfigurationRequiredResult = await ocppChargePointConfigurationService.IsReconfigurationRequired(chargepointId, httpContextRequestAborted);
+        if (reconfigurationRequiredResult.HasError)
         {
-            var reconfigurationRequiredResult = await ocppChargePointConfigurationService.IsReconfigurationRequired(chargepointId, httpContextRequestAborted);
-            if (reconfigurationRequiredResult.HasError)
+            logger.LogError("Could not check if reconfiguration is required for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, reconfigurationRequiredResult.ErrorMessage);
+            return;
+        }
+        if (reconfigurationRequiredResult.Data == true)
+        {
+            var rebootIsRequired = false;
+            logger.LogInformation("Reconfiguration is required for charge point {chargePointId}.", chargepointId);
+            var meterValueSampledDataResult = await ocppChargePointConfigurationService.SetMeterValuesSampledDataConfiguration(chargepointId, httpContextRequestAborted);
+            if (meterValueSampledDataResult.HasError)
             {
-                logger.LogError("Could not check if reconfiguration is required for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, reconfigurationRequiredResult.ErrorMessage);
+                logger.LogError("Could not set MeterValuesSampledDataConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampledDataResult.ErrorMessage);
                 return;
             }
-            if (reconfigurationRequiredResult.Data == true)
+            //Can not be null if HasError is false
+            if (meterValueSampledDataResult.Data!.Status == ConfigurationStatus.RebootRequired)
             {
-                var rebootIsRequired = false;
-                logger.LogInformation("Reconfiguration is required for charge point {chargePointId}.", chargepointId);
-                var meterValueSampledDataResult = await ocppChargePointConfigurationService.SetMeterValuesSampledDataConfiguration(chargepointId, httpContextRequestAborted);
-                if (meterValueSampledDataResult.HasError)
+                rebootIsRequired = true;
+            }
+            var meterValueSampleIntervallResult = await ocppChargePointConfigurationService.SetMeterValuesSampleIntervalConfiguration(chargepointId, httpContextRequestAborted);
+            if (meterValueSampleIntervallResult.HasError)
+            {
+                logger.LogError("Could not set MeterValuesSampleIntervalConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampleIntervallResult.ErrorMessage);
+                return;
+            }
+            //Can not be null if HasError is false
+            if (meterValueSampleIntervallResult.Data!.Status == ConfigurationStatus.RebootRequired)
+            {
+                rebootIsRequired = true;
+            }
+            var clockAlignedDataResult = await ocppChargePointConfigurationService.SetMeterValuesClockAligedDataConfiguration(chargepointId, httpContextRequestAborted);
+            if (clockAlignedDataResult.HasError)
+            {
+                logger.LogError("Could not set MeterValuesClockAligedDataConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampledDataResult.ErrorMessage);
+                return;
+            }
+            //Can not be null if HasError is false
+            if (clockAlignedDataResult.Data!.Status == ConfigurationStatus.RebootRequired)
+            {
+                rebootIsRequired = true;
+            }
+            var clockAlignedDataIntervalResult = await ocppChargePointConfigurationService.SetMeterValuesClockAlignedIntervalConfiguration(chargepointId, httpContextRequestAborted);
+            if (clockAlignedDataIntervalResult.HasError)
+            {
+                logger.LogError("Could not set MeterValuesClockAlignedIntervalConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampleIntervallResult.ErrorMessage);
+                return;
+            }
+            //Can not be null if HasError is false
+            if (clockAlignedDataIntervalResult.Data!.Status == ConfigurationStatus.RebootRequired)
+            {
+                rebootIsRequired = true;
+            }
+            if (rebootIsRequired)
+            {
+                var rebootResult = await ocppChargePointConfigurationService.RebootCharger(chargepointId, httpContextRequestAborted);
+                if (rebootResult.HasError)
                 {
-                    logger.LogError("Could not set MeterValuesSampledDataConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampledDataResult.ErrorMessage);
+                    logger.LogError("Could not reboot charge point {chargePointId}. Error message: {errorMessage}", chargepointId, rebootResult.ErrorMessage);
                     return;
                 }
-                //Can not be null if HasError is false
-                if (meterValueSampledDataResult.Data!.Status == ConfigurationStatus.RebootRequired)
-                {
-                    rebootIsRequired = true;
-                }
-                var meterValueSampleIntervallResult = await ocppChargePointConfigurationService.SetMeterValuesSampleIntervalConfiguration(chargepointId, httpContextRequestAborted);
-                if (meterValueSampleIntervallResult.HasError)
-                {
-                    logger.LogError("Could not set MeterValuesSampleIntervalConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampleIntervallResult.ErrorMessage);
-                    return;
-                }
-                //Can not be null if HasError is false
-                if (meterValueSampleIntervallResult.Data!.Status == ConfigurationStatus.RebootRequired)
-                {
-                    rebootIsRequired = true;
-                }
-                if (rebootIsRequired)
-                {
-                    var rebootResult = await ocppChargePointConfigurationService.RebootCharger(chargepointId, httpContextRequestAborted);
-                    if (rebootResult.HasError)
-                    {
-                        logger.LogError("Could not reboot charge point {chargePointId}. Error message: {errorMessage}", chargepointId, rebootResult.ErrorMessage);
-                        return;
-                    }
-                }
             }
-            else
-            {
-                logger.LogInformation("Reconfiguration is not required for charge point {chargePointId}.", chargepointId);
-            }
-            existingChargingStation.ConfigurationVersion = CurrentConfigurationVersion;
+        }
+        else
+        {
+            logger.LogInformation("Reconfiguration is not required for charge point {chargePointId}.", chargepointId);
         }
         var numberOfConnectors = await ocppChargePointConfigurationService.NumberOfConnectors(chargepointId, httpContextRequestAborted);
         if (numberOfConnectors.HasError)

@@ -19,4 +19,10 @@ public interface IOcppChargePointConfigurationService
     Task<Result<bool?>> CanSwitchBetween1And3Phases(string chargepointId, CancellationToken cancellationToken);
     Task<Result<object>> TriggerStatusNotification(string chargePointId, CancellationToken cancellationToken);
     Task<Result<object>> TriggerMeterValues(string chargepointId, CancellationToken cancellationToken);
+
+    Task<Result<ChangeConfigurationResponse>> SetMeterValuesClockAligedDataConfiguration(string chargePointId,
+        CancellationToken cancellationToken);
+
+    Task<Result<ChangeConfigurationResponse>> SetMeterValuesClockAlignedIntervalConfiguration(string chargePointId,
+        CancellationToken cancellationToken);
 }

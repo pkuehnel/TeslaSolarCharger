@@ -9,7 +9,6 @@ public class OcppChargingStation
 
     public int Id { get; set; }
     public string ChargepointId { get; set; }
-    public int ConfigurationVersion { get; set; }
     public bool? CanSwitchBetween1And3Phases { get; set; }
 
     public List<OcppChargingStationConnector> Connectors { get; set; } = new();

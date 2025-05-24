@@ -1,0 +1,20 @@
+﻿namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+
+public class CarChargingSchedule
+{
+    public int Id { get; set; }
+
+    public int TargetSoc { get; set; }
+    public DateTimeOffset NextOccurrence { get; set; }
+    public bool RepeatOnMondays { get; set; }
+    public bool RepeatOnTuesdays { get; set; }
+    public bool RepeatOnWednesdays { get; set; }
+    public bool RepeatOnThursdays { get; set; }
+    public bool RepeatOnFridays { get; set; }
+    public bool RepeatOnSaturdays { get; set; }
+    public bool RepeatOnSundays { get; set; }
+
+    public int CarId { get; set; }
+
+    public Car Car { get; set; } = null!;
+}
