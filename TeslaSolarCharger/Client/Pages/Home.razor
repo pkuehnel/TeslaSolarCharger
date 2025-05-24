@@ -15,7 +15,7 @@
 
 <PowerFlowComponent></PowerFlowComponent>
 <PowerBufferComponent></PowerBufferComponent>
-@if(_showEnergyData)
+@if (_showEnergyData)
 {
     <EnergyPredictionComponent></EnergyPredictionComponent>
 }
@@ -28,10 +28,39 @@ else
 {
     foreach (var loadPoint in _loadPoints)
     {
-        <div class="shadow p-3 mb-5 bg-white rounded">
-            @($"{(loadPoint.ChargingConnectorName != default ? loadPoint.ChargingConnectorName + " | " : string.Empty)}"
-                + $"{(loadPoint.CarName != default ? loadPoint.CarName + " | " : string.Empty)}"
-                + $"{loadPoint.ChargingPower.ToString("N0")} W")
+        <div class="shadow p-3 mb-5 bg-white rounded d-flex align-items-center">
+            <div>
+                @if (loadPoint.ChargingConnectorName != default && loadPoint.CarName != default)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="me-1" />
+                    @loadPoint.ChargingConnectorName
+                    <span class="mx-1">|</span>
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
+                    @loadPoint.CarName
+                    <span class="mx-1">|</span>
+                    <span>@($"{loadPoint.ChargingPower:N0} W")</span>
+                }
+                else if (loadPoint.ChargingConnectorName != default)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="me-1" />
+                    @loadPoint.ChargingConnectorName
+                    <span class="mx-1">|</span>
+                    <span>@($"{loadPoint.ChargingPower:N0} W")</span>
+                }
+                else if (loadPoint.CarName != default)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
+                    @loadPoint.CarName
+                    <span class="mx-1">|</span>
+                    <span>@($"{loadPoint.ChargingPower:N0} W")</span>
+                }
+                else
+                {
+                    <span>@($"{loadPoint.ChargingPower:N0} W")</span>
+                }
+
+
+            </div>
         </div>
     }
 }
