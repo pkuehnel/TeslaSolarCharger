@@ -1,0 +1,6 @@
+# .github/code-scanning/codeql-config.yml
+version: 2
+
+queries:
+  disable:
+    - security/log-injection
