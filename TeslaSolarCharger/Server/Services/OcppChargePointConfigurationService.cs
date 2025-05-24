@@ -8,13 +8,16 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
     IOcppWebSocketConnectionHandlingService ocppWebSocketConnectionHandlingService) : IOcppChargePointConfigurationService
 {
     private const string MeterValueSampleIntervalKey = "MeterValueSampleInterval";
+    private const string ClockAlignedDataIntervalKey = "ClockAlignedDataInterval";
+    private const string MeterValuesClockAlignedDataKey = "MeterValuesAlignedData";
     private const string MeterValuesSampledDataKey = "MeterValuesSampledData";
     private const string NumberOfConnectorsKey = "NumberOfConnectors";
     private const string UnlockConnectorOnEvSideDisconnectKey = "UnlockConnectorOnEVSideDisconnect";
     private const string ConnectorSwitch3To1PhaseSupportedKey = "ConnectorSwitch3to1PhaseSupported";
 
     private const int MeterValuesSampleIntervalDefaultValue = 5;
-    private readonly HashSet<string> _meterValuesSampledDataDefaultValue = ["Power.Active.Import","Current.Import","Voltage"];
+    private const int ClockAlignedDataIntervalDefaultValue = 60;
+    private readonly HashSet<string> _meterValuesDataDefaultValue = ["Power.Active.Import","Current.Import","Voltage"];
 
     public async Task<Result<object>> TriggerStatusNotification(string chargePointId, CancellationToken cancellationToken)
     {
@@ -156,11 +159,25 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
         {
             return new Result<bool?>(true, null, null);
         }
+        var meterValueClockAlignedInterval = result.ConfigurationKey.FirstOrDefault(x => x.Key == ClockAlignedDataIntervalKey);
+        if (meterValueClockAlignedInterval?.Value != ClockAlignedDataIntervalDefaultValue.ToString())
+        {
+            return new Result<bool?>(true, null, null);
+        }
         var meterValuesSampledData = result.ConfigurationKey.FirstOrDefault(x => x.Key == MeterValuesSampledDataKey);
         if (meterValuesSampledData?.Value != null)
         {
             var meterValuesSampledDataList = meterValuesSampledData.Value.Split(',').ToHashSet();
-            if (!meterValuesSampledDataList.SetEquals(_meterValuesSampledDataDefaultValue))
+            if (!meterValuesSampledDataList.SetEquals(_meterValuesDataDefaultValue))
+            {
+                return new Result<bool?>(true, null, null);
+            }
+        }
+        var meterValuesClockAlignedDataData = result.ConfigurationKey.FirstOrDefault(x => x.Key == MeterValuesClockAlignedDataKey);
+        if (meterValuesClockAlignedDataData?.Value != null)
+        {
+            var meterValuesClockAlignedData = meterValuesClockAlignedDataData.Value.Split(',').ToHashSet();
+            if (!meterValuesClockAlignedData.SetEquals(_meterValuesDataDefaultValue))
             {
                 return new Result<bool?>(true, null, null);
             }
@@ -181,6 +198,8 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
                 NumberOfConnectorsKey,
                 UnlockConnectorOnEvSideDisconnectKey,
                 ConnectorSwitch3To1PhaseSupportedKey,
+                ClockAlignedDataIntervalKey,
+                MeterValuesClockAlignedDataKey,
             },
         };
         try
@@ -210,7 +229,23 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
         CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({charegPointId})", nameof(SetMeterValuesSampleIntervalConfiguration), chargePointId);
-        var response = await SetOcppConfiguration(chargePointId, MeterValueSampleIntervalKey, "5", cancellationToken);
+        var response = await SetOcppConfiguration(chargePointId, MeterValueSampleIntervalKey, MeterValuesSampleIntervalDefaultValue.ToString(), cancellationToken);
+        return response;
+    }
+
+    public async Task<Result<ChangeConfigurationResponse>> SetMeterValuesClockAligedDataConfiguration(string chargePointId,
+        CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({charegPointId})", nameof(SetMeterValuesClockAligedDataConfiguration), chargePointId);
+        var response = await SetOcppConfiguration(chargePointId, MeterValuesClockAlignedDataKey, "Power.Active.Import,Current.Import,Voltage", cancellationToken);
+        return response;
+    }
+
+    public async Task<Result<ChangeConfigurationResponse>> SetMeterValuesClockAlignedIntervalConfiguration(string chargePointId,
+        CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({charegPointId})", nameof(SetMeterValuesClockAlignedIntervalConfiguration), chargePointId);
+        var response = await SetOcppConfiguration(chargePointId, ClockAlignedDataIntervalKey, ClockAlignedDataIntervalDefaultValue.ToString(), cancellationToken);
         return response;
     }
 

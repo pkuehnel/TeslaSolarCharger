@@ -1,4 +1,5 @@
 ﻿@page "/Home"
+@using System.Diagnostics
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
@@ -58,8 +59,6 @@ else
                 {
                     <span>@($"{loadPoint.ChargingPower:N0} W")</span>
                 }
-
-
             </div>
         </div>
     }
@@ -69,6 +68,7 @@ else
     private bool _showEnergyData;
     private List<DtoLoadPointOverview>? _loadPoints;
 
+    private int value = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,5 +80,20 @@ else
     private async Task RefreshLoadPoints()
     {
         _loadPoints = await HomeService.GetPluggedInLoadPoints();
+        if (Debugger.IsAttached && _loadPoints?.Count == 0)
+        {
+            _loadPoints.Add(new DtoLoadPointOverview()
+            {
+                CarId = 1,
+                CarName = "CarName",
+                ChargingConnectorId = 1,
+                ChargingConnectorName = "ChargingConnectorName",
+                ChargingCurrent = 10,
+                ChargingPhaseCount = 3,
+                ChargingPower = 3000,
+                MaxCurrent = 16,
+                MaxPhaseCount = 3,
+            });
+        }
     }
 }
