@@ -16,7 +16,8 @@ else
                        OnAfterSuccessfullSubmit="ShowSuccessMessage"
                        SubmitUrl="@($"api/Home/SaveCarChargingSchedule?carId={CarId}")">
         <GenericInput For="() => _chargingSchedule.Item.TargetSoc"></GenericInput>
-        <GenericInput For="() => _chargingSchedule.Item.TargetDate"></GenericInput>
+        <GenericInput For="() => _chargingSchedule.Item.TargetDate"
+                      Clearable="true"></GenericInput>
         <GenericInput For="() => _chargingSchedule.Item.TargetTime"></GenericInput>
         <GenericInput For="() => _chargingSchedule.Item.RepeatOnMondays"></GenericInput>
         <GenericInput For="() => _chargingSchedule.Item.RepeatOnTuesdays"></GenericInput>
