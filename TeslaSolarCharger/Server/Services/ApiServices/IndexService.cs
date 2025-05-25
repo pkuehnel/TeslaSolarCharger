@@ -72,6 +72,8 @@ public class IndexService(
                 IsAutoFullSpeedCharging = enabledCar.AutoFullSpeedCharge,
                 ChargingSlots = enabledCar.PlannedChargingSlots,
                 State = enabledCar.State,
+                ModuleTemperatureMin = enabledCar.MinBatteryTemperature.Value,
+                ModuleTemperatureMax = enabledCar.MaxBatteryTemperature.Value,
             };
             dtoCarBaseValues.DtoChargeSummary = await tscOnlyChargingCostService.GetChargeSummary(enabledCar.Id, null).ConfigureAwait(false);
             if (enabledCar.ChargeMode == ChargeMode.SpotPrice)
@@ -83,16 +85,6 @@ public class IndexService(
             var dbCar = await teslaSolarChargerContext.Cars.Where(c => c.Id == enabledCar.Id).SingleAsync();
             dtoCarBaseValues.FleetApiState = dbCar.TeslaFleetApiState;
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
-            dtoCarBaseValues.ModuleTemperatureMin = await teslaSolarChargerContext.CarValueLogs
-                .Where(c => c.CarId == enabledCar.Id && c.Type == CarValueType.ModuleTempMin)
-                .OrderByDescending(c => c.Timestamp)
-                .Select(c => c.DoubleValue)
-                .FirstOrDefaultAsync().ConfigureAwait(false);
-            dtoCarBaseValues.ModuleTemperatureMax = await teslaSolarChargerContext.CarValueLogs
-                .Where(c => c.CarId == enabledCar.Id && c.Type == CarValueType.ModuleTempMax)
-                .OrderByDescending(c => c.Timestamp)
-                .Select(c => c.DoubleValue)
-                .FirstOrDefaultAsync().ConfigureAwait(false);
 
             carBaseValues.Add(dtoCarBaseValues);
             
