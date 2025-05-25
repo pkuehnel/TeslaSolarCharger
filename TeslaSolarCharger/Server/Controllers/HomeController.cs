@@ -42,6 +42,13 @@ public class HomeController : ApiBaseController
         return Ok(result);
     }
 
+    [HttpDelete]
+    public async Task<IActionResult> DeleteCarChargingSchedule(int chargingScheduleId)
+    {
+        await _homeService.DeleteChargingSchedule(chargingScheduleId);
+        return Ok();
+    }
+
     [HttpPost]
     public async Task<IActionResult> UpdateCarMinSoc(int carId, int minSoc)
     {
