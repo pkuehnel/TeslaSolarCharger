@@ -123,9 +123,13 @@ a, .btn-link {
     text-align: right !important;
 }
 
-.mud-progress-linear-buffer {
-    animation: none !important;
+/*Removes the wilde dot animations in buffered progess bar*/
+.mud-progress-linear.mud-progress-linear-buffer .mud-progress-linear-bar:first-child {
+    /* remove the radial‐gradient dots */
     background-image: none !important;
+    /* stop the keyframe that moves them */
+    animation: none !important;
+    /* solid grey instead */
     background-color: #e0e0e0 !important;
 }
 
