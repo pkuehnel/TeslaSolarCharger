@@ -37,6 +37,42 @@
                                                     { "ErrorText", ErrorMessage ?? string.Empty },
                                                 } :new())" />
                 }
+                else if (typeof(T) == typeof(DateOnly?))
+                {
+                    <MudDatePicker id="@InputId"
+                                   @bind-Date="DateOnlyDateTimeValue"
+                                   For="@(ForDateOnly)"
+                                   Required="@IsRequired"
+                                   Label="@LabelName"
+                                   Disabled="IsDisabled"
+                                   ReadOnly="IsReadOnly"
+                                   Variant="Variant.Outlined"
+                                   Margin="InputMargin"
+                                   Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                   @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                {
+                                                    { "Error", ShouldBeInErrorState.Value },
+                                                    { "ErrorText", ErrorMessage ?? string.Empty },
+                                                } :new())" />
+                }
+                else if (typeof(T) == typeof(TimeOnly?))
+                {
+                    <MudTimePicker id="@InputId"
+                                   @bind-Time="TimeOnlyTimeSpanValue"
+                                   For="@(ForTimeOnly)"
+                                   Required="@IsRequired"
+                                   Label="@LabelName"
+                                   Disabled="IsDisabled"
+                                   ReadOnly="IsReadOnly"
+                                   Variant="Variant.Outlined"
+                                   Margin="InputMargin"
+                                   Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                   @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                {
+                                                    { "Error", ShouldBeInErrorState.Value },
+                                                    { "ErrorText", ErrorMessage ?? string.Empty },
+                                                } :new())" />
+                }
                 else if (DropDownOptions != default && typeof(T) == typeof(int?))
                 {
                     <MudSelectExtended id="@InputId"
@@ -401,6 +437,32 @@
         set => throw new NotImplementedException($"{nameof(ForDateTime)} can not be set.");
     }
 
+    private Expression<Func<DateOnly?>>? ForDateOnly
+    {
+        get
+        {
+            if (typeof(T) == typeof(DateOnly?) && For != null)
+            {
+                return (Expression<Func<DateOnly?>>)(object)For!;
+            }
+            return null;
+        }
+        set => throw new NotImplementedException($"{nameof(ForDateOnly)} can not be set.");
+    }
+
+    private Expression<Func<TimeOnly?>>? ForTimeOnly
+    {
+        get
+        {
+            if (typeof(T) == typeof(TimeOnly?) && For != null)
+            {
+                return (Expression<Func<TimeOnly?>>)(object)For!;
+            }
+            return null;
+        }
+        set => throw new NotImplementedException($"{nameof(ForTimeOnly)} can not be set.");
+    }
+
     private int MultiSelectValue { get; set; } = 0;
 
     private long MultiSelectLongValue { get; set; } = 0;
@@ -680,6 +742,52 @@
             if (value != default)
             {
                 Value = (T)(object)value;
+            }
+            else
+            {
+                Value = default;
+            }
+        }
+    }
+
+    private DateTime? DateOnlyDateTimeValue
+    {
+        get
+        {
+            if (Value is DateOnly dateOnly)
+            {
+                return dateOnly.ToDateTime(TimeOnly.MinValue);
+            }
+            return default;
+        }
+        set
+        {
+            if (value != default)
+            {
+                Value = (T)(object)DateOnly.FromDateTime(value.Value);
+            }
+            else
+            {
+                Value = default;
+            }
+        }
+    }
+
+    private TimeSpan? TimeOnlyTimeSpanValue
+    {
+        get
+        {
+            if (Value is TimeOnly timeOnly)
+            {
+                return timeOnly.ToTimeSpan();
+            }
+            return default;
+        }
+        set
+        {
+            if (value != default)
+            {
+                Value = (T)(object)TimeOnly.FromTimeSpan(value.Value);
             }
             else
             {
