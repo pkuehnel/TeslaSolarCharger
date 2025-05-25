@@ -117,10 +117,21 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         return chargeSummary;
     }
 
-    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int carId)
+    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int? carId, int? chargingConnectorId)
     {
-        var handledCharges = await context.ChargingProcesses
-            .Where(h => h.CarId == carId && h.Cost != null)
+        logger.LogTrace("{method}({carId}, {chargingConnectorId})", nameof(GetFinalizedChargingProcesses), carId, chargingConnectorId);
+        var handledChargesQuery = context.ChargingProcesses
+            .Where(h => h.Cost != null).AsQueryable();
+        if (carId != default)
+        {
+            handledChargesQuery = handledChargesQuery.Where(h => h.CarId == carId);
+        }
+
+        if (chargingConnectorId != default)
+        {
+            handledChargesQuery = handledChargesQuery.Where(h => h.OcppChargingStationConnectorId == chargingConnectorId);
+        }
+        var handledCharges = await handledChargesQuery
             .OrderByDescending(h => h.StartDate)
             .Select(h => new DtoHandledCharge()
             {
