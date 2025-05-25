@@ -73,7 +73,7 @@ public class IndexService(
                 ChargingSlots = enabledCar.PlannedChargingSlots,
                 State = enabledCar.State,
             };
-            dtoCarBaseValues.DtoChargeSummary = await tscOnlyChargingCostService.GetChargeSummary(enabledCar.Id).ConfigureAwait(false);
+            dtoCarBaseValues.DtoChargeSummary = await tscOnlyChargingCostService.GetChargeSummary(enabledCar.Id, null).ConfigureAwait(false);
             if (enabledCar.ChargeMode == ChargeMode.SpotPrice)
             {
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
@@ -204,10 +204,6 @@ public class IndexService(
             { toolTipTextKeys.CarSoc, "State of charge" },
             { toolTipTextKeys.CarSocLimit, "SoC Limit (configured in the car or in the Tesla App)" },
             { toolTipTextKeys.CarChargingPowerHome, "Power your car is currently charging at home" },
-            { toolTipTextKeys.CarChargedSolarEnergy, "Total charged solar energy" },
-            { toolTipTextKeys.CarChargedHomeBatteryEnergy, "Total charged home battery energy" },
-            { toolTipTextKeys.CarChargedGridEnergy, "Total charged grid energy" },
-            { toolTipTextKeys.CarChargeCost, "Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed." },
             { toolTipTextKeys.CarAtHome, "Your car is in your defined GeoFence" },
             { toolTipTextKeys.CarNotHealthy, "Your car has no optimal internet connection or there is an issue with the Tesla API." },
             { toolTipTextKeys.CarPluggedIn, "Your car is plugged in" },

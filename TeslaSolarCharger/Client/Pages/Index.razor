@@ -151,37 +151,7 @@ else
                 }
                 <div>
                 </div>
-
-                <div class="d-flex align-items-center mb-1">
-                    <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedSolarEnergy]">
-                        @car.DtoChargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.SolarPortionPercent.ToString("0.0") %)
-                    </TooltipComponent>
-                </div>
-                @if (car.DtoChargeSummary.ChargedHomeBatteryEnergy > 0)
-                {
-                    <div class="d-flex align-items-center mb-1">
-                        <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.BatteryFull"></MudIcon>
-                        <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedHomeBatteryEnergy]">
-                            @car.DtoChargeSummary.ChargedHomeBatteryEnergy.ToString("0.00") kWh (@car.DtoChargeSummary.HomeBatteryPortionPercent.ToString("0.0") %)
-                        </TooltipComponent>
-                    </div>
-                }
-
-                <div class="d-flex align-items-center mb-1">
-                    <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargedGridEnergy]">
-                        @car.DtoChargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - car.DtoChargeSummary.SolarPortionPercent - car.DtoChargeSummary.HomeBatteryPortionPercent).ToString("0.0")) %)
-                    </TooltipComponent>
-                </div>
-                <div class="d-flex align-items-center mb-1">
-                    <span class="material-symbols-outlined">
-                        attach_money
-                    </span>
-                    <TooltipComponent Text="@_toolTipTexts?[ToolTipTextKeys.CarChargeCost]">
-                        <a href="HandledCharges/@car.CarId">@car.DtoChargeSummary.ChargeCost.ToString("0.00") (@(car.DtoChargeSummary.AverageEnergyPrice.ToString("0.000")) per kWh)</a>
-                    </TooltipComponent>
-                </div>
+                <ChargeSummaryComponent CarId="car.CarId"></ChargeSummaryComponent>
             </div>
             <div>
                 <InputComponent ValueId="@($"car{car.CarId}ChargeMode")"

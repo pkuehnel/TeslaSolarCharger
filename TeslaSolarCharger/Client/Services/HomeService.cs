@@ -1,6 +1,7 @@
 ﻿using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Home;
 
 namespace TeslaSolarCharger.Client.Services;
@@ -54,5 +55,16 @@ public class HomeService : IHomeService
             _logger.LogError(result.ErrorMessage);
         }
         return result;
+    }
+
+    public async Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId)
+    {
+        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
+        var result = await _httpClientHelper.SendGetRequestAsync<DtoChargeSummary>($"api/ChargingCost/GetChargeSummary?carId={carId}&chargingConnectorId={chargingConnectorId}");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+        }
+        return result.Data ?? new();
     }
 }

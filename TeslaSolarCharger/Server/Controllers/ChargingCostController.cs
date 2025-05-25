@@ -16,9 +16,10 @@ namespace TeslaSolarCharger.Server.Controllers
         : ApiBaseController
     {
         [HttpGet]
-        public Task<DtoChargeSummary> GetChargeSummary(int carId)
+        public async Task<IActionResult> GetChargeSummary(int? carId, int? chargingConnectorId)
         {
-            return tscOnlyChargingCostService.GetChargeSummary(carId);
+            var result = await tscOnlyChargingCostService.GetChargeSummary(carId, chargingConnectorId);
+            return Ok(result);
         }
 
         [HttpGet]
