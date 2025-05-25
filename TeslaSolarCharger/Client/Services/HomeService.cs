@@ -64,6 +64,12 @@ public class HomeService : IHomeService
         return result;
     }
 
+    public async Task<Result<object>> DeleteChargingSchedule(int chargingScheduleId)
+    {
+        _logger.LogTrace("{method}()", nameof(DeleteChargingSchedule));
+        return await _httpClientHelper.SendDeleteRequestAsync($"api/Home/DeleteCarChargingSchedule?chargingScheduleId={chargingScheduleId}");
+    }
+
     public async Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId)
     {
         _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));

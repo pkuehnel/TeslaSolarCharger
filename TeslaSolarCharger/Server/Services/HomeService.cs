@@ -150,6 +150,13 @@ public class HomeService : IHomeService
         return new(dbValue.Id, null, null);
     }
 
+    public async Task DeleteChargingSchedule(int chargingScheduleId)
+    {
+        _logger.LogTrace("{method}({chargingScheduleId})", nameof(DeleteChargingSchedule), chargingScheduleId);
+        _context.CarChargingSchedules.Remove(new() { Id = chargingScheduleId });
+        await _context.SaveChangesAsync();
+    }
+
     public async Task UpdateCarMinSoc(int carId, int newMinSoc)
     {
         _logger.LogTrace("{method}({carId}, {minSoc})", nameof(UpdateCarMinSoc), carId, newMinSoc);

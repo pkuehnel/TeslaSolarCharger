@@ -10,4 +10,5 @@ public interface IHomeService
     Task<Result<int>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto);
     Task UpdateCarMinSoc(int carId, int newMinSoc);
     Task<DtoCarChargingSchedule> GetChargingSchedule(int chargingScheduleId);
+    Task DeleteChargingSchedule(int chargingScheduleId);
 }
