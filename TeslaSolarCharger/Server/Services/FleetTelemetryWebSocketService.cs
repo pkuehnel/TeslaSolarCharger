@@ -269,6 +269,12 @@ public class FleetTelemetryWebSocketService(
                                 //Do not use reflection here as this sets the PluggedIn value on the dto without using the update method and therefore last plugged in is not filled correctly
                                 settingsCar.UpdatePluggedIn(new(carValueLog.Timestamp, TimeSpan.Zero), carValueLog.BooleanValue == true);
                                 break;
+                            case CarValueType.ModuleTempMin:
+                                settingsCar.MinBatteryTemperature.Update(message.TimeStamp, carValueLog.DoubleValue);
+                                break;
+                            case CarValueType.ModuleTempMax:
+                                settingsCar.MaxBatteryTemperature.Update(message.TimeStamp, carValueLog.DoubleValue);
+                                break;
                             case CarValueType.IsCharging:
                                 if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
                                 {
