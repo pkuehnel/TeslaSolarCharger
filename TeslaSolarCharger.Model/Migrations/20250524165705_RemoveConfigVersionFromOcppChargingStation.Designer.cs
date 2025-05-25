@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250524165705_RemoveConfigVersionFromOcppChargingStation")]
+    partial class RemoveConfigVersionFromOcppChargingStation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.3");
@@ -245,49 +248,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .IsUnique();
 
                     b.ToTable("Cars");
-                });
-
-            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarChargingSchedule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CarId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("NextOccurrence")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RepeatOnFridays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RepeatOnMondays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RepeatOnSaturdays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RepeatOnSundays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RepeatOnThursdays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RepeatOnTuesdays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RepeatOnWednesdays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TargetSoc")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CarId");
-
-                    b.ToTable("CarChargingSchedules");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog", b =>
@@ -981,17 +941,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.ToTable("TscConfigurations");
                 });
 
-            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarChargingSchedule", b =>
-                {
-                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
-                        .WithMany("ChargingSchedules")
-                        .HasForeignKey("CarId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Car");
-                });
-
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog", b =>
                 {
                     b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
@@ -1128,8 +1077,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Navigation("CarValueLogs");
 
                     b.Navigation("ChargingProcesses");
-
-                    b.Navigation("ChargingSchedules");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess", b =>

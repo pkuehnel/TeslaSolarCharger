@@ -97,21 +97,41 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         return chargeSummaries;
     }
 
-    public async Task<DtoChargeSummary> GetChargeSummary(int carId)
+    public async Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId)
     {
         logger.LogTrace("{method}({carId})", nameof(GetChargeSummary), carId);
-        var chargingProcesses = await context.ChargingProcesses
-            .Where(cp => cp.CarId == carId)
-            .AsNoTracking()
-            .ToListAsync().ConfigureAwait(false);
+        var chargingProcessQuery = context.ChargingProcesses
+            .AsQueryable();
+        if (carId != default)
+        {
+            chargingProcessQuery = chargingProcessQuery.Where(cp => cp.CarId == carId);
+        }
+        if (chargingConnectorId != default)
+        {
+            chargingProcessQuery = chargingProcessQuery.Where(cp => cp.OcppChargingStationConnectorId == chargingConnectorId);
+        }
+
+        var chargingProcesses = await chargingProcessQuery.AsNoTracking()
+        .ToListAsync().ConfigureAwait(false);
         var chargeSummary = GetChargeSummaryByChargingProcesses(chargingProcesses);
         return chargeSummary;
     }
 
-    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int carId)
+    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int? carId, int? chargingConnectorId)
     {
-        var handledCharges = await context.ChargingProcesses
-            .Where(h => h.CarId == carId && h.Cost != null)
+        logger.LogTrace("{method}({carId}, {chargingConnectorId})", nameof(GetFinalizedChargingProcesses), carId, chargingConnectorId);
+        var handledChargesQuery = context.ChargingProcesses
+            .Where(h => h.Cost != null).AsQueryable();
+        if (carId != default)
+        {
+            handledChargesQuery = handledChargesQuery.Where(h => h.CarId == carId);
+        }
+
+        if (chargingConnectorId != default)
+        {
+            handledChargesQuery = handledChargesQuery.Where(h => h.OcppChargingStationConnectorId == chargingConnectorId);
+        }
+        var handledCharges = await handledChargesQuery
             .OrderByDescending(h => h.StartDate)
             .Select(h => new DtoHandledCharge()
             {

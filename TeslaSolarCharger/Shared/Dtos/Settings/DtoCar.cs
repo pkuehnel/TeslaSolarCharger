@@ -51,6 +51,8 @@ public class DtoCar
     public int? ChargerActualCurrent { get; set; }
     public int? ChargerPilotCurrent { get; set; }
     public int? ChargerRequestedCurrent { get; set; }
+    public DtoTimeStampedValue<double?> MinBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);
+    public DtoTimeStampedValue<double?> MaxBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);
 
     public bool? PluggedIn { get; private set; }
     public DateTimeOffset? LastPluggedIn { get; set; }

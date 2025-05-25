@@ -1,9 +1,10 @@
-﻿@page "/HandledCharges/{carId:int}"
+﻿@page "/HandledCharges"
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @inject HttpClient HttpClient
 @inject IStringHelper StringHelper
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
 <h1>Handled Charges</h1>
 
@@ -52,7 +53,10 @@ else
 
 @code {
     [Parameter]
-    public int CarId { get; set; }
+    public int? CarId { get; set; }
+
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
 
     public int ViewportWidth { get; set; }
     public int ViewportHeight { get; set; }
@@ -85,7 +89,30 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (Microsoft.AspNetCore.WebUtilities
+            .QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue("carId", out var c)
+            && int.TryParse(c, out var parsedCarId))
+        {
+            CarId = parsedCarId;
+        }
+        else
+        {
+            CarId = default;
+        }
+        if (Microsoft.AspNetCore.WebUtilities
+            .QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue("chargingConnectorId", out var cc)
+            && int.TryParse(cc, out var parsedChargingConnectorId))
+        {
+            ChargingConnectorId = parsedChargingConnectorId;
+        }
+        else
+        {
+            ChargingConnectorId = default;
+        }
+        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
     }
 
     [JSInvokable]
