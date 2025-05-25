@@ -1,69 +1,56 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject IHomeService HomeService
-@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <h3>Schedules</h3>
 <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
                              ButtonText="Add Schedule"
-                             OnButtonClicked="_ => OpenScheduleDialog(null)"></RightAlignedButtonComponent>
-@if (_schedules == default)
+                             OnButtonClicked="_ => AddSchedule()"></RightAlignedButtonComponent>
+
+@if (_schedules == null)
 {
-    <PlaceholderComponent Count="3"></PlaceholderComponent>
+    <PlaceholderComponent Count="3" />
 }
-else if (_schedules.Count < 1)
+else if (!_schedules.Any())
 {
-    <div>Nothing planned</div>
+    <div class="text-muted mt-2">Nothing planned</div>
 }
 else
 {
-    foreach (var dtoCarChargingSchedule in _schedules)
+    @foreach (var chargingSchedule in _schedules)
     {
-        <div>@(dtoCarChargingSchedule.TargetSoc)%</div>
-        <div>@(dtoCarChargingSchedule.TargetDate != default ? "On " + dtoCarChargingSchedule.TargetDate + " " : string.Empty) at @(dtoCarChargingSchedule.TargetTime)</div>
-        @if (dtoCarChargingSchedule.RepeatOnMondays
-             || dtoCarChargingSchedule.RepeatOnTuesdays
-             || dtoCarChargingSchedule.RepeatOnWednesdays
-             || dtoCarChargingSchedule.RepeatOnThursdays
-             || dtoCarChargingSchedule.RepeatOnFridays
-             || dtoCarChargingSchedule.RepeatOnSaturdays
-             || dtoCarChargingSchedule.RepeatOnSundays)
-        {
-            <div>
-                Repeat on:
-                <ul>
-                    @if (dtoCarChargingSchedule.RepeatOnMondays)
-                    {
-                        <li>Monday</li>
-                    }
-                    @if (dtoCarChargingSchedule.RepeatOnTuesdays)
-                    {
-                        <li>Tuesday</li>
-                    }
-                    @if (dtoCarChargingSchedule.RepeatOnWednesdays)
-                    {
-                        <li>Wednesday</li>
-                    }
-                    @if (dtoCarChargingSchedule.RepeatOnThursdays)
-                    {
-                        <li>Thursday</li>
-                    }
-                    @if (dtoCarChargingSchedule.RepeatOnFridays)
-                    {
-                        <li>Friday</li>
-                    }
-                    @if (dtoCarChargingSchedule.RepeatOnSaturdays)
-                    {
-                        <li>Saturday</li>
-                    }
-                    @if (dtoCarChargingSchedule.RepeatOnSundays)
-                    {
-                        <li>Sunday</li>
-                    }
-                </ul>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <EditFormComponent T="DtoCarChargingSchedule" WrappedElement="@(chargingSchedule)"
+                                   OnAfterSuccessfullSubmit="ShowSuccessMessage"
+                                   HideSubmitButton="false"
+                                   SubmitUrl="@($"api/Home/SaveCarChargingSchedule?carId={CarId}")">
+                    <div>
+                        <GenericInput For="() => chargingSchedule.Item.TargetSoc"></GenericInput>
+                        <GenericInput For="() => chargingSchedule.Item.TargetDate"
+                                      Clearable="true"></GenericInput>
+                        <GenericInput For="() => chargingSchedule.Item.TargetTime"></GenericInput>
+                        <div class="d-flex flex-wrap gap-2">
+                            <GenericInput For="() => chargingSchedule.Item.RepeatOnMondays"></GenericInput>
+                            <GenericInput For="() => chargingSchedule.Item.RepeatOnTuesdays"></GenericInput>
+                            <GenericInput For="() => chargingSchedule.Item.RepeatOnWednesdays"></GenericInput>
+                            <GenericInput For="() => chargingSchedule.Item.RepeatOnThursdays"></GenericInput>
+                            <GenericInput For="() => chargingSchedule.Item.RepeatOnFridays"></GenericInput>
+                            <GenericInput For="() => chargingSchedule.Item.RepeatOnSaturdays"></GenericInput>
+                            <GenericInput For="() => chargingSchedule.Item.RepeatOnSundays"></GenericInput>
+                        </div>
+                    </div>
+                </EditFormComponent>
+                <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Delete"
+                                             ButtonText="Delete"
+                                             ButtonColor="Color.Error"
+                                             OnButtonClicked="_ => DeleteItem(chargingSchedule)"></RightAlignedButtonComponent>
             </div>
-        }
+        </div>
     }
 }
 
@@ -71,7 +58,7 @@ else
     [Parameter]
     public int CarId { get; set; }
 
-    private List<DtoCarChargingSchedule>? _schedules;
+    private List<EditableItem<DtoCarChargingSchedule>>? _schedules;
 
 
     protected override async Task OnParametersSetAsync()
@@ -83,27 +70,37 @@ else
 
     private async Task RefreshChargingSchedules()
     {
-        _schedules = await HomeService.GetCarChargingSchedules(CarId);
+        var result = await HomeService.GetCarChargingSchedules(CarId);
+        if (result == default)
+        {
+            _schedules = default;
+            return;
+        }
+        _schedules = result.Select(s => new EditableItem<DtoCarChargingSchedule>(s)).ToList();
     }
 
-    private async Task OpenScheduleDialog(int? scheduleId)
+    private void AddSchedule()
     {
-        var options = new DialogOptions()
-        {
-            CloseButton = true,
-            CloseOnEscapeKey = false,
-            BackdropClick = true,
-        };
-        var parameters = new DialogParameters<ChargingScheduleConfigurationDialog>
-        {
-            { x => x.CarId, CarId },
-            { x => x.ChargingScheduleId, scheduleId },
-        };
-        var title = scheduleId == default ? "Add" : "Edit";
-        var dialog = await DialogService.ShowAsync<ChargingScheduleConfigurationDialog>($"{title} REST config", parameters, options);
-        var result = await dialog.Result;
+        _schedules?.Add(new(new()));
+    }
 
-        await RefreshChargingSchedules();
+    private void ShowSuccessMessage()
+    {
+        Snackbar.Add("Saved.", Severity.Success);
+    }
+
+    private async Task DeleteItem(EditableItem<DtoCarChargingSchedule> chargingSchedule)
+    {
+        if (chargingSchedule.Item.Id != default)
+        {
+            var result = await HomeService.DeleteChargingSchedule(chargingSchedule.Item.Id);
+            if (result.HasError)
+            {
+                Snackbar.Add($"Could not delete: {result.ErrorMessage}", Severity.Success);
+                return;
+            }
+        }
+        _schedules?.Remove(chargingSchedule);
     }
 
 }
