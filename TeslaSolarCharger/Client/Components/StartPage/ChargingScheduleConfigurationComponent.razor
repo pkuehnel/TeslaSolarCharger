@@ -2,8 +2,12 @@
 @using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject IHomeService HomeService
+@inject IDialogService DialogService
 
 <h3>Schedules</h3>
+<RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
+                             ButtonText="Add Schedule"
+                             OnButtonClicked="_ => OpenScheduleDialog(null)"></RightAlignedButtonComponent>
 @if (_schedules == default)
 {
     <PlaceholderComponent Count="3"></PlaceholderComponent>
@@ -16,7 +20,6 @@ else
 {
     foreach (var dtoCarChargingSchedule in _schedules)
     {
-        <div>Next execution: @(dtoCarChargingSchedule.NextOccurrence == default ? "Unknown" : dtoCarChargingSchedule.NextOccurrence.Value.LocalDateTime)</div>
         @if (dtoCarChargingSchedule.RepeatOnMondays
              || dtoCarChargingSchedule.RepeatOnTuesdays
              || dtoCarChargingSchedule.RepeatOnWednesdays
@@ -59,7 +62,11 @@ else
                 </ul>
             </div>
         }
-
+        <GenericInput For="() => dtoCarChargingSchedule.TargetDate"
+                      LabelName="@(dtoCarChargingSchedule.RepeatsOnAnyDay ? "Next execution date" : null)"
+                      HelperText="@(dtoCarChargingSchedule.RepeatsOnAnyDay ? "Leave empty if should always execute on repeating day" : null)"
+                      ></GenericInput>
+        <GenericInput For="() => dtoCarChargingSchedule.TargetTime"></GenericInput>
     }
 }
 
@@ -81,4 +88,25 @@ else
     {
         _schedules = await HomeService.GetCarChargingSchedules(CarId);
     }
+
+    private async Task OpenScheduleDialog(int? scheduleId)
+    {
+        var options = new DialogOptions()
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = false,
+            BackdropClick = true,
+        };
+        var parameters = new DialogParameters<ChargingScheduleConfigurationDialog>
+        {
+            { x => x.CarId, CarId },
+            { x => x.ChargingScheduleId, scheduleId },
+        };
+        var title = scheduleId == default ? "Add" : "Edit";
+        var dialog = await DialogService.ShowAsync<ChargingScheduleConfigurationDialog>($"{title} REST config", parameters, options);
+        var result = await dialog.Result;
+
+        await RefreshChargingSchedules();
+    }
+
 }
