@@ -1,7 +1,7 @@
 ﻿using Microsoft.JSInterop;
 using TeslaSolarCharger.Client.Helper.Contracts;
 
-namespace Lysando.LabStorageV2.UiHelper.Wrapper;
+namespace TeslaSolarCharger.Client.Helper;
 
 public class JavaScriptWrapper(IJSRuntime jsRuntime) : IJavaScriptWrapper
 {
@@ -50,5 +50,11 @@ public class JavaScriptWrapper(IJSRuntime jsRuntime) : IJavaScriptWrapper
         {
             return false;
         }
+    }
+
+    public async Task<string> GetTimeZoneId()
+    {
+        var timeZone = await jsRuntime.InvokeAsync<string>("getTimeZone");
+        return timeZone;
     }
 }

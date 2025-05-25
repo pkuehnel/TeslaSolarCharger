@@ -16,6 +16,7 @@ public class CarChargingSchedule
     public bool RepeatOnFridays { get; set; }
     public bool RepeatOnSaturdays { get; set; }
     public bool RepeatOnSundays { get; set; }
+    public string? ClientTimeZone { get; set; }
 
     public int CarId { get; set; }
 

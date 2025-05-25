@@ -94,6 +94,7 @@ public class HomeService : IHomeService
                 RepeatOnFridays = s.RepeatOnFridays,
                 RepeatOnSaturdays = s.RepeatOnSaturdays,
                 RepeatOnSundays = s.RepeatOnSundays,
+                ClientTimeZone = s.ClientTimeZone,
             })
             .FirstAsync().ConfigureAwait(false);
         return chargingSchedules;
@@ -118,6 +119,7 @@ public class HomeService : IHomeService
                 RepeatOnFridays = s.RepeatOnFridays,
                 RepeatOnSaturdays = s.RepeatOnSaturdays,
                 RepeatOnSundays = s.RepeatOnSundays,
+                ClientTimeZone = s.ClientTimeZone,
             })
             .ToListAsync().ConfigureAwait(false);
         return chargingSchedules;
@@ -146,6 +148,7 @@ public class HomeService : IHomeService
         dbValue.RepeatOnFridays = dto.RepeatOnFridays;
         dbValue.RepeatOnSaturdays = dto.RepeatOnSaturdays;
         dbValue.RepeatOnSundays = dto.RepeatOnSundays;
+        dbValue.ClientTimeZone = dto.ClientTimeZone;
         await _context.SaveChangesAsync();
         return new(dbValue.Id, null, null);
     }

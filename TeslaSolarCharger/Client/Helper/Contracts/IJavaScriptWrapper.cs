@@ -6,4 +6,5 @@ public interface IJavaScriptWrapper
     Task<bool> RemoveFocusFromElementById(string elementId);
     Task OpenUrlInNewTab(string url);
     Task<bool> IsIosDevice();
+    Task<string> GetTimeZoneId();
 }

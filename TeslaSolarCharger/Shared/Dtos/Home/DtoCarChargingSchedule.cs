@@ -25,6 +25,7 @@ public class DtoCarChargingSchedule
     public bool RepeatOnSaturdays { get; set; }
     [DisplayName("Su")]
     public bool RepeatOnSundays { get; set; }
+    public string? ClientTimeZone { get; set; }
 
     [JsonIgnore]
     public bool RepeatsOnAnyDay {
