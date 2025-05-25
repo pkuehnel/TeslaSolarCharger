@@ -122,3 +122,10 @@ a, .btn-link {
 .text-right {
     text-align: right !important;
 }
+.mud-progress-linear-dashed {
+
+    animation: none !important;
+    background-image: none !important;
+    background-color: #e0e0e0 !important;
+}
+
