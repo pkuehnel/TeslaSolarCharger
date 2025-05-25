@@ -20,6 +20,8 @@ else
 {
     foreach (var dtoCarChargingSchedule in _schedules)
     {
+        <div>@(dtoCarChargingSchedule.TargetSoc)%</div>
+        <div>@(dtoCarChargingSchedule.TargetDate != default ? "On " + dtoCarChargingSchedule.TargetDate + " " : string.Empty) at @(dtoCarChargingSchedule.TargetTime)</div>
         @if (dtoCarChargingSchedule.RepeatOnMondays
              || dtoCarChargingSchedule.RepeatOnTuesdays
              || dtoCarChargingSchedule.RepeatOnWednesdays
@@ -62,11 +64,6 @@ else
                 </ul>
             </div>
         }
-        <GenericInput For="() => dtoCarChargingSchedule.TargetDate"
-                      LabelName="@(dtoCarChargingSchedule.RepeatsOnAnyDay ? "Next execution date" : null)"
-                      HelperText="@(dtoCarChargingSchedule.RepeatsOnAnyDay ? "Leave empty if should always execute on repeating day" : null)"
-                      ></GenericInput>
-        <GenericInput For="() => dtoCarChargingSchedule.TargetTime"></GenericInput>
     }
 }
 
