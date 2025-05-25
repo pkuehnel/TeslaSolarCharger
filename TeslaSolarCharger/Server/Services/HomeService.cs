@@ -76,6 +76,29 @@ public class HomeService : IHomeService
         return result;
     }
 
+    public async Task<DtoCarChargingSchedule> GetChargingSchedule(int chargingScheduleId)
+    {
+        _logger.LogTrace("{method}({chargingScheduleId})", nameof(GetChargingSchedule), chargingScheduleId);
+        var chargingSchedules = await _context.CarChargingSchedules
+            .Where(s => s.Id == chargingScheduleId)
+            .Select(s => new DtoCarChargingSchedule()
+            {
+                Id = s.Id,
+                TargetSoc = s.TargetSoc,
+                TargetDate = s.TargetDate == null ? null : new DateTime(s.TargetDate.Value, TimeOnly.MinValue, DateTimeKind.Utc),
+                TargetTime = s.TargetTime.ToTimeSpan(),
+                RepeatOnMondays = s.RepeatOnMondays,
+                RepeatOnTuesdays = s.RepeatOnTuesdays,
+                RepeatOnWednesdays = s.RepeatOnWednesdays,
+                RepeatOnThursdays = s.RepeatOnThursdays,
+                RepeatOnFridays = s.RepeatOnFridays,
+                RepeatOnSaturdays = s.RepeatOnSaturdays,
+                RepeatOnSundays = s.RepeatOnSundays,
+            })
+            .FirstAsync().ConfigureAwait(false);
+        return chargingSchedules;
+    }
+
     public async Task<List<DtoCarChargingSchedule>> GetCarChargingSchedules(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetCarChargingSchedules), carId);
@@ -85,7 +108,9 @@ public class HomeService : IHomeService
             {
                 Id = s.Id,
                 TargetSoc = s.TargetSoc,
-                NextOccurrence = s.NextOccurrence,
+                TargetDate = s.TargetDate == null ? null : new DateTime(s.TargetDate.Value, TimeOnly.MinValue, DateTimeKind.Utc),
+                //Do not use min value for dateonly as it crashes based on timezones
+                TargetTime = s.TargetTime.ToTimeSpan(),
                 RepeatOnMondays = s.RepeatOnMondays,
                 RepeatOnTuesdays = s.RepeatOnTuesdays,
                 RepeatOnWednesdays = s.RepeatOnWednesdays,
@@ -111,8 +136,9 @@ public class HomeService : IHomeService
 
         dbValue.CarId = carId;
         dbValue.TargetSoc = dto.TargetSoc;
-        //Next occurrence can not be null as is validated
-        dbValue.NextOccurrence = dto.NextOccurrence!.Value;
+        dbValue.TargetDate = dto.TargetDate == default ? null : DateOnly.FromDateTime(dto.TargetDate.Value);
+        //Target Time can not be null due to validation
+        dbValue.TargetTime = TimeOnly.FromTimeSpan(dto.TargetTime!.Value);
         dbValue.RepeatOnMondays = dto.RepeatOnMondays;
         dbValue.RepeatOnTuesdays = dto.RepeatOnTuesdays;
         dbValue.RepeatOnWednesdays = dto.RepeatOnWednesdays;

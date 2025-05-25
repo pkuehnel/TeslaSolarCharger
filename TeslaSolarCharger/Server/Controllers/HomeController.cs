@@ -28,6 +28,13 @@ public class HomeController : ApiBaseController
         return Ok(result);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetCarChargingSchedule(int chargingScheduleId)
+    {
+        var result = await _homeService.GetChargingSchedule(chargingScheduleId);
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<IActionResult> SaveCarChargingSchedule(int carId, [FromBody] DtoCarChargingSchedule dto)
     {

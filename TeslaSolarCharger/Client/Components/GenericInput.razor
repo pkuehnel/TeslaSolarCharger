@@ -37,6 +37,10 @@
                                                     { "ErrorText", ErrorMessage ?? string.Empty },
                                                 } :new())" />
                 }
+                else if (typeof(T) == typeof(TimeSpan?))
+                {
+
+                }
                 else if (DropDownOptions != default && typeof(T) == typeof(int?))
                 {
                     <MudSelectExtended id="@InputId"
@@ -345,6 +349,9 @@
 
     [Parameter]
     public bool Autogrow { get; set; } = true;
+
+    [Parameter]
+    public bool DisplayTimeOnly { get; set; }
 
     private string MarginClass => Constants.DefaultMargin;
     private Margin InputMargin => Constants.InputMargin;
