@@ -1,9 +1,13 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+﻿@using TeslaSolarCharger.Client.Dialogs
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject IHomeService HomeService
 @inject ISnackbar Snackbar
+@inject IJavaScriptWrapper JavaScriptWrapper
+@inject IDialogService DialogService
 
 <h3>Schedules</h3>
 <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
@@ -29,6 +33,16 @@ else
                                    OnAfterSuccessfullSubmit="ShowSuccessMessage"
                                    HideSubmitButton="false"
                                    SubmitUrl="@($"api/Home/SaveCarChargingSchedule?carId={CarId}")">
+                    @if (chargingSchedule.Item.ClientTimeZone != _timeZone)
+                    {
+                        <MudAlert Severity="Severity.Warning"
+                                  NoIcon="true"
+                                  ContentAlignment="HorizontalAlignment.Left">
+                            <h5>Saved in different timezone</h5>
+                            This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new schedule, so to fix this issue, you need to delete this schedule and readd it.
+                        </MudAlert>
+                    }
+                    
                     <div>
                         <GenericInput For="() => chargingSchedule.Item.TargetSoc"></GenericInput>
                         <GenericInput For="() => chargingSchedule.Item.TargetDate"
@@ -60,6 +74,13 @@ else
 
     private List<EditableItem<DtoCarChargingSchedule>>? _schedules;
 
+    private string? _timeZone;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _timeZone = await JavaScriptWrapper.GetTimeZoneId();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -81,7 +102,10 @@ else
 
     private void AddSchedule()
     {
-        _schedules?.Add(new(new()));
+        _schedules?.Add(new(new()
+        {
+            ClientTimeZone = _timeZone,
+        }));
     }
 
     private void ShowSuccessMessage()
