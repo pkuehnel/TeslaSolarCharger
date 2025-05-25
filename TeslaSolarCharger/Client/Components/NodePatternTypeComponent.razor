@@ -2,70 +2,24 @@
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.SharedModel.Enums
+@using System.ComponentModel
+@using TeslaSolarCharger.Shared.Attributes
 
 
-<InputComponent ValueId="@($"{IdPrefix}nodePatternType")"
-                LabelText="Result Type"
-                UnitText=""
-                HelpText="">
-    <InputFragment>
-        <InputSelect class="form-control" @bind-Value="@NodePatternType" id="@($"{IdPrefix}nodePatternType")">
-
-            @foreach (var value in Enum.GetValues<NodePatternType>())
-            {
-                <option value="@value">@value.ToFriendlyString()</option>
-            }
-        </InputSelect>
-    </InputFragment>
-</InputComponent>
+<GenericInput For="() => NodePatternType" DropDownOptions="NodePatternTypeOptions" />
 @if (NodePatternType == TeslaSolarCharger.SharedModel.Enums.NodePatternType.Json)
 {
-    <InputComponent ValueId="@($"{IdPrefix}JsonPattern")"
-                    LabelText="@($"{Purpose} Json Pattern")"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <InputText id="@($"{IdPrefix}JsonPattern")" @bind-Value="JsonPattern" placeholder="$.data.overage" class="form-control" />
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => JsonPattern" LabelName="@($"{Purpose} Json Pattern")" />
 }
 @if (NodePatternType == TeslaSolarCharger.SharedModel.Enums.NodePatternType.Xml)
 {
-    <InputComponent ValueId="@($"{IdPrefix}XmlPattern")"
-                    LabelText="@($"{Purpose} XML Pattern")"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <InputText id="@($"{IdPrefix}XmlPattern")" @bind-Value="XmlPattern" placeholder="Device/Measurements/Measurement" class="form-control" />
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => XmlPattern" LabelName="@($"{Purpose} XML Pattern")" />
 
-    <InputComponent ValueId="@($"{IdPrefix}XmlAttributeHeaderName")"
-                    LabelText="@($"{Purpose} XML Attribute Header Name")"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <InputText id="@($"{IdPrefix}XmlAttributeHeaderName")" @bind-Value="XmlAttributeHeaderName" placeholder=" " class="form-control" />
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => XmlAttributeHeaderName" LabelName="@($"{Purpose} XML Attribute Header Name")" />
 
-    <InputComponent ValueId="@($"{IdPrefix}XmlAttributeHeaderValue")"
-                LabelText="@($"{Purpose} XML Attribute Header Value")"
-                UnitText=""
-                HelpText="">
-        <InputFragment>
-            <InputText id="@($"{IdPrefix}XmlAttributeHeaderValue")" @bind-Value="XmlAttributeHeaderValue" placeholder=" " class="form-control" />
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => XmlAttributeHeaderValue" LabelName="@($"{Purpose} XML Attribute Header Value")" />
 
-    <InputComponent ValueId="@($"{IdPrefix}XmlAttributeValueName")"
-                LabelText="@($"{Purpose} XML Attribute Value Name")"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <InputText id="@($"{IdPrefix}XmlAttributeValueName")" @bind-Value="XmlAttributeValueName" placeholder=" " class="form-control" />
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => XmlAttributeValueName" LabelName="@($"{Purpose} XML Attribute Value Name")" />
 }
 
 @code {
@@ -77,6 +31,7 @@
     private string IdPrefix => Purpose.Replace(" ", "");
 #pragma warning disable BL0007
     [Parameter]
+    [DisplayName("Result Type")]
     public NodePatternType? NodePatternType
     {
         get => _nodePatternType;
@@ -92,6 +47,7 @@
     public EventCallback<NodePatternType?> NodePatternTypeChanged { get; set; }
 
     [Parameter]
+    [DisplayName("Json Pattern")]
     public string? JsonPattern
     {
         get => _jsonPattern;
@@ -107,6 +63,7 @@
     public EventCallback<string> JsonPatternChanged { get; set; }
 
     [Parameter]
+    [DisplayName("XML Pattern")]
     public string? XmlPattern
     {
         get => _xmlPattern;
@@ -122,6 +79,7 @@
     public EventCallback<string> XmlPatternChanged { get; set; }
 
     [Parameter]
+    [DisplayName("XML Attribute Header Name")]
     public string? XmlAttributeHeaderName
     {
         get => _xmlAttributeHeaderName;
@@ -137,6 +95,7 @@
     public EventCallback<string> XmlAttributeHeaderNameChanged { get; set; }
 
     [Parameter]
+    [DisplayName("XML Attribute Header Value")]
     public string? XmlAttributeHeaderValue
     {
         get => _xmlAttributeHeaderValue;
@@ -152,6 +111,7 @@
     public EventCallback<string> XmlAttributeHeaderValueChanged { get; set; }
 
     [Parameter]
+    [DisplayName("XML Attribute Value Name")]
     public string? XmlAttributeValueName
     {
         get => _xmlAttributeValueName;
@@ -175,4 +135,7 @@
     private string? _xmlAttributeHeaderName;
     private string? _xmlAttributeHeaderValue;
     private string? _xmlAttributeValueName;
+
+    private readonly Dictionary<int, string> NodePatternTypeOptions = Enum.GetValues<NodePatternType>()
+        .ToDictionary(e => (int)e, e => e.ToFriendlyString());
 }

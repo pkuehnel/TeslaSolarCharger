@@ -1,17 +1,12 @@
 ﻿@using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared
+@using System.ComponentModel
+@using TeslaSolarCharger.Shared.Attributes
 @inject INodePatternTypeHelper NodePatternTypeHelper
 
 
-<InputComponent ValueId="@($"{IdPrefix}Url")"
-                LabelText="@($"{Purpose} Url")"
-                UnitText=""
-                HelpText="">
-    <InputFragment>
-        <InputText id="@($"{IdPrefix}Url")" @bind-Value="Url" class="form-control" placeholder=" " />
-    </InputFragment>
-</InputComponent>
+<GenericInput For="() => Url" LabelName="@($"{Purpose} Url")" />
 
 @if (SolarValueSource == SolarValueSource.Modbus)
 {
@@ -71,6 +66,7 @@ else
     public SolarValueSource SolarValueSource { get; set; }
 #pragma warning disable BL0007
     [Parameter]
+    [DisplayName("Url")]
     public string? Url
     {
         get => _url;

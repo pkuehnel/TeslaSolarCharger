@@ -6,6 +6,9 @@
 @using TeslaSolarCharger.Shared.Enums
 @using Newtonsoft.Json
 @using TeslaSolarCharger.Shared.Dtos
+@using System.ComponentModel
+@using System.Linq
+@using TeslaSolarCharger.Shared.Attributes
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject IDateTimeProvider DateTimeProvider
@@ -23,53 +26,15 @@ else
     <EditForm Model="ChargePrice" OnValidSubmit="@SaveChargePrice">
         <DataAnnotationsValidator />
         <ValidationSummary />
-        <InputComponent ValueId="chargePriceId"
-                        LabelText="ID"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputNumber id="chargePriceId" @bind-Value="ChargePrice.Id" class="form-control" placeholder=" " readonly />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => ChargePrice.Id" IsReadOnlyParameter="true" />
 
-        <InputComponent ValueId="date"
-                        LabelText="Valid Since"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputDate id="date" @bind-Value="ChargePrice.ValidSince" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => ChargePrice.ValidSince" />
 
-        <InputComponent ValueId="solarPrice"
-                        LabelText="Solar Price"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputNumber id="solarPrice" @bind-Value="ChargePrice.SolarPrice" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => ChargePrice.SolarPrice" />
         
-        <InputComponent ValueId="energyProvider"
-                        LabelText="Energy Provider"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputSelect id="energyProvider" Value="ChargePrice.EnergyProvider" ValueExpression="() => ChargePrice.EnergyProvider" ValueChanged="@((EnergyProvider e) => EnergyProviderChanged(e))" class="form-control">
-                    <option value="@EnergyProvider.OldTeslaSolarChargerConfig">Fixed Price or Spot price</option>
-                    <option value="@EnergyProvider.FixedPrice">Time based prices</option>
-                </InputSelect>
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => ChargePrice.EnergyProvider" DropDownOptions="EnergyProviderOptions" OnValueChanged="EnergyProviderChanged" />
 
-        <InputComponent ValueId="gridPrice"
-                        LabelText="@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")"
-                        UnitText=""
-                        HelpText="">
-            <InputFragment>
-                <InputNumber id="gridPrice" @bind-Value="ChargePrice.GridPrice" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => ChargePrice.GridPrice" LabelName="@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")" />
 
         @if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice && FixedPrices != null)
         {
@@ -84,14 +49,7 @@ else
                 </div>
                 <div class="row mt-3">
                     <div class="col-auto">
-                        <InputComponent ValueId="price"
-                                        LabelText="Price"
-                                        UnitText=""
-                                        HelpText="">
-                            <InputFragment>
-                                <InputNumber id="price" @bind-Value="fixedPrice.Value" class="form-control" placeholder=" " />
-                            </InputFragment>
-                        </InputComponent>
+                        <GenericInput For="() => fixedPrice.Value" />
                     </div>
                     <div class="col-auto">
                         <button type="button" class="btn btn-danger m-2" @onclick="_ => DeleteFixedPrice(fixedPrice)"><span class="oi oi-trash" aria-hidden="true"></span></button>
@@ -116,14 +74,7 @@ else
             </div>
             @if (ChargePrice.AddSpotPriceToGridPrice)
             {
-                <InputComponent ValueId="chargePriceSurcharge"
-                                LabelText="Additional costs to spotprice"
-                                UnitText="%"
-                                HelpText="Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.">
-                    <InputFragment>
-                        <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" placeholder=" " />
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => ChargePrice.SpotPriceSurcharge" />
             }
         }
         
@@ -163,6 +114,9 @@ else
     private bool SubmitIsLoading { get; set; }
 
     private List<FixedPrice>? FixedPrices { get; set; }
+
+    private readonly Dictionary<int, string> EnergyProviderOptions = Enum.GetValues<EnergyProvider>()
+        .ToDictionary(e => (int)e, e => e.ToString().Replace("OldTeslaSolarChargerConfig", "Fixed Price or Spot price").Replace("FixedPrice", "Time based prices"));
 
     public string? ChargePricesUpdateText { get; set; }
 

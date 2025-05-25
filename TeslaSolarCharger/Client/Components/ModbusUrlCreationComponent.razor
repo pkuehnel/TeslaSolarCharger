@@ -1,83 +1,24 @@
 ﻿@using System.Web
+@using System.ComponentModel
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Attributes
 
 
 <div class="mb-3">
-    <InputComponent ValueId="@($"{IdPrefix}ModbusUnitIdentifier")"
-                    LabelText="Unit Identifier"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <input class="form-control" @bind="@ModbusUnitIdentifier" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusUnitIdentifier")" placeholder=" ">
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => ModbusUnitIdentifier" HtmlInputType="InputType.Number" ImmediateValueUpdate="true" />
     
-    <InputComponent ValueId="@($"{IdPrefix}RegisterType")"
-                    LabelText="Register Type"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <InputSelect class="form-control" @bind-Value="@RegisterType" id="@($"{IdPrefix}RegisterType")">
-                @foreach (var value in Enum.GetValues<ModbusRegisterType>())
-                {
-                    <option value="@value">@value.ToFriendlyString()</option>
-                }
-            </InputSelect>
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => RegisterType" DropDownOptions="RegisterTypeOptions" ImmediateValueUpdate="true" />
     
-    <InputComponent ValueId="@($"{IdPrefix}ValueType")"
-                    LabelText="Value Type"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <InputSelect class="form-control" @bind-Value="@ValueType" id="@($"{IdPrefix}ValueType")">
-
-                @foreach (var value in Enum.GetValues<ModbusValueType>())
-                {
-
-                    <option value="@value">@value.ToFriendlyString()</option>
-                }
-            </InputSelect>
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => ValueType" DropDownOptions="ValueTypeOptions" ImmediateValueUpdate="true" />
     
-    <InputComponent ValueId="@($"{IdPrefix}ModbusStartingAddress")"
-                    LabelText="Register Address"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <input class="form-control" @bind="@StartingAddress" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusUnitIdentifier")" placeholder=" ">
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => StartingAddress" HtmlInputType="InputType.Number" ImmediateValueUpdate="true" />
     
-    <InputComponent ValueId="@($"{IdPrefix}ModbusQuantity")"
-                    LabelText="Number of Registers"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <input class="form-control" @bind="@Quantity" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusQuantity")" placeholder=" ">
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => Quantity" HtmlInputType="InputType.Number" ImmediateValueUpdate="true" />
     
-    <InputComponent ValueId="@($"{IdPrefix}ModbusIpAddress")"
-                    LabelText="IP address"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <input class="form-control" @bind="@IpAddress" @bind:event="oninput" type="text" id="@($"{IdPrefix}ModbusIpAddress")" placeholder=" ">
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => IpAddress" HtmlInputType="InputType.Text" ImmediateValueUpdate="true" />
     
-    <InputComponent ValueId="@($"{IdPrefix}ModbusPort")"
-                    LabelText="Port"
-                    UnitText=""
-                    HelpText="">
-        <InputFragment>
-            <input class="form-control" @bind="@Port" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusPort")" placeholder=" ">
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => Port" HtmlInputType="InputType.Number" ImmediateValueUpdate="true" />
     
     <div class="mb-3 form-check">
         <input class="form-check-input" @bind="@SwapRegisters" type="checkbox" id="@($"{IdPrefix}SwapRegisters")" >
@@ -86,23 +27,9 @@
         </label>
     </div>
     
-    <InputComponent ValueId="@($"{IdPrefix}ModbusConnectDelaySeconds")"
-                    LabelText="Connect Delay"
-                    UnitText="s"
-                    HelpText="">
-        <InputFragment>
-            <input class="form-control" @bind="@ConnectDelaySeconds" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusConnectDelaySeconds")" placeholder=" ">
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => ConnectDelaySeconds" HtmlInputType="InputType.Number" ImmediateValueUpdate="true" />
     
-    <InputComponent ValueId="@($"{IdPrefix}ModbusTimeoutSeconds")"
-                    LabelText="Read Timeout"
-                    UnitText="s"
-                    HelpText="">
-        <InputFragment>
-            <input class="form-control" @bind="@TimeoutSeconds" @bind:event="oninput" type="number" id="@($"{IdPrefix}ModbusTimeoutSeconds")" placeholder=" ">
-        </InputFragment>
-    </InputComponent>
+    <GenericInput For="() => TimeoutSeconds" HtmlInputType="InputType.Number" ImmediateValueUpdate="true" />
     <hr/>
 </div>
 
@@ -110,6 +37,7 @@
 @code {
 
     #region HelperProperties
+    [DisplayName("Unit Identifier")]
     private string? ModbusUnitIdentifier
     {
         get => _modbusUnitIdentifier;
@@ -120,6 +48,7 @@
         }
     }
 
+    [DisplayName("Register Address")]
     private string? StartingAddress
     {
         get => _startingAddress;
@@ -130,6 +59,7 @@
         }
     }
 
+    [DisplayName("Number of Registers")]
     private string? Quantity
     {
         get => _quantity;
@@ -140,6 +70,7 @@
         }
     }
 
+    [DisplayName("IP address")]
     private string? IpAddress
     {
         get => _ipAddress;
@@ -150,6 +81,7 @@
         }
     }
 
+    [DisplayName("Port")]
     private string? Port
     {
         get => _port;
@@ -160,6 +92,8 @@
         }
     }
 
+    [DisplayName("Connect Delay")]
+    [Postfix("s")]
     private string? ConnectDelaySeconds
     {
         get => _connectDelaySeconds;
@@ -170,6 +104,8 @@
         }
     }
 
+    [DisplayName("Read Timeout")]
+    [Postfix("s")]
     private string? TimeoutSeconds
     {
         get => _timeoutSeconds;
@@ -180,6 +116,7 @@
         }
     }
 
+    [DisplayName("Register Type")]
     private ModbusRegisterType? RegisterType
     {
         get => _modbusRegisterType;
@@ -190,6 +127,7 @@
         }
     }
 
+    [DisplayName("Value Type")]
     private ModbusValueType? ValueType
     {
         get => _modbusValueType;
@@ -222,6 +160,12 @@
     private ModbusRegisterType? _modbusRegisterType;
     private ModbusValueType? _modbusValueType;
     private bool? _swapRegisters;
+
+    private readonly Dictionary<int, string> RegisterTypeOptions = Enum.GetValues<ModbusRegisterType>()
+        .ToDictionary(e => (int)e, e => e.ToFriendlyString());
+
+    private readonly Dictionary<int, string> ValueTypeOptions = Enum.GetValues<ModbusValueType>()
+        .ToDictionary(e => (int)e, e => e.ToFriendlyString());
 
 
     [Parameter]

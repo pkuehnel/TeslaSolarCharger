@@ -17,52 +17,24 @@ else
     </div>
     <div class="row align-items-center">
         <div class="col-auto">
-            <InputComponent ValueId="fromHour"
-                            LabelText="From Hour"
-                            UnitText=""
-                            HelpText="">
-                <InputFragment>
-                    <InputNumber id="fromHour" @bind-Value="FixedPrice.FromHour" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
+            <GenericInput For="() => FixedPrice.FromHour" />
         </div>
         <div class="col-auto">
             :
         </div>
         <div class="col-auto">
-            <InputComponent ValueId="fromMinute"
-                            LabelText="From Minute"
-                            UnitText=""
-                            HelpText="">
-                <InputFragment>
-                    <InputNumber id="fromMinute" @bind-Value="FixedPrice.FromMinute" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
+            <GenericInput For="() => FixedPrice.FromMinute" />
         </div>
     </div>
     <div class="row align-items-center">
         <div class="col-auto">
-            <InputComponent ValueId="toHour"
-                            LabelText="To Hour"
-                            UnitText=""
-                            HelpText="">
-                <InputFragment>
-                    <InputNumber id="toHour" @bind-Value="FixedPrice.ToHour" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
+            <GenericInput For="() => FixedPrice.ToHour" />
         </div>
         <div class="col-auto">
             :
         </div>
         <div class="col-auto">
-            <InputComponent ValueId="toMinute"
-                            LabelText="To Minute"
-                            UnitText=""
-                            HelpText="">
-                <InputFragment>
-                    <InputNumber id="toMinute" @bind-Value="FixedPrice.ToMinute" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
+            <GenericInput For="() => FixedPrice.ToMinute" />
         </div>
     </div>
     

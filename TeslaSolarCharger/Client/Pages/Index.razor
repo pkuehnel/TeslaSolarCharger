@@ -11,6 +11,7 @@
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Client.Components.StartPage
+@using System.Linq
 
 @implements IDisposable
 
@@ -154,32 +155,13 @@ else
                 <ChargeSummaryComponent CarId="car.CarId"></ChargeSummaryComponent>
             </div>
             <div>
-                <InputComponent ValueId="@($"car{car.CarId}ChargeMode")"
-                LabelText="ChargeMode"
-                UnitText=""
-                HelpText="">
-                    <InputFragment>
-                        <InputSelect class="form-select" @bind-Value="@_carBaseSettings[car.CarId].ChargeMode" id="@($"car{car.CarId}ChargeMode")">
-                            @foreach (var value in Enum.GetValues<ChargeMode>())
-                            {
-                                <option value="@value">@value.ToFriendlyString()</option>
-                            }
-                        </InputSelect>
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _carBaseSettings[car.CarId].ChargeMode" DropDownOptions="ChargeModeOptions" />
 
             </div>
 
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvAndMinSoc or ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
-                <InputComponent ValueId="@($"car{car.CarId}MinSoc")"
-                LabelText="Min SOC"
-                UnitText="%"
-                HelpText="">
-                    <InputFragment>
-                        <InputNumber id="maxCombinedCurrent" @bind-Value="_carBaseSettings[car.CarId].MinimumStateOfCharge" class="form-control" min="0" max="100" placeholder=" " />
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _carBaseSettings[car.CarId].MinimumStateOfCharge" />
             }
             @if (_carBaseSettings[car.CarId].ChargeMode is ChargeMode.PvOnly or ChargeMode.SpotPrice)
             {
@@ -204,26 +186,10 @@ else
 
                 @if (!_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDate && !_carBaseSettings[car.CarId].IgnoreLatestTimeToReachSocDateOnWeekend)
                 {
-                    <InputComponent ValueId="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")"
-                    LabelText="Date"
-                    UnitText=""
-                    HelpText="">
-                        <InputFragment>
-                            <input class="form-control" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.ToString("yyyy-MM-dd")" type="date" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeDate")"
-                            @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = DateTime.Parse(e.Value?.ToString() ?? DateTime.MaxValue.ToString(CultureInfo.CurrentCulture)).Date.AddHours(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Hour).AddMinutes(_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Minute))">
-                        </InputFragment>
-                    </InputComponent>
+                    <GenericInput For="() => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge" HtmlInputType="InputType.Date" ImmediateValueUpdate="true" />
                 }
 
-                <InputComponent ValueId="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")"
-                LabelText="Time"
-                UnitText=""
-                HelpText="">
-                    <InputFragment>
-                        <input class="form-control" value="@_carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.ToString("HH:mm")" type="time" id="@($"car{car.CarId}LatestTimeToReachStateOfChargeTime")"
-                        @onchange="@(e => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge = _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge.Date.AddHours(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Hours).AddMinutes(TimeSpan.Parse(e.Value?.ToString() ?? "00:00").Minutes))">
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _carBaseSettings[car.CarId].LatestTimeToReachStateOfCharge" HtmlInputType="InputType.Time" ImmediateValueUpdate="true" />
             }
             @if (car.ChargingNotPlannedDueToNoSpotPricesAvailable)
             {
@@ -306,6 +272,8 @@ else
     private Dictionary<int, DtoTableContent> _newCarDetailStates = new();
     private Dictionary<int, DtoCarBaseSettings>? _carBaseSettings;
     private Dictionary<string, string>? _toolTipTexts;
+    private readonly Dictionary<int, string> ChargeModeOptions = Enum.GetValues<ChargeMode>()
+        .ToDictionary(e => (int)e, e => e.ToFriendlyString());
     private readonly List<int> _savingCarIds = new();
 
     private HashSet<int> _collapsedCarDetails = new HashSet<int>();
