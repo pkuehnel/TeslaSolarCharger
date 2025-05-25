@@ -23,9 +23,9 @@ namespace TeslaSolarCharger.Server.Controllers
         }
 
         [HttpGet]
-        public Task<List<DtoHandledCharge>> GetHandledCharges(int carId)
+        public Task<List<DtoHandledCharge>> GetHandledCharges(int? carId, int? chargingConnectorId)
         {
-            return tscOnlyChargingCostService.GetFinalizedChargingProcesses(carId);
+            return tscOnlyChargingCostService.GetFinalizedChargingProcesses(carId, chargingConnectorId);
         }
 
         [HttpGet]

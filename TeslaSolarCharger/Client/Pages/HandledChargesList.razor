@@ -112,7 +112,7 @@ else
         {
             ChargingConnectorId = default;
         }
-        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
+        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
     }
 
     [JSInvokable]
