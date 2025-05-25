@@ -25,14 +25,7 @@ else
 {
     <EditForm Model="@_dtoBaseConfiguration" OnValidSubmit="@HandleValidSubmit">
         <h3>General:</h3>
-        <InputComponent ValueId="maxCombinedCurrent"
-        LabelText="Max combined current"
-        UnitText="A"
-        HelpText="Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.">
-            <InputFragment>
-                <InputNumber id="maxCombinedCurrent" @bind-Value="_dtoBaseConfiguration.MaxCombinedCurrent" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => _dtoBaseConfiguration.MaxCombinedCurrent" />
         <hr />
         <h3>TeslaMate:</h3>
         <GenericInput T="bool"
@@ -41,56 +34,14 @@ else
         @if (_dtoBaseConfiguration.UseTeslaMateIntegration)
         {
             <GenericInput For="() => _dtoBaseConfiguration.UseTeslaMateAsDataSource"></GenericInput>
-            <InputComponent ValueId="teslaMateDbServer"
-            LabelText="TeslaMate Database Host"
-            UnitText=""
-            HelpText="">
-                <InputFragment>
-                    <InputText id="teslaMateDbServer" @bind-Value="_dtoBaseConfiguration.TeslaMateDbServer" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
+            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbServer" />
 
-            <InputComponent ValueId="teslaMateDbPort"
-            LabelText="TeslaMate Database Server Port"
-            UnitText=""
-            HelpText="You can use the internal port of the TeslaMate database container">
-                <InputFragment>
-                    <InputNumber id="teslaMateDbPort" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPort" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
-            <InputComponent ValueId="teslaMateDbName"
-            LabelText="TeslaMate Database Name"
-            UnitText=""
-            HelpText="">
-                <InputFragment>
-                    <InputText id="teslaMateDbName" @bind-Value="_dtoBaseConfiguration.TeslaMateDbDatabaseName" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
-            <InputComponent ValueId="teslaMateDbUser"
-            LabelText="TeslaMate Database Username"
-            UnitText=""
-            HelpText="">
-                <InputFragment>
-                    <InputText id="teslaMateDbUser" @bind-Value="_dtoBaseConfiguration.TeslaMateDbUser" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
-            <InputComponent ValueId="teslaMateDbPassword"
-            LabelText="TeslaMate Database Server Password"
-            UnitText=""
-            HelpText="">
-                <InputFragment>
-                    <InputText type="password" id="teslaMateDbPassword" @bind-Value="_dtoBaseConfiguration.TeslaMateDbPassword" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
+            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbPort" />
+            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbDatabaseName" />
+            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbUser" />
+            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbPassword" IsPassword="true" />
 
-            <InputComponent ValueId="mosquitoServer"
-            LabelText="Mosquito servername"
-            UnitText=""
-            HelpText="">
-                <InputFragment>
-                    <InputText id="mosquitoServer" @bind-Value="_dtoBaseConfiguration.MosquitoServer" class="form-control" placeholder=" " />
-                </InputFragment>
-            </InputComponent>
+            <GenericInput For="() => _dtoBaseConfiguration.MosquitoServer" />
         }
 
 
@@ -105,55 +56,20 @@ else
             <small class="form-text text-muted">Click on the map to select your home geofence. Within that area TSC will regulate the charging power.</small>
         </div>
 
-        <InputComponent ValueId="HomeGeofenceRadius"
-        LabelText="Home Radius"
-        UnitText="m"
-        HelpText="Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended">
-            <InputFragment>
-                <InputNumber id="HomeGeofenceRadius" @bind-Value="_dtoBaseConfiguration.HomeGeofenceRadius" class="form-control" placeholder=" " />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => _dtoBaseConfiguration.HomeGeofenceRadius" />
         
         <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
         <GenericInput For="() => _dtoBaseConfiguration.ShowEnergyDataOnHome"></GenericInput>
 
-        <InputComponent ValueId="powerBuffer"
-        LabelText="Power Buffer"
-        UnitText="W"
-        HelpText="Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid.">
-            <InputFragment>
-                <InputNumber id="powerBuffer" @bind-Value="_dtoBaseConfiguration.PowerBuffer" placeholder=" " class="form-control" />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => _dtoBaseConfiguration.PowerBuffer" />
 
         <GenericInput For="() => _dtoBaseConfiguration.AllowPowerBufferChangeOnHome"></GenericInput>
 
-        <InputComponent ValueId="homeBatteryMinSoc"
-        LabelText="Home Battery Minimum SoC"
-        UnitText="%"
-        HelpText="Set the SoC your home battery should get charged to before cars start to use full power. Leave empty if you do not have a home battery">
-            <InputFragment>
-                <InputNumber id="homeBatteryMinSoc" @bind-Value="_dtoBaseConfiguration.HomeBatteryMinSoc" placeholder=" " class="form-control" />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryMinSoc" />
 
-        <InputComponent ValueId="homeBatteryMinChargingPower"
-        LabelText="Home Battery Goal charging power"
-        UnitText="W"
-        HelpText="Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery">
-            <InputFragment>
-                <InputNumber id="homeBatteryMinChargingPower" @bind-Value="_dtoBaseConfiguration.HomeBatteryChargingPower" placeholder=" " class="form-control" />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryChargingPower" />
 
-        <InputComponent ValueId="maxInverterAcPower"
-        LabelText="Max Inverter AC Power"
-        UnitText="W"
-        HelpText="If you have a hybrid inverter that has more DC than AC power insert the maximum AC Power here. This is a very rare, so in most cases you can leave this field empty.">
-            <InputFragment>
-                <InputNumber id="maxInverterAcPower" @bind-Value="_dtoBaseConfiguration.MaxInverterAcPower" placeholder=" " class="form-control" />
-            </InputFragment>
-        </InputComponent>
+        <GenericInput For="() => _dtoBaseConfiguration.MaxInverterAcPower" />
 
         <RestValueConfigurationComponent />
         <ModbusValueConfigurationComponent />
@@ -180,60 +96,18 @@ else
             <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
                 <GenericInput For="() => _dtoBaseConfiguration.UseChargingServiceV2"></GenericInput>
 
-                <InputComponent ValueId="updateIntervalSeconds"
-                                LabelText="Car power adjustment interval"
-                                UnitText="s"
-                                HelpText="Note: It is not possible to use values below 25 seconds here, as there is a delay between the car changing its current and the Tesla API getting notified about this change.">
-                    <InputFragment>
-                        <InputNumber id="updateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.UpdateIntervalSeconds" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _dtoBaseConfiguration.UpdateIntervalSeconds" />
 
-                <InputComponent ValueId="pvValueUpdateIntervalSeconds"
-                                LabelText="Solar plant adjustment interval"
-                                UnitText="s"
-                                HelpText="">
-                    <InputFragment>
-                        <InputNumber id="pvValueUpdateIntervalSeconds" @bind-Value="_dtoBaseConfiguration.PvValueUpdateIntervalSeconds" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _dtoBaseConfiguration.PvValueUpdateIntervalSeconds" />
 
-                <InputComponent ValueId="minutesUntilSwitchOn"
-                                LabelText="Time with enough solar power until charging starts"
-                                UnitText="min"
-                                HelpText="">
-                    <InputFragment>
-                        <InputNumber id="minutesUntilSwitchOn" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOn" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _dtoBaseConfiguration.MinutesUntilSwitchOn" />
 
-                <InputComponent ValueId="minutesUntilSwitchOff"
-                                LabelText="Time without enough solar power until charging stops"
-                                UnitText="min"
-                                HelpText="">
-                    <InputFragment>
-                        <InputNumber id="minutesUntilSwitchOff" @bind-Value="_dtoBaseConfiguration.MinutesUntilSwitchOff" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _dtoBaseConfiguration.MinutesUntilSwitchOff" />
                 <hr/>
-                <InputComponent ValueId="mqqtClientId"
-                                LabelText="Mqqt ClientId"
-                                UnitText=""
-                                HelpText="">
-                    <InputFragment>
-                        <InputText id="mqqtClientId" @bind-Value="_dtoBaseConfiguration.MqqtClientId" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _dtoBaseConfiguration.MqqtClientId" />
                 <hr/>
 
-                <InputComponent ValueId="homeBatteryPowerInversionUrl"
-                                LabelText="HomeBatteryPowerInversion Url"
-                                UnitText=""
-                                HelpText="Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.">
-                    <InputFragment>
-                        <InputText id="homeBatteryPowerInversionUrl" @bind-Value="_dtoBaseConfiguration.HomeBatteryPowerInversionUrl" class="form-control" placeholder=" "/>
-                    </InputFragment>
-                </InputComponent>
+                <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryPowerInversionUrl" />
             </MudExpansionPanel>
         </MudExpansionPanels>
         <DataAnnotationsValidator />
