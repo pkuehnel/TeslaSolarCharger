@@ -8,10 +8,12 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class HomeController : ApiBaseController
 {
     private readonly IHomeService _homeService;
+    private readonly IChargingServiceV2 _chargingServiceV2;
 
-    public HomeController(IHomeService homeService)
+    public HomeController(IHomeService homeService, IChargingServiceV2 chargingServiceV2)
     {
         _homeService = homeService;
+        _chargingServiceV2 = chargingServiceV2;
     }
 
     [HttpGet]
@@ -56,4 +58,10 @@ public class HomeController : ApiBaseController
         return Ok();
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetChargingSchedulesForLoadPoint(int? carId, int? chargingConnectorId)
+    {
+        var result = await _chargingServiceV2.GetChargingSchedulesForLoadPoint(carId, chargingConnectorId, HttpContext.RequestAborted);
+        return Ok(result);
+    }
 }
