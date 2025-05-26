@@ -123,7 +123,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IWeatherDataService, WeatherDataService>()
             .AddTransient<IEnergyDataService, EnergyDataService>()
             .AddTransient<IMeterValueEstimationService, MeterValueEstimationService>()
-            .AddTransient<IOcppChargePointActionService, OcppOcppChargePointActionService>()
+            .AddTransient<IOcppChargePointActionService, OcppChargePointActionService>()
             .AddTransient<IOcppChargePointConfigurationService, OcppChargePointConfigurationService>()
             .AddTransient<IOcppChargingStationConfigurationService, OcppChargingStationConfigurationService>()
             .AddTransient<ILoadPointManagementService, LoadPointManagementService>()
