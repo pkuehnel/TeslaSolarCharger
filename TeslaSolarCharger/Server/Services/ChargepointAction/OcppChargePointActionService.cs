@@ -198,11 +198,16 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
 
     private async Task UpdateLastSetCurrent(string chargePointId, int connectorId, decimal setCurrent, CancellationToken cancellationToken)
     {
+        logger.LogTrace("{method}({chargePointId}, {chargingConnectorId}, {setCurrent})", nameof(UpdateLastSetCurrent), chargePointId, connectorId, setCurrent);
         var chargingConnectorId = await GetDbChargingConnectorId(connectorId, chargePointId, cancellationToken).ConfigureAwait(false);
         if (settings.OcppConnectorStates.TryGetValue(chargingConnectorId, out var connectorState))
         {
             var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
             connectorState.LastSetCurrent.Update(currentDate, setCurrent);
+        }
+        else
+        {
+            logger.LogWarning("Could not find charging connector state for connector {dbChargingConnectorID}, can not update last set current", chargingConnectorId);
         }
     }
 
