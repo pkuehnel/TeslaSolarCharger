@@ -33,7 +33,7 @@ else
                                    OnAfterSuccessfullSubmit="ShowSuccessMessage"
                                    HideSubmitButton="false"
                                    SubmitUrl="@($"api/Home/SaveCarChargingSchedule?carId={CarId}")">
-                    @if (chargingSchedule.Item.ClientTimeZone != _timeZone)
+                    @if (!string.Equals(chargingSchedule.Item.ClientTimeZone, _timeZone, StringComparison.OrdinalIgnoreCase))
                     {
                         <MudAlert Severity="Severity.Warning"
                                   NoIcon="true"
