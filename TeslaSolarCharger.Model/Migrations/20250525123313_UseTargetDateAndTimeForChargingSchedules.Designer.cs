@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250525123313_UseTargetDateAndTimeForChargingSchedules")]
+    partial class UseTargetDateAndTimeForChargingSchedules
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.3");
@@ -255,9 +258,6 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.Property<int>("CarId")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("ClientTimeZone")
-                        .HasColumnType("TEXT");
 
                     b.Property<bool>("RepeatOnFridays")
                         .HasColumnType("INTEGER");

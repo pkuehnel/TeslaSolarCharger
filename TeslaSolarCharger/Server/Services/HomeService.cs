@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
@@ -76,27 +78,46 @@ public class HomeService : IHomeService
         return result;
     }
 
+    public async Task<DtoCarChargingSchedule> GetChargingSchedule(int chargingScheduleId)
+    {
+        _logger.LogTrace("{method}({chargingScheduleId})", nameof(GetChargingSchedule), chargingScheduleId);
+        return await _context.CarChargingSchedules
+            .Where(s => s.Id == chargingScheduleId)
+            .Select(ToDto)
+            .FirstAsync()
+            .ConfigureAwait(false);
+    }
+
     public async Task<List<DtoCarChargingSchedule>> GetCarChargingSchedules(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetCarChargingSchedules), carId);
-        var chargingSchedules = await _context.CarChargingSchedules
+        return await _context.CarChargingSchedules
             .Where(s => s.CarId == carId)
-            .Select(s => new DtoCarChargingSchedule()
-            {
-                Id = s.Id,
-                TargetSoc = s.TargetSoc,
-                NextOccurrence = s.NextOccurrence,
-                RepeatOnMondays = s.RepeatOnMondays,
-                RepeatOnTuesdays = s.RepeatOnTuesdays,
-                RepeatOnWednesdays = s.RepeatOnWednesdays,
-                RepeatOnThursdays = s.RepeatOnThursdays,
-                RepeatOnFridays = s.RepeatOnFridays,
-                RepeatOnSaturdays = s.RepeatOnSaturdays,
-                RepeatOnSundays = s.RepeatOnSundays,
-            })
-            .ToListAsync().ConfigureAwait(false);
-        return chargingSchedules;
+            .Select(ToDto)
+            .ToListAsync()
+            .ConfigureAwait(false);
     }
+
+    private static readonly Expression<Func<CarChargingSchedule, DtoCarChargingSchedule>> ToDto =
+        s => new DtoCarChargingSchedule
+        {
+            Id = s.Id,
+            TargetSoc = s.TargetSoc,
+            TargetDate = s.TargetDate.HasValue
+                ? DateTime.SpecifyKind(
+                    s.TargetDate.Value.ToDateTime(TimeOnly.MinValue),
+                    DateTimeKind.Local)
+                : null,
+            TargetTime = s.TargetTime.ToTimeSpan(),
+            RepeatOnMondays = s.RepeatOnMondays,
+            RepeatOnTuesdays = s.RepeatOnTuesdays,
+            RepeatOnWednesdays = s.RepeatOnWednesdays,
+            RepeatOnThursdays = s.RepeatOnThursdays,
+            RepeatOnFridays = s.RepeatOnFridays,
+            RepeatOnSaturdays = s.RepeatOnSaturdays,
+            RepeatOnSundays = s.RepeatOnSundays,
+            ClientTimeZone = s.ClientTimeZone,
+        };
 
     public async Task<Result<int>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto)
     {
@@ -111,8 +132,9 @@ public class HomeService : IHomeService
 
         dbValue.CarId = carId;
         dbValue.TargetSoc = dto.TargetSoc;
-        //Next occurrence can not be null as is validated
-        dbValue.NextOccurrence = dto.NextOccurrence!.Value;
+        dbValue.TargetDate = dto.TargetDate == default ? null : DateOnly.FromDateTime(dto.TargetDate.Value);
+        //Target Time can not be null due to validation
+        dbValue.TargetTime = TimeOnly.FromTimeSpan(dto.TargetTime!.Value);
         dbValue.RepeatOnMondays = dto.RepeatOnMondays;
         dbValue.RepeatOnTuesdays = dto.RepeatOnTuesdays;
         dbValue.RepeatOnWednesdays = dto.RepeatOnWednesdays;
@@ -120,8 +142,16 @@ public class HomeService : IHomeService
         dbValue.RepeatOnFridays = dto.RepeatOnFridays;
         dbValue.RepeatOnSaturdays = dto.RepeatOnSaturdays;
         dbValue.RepeatOnSundays = dto.RepeatOnSundays;
+        dbValue.ClientTimeZone = dto.ClientTimeZone;
         await _context.SaveChangesAsync();
         return new(dbValue.Id, null, null);
+    }
+
+    public async Task DeleteChargingSchedule(int chargingScheduleId)
+    {
+        _logger.LogTrace("{method}({chargingScheduleId})", nameof(DeleteChargingSchedule), chargingScheduleId);
+        _context.CarChargingSchedules.Remove(new() { Id = chargingScheduleId });
+        await _context.SaveChangesAsync();
     }
 
     public async Task UpdateCarMinSoc(int carId, int newMinSoc)

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Newtonsoft.Json;
+using TeslaSolarCharger.Model.BaseClasses;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -73,7 +74,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         {
             foreach (var property in entityType.GetProperties())
             {
-                
+
                 if (entityType.ClrType == typeof(Car) && property.Name == nameof(Car.LatestTimeToReachSoC))
                 {
                     continue;
@@ -131,6 +132,15 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             v => v == default ? default : DateTimeOffset.FromUnixTimeMilliseconds(v.Value)
             );
 
+        var timeOnlyToMillisecondsOfDayConverter = new ValueConverter<TimeOnly?, long?>(
+            v => v == default ? default : (long)v.Value.ToTimeSpan().TotalMilliseconds,
+            v => v == default ? default : TimeOnly.FromTimeSpan(TimeSpan.FromMilliseconds(v.Value, 0)));
+
+        var dateOnlyToEpochMilliSecondsConverter = new ValueConverter<DateOnly?, long?>(
+            v => v == default ? default : new DateTimeOffset(v.Value, TimeOnly.MinValue, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+            v => v == default ? default : DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeMilliseconds(v.Value).Date)
+        );
+
         modelBuilder.Entity<MeterValue>()
             .Property(m => m.Timestamp)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
@@ -156,9 +166,12 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 
         modelBuilder.Entity<CarChargingSchedule>()
-            .Property(m => m.NextOccurrence)
-            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+            .Property(m => m.TargetTime)
+            .HasConversion(timeOnlyToMillisecondsOfDayConverter);
 
+        modelBuilder.Entity<CarChargingSchedule>()
+            .Property(m => m.TargetDate)
+            .HasConversion(dateOnlyToEpochMilliSecondsConverter);
 
         modelBuilder.Entity<LoggedError>()
             .Property(e => e.FurtherOccurrences)
