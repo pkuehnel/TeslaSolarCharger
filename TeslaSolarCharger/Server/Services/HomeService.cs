@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
@@ -79,51 +81,43 @@ public class HomeService : IHomeService
     public async Task<DtoCarChargingSchedule> GetChargingSchedule(int chargingScheduleId)
     {
         _logger.LogTrace("{method}({chargingScheduleId})", nameof(GetChargingSchedule), chargingScheduleId);
-        var chargingSchedules = await _context.CarChargingSchedules
+        return await _context.CarChargingSchedules
             .Where(s => s.Id == chargingScheduleId)
-            .Select(s => new DtoCarChargingSchedule()
-            {
-                Id = s.Id,
-                TargetSoc = s.TargetSoc,
-                TargetDate = s.TargetDate == null ? null : DateTime.SpecifyKind(s.TargetDate.Value.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc),
-                TargetTime = s.TargetTime.ToTimeSpan(),
-                RepeatOnMondays = s.RepeatOnMondays,
-                RepeatOnTuesdays = s.RepeatOnTuesdays,
-                RepeatOnWednesdays = s.RepeatOnWednesdays,
-                RepeatOnThursdays = s.RepeatOnThursdays,
-                RepeatOnFridays = s.RepeatOnFridays,
-                RepeatOnSaturdays = s.RepeatOnSaturdays,
-                RepeatOnSundays = s.RepeatOnSundays,
-                ClientTimeZone = s.ClientTimeZone,
-            })
-            .FirstAsync().ConfigureAwait(false);
-        return chargingSchedules;
+            .Select(ToDto)
+            .FirstAsync()
+            .ConfigureAwait(false);
     }
 
     public async Task<List<DtoCarChargingSchedule>> GetCarChargingSchedules(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetCarChargingSchedules), carId);
-        var chargingSchedules = await _context.CarChargingSchedules
+        return await _context.CarChargingSchedules
             .Where(s => s.CarId == carId)
-            .Select(s => new DtoCarChargingSchedule()
-            {
-                Id = s.Id,
-                TargetSoc = s.TargetSoc,
-                TargetDate = s.TargetDate == null ? null : new DateTime(s.TargetDate.Value, TimeOnly.MinValue, DateTimeKind.Utc),
-                //Do not use min value for dateonly as it crashes based on timezones
-                TargetTime = s.TargetTime.ToTimeSpan(),
-                RepeatOnMondays = s.RepeatOnMondays,
-                RepeatOnTuesdays = s.RepeatOnTuesdays,
-                RepeatOnWednesdays = s.RepeatOnWednesdays,
-                RepeatOnThursdays = s.RepeatOnThursdays,
-                RepeatOnFridays = s.RepeatOnFridays,
-                RepeatOnSaturdays = s.RepeatOnSaturdays,
-                RepeatOnSundays = s.RepeatOnSundays,
-                ClientTimeZone = s.ClientTimeZone,
-            })
-            .ToListAsync().ConfigureAwait(false);
-        return chargingSchedules;
+            .Select(ToDto)
+            .ToListAsync()
+            .ConfigureAwait(false);
     }
+
+    private static readonly Expression<Func<CarChargingSchedule, DtoCarChargingSchedule>> ToDto =
+        s => new DtoCarChargingSchedule
+        {
+            Id = s.Id,
+            TargetSoc = s.TargetSoc,
+            TargetDate = s.TargetDate.HasValue
+                ? DateTime.SpecifyKind(
+                    s.TargetDate.Value.ToDateTime(TimeOnly.MinValue),
+                    DateTimeKind.Local)
+                : null,
+            TargetTime = s.TargetTime.ToTimeSpan(),
+            RepeatOnMondays = s.RepeatOnMondays,
+            RepeatOnTuesdays = s.RepeatOnTuesdays,
+            RepeatOnWednesdays = s.RepeatOnWednesdays,
+            RepeatOnThursdays = s.RepeatOnThursdays,
+            RepeatOnFridays = s.RepeatOnFridays,
+            RepeatOnSaturdays = s.RepeatOnSaturdays,
+            RepeatOnSundays = s.RepeatOnSundays,
+            ClientTimeZone = s.ClientTimeZone,
+        };
 
     public async Task<Result<int>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto)
     {
