@@ -120,7 +120,7 @@ else
             var result = await HomeService.DeleteChargingSchedule(chargingSchedule.Item.Id);
             if (result.HasError)
             {
-                Snackbar.Add($"Could not delete: {result.ErrorMessage}", Severity.Success);
+                Snackbar.Add($"Could not delete: {result.ErrorMessage}", Severity.Error);
                 return;
             }
         }
