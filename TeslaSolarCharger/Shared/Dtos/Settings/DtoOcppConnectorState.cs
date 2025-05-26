@@ -9,4 +9,5 @@ public class DtoOcppConnectorState
     public DtoTimeStampedValue<decimal> ChargingCurrent { get; init; } = new(DateTimeOffset.MinValue, 0);
     public DtoTimeStampedValue<decimal> ChargingVoltage { get; init; } = new(DateTimeOffset.MinValue, 0);
     public DtoTimeStampedValue<int?> PhaseCount { get; init; } = new(DateTimeOffset.MinValue, null);
+    public DtoTimeStampedValue<decimal?> LastSetCurrent { get; init; } = new(DateTimeOffset.MinValue, null);
 }
