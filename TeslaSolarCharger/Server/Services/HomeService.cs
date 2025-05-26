@@ -85,7 +85,7 @@ public class HomeService : IHomeService
             {
                 Id = s.Id,
                 TargetSoc = s.TargetSoc,
-                TargetDate = s.TargetDate == null ? null : new DateTime(s.TargetDate.Value, TimeOnly.MinValue, DateTimeKind.Utc),
+                TargetDate = s.TargetDate == null ? null : DateTime.SpecifyKind(s.TargetDate.Value.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc),
                 TargetTime = s.TargetTime.ToTimeSpan(),
                 RepeatOnMondays = s.RepeatOnMondays,
                 RepeatOnTuesdays = s.RepeatOnTuesdays,
