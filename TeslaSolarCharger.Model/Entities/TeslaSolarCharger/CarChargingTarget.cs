@@ -2,7 +2,7 @@
 
 namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
-public class CarChargingSchedule
+public class CarChargingTarget
 {
     public int Id { get; set; }
     public int TargetSoc { get; set; }
