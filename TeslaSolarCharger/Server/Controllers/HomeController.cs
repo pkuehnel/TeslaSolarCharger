@@ -22,30 +22,30 @@ public class HomeController : ApiBaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetCarChargingSchedules(int carId)
+    public async Task<IActionResult> GetCarChargingTargets(int carId)
     {
-        var result = await _homeService.GetCarChargingSchedules(carId);
+        var result = await _homeService.GetCarChargingTargets(carId);
         return Ok(result);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetCarChargingSchedule(int chargingScheduleId)
+    public async Task<IActionResult> GetCarChargingTarget(int chargingTargetId)
     {
-        var result = await _homeService.GetChargingSchedule(chargingScheduleId);
+        var result = await _homeService.GetChargingTarget(chargingTargetId);
         return Ok(result);
     }
 
     [HttpPost]
-    public async Task<IActionResult> SaveCarChargingSchedule(int carId, [FromBody] DtoCarChargingSchedule dto)
+    public async Task<IActionResult> SaveCarChargingTarget(int carId, [FromBody] DtoCarChargingTarget dto)
     {
-        var result = await _homeService.SaveCarChargingSchedule(carId, dto);
+        var result = await _homeService.SaveCarChargingTarget(carId, dto);
         return Ok(result);
     }
 
     [HttpDelete]
-    public async Task<IActionResult> DeleteCarChargingSchedule(int chargingScheduleId)
+    public async Task<IActionResult> DeleteCarChargingTarget(int chargingTargetId)
     {
-        await _homeService.DeleteChargingSchedule(chargingScheduleId);
+        await _homeService.DeleteCarChargingTarget(chargingTargetId);
         return Ok();
     }
 
