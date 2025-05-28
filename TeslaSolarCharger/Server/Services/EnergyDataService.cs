@@ -1,6 +1,9 @@
+﻿using LanguageExt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
+using System.Runtime.InteropServices.JavaScript;
+using System.Threading;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
@@ -19,159 +22,166 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     IConfigurationWrapper configurationWrapper) : IEnergyDataService
 {
 
+    private const int HistoricPredictionsSearchDaysBeforePredictionStart = 21; // three weeks
+
     public async Task RefreshCachedValues(CancellationToken contextCancellationToken)
     {
         logger.LogTrace("{method}()", nameof(RefreshCachedValues));
         var cacheInPastDays = 10;
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        var localDateOnly = DateOnly.FromDateTime(currentDate.LocalDateTime);
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow().Date;
+        var currentUtcDay = new DateTimeOffset(currentDate, TimeSpan.Zero);
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         for (var i = -cacheInPastDays; i <= constants.WeatherPredictionInFutureDays; i++)
         {
-            var useCache = i < (-1);
-            var date = localDateOnly.AddDays(i);
-            await GetPredictedSolarProductionByLocalHour(date, contextCancellationToken, useCache).ConfigureAwait(false);
-            await GetPredictedHouseConsumptionByLocalHour(date, contextCancellationToken, useCache).ConfigureAwait(false);
-            await GetActualSolarProductionByLocalHour(date, contextCancellationToken, useCache).ConfigureAwait(false);
-            await GetActualHouseConsumptionByLocalHour(date, contextCancellationToken, useCache).ConfigureAwait(false);
+            var startDate = currentUtcDay.AddDays(i);
+            await GetPredictedSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+            await GetPredictedHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+            await GetActualSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+            await GetActualHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
         }
         stopWatch.Stop();
         logger.LogInformation("Cache refresh took {elapsed}", stopWatch.Elapsed);
     }
 
-    public async Task<Dictionary<int, int>> GetPredictedSolarProductionByLocalHour(DateOnly date, CancellationToken cancellationToken, bool useCache)
+    public async Task<Dictionary<DateTimeOffset, int>> GetPredictedSolarProductionByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken cancellationToken)
     {
-        logger.LogTrace("{method}({date}, {useCache})", nameof(GetPredictedSolarProductionByLocalHour), date, useCache);
+        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetPredictedSolarProductionByLocalHour), startDate, endDate, sliceLength);
         if (configurationWrapper.UseFakeEnergyPredictions())
         {
-            var fakedResult = GenerateFakeResult();
+            var fakedResult = GenerateFakeResult(startDate, endDate, sliceLength);
             return fakedResult;
         }
-        if (useCache)
-        {
-            var cachedResult = GetCachedValues(MeterValueKind.SolarGeneration, true, date);
-            if (cachedResult != default)
-            {
-                return cachedResult;
-            }
-        }
+        //ToDo: do not get historic values for all days but only the timespans between startDate and endDate (e.g. if start is10:00 and end is 12:00, only get historic values between 10 and 12 on each day)
+        var historicValueTimeStamps = GenerateSlicedTimeStamps(startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart), startDate, sliceLength);
+        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.SolarGeneration, cancellationToken);
 
-        var (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart) = ComputePredictionTimes(date);
-        var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
+        var historicPredictionsSearchStart = startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart);
+        var latestRadiations = await GetSlicedSolarRadiationValues(historicPredictionsSearchStart, startDate, sliceLength, cancellationToken);
+        //ToDo: Compute Weighted average factors should have TimeSpan as key instead of int hour
+        var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(historicValueTimeStamps, energyMeterDifferences, latestRadiations);
+        var forecastSolarRadiations = await GetSlicedSolarRadiationValues(startDate, endDate, sliceLength, cancellationToken);
+        var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
 
-        // Pass cancellationToken to your helper methods
-        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.SolarGeneration, cancellationToken);
-        var latestRadiations = await GetLatestSolarRadiationsAsync(historicPredictionsSearchStart, utcPredictionEnd, cancellationToken);
-        var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(hourlyTimeStamps, createdWh, latestRadiations, historicPredictionsSearchStart);
-        var forecastSolarRadiations = await GetForecastSolarRadiationsAsync(utcPredictionStart, utcPredictionEnd, cancellationToken);
+        var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors, resultTimeStamps);
 
-        var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors);
         var result = predictedProduction.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
-        CacheValues(MeterValueKind.SolarGeneration, true, date, result);
         return result;
     }
 
-    public async Task<Dictionary<int, int>> GetPredictedHouseConsumptionByLocalHour(DateOnly date,
-        CancellationToken httpContextRequestAborted, bool useCache)
+    public async Task<Dictionary<DateTimeOffset, int>> GetPredictedHouseConsumptionByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
     {
-        logger.LogTrace("{method}({date}, {useCache})", nameof(GetPredictedHouseConsumptionByLocalHour), date, useCache);
+        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetPredictedHouseConsumptionByLocalHour), startDate, endDate, sliceLength);
+
         if (configurationWrapper.UseFakeEnergyPredictions())
         {
-            var fakedResult = GenerateFakeResult();
+            var fakedResult = GenerateFakeResult(startDate, endDate, sliceLength);
             return fakedResult;
         }
-        if (useCache)
+        //ToDo: do not get historic values for all days but only the timespans between startDate and endDate (e.g. if start is10:00 and end is 12:00, only get historic values between 10 and 12 on each day)
+        var historicValueTimeStamps = GenerateSlicedTimeStamps(startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart), startDate, sliceLength);
+        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.HouseConsumption, httpContextRequestAborted);
+        var averageChangeAtTimeSpan = ComputeWeightedMeterValueChanges(historicValueTimeStamps, energyMeterDifferences);
+
+        var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        var predictedHouseConsumption = new Dictionary<DateTimeOffset, int>();
+        foreach (var timeStamp in resultTimeStamps)
         {
-            var cachedResult = GetCachedValues(MeterValueKind.HouseConsumption, true, date);
-            if (cachedResult != default)
+            if (averageChangeAtTimeSpan.TryGetValue(timeStamp.TimeOfDay, out var averageChange))
             {
-                return cachedResult;
+                predictedHouseConsumption[timeStamp] = averageChange;
+            }
+            else
+            {
+                predictedHouseConsumption[timeStamp] = 0; // Default to 0 if no average change is found
             }
         }
-
-        var (utcPredictionStart, _, historicPredictionsSearchStart) = ComputePredictionTimes(date);
-        var hourlyTimeStamps = GetHourlyTimestamps(historicPredictionsSearchStart, utcPredictionStart);
-        var createdWh = await GetMeterEnergyDifferencesAsync(hourlyTimeStamps, MeterValueKind.HouseConsumption, httpContextRequestAborted);
-        var result = ComputeWeightedMeterValueChanges(hourlyTimeStamps, createdWh, historicPredictionsSearchStart);
-        CacheValues(MeterValueKind.HouseConsumption, true, date, result);
-        return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
+        return predictedHouseConsumption;
     }
 
-    private static Dictionary<int, int> GenerateFakeResult()
+    public async Task<Dictionary<DateTimeOffset, int>> GetActualSolarProductionByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
     {
-        var fakedResult = new Dictionary<int, int>();
-        for (var i = 0; i < 24; i++)
+        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetActualSolarProductionByLocalHour), startDate, endDate, sliceLength);
+        if (configurationWrapper.UseFakeEnergyHistory())
         {
-            fakedResult[i] = 1000;
+            return GenerateFakeResult(startDate, endDate, sliceLength);
         }
+        return await GetActualValues(MeterValueKind.SolarGeneration, startDate, endDate, sliceLength, httpContextRequestAborted);
+    }
 
+    public async Task<Dictionary<DateTimeOffset, int>> GetActualHouseConsumptionByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
+    {
+        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetActualHouseConsumptionByLocalHour), startDate, endDate, sliceLength);
+        if (configurationWrapper.UseFakeEnergyHistory())
+        {
+            return GenerateFakeResult(startDate, endDate, sliceLength);
+        }
+        return await GetActualValues(MeterValueKind.HouseConsumption, startDate, endDate, sliceLength, httpContextRequestAborted);
+    }
+
+    private Dictionary<DateTimeOffset, int> GenerateFakeResult(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
+    {
+        var fakedResult = new Dictionary<DateTimeOffset, int>();
+        var slicedTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        foreach (var slicedTimeStamp in slicedTimeStamps)
+        {
+            fakedResult[slicedTimeStamp] = 1000; // Fake value of 1000 Wh for each slice
+        }
         return fakedResult;
     }
 
-    public async Task<Dictionary<int, int>> GetActualSolarProductionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted, bool useCache)
+    private List<DateTimeOffset> GenerateSlicedTimeStamps(
+        DateTimeOffset startDate,
+        DateTimeOffset endDate,
+        TimeSpan sliceLength)
     {
-        logger.LogTrace("{method}({date}, {useCache})", nameof(GetActualSolarProductionByLocalHour), date, useCache);
-        if (configurationWrapper.UseFakeEnergyHistory())
+        if (sliceLength <= TimeSpan.Zero)
+            throw new ArgumentException("Slice length must be greater than zero.", nameof(sliceLength));
+
+        // 1 day
+        var oneDay = TimeSpan.FromHours(24);
+
+        // sliceLength cannot exceed 24h
+        if (sliceLength > oneDay)
+            throw new ArgumentException("Slice length cannot exceed 24 hours.", nameof(sliceLength));
+
+        // 24h must be an exact multiple of sliceLength
+        if (oneDay.Ticks % sliceLength.Ticks != 0)
+            throw new ArgumentException(
+                "24 hours must be an exact multiple of sliceLength.", nameof(sliceLength));
+
+        if (startDate > endDate)
+            throw new ArgumentOutOfRangeException(
+                nameof(startDate), "Start date must be on or before end date.");
+
+        var totalSpan = endDate - startDate;
+        
+        // Ensure the total span is an exact multiple of sliceLength
+        if (totalSpan.Ticks % sliceLength.Ticks != 0)
+            throw new ArgumentException(
+                "The time span between startDate and endDate must be an exact multiple of sliceLength.");
+
+        var slicedTimeStamps = new List<DateTimeOffset>();
+        for (var current = startDate; current < endDate; current = current.Add(sliceLength))
         {
-            return GenerateFakeResult();
+            slicedTimeStamps.Add(current);
         }
-        return await GetActualValuesByLocalHour(MeterValueKind.SolarGeneration, date, httpContextRequestAborted, useCache);
+        return slicedTimeStamps;
     }
 
-    public async Task<Dictionary<int, int>> GetActualHouseConsumptionByLocalHour(DateOnly date, CancellationToken httpContextRequestAborted, bool useCache)
+    private async Task<Dictionary<DateTimeOffset, int>> GetActualValues(MeterValueKind meterValueKind, DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken cancellationToken)
     {
-        logger.LogTrace("{method}({date})", nameof(GetActualHouseConsumptionByLocalHour), date);
-        if (configurationWrapper.UseFakeEnergyHistory())
-        {
-            return GenerateFakeResult();
-        }
-        return await GetActualValuesByLocalHour(MeterValueKind.HouseConsumption, date, httpContextRequestAborted, useCache);
+        var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(resultTimeStamps, sliceLength, meterValueKind, cancellationToken);
+        return dateTimeOffsetDictionaryFromDatabase;
     }
 
-    private async Task<Dictionary<int, int>> GetActualValuesByLocalHour(MeterValueKind meterValueKind, DateOnly date,
-        CancellationToken httpContextRequestAborted, bool useCache)
-    {
-        var (utcPredictionStart, utcPredictionEnd, _) = ComputePredictionTimes(date);
-        var resultHours = GetHourlyTimestamps(utcPredictionStart, utcPredictionEnd);
-        var hoursToGetEnergyMeterDifferencesFrom = resultHours.ToList();
-        var dateTimeOffsetDictionary = new Dictionary<DateTimeOffset, int>();
-        if (useCache)
-        {
-            foreach (var hourlyTimeStamp in resultHours)
-            {
-                var hour = hourlyTimeStamp.ToLocalTime().Hour;
-                var value = GetCachedValue(meterValueKind, false, date, hour);
-                if (value != default)
-                {
-                    dateTimeOffsetDictionary[hourlyTimeStamp] = value.Value;
-                    hoursToGetEnergyMeterDifferencesFrom.Remove(hourlyTimeStamp);
-                }
-            }
-        }
-        var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(hoursToGetEnergyMeterDifferencesFrom, meterValueKind, httpContextRequestAborted);
-        foreach (var databaseValue in dateTimeOffsetDictionaryFromDatabase)
-        {
-            dateTimeOffsetDictionary[databaseValue.Key] = databaseValue.Value;
-        }
-        var maxCacheDate = GetMaxCacheDate();
-        foreach (var dateTimeOffsetValue in dateTimeOffsetDictionary)
-        {
-            if (maxCacheDate >= dateTimeOffsetValue.Key)
-            {
-                CacheValue(meterValueKind, false, date, dateTimeOffsetValue.Key.LocalDateTime.Hour, dateTimeOffsetValue.Value);
-            }
-        }
-        var result = CreateHourlyDictionary(dateTimeOffsetDictionary);
-        return result.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
-    }
-
-    private DateTimeOffset GetMaxCacheDate()
+    private DateTimeOffset GetMaxCacheDate(TimeSpan sliceLength)
     {
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        //reduce by one hour as dateTimeOffsetDictionary key is one hour older as last relevant value within that hour
+        //reduce by sliceLength as dateTimeOffsetDictionary key is sliceLength older than last relevant value within that slice
         //reduce by twice the save intervals to make sure values are only cached after they have been saved to the database
-        var maxCacheDate = currentDate.AddHours(-1).AddMinutes((-constants.MeterValueDatabaseSaveIntervalMinutes) * 2);
+        var maxCacheDate = currentDate.AddTicks(-sliceLength.Ticks).AddMinutes((-constants.MeterValueDatabaseSaveIntervalMinutes) * 2);
         return maxCacheDate;
     }
 
@@ -185,38 +195,6 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             return value;
         }
         return default;
-    }
-
-    private void CacheValues(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, Dictionary<int, int> values)
-    {
-        logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date}, {values})",
-            nameof(CacheValues), meterValueKind, predictedValue, date, values);
-        var key = GetCacheKey(meterValueKind, predictedValue, date);
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        var currentlocalDate = DateOnly.FromDateTime(currentDate.LocalDateTime);
-        SetCacheValue(currentlocalDate >= date, values, key);
-    }
-
-    private int? GetCachedValue(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, int hour)
-    {
-        var key = GetCacheKey(meterValueKind, predictedValue, date, hour);
-        if (memoryCache.TryGetValue(key, out int? value))
-        {
-            logger.LogTrace("Cached value found for key {key}", key);
-            return value;
-        }
-        logger.LogTrace("No cached value found for key {key}", key);
-        return default;
-    }
-
-    private void CacheValue(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, int hour, int value)
-    {
-        logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date}, {hour}, {value})",
-            nameof(CacheValue), meterValueKind, predictedValue, date, hour, value);
-        var key = GetCacheKey(meterValueKind, predictedValue, date, hour);
-        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-        var currentlocalDate = DateOnly.FromDateTime(currentDate.LocalDateTime);
-        SetCacheValue(currentlocalDate >= date, value, key);
     }
 
     private void SetCacheValue(bool shouldExpire, object value, string key)
@@ -243,9 +221,9 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return key;
     }
 
-    private MeterValue? GetCachedMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp)
+    private MeterValue? GetCachedMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength)
     {
-        var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp);
+        var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp, sliceLength);
         if (memoryCache.TryGetValue(key, out MeterValue? value))
         {
             logger.LogTrace("Cached value found for key {key}", key);
@@ -255,33 +233,22 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return default;
     }
 
-    private void CacheMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, MeterValue value)
+    private void CacheMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength, MeterValue value)
     {
         logger.LogTrace("{method}({meterValueKind}, {hourlyTimeStamp}, {value})",
             nameof(CacheMeterValue), meterValueKind, hourlyTimeStamp, value);
-        var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp);
+        var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp, sliceLength);
         SetCacheValue(false, value, key);
     }
 
-    private string GetMeterValueCacheKey(MeterValueKind meterValueKind, DateTimeOffset dateTimeOffset)
+    private string GetMeterValueCacheKey(MeterValueKind meterValueKind, DateTimeOffset dateTimeOffset, TimeSpan sliceLength)
     {
-        var key = $"{meterValueKind}_{dateTimeOffset}";
+        var key = $"{meterValueKind}_{dateTimeOffset}_{sliceLength}";
         return key;
     }
 
-    private (DateTimeOffset utcPredictionStart, DateTimeOffset utcPredictionEnd, DateTimeOffset historicPredictionsSearchStart) ComputePredictionTimes(DateOnly date)
-    {
-        var localPredictionStart = date.ToDateTime(TimeOnly.MinValue);
-        var localStartOffset = new DateTimeOffset(localPredictionStart, TimeZoneInfo.Local.GetUtcOffset(localPredictionStart));
-        var utcPredictionStart = localStartOffset.ToUniversalTime();
-        var utcPredictionEnd = utcPredictionStart.AddDays(1);
-        const int predictionStartSearchDaysBeforePredictionStart = 21; // three weeks
-        var historicPredictionsSearchStart = utcPredictionStart.AddDays(-predictionStartSearchDaysBeforePredictionStart);
-        return (utcPredictionStart, utcPredictionEnd, historicPredictionsSearchStart);
-    }
-
-    private async Task<List<SolarRadiation>> GetLatestSolarRadiationsAsync(DateTimeOffset historicStart, DateTimeOffset utcPredictionEnd,
-        CancellationToken cancellationToken)
+    private async Task<Dictionary<DateTimeOffset, float>> GetSlicedSolarRadiationValues(DateTimeOffset historicStart, DateTimeOffset utcPredictionEnd,
+        TimeSpan sliceLength, CancellationToken cancellationToken)
     {
         var latestRadiations = await context.SolarRadiations
             .Where(r => r.Start >= historicStart && r.End <= utcPredictionEnd)
@@ -289,44 +256,55 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             .Select(g => g.OrderByDescending(r => r.CreatedAt).First())
             .AsNoTracking()
             .ToListAsync(cancellationToken: cancellationToken);
-
-        return latestRadiations.OrderBy(r => r.Start).ToList();
-    }
-
-    private Dictionary<int, int> CreateHourlyDictionary(Dictionary<DateTimeOffset, int> inputs)
-    {
-        var result = new Dictionary<int, int>();
-        foreach (var input in inputs)
+        var result = new Dictionary<DateTimeOffset, float>();
+        for (var currentStartDate = historicStart; currentStartDate < utcPredictionEnd; currentStartDate += sliceLength)
         {
-            result[input.Key.LocalDateTime.Hour] = input.Value;
+            var currentEndDate = currentStartDate + sliceLength;
+            var matchingRadiations = latestRadiations
+                .Where(r => r.End >= currentStartDate && r.Start < currentEndDate)
+                .ToList();
+            if (matchingRadiations.Count == 0)
+            {
+                continue;
+            }
+            var radiationValue = 0f;
+            foreach (var matchingRadiation in matchingRadiations)
+            {
+                var overlapDuration = GetOverlapDuration(currentStartDate, currentEndDate, matchingRadiation.Start, matchingRadiation.End);
+                var normalizedRadiationValue = matchingRadiation.SolarRadiationWhPerM2 * (float)(overlapDuration.TotalSeconds / (matchingRadiation.End - matchingRadiation.Start).TotalSeconds);
+                radiationValue += normalizedRadiationValue;
+            }
+            result[currentStartDate] = radiationValue;
         }
 
         return result;
     }
 
-    private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> hourlyTimeStamps,
+    private TimeSpan GetOverlapDuration(DateTimeOffset start1, DateTimeOffset end1, DateTimeOffset start2, DateTimeOffset end2)
+    {
+        var overlapStart = start1 > start2 ? start1 : start2;
+        var overlapEnd = end1 < end2 ? end1 : end2;
+        if (overlapStart < overlapEnd)
+        {
+            return overlapEnd - overlapStart;
+        }
+        return TimeSpan.Zero; // No overlap
+    }
+
+    private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> slicedTimeStamps,
+        TimeSpan sliceLength,
         MeterValueKind meterValueKind, CancellationToken cancellationToken)
     {
         var createdWh = new Dictionary<DateTimeOffset, int>();
-
-        //used for more efficient querying instead of list
-        var timeStampLookup = new HashSet<DateTimeOffset>(hourlyTimeStamps);
-        var missingHours = new List<DateTimeOffset>();
-
-        foreach (var time in hourlyTimeStamps)
-        {
-            var nextHour = time.AddHours(1);
-            if (!timeStampLookup.Contains(nextHour))
-            {
-                missingHours.Add(nextHour);
-            }
-        }
-        var hoursToGetMeterValues = hourlyTimeStamps.Union(missingHours).ToList();
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         var maxDbConcurrency = 5;
         var throttler = new SemaphoreSlim(maxDbConcurrency);
 
-        var queryTasks = hoursToGetMeterValues.Select(async dateTimeOffset =>
+        var timeStampsToGetMeterValuesFrom = slicedTimeStamps.ToList();
+        var lastSlicedTimeStamp = slicedTimeStamps.Last();
+        timeStampsToGetMeterValuesFrom.Add(lastSlicedTimeStamp + sliceLength);
+
+        var queryTasks = timeStampsToGetMeterValuesFrom.Select(async dateTimeOffset =>
         {
             // wait our turn
             await throttler.WaitAsync(cancellationToken);
@@ -334,9 +312,9 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             {
                 using var scope = serviceProvider.CreateScope();
                 var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
-                var minimumAge = dateTimeOffset.AddHours(-1);
+                var minimumAge = dateTimeOffset - sliceLength;
 
-                var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset);
+                var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset, sliceLength);
                 if (meterValue == default && currentDate > dateTimeOffset)
                 {
                     meterValue = await scopedContext.MeterValues
@@ -344,12 +322,13 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                                     && m.Timestamp <= dateTimeOffset
                                     && m.Timestamp > minimumAge)
                         .OrderByDescending(m => m.Id)
+                        .AsNoTracking()
                         .FirstOrDefaultAsync(cancellationToken);
 
-                    if (meterValue != default && meterValue.Timestamp < GetMaxCacheDate())
-                        CacheMeterValue(meterValueKind, dateTimeOffset, meterValue);
+                    if (meterValue != default && meterValue.Timestamp < GetMaxCacheDate(sliceLength))
+                        CacheMeterValue(meterValueKind, dateTimeOffset, sliceLength, meterValue);
 
-                    // optional: small delay so you don�t slam the DB in bursts
+                    // optional: small delay so you don’t slam the DB in bursts
                     await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
                 }
 
@@ -364,88 +343,86 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var results = await Task.WhenAll(queryTasks);
         var orderedResults = results.ToDictionary(result => result.Timestamp, result => result.MeterValue);
 
-        foreach (var hourlyTimeStamp in hourlyTimeStamps)
+        foreach (var slicedTimeStamp in slicedTimeStamps)
         {
-            var meterValue = orderedResults[hourlyTimeStamp];
-            var nextMeterValue = orderedResults[hourlyTimeStamp.AddHours(1)];
+            var meterValue = orderedResults[slicedTimeStamp];
+            var nextMeterValue = orderedResults[slicedTimeStamp + sliceLength];
 
             if (nextMeterValue != default && meterValue != default)
             {
                 var energyDifference = Convert.ToInt32((nextMeterValue.EstimatedEnergyWs - meterValue.EstimatedEnergyWs) / 3600);
-                createdWh.Add(hourlyTimeStamp, energyDifference);
+                createdWh.Add(slicedTimeStamp, energyDifference);
             }
         }
 
         return createdWh;
     }
 
-    private Dictionary<int, double> ComputeWeightedAverageFactors(
-        List<DateTimeOffset> hourlyTimeStamps,
-        Dictionary<DateTimeOffset, int> createdWh,
-        List<SolarRadiation> latestRadiations,
-        DateTimeOffset historicStart)
+    private Dictionary<TimeSpan, double> ComputeWeightedAverageFactors(
+        List<DateTimeOffset> historicTimeStamps,
+        Dictionary<DateTimeOffset, int> energyMeterDifferences,
+        Dictionary<DateTimeOffset, float> latestRadiations)
     {
         // Compute weighted conversion factors per UTC hour.
-        var hourlyFactorsWeighted = new Dictionary<int, List<(double factor, double weight)>>();
-
-        foreach (var hourStamp in hourlyTimeStamps)
+        var timebasedFactorsWeighted = new Dictionary<TimeSpan, List<(double meterValueChangePerRadiation, double weight)>>();
+        if (historicTimeStamps.Count < 1)
         {
-            if (!createdWh.TryGetValue(hourStamp, out var producedWh))
+            return new();
+        }
+        var historicStart = historicTimeStamps.First();
+        foreach (var hourStamp in historicTimeStamps)
+        {
+            if (!energyMeterDifferences.TryGetValue(hourStamp, out var energyDifferenceWh))
             {
                 continue; // skip if no produced energy sample
             }
-
-            // Find the matching solar radiation record for the same UTC year, day, and hour.
-            var matchingRadiation = latestRadiations.FirstOrDefault(r =>
-                r.Start.UtcDateTime.Year == hourStamp.UtcDateTime.Year &&
-                r.Start.UtcDateTime.DayOfYear == hourStamp.UtcDateTime.DayOfYear &&
-                r.Start.UtcDateTime.Hour == hourStamp.UtcDateTime.Hour);
-
-            if (matchingRadiation == null || matchingRadiation.SolarRadiationWhPerM2 <= 0)
+            if(!latestRadiations.TryGetValue(hourStamp, out var radiationValue))
             {
-                continue;
+                continue; // skip if no radiation sample
             }
-
-            // Calculate conversion factor: produced Wh per unit of solar radiation.
-            double factor = producedWh / matchingRadiation.SolarRadiationWhPerM2;
 
             // Compute a weight based on recency (older samples get lower weight).
             var weight = 1 + (hourStamp.UtcDateTime - historicStart.UtcDateTime).TotalDays;
 
-            var hour = hourStamp.UtcDateTime.Hour;
-            if (!hourlyFactorsWeighted.ContainsKey(hour))
+            var timeOfDay = hourStamp.TimeOfDay;
+            if (!timebasedFactorsWeighted.ContainsKey(timeOfDay))
             {
-                hourlyFactorsWeighted[hour] = new List<(double factor, double weight)>();
+                timebasedFactorsWeighted[timeOfDay] = new List<(double meterValueChangePerRadiation, double weight)>();
             }
 
-            hourlyFactorsWeighted[hour].Add((factor, weight));
+            if (radiationValue > 0)
+            {
+                timebasedFactorsWeighted[timeOfDay].Add((energyDifferenceWh / radiationValue, weight));
+            }
         }
 
         // Compute the weighted average conversion factor for each UTC hour.
-        var avgHourlyWeightedFactors = new Dictionary<int, double>();
-        foreach (var kvp in hourlyFactorsWeighted)
+        var avgHourlyWeightedFactors = new Dictionary<TimeSpan, double>();
+        foreach (var kvp in timebasedFactorsWeighted)
         {
-            var hour = kvp.Key;
+            var timeSpan = kvp.Key;
             var weightedSamples = kvp.Value;
-            var weightedSum = weightedSamples.Sum(item => item.factor * item.weight);
+            var weightedSum = weightedSamples.Sum(item => item.meterValueChangePerRadiation * item.weight);
             var weightTotal = weightedSamples.Sum(item => item.weight);
-            avgHourlyWeightedFactors[hour] = weightedSum / weightTotal;
+            avgHourlyWeightedFactors[timeSpan] = (weightedSum / weightTotal);
         }
-
         return avgHourlyWeightedFactors;
     }
 
-    private Dictionary<int, int> ComputeWeightedMeterValueChanges(
-    List<DateTimeOffset> hourlyTimeStamps,
-    Dictionary<DateTimeOffset, int> createdWh,
-    DateTimeOffset historicStart)
+    private Dictionary<TimeSpan, int> ComputeWeightedMeterValueChanges(
+    List<DateTimeOffset> historicTimeStamps,
+    Dictionary<DateTimeOffset, int> historicEnergyMeterDifferences)
     {
         // Compute weighted conversion factors per UTC hour.
-        var hourlyFactorsWeighted = new Dictionary<int, List<(double meterValueChange, double weight)>>();
-
-        foreach (var hourStamp in hourlyTimeStamps)
+        var hourlyFactorsWeighted = new Dictionary<TimeSpan, List<(double meterValueChange, double weight)>>();
+        if (historicTimeStamps.Count < 1)
         {
-            if (!createdWh.TryGetValue(hourStamp, out var producedWh))
+            return new();
+        }
+        var historicStart = historicTimeStamps.First();
+        foreach (var hourStamp in historicTimeStamps)
+        {
+            if (!historicEnergyMeterDifferences.TryGetValue(hourStamp, out var energyDifferenceWh))
             {
                 continue; // skip if no produced energy sample
             }
@@ -453,84 +430,49 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             // Compute a weight based on recency (older samples get lower weight).
             var weight = 1 + (hourStamp.UtcDateTime - historicStart.UtcDateTime).TotalDays;
 
-            var hour = hourStamp.LocalDateTime.Hour;
-            if (!hourlyFactorsWeighted.ContainsKey(hour))
+            var timeOfDay = hourStamp.TimeOfDay;
+            if (!hourlyFactorsWeighted.ContainsKey(timeOfDay))
             {
-                hourlyFactorsWeighted[hour] = new List<(double meterValueChange, double weight)>();
+                hourlyFactorsWeighted[timeOfDay] = new List<(double meterValueChange, double weight)>();
             }
 
-            hourlyFactorsWeighted[hour].Add((producedWh, weight));
+            hourlyFactorsWeighted[timeOfDay].Add((energyDifferenceWh, weight));
         }
 
         // Compute the weighted average conversion factor for each UTC hour.
-        var avgHourlyWeightedFactors = new Dictionary<int, int>();
+        var avgHourlyWeightedFactors = new Dictionary<TimeSpan, int>();
         foreach (var kvp in hourlyFactorsWeighted)
         {
-            var hour = kvp.Key;
+            var timeSpan = kvp.Key;
             var weightedSamples = kvp.Value;
             var weightedSum = weightedSamples.Sum(item => item.meterValueChange * item.weight);
             var weightTotal = weightedSamples.Sum(item => item.weight);
-            avgHourlyWeightedFactors[hour] = (int)(weightedSum / weightTotal);
+            avgHourlyWeightedFactors[timeSpan] = (int)(weightedSum / weightTotal);
         }
 
         return avgHourlyWeightedFactors;
     }
 
-    private async Task<List<SolarRadiation>> GetForecastSolarRadiationsAsync(DateTimeOffset utcPredictionStart,
-        DateTimeOffset utcPredictionEnd, CancellationToken cancellationToken)
+    private Dictionary<DateTimeOffset, int> ComputePredictedProduction(Dictionary<DateTimeOffset, float> forecastSolarRadiations,
+        Dictionary<TimeSpan, double> avgHourlyWeightedFactors, List<DateTimeOffset> resultTimeStamps)
     {
-        var forecastSolarRadiations = await context.SolarRadiations
-            .Where(r => r.Start >= utcPredictionStart && r.End <= utcPredictionEnd)
-            .GroupBy(r => new { r.Start, r.End })
-            .Select(g => g.OrderByDescending(r => r.CreatedAt).First())
-            .AsNoTracking()
-            .ToListAsync(cancellationToken: cancellationToken);
-
-        return forecastSolarRadiations;
-    }
-
-    private Dictionary<int, int> ComputePredictedProduction(
-        List<SolarRadiation> forecastSolarRadiations,
-        Dictionary<int, double> avgHourlyWeightedFactors)
-    {
-        var predictedProduction = new Dictionary<int, int>();
-
-        foreach (var forecast in forecastSolarRadiations)
+        var predictedProduction = new Dictionary<DateTimeOffset, int>();
+        foreach (var resultTimeStamp in resultTimeStamps)
         {
-            var forecastHour = forecast.Start.UtcDateTime.Hour;
-            if (!avgHourlyWeightedFactors.TryGetValue(forecastHour, out var factor))
+            var factor = avgHourlyWeightedFactors.GetValueOrDefault(resultTimeStamp.TimeOfDay, 0.0);
+            if (factor == 0.0)
             {
-                continue; // skip hours without historical samples
+                predictedProduction[resultTimeStamp] = 0; // No historical data for this hour
+                continue;
             }
-
-            // Calculate predicted energy produced in Wh and then convert to kWh.
-            var predictedWh = forecast.SolarRadiationWhPerM2 * factor;
-            predictedProduction.Add(forecast.Start.LocalDateTime.Hour, (int)predictedWh);
+            if (!forecastSolarRadiations.TryGetValue(resultTimeStamp, out var radiationValue))
+            {
+                predictedProduction[resultTimeStamp] = 0; // No forecast data for this hour
+                continue;
+            }
+            var predictedWh = radiationValue * factor;
+            predictedProduction[resultTimeStamp] = (int)predictedWh;
         }
-
         return predictedProduction;
-    }
-
-    private List<DateTimeOffset> GetHourlyTimestamps(DateTimeOffset start, DateTimeOffset end)
-    {
-        if (start > end)
-        {
-            throw new ArgumentException("The start value must be earlier than the end value.");
-        }
-
-        if (start.Offset != TimeSpan.Zero || end.Offset != TimeSpan.Zero)
-        {
-            throw new ArgumentException("Both DateTimeOffset values need to be UTC timed");
-        }
-
-        var firstHour = new DateTimeOffset(start.Year, start.Month, start.Day, start.Hour, 0, 0, start.Offset);
-        var hourlyList = new List<DateTimeOffset>();
-
-        for (var current = firstHour; current < end; current = current.AddHours(1))
-        {
-            hourlyList.Add(current);
-        }
-
-        return hourlyList;
     }
 }
