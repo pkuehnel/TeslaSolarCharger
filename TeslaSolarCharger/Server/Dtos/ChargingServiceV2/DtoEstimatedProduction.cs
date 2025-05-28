@@ -1,9 +1,8 @@
 ﻿namespace TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 
-public class DtoChargingSchedule
+public class DtoEstimatedProduction
 {
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset EndTime { get; set; }
-
-    public int ChargingPower { get; set; }
+    public int ProducedWh { get; set; }
 }
