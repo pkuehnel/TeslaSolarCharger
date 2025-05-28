@@ -199,7 +199,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             usedHomeBatteryEnergyWh += usedHomeBatteryWhSinceLastChargingDetail;
             var usedGridPowerSinceLastChargingDetail = (decimal)(chargingDetail.GridPower * timeSpanSinceLastDetail.TotalHours);
             usedGridEnergyWh += usedGridPowerSinceLastChargingDetail;
-            cost += usedGridPowerSinceLastChargingDetail * price.Value;
+            cost += usedGridPowerSinceLastChargingDetail * price.GridPrice;
             cost += usedSolarWhSinceLastChargingDetail * price.SolarPrice;
             cost += usedHomeBatteryWhSinceLastChargingDetail * price.SolarPrice;
         }
@@ -215,6 +215,21 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         return prices.First(p => p.ValidFrom <= timeStamp && p.ValidTo > timeStamp);
     }
 
+    public async Task<List<Price>> GetPricesInTimeSpan(DateTimeOffset from, DateTimeOffset to)
+    {
+        logger.LogTrace("{method}({from}, {to})", nameof(GetPricesInTimeSpan), from, to);
+        var prices = await GetPricesInTimeSpan(from.ToUniversalTime().DateTime, to.ToUniversalTime().DateTime).ConfigureAwait(false);
+        return prices;
+    }
+
+    /// <summary>
+    /// Gets prices in a given time span.
+    /// </summary>
+    /// <param name="from">DateTime in UTC format</param>
+    /// <param name="to">DateTime in UTC format</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <exception cref="NotImplementedException"></exception>
     private async Task<List<Price>> GetPricesInTimeSpan(DateTime from, DateTime to)
     {
         logger.LogTrace("{method}({from}, {to})", nameof(GetPricesInTimeSpan), from, to);
@@ -272,7 +287,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             {
                 updatedPrices.Add(new Price
                 {
-                    Value = defaultValue,
+                    GridPrice = defaultValue,
                     SolarPrice = defaultSolarPrice,
                     ValidFrom = currentStart,
                     ValidTo = price.ValidFrom,
@@ -288,7 +303,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         {
             updatedPrices.Add(new Price
             {
-                Value = defaultValue,
+                GridPrice = defaultValue,
                 SolarPrice = defaultSolarPrice,
                 ValidFrom = currentStart,
                 ValidTo = to,

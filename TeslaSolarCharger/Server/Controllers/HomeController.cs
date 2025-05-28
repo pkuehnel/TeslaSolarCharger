@@ -58,10 +58,10 @@ public class HomeController : ApiBaseController
         return Ok();
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetChargingSchedulesForLoadPoint(int? carId, int? chargingConnectorId)
-    {
-        var result = await _chargingServiceV2.GetChargingSchedulesForLoadPoint(carId, chargingConnectorId, HttpContext.RequestAborted);
-        return Ok(result);
-    }
+    //[HttpGet]
+    //public async Task<IActionResult> GetChargingSchedulesForLoadPoint(int? carId, int? chargingConnectorId)
+    //{
+    //    var result = await _chargingServiceV2.GetLatestPossibleChargingSchedule(carId, chargingConnectorId, HttpContext.RequestAborted);
+    //    return Ok(result);
+    //}
 }
