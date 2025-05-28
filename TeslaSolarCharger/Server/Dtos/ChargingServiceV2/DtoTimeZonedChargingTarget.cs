@@ -1,7 +1,8 @@
-﻿namespace TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+﻿using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
-public class DtoTimeZonedChargingTarget
+namespace TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+
+public class DtoTimeZonedChargingTarget : CarChargingTarget
 {
-    public int Id { get; set; }
     public DateTimeOffset NextExecutionTime { get; set; }
 }

@@ -55,7 +55,6 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
         var historicPredictionsSearchStart = startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart);
         var latestRadiations = await GetSlicedSolarRadiationValues(historicPredictionsSearchStart, startDate, sliceLength, cancellationToken);
-        //ToDo: Compute Weighted average factors should have TimeSpan as key instead of int hour
         var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(historicValueTimeStamps, energyMeterDifferences, latestRadiations);
         var forecastSolarRadiations = await GetSlicedSolarRadiationValues(startDate, endDate, sliceLength, cancellationToken);
         var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
