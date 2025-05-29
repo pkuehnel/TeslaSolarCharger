@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos.Settings;
+﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Shared.Dtos.Contracts;
 
@@ -13,8 +14,6 @@ public interface ISettings
     int? AverageHomeGridVoltage { get; set; }
     bool CrashedOnStartup { get; set; }
     string? StartupCrashMessage { get; set; }
-    bool AllowUnlimitedFleetApiRequests { get; set; }
-    DateTime LastFleetApiRequestAllowedCheck { get; set; }
     List<DtoCar> Cars { get; set; }
     List<DtoCar> CarsToManage { get; }
     bool RestartNeeded { get; set; }
@@ -26,4 +25,9 @@ public interface ISettings
     DateTime StartupTime { get; set; }
     int LastPvDemoCase { get; set; }
     bool IsPreRelease { get; set; }
+
+    /// <summary>
+    /// Key is Id of the connector in database
+    /// </summary>
+    ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; }
 }

@@ -130,6 +130,20 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool UseFakeEnergyPredictions()
+    {
+        var environmentVariableName = "UseFakeEnergyPredictions";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
+    public bool UseFakeEnergyHistory()
+    {
+        var environmentVariableName = "UseFakeEnergyHistory";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
     public int MaxTravelSpeedMetersPerSecond()
     {
         var environmentVariableName = "MaxTravelSpeedMetersPerSecond";
@@ -156,6 +170,19 @@ public class ConfigurationWrapper(
         var environmentVariableName = "FleetApiRefreshIntervalSeconds";
         var value = configuration.GetValue<int>(environmentVariableName);
         return TimeSpan.FromSeconds(value);
+    }
+
+    public TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector()
+    {
+        var environmentVariableName = "MaxPluggedInTimeDifferenceToMatchCarAndOcppConnectorSeconds";
+        var value = configuration.GetValue<int>(environmentVariableName);
+        return TimeSpan.FromSeconds(value);
+    }
+
+    public bool UseChargingServiceV2()
+    {
+        var value = GetBaseConfiguration().UseChargingServiceV2;
+        return value;
     }
 
     public bool IsPredictSolarPowerGenerationEnabled()

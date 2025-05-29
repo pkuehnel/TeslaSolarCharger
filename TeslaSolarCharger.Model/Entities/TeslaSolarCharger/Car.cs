@@ -57,4 +57,5 @@ public class Car
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
     public List<CarValueLog> CarValueLogs { get; set; } = new List<CarValueLog>();
+    public List<CarChargingSchedule> ChargingSchedules { get; set; } = new();
 }

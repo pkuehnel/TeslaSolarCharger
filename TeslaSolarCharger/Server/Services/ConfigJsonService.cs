@@ -363,7 +363,6 @@ public class ConfigJsonService(
                 ChargerActualCurrent = c.ChargerActualCurrent,
                 ChargerPilotCurrent = c.ChargerPilotCurrent,
                 ChargerRequestedCurrent = c.ChargerRequestedCurrent,
-                PluggedIn = c.PluggedIn,
                 Latitude = c.Latitude,
                 Longitude = c.Longitude,
                 State = c.State,
@@ -378,6 +377,40 @@ public class ConfigJsonService(
                 OtherCommandCalls = c.OtherCommandCalls,
             })
             .ToListAsync().ConfigureAwait(false);
+        foreach (var dtoCar in cars)
+        {
+            var latestPluggedOut = await teslaSolarChargerContext.CarValueLogs
+                .Where(c => c.CarId == dtoCar.Id
+                            && c.Type == CarValueType.IsPluggedIn
+                            && c.BooleanValue == false)
+                .OrderByDescending(c => c.Timestamp)
+                .Select(c => c.Timestamp)
+                .FirstOrDefaultAsync();
+            var latestPluggedIn = await teslaSolarChargerContext.CarValueLogs
+                .Where(c => c.CarId == dtoCar.Id
+                            && c.Type == CarValueType.IsPluggedIn
+                            && c.BooleanValue == true)
+                .OrderByDescending(c => c.Timestamp)
+                .Select(c => c.Timestamp)
+                .FirstOrDefaultAsync();
+            var isPluggedIn = latestPluggedIn > latestPluggedOut;
+            if (isPluggedIn)
+            {
+                var earliestPluggedInAfterLatestPluggedOut = await teslaSolarChargerContext.CarValueLogs
+                    .Where(c => c.CarId == dtoCar.Id
+                                && c.Type == CarValueType.IsPluggedIn
+                                && c.BooleanValue == true
+                                && c.Timestamp > latestPluggedOut)
+                    .OrderBy(c => c.Timestamp)
+                    .Select(c => c.Timestamp)
+                    .FirstOrDefaultAsync();
+                dtoCar.UpdatePluggedIn(new DateTimeOffset(earliestPluggedInAfterLatestPluggedOut, TimeSpan.Zero), true);
+            }
+            else
+            {
+                dtoCar.UpdatePluggedIn(new DateTimeOffset(latestPluggedOut, TimeSpan.Zero), false);
+            }
+        }
         var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
         if (configurationWrapper.UseTeslaMateIntegration() && (teslaMateContext != default))
         {
@@ -488,7 +521,8 @@ public class ConfigJsonService(
             car.ChargerActualCurrent = carState.ChargerActualCurrent;
             car.ChargerPilotCurrent = carState.ChargerPilotCurrent;
             car.ChargerRequestedCurrent = carState.ChargerRequestedCurrent;
-            car.PluggedIn = carState.PluggedIn;
+            //Do not update car as at this point latest plugged in/out is not known as previous version was too old
+            //car.PluggedIn = carState.PluggedIn;
             car.Latitude = carState.Latitude;
             car.Longitude = carState.Longitude;
         }

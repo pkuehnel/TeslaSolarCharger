@@ -51,7 +51,25 @@ public class DtoCar
     public int? ChargerActualCurrent { get; set; }
     public int? ChargerPilotCurrent { get; set; }
     public int? ChargerRequestedCurrent { get; set; }
-    public bool? PluggedIn { get; set; }
+    public DtoTimeStampedValue<double?> MinBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);
+    public DtoTimeStampedValue<double?> MaxBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);
+
+    public bool? PluggedIn { get; private set; }
+    public DateTimeOffset? LastPluggedIn { get; set; }
+
+    public void UpdatePluggedIn(DateTimeOffset timestamp, bool pluggedIn)
+    {
+        if (pluggedIn && (PluggedIn == false))
+        {
+            LastPluggedIn = timestamp;
+        }
+        if (!pluggedIn)
+        {
+            LastPluggedIn = default;
+        }
+        PluggedIn = pluggedIn;
+    }
+
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public int? DistanceToHomeGeofence { get; set; }

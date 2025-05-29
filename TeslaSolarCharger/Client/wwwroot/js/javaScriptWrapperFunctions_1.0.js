@@ -28,3 +28,7 @@ function detectDevice() {
     }
     return "Other";
 }
+
+function getTimeZone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
