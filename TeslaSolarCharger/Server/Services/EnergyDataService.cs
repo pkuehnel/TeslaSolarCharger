@@ -1,9 +1,6 @@
-﻿using LanguageExt;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
-using System.Runtime.InteropServices.JavaScript;
-using System.Threading;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
@@ -185,18 +182,6 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return maxCacheDate;
     }
 
-    private Dictionary<int, int>? GetCachedValues(MeterValueKind meterValueKind, bool predictedValue, DateOnly date)
-    {
-        //Do not log this as it is super noisy
-        //logger.LogTrace("{method}({meterValueKind}, {predictedValue}, {date})", nameof(GetCachedValues), meterValueKind, predictedValue, date);
-        var key = GetCacheKey(meterValueKind, predictedValue, date);
-        if (memoryCache.TryGetValue(key, out Dictionary<int, int>? value))
-        {
-            return value;
-        }
-        return default;
-    }
-
     private void SetCacheValue(bool shouldExpire, object value, string key)
     {
         var options = new MemoryCacheEntryOptions();
@@ -209,16 +194,6 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             options.SlidingExpiration = TimeSpan.FromDays(90);
         }
         memoryCache.Set(key, value, options);
-    }
-
-    private string GetCacheKey(MeterValueKind meterValueKind, bool predictedValue, DateOnly date, int? hour = null)
-    {
-        var key = $"{meterValueKind}_{predictedValue}_{date:yyyyMMdd}";
-        if (hour != null)
-        {
-            key += $"_{hour}";
-        }
-        return key;
     }
 
     private MeterValue? GetCachedMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength)
