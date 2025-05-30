@@ -115,6 +115,27 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return await GetActualValues(MeterValueKind.HouseConsumption, startDate, endDate, sliceLength, httpContextRequestAborted);
     }
 
+    public async Task<Dictionary<DateTimeOffset, int>> GetPredictedSurplusPerSlice(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken cancellationToken)
+    {
+        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetPredictedSurplusPerSlice), startDate, endDate, sliceLength);
+        if (configurationWrapper.UseFakeEnergyHistory())
+        {
+            return GenerateFakeResult(startDate, endDate, sliceLength);
+        }
+        var solarProductionTask = GetPredictedSolarProductionByLocalHour(startDate, endDate, sliceLength, cancellationToken);
+        var houseConsumptionTask = GetPredictedHouseConsumptionByLocalHour(startDate, endDate, sliceLength, cancellationToken);
+        var solarProduction = await solarProductionTask.ConfigureAwait(false);
+        var houseConsumption = await houseConsumptionTask.ConfigureAwait(false);
+        var surplusPerSlice = new Dictionary<DateTimeOffset, int>();
+        foreach (var timeStamp in solarProduction.Keys)
+        {
+            var production = solarProduction.GetValueOrDefault(timeStamp, 0);
+            var consumption = houseConsumption.GetValueOrDefault(timeStamp, 0);
+            surplusPerSlice[timeStamp] = production - consumption;
+        }
+        return surplusPerSlice;
+    }
+
     private Dictionary<DateTimeOffset, int> GenerateFakeResult(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
     {
         var fakedResult = new Dictionary<DateTimeOffset, int>();

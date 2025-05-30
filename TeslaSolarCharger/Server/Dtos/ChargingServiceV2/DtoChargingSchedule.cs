@@ -2,6 +2,14 @@
 
 public class DtoChargingSchedule
 {
+    public DtoChargingSchedule(int? carId, int? occpChargingConnectorId)
+    {
+        CarId = carId;
+        OccpChargingConnectorId = occpChargingConnectorId;
+    }
+
+    public int? CarId { get; set; }
+    public int? OccpChargingConnectorId { get; set; }
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset EndTime { get; set; }
 
