@@ -4,7 +4,7 @@ using System.ComponentModel;
 
 namespace TeslaSolarCharger.Shared.Dtos.Home;
 
-public class DtoCarChargingSchedule
+public class DtoCarChargingTarget
 {
     public int Id { get; set; }
     public int TargetSoc { get; set; }
@@ -43,9 +43,9 @@ public class DtoCarChargingSchedule
     }
 }
 
-public class CarChargingScheduleValidator : AbstractValidator<DtoCarChargingSchedule>
+public class CarChargingTargetValidator : AbstractValidator<DtoCarChargingTarget>
 {
-    public CarChargingScheduleValidator()
+    public CarChargingTargetValidator()
     {
         When(x => !x.RepeatsOnAnyDay, () =>
         {

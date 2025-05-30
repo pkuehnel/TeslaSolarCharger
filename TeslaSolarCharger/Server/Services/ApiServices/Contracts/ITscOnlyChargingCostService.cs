@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Shared.Dtos.ChargingCost;
+﻿using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 
 namespace TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 
@@ -10,4 +11,5 @@ public interface ITscOnlyChargingCostService
     Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId);
     Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries();
     Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int? carId, int? chargingConnectorId);
+    Task<List<Price>> GetPricesInTimeSpan(DateTimeOffset from, DateTimeOffset to);
 }

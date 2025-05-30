@@ -38,7 +38,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<OcppChargingStationConnector> OcppChargingStationConnectors { get; set; } = null!;
     public DbSet<OcppTransaction> OcppTransactions { get; set; } = null!;
     public DbSet<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; } = null!;
-    public DbSet<CarChargingSchedule> CarChargingSchedules { get; set; } = null!;
+    public DbSet<CarChargingTarget> CarChargingTargets { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -165,11 +165,11 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .Property(m => m.EndDate)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 
-        modelBuilder.Entity<CarChargingSchedule>()
+        modelBuilder.Entity<CarChargingTarget>()
             .Property(m => m.TargetTime)
             .HasConversion(timeOnlyToMillisecondsOfDayConverter);
 
-        modelBuilder.Entity<CarChargingSchedule>()
+        modelBuilder.Entity<CarChargingTarget>()
             .Property(m => m.TargetDate)
             .HasConversion(dateOnlyToEpochMilliSecondsConverter);
 

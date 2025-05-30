@@ -6,9 +6,9 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 public interface IHomeService
 {
     Task<List<DtoLoadPointOverview>> GetLoadPointOverviews();
-    Task<List<DtoCarChargingSchedule>> GetCarChargingSchedules(int carId);
-    Task<Result<int>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto);
+    Task<List<DtoCarChargingTarget>> GetCarChargingTargets(int carId);
+    Task<Result<int>> SaveCarChargingTarget(int carId, DtoCarChargingTarget dto);
     Task UpdateCarMinSoc(int carId, int newMinSoc);
-    Task<DtoCarChargingSchedule> GetChargingSchedule(int chargingScheduleId);
-    Task DeleteChargingSchedule(int chargingScheduleId);
+    Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId);
+    Task DeleteCarChargingTarget(int chargingTargetId);
 }

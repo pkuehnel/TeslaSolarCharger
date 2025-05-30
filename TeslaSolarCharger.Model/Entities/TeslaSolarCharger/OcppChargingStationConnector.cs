@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+﻿using TeslaSolarCharger.Shared.Enums;
+
+namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
 public class OcppChargingStationConnector
 {
@@ -11,11 +13,13 @@ public class OcppChargingStationConnector
     public string Name { get; set; }
     public int ConnectorId { get; set; }
     public bool AutoSwitchBetween1And3PhasesEnabled { get; set; }
+    public ChargeModeV2 ChargeModeV2 { get; set; }
     public int? MinCurrent { get; set; }
     public int? SwitchOnAtCurrent { get; set; }
     public int? SwitchOffAtCurrent { get; set; }
     public int? MaxCurrent { get; set; }
     public int? ConnectedPhasesCount { get; set; }
+    public int ChargingPriority { get; set; }
 
     public int OcppChargingStationId { get; set; }
 

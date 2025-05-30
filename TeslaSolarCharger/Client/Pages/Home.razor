@@ -86,7 +86,7 @@ else
             <div>
                 @if (loadPoint.CarId != default)
                 {
-                    <ChargingScheduleConfigurationComponent CarId="loadPoint.CarId.Value"></ChargingScheduleConfigurationComponent>
+                    <ChargingTargetConfigurationComponent CarId="loadPoint.CarId.Value"></ChargingTargetConfigurationComponent>
                 }
             </div>
             <ChargeSummaryComponent CarId="loadPoint.CarId" ChargingConnectorId="loadPoint.ChargingConnectorId"></ChargeSummaryComponent>
@@ -114,7 +114,7 @@ else
             {
                 CarId = 1,
                 CarName = "CarName",
-                ChargingConnectorId = 1,
+                ChargingConnectorId = 2,
                 ChargingConnectorName = "ChargingConnectorName",
                 ChargingCurrent = 10,
                 ChargingPhaseCount = 3,

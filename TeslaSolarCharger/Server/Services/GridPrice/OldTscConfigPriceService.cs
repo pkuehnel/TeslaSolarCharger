@@ -24,7 +24,7 @@ public class OldTscConfigPriceService (ILogger<OldTscConfigPriceService> logger,
                 new()
                 {
                     ValidFrom = from,
-                    ValidTo = to, Value = price.GridPrice,
+                    ValidTo = to, GridPrice = price.GridPrice,
                     SolarPrice = price.SolarPrice,
                 },
             };
@@ -44,7 +44,7 @@ public class OldTscConfigPriceService (ILogger<OldTscConfigPriceService> logger,
             {
                 ValidFrom = new DateTimeOffset(spotPrice.StartDate, TimeSpan.Zero),
                 ValidTo = new DateTimeOffset(spotPrice.EndDate, TimeSpan.Zero),
-                Value = gridPriceDuringThisSpotPrice,
+                GridPrice = gridPriceDuringThisSpotPrice,
                 SolarPrice = price.SolarPrice,
             });
         }

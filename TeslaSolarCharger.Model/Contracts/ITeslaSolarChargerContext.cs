@@ -36,6 +36,6 @@ public interface ITeslaSolarChargerContext
     DbSet<OcppChargingStationConnector> OcppChargingStationConnectors { get; set; }
     DbSet<OcppTransaction> OcppTransactions { get; set; }
     DbSet<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; }
-    DbSet<CarChargingSchedule> CarChargingSchedules { get; set; }
+    DbSet<CarChargingTarget> CarChargingTargets { get; set; }
     void RejectChanges();
 }

@@ -85,7 +85,7 @@ query PriceData($after: String, $first: Int) {
             {
                 ValidFrom = x.StartsAt,
                 ValidTo = x.StartsAt.AddHours(1),
-                Value = x.Total
+                GridPrice = x.Total
             })
             .ToList();
 
@@ -102,7 +102,7 @@ query PriceData($after: String, $first: Int) {
             {
                 ValidFrom = priceInfo.Current.StartsAt,
                 ValidTo = priceInfo.Current.StartsAt.AddHours(1),
-                Value = priceInfo.Current.Total
+                GridPrice = priceInfo.Current.Total
             });
         }
         else if (count != fetch)

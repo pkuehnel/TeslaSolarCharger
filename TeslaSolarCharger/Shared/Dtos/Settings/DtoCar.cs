@@ -10,6 +10,7 @@ public class DtoCar
     public int? TeslaMateCarId { get; set; }
 
     public ChargeMode ChargeMode { get; set; }
+    public ChargeModeV2 ChargeModeV2 { get; set; }
 
     public int MinimumSoC { get; set; }
     /// <summary>

@@ -78,28 +78,28 @@ public class HomeService : IHomeService
         return result;
     }
 
-    public async Task<DtoCarChargingSchedule> GetChargingSchedule(int chargingScheduleId)
+    public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
     {
-        _logger.LogTrace("{method}({chargingScheduleId})", nameof(GetChargingSchedule), chargingScheduleId);
-        return await _context.CarChargingSchedules
-            .Where(s => s.Id == chargingScheduleId)
+        _logger.LogTrace("{method}({chargingTargetId})", nameof(GetChargingTarget), chargingTargetId);
+        return await _context.CarChargingTargets
+            .Where(s => s.Id == chargingTargetId)
             .Select(ToDto)
             .FirstAsync()
             .ConfigureAwait(false);
     }
 
-    public async Task<List<DtoCarChargingSchedule>> GetCarChargingSchedules(int carId)
+    public async Task<List<DtoCarChargingTarget>> GetCarChargingTargets(int carId)
     {
-        _logger.LogTrace("{method}({carId})", nameof(GetCarChargingSchedules), carId);
-        return await _context.CarChargingSchedules
+        _logger.LogTrace("{method}({carId})", nameof(GetCarChargingTargets), carId);
+        return await _context.CarChargingTargets
             .Where(s => s.CarId == carId)
             .Select(ToDto)
             .ToListAsync()
             .ConfigureAwait(false);
     }
 
-    private static readonly Expression<Func<CarChargingSchedule, DtoCarChargingSchedule>> ToDto =
-        s => new DtoCarChargingSchedule
+    private static readonly Expression<Func<CarChargingTarget, DtoCarChargingTarget>> ToDto =
+        s => new DtoCarChargingTarget
         {
             Id = s.Id,
             TargetSoc = s.TargetSoc,
@@ -119,15 +119,15 @@ public class HomeService : IHomeService
             ClientTimeZone = s.ClientTimeZone,
         };
 
-    public async Task<Result<int>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto)
+    public async Task<Result<int>> SaveCarChargingTarget(int carId, DtoCarChargingTarget dto)
     {
-        _logger.LogTrace("{method}({carId}, {@chargingSchedule})", nameof(SaveCarChargingSchedule), carId, dto);
-        var dbValue = await _context.CarChargingSchedules
+        _logger.LogTrace("{method}({carId}, {@dto})", nameof(SaveCarChargingTarget), carId, dto);
+        var dbValue = await _context.CarChargingTargets
             .FirstOrDefaultAsync(s => s.Id == dto.Id).ConfigureAwait(false);
         if (dbValue == null)
         {
             dbValue = new();
-            _context.CarChargingSchedules.Add(dbValue);
+            _context.CarChargingTargets.Add(dbValue);
         }
 
         dbValue.CarId = carId;
@@ -147,10 +147,10 @@ public class HomeService : IHomeService
         return new(dbValue.Id, null, null);
     }
 
-    public async Task DeleteChargingSchedule(int chargingScheduleId)
+    public async Task DeleteCarChargingTarget(int chargingTargetId)
     {
-        _logger.LogTrace("{method}({chargingScheduleId})", nameof(DeleteChargingSchedule), chargingScheduleId);
-        _context.CarChargingSchedules.Remove(new() { Id = chargingScheduleId });
+        _logger.LogTrace("{method}({chargingTargetId})", nameof(DeleteCarChargingTarget), chargingTargetId);
+        _context.CarChargingTargets.Remove(new() { Id = chargingTargetId });
         await _context.SaveChangesAsync();
     }
 
