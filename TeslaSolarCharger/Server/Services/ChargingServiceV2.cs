@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Threading;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
@@ -8,6 +9,8 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -21,6 +24,10 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IOcppChargePointActionService _ocppChargePointActionService;
     private readonly ISettings _settings;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
+    private readonly IEnergyDataService _energyDataService;
+    private readonly ISunCalculator _sunCalculator;
+    private readonly IHomeBatteryEnergyCalculator _homeBatteryEnergyCalculator;
+    private readonly IConstants _constants;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -29,7 +36,11 @@ public class ChargingServiceV2 : IChargingServiceV2
         IDateTimeProvider dateTimeProvider,
         IOcppChargePointActionService ocppChargePointActionService,
         ISettings settings,
-        ITscOnlyChargingCostService tscOnlyChargingCostService)
+        ITscOnlyChargingCostService tscOnlyChargingCostService,
+        IEnergyDataService energyDataService,
+        ISunCalculator sunCalculator,
+        IHomeBatteryEnergyCalculator homeBatteryEnergyCalculator,
+        IConstants constants)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -39,6 +50,10 @@ public class ChargingServiceV2 : IChargingServiceV2
         _ocppChargePointActionService = ocppChargePointActionService;
         _settings = settings;
         _tscOnlyChargingCostService = tscOnlyChargingCostService;
+        _energyDataService = energyDataService;
+        _sunCalculator = sunCalculator;
+        _homeBatteryEnergyCalculator = homeBatteryEnergyCalculator;
+        _constants = constants;
     }
 
     public async Task SetNewChargingValues(int? restPowerToUse, CancellationToken cancellationToken)
@@ -52,27 +67,43 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         var loadPoints = await _loadPointManagementService.GetPluggedInLoadPoints();
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        var chargingSchedules = new List<DtoChargingSchedule>();
         foreach (var dtoLoadpoint in loadPoints)
         {
             if (dtoLoadpoint.Car != default)
             {
-                var (carUsableEnergy, carSoC, maxPhases, maxCurrent) = await GetChargingScheduleRelevantData(dtoLoadpoint.Car.Id, dtoLoadpoint.OcppConnectorId).ConfigureAwait(false);
+                var (carUsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent) = await GetChargingScheduleRelevantData(dtoLoadpoint.Car.Id, dtoLoadpoint.OcppConnectorId).ConfigureAwait(false);
                 if (dtoLoadpoint.Car.MinimumSoC < dtoLoadpoint.Car.SoC)
                 {
                     var earliestPossibleChargingSchedule =
                         GenerateEarliestOrLatestPossibleChargingSchedule(dtoLoadpoint.Car.MinimumSoC, null,
-                            carUsableEnergy, carSoC, maxPhases, maxCurrent);
+                            carUsableEnergy, carSoC, maxPhases, maxCurrent, dtoLoadpoint.Car.Id, dtoLoadpoint.OcppConnectorId);
+                    if (earliestPossibleChargingSchedule != default)
+                    {
+                        chargingSchedules.Add(earliestPossibleChargingSchedule);
+                        //Do not plan anything else, before min Soc is reached
+                        continue;
+                    }
                 }
                 var nextTarget = await GetNextTarget(dtoLoadpoint.Car.Id, cancellationToken).ConfigureAwait(false);
                 if (nextTarget != default)
                 {
-                    var gridPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
                     var latestPossibleChargingSchedule =
                         GenerateEarliestOrLatestPossibleChargingSchedule(nextTarget.TargetSoc, nextTarget.NextExecutionTime,
-                            carUsableEnergy, carSoC, maxPhases, maxCurrent);
+                            carUsableEnergy, carSoC, maxPhases, maxCurrent, dtoLoadpoint.Car.Id, dtoLoadpoint.OcppConnectorId);
+                    if (latestPossibleChargingSchedule != default)
+                    {
+                        chargingSchedules.Add(latestPossibleChargingSchedule);
+                    }
+                    var gridPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
+
                 }
             }
         }
+        var maxUsableCurrent = _configurationWrapper.MaxCombinedCurrent();
+        var currentlyUsedCurrent = loadPoints.Select(l => l.ActualCurrent ?? 0).Sum();
+        var powerToControl = await CalculatePowerToControl(loadPoints.Select(l => l.ActualChargingPower ?? 0).Sum(), cancellationToken).ConfigureAwait(false);
+
 
         #region Workaround while new service is not working
         var currentLocalDate = _dateTimeProvider.Now();
@@ -184,6 +215,142 @@ public class ChargingServiceV2 : IChargingServiceV2
         #endregion
     }
 
+    private async Task<int> CalculatePowerToControl(int currentChargingPower, CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
+        var resultConfigurations = await _context.ModbusResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken);
+        resultConfigurations.AddRange(await _context.RestValueResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken));
+        resultConfigurations.AddRange(await _context.MqttResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken));
+        var availablePowerSources = new DtoAvailablePowerSources()
+        {
+            InverterPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.InverterPower),
+            GridPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.GridPower),
+            HomeBatteryPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.HomeBatteryPower),
+        };
+
+        var buffer = _configurationWrapper.PowerBuffer();
+        _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
+        var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
+        _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
+
+        if (!availablePowerSources.GridPowerAvailable
+            && availablePowerSources.InverterPowerAvailable)
+        {
+            _logger.LogDebug("Using Inverter power {inverterPower} minus current combined charging power {chargingPowerAtHome} as overage",
+                _settings.InverterPower, currentChargingPower);
+            if(_settings.InverterPower == default)
+            {
+                _logger.LogWarning("Inverter power is not available, can not calculate power to control.");
+                return 0;
+            }
+            averagedOverage = _settings.InverterPower.Value - currentChargingPower;
+        }
+        var overage = averagedOverage - buffer;
+        _logger.LogDebug("Calculated overage {overage} after subtracting power buffer ({buffer})", overage, buffer);
+
+        overage = await AddHomeBatterStateToPowerCalculation(overage, cancellationToken).ConfigureAwait(false);
+        return overage;
+    }
+
+    private async Task<int> AddHomeBatterStateToPowerCalculation(int overage, CancellationToken cancellationToken)
+    {
+        var dynamicHomeBatteryMinSocEnabled = _configurationWrapper.DynamicHomeBatteryMinSoc();
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        if (dynamicHomeBatteryMinSocEnabled)
+        {
+            var dynamicHomeBatteryMinSoc = await CalculateDynamicHomeBatteryMinSoc(cancellationToken).ConfigureAwait(false);
+            if (dynamicHomeBatteryMinSoc != default)
+            {
+                _logger.LogInformation("Dynamic Home Battery Min SoC is enabled, using dynamic value {dynamicHomeBatteryMinSoc} instead of configured value {homeBatteryMinSoc}.", dynamicHomeBatteryMinSoc, homeBatteryMinSoc);
+                homeBatteryMinSoc = dynamicHomeBatteryMinSoc.Value;
+            }
+        }
+        _logger.LogDebug("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
+        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        _logger.LogDebug("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
+        if (homeBatteryMinSoc == default || homeBatteryMaxChargingPower == default)
+        {
+            return overage;
+        }
+        var batteryMinChargingPower = GetBatteryTargetChargingPower();
+        var actualHomeBatterySoc = _settings.HomeBatterySoc;
+        _logger.LogDebug("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
+        var actualHomeBatteryPower = _settings.HomeBatteryPower;
+        _logger.LogDebug("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
+        if (actualHomeBatteryPower == default)
+        {
+            return overage;
+        }
+        var overageToIncrease = actualHomeBatteryPower.Value - batteryMinChargingPower;
+        overage += overageToIncrease;
+        var inverterAcOverload = (_configurationWrapper.MaxInverterAcPower() - _settings.InverterPower) * (-1);
+        if (inverterAcOverload > 0)
+        {
+            _logger.LogDebug("As inverter power is higher than max inverter AC power, overage is reduced by overload");
+            overage -= (inverterAcOverload.Value - batteryMinChargingPower);
+        }
+        return overage;
+    }
+
+    private int GetBatteryTargetChargingPower()
+    {
+        var actualHomeBatterySoc = _settings.HomeBatterySoc;
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        if (actualHomeBatterySoc < homeBatteryMinSoc)
+        {
+            return homeBatteryMaxChargingPower ?? 0;
+        }
+
+        return 0;
+    }
+
+    private async Task<int?> CalculateDynamicHomeBatteryMinSoc(CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}()", nameof(CalculateDynamicHomeBatteryMinSoc));
+        var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
+        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        if (homeBatteryUsableEnergy == default)
+        {
+            _logger.LogWarning("Dynamic Home Battery Min SoC is enabled, but no usable energy configured. Using configured home battery min soc.");
+            return null;
+        }
+        var currentHomeBatterySoc = _settings.HomeBatterySoc;
+        if (currentHomeBatterySoc == default)
+        {
+            _logger.LogWarning("Dynamic Home Battery Min SoC is enabled, bur current Soc is unknown.");
+            return null;
+        }
+        var nextSunset = _sunCalculator.CalculateSunset(_configurationWrapper.HomeGeofenceLatitude(),
+            _configurationWrapper.HomeGeofenceLongitude(), currentDate);
+        if (nextSunset < currentDate)
+        {
+            nextSunset = _sunCalculator.CalculateSunset(_configurationWrapper.HomeGeofenceLatitude(),
+                _configurationWrapper.HomeGeofenceLongitude(), currentDate.AddDays(1));
+        }
+        if (nextSunset == default)
+        {
+            _logger.LogWarning("Could not calculate sunrise for current date {currentDate}. Using configured home battery min soc.", currentDate);
+            return null;
+        }
+        //Do not try to fully charge to allow some buffer with fast reaction time compared to cars.
+        var fullBatterySoc = 95;
+        var requiredEnergyForFullBattery = (int)(homeBatteryUsableEnergy.Value * ((fullBatterySoc - currentHomeBatterySoc.Value) / 100.0m));
+        if (requiredEnergyForFullBattery < 1)
+        {
+            _logger.LogDebug("No energy required to charge home battery to full.");
+            return null;
+        }
+        var predictionInterval = TimeSpan.FromHours(1);
+        var fullBatteryTargetTime = new DateTimeOffset(nextSunset.Value.Year, nextSunset.Value.Month, nextSunset.Value.Day,
+            nextSunset.Value.Hour, 0, 0, nextSunset.Value.Offset);
+        var currentDateWith0Minutes = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, currentDate.Offset);
+        var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentDateWith0Minutes, fullBatteryTargetTime, predictionInterval, cancellationToken).ConfigureAwait(false);
+        return _homeBatteryEnergyCalculator.CalculateRequiredInitialStateOfChargeFraction(
+            predictedSurplusPerSlices, homeBatteryUsableEnergy.Value, 5, fullBatterySoc);
+
+    }
+
     private async Task<DtoTimeZonedChargingTarget?> GetNextTarget(int carId, CancellationToken cancellationToken)
     {
         var chargingTargets = await _context.CarChargingTargets
@@ -232,16 +399,17 @@ public class ChargingServiceV2 : IChargingServiceV2
     /// <param name="carSoC"></param>
     /// <param name="maxPhases"></param>
     /// <param name="maxCurrent"></param>
+    /// <param name="carId"></param>
+    /// <param name="chargingConnectorId"></param>
     /// <returns></returns>
-    private DtoChargingSchedule? GenerateEarliestOrLatestPossibleChargingSchedule(
-        int chargingTargetSoc,
+    private DtoChargingSchedule? GenerateEarliestOrLatestPossibleChargingSchedule(int chargingTargetSoc,
         DateTimeOffset? targetTimeUtc,
-        int? carUsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent)
+        int? carUsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent, int? carId, int? chargingConnectorId)
     {
         _logger.LogTrace(
-            "{method}({chargingTargetSoc}, {targetTimeUtc}, {usableEnergy}, {soc}, {maxPhases}, {maxCurrent})",
+            "{method}({chargingTargetSoc}, {targetTimeUtc}, {usableEnergy}, {soc}, {maxPhases}, {maxCurrent}, {carId}, {chargingConnectorId})",
             nameof(GenerateEarliestOrLatestPossibleChargingSchedule),
-            chargingTargetSoc, targetTimeUtc, carUsableEnergy, carSoC, maxPhases, maxCurrent);
+            chargingTargetSoc, targetTimeUtc, carUsableEnergy, carSoC, maxPhases, maxCurrent, carId, chargingConnectorId);
 
         var energyToCharge = CalculateEnergyToCharge(
             chargingTargetSoc,
@@ -267,7 +435,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         if (targetTimeUtc == default)
         {
-            return new DtoChargingSchedule()
+            return new DtoChargingSchedule(carId, chargingConnectorId)
             {
                 StartTime = _dateTimeProvider.DateTimeOffSetUtcNow(),
                 EndTime = _dateTimeProvider.DateTimeOffSetUtcNow() + chargingDuration,
@@ -277,7 +445,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         var startTime = targetTimeUtc.Value - chargingDuration;
 
-        return new DtoChargingSchedule()
+        return new DtoChargingSchedule(carId, chargingConnectorId)
         {
             StartTime = startTime,
             EndTime = targetTimeUtc.Value,
@@ -299,12 +467,17 @@ public class ChargingServiceV2 : IChargingServiceV2
         return maxChargingPower;
     }
 
-    private async Task<(int? carUsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent)> GetChargingScheduleRelevantData(int? carId, int? chargingConnectorId)
+    private async Task<(int? UsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent, int? minPhases, int? minCurrent)> GetChargingScheduleRelevantData(int? carId, int? chargingConnectorId)
     {
         var connectorData = chargingConnectorId != default
             ? await _context.OcppChargingStationConnectors
                 .Where(c => c.Id == chargingConnectorId)
-                .Select(c => new { c.ConnectedPhasesCount, c.MaxCurrent })
+                .Select(c => new
+                {
+                    c.ConnectedPhasesCount,
+                    c.MaxCurrent,
+                    c.MinCurrent,
+                })
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false)
             : null;
@@ -312,61 +485,63 @@ public class ChargingServiceV2 : IChargingServiceV2
         var carData = carId != default
             ? await _context.Cars
                 .Where(c => c.Id == carId)
-                .Select(c => new { c.MaximumAmpere, c.UsableEnergy })
+                .Select(c => new
+                {
+                    c.MaximumAmpere,
+                    c.UsableEnergy,
+                    c.MinimumAmpere,
+                })
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false)
             : null;
 
-        // 2) Get settings for car phases and SoC
         var carSetting = _settings.Cars.FirstOrDefault(c => c.Id == carId);
         var carSoC = carSetting?.SoC;
         var carPhases = carSetting?.ActualPhases;
 
-        // 3) Compute atomic values
-        var maxPhases = CalculateMaxPhases(
-            connectorData?.ConnectedPhasesCount,
-            carPhases);
+        var maxPhases = CalculateMaxValue(connectorData?.ConnectedPhasesCount, carPhases);
+        var maxCurrent = CalculateMaxValue(connectorData?.MaxCurrent, carData?.MaximumAmpere);
+        var minPhases = CalculateMinValue(connectorData?.ConnectedPhasesCount, carPhases);
+        var minCurrent = CalculateMinValue(connectorData?.MinCurrent, carData?.MinimumAmpere);
 
-        var maxCurrent = CalculateMaxCurrent(
-            connectorData?.MaxCurrent,
-            carData?.MaximumAmpere);
-        return (carData?.UsableEnergy, carSoC, maxPhases, maxCurrent);
+
+        return (carData?.UsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent);
     }
 
     // Helpers — pure, primitive parameters
 
-    private int? CalculateMaxPhases(
-        int? connectorPhases,
-        int? carPhases)
+    private int? CalculateMaxValue(
+        int? connectorValue,
+        int? carValue)
     {
-        if (connectorPhases == default)
+        if (connectorValue == default)
         {
-            return carPhases;
+            return carValue;
         }
 
-        if (carPhases != default && carPhases < connectorPhases)
+        if (carValue != default && carValue < connectorValue)
         {
-            return carPhases;
+            return carValue;
         }
 
-        return connectorPhases;
+        return connectorValue;
     }
 
-    private int? CalculateMaxCurrent(
-        int? connectorCurrent,
-        int? carMaxAmpere)
+    private int? CalculateMinValue(
+        int? connectorValue,
+        int? carValue)
     {
-        if (connectorCurrent == default)
+        if (connectorValue == default)
         {
-            return carMaxAmpere;
+            return carValue;
         }
 
-        if (carMaxAmpere != default && carMaxAmpere < connectorCurrent)
+        if (carValue != default && carValue > connectorValue)
         {
-            return carMaxAmpere;
+            return carValue;
         }
 
-        return connectorCurrent;
+        return connectorValue;
     }
 
     private int? CalculateEnergyToCharge(

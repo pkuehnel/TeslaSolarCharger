@@ -64,10 +64,20 @@ else
         <GenericInput For="() => _dtoBaseConfiguration.PowerBuffer" />
 
         <GenericInput For="() => _dtoBaseConfiguration.AllowPowerBufferChangeOnHome"></GenericInput>
-
-        <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryMinSoc" />
+        
+        <div class="row">
+            <div class="col-md-6">
+                <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryMinSoc" />
+            </div>
+            <div class="col-md-6">
+                <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryMinSoc" />
+            </div>
+        </div>
+        
 
         <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryChargingPower" />
+
+        <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryUsableEnergy" />
 
         <GenericInput For="() => _dtoBaseConfiguration.MaxInverterAcPower" />
 

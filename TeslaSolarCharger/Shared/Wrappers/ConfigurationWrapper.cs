@@ -569,6 +569,11 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().HomeBatteryPowerCorrectionFactor;
     }
 
+    public bool DynamicHomeBatteryMinSoc()
+    {
+        return GetBaseConfiguration().DynamicHomeBatteryMinSoc == true;
+    }
+
     public int? HomeBatteryMinSoc()
     {
         return GetBaseConfiguration().HomeBatteryMinSoc;
@@ -577,6 +582,15 @@ public class ConfigurationWrapper(
     public int? HomeBatteryChargingPower()
     {
         return GetBaseConfiguration().HomeBatteryChargingPower;
+    }
+
+    /// <summary>
+    /// Value is in Wh
+    /// </summary>
+    /// <returns></returns>
+    public int? HomeBatteryUsableEnergy()
+    {
+        return GetBaseConfiguration().HomeBatteryUsableEnergy == default ? null : (int?)(GetBaseConfiguration().HomeBatteryUsableEnergy * 1000);
     }
 
     public int? MaxInverterAcPower()

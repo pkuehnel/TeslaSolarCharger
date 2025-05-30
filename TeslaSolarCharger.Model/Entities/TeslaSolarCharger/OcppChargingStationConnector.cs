@@ -19,6 +19,7 @@ public class OcppChargingStationConnector
     public int? SwitchOffAtCurrent { get; set; }
     public int? MaxCurrent { get; set; }
     public int? ConnectedPhasesCount { get; set; }
+    public int ChargingPriority { get; set; }
 
     public int OcppChargingStationId { get; set; }
 
