@@ -115,4 +115,6 @@ public interface IConfigurationWrapper
     bool UseFakeEnergyHistory();
     TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
     bool UseChargingServiceV2();
+    int? HomeBatteryUsableEnergy();
+    bool DynamicHomeBatteryMinSoc();
 }
