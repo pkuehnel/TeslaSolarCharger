@@ -8,12 +8,10 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class HomeController : ApiBaseController
 {
     private readonly IHomeService _homeService;
-    private readonly IChargingServiceV2 _chargingServiceV2;
 
-    public HomeController(IHomeService homeService, IChargingServiceV2 chargingServiceV2)
+    public HomeController(IHomeService homeService)
     {
         _homeService = homeService;
-        _chargingServiceV2 = chargingServiceV2;
     }
 
     [HttpGet]
