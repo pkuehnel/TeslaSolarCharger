@@ -112,6 +112,7 @@ public class BaseConfigurationBase
     public string? HomeBatteryPowerXmlAttributeHeaderName { get; set; }
     public string? HomeBatteryPowerXmlAttributeHeaderValue { get; set; }
     public string? HomeBatteryPowerXmlAttributeValueName { get; set; }
+
     [DisplayName("Dynamic Home Battery Min Soc")]
     [Postfix("%")]
     [HelperText("If enabled the Home Battery Min Soc is automatically set based on solar predictions to make sure the home battery is fully charged at the end of the day. This setting is only recommended after having solar predictions enabled for at least two weeks.")]
