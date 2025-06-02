@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Model.Contracts;
+﻿using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -11,6 +12,7 @@ public class LoadPointManagementService : ILoadPointManagementService
 {
     private readonly ILogger<LoadPointManagementService> _logger;
     private readonly ISettings _settings;
+    private readonly ITeslaSolarChargerContext _context;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IIssueKeys _issueKeys;
@@ -24,11 +26,16 @@ public class LoadPointManagementService : ILoadPointManagementService
     {
         _logger = logger;
         _settings = settings;
+        _context = context;
         _configurationWrapper = configurationWrapper;
         _errorHandlingService = errorHandlingService;
         _issueKeys = issueKeys;
     }
 
+    /// <summary>
+    /// Get all loadpoints that are plugged in at home.
+    /// </summary>
+    /// <returns>List of loadpoints ordered by charging priority</returns>
     public async Task<List<DtoLoadpoint>> GetPluggedInLoadPoints()
     {
         _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
@@ -47,7 +54,24 @@ public class LoadPointManagementService : ILoadPointManagementService
             });
         }
         await AddPluggedInChargingConnectorsAndTryAutomatchToExistingLoadpoints(pluggedInChargingConnectors, result).ConfigureAwait(false);
-        return result;
+        var pluggedInChargingConnectorIds = result
+            .Where(l => l.OcppConnectorId != default)
+            .Select(l => l.OcppConnectorId!.Value)
+            .ToHashSet();
+        var chargingConnectorPriorites = await _context.OcppChargingStationConnectors
+            .Where(c => pluggedInChargingConnectorIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.ChargingPriority);
+        foreach (var dtoLoadpoint in result)
+        {
+            var carPriority = dtoLoadpoint.Car?.ChargingPriority;
+            if (carPriority == default)
+            {
+                dtoLoadpoint.Priority = chargingConnectorPriorites.GetValueOrDefault(dtoLoadpoint.OcppConnectorId ?? 0, 99);
+                continue;
+            }
+            dtoLoadpoint.Priority = carPriority.Value;
+        }
+        return result.OrderBy(c => c.Priority).ToList();
     }
 
     private async Task AddPluggedInChargingConnectorsAndTryAutomatchToExistingLoadpoints(Dictionary<int, DtoOcppConnectorState> pluggedInChargingConnectors, List<DtoLoadpoint> result)
