@@ -1,5 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -397,6 +396,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         var voltage = _settings.AverageHomeGridVoltage ?? 230;
+        var powerBeforeChanges = loadpoint.ActualChargingPower ?? 0;
+        var currentBeforeChanges = loadpoint.ActualCurrent ?? 0;
         if (useCarToManageChargingSpeed && loadpoint.OcppConnectorId != default)
         {
             #region Set OCPP to max power on OCPP loadpoints where car is directly controlled by TSC
@@ -446,10 +447,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             isCharging = loadpoint.OcppConnectorState?.IsCharging.Value ?? false;
         }
-
-        var powerBeforeChanges = loadpoint.ActualChargingPower ?? 0;
-        var currentBeforeChanges = loadpoint.ActualCurrent ?? 0;
-
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         if (isCharging)
         {
@@ -494,11 +491,16 @@ public class ChargingServiceV2 : IChargingServiceV2
                     && (loadpoint.Car.ShouldStartCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOn())))
                 {
                     var currentToStartChargingWith = powerToSet / voltage / loadpoint.Car.ActualPhases;
+                    if (maxAdditionalCurrent < currentToStartChargingWith)
+                    {
+                        currentToStartChargingWith = (int)maxAdditionalCurrent;
+                    }
                     if (currentToStartChargingWith < minCurrent)
                     {
-                        currentToStartChargingWith = minCurrent.Value;
+                        return (0, 0);
                     }
-                    else if (currentToStartChargingWith > maxCurrent)
+
+                    if (currentToStartChargingWith > maxCurrent)
                     {
                         currentToStartChargingWith = maxCurrent.Value;
                     }
@@ -542,11 +544,15 @@ public class ChargingServiceV2 : IChargingServiceV2
                         }
                     }
                     var currentToStartChargingWith = powerToSet / voltage / phasesToStartChargingWith;
+                    if (maxAdditionalCurrent < currentToStartChargingWith)
+                    {
+                        currentToStartChargingWith = (int)maxAdditionalCurrent;
+                    }
                     if (currentToStartChargingWith < minCurrent)
                     {
-                        currentToStartChargingWith = minCurrent.Value;
+                        return (0, 0);
                     }
-                    else if (currentToStartChargingWith > maxCurrent)
+                    if (currentToStartChargingWith > maxCurrent)
                     {
                         currentToStartChargingWith = maxCurrent.Value;
                     }
@@ -599,11 +605,15 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (useCarToManageChargingSpeed)
             {
                 var currentToChargeWith = powerToSet / voltage / loadpoint.Car!.ActualPhases;
+                if (maxAdditionalCurrent < currentToChargeWith)
+                {
+                    currentToChargeWith = (int)maxAdditionalCurrent;
+                }
                 if (currentToChargeWith < minCurrent)
                 {
                     currentToChargeWith = minCurrent.Value;
                 }
-                else if (currentToChargeWith > maxCurrent)
+                if (currentToChargeWith > maxCurrent)
                 {
                     currentToChargeWith = maxCurrent.Value;
                 }
@@ -650,24 +660,29 @@ public class ChargingServiceV2 : IChargingServiceV2
                         return (-powerBeforeChanges, -currentBeforeChanges);
                     }
                 }
-                var currentToStartChargingWith = (decimal)powerToSet / voltage / phasesToChargeWith;
-                if (currentToStartChargingWith < minCurrent)
+                var currentToChargeWith = (decimal)powerToSet / voltage / phasesToChargeWith;
+                if (maxAdditionalCurrent < currentToChargeWith)
                 {
-                    currentToStartChargingWith = minCurrent.Value;
+                    currentToChargeWith = maxAdditionalCurrent;
                 }
-                else if (currentToStartChargingWith > maxCurrent)
+                if (currentToChargeWith < minCurrent)
                 {
-                    currentToStartChargingWith = maxCurrent.Value;
+                    return (0, 0);
                 }
-                var ampChangeResult = await _ocppChargePointActionService.StartCharging(loadpoint.OcppConnectorId!.Value, currentToStartChargingWith, phasesToChargeWith, cancellationToken).ConfigureAwait(false);
+
+                if (currentToChargeWith > maxCurrent)
+                {
+                    currentToChargeWith = maxCurrent.Value;
+                }
+                var ampChangeResult = await _ocppChargePointActionService.StartCharging(loadpoint.OcppConnectorId!.Value, currentToChargeWith, phasesToChargeWith, cancellationToken).ConfigureAwait(false);
                 if (ampChangeResult.HasError)
                 {
                     _logger.LogError("Error starting OCPP charge point for connector {loadpointId}: {errorMessage}",
                         loadpoint.OcppConnectorId, ampChangeResult.ErrorMessage);
                     return (0, 0);
                 }
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToChargeWith, currentToStartChargingWith);
-                return (actuallySetPower, currentToStartChargingWith);
+                var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToChargeWith, currentToChargeWith);
+                return (actuallySetPower, currentToChargeWith);
             }
             #endregion
         }
