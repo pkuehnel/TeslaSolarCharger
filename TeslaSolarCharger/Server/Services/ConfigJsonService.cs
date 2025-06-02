@@ -177,6 +177,8 @@ public class ConfigJsonService(
             {
                 Vin = c.Vin ?? string.Empty,
                 MinimumAmpere = c.MinimumAmpere,
+                SwitchOffAtCurrent = c.SwitchOffAtCurrent,
+                SwitchOnAtCurrent = c.SwitchOnAtCurrent,
                 MaximumAmpere = c.MaximumAmpere,
                 UsableEnergy = c.UsableEnergy,
                 ChargingPriority = c.ChargingPriority,
@@ -271,6 +273,8 @@ public class ConfigJsonService(
         databaseCar.Name = carBasicConfiguration.Name;
         databaseCar.Vin = carBasicConfiguration.Vin;
         databaseCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
+        databaseCar.SwitchOffAtCurrent = carBasicConfiguration.SwitchOffAtCurrent;
+        databaseCar.SwitchOnAtCurrent = carBasicConfiguration.SwitchOnAtCurrent;
         databaseCar.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
         databaseCar.UsableEnergy = carBasicConfiguration.UsableEnergy;
         databaseCar.ChargingPriority = carBasicConfiguration.ChargingPriority;

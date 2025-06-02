@@ -28,6 +28,12 @@ public class CarBasicConfiguration
     [Postfix("A")]
     [HelperText("TSC never sets a current above this value. This value is also used in the Max Power charge mode.")]
     public int MaximumAmpere { get; set; }
+    [Postfix("A")]
+    [HelperText("The charging point will stop charging when the available current drops below this value. This allows charging to continue for a while even if the current dips slightly, preventing unnecessary interruptions. Note: If you set this value to e.g. 3A while Min Current is set to 6A, charging will continue with 6A as long as there is enough solar power for 3A.")]
+    public int? SwitchOffAtCurrent { get; set; }
+    [Postfix("A")]
+    [HelperText("The charging point will only begin charging when the available current exceeds this value. Helps to avoid starting the charging process too frequently due to small current fluctuations.")]
+    public int? SwitchOnAtCurrent { get; set; }
     [Postfix("kWh")]
     [HelperText("This value is used to reach a desired SoC in time if on spot price or PVOnly charge mode.")]
     public int UsableEnergy { get; set; }
@@ -63,6 +69,12 @@ public class CarBasicConfigurationValidator : AbstractValidator<CarBasicConfigur
                 .WithMessage("Maximum Ampere must be greater than or equal to Minimum Ampere.");
             RuleFor(x => x.UsableEnergy).GreaterThan(5);
             RuleFor(x => x.ChargingPriority).GreaterThan(0);
+            When(x => x.SwitchOnAtCurrent != default && x.SwitchOffAtCurrent != default, () =>
+            {
+                RuleFor(x => x)
+                    .Must(config => config.SwitchOnAtCurrent >= config.SwitchOffAtCurrent)
+                    .WithMessage("Switch On At Current must be greater than or equal to Switch Off At Current.");
+            });
         });
         
     }
