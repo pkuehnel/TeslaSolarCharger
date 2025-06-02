@@ -84,7 +84,7 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
                 logger.LogError("Error while sending RemoteStartTransaction to charge point {chargePointId}: Not Accepted", chargePointId);
                 return new(ocppResponse, $"The Charge point {chargePointId} did not accept the request", null);
             }
-            await UpdateLastSetCurrent(chargePointId, connectorId, currentToSet, cancellationToken).ConfigureAwait(false);
+            await UpdateLastSetValues(chargePointId, connectorId, currentToSet, numberOfPhases, cancellationToken).ConfigureAwait(false);
             return new(ocppResponse, null, null);
         }
         catch (OcppCallErrorException ex)
@@ -142,7 +142,7 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
                 logger.LogError("Error while sending RemoteStopTransaction to charge point {chargePointId}: Not Accepted", chargePointId);
                 return new(ocppResponse, $"The Charge point {chargePointId} did not accept the request", null);
             }
-            await UpdateLastSetCurrent(chargePointId, connectorId, 0, cancellationToken).ConfigureAwait(false);
+            await UpdateLastSetValues(chargePointId, connectorId, 0, null, cancellationToken).ConfigureAwait(false);
             return new(ocppResponse, null, null);
         }
         catch (OcppCallErrorException ex)
@@ -202,7 +202,7 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
                 logger.LogError("Error while sending SetChargingProfile to charge point {chargePointId}. Status: {status}", chargePointId, ocppResponse.Status);
                 return new(ocppResponse, $"The Charge point {chargePointId} did not accept the request", null);
             }
-            await UpdateLastSetCurrent(chargePointId, connectorId, currentToSet, cancellationToken).ConfigureAwait(false);
+            await UpdateLastSetValues(chargePointId, connectorId, currentToSet, numberOfPhases, cancellationToken).ConfigureAwait(false);
             return new(ocppResponse, null, null);
         }
         catch (OcppCallErrorException ex)
@@ -222,14 +222,15 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
         }
     }
 
-    private async Task UpdateLastSetCurrent(string chargePointId, int connectorId, decimal setCurrent, CancellationToken cancellationToken)
+    private async Task UpdateLastSetValues(string chargePointId, int connectorId, decimal setCurrent, int? phases, CancellationToken cancellationToken)
     {
-        logger.LogTrace("{method}({chargePointId}, {chargingConnectorId}, {setCurrent})", nameof(UpdateLastSetCurrent), chargePointId, connectorId, setCurrent);
+        logger.LogTrace("{method}({chargePointId}, {chargingConnectorId}, {setCurrent}, {phases})", nameof(UpdateLastSetValues), chargePointId, connectorId, setCurrent, phases);
         var chargingConnectorId = await GetDbChargingConnectorId(connectorId, chargePointId, cancellationToken).ConfigureAwait(false);
         if (settings.OcppConnectorStates.TryGetValue(chargingConnectorId, out var connectorState))
         {
             var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
             connectorState.LastSetCurrent.Update(currentDate, setCurrent);
+            connectorState.LastSetPhases.Update(currentDate, phases);
         }
         else
         {

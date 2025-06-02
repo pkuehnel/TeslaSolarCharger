@@ -402,7 +402,7 @@ public class ChargingService(
                         return 0;
                     }
                     logger.LogDebug("Charging schould start.");
-                    await teslaService.StartCharging(dtoCar.Id, ampToSet, dtoCar.State).ConfigureAwait(false);
+                    await teslaService.StartCharging(dtoCar.Id, ampToSet).ConfigureAwait(false);
                     ampChange += ampToSet - (actualCurrent ?? 0);
                 }
                 else
@@ -451,7 +451,7 @@ public class ChargingService(
             {
                 logger.LogDebug("Charging is starting");
                 var startAmp = finalAmpsToSet > maxAmpPerCar ? maxAmpPerCar : finalAmpsToSet;
-                await teslaService.StartCharging(dtoCar.Id, startAmp, dtoCar.State).ConfigureAwait(false);
+                await teslaService.StartCharging(dtoCar.Id, startAmp).ConfigureAwait(false);
                 ampChange += startAmp;
             }
         }

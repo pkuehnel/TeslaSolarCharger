@@ -21,6 +21,8 @@ public class Car
     public int MaximumAmpere { get; set; }
 
     public int MinimumAmpere { get; set; }
+    public int? SwitchOnAtCurrent { get; set; }
+    public int? SwitchOffAtCurrent { get; set; }
 
     public int UsableEnergy { get; set; }
 
