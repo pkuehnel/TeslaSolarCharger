@@ -93,9 +93,9 @@ public class TeslaFleetApiService(
         TeslaApiRequestType = TeslaApiRequestType.VehicleData,
     };
 
-    public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
+    public async Task StartCharging(int carId, int startAmp)
     {
-        logger.LogTrace("{method}({carId}, {startAmp}, {carState})", nameof(StartCharging), carId, startAmp, carState);
+        logger.LogTrace("{method}({carId}, {startAmp})", nameof(StartCharging), carId, startAmp);
         var car = settings.Cars.First(c => c.Id == carId);
         if (car.ChargeStartCalls.OrderDescending().FirstOrDefault() > (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(1)))
         {

@@ -32,6 +32,8 @@ public class DtoCar
     public int ChargingPriority { get; set; }
 
     public string? Name { get; set; }
+    public DtoTimeStampedValue<bool?> ShouldStartCharging { get; set; } = new(DateTimeOffset.MinValue, null);
+    public DtoTimeStampedValue<bool?> ShouldStopCharging { get; set; } = new(DateTimeOffset.MinValue, null);
     public DateTime? ShouldStartChargingSince { get; set; }
     public DateTime? EarliestSwitchOn { get; set; }
     public DateTime? ShouldStopChargingSince { get; set; }
