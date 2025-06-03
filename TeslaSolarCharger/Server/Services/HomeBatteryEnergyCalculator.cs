@@ -1,8 +1,9 @@
 ﻿using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
-public class HomeBatteryEnergyCalculator(ILogger<HomeBatteryEnergyCalculator> logger) : IHomeBatteryEnergyCalculator
+public class HomeBatteryEnergyCalculator(ILogger<HomeBatteryEnergyCalculator> logger, IConfigurationWrapper configurationWrapper) : IHomeBatteryEnergyCalculator
 {
     /// <summary>
     /// Calculates the required initial state-of-charge (SOC) percentage so that:
@@ -37,9 +38,17 @@ public class HomeBatteryEnergyCalculator(ILogger<HomeBatteryEnergyCalculator> lo
         var energyInBattery = minimumEnergy;
         var localDictionary = energyDifferences.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
         var closestDistanceToMaxEnergy = batteryUsableCapacityInWh - energyInBattery;
+        var batteryMaxChargingPower = configurationWrapper.HomeBatteryChargingPower();
         foreach (var energyDifference in localDictionary)
         {
-            energyInBattery += energyDifference.Value;
+            if (energyDifference.Value > batteryMaxChargingPower)
+            {
+                energyInBattery += batteryMaxChargingPower.Value;
+            }
+            else
+            {
+                energyInBattery += energyDifference.Value;
+            }
             closestDistanceToMaxEnergy = Math.Min(closestDistanceToMaxEnergy, batteryUsableCapacityInWh - energyInBattery);
             if (energyInBattery > batteryUsableCapacityInWh)
             {
