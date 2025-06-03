@@ -16,7 +16,7 @@ public class SunCalculator : ISunCalculator
 
     public DateTimeOffset? CalculateSunset(double latitude, double longitude, DateTimeOffset date)
     {
-        var dateOnly = date.Date;
+        var dateOnly = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
         var dayOfYear = dateOnly.DayOfYear;
         var longitudeHour = longitude / 15.0;
 
@@ -55,13 +55,17 @@ public class SunCalculator : ISunCalculator
                                       - (SunTimeFactor * approximateTimeSunset)
                                       - SunTimeOffset;
             var utcSunsetHour = localMeanTimeSunset - longitudeHour;
+            if (utcSunsetHour < 0)
+            {
+                utcSunsetHour += 24.0;
+            }
             return new DateTimeOffset(dateOnly.AddHours(utcSunsetHour));
         }
     }
 
     public DateTimeOffset? CalculateSunrise(double latitude, double longitude, DateTimeOffset date)
     {
-        var dateOnly = date.Date;
+        var dateOnly = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
         var dayOfYear = dateOnly.DayOfYear;
         var longitudeHour = longitude / 15.0;
 
@@ -109,7 +113,7 @@ public class SunCalculator : ISunCalculator
                                    - (SunTimeFactor * approximateTimeSunrise)
                                    - SunTimeOffset;
         var utcSunriseHour = localMeanTimeSunrise - longitudeHour;
-        return new DateTimeOffset(dateOnly.AddHours(utcSunriseHour));
+        return new DateTimeOffset(dateOnly.AddHours(utcSunriseHour), TimeSpan.Zero);
     }
 
     // Normalize an angle to [0,360)

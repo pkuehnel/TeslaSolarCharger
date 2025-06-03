@@ -10,7 +10,7 @@ public class ChargingValueJob(ILogger<ChargingValueJob> logger, IChargingService
     public async Task Execute(IJobExecutionContext context)
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
-        var restPowerIncrease = await chargingService.SetNewChargingValues().ConfigureAwait(false);
-        await chargingServiceV2.SetNewChargingValues(restPowerIncrease, context.CancellationToken);
+        //var restPowerIncrease = await chargingService.SetNewChargingValues().ConfigureAwait(false);
+        await chargingServiceV2.SetNewChargingValues(context.CancellationToken);
     }
 }
