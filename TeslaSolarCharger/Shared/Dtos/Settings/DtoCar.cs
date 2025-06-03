@@ -96,7 +96,12 @@ public class DtoCar
         {
             if (_chargingPower == default)
             {
-                return ChargerActualCurrent * ChargerVoltage * ActualPhases;
+                var actualCurrent = ChargerActualCurrent;
+                if (actualCurrent > ChargerRequestedCurrent)
+                {
+                    actualCurrent = ChargerRequestedCurrent;
+                }
+                return actualCurrent * ChargerVoltage * ActualPhases;
             }
             return _chargingPower;
         }
