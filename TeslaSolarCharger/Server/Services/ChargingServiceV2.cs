@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -741,7 +741,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     currentDate - _configurationWrapper.TimespanUntilSwitchOn());
 
                 if ((loadpoint.Car!.ShouldStartCharging.Value == false)
-                    || (loadpoint.Car.ShouldStartCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOn())))
+                    || (loadpoint.Car.ShouldStartCharging.LastChanged > (currentDate - _configurationWrapper.TimespanUntilSwitchOn())))
                 {
                     return (0, 0);
                 }
@@ -756,7 +756,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     currentDate - _configurationWrapper.TimespanUntilSwitchOn());
 
                 if ((loadpoint.OcppConnectorState!.ShouldStartCharging.Value == false)
-                    || (loadpoint.OcppConnectorState.ShouldStartCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOn())))
+                    || (loadpoint.OcppConnectorState.ShouldStartCharging.LastChanged > (currentDate - _configurationWrapper.TimespanUntilSwitchOn())))
                 {
                     return (0, 0);
                 }
