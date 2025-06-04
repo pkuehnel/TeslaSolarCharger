@@ -30,6 +30,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IHomeBatteryEnergyCalculator _homeBatteryEnergyCalculator;
     private readonly IConstants _constants;
     private readonly ITeslaService _teslaService;
+    private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -43,7 +44,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         ISunCalculator sunCalculator,
         IHomeBatteryEnergyCalculator homeBatteryEnergyCalculator,
         IConstants constants,
-        ITeslaService teslaService)
+        ITeslaService teslaService,
+        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -58,6 +60,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _homeBatteryEnergyCalculator = homeBatteryEnergyCalculator;
         _constants = constants;
         _teslaService = teslaService;
+        _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -70,7 +73,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await CalculateGeofences();
         var loadPoints = await _loadPointManagementService.GetPluggedInLoadPoints();
         var powerToControl = await CalculatePowerToControl(loadPoints.Select(l => l.ActualChargingPower ?? 0).Sum(), cancellationToken).ConfigureAwait(false);
-        await UpdateShouldStartStopChargingTimes(powerToControl);
+        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl, loadPoints);
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var chargingSchedules = new List<DtoChargingSchedule>();
         foreach (var dtoLoadpoint in loadPoints)
@@ -187,95 +190,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         var d3 = Math.Pow(Math.Sin((d2 - d1) / 2.0), 2.0) + Math.Cos(d1) * Math.Cos(d2) * Math.Pow(Math.Sin(num2 / 2.0), 2.0);
 
         return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
-    }
-
-    private async Task UpdateShouldStartStopChargingTimes(int powerToChargeWith)
-    {
-        _logger.LogTrace("{method}({powerToChargeWith})", nameof(UpdateShouldStartStopChargingTimes), powerToChargeWith);
-        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        foreach (var ocppConnectorState in _settings.OcppConnectorStates)
-        {
-            var ocppDatabaseData = await _context.OcppChargingStationConnectors
-                .Where(c => c.Id == ocppConnectorState.Key)
-                .Select(c => new
-                {
-                    c.MinCurrent,
-                    c.MaxCurrent,
-                    c.ConnectedPhasesCount,
-                    c.AutoSwitchBetween1And3PhasesEnabled,
-                    c.SwitchOffAtCurrent,
-                    c.SwitchOnAtCurrent,
-                })
-                .FirstAsync().ConfigureAwait(false);
-            if (ocppDatabaseData.ConnectedPhasesCount == default)
-            {
-                _logger.LogError("Connected phases unknown for connector {connectorId}", ocppConnectorState.Key);
-                return;
-            }
-            if (ocppDatabaseData.MinCurrent == default)
-            {
-                _logger.LogError("Min current unknown for connector {connectorId}", ocppConnectorState.Key);
-                return;
-            }
-            if (ocppDatabaseData.MaxCurrent == default)
-            {
-                _logger.LogError("Max current unknown for connector {connectorId}", ocppConnectorState.Key);
-                return;
-            }
-            if (ocppDatabaseData.ConnectedPhasesCount == default)
-            {
-                _logger.LogError("Connected phases unknown for connector {connectorId}", ocppConnectorState.Key);
-                return;
-            }
-            if (ocppDatabaseData.SwitchOffAtCurrent == default)
-            {
-                _logger.LogError("Switch off current unknown for connector {connectorId}", ocppConnectorState.Key);
-                return;
-            }
-            if (ocppDatabaseData.SwitchOnAtCurrent == default)
-            {
-                _logger.LogError("Switch on current unknown for connector {connectorId}", ocppConnectorState.Key);
-                return;
-            }
-            var targetPower = powerToChargeWith;
-            var minPhases = ocppDatabaseData.AutoSwitchBetween1And3PhasesEnabled ? 1 : ocppDatabaseData.ConnectedPhasesCount.Value;
-            var shouldStartChargingPower =
-                GetPowerAtPhasesAndCurrent(minPhases, ocppDatabaseData.SwitchOnAtCurrent.Value);
-            ocppConnectorState.Value.ShouldStartCharging.Update(currentDate, shouldStartChargingPower < targetPower);
-            var shouldStopChargingPower =
-                GetPowerAtPhasesAndCurrent(minPhases, ocppDatabaseData.SwitchOffAtCurrent.Value);
-            ocppConnectorState.Value.ShouldStopCharging.Update(currentDate, shouldStopChargingPower > targetPower);
-            if (ocppDatabaseData.AutoSwitchBetween1And3PhasesEnabled)
-            {
-                var minPowerThreePhase =
-                    GetPowerAtPhasesAndCurrent(ocppDatabaseData.ConnectedPhasesCount.Value, ocppDatabaseData.MinCurrent.Value);
-                ocppConnectorState.Value.CanHandlePowerOnThreePhase.Update(currentDate, minPowerThreePhase < targetPower);
-                var minPowerOnePhase =
-                    GetPowerAtPhasesAndCurrent(ocppDatabaseData.ConnectedPhasesCount.Value, ocppDatabaseData.MinCurrent.Value);
-                var maxPowerOnOnePhase =
-                    GetPowerAtPhasesAndCurrent(ocppDatabaseData.ConnectedPhasesCount.Value, ocppDatabaseData.MaxCurrent.Value);
-                ocppConnectorState.Value.CanHandlePowerOnOnePhase.Update(currentDate, (minPowerOnePhase < targetPower)
-                                                                                      && (maxPowerOnOnePhase > targetPower));
-            }
-        }
-        foreach (var car in _settings.CarsToManage)
-        {
-            var targetPower = powerToChargeWith;
-            var phases = car.ActualPhases;
-            var carSettings = await _context.Cars
-                .Where(c => c.Id == car.Id)
-                .Select(c => new
-                {
-                    c.MinimumAmpere,
-                    c.SwitchOffAtCurrent,
-                    c.SwitchOnAtCurrent,
-                })
-                .FirstAsync().ConfigureAwait(false);
-            var switchOnPower = GetPowerAtPhasesAndCurrent(phases, carSettings.SwitchOnAtCurrent ?? carSettings.MinimumAmpere);
-            var switchOffPower = GetPowerAtPhasesAndCurrent(phases, carSettings.SwitchOffAtCurrent ?? carSettings.MinimumAmpere);
-            car.ShouldStartCharging.Update(currentDate, switchOnPower < targetPower);
-            car.ShouldStopCharging.Update(currentDate, switchOffPower > targetPower);
-        }
     }
 
     private int GetPowerAtPhasesAndCurrent(int connectedPhasesCount, decimal maxCurrent)
