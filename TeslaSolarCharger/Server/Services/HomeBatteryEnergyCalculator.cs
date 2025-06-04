@@ -77,6 +77,6 @@ public class HomeBatteryEnergyCalculator(ILogger<HomeBatteryEnergyCalculator> lo
             return minimalStateOfChargePercent;
         }
         var requiredInitialSoc = (double)(minimumEnergy + finalMissingEnergy) / batteryUsableCapacityInWh;
-        return (int)requiredInitialSoc * 100;
+        return (int)(requiredInitialSoc * 100);
     }
 }
