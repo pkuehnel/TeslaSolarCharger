@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -1080,9 +1080,9 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
         var predictionInterval = TimeSpan.FromHours(1);
         var fullBatteryTargetTime = new DateTimeOffset(nextSunset.Value.Year, nextSunset.Value.Month, nextSunset.Value.Day,
-            nextSunset.Value.Hour, 0, 0, nextSunset.Value.Offset);
-        var currentDateWith0Minutes = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, currentDate.Offset);
-        var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentDateWith0Minutes, fullBatteryTargetTime, predictionInterval, cancellationToken).ConfigureAwait(false);
+            nextSunset.Value.Hour + 1, 0, 0, nextSunset.Value.Offset);
+        var currentNextFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour + 1, 0, 0, currentDate.Offset);
+        var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentNextFullHour, fullBatteryTargetTime, predictionInterval, cancellationToken).ConfigureAwait(false);
         return _homeBatteryEnergyCalculator.CalculateRequiredInitialStateOfChargeFraction(
             predictedSurplusPerSlices, homeBatteryUsableEnergy.Value, 5, fullBatterySoc);
 
