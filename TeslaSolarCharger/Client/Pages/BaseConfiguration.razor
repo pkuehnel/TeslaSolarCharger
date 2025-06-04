@@ -64,10 +64,23 @@ else
         <GenericInput For="() => _dtoBaseConfiguration.PowerBuffer" />
 
         <GenericInput For="() => _dtoBaseConfiguration.AllowPowerBufferChangeOnHome"></GenericInput>
-
-        <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryMinSoc" />
+        
+        <div class="row">
+            <div class="col-md-6">
+                <GenericInput T="bool?"
+                              For="() => _dtoBaseConfiguration.DynamicHomeBatteryMinSoc"
+                              OnValueChanged="StateHasChanged"/>
+            </div>
+            <div class="col-md-6">
+                <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryMinSoc"
+                              IsDisabledParameter="@(_dtoBaseConfiguration.DynamicHomeBatteryMinSoc)"/>
+            </div>
+        </div>
+        
 
         <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryChargingPower" />
+
+        <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryUsableEnergy" />
 
         <GenericInput For="() => _dtoBaseConfiguration.MaxInverterAcPower" />
 
@@ -130,6 +143,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
+        if (_dtoBaseConfiguration != default && _dtoBaseConfiguration.DynamicHomeBatteryMinSoc == default)
+        {
+            _dtoBaseConfiguration.DynamicHomeBatteryMinSoc = false;
+            await InvokeAsync(() => StateHasChanged());
+        }
     }
 
     private async Task HandleValidSubmit()

@@ -11,6 +11,7 @@ public class Car
     public TeslaCarFleetApiState? TeslaFleetApiState { get; set; }
     public bool IsFleetTelemetryHardwareIncompatible { get; set; }
     public ChargeMode ChargeMode { get; set; }
+    public ChargeModeV2 ChargeModeV2 { get; set; }
     public int MinimumSoc { get; set; }
     public DateTime LatestTimeToReachSoC { get; set; }
 
@@ -20,6 +21,8 @@ public class Car
     public int MaximumAmpere { get; set; }
 
     public int MinimumAmpere { get; set; }
+    public int? SwitchOnAtCurrent { get; set; }
+    public int? SwitchOffAtCurrent { get; set; }
 
     public int UsableEnergy { get; set; }
 
@@ -57,5 +60,5 @@ public class Car
 
     public List<ChargingProcess> ChargingProcesses { get; set; } = new List<ChargingProcess>();
     public List<CarValueLog> CarValueLogs { get; set; } = new List<CarValueLog>();
-    public List<CarChargingSchedule> ChargingSchedules { get; set; } = new();
+    public List<CarChargingTarget> CarChargingTargets { get; set; } = new();
 }

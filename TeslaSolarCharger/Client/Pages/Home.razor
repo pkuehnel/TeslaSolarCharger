@@ -1,4 +1,5 @@
-﻿@page "/Home"
+﻿@page "/"
+@page "/Home"
 @using System.Diagnostics
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
@@ -86,13 +87,14 @@ else
             <div>
                 @if (loadPoint.CarId != default)
                 {
-                    <ChargingScheduleConfigurationComponent CarId="loadPoint.CarId.Value"></ChargingScheduleConfigurationComponent>
+                    <ChargingTargetConfigurationComponent CarId="loadPoint.CarId.Value"></ChargingTargetConfigurationComponent>
                 }
             </div>
             <ChargeSummaryComponent CarId="loadPoint.CarId" ChargingConnectorId="loadPoint.ChargingConnectorId"></ChargeSummaryComponent>
         </div>
     }
 }
+<HiddenErrorsComponent></HiddenErrorsComponent>
 
 @code {
     private bool _showEnergyData;
@@ -114,7 +116,7 @@ else
             {
                 CarId = 1,
                 CarName = "CarName",
-                ChargingConnectorId = 1,
+                ChargingConnectorId = 2,
                 ChargingConnectorName = "ChargingConnectorName",
                 ChargingCurrent = 10,
                 ChargingPhaseCount = 3,

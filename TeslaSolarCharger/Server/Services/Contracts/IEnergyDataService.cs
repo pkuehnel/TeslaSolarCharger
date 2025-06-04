@@ -8,4 +8,5 @@ public interface IEnergyDataService
     Task<Dictionary<DateTimeOffset, int>> GetActualHouseConsumptionByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted);
 
     Task RefreshCachedValues(CancellationToken contextCancellationToken);
+    Task<Dictionary<DateTimeOffset, int>> GetPredictedSurplusPerSlice(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken cancellationToken);
 }

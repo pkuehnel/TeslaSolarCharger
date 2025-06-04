@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250526102828_RenameChargingSchedulesToChargingTargets")]
+    partial class RenameChargingSchedulesToChargingTargets
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.3");
@@ -115,9 +118,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int>("ChargeMode")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ChargeModeV2")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("ChargeStartCalls")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -204,12 +204,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("State")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("SwitchOffAtCurrent")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("SwitchOnAtCurrent")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("TeslaFleetApiState")
@@ -739,12 +733,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<bool>("AutoSwitchBetween1And3PhasesEnabled")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ChargeModeV2")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ChargingPriority")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int?>("ConnectedPhasesCount")
                         .HasColumnType("INTEGER");
 
@@ -1005,7 +993,7 @@ namespace TeslaSolarCharger.Model.Migrations
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarChargingTarget", b =>
                 {
                     b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
-                        .WithMany("CarChargingTargets")
+                        .WithMany("ChargingSchedules")
                         .HasForeignKey("CarId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1146,11 +1134,11 @@ namespace TeslaSolarCharger.Model.Migrations
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", b =>
                 {
-                    b.Navigation("CarChargingTargets");
-
                     b.Navigation("CarValueLogs");
 
                     b.Navigation("ChargingProcesses");
+
+                    b.Navigation("ChargingSchedules");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess", b =>

@@ -7,4 +7,5 @@ public interface IChargingService
     Task<int?> SetNewChargingValues();
     List<int> GetRelevantCarIds();
     int GetBatteryTargetChargingPower();
+    Task<int> CalculatePowerToControl();
 }

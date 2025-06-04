@@ -112,6 +112,11 @@ public class BaseConfigurationBase
     public string? HomeBatteryPowerXmlAttributeHeaderName { get; set; }
     public string? HomeBatteryPowerXmlAttributeHeaderValue { get; set; }
     public string? HomeBatteryPowerXmlAttributeValueName { get; set; }
+
+    [DisplayName("Dynamic Home Battery Min Soc")]
+    [Postfix("%")]
+    [HelperText("If enabled the Home Battery Min Soc is automatically set based on solar predictions to make sure the home battery is fully charged at the end of the day. This setting is only recommended after having solar predictions enabled for at least two weeks.")]
+    public bool? DynamicHomeBatteryMinSoc { get; set; }
     [DisplayName("Home Battery Minimum SoC")]
     [Postfix("%")]
     [HelperText("Set the SoC your home battery should get charged to before cars start to use full power. Leave empty if you do not have a home battery")]
@@ -120,6 +125,10 @@ public class BaseConfigurationBase
     [Postfix("W")]
     [HelperText("Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery")]
     public int? HomeBatteryChargingPower { get; set; }
+    [DisplayName("Home Battery Usable energy")]
+    [Postfix("kWh")]
+    [HelperText("Set the usable energy your home battery has.")]
+    public decimal? HomeBatteryUsableEnergy { get; set; }
     [DisplayName("Max combined current")]
     [Postfix("A")]
     [HelperText("Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.")]

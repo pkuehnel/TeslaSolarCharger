@@ -5,6 +5,7 @@ public class DtoLoadpoint
     public DtoCar? Car { get; set; }
     public int? OcppConnectorId { get; set; }
     public DtoOcppConnectorState? OcppConnectorState { get; set; }
+    public int Priority { get; set; }
 
     public int? ActualChargingPower
     {
@@ -39,6 +40,18 @@ public class DtoLoadpoint
                 return (int)OcppConnectorState.ChargingCurrent.Value;
             }
             return Car?.ChargerActualCurrent;
+        }
+    }
+
+    public int? ActualPhases
+    {
+        get
+        {
+            if (OcppConnectorState != default)
+            {
+                return OcppConnectorState.PhaseCount.Value ?? Car?.ActualPhases;
+            }
+            return Car?.ActualPhases ?? 3;
         }
     }
 }

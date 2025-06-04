@@ -29,10 +29,10 @@ public class HomeService : IHomeService
         return result.Data;
     }
 
-    public async Task<List<DtoCarChargingSchedule>?> GetCarChargingSchedules(int carId)
+    public async Task<List<DtoCarChargingTarget>?> GetCarChargingTargets(int carId)
     {
-        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
-        var result = await _httpClientHelper.SendGetRequestAsync<List<DtoCarChargingSchedule>>($"api/Home/GetCarChargingSchedules?carId={carId}");
+        _logger.LogTrace("{method}()", nameof(GetCarChargingTargets));
+        var result = await _httpClientHelper.SendGetRequestAsync<List<DtoCarChargingTarget>>($"api/Home/GetCarChargingTargets?carId={carId}");
         if (result.HasError)
         {
             _logger.LogError(result.ErrorMessage);
@@ -46,28 +46,10 @@ public class HomeService : IHomeService
         await _httpClientHelper.SendPostRequestWithSnackbarAsync<object>($"api/Home/UpdateCarMinSoc?carId={carId}&minSoc={minSoc}", null);
     }
 
-    public async Task<Result<Result<int>>> SaveCarChargingSchedule(int carId, DtoCarChargingSchedule dto)
+    public async Task<Result<object>> DeleteCarChargingTarget(int chargingTargetId)
     {
-        _logger.LogTrace("{method}()", nameof(SaveCarChargingSchedule));
-        var result = await _httpClientHelper.SendPostRequestAsync<Result<int>>($"api/Home/SaveCarChargingSchedule?carId={carId}", dto);
-        if (result.HasError)
-        {
-            _logger.LogError(result.ErrorMessage);
-        }
-        return result;
-    }
-
-    public async Task<DtoCarChargingSchedule?> GetChargingSchedule(int chargingScheduleId)
-    {
-        _logger.LogTrace("{method}()", nameof(GetChargingSchedule));
-        var result = await _httpClientHelper.SendGetRequestWithSnackbarAsync<DtoCarChargingSchedule>($"api/Home/GetCarChargingSchedule?chargingScheduleId={chargingScheduleId}");
-        return result;
-    }
-
-    public async Task<Result<object>> DeleteChargingSchedule(int chargingScheduleId)
-    {
-        _logger.LogTrace("{method}()", nameof(DeleteChargingSchedule));
-        return await _httpClientHelper.SendDeleteRequestAsync($"api/Home/DeleteCarChargingSchedule?chargingScheduleId={chargingScheduleId}");
+        _logger.LogTrace("{method}()", nameof(DeleteCarChargingTarget));
+        return await _httpClientHelper.SendDeleteRequestAsync($"api/Home/DeleteCarChargingTarget?chargingTargetId={chargingTargetId}");
     }
 
     public async Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId)
