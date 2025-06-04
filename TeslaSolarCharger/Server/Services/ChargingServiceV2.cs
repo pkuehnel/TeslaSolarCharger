@@ -207,7 +207,6 @@ public class ChargingServiceV2 : IChargingServiceV2
                     c.SwitchOnAtCurrent,
                 })
                 .FirstAsync().ConfigureAwait(false);
-            var chargingPower = ocppConnectorState.Value.ChargingPower.Value;
             if (ocppDatabaseData.ConnectedPhasesCount == default)
             {
                 _logger.LogError("Connected phases unknown for connector {connectorId}", ocppConnectorState.Key);
