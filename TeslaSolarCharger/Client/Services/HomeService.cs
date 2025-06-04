@@ -31,7 +31,7 @@ public class HomeService : IHomeService
 
     public async Task<List<DtoCarChargingTarget>?> GetCarChargingTargets(int carId)
     {
-        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
+        _logger.LogTrace("{method}()", nameof(GetCarChargingTargets));
         var result = await _httpClientHelper.SendGetRequestAsync<List<DtoCarChargingTarget>>($"api/Home/GetCarChargingTargets?carId={carId}");
         if (result.HasError)
         {
