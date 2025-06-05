@@ -79,19 +79,9 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
 
             if (carId != default)
             {
-                var car = _settings.Cars.First(c => c.Id == carId);
-                var phases = car.ActualPhases;
-                var carSettings = await _context.Cars
-                    .Where(c => c.Id == car.Id)
-                    .Select(c => new
-                    {
-                        c.MinimumAmpere,
-                        c.SwitchOffAtCurrent,
-                        c.SwitchOnAtCurrent,
-                    })
-                    .FirstAsync().ConfigureAwait(false);
-                var switchOnPower = GetPowerAtPhasesAndCurrent(phases, carSettings.SwitchOnAtCurrent ?? carSettings.MinimumAmpere);
-                var switchOffPower = GetPowerAtPhasesAndCurrent(phases, carSettings.SwitchOffAtCurrent ?? carSettings.MinimumAmpere);
+                var switchOnPower = element.SwitchOnAtPower;
+                var switchOffPower = element.SwitchOffAtPower;
+                var car = _settings.Cars.First(c => c.Id == carId.Value);
                 car.ShouldStartCharging.Update(currentDate, switchOnPower < elementTargetPower);
                 car.ShouldStopCharging.Update(currentDate, switchOffPower > elementTargetPower);
                 continue;
@@ -99,79 +89,20 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
 
             if (ocppConnectorId != default)
             {
-                var ocppDatabaseData = await _context.OcppChargingStationConnectors
-                    .Where(c => c.Id == ocppConnectorId)
-                    .Select(c => new
-                    {
-                        c.MinCurrent,
-                        c.MaxCurrent,
-                        c.ConnectedPhasesCount,
-                        c.AutoSwitchBetween1And3PhasesEnabled,
-                        c.SwitchOffAtCurrent,
-                        c.SwitchOnAtCurrent,
-                    })
-                    .FirstAsync().ConfigureAwait(false);
-                if (ocppDatabaseData.ConnectedPhasesCount == default)
-                {
-                    _logger.LogError("Connected phases unknown for connector {connectorId}", ocppConnectorId);
-                    continue;
-                }
-                if (ocppDatabaseData.MinCurrent == default)
-                {
-                    _logger.LogError("Min current unknown for connector {connectorId}", ocppConnectorId);
-                    continue;
-                }
-                if (ocppDatabaseData.MaxCurrent == default)
-                {
-                    _logger.LogError("Max current unknown for connector {connectorId}", ocppConnectorId);
-                    continue;
-                }
-                if (ocppDatabaseData.ConnectedPhasesCount == default)
-                {
-                    _logger.LogError("Connected phases unknown for connector {connectorId}", ocppConnectorId);
-                    continue;
-                }
-                if (ocppDatabaseData.SwitchOffAtCurrent == default)
-                {
-                    _logger.LogError("Switch off current unknown for connector {connectorId}", ocppConnectorId);
-                    continue;
-                }
-                if (ocppDatabaseData.SwitchOnAtCurrent == default)
-                {
-                    _logger.LogError("Switch on current unknown for connector {connectorId}", ocppConnectorId);
-                    continue;
-                }
-                var minPhases = ocppDatabaseData.AutoSwitchBetween1And3PhasesEnabled ? 1 : ocppDatabaseData.ConnectedPhasesCount.Value;
-                var shouldStartChargingPower =
-                    GetPowerAtPhasesAndCurrent(minPhases, ocppDatabaseData.SwitchOnAtCurrent.Value);
                 if(_settings.OcppConnectorStates.TryGetValue(ocppConnectorId.Value, out var ocppConnectorState))
                 {
-                    ocppConnectorState.ShouldStartCharging.Update(currentDate, shouldStartChargingPower < elementTargetPower);
-                    var shouldStopChargingPower =
-                        GetPowerAtPhasesAndCurrent(minPhases, ocppDatabaseData.SwitchOffAtCurrent.Value);
-                    ocppConnectorState.ShouldStopCharging.Update(currentDate, shouldStopChargingPower > elementTargetPower);
-                    if (ocppDatabaseData.AutoSwitchBetween1And3PhasesEnabled)
+                    ocppConnectorState.ShouldStartCharging.Update(currentDate, element.SwitchOnAtPower < elementTargetPower);
+                    ocppConnectorState.ShouldStopCharging.Update(currentDate, element.SwitchOffAtPower > elementTargetPower);
+                    if (element.MinPowerOnePhase != default && element.MaxPowerOnePhase != default && element.MinPowerThreePhase != default)
                     {
-                        var minPowerThreePhase =
-                            GetPowerAtPhasesAndCurrent(ocppDatabaseData.ConnectedPhasesCount.Value, ocppDatabaseData.MinCurrent.Value);
-                        ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, minPowerThreePhase < elementTargetPower);
-                        var minPowerOnePhase =
-                            GetPowerAtPhasesAndCurrent(ocppDatabaseData.ConnectedPhasesCount.Value, ocppDatabaseData.MinCurrent.Value);
-                        var maxPowerOnOnePhase =
-                            GetPowerAtPhasesAndCurrent(ocppDatabaseData.ConnectedPhasesCount.Value, ocppDatabaseData.MaxCurrent.Value);
-                        ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, (minPowerOnePhase < elementTargetPower)
-                            && (maxPowerOnOnePhase > elementTargetPower));
+                        ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, element.MinPowerThreePhase < elementTargetPower);
+                        ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, (element.MinPowerOnePhase < elementTargetPower)
+                            && (element.MaxPowerOnePhase > elementTargetPower));
                     }
                 }
                 
             }
         }
-    }
-
-    private int GetPowerAtPhasesAndCurrent(int connectedPhasesCount, decimal maxCurrent)
-    {
-        var voltage = _settings.AverageHomeGridVoltage ?? 230;
-        return (int)(connectedPhasesCount * maxCurrent * voltage);
     }
 
     private async Task<List<DtoStartStopChargingHelper>> GetCarElements()
@@ -285,6 +216,12 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                 MaxPower = ocppDatabaseData.MaxCurrent.Value * voltage * maxPhases,
                 ChargingPriority = ocppDatabaseData.ChargingPriority,
             };
+            if (minPhases != maxPhases)
+            {
+                element.MinPowerOnePhase = ocppDatabaseData.MinCurrent.Value * voltage * minPhases;
+                element.MaxPowerOnePhase = ocppDatabaseData.MaxCurrent.Value * voltage * minPhases;
+                element.MinPowerThreePhase = ocppDatabaseData.MinCurrent.Value * voltage * maxPhases;
+            }
             elements.Add(element);
         }
 
@@ -298,6 +235,9 @@ public class DtoStartStopChargingHelper
     public DeviceType DeviceType { get; set; }
     public int SwitchOnAtPower { get; set; }
     public int SwitchOffAtPower { get; set; }
+    public int? MinPowerOnePhase { get; set; }
+    public int? MaxPowerOnePhase { get; set; }
+    public int? MinPowerThreePhase { get; set; }
     public int CurrentPower { get; set; }
     public int MaxPower { get; set; }
     public int ChargingPriority { get; set; }
