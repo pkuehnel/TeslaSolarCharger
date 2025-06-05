@@ -1,5 +1,6 @@
 ﻿using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Dtos.Support;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
@@ -21,4 +22,6 @@ public interface IDebugService
 
     Task<Result<SetChargingProfileResponse?>> SetCurrentAndPhases(string chargePointId, int connectorId, decimal currentToSet, int? numberOfPhases,
         CancellationToken cancellationToken);
+
+    DtoOcppConnectorState GetOcppConnectorState(int connectorId);
 }

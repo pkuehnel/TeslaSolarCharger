@@ -176,6 +176,14 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     }
 
     [HttpGet]
+    public IActionResult GetOcppConnectorState(int connectorId)
+    {
+        var result = debugService.GetOcppConnectorState(connectorId);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpGet]
     public async Task<IActionResult> GetAllProductsFromTeslaAccount()
     {
         var products = await teslaFleetApiService.GetAllProductsFromTeslaAccount();
