@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Dtos.Support;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -72,6 +73,11 @@ public class DebugService(ILogger<DebugService> logger,
             numberOfPhases,
             cancellationToken).ConfigureAwait(false);
         return result;
+    }
+
+    public DtoOcppConnectorState GetOcppConnectorState(int connectorId)
+    {
+        return settings.OcppConnectorStates[connectorId];
     }
 
     public async Task<Dictionary<int, DtoDebugCar>> GetCars()
