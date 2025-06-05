@@ -898,20 +898,13 @@ public class ChargingServiceV2 : IChargingServiceV2
         var overage = averagedOverage - buffer;
         _logger.LogDebug("Calculated overage {overage} after subtracting power buffer ({buffer})", overage, buffer);
 
-        overage = await AddHomeBatterStateToPowerCalculation(overage, cancellationToken).ConfigureAwait(false);
+        overage = AddHomeBatterStateToPowerCalculation(overage);
         return overage + currentChargingPower;
     }
 
-    private async Task<int> AddHomeBatterStateToPowerCalculation(int overage, CancellationToken cancellationToken)
+    private int AddHomeBatterStateToPowerCalculation(int overage)
     {
-        var dynamicHomeBatteryMinSocEnabled = _configurationWrapper.DynamicHomeBatteryMinSoc();
         var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
-        if (dynamicHomeBatteryMinSocEnabled)
-        {
-            var dynamicHomeBatteryMinSoc = await CalculateDynamicHomeBatteryMinSoc(cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Dynamic Home Battery Min SoC is enabled, using dynamic value {dynamicHomeBatteryMinSoc} instead of configured value {homeBatteryMinSoc}.", dynamicHomeBatteryMinSoc, homeBatteryMinSoc);
-            homeBatteryMinSoc = dynamicHomeBatteryMinSoc;
-        }
         _logger.LogDebug("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
         _logger.LogDebug("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
@@ -950,55 +943,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         return 0;
-    }
-
-    private async Task<int?> CalculateDynamicHomeBatteryMinSoc(CancellationToken cancellationToken)
-    {
-        _logger.LogTrace("{method}()", nameof(CalculateDynamicHomeBatteryMinSoc));
-        var homeBatteryUsableEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
-        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        if (homeBatteryUsableEnergy == default)
-        {
-            _logger.LogWarning("Dynamic Home Battery Min SoC is enabled, but no usable energy configured. Using configured home battery min soc.");
-            return null;
-        }
-        var currentHomeBatterySoc = _settings.HomeBatterySoc;
-        if (currentHomeBatterySoc == default)
-        {
-            _logger.LogWarning("Dynamic Home Battery Min SoC is enabled, bur current Soc is unknown.");
-            return null;
-        }
-
-        var homeGeofenceLatitude = _configurationWrapper.HomeGeofenceLatitude();
-        var homeGeofenceLongitude = _configurationWrapper.HomeGeofenceLongitude();
-        var nextSunset = _sunCalculator.CalculateSunset(homeGeofenceLatitude,
-            homeGeofenceLongitude, currentDate);
-        if (nextSunset < currentDate)
-        {
-            nextSunset = _sunCalculator.CalculateSunset(homeGeofenceLatitude,
-                homeGeofenceLongitude, currentDate.AddDays(1));
-        }
-        if (nextSunset == default)
-        {
-            _logger.LogWarning("Could not calculate sunrise for current date {currentDate}. Using configured home battery min soc.", currentDate);
-            return null;
-        }
-        //Do not try to fully charge to allow some buffer with fast reaction time compared to cars.
-        var fullBatterySoc = 95;
-        var requiredEnergyForFullBattery = (int)(homeBatteryUsableEnergy.Value * ((fullBatterySoc - currentHomeBatterySoc.Value) / 100.0m));
-        if (requiredEnergyForFullBattery < 1)
-        {
-            _logger.LogDebug("No energy required to charge home battery to full.");
-            return null;
-        }
-        var predictionInterval = TimeSpan.FromHours(1);
-        var fullBatteryTargetTime = new DateTimeOffset(nextSunset.Value.Year, nextSunset.Value.Month, nextSunset.Value.Day,
-            nextSunset.Value.Hour + 1, 0, 0, nextSunset.Value.Offset);
-        var currentNextFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour + 1, 0, 0, currentDate.Offset);
-        var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentNextFullHour, fullBatteryTargetTime, predictionInterval, cancellationToken).ConfigureAwait(false);
-        return _homeBatteryEnergyCalculator.CalculateRequiredInitialStateOfChargeFraction(
-            predictedSurplusPerSlices, homeBatteryUsableEnergy.Value, 5, fullBatterySoc);
-
     }
 
     private async Task<DtoTimeZonedChargingTarget?> GetNextTarget(int carId, CancellationToken cancellationToken)
