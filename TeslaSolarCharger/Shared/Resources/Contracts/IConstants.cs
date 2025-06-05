@@ -52,4 +52,5 @@ public interface IConstants
     int WeatherPredictionInFutureDays { get; }
     string OcppChargePointConnectorIdDelimiter { get; }
     string DefaultIdTag { get; }
+    int HomeBatteryMinSocRefreshIntervalMinutes { get; }
 }
