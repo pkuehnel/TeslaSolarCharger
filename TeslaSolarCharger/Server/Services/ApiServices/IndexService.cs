@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using System.Text.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -212,14 +213,17 @@ public class IndexService(
             NonDateValues = nonDateValues,
             DateValues = dateValues,
         };
+
         var carState = settings.Cars.First(c => c.Id == carId);
+
         var propertiesToExclude = new List<string>()
-        {
-            nameof(DtoCar.PlannedChargingSlots),
-            nameof(DtoCar.Name),
-            nameof(DtoCar.SocLimit),
-            nameof(DtoCar.SoC),
-        };
+    {
+        nameof(DtoCar.PlannedChargingSlots),
+        nameof(DtoCar.Name),
+        nameof(DtoCar.SocLimit),
+        nameof(DtoCar.SoC),
+    };
+
         foreach (var property in carState.GetType().GetProperties())
         {
             if (propertiesToExclude.Any(p => property.Name.Equals(p)))
@@ -227,32 +231,56 @@ public class IndexService(
                 continue;
             }
 
+            var propertyValue = property.GetValue(carState, null);
+
             if (property.PropertyType == typeof(List<DateTime>))
             {
-                var list = (List<DateTime>?) property.GetValue(carState, null);
+                var dateList = (List<DateTime>?)propertyValue;
                 var currentDate = dateTimeProvider.UtcNow().Date;
-                dtoCarTopicValues.NonDateValues.Add(new DtoCarTopicValue()
+                nonDateValues.Add(new DtoCarTopicValue()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    Value = list?.Where(d => d > currentDate).Count().ToString(),
+                    Value = dateList?
+                        .Where(d => d > currentDate)
+                        .Count()
+                        .ToString(),
                 });
             }
-            else if (property.PropertyType == typeof(DateTimeOffset?)
-                || property.PropertyType == typeof(DateTimeOffset))
+            else if (
+                property.PropertyType == typeof(DateTimeOffset?)
+                || property.PropertyType == typeof(DateTimeOffset)
+            )
             {
-                dtoCarTopicValues.DateValues.Add(new DtoCarDateTopics()
+                dateValues.Add(new DtoCarDateTopics()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    DateTime = ((DateTimeOffset?) property.GetValue(carState, null))?.LocalDateTime,
+                    DateTime = ((DateTimeOffset?)propertyValue)?.LocalDateTime,
                 });
             }
-            else if (property.PropertyType == typeof(DateTime?)
-                     || property.PropertyType == typeof(DateTime))
+            else if (
+                property.PropertyType == typeof(DateTime?)
+                || property.PropertyType == typeof(DateTime)
+            )
             {
-                dtoCarTopicValues.DateValues.Add(new DtoCarDateTopics()
+                dateValues.Add(new DtoCarDateTopics()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    DateTime = (DateTime?) property.GetValue(carState, null),
+                    DateTime = (DateTime?)propertyValue,
+                });
+            }
+            else if (
+                property.PropertyType.IsGenericType
+                && property.PropertyType.GetGenericTypeDefinition() == typeof(DtoTimeStampedValue<>)
+            )
+            {
+                // Serialize entire DtoTimeStampedValue<T> as JSON
+                var timeStampedValueObject = propertyValue;
+                var jsonString = JsonSerializer.Serialize(timeStampedValueObject);
+
+                nonDateValues.Add(new DtoCarTopicValue()
+                {
+                    Topic = AddSpacesBeforeCapitalLetters(property.Name),
+                    Value = jsonString,
                 });
             }
             else
@@ -260,14 +288,13 @@ public class IndexService(
                 nonDateValues.Add(new DtoCarTopicValue()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    Value = property.GetValue(carState, null)?.ToString(),
+                    Value = propertyValue?.ToString(),
                 });
             }
         }
 
         return dtoCarTopicValues;
     }
-
     public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(RecalculateAndGetChargingSlots), carId);
