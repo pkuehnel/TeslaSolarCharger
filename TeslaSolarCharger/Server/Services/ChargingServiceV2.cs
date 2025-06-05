@@ -809,7 +809,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         int? maxPhases = null;
         //ToDo: Set this to false if car is no Tesla as soon as other car brands are supported
         var useCarToManageChargingSpeed = loadpoint.Car != default;
-        bool canChangePhases = false;
+        var canChangePhases = false;
         if (loadpoint.Car != default)
         {
             var carConfigValues = await _context.Cars
