@@ -148,7 +148,7 @@ public class JobManager(
 
         var homeBatteryMinSocRefreshTrigger = TriggerBuilder.Create().WithIdentity("homeBatteryMinSocRefreshTrigger")
             //Delay refresh to reduce initial load as many services try to calculate expcted home power and solar values
-            .StartAt(currentDate.Add(TimeSpan.FromSeconds(7)))
+            .StartAt(currentDate.Add(TimeSpan.FromMinutes(7)))
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.HomeBatteryMinSocRefreshIntervalMinutes)).Build();
 
         var random = new Random();
