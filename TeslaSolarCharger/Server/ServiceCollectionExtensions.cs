@@ -59,6 +59,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<FleetTelemetryReconfigurationJob>()
             .AddTransient<WeatherDataRefreshJob>()
             .AddTransient<MeterValueDatabaseSaveJob>()
+            .AddTransient<HomeBatteryMinSocRefreshJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
