@@ -111,4 +111,10 @@ public interface IConfigurationWrapper
     int BackendPasswordDefaultLength();
     bool IsPredictSolarPowerGenerationEnabled();
     bool ShowEnergyDataOnHome();
+    bool UseFakeEnergyPredictions();
+    bool UseFakeEnergyHistory();
+    TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
+    bool UseChargingServiceV2();
+    int? HomeBatteryUsableEnergy();
+    bool DynamicHomeBatteryMinSoc();
 }

@@ -1,0 +1,129 @@
+﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.Home
+
+@inject IHomeService HomeService
+@inject ISnackbar Snackbar
+@inject IJavaScriptWrapper JavaScriptWrapper
+@inject IDialogService DialogService
+
+<h3>Charging Targets</h3>
+<RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
+                             ButtonText="Add Target"
+                             OnButtonClicked="_ => AddTarget()"></RightAlignedButtonComponent>
+
+@if (_targets == null)
+{
+    <PlaceholderComponent Count="3" />
+}
+else if (!_targets.Any())
+{
+    <div class="text-muted mt-2">Nothing planned</div>
+}
+else
+{
+    @foreach (var chargingTarget in _targets)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <EditFormComponent T="DtoCarChargingTarget" WrappedElement="@(chargingTarget)"
+                                   OnAfterSuccessfullSubmit="ShowSuccessMessage"
+                                   HideSubmitButton="false"
+                                   SubmitUrl="@($"api/Home/SaveCarChargingTarget?carId={CarId}")">
+                    @if (!string.Equals(chargingTarget.Item.ClientTimeZone, _timeZone, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <MudAlert Severity="Severity.Warning"
+                                  NoIcon="true"
+                                  ContentAlignment="HorizontalAlignment.Left">
+                            <h5>Saved in different timezone</h5>
+                            This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.
+                        </MudAlert>
+                    }
+                    
+                    <div>
+                        <GenericInput For="() => chargingTarget.Item.TargetSoc"></GenericInput>
+                        <GenericInput For="() => chargingTarget.Item.TargetDate"
+                                      Clearable="true"></GenericInput>
+                        <GenericInput For="() => chargingTarget.Item.TargetTime"></GenericInput>
+                        <div class="d-flex flex-wrap gap-2">
+                            <GenericInput For="() => chargingTarget.Item.RepeatOnMondays"></GenericInput>
+                            <GenericInput For="() => chargingTarget.Item.RepeatOnTuesdays"></GenericInput>
+                            <GenericInput For="() => chargingTarget.Item.RepeatOnWednesdays"></GenericInput>
+                            <GenericInput For="() => chargingTarget.Item.RepeatOnThursdays"></GenericInput>
+                            <GenericInput For="() => chargingTarget.Item.RepeatOnFridays"></GenericInput>
+                            <GenericInput For="() => chargingTarget.Item.RepeatOnSaturdays"></GenericInput>
+                            <GenericInput For="() => chargingTarget.Item.RepeatOnSundays"></GenericInput>
+                        </div>
+                    </div>
+                </EditFormComponent>
+                <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Delete"
+                                             ButtonText="Delete"
+                                             ButtonColor="Color.Error"
+                                             OnButtonClicked="_ => DeleteItem(chargingTarget)"></RightAlignedButtonComponent>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public int CarId { get; set; }
+
+    private List<EditableItem<DtoCarChargingTarget>>? _targets;
+
+    private string? _timeZone;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _timeZone = await JavaScriptWrapper.GetTimeZoneId();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await RefreshChargingTargets();
+
+    }
+
+    private async Task RefreshChargingTargets()
+    {
+        var result = await HomeService.GetCarChargingTargets(CarId);
+        if (result == default)
+        {
+            _targets = default;
+            return;
+        }
+        _targets = result.Select(s => new EditableItem<DtoCarChargingTarget>(s)).ToList();
+    }
+
+    private void AddTarget()
+    {
+        _targets?.Add(new(new()
+        {
+            ClientTimeZone = _timeZone,
+        }));
+    }
+
+    private void ShowSuccessMessage()
+    {
+        Snackbar.Add("Saved.", Severity.Success);
+    }
+
+    private async Task DeleteItem(EditableItem<DtoCarChargingTarget> chargingTarget)
+    {
+        if (chargingTarget.Item.Id != default)
+        {
+            var result = await HomeService.DeleteCarChargingTarget(chargingTarget.Item.Id);
+            if (result.HasError)
+            {
+                Snackbar.Add($"Could not delete: {result.ErrorMessage}", Severity.Error);
+                return;
+            }
+        }
+        _targets?.Remove(chargingTarget);
+        Snackbar.Add("Deleted.", Severity.Success);
+    }
+
+}

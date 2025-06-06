@@ -37,6 +37,24 @@
                                                     { "ErrorText", ErrorMessage ?? string.Empty },
                                                 } :new())" />
                 }
+                else if (typeof(T) == typeof(TimeSpan?))
+                {
+                    <MudTimePicker id="@InputId"
+                                   @bind-Time="TimeSpanValue"
+                                   For="@(ForTimeSpan)"
+                                   Required="@IsRequired"
+                                   Label="@LabelName"
+                                   Disabled="IsDisabled"
+                                   ReadOnly="IsReadOnly"
+                                   Variant="Variant.Outlined"
+                                   Margin="InputMargin"
+                                   Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                   @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                {
+                                                    { "Error", ShouldBeInErrorState.Value },
+                                                    { "ErrorText", ErrorMessage ?? string.Empty },
+                                                } :new())" />
+                }
                 else if (DropDownOptions != default && typeof(T) == typeof(int?))
                 {
                     <MudSelectExtended id="@InputId"
@@ -383,15 +401,6 @@
     {
         get
         {
-            // if (typeof(T) == typeof(DateTime))
-            // {
-            //     if (For is not null)
-            //     {
-            //         var unaryExpression = Expression.Convert(For.Body, typeof(DateTime?));
-            //         if (unaryExpression.Operand is MemberExpression newBody) return Expression.Lambda<Func<DateTime?>>(newBody);
-            //     }
-            //     return null;
-            // }
             if (typeof(T) == typeof(DateTime?) && For != null)
             {
                 return (Expression<Func<DateTime?>>)(object)For;
@@ -399,6 +408,19 @@
             return null;
         }
         set => throw new NotImplementedException($"{nameof(ForDateTime)} can not be set.");
+    }
+
+    private Expression<Func<TimeSpan?>>? ForTimeSpan
+    {
+        get
+        {
+            if (typeof(T) == typeof(TimeSpan?) && For != null)
+            {
+                return (Expression<Func<TimeSpan?>>)(object)For;
+            }
+            return null;
+        }
+        set => throw new NotImplementedException($"{nameof(ForTimeSpan)} can not be set.");
     }
 
     private int MultiSelectValue { get; set; } = 0;
@@ -672,6 +694,29 @@
             if (Value is DateTime dateTime)
             {
                 return dateTime;
+            }
+            return default;
+        }
+        set
+        {
+            if (value != default)
+            {
+                Value = (T)(object)value;
+            }
+            else
+            {
+                Value = default;
+            }
+        }
+    }
+
+    private TimeSpan? TimeSpanValue
+    {
+        get
+        {
+            if (Value is TimeSpan timeSpan)
+            {
+                return timeSpan;
             }
             return default;
         }

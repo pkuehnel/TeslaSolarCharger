@@ -10,6 +10,7 @@ public class DtoCar
     public int? TeslaMateCarId { get; set; }
 
     public ChargeMode ChargeMode { get; set; }
+    public ChargeModeV2 ChargeModeV2 { get; set; }
 
     public int MinimumSoC { get; set; }
     /// <summary>
@@ -31,6 +32,8 @@ public class DtoCar
     public int ChargingPriority { get; set; }
 
     public string? Name { get; set; }
+    public DtoTimeStampedValue<bool?> ShouldStartCharging { get; set; } = new(DateTimeOffset.MinValue, null);
+    public DtoTimeStampedValue<bool?> ShouldStopCharging { get; set; } = new(DateTimeOffset.MinValue, null);
     public DateTime? ShouldStartChargingSince { get; set; }
     public DateTime? EarliestSwitchOn { get; set; }
     public DateTime? ShouldStopChargingSince { get; set; }
@@ -51,7 +54,25 @@ public class DtoCar
     public int? ChargerActualCurrent { get; set; }
     public int? ChargerPilotCurrent { get; set; }
     public int? ChargerRequestedCurrent { get; set; }
-    public bool? PluggedIn { get; set; }
+    public DtoTimeStampedValue<double?> MinBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);
+    public DtoTimeStampedValue<double?> MaxBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);
+
+    public bool? PluggedIn { get; private set; }
+    public DateTimeOffset? LastPluggedIn { get; set; }
+
+    public void UpdatePluggedIn(DateTimeOffset timestamp, bool pluggedIn)
+    {
+        if (pluggedIn && (PluggedIn == false))
+        {
+            LastPluggedIn = timestamp;
+        }
+        if (!pluggedIn)
+        {
+            LastPluggedIn = default;
+        }
+        PluggedIn = pluggedIn;
+    }
+
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public int? DistanceToHomeGeofence { get; set; }
@@ -75,7 +96,12 @@ public class DtoCar
         {
             if (_chargingPower == default)
             {
-                return ChargerActualCurrent * ChargerVoltage * ActualPhases;
+                var actualCurrent = ChargerActualCurrent;
+                if (actualCurrent > ChargerRequestedCurrent)
+                {
+                    actualCurrent = ChargerRequestedCurrent;
+                }
+                return actualCurrent * ChargerVoltage * ActualPhases;
             }
             return _chargingPower;
         }
