@@ -469,8 +469,20 @@ public class ChargingServiceV2 : IChargingServiceV2
                     loadpoint.OcppConnectorState.ShouldStopCharging.LastChanged,
                     currentDate - _configurationWrapper.TimespanUntilSwitchOff());
 
-                if ((loadpoint.OcppConnectorState!.ShouldStopCharging.Value == true)
-                    && (loadpoint.OcppConnectorState.ShouldStopCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff())))
+                var wrongPhaseCount = ((loadpoint.OcppConnectorState.PhaseCount.Value == 1)
+                    && (loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.Value == false)
+                    && (loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.Value == true)
+                    && (loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOn()))
+                    && (loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOn())))
+                    || (loadpoint.OcppConnectorState.PhaseCount.Value == 3
+                    && (loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.Value == true)
+                    && (loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.Value == false)
+                    && (loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff()))
+                    && (loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff())));
+
+                if (((loadpoint.OcppConnectorState!.ShouldStopCharging.Value == true)
+                     && (loadpoint.OcppConnectorState.ShouldStopCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff())))
+                    || wrongPhaseCount)
                 {
                     var result = await _ocppChargePointActionService.StopCharging(loadpoint.OcppConnectorId!.Value, cancellationToken);
                     // Decision: result.HasError?
