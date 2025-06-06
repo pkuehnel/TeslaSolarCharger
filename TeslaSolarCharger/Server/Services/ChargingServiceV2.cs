@@ -710,53 +710,6 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 var phasesToChargeWith = loadpoint.OcppConnectorState!.PhaseCount.Value;
 
-                // Decision: minPhases == maxPhases?
-                _logger.LogTrace("{method} decision: minPhases = {minPhases}, maxPhases = {maxPhases}", nameof(SetLoadPointPower), minPhases, maxPhases);
-                if (minPhases.Value != maxPhases.Value)
-                {
-                    // Decision: inability to handle one or three phase
-                    _logger.LogTrace("{method} decision: CanHandleOnePhase = {onePhase}, LastChangedOnePhase = {changedOne}, CanHandleThreePhase = {threePhase}, LastChangedThreePhase = {changedThree}, threshold = {threshold}",
-                        nameof(SetLoadPointPower),
-                        loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.Value,
-                        loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.LastChanged,
-                        loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.Value,
-                        loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.LastChanged,
-                        currentDate - _configurationWrapper.TimespanUntilSwitchOn());
-
-                    if ((loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.Value == false)
-                        && (loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOn()))
-                        && (loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.Value == true))
-                    {
-                        var result = await _ocppChargePointActionService.StopCharging(loadpoint.OcppConnectorId!.Value, cancellationToken);
-                        // Decision: result.HasError?
-                        _logger.LogTrace("{method} decision: StopCharging result.HasError = {hasError}", nameof(SetLoadPointPower), result.HasError);
-                        if (result.HasError)
-                        {
-                            _logger.LogError("Error stopping OCPP charge point for connector {loadpointId}: {errorMessage}",
-                                loadpoint.OcppConnectorId, result.ErrorMessage);
-                            return (0, 0);
-                        }
-
-                        return (-powerBeforeChanges, -currentBeforeChanges);
-                    }
-                    if ((loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.Value == false)
-                        && (loadpoint.OcppConnectorState.CanHandlePowerOnThreePhase.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff()))
-                        && (loadpoint.OcppConnectorState.CanHandlePowerOnOnePhase.Value == true))
-                    {
-                        var result = await _ocppChargePointActionService.StopCharging(loadpoint.OcppConnectorId!.Value, cancellationToken);
-                        // Decision: result.HasError?
-                        _logger.LogTrace("{method} decision: StopCharging result.HasError = {hasError}", nameof(SetLoadPointPower), result.HasError);
-                        if (result.HasError)
-                        {
-                            _logger.LogError("Error stopping OCPP charge point for connector {loadpointId}: {errorMessage}",
-                                loadpoint.OcppConnectorId, result.ErrorMessage);
-                            return (0, 0);
-                        }
-
-                        return (-powerBeforeChanges, -currentBeforeChanges);
-                    }
-                }
-
                 if (phasesToChargeWith == default)
                 {
                     if (loadpoint.OcppConnectorState!.LastSetPhases.Value == default)
