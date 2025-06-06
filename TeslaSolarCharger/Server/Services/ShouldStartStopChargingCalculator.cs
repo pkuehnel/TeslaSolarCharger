@@ -93,11 +93,29 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                 {
                     ocppConnectorState.ShouldStartCharging.Update(currentDate, element.SwitchOnAtPower < elementTargetPower);
                     ocppConnectorState.ShouldStopCharging.Update(currentDate, element.SwitchOffAtPower > elementTargetPower);
-                    if (element.MinPowerOnePhase != default && element.MaxPowerOnePhase != default && element.MinPowerThreePhase != default)
+                    var currentPhasesCharging = ocppConnectorState.IsCharging.Value ? ocppConnectorState.PhaseCount.Value ?? 0 : 0;
+                    if ((element.MinPowerOnePhase != default) && (element.MaxPowerOnePhase != default) && (element.MinPowerThreePhase != default))
                     {
-                        ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, element.MinPowerThreePhase < elementTargetPower);
-                        ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, (element.MinPowerOnePhase < elementTargetPower)
-                            && (element.MaxPowerOnePhase > elementTargetPower));
+                        if (currentPhasesCharging == 1)
+                        {
+                            ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate,
+                                elementTargetPower < element.MinPowerThreePhase);
+                        }
+                        else if (currentPhasesCharging == 3)
+                        {
+                            ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, elementTargetPower > element.MaxPowerOnePhase);
+                        }
+                        else
+                        {
+                            ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, (element.SwitchOnAtPower <= elementTargetPower)
+                                                                                            && (elementTargetPower < element.MinPowerThreePhase));
+                            ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, elementTargetPower >= element.MinPowerThreePhase);
+                        }
+                    }
+                    else
+                    {
+                        ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, null);
+                        ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, null);
                     }
                 }
                 
