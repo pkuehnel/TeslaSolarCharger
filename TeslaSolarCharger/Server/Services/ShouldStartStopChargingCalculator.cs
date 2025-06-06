@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -98,12 +98,13 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                     {
                         if (currentPhasesCharging == 1)
                         {
-                            ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate,
-                                elementTargetPower < element.MinPowerThreePhase);
+                            ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, elementTargetPower < element.MinPowerThreePhase);
+                            ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, elementTargetPower >= element.MinPowerThreePhase);
                         }
                         else if (currentPhasesCharging == 3)
                         {
-                            ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, elementTargetPower > element.MaxPowerOnePhase);
+                            ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, elementTargetPower <= element.MaxPowerOnePhase);
+                            ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, elementTargetPower > element.MaxPowerOnePhase);
                         }
                         else
                         {
