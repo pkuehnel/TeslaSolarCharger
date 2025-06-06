@@ -25,9 +25,6 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IOcppChargePointActionService _ocppChargePointActionService;
     private readonly ISettings _settings;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
-    private readonly IEnergyDataService _energyDataService;
-    private readonly ISunCalculator _sunCalculator;
-    private readonly IHomeBatteryEnergyCalculator _homeBatteryEnergyCalculator;
     private readonly IConstants _constants;
     private readonly ITeslaService _teslaService;
     private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
@@ -40,9 +37,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         IOcppChargePointActionService ocppChargePointActionService,
         ISettings settings,
         ITscOnlyChargingCostService tscOnlyChargingCostService,
-        IEnergyDataService energyDataService,
-        ISunCalculator sunCalculator,
-        IHomeBatteryEnergyCalculator homeBatteryEnergyCalculator,
         IConstants constants,
         ITeslaService teslaService,
         IShouldStartStopChargingCalculator shouldStartStopChargingCalculator)
@@ -55,9 +49,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         _ocppChargePointActionService = ocppChargePointActionService;
         _settings = settings;
         _tscOnlyChargingCostService = tscOnlyChargingCostService;
-        _energyDataService = energyDataService;
-        _sunCalculator = sunCalculator;
-        _homeBatteryEnergyCalculator = homeBatteryEnergyCalculator;
         _constants = constants;
         _teslaService = teslaService;
         _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
@@ -809,7 +800,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         int? maxPhases = null;
         //ToDo: Set this to false if car is no Tesla as soon as other car brands are supported
         var useCarToManageChargingSpeed = loadpoint.Car != default;
-        bool canChangePhases = false;
+        var canChangePhases = false;
         if (loadpoint.Car != default)
         {
             var carConfigValues = await _context.Cars
