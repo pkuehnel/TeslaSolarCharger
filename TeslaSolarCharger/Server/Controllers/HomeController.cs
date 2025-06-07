@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Net.WebSockets;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.SharedBackend.Abstracts;
@@ -31,6 +32,13 @@ public class HomeController : ApiBaseController
     }
 
     [HttpGet]
+    public IActionResult GetCarOverview(int carId)
+    {
+        var result = _homeService.GetCarOverview(carId);
+        return Ok(result);
+    }
+
+[HttpGet]
     public async Task<IActionResult> GetCarChargingTarget(int chargingTargetId)
     {
         var result = await _homeService.GetChargingTarget(chargingTargetId);

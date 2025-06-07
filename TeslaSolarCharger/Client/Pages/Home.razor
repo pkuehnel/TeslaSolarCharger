@@ -2,6 +2,7 @@
 @page "/Home"
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject IEnergyDataService EnergyDataService
 @inject IHomeService HomeService
@@ -28,14 +29,24 @@ else
 {
     foreach (var loadPoint in _loadPoints)
     {
-        <LoadPointDetailsComponent CarId="loadPoint.carId" ConnectorId="loadPoint.connectorId" />
+        <div class="shadow p-3 mb-5 bg-white rounded">
+            <div>@((loadPoint.ChargingPower ?? 0).ToString("N0")) W</div>
+            @if (loadPoint.CarId != default)
+            {
+                <CarDetailsComponent CarId="loadPoint.CarId"/>
+            }
+            @if (loadPoint.ChargingConnectorId != default)
+            {
+
+            }
+        </div>
     }
 }
 <HiddenErrorsComponent></HiddenErrorsComponent>
 
 @code {
     private bool _showEnergyData;
-    private HashSet<(int? carId, int? connectorId)>? _loadPoints;
+    private List<DtoLoadPointOverview>? _loadPoints;
 
     protected override async Task OnInitializedAsync()
     {

@@ -10,4 +10,5 @@ public interface IHomeService
     Task UpdateCarMinSoc(int carId, int newMinSoc);
     Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId);
     Task DeleteCarChargingTarget(int chargingTargetId);
+    DtoCarOverview GetCarOverview(int carId);
 }

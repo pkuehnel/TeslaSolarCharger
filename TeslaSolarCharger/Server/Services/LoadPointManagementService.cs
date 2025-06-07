@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -69,24 +70,78 @@ public class LoadPointManagementService : ILoadPointManagementService
             .ToList();
     }
 
-    public async Task<HashSet<(int? carId, int? connectorId)>> GetLoadPointsToManage()
+    public async Task<List<DtoLoadPointOverview>> GetLoadPointsToManage()
     {
         _logger.LogTrace("{method}()", nameof(GetLoadPointsToManage));
-        var carIds = await _context.Cars
+        var carData = await _context.Cars
             .Where(c => c.ShouldBeManaged == true)
-            .Select(c => c.Id)
+            .Select(c => new
+            {
+                c.Id,
+                MinCurrent = c.MinimumAmpere,
+                MaxCurrent = c.MaximumAmpere,
+            })
             .ToHashSetAsync();
-        var connectorIds = await _context.OcppChargingStationConnectors
+        var connectorData = await _context.OcppChargingStationConnectors
             .Where(c => c.ShouldBeManaged)
-            .Select(c => c.Id)
+            .Select(c => new
+            {
+                c.Id,
+                c.MinCurrent,
+                c.MaxCurrent,
+                MaxPhases = c.ConnectedPhasesCount,
+                c.ChargingPriority,
+            })
             .ToHashSetAsync();
-        var connectorPairs = GetCarConnectorMatches(carIds, connectorIds);
-        return connectorPairs;
+        var connectorPairs = GetCarConnectorMatches(carData.Select(c => c.Id), connectorData.Select(c => c.Id));
+        var result = new List<DtoLoadPointOverview>();
+        foreach (var pair in connectorPairs)
+        {
+            var loadPoint = new DtoLoadPointOverview()
+            {
+                CarId = pair.CarId,
+                ChargingConnectorId = pair.ConnectorId,
+            };
+            if (pair.CarId != default)
+            {
+                var databaseCar = carData.First(c => c.Id == pair.CarId);
+                loadPoint.MaxCurrent = databaseCar.MaxCurrent;
+
+                var dtoCar = _settings.Cars.First(c => c.Id == pair.CarId.Value);
+                loadPoint.ActualCurrent = dtoCar.ChargerActualCurrent;
+                loadPoint.ActualPhases = dtoCar.ActualPhases;
+                loadPoint.MaxPhases = dtoCar.ActualPhases;
+            }
+
+            if (pair.ConnectorId != default)
+            {
+                var databaseConnector = connectorData.First(c => c.Id == pair.ConnectorId);
+                if ((loadPoint.MaxCurrent == null) || (loadPoint.MaxCurrent > databaseConnector.MaxCurrent))
+                {
+                    loadPoint.MaxCurrent = databaseConnector.MaxCurrent;
+                }
+                if ((loadPoint.MaxPhases == null) || (loadPoint.MaxPhases < databaseConnector.MaxPhases))
+                {
+                    loadPoint.MaxPhases = databaseConnector.MaxPhases;
+                }
+
+                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(pair.ConnectorId.Value);
+                if (connectorState != default)
+                {
+                    loadPoint.ActualCurrent = connectorState.ChargingCurrent.Value;
+                    loadPoint.ActualPhases = connectorState.PhaseCount.Value;
+                    loadPoint.ChargingPower = connectorState.ChargingPower.Value;
+                }
+            }
+            result.Add(loadPoint);
+        }
+
+        return result;
     }
 
     private HashSet<(int? CarId, int? ConnectorId)> GetCarConnectorMatches(
-        HashSet<int> carIds,
-        HashSet<int> connectorIds)
+        IEnumerable<int> carIds,
+        IEnumerable<int> connectorIds)
     {
         var matches = new HashSet<(int? CarId, int? ConnectorId)>();
         var errorForMultipleMatches = false;
@@ -110,7 +165,9 @@ public class LoadPointManagementService : ILoadPointManagementService
             var matchWindowEnd = state.IsPluggedIn.LastChanged.Value.Add(maxTimeDiff);
 
             var matchingCars = _settings.Cars
-                .Where(car => car.LastPluggedIn >= matchWindowStart && car.LastPluggedIn <= matchWindowEnd)
+                .Where(car => car.LastPluggedIn >= matchWindowStart
+                              && car.LastPluggedIn <= matchWindowEnd
+                              && car.IsHomeGeofence == true)
                 .ToList();
 
             if (matchingCars.Count == 1)

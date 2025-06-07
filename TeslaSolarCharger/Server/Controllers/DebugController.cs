@@ -168,14 +168,6 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetPluggedInLoadpoints()
-    {
-        var result = await loadPointManagementService.GetPluggedInLoadPoints();
-        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
-        return Ok(new DtoValue<string>(resultString));
-    }
-
-    [HttpGet]
     public IActionResult GetOcppConnectorState(int connectorId)
     {
         var result = debugService.GetOcppConnectorState(connectorId);
