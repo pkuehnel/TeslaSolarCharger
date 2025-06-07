@@ -1,0 +1,96 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+
+@inject IHomeService HomeService
+
+<div class="shadow p-3 mb-5 bg-white rounded">
+    @if (LoadPoint == default)
+    {
+        <PlaceholderComponent Count="6"></PlaceholderComponent>
+    }
+    else
+    {
+        <div>
+            @if (LoadPoint.ChargingConnectorName != default && LoadPoint.CarName != default)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="me-1" />
+                @LoadPoint.ChargingConnectorName
+                <span class="mx-1">|</span>
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
+                @LoadPoint.CarName
+                <span class="mx-1">|</span>
+                <span>@($"{LoadPoint.ChargingPower:N0} W")</span>
+            }
+            else if (LoadPoint.ChargingConnectorName != default)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="me-1" />
+                @LoadPoint.ChargingConnectorName
+                <span class="mx-1">|</span>
+                <span>@($"{LoadPoint.ChargingPower:N0} W")</span>
+            }
+            else if (LoadPoint.CarName != default)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
+                @LoadPoint.CarName
+                <span class="mx-1">|</span>
+                <span>@($"{LoadPoint.ChargingPower:N0} W")</span>
+            }
+            else
+            {
+                <span>@($"{LoadPoint.ChargingPower:N0} W")</span>
+            }
+        </div>
+        <div>
+            @if (LoadPoint.Soc != default)
+            {
+                <MudProgressLinear Color="Color.Primary"
+                                   Striped="LoadPoint.ChargingPower > 0"
+                                   Size="Size.Large"
+                                   Value="(double)LoadPoint.Soc"
+                                   Class="my-7"
+                                   Buffer="@(LoadPoint.CarSideSocLimit != default)"
+                                   BufferValue="@(LoadPoint.CarSideSocLimit == default ? 0 : (double)LoadPoint.CarSideSocLimit.Value)">
+                    <MudText Typo="Typo.subtitle1" Color="Color.Dark" Style="z-index: 1">
+                        <b>@(LoadPoint.Soc.Value.ToString("F1"))%</b>
+                    </MudText>
+                </MudProgressLinear>
+            }
+            @if (LoadPoint.MinSoc != default)
+            {
+                <GenericInput T="int?"
+                              For="() => LoadPoint.MinSoc"
+                              PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                              OnButtonClicked="_ => UpdateMinSoc(LoadPoint)"></GenericInput>
+            }
+        </div>
+        <div>
+            @if (LoadPoint.CarId != default)
+            {
+                <ChargingTargetConfigurationComponent CarId="LoadPoint.CarId.Value"></ChargingTargetConfigurationComponent>
+            }
+        </div>
+        <ChargeSummaryComponent CarId="LoadPoint.CarId" ChargingConnectorId="LoadPoint.ChargingConnectorId"></ChargeSummaryComponent>
+    }
+    
+</div>
+
+@code {
+    [Parameter]
+    public int? CarId { get; set; }
+
+    [Parameter]
+    public int? ConnectorId { get; set; }
+
+    private DtoLoadPointOverview? LoadPoint { get; set; }
+
+
+    private async Task UpdateMinSoc(DtoLoadPointOverview loadPoint)
+    {
+        if (loadPoint.CarId == default)
+        {
+            return;
+        }
+        loadPoint.MinSoc ??= 0;
+        await HomeService.UpdateCarMinSoc(loadPoint.CarId.Value, loadPoint.MinSoc.Value);
+    }
+}

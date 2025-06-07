@@ -5,10 +5,17 @@ namespace TeslaSolarCharger.Server.Services;
 
 public class ValidFromToSplitter : IValidFromToSplitter
 {
+    private readonly ILogger<ValidFromToSplitter> _logger;
+
+    public ValidFromToSplitter(ILogger<ValidFromToSplitter> logger)
+    {
+        _logger = logger;
+    }
     public (List<TLeft> SplitLeft, List<TRight> SplitRight) SplitByBoundaries<TLeft, TRight>(List<TLeft> leftItems, List<TRight> rightItems, DateTimeOffset startDate, DateTimeOffset endDate)
         where TLeft : ValidFromToBase, new()
         where TRight : ValidFromToBase, new()
     {
+        _logger.LogTrace("{method}()", nameof(SplitByBoundaries));
         if (startDate > endDate)
         {
             throw new ArgumentException(

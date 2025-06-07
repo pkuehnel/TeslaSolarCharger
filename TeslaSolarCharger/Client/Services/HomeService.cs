@@ -1,4 +1,6 @@
-﻿using TeslaSolarCharger.Client.Dtos;
+﻿using MudBlazor;
+using System.ComponentModel;
+using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
@@ -10,21 +12,26 @@ public class HomeService : IHomeService
 {
     private readonly ILogger<HomeService> _logger;
     private readonly IHttpClientHelper _httpClientHelper;
+    private readonly ISnackbar _snackbar;
 
     public HomeService(ILogger<HomeService> logger,
-        IHttpClientHelper httpClientHelper)
+        IHttpClientHelper httpClientHelper,
+        ISnackbar snackbar)
     {
         _logger = logger;
         _httpClientHelper = httpClientHelper;
+        _snackbar = snackbar;
     }
 
-    public async Task<List<DtoLoadPointOverview>?> GetPluggedInLoadPoints()
+    public async Task<HashSet<(int? carId, int? connectorId)>?> GetLoadPointsToManage()
     {
-        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
-        var result = await _httpClientHelper.SendGetRequestAsync<List<DtoLoadPointOverview>>("api/Home/GetLoadPointOverviews");
+        _logger.LogTrace("{method}()", nameof(GetLoadPointsToManage));
+        var result = await _httpClientHelper.SendGetRequestAsync<HashSet<(int? carId, int? connectorId)>>("api/Home/GetLoadPointsToManage");
         if (result.HasError)
         {
             _logger.LogError(result.ErrorMessage);
+            _snackbar.Add("Error while getting loadpoint IDs", Severity.Error);
+            return null;
         }
         return result.Data;
     }
@@ -54,7 +61,7 @@ public class HomeService : IHomeService
 
     public async Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId)
     {
-        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
+        _logger.LogTrace("{method}()", nameof(GetLoadPointsToManage));
         var result = await _httpClientHelper.SendGetRequestAsync<DtoChargeSummary>($"api/ChargingCost/GetChargeSummary?carId={carId}&chargingConnectorId={chargingConnectorId}");
         if (result.HasError)
         {

@@ -13,6 +13,9 @@ public class DtoChargingStationConnector
 
     public int Id { get; set; }
     public string Name { get; set; }
+    [DisplayName("Show connector on homepage")]
+    [HelperText("Note: This auto reenables as soon as the charging connector is connected. To permanently disable a charging connector remove the OCPP configuration in your Wallbox.")]
+    public bool ShouldBeManaged { get; set; }
     public int ChargingStationId { get; set; }
     public int ConnectorId { get; set; }
     [DisplayName("Auto switch between 1 and 3 phases")]
@@ -40,22 +43,26 @@ public class ChargingStationConnectorValidator : AbstractValidator<DtoChargingSt
 {
     public ChargingStationConnectorValidator()
     {
-        RuleFor(x => x.MaxCurrent)
-            .NotEmpty();
-        RuleFor(x => x.MinCurrent)
-            .NotEmpty();
-        RuleFor(x => x.ConnectedPhasesCount)
-            .NotEmpty();
-        RuleFor(x => x.SwitchOnAtCurrent)
-            .Must((model, current) => current >= model.SwitchOffAtCurrent)
-            .WithMessage("Switch On at Current must be at least as high as Switch off at Current.");
+        When(x => x.ShouldBeManaged, () =>
+        {
+            RuleFor(x => x.MaxCurrent)
+                .NotEmpty();
+            RuleFor(x => x.MinCurrent)
+                .NotEmpty();
+            RuleFor(x => x.ConnectedPhasesCount)
+                .NotEmpty();
+            RuleFor(x => x.SwitchOnAtCurrent)
+                .Must((model, current) => current >= model.SwitchOffAtCurrent)
+                .WithMessage("Switch On at Current must be at least as high as Switch off at Current.");
 
-        RuleFor(x => x.MaxCurrent)
-            .NotEmpty()
-            .Must((model, max) => max >= model.MinCurrent)
-            .WithMessage("Max Current must be greater than or equal to Min Current.");
+            RuleFor(x => x.MaxCurrent)
+                .NotEmpty()
+                .Must((model, max) => max >= model.MinCurrent)
+                .WithMessage("Max Current must be greater than or equal to Min Current.");
 
-        RuleFor(x => x.Name)
-            .NotEmpty();
+            RuleFor(x => x.Name)
+                .NotEmpty();
+        });
+        
     }
 }
