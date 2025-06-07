@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -260,10 +261,4 @@ public class DtoStartStopChargingHelper
     public int CurrentPower { get; set; }
     public int MaxPower { get; set; }
     public int ChargingPriority { get; set; }
-}
-
-public enum DeviceType
-{
-    OcppConnector,
-    Car,
 }

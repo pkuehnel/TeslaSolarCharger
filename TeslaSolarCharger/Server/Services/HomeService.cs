@@ -6,6 +6,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -33,7 +34,7 @@ public class HomeService : IHomeService
             .FirstAsync()
             .ConfigureAwait(false);
     }
-
+    
     public async Task<List<DtoCarChargingTarget>> GetCarChargingTargets(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetCarChargingTargets), carId);
@@ -42,6 +43,20 @@ public class HomeService : IHomeService
             .Select(ToDto)
             .ToListAsync()
             .ConfigureAwait(false);
+    }
+
+    public DtoCarOverview GetCarOverview(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(GetCarOverview), carId);
+        var dtoCar = _settings.Cars.First(c => c.Id == carId);
+        var carOverView = new DtoCarOverview(dtoCar.Name ?? dtoCar.Vin)
+        {
+            Soc = dtoCar.SoC,
+            CarSideSocLimit = dtoCar.SocLimit,
+            MinSoc = dtoCar.MinimumSoC,
+            IsCharging = dtoCar.State == CarStateEnum.Charging,
+        };
+        return carOverView;
     }
 
     private static readonly Expression<Func<CarChargingTarget, DtoCarChargingTarget>> ToDto =
