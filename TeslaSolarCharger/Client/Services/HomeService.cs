@@ -23,14 +23,14 @@ public class HomeService : IHomeService
         _snackbar = snackbar;
     }
 
-    public async Task<HashSet<(int? carId, int? connectorId)>?> GetLoadPointsToManage()
+    public async Task<List<DtoLoadPointOverview>?> GetLoadPointsToManage()
     {
         _logger.LogTrace("{method}()", nameof(GetLoadPointsToManage));
-        var result = await _httpClientHelper.SendGetRequestAsync<HashSet<(int? carId, int? connectorId)>>("api/Home/GetLoadPointsToManage");
+        var result = await _httpClientHelper.SendGetRequestAsync<List<DtoLoadPointOverview>>("api/Home/GetLoadPointsToManage");
         if (result.HasError)
         {
             _logger.LogError(result.ErrorMessage);
-            _snackbar.Add("Error while getting loadpoint IDs", Severity.Error);
+            _snackbar.Add("Error while getting Loadpoint overviews", Severity.Error);
             return null;
         }
         return result.Data;
@@ -40,6 +40,17 @@ public class HomeService : IHomeService
     {
         _logger.LogTrace("{method}()", nameof(GetCarChargingTargets));
         var result = await _httpClientHelper.SendGetRequestAsync<List<DtoCarChargingTarget>>($"api/Home/GetCarChargingTargets?carId={carId}");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+        }
+        return result.Data;
+    }
+
+    public async Task<DtoCarOverview?> GetCarOverview(int carId)
+    {
+        _logger.LogTrace("{method}()", nameof(GetCarChargingTargets));
+        var result = await _httpClientHelper.SendGetRequestAsync<DtoCarOverview>($"api/Home/GetCarOverview?carId={carId}");
         if (result.HasError)
         {
             _logger.LogError(result.ErrorMessage);

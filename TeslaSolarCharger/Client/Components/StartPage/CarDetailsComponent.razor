@@ -1,0 +1,79 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+
+@inject IHomeService HomeService
+
+@if (Car == default)
+{
+    <PlaceholderComponent Count="6"></PlaceholderComponent>
+}
+else
+{
+    <div>
+        <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
+        @Car.Name
+    </div>
+    <div>
+        @if (Car.Soc != default)
+        {
+            <MudProgressLinear Color="Color.Primary"
+                               Striped="Car.IsCharging"
+                               Size="Size.Large"
+                               Value="(double)Car.Soc"
+                               Class="my-7"
+                               Buffer="@(Car.CarSideSocLimit != default)"
+                               BufferValue="@(Car.CarSideSocLimit == default ? 0 : (double)Car.CarSideSocLimit.Value)">
+                <MudText Typo="Typo.subtitle1" Color="Color.Dark" Style="z-index: 1">
+                    <b>@(Car.Soc.Value.ToString("F0"))%</b>
+                </MudText>
+            </MudProgressLinear>
+        }
+        @if (Car.MinSoc != default)
+        {
+            <GenericInput T="int"
+                          For="() => Car.MinSoc"
+                          PostfixButtonStartIcon="@Icons.Material.Filled.Save"
+                          OnButtonClicked="UpdateMinSoc"></GenericInput>
+        }
+    </div>
+    <div>
+        @if (CarId != default)
+        {
+            <ChargingTargetConfigurationComponent CarId="CarId.Value"></ChargingTargetConfigurationComponent>
+        }
+    </div>
+    <ChargeSummaryComponent CarId="CarId"></ChargeSummaryComponent>
+}
+
+
+@code {
+    [Parameter]
+    public int? CarId { get; set; }
+
+    private DtoCarOverview? Car { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await RefreshCarOverView();
+    }
+
+    private async Task RefreshCarOverView()
+    {
+        if (CarId == default)
+        {
+            Car = default;
+            return;
+        }
+        Car = await HomeService.GetCarOverview(CarId.Value);
+    }
+
+    private async Task UpdateMinSoc()
+    {
+        if (Car == default || CarId == default)
+        {
+            return;
+        }
+        await HomeService.UpdateCarMinSoc(CarId.Value, Car.MinSoc);
+    }
+}
