@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -28,6 +29,8 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IConstants _constants;
     private readonly ITeslaService _teslaService;
     private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
+    private readonly IEnergyDataService _energyDataService;
+    private readonly IValidFromToSplitter _validFromToSplitter;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -39,7 +42,9 @@ public class ChargingServiceV2 : IChargingServiceV2
         ITscOnlyChargingCostService tscOnlyChargingCostService,
         IConstants constants,
         ITeslaService teslaService,
-        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator)
+        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator,
+        IEnergyDataService energyDataService,
+        IValidFromToSplitter validFromToSplitter)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -52,6 +57,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         _constants = constants;
         _teslaService = teslaService;
         _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
+        _energyDataService = energyDataService;
+        _validFromToSplitter = validFromToSplitter;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -62,21 +69,30 @@ public class ChargingServiceV2 : IChargingServiceV2
             return;
         }
         await CalculateGeofences();
-        var loadPoints = await _loadPointManagementService.GetPluggedInLoadPoints();
-        var powerToControl = await CalculatePowerToControl(loadPoints.Select(l => l.ActualChargingPower ?? 0).Sum(), cancellationToken).ConfigureAwait(false);
-        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl, loadPoints);
+        var loadpoints = await _loadPointManagementService.GetPluggedInLoadPoints();
+        var powerToControl = await CalculatePowerToControl(loadpoints.Select(l => l.ActualChargingPower ?? 0).Sum(), cancellationToken).ConfigureAwait(false);
+        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl, loadpoints);
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var chargingSchedules = new List<DtoChargingSchedule>();
-        foreach (var dtoLoadpoint in loadPoints)
+        foreach (var loadpoint in loadpoints)
         {
-            if (dtoLoadpoint.Car != default)
+            if (loadpoint.Car != default)
             {
-                var (carUsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent) = await GetChargingScheduleRelevantData(dtoLoadpoint.Car.Id, dtoLoadpoint.OcppConnectorId).ConfigureAwait(false);
-                if (dtoLoadpoint.Car.MinimumSoC > dtoLoadpoint.Car.SoC)
+                var (carUsableEnergy, carSoC, maxPhases, maxCurrent, minPhases, minCurrent) = await GetChargingScheduleRelevantData(loadpoint.Car.Id, loadpoint.OcppConnectorId).ConfigureAwait(false);
+                if (carUsableEnergy == default || carSoC == default || maxPhases == default || maxCurrent == default)
                 {
+                    _logger.LogWarning("Can not schedule charging as at least one required value is unknown.");
+                    continue;
+                }
+                if (loadpoint.Car.MinimumSoC > loadpoint.Car.SoC)
+                {
+                    var energyToCharge = CalculateEnergyToCharge(
+                        loadpoint.Car.MinimumSoC,
+                        loadpoint.Car.SoC ?? 0,
+                        carUsableEnergy.Value);
                     var earliestPossibleChargingSchedule =
-                        GenerateEarliestOrLatestPossibleChargingSchedule(dtoLoadpoint.Car.MinimumSoC, null,
-                            carUsableEnergy, carSoC, maxPhases, maxCurrent, dtoLoadpoint.Car.Id, dtoLoadpoint.OcppConnectorId);
+                        GenerateEarliestOrLatestPossibleChargingSchedule(null, currentDate,
+                            energyToCharge, maxPhases.Value, maxCurrent.Value, loadpoint.Car.Id, loadpoint.OcppConnectorId);
                     if (earliestPossibleChargingSchedule != default)
                     {
                         chargingSchedules.Add(earliestPossibleChargingSchedule);
@@ -84,18 +100,95 @@ public class ChargingServiceV2 : IChargingServiceV2
                         continue;
                     }
                 }
-                var nextTarget = await GetNextTarget(dtoLoadpoint.Car.Id, cancellationToken).ConfigureAwait(false);
+                var nextTarget = await GetNextTarget(loadpoint.Car.Id, cancellationToken).ConfigureAwait(false);
                 if (nextTarget != default)
                 {
+                    var energyToCharge = CalculateEnergyToCharge(
+                        nextTarget.TargetSoc,
+                        loadpoint.Car.SoC ?? 0,
+                        carUsableEnergy.Value);
                     var latestPossibleChargingSchedule =
-                        GenerateEarliestOrLatestPossibleChargingSchedule(nextTarget.TargetSoc, nextTarget.NextExecutionTime,
-                            carUsableEnergy, carSoC, maxPhases, maxCurrent, dtoLoadpoint.Car.Id, dtoLoadpoint.OcppConnectorId);
+                        GenerateEarliestOrLatestPossibleChargingSchedule(nextTarget.NextExecutionTime, currentDate,
+                            energyToCharge, maxPhases.Value, maxCurrent.Value, loadpoint.Car.Id, loadpoint.OcppConnectorId);
                     if (latestPossibleChargingSchedule != default)
                     {
                         chargingSchedules.Add(latestPossibleChargingSchedule);
                     }
-                    var gridPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
+                    var maxPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, maxCurrent.Value);
+                    if (_configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules() && minPhases != default && minCurrent != default)
+                    {
+                        var currentFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, currentDate.Offset);
+                        var surplusTimeSpanInHours = 1;
+                        var fullHourAfterNextTarget = new DateTimeOffset(nextTarget.NextExecutionTime.Year, nextTarget.NextExecutionTime.Month, nextTarget.NextExecutionTime.Day, nextTarget.NextExecutionTime.Hour + surplusTimeSpanInHours, 0, 0, nextTarget.NextExecutionTime.Offset);
+                        var predictedSurplusSlices = await _energyDataService
+                            .GetPredictedSurplusPerSlice(currentFullHour, fullHourAfterNextTarget, TimeSpan.FromHours(surplusTimeSpanInHours), cancellationToken)
+                            .ConfigureAwait(false);
+                        var minPower = GetPowerAtPhasesAndCurrent(minPhases.Value, minCurrent.Value);
+                        var maxPowerCappedPredictedHoursWithAtLeastMinPowerSurpluses = predictedSurplusSlices
+                            .Where(s => s.Value > minPower)
+                            .OrderBy(s => s.Key)
+                            .ToDictionary(s => s.Key, s => s.Value > maxPower ? maxPower : s.Value);
+                        foreach (var maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus in maxPowerCappedPredictedHoursWithAtLeastMinPowerSurpluses)
+                        {
+                            var startDate = maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Key < currentDate
+                                ? currentDate
+                                : maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Key;
+                            var endDate =
+                                maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Key.AddHours(surplusTimeSpanInHours) > nextTarget.NextExecutionTime
+                                    ? nextTarget.NextExecutionTime
+                                    : maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Key.AddHours(surplusTimeSpanInHours);
+                            chargingSchedules.Add(new(loadpoint.Car.Id, loadpoint.OcppConnectorId)
+                            {
+                                ValidFrom = startDate,
+                                ValidTo = endDate,
+                                ChargingPower = maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Value,
+                            });
+                        }
+                        var estimatedSolarEnergy =
+                            (int) chargingSchedules.Select(s => (s.ValidTo - s.ValidFrom).TotalHours * s.ChargingPower).Sum();
+                        if (energyToCharge <= estimatedSolarEnergy)
+                        {
+                            foreach (var chargingSchedule in chargingSchedules)
+                            {
+                                chargingSchedule.OnlyChargeOnAtLeastSolarPower = minPower;
+                            }
+                            _logger.LogDebug("Estimated solar energy is enough to reach soc, so do not plan any ");
+                            continue;
+                        }
+                    }
 
+                    var remainingEnergyToCoverFromGrid = energyToCharge -
+                                                           (int)chargingSchedules.Select(s => (s.ValidTo - s.ValidFrom).TotalHours * s.ChargingPower).Sum();
+                    var electricityPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
+                    var endTimeOrderedElectricityPrices = electricityPrices.OrderBy(p => p.ValidTo).ToList();
+                    var lastGridPrice = endTimeOrderedElectricityPrices.LastOrDefault();
+                    if ((lastGridPrice == default) || (lastGridPrice.ValidTo < nextTarget.NextExecutionTime))
+                    {
+                        //Do not plan for target if last grid price is earlier than next execution time
+                        continue;
+                    }
+
+                    var (splittedGridPrices, splittedChargingSchedules) =
+                        _validFromToSplitter.SplitByBoundaries(electricityPrices, chargingSchedules, currentDate, nextTarget.NextExecutionTime);
+                    var gridPriceOrderedElectricityPrices = splittedGridPrices.OrderByDescending(p => p.GridPrice).ToList();
+                    foreach (var gridPriceOrderedElectricityPrice in gridPriceOrderedElectricityPrices)
+                    {
+                        if (remainingEnergyToCoverFromGrid <= 0)
+                        {
+                            break;
+                        }
+                        var correspondingChargingSchedule = splittedChargingSchedules
+                            .FirstOrDefault(cs => cs.ValidFrom == gridPriceOrderedElectricityPrice.ValidFrom
+                                         && cs.ValidTo == gridPriceOrderedElectricityPrice.ValidTo) ?? new DtoChargingSchedule(loadpoint.Car.Id, loadpoint.OcppConnectorId)
+                        {
+                            ValidFrom = gridPriceOrderedElectricityPrice.ValidFrom,
+                            ValidTo = gridPriceOrderedElectricityPrice.ValidTo,
+                        };
+                        var maxPowerIncrease = maxPower - correspondingChargingSchedule.ChargingPower;
+                        correspondingChargingSchedule.ChargingPower += maxPowerIncrease;
+                        correspondingChargingSchedule.OnlyChargeOnAtLeastSolarPower = null;
+                        remainingEnergyToCoverFromGrid -= (int)(maxPowerIncrease * (gridPriceOrderedElectricityPrice.ValidTo - gridPriceOrderedElectricityPrice.ValidFrom).TotalHours);
+                    }
                 }
             }
         }
@@ -103,12 +196,17 @@ public class ChargingServiceV2 : IChargingServiceV2
         _logger.LogDebug("Final calculated power to control: {powerToControl}", powerToControl);
         var alreadyControlledLoadPoints = new HashSet<(int? carId, int? connectorId)>();
         currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        var activeChargingSchedules = chargingSchedules.Where(s => s.StartTime <= currentDate).ToList();
+        var activeChargingSchedules = chargingSchedules.Where(s => s.ValidFrom <= currentDate).ToList();
 
-        var maxAdditionalCurrent = _configurationWrapper.MaxCombinedCurrent() - loadPoints.Select(l => l.ActualCurrent ?? 0).Sum();
+        var maxAdditionalCurrent = _configurationWrapper.MaxCombinedCurrent() - loadpoints.Select(l => l.ActualCurrent ?? 0).Sum();
         foreach (var activeChargingSchedule in activeChargingSchedules)
         {
-            var correspondingLoadPoint = loadPoints.FirstOrDefault(l => l.Car?.Id == activeChargingSchedule.CarId && l.OcppConnectorId == activeChargingSchedule.OccpChargingConnectorId);
+            if (powerToControl < activeChargingSchedule.OnlyChargeOnAtLeastSolarPower)
+            {
+                _logger.LogDebug("Skipping charging schedule {@chargingSchedule} as is only placeholder and car should charge with solar power", activeChargingSchedule);
+                continue;
+            }
+            var correspondingLoadPoint = loadpoints.FirstOrDefault(l => l.Car?.Id == activeChargingSchedule.CarId && l.OcppConnectorId == activeChargingSchedule.OccpChargingConnectorId);
             if (correspondingLoadPoint == default)
             {
                 _logger.LogWarning("No loadpoint found for car {carId} and connector {connectorId} for charging schedule {@chargingSchedule}.", activeChargingSchedule.CarId, activeChargingSchedule.OccpChargingConnectorId, activeChargingSchedule);
@@ -123,10 +221,10 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         if (powerToControl < 1)
         {
-            loadPoints = loadPoints.OrderByDescending(l => l.Priority).ToList();
+            loadpoints = loadpoints.OrderByDescending(l => l.Priority).ToList();
         }
 
-        foreach (var loadPoint in loadPoints)
+        foreach (var loadPoint in loadpoints)
         {
             if (!alreadyControlledLoadPoints.Add((loadPoint.Car?.Id, loadPoint.OcppConnectorId)))
             {
@@ -943,78 +1041,53 @@ public class ChargingServiceV2 : IChargingServiceV2
     /// <summary>
     /// When targetTimeUtc is null it will generate the eraliest possible charging schedule, otherwise the latest possible charging schedule.
     /// </summary>
-    /// <param name="chargingTargetSoc"></param>
     /// <param name="targetTimeUtc"></param>
-    /// <param name="carUsableEnergy"></param>
-    /// <param name="carSoC"></param>
+    /// <param name="currentDate"></param>
+    /// <param name="energyToCharge"></param>
     /// <param name="maxPhases"></param>
     /// <param name="maxCurrent"></param>
     /// <param name="carId"></param>
     /// <param name="chargingConnectorId"></param>
     /// <returns></returns>
-    private DtoChargingSchedule? GenerateEarliestOrLatestPossibleChargingSchedule(int chargingTargetSoc,
+    private DtoChargingSchedule? GenerateEarliestOrLatestPossibleChargingSchedule(
         DateTimeOffset? targetTimeUtc,
-        int? carUsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent, int? carId, int? chargingConnectorId)
+        DateTimeOffset currentDate,
+        int energyToCharge,
+        int maxPhases,
+        int maxCurrent,
+        int? carId,
+        int? chargingConnectorId)
     {
-        _logger.LogTrace(
-            "{method}({chargingTargetSoc}, {targetTimeUtc}, {usableEnergy}, {soc}, {maxPhases}, {maxCurrent}, {carId}, {chargingConnectorId})",
-            nameof(GenerateEarliestOrLatestPossibleChargingSchedule),
-            chargingTargetSoc, targetTimeUtc, carUsableEnergy, carSoC, maxPhases, maxCurrent, carId, chargingConnectorId);
-
-        var energyToCharge = CalculateEnergyToCharge(
-            chargingTargetSoc,
-            carSoC,
-            carUsableEnergy);
-
-        if (energyToCharge == default || energyToCharge < 1)
+        _logger.LogTrace("{method}({targetTimeUtc}, {currentDate}, {energyToCharge}, {maxPhases}, {maxCurrent}, {carId}, {chargingConnectorId})",
+            targetTimeUtc, currentDate, energyToCharge, maxPhases, maxCurrent, targetTimeUtc, carId, chargingConnectorId);
+        if (energyToCharge < 1)
         {
             return null;
         }
-
-        var maxChargingPower = GetMaxChargingPower(maxPhases, maxCurrent);
-        // ReSharper disable once CompareOfFloatsByEqualityOperator
-        if (maxChargingPower == default || maxChargingPower <= 0)
-        {
-            _logger.LogWarning("No valid charging power found for car with usable energy {usableEnergy} and SoC {soc}.", carUsableEnergy, carSoC);
-            return null;
-        }
+        var maxChargingPower = GetPowerAtPhasesAndCurrent(maxPhases, maxCurrent);
 
         var chargingDuration = CalculateChargingDuration(
-            energyToCharge.Value,
-            maxChargingPower.Value);
+            energyToCharge,
+            maxChargingPower);
 
         if (targetTimeUtc == default)
         {
             return new DtoChargingSchedule(carId, chargingConnectorId)
             {
-                StartTime = _dateTimeProvider.DateTimeOffSetUtcNow(),
-                EndTime = _dateTimeProvider.DateTimeOffSetUtcNow() + chargingDuration,
-                ChargingPower = (int)maxChargingPower,
+                ValidFrom = currentDate,
+                ValidTo = currentDate + chargingDuration,
+                ChargingPower = maxChargingPower,
             };
         }
 
         var startTime = targetTimeUtc.Value - chargingDuration;
 
-        return new DtoChargingSchedule(carId, chargingConnectorId)
+        return new(carId, chargingConnectorId)
         {
-            StartTime = startTime,
-            EndTime = targetTimeUtc.Value,
-            ChargingPower = (int)maxChargingPower,
+            ValidFrom = startTime,
+            ValidTo = targetTimeUtc.Value,
+            ChargingPower = maxChargingPower,
         };
-    }
-
-    private double? GetMaxChargingPower(int? maxPhases, int? maxCurrent)
-    {
-        var voltage = _settings.AverageHomeGridVoltage ?? 230;
-        if (maxPhases == default || maxCurrent == default)
-        {
-            return null;
-        }
-        var maxChargingPower = CalculateMaxChargingPower(
-            maxCurrent.Value,
-            maxPhases.Value,
-            voltage);
-        return maxChargingPower;
     }
 
     private async Task<(int? UsableEnergy, int? carSoC, int? maxPhases, int? maxCurrent, int? minPhases, int? minCurrent)> GetChargingScheduleRelevantData(int? carId, int? chargingConnectorId)
@@ -1094,16 +1167,11 @@ public class ChargingServiceV2 : IChargingServiceV2
         return connectorValue;
     }
 
-    private int? CalculateEnergyToCharge(
+    private int CalculateEnergyToCharge(
         int chargingTargetSoc,
-        int? currentSoC,
-        int? usableEnergy)
+        int currentSoC,
+        int usableEnergy)
     {
-        if (usableEnergy == default || currentSoC == default || usableEnergy <= 0)
-        {
-            return default;
-        }
-
         var socDiff = chargingTargetSoc - currentSoC;
         var energyWh = socDiff * usableEnergy * 10; // soc*10 vs usableEnergy*1000 scale
 

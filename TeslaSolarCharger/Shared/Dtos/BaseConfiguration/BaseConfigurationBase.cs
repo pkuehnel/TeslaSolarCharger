@@ -63,6 +63,8 @@ public class BaseConfigurationBase
     public bool AllowPowerBufferChangeOnHome { get; set; }
     [HelperText("If enabled, your home geofence location is transfered to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data.")]
     public bool PredictSolarPowerGeneration { get; set; }
+    [HelperText("If enabled, when a target Soc is set not only grid prices but also estimated solar power generation is used to schedule charging.")]
+    public bool UsePredictedSolarPowerGenerationForChargingSchedules { get; set; }
     [HelperText("This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspery Pi 3. This will be fixed in a future update.")]
     public bool ShowEnergyDataOnHome { get; set; }
     public string? CurrentPowerToGridJsonPattern { get; set; }

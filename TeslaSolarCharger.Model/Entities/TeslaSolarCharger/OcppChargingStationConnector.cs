@@ -13,6 +13,7 @@ public class OcppChargingStationConnector
     public string Name { get; set; }
     public int ConnectorId { get; set; }
     public bool AutoSwitchBetween1And3PhasesEnabled { get; set; }
+    public bool ShouldBeManaged { get; set; }
     public ChargeModeV2 ChargeModeV2 { get; set; }
     public int? MinCurrent { get; set; }
     public int? SwitchOnAtCurrent { get; set; }

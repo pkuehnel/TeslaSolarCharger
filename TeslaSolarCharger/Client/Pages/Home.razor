@@ -1,9 +1,7 @@
 ﻿@page "/"
 @page "/Home"
-@using System.Diagnostics
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
-@using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject IEnergyDataService EnergyDataService
 @inject IHomeService HomeService
@@ -24,81 +22,20 @@
 
 @if (_loadPoints == default)
 {
-    <PlaceholderComponent Count="6"></PlaceholderComponent>
+    <PlaceholderComponent Count="1" Height="200px"></PlaceholderComponent>
 }
 else
 {
     foreach (var loadPoint in _loadPoints)
     {
-        <div class="shadow p-3 mb-5 bg-white rounded">
-            <div>
-                @if (loadPoint.ChargingConnectorName != default && loadPoint.CarName != default)
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="me-1" />
-                    @loadPoint.ChargingConnectorName
-                    <span class="mx-1">|</span>
-                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
-                    @loadPoint.CarName
-                    <span class="mx-1">|</span>
-                    <span>@($"{loadPoint.ChargingPower:N0} W")</span>
-                }
-                else if (loadPoint.ChargingConnectorName != default)
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="me-1" />
-                    @loadPoint.ChargingConnectorName
-                    <span class="mx-1">|</span>
-                    <span>@($"{loadPoint.ChargingPower:N0} W")</span>
-                }
-                else if (loadPoint.CarName != default)
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
-                    @loadPoint.CarName
-                    <span class="mx-1">|</span>
-                    <span>@($"{loadPoint.ChargingPower:N0} W")</span>
-                }
-                else
-                {
-                    <span>@($"{loadPoint.ChargingPower:N0} W")</span>
-                }
-            </div>
-            <div>
-                @if (loadPoint.Soc != default)
-                {
-                    <MudProgressLinear Color="Color.Primary"
-                                       Striped="loadPoint.ChargingPower > 0"
-                                       Size="Size.Large"
-                                       Value="(double)loadPoint.Soc"
-                                       Class="my-7"
-                                       Buffer="@(loadPoint.CarSideSocLimit != default)"
-                                       BufferValue="@(loadPoint.CarSideSocLimit == default ? 0 : (double)loadPoint.CarSideSocLimit.Value)">
-                        <MudText Typo="Typo.subtitle1" Color="Color.Dark" Style="z-index: 1">
-                            <b>@(loadPoint.Soc.Value.ToString("F1"))%</b>
-                        </MudText>
-                    </MudProgressLinear>
-                }
-                @if (loadPoint.MinSoc != default)
-                {
-                    <GenericInput T="int?"
-                                  For="() => loadPoint.MinSoc"
-                                  PostfixButtonStartIcon="@Icons.Material.Filled.Save"
-                                  OnButtonClicked="_ => UpdateMinSoc(loadPoint)"></GenericInput>
-                }
-            </div>
-            <div>
-                @if (loadPoint.CarId != default)
-                {
-                    <ChargingTargetConfigurationComponent CarId="loadPoint.CarId.Value"></ChargingTargetConfigurationComponent>
-                }
-            </div>
-            <ChargeSummaryComponent CarId="loadPoint.CarId" ChargingConnectorId="loadPoint.ChargingConnectorId"></ChargeSummaryComponent>
-        </div>
+        <LoadPointDetailsComponent CarId="loadPoint.carId" ConnectorId="loadPoint.connectorId" />
     }
 }
 <HiddenErrorsComponent></HiddenErrorsComponent>
 
 @code {
     private bool _showEnergyData;
-    private List<DtoLoadPointOverview>? _loadPoints;
+    private HashSet<(int? carId, int? connectorId)>? _loadPoints;
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,34 +46,6 @@ else
 
     private async Task RefreshLoadPoints()
     {
-        _loadPoints = await HomeService.GetPluggedInLoadPoints();
-        if (Debugger.IsAttached && _loadPoints?.Count == 0)
-        {
-            _loadPoints.Add(new DtoLoadPointOverview()
-            {
-                CarId = 1,
-                CarName = "CarName",
-                ChargingConnectorId = 2,
-                ChargingConnectorName = "ChargingConnectorName",
-                ChargingCurrent = 10,
-                ChargingPhaseCount = 3,
-                ChargingPower = 3000,
-                MaxCurrent = 16,
-                MaxPhaseCount = 3,
-                Soc = 34,
-                CarSideSocLimit = 88,
-            });
-        }
+        _loadPoints = await HomeService.GetLoadPointsToManage();
     }
-
-    private async Task UpdateMinSoc(DtoLoadPointOverview loadPoint)
-    {
-        if (loadPoint.CarId == default)
-        {
-            return;
-        }
-        loadPoint.MinSoc ??= 0;
-        await HomeService.UpdateCarMinSoc(loadPoint.CarId.Value, loadPoint.MinSoc.Value);
-    }
-
 }

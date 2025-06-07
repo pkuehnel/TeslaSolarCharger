@@ -1,6 +1,6 @@
 ﻿namespace TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 
-public class DtoChargingSchedule
+public class DtoChargingSchedule : ValidFromToBase
 {
     public DtoChargingSchedule(int? carId, int? occpChargingConnectorId)
     {
@@ -8,10 +8,13 @@ public class DtoChargingSchedule
         OccpChargingConnectorId = occpChargingConnectorId;
     }
 
+    //Required for ValidFromToSplitter
+    public DtoChargingSchedule()
+    {
+    }
+
     public int? CarId { get; set; }
     public int? OccpChargingConnectorId { get; set; }
-    public DateTimeOffset StartTime { get; set; }
-    public DateTimeOffset EndTime { get; set; }
-
+    public int? OnlyChargeOnAtLeastSolarPower { get; set; }
     public int ChargingPower { get; set; }
 }
