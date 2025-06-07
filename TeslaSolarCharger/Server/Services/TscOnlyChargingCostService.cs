@@ -179,7 +179,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         decimal usedGridEnergyWh = 0;
         decimal cost = 0;
         chargingProcess.EndDate = chargingDetails.Last().TimeStamp;
-        var prices = await GetPricesInTimeSpan(chargingDetails.First().TimeStamp, chargingProcess.EndDate.Value);        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
+        var prices = await GetGridPricesInTimeSpan(chargingDetails.First().TimeStamp, chargingProcess.EndDate.Value);        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
         var maxChargingDetailsDuration = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds).Add(TimeSpan.FromSeconds(10));
         for (var index = 1; index < chargingDetails.Count; index++)
         {
@@ -217,8 +217,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
     public async Task<List<Price>> GetPricesInTimeSpan(DateTimeOffset from, DateTimeOffset to)
     {
-        logger.LogTrace("{method}({from}, {to})", nameof(GetPricesInTimeSpan), from, to);
-        var prices = await GetPricesInTimeSpan(from.ToUniversalTime().DateTime, to.ToUniversalTime().DateTime).ConfigureAwait(false);
+        logger.LogTrace("{method}({from}, {to})", nameof(GetGridPricesInTimeSpan), from, to);
+        var prices = await GetGridPricesInTimeSpan(from.ToUniversalTime().DateTime, to.ToUniversalTime().DateTime).ConfigureAwait(false);
         return prices;
     }
 
@@ -230,9 +230,9 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     /// <exception cref="NotImplementedException"></exception>
-    private async Task<List<Price>> GetPricesInTimeSpan(DateTime from, DateTime to)
+    private async Task<List<Price>> GetGridPricesInTimeSpan(DateTime from, DateTime to)
     {
-        logger.LogTrace("{method}({from}, {to})", nameof(GetPricesInTimeSpan), from, to);
+        logger.LogTrace("{method}({from}, {to})", nameof(GetGridPricesInTimeSpan), from, to);
         var chargePrice = await context.ChargePrices
             .Where(c => c.ValidSince < from)
             .OrderByDescending(c => c.ValidSince)
@@ -251,7 +251,6 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
                 prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
                 prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
-
                 return prices;
             case EnergyProvider.Awattar:
                 break;
@@ -263,7 +262,6 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 priceDataService = serviceProvider.GetRequiredService<IOldTscConfigPriceService>();
                 prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.Id.ToString()).ConfigureAwait(false)).ToList();
                 return prices;
-                break;
             default:
                 throw new ArgumentOutOfRangeException();
         }

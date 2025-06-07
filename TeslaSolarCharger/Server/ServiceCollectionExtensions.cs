@@ -133,6 +133,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ISunCalculator, SunCalculator>()
             .AddTransient<IHomeBatteryEnergyCalculator, HomeBatteryEnergyCalculator>()
             .AddTransient<IShouldStartStopChargingCalculator, ShouldStartStopChargingCalculator>()
+            .AddTransient<IValidFromToSplitter, ValidFromToSplitter>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
