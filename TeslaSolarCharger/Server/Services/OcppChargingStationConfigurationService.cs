@@ -33,6 +33,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             {
                 Id = cc.Id,
                 ChargingStationId = cc.OcppChargingStationId,
+                ShouldBeManaged = cc.ShouldBeManaged,
                 ConnectorId = cc.ConnectorId,
                 AutoSwitchBetween1And3PhasesEnabled = cc.AutoSwitchBetween1And3PhasesEnabled,
                 MinCurrent = cc.MinCurrent,
@@ -50,6 +51,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         logger.LogTrace("{method}({@dto})", nameof(UpdateChargingStationConnector), dtoChargingStation);
         var existingChargingStation = await teslaSolarChargerContext.OcppChargingStationConnectors.FirstAsync(c => c.Id == dtoChargingStation.Id);
         existingChargingStation.Name = dtoChargingStation.Name;
+        existingChargingStation.ShouldBeManaged = dtoChargingStation.ShouldBeManaged;
         existingChargingStation.MinCurrent = dtoChargingStation.MinCurrent;
         existingChargingStation.SwitchOffAtCurrent = dtoChargingStation.SwitchOffAtCurrent;
         existingChargingStation.SwitchOnAtCurrent = dtoChargingStation.SwitchOnAtCurrent;
@@ -155,6 +157,10 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                     ConnectorId = i + 1,
                 });
             }
+        }
+        foreach (var ocppChargingStationConnector in existingChargingStation.Connectors)
+        {
+            ocppChargingStationConnector.ShouldBeManaged = true;
         }
         var canSwitchPhases = await ocppChargePointConfigurationService.CanSwitchBetween1And3Phases(chargepointId, httpContextRequestAborted);
         if (canSwitchPhases.HasError)

@@ -8,16 +8,18 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class HomeController : ApiBaseController
 {
     private readonly IHomeService _homeService;
+    private readonly ILoadPointManagementService _loadPointManagementService;
 
-    public HomeController(IHomeService homeService)
+    public HomeController(IHomeService homeService, ILoadPointManagementService loadPointManagementService)
     {
         _homeService = homeService;
+        _loadPointManagementService = loadPointManagementService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetLoadPointOverviews()
+    public async Task<IActionResult> GetLoadPointsToManage()
     {
-        var result = await _homeService.GetLoadPointOverviews();
+        var result = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         return Ok(result);
     }
 

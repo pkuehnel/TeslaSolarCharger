@@ -6,7 +6,7 @@ namespace TeslaSolarCharger.Client.Services.Contracts;
 
 public interface IHomeService
 {
-    Task<List<DtoLoadPointOverview>?> GetPluggedInLoadPoints();
+    Task<HashSet<(int? carId, int? connectorId)>?> GetLoadPointsToManage();
     Task<List<DtoCarChargingTarget>?> GetCarChargingTargets(int carId);
     Task UpdateCarMinSoc(int carId, int minSoc);
     Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId);
