@@ -191,6 +191,12 @@ public class ConfigurationWrapper(
         return value;
     }
 
+    public bool UsePredictedSolarPowerGenerationForChargingSchedules()
+    {
+        var value = GetBaseConfiguration().UsePredictedSolarPowerGenerationForChargingSchedules;
+        return value;
+    }
+
     public bool ShowEnergyDataOnHome()
     {
         var value = GetBaseConfiguration().ShowEnergyDataOnHome;

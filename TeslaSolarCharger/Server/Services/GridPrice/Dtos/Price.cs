@@ -1,11 +1,10 @@
-﻿namespace TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+﻿using TeslaSolarCharger.Server.Dtos;
 
-public class Price
+namespace TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+
+public class Price : ValidFromToBase
 {
     public decimal GridPrice { get; set; }
     public decimal SolarPrice { get; set; }
-
-    public DateTimeOffset ValidFrom { get; set; }
-
-    public DateTimeOffset ValidTo { get; set; }
 }
+
