@@ -11,4 +11,5 @@ public interface IHomeService
     Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId);
     Task DeleteCarChargingTarget(int chargingTargetId);
     DtoCarOverview GetCarOverview(int carId);
+    Task<DtoChargingConnectorOverview> GetChargingConnectorOverview(int chargingConnectorId);
 }
