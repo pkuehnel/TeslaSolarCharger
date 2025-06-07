@@ -55,10 +55,10 @@ else
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
-        await RefreshCarOverView();
+        await RefreshData();
     }
 
-    private async Task RefreshCarOverView()
+    private async Task RefreshData()
     {
         if (CarId == default)
         {
