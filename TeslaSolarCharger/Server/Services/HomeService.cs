@@ -59,6 +59,21 @@ public class HomeService : IHomeService
         return carOverView;
     }
 
+    public async Task<DtoChargingConnectorOverview> GetChargingConnectorOverview(int chargingConnectorId)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId})", nameof(GetChargingConnectorOverview), chargingConnectorId);
+        var state = _settings.OcppConnectorStates.GetValueOrDefault(chargingConnectorId);
+        var chargingConnectorName = await _context.OcppChargingStationConnectors
+            .Where(c => c.Id == chargingConnectorId)
+            .Select(c => c.Name)
+            .FirstAsync();
+        var chargingConnector = new DtoChargingConnectorOverview(chargingConnectorName)
+        {
+            IsCharging = state != default && state.IsCharging.Value,
+        };
+        return chargingConnector;
+    }
+
     private static readonly Expression<Func<CarChargingTarget, DtoCarChargingTarget>> ToDto =
         s => new DtoCarChargingTarget
         {

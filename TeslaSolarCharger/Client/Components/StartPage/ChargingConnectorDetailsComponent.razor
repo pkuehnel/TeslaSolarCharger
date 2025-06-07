@@ -1,0 +1,39 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+
+@inject IHomeService HomeService
+
+@if (ChargingConnector == default)
+{
+    <PlaceholderComponent Count="6"></PlaceholderComponent>
+}
+else
+{
+    <div>
+        <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="me-1" />
+        @ChargingConnector.Name
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
+
+    private DtoChargingConnectorOverview? ChargingConnector { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        if (ChargingConnectorId == default)
+        {
+            ChargingConnector = default;
+            return;
+        }
+        ChargingConnector = await HomeService.GetChargingConnectorOverview(ChargingConnectorId.Value);
+    }
+}

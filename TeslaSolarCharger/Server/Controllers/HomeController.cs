@@ -38,7 +38,14 @@ public class HomeController : ApiBaseController
         return Ok(result);
     }
 
-[HttpGet]
+    [HttpGet]
+    public async Task<IActionResult> GetChargingConnectorOverview(int chargingConnectorId)
+    {
+        var result = await _homeService.GetChargingConnectorOverview(chargingConnectorId);
+        return Ok(result);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> GetCarChargingTarget(int chargingTargetId)
     {
         var result = await _homeService.GetChargingTarget(chargingTargetId);
