@@ -83,10 +83,11 @@ public class HomeService : IHomeService
         return result.Data;
     }
 
-    public async Task UpdateCarMinSoc(int carId, int minSoc)
+    public async Task<Result<object?>> UpdateCarMinSoc(int carId, int minSoc)
     {
         _logger.LogTrace("{method}()", nameof(UpdateCarMinSoc));
-        await _httpClientHelper.SendPostRequestWithSnackbarAsync<object>($"api/Home/UpdateCarMinSoc?carId={carId}&minSoc={minSoc}", null);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarMinSoc?carId={carId}&minSoc={minSoc}", null);
+        return result;
     }
 
     public async Task<Result<object>> DeleteCarChargingTarget(int chargingTargetId)
