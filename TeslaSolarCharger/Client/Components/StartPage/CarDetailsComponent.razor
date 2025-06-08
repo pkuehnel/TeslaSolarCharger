@@ -16,14 +16,14 @@ else
     <div>
         @if (Car.Soc != default)
         {
-            <MudProgressLinear Color="Color.Primary"
+            <MudProgressLinear Color="@(Car.Soc.Value < 7 ? Color.Error : Car.Soc.Value <= 20 ? Color.Warning : Color.Primary)"
                                Striped="Car.IsCharging"
                                Size="Size.Large"
                                Value="(double)Car.Soc"
                                Class="my-7"
                                Buffer="@(Car.CarSideSocLimit != default)"
                                BufferValue="@(Car.CarSideSocLimit == default ? 0 : (double)Car.CarSideSocLimit.Value)">
-                <MudText Typo="Typo.subtitle1" Color="Color.Dark" Style="z-index: 1">
+                <MudText Typo="Typo.subtitle1" Style="z-index: 1">
                     <b>@(Car.Soc.Value.ToString("F0"))%</b>
                 </MudText>
             </MudProgressLinear>
