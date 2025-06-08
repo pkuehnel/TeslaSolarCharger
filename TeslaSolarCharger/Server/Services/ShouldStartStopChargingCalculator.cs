@@ -14,28 +14,34 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
     private readonly ITeslaSolarChargerContext _context;
     private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILoadPointManagementService _loadPointManagementService;
 
     public ShouldStartStopChargingCalculator(ILogger<ShouldStartStopChargingCalculator> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        ILoadPointManagementService loadPointManagementService)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
         _dateTimeProvider = dateTimeProvider;
+        _loadPointManagementService = loadPointManagementService;
     }
 
-    public async Task UpdateShouldStartStopChargingTimes(int targetPower, List<DtoLoadpoint> loadpoints)
+    public async Task UpdateShouldStartStopChargingTimes(int targetPower)
     {
         _logger.LogTrace("{method}({targetPower})", nameof(UpdateShouldStartStopChargingTimes), targetPower);
-        var ocppElements = await GetOcppElements().ConfigureAwait(false);
         var carElements = await GetCarElements().ConfigureAwait(false);
+        var ocppElements = await GetOcppElements().ConfigureAwait(false);
         var orderedElements = ocppElements.Concat(carElements)
             .OrderBy(e => e.ChargingPriority)
             .ToList();
-        var additionalAvailablePower = targetPower - loadpoints.Select(l => l.ActualChargingPower ?? 0).Sum();
+        var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
+        var additionalAvailablePower = targetPower - chargingLoadPoints.Select(l => l.ChargingPower).Sum();
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        var carConnectorMatches =
+            _loadPointManagementService.GetCarConnectorMatches(carElements.Select(c => c.Id), ocppElements.Select(e => e.Id));
         var alreadySetCarIds = new HashSet<int>();
         var alreadySetChargingConnectors = new HashSet<int>();
         foreach (var element in orderedElements)
@@ -60,25 +66,33 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                 }
                 ocppConnectorId = element.Id;
             }
-            var matchingLoadpoint = element.DeviceType switch
+            var matchingCombination = element.DeviceType switch
             {
-                DeviceType.Car => loadpoints.FirstOrDefault(lp => lp.Car?.Id == element.Id),
-                DeviceType.OcppConnector => loadpoints.FirstOrDefault(lp => lp.OcppConnectorId == element.Id),
+                DeviceType.Car => carConnectorMatches.FirstOrDefault(lp => lp.CarId == element.Id),
+                DeviceType.OcppConnector => carConnectorMatches.FirstOrDefault(lp => lp.ConnectorId == element.Id),
                 _ => throw new ArgumentException(),
             };
-            if (matchingLoadpoint != default)
+            if (matchingCombination != default)
             {
-                elementTargetPower += (matchingLoadpoint.ActualChargingPower ?? 0);
-                if (matchingLoadpoint.Car != default)
+                if (matchingCombination.CarId != default)
                 {
-                    alreadySetCarIds.Add(matchingLoadpoint.Car.Id);
+                    alreadySetCarIds.Add(matchingCombination.CarId.Value);
                 }
-                if (matchingLoadpoint.OcppConnectorId != default)
+                if (matchingCombination.ConnectorId != default)
                 {
-                    alreadySetChargingConnectors.Add(matchingLoadpoint.OcppConnectorId.Value);
+                    alreadySetChargingConnectors.Add(matchingCombination.ConnectorId.Value);
                 }
             }
-
+            var matchingLoadPoint = element.DeviceType switch
+            {
+                DeviceType.Car => chargingLoadPoints.FirstOrDefault(lp => lp.CarId == element.Id),
+                DeviceType.OcppConnector => chargingLoadPoints.FirstOrDefault(lp => lp.ChargingConnectorId == element.Id),
+                _ => throw new ArgumentException(),
+            };
+            if (matchingLoadPoint != default)
+            {
+                elementTargetPower += (matchingLoadPoint.ChargingPower);
+            }
             if (carId != default)
             {
                 var switchOnPower = element.SwitchOnAtPower;

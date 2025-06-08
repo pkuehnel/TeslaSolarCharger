@@ -4,5 +4,5 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IShouldStartStopChargingCalculator
 {
-    Task UpdateShouldStartStopChargingTimes(int targetPower, List<DtoLoadpoint> loadpoints);
+    Task UpdateShouldStartStopChargingTimes(int targetPower);
 }
