@@ -30,20 +30,31 @@ else
     foreach (var loadPoint in _loadPoints)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <div>@((loadPoint.ChargingPower ?? 0).ToString("N0")) W</div>
+            <div class="text-center">@((loadPoint.ChargingPower ?? 0).ToString("N0")) W</div>
+            <div class="progress-wrapper">
+                @for (var i = 1; i <= loadPoint.MaxPhases; i++)
+                {
+                    <MudProgressLinear Color="Color.Primary"
+                                       Striped="loadPoint.ChargingPower > 0"
+                                       Size="Size.Small"
+                                       Value="@((double)(i <= loadPoint.ActualPhases ? loadPoint.ActualCurrent ?? 0 : 0))"
+                                       Max="loadPoint.MaxCurrent ?? 16"
+                                       Class="mt-1 mb-3 mx-1">
+                    </MudProgressLinear>
+                }
+            </div>
+            
             <div class="row">
                 @if (loadPoint.CarId != default)
                 {
-                    <div class="border border-gray-300 p-3 rounded col-xl-6 col-12">
-                        <CarDetailsComponent
-                            CarId="loadPoint.CarId" />
+                    <div class="border border-gray-300 p-3 rounded col-12 col-xl-@(loadPoint.ChargingConnectorId == default ? "12" : "6")">
+                        <CarDetailsComponent CarId="loadPoint.CarId" />
                     </div>
                 }
                 @if (loadPoint.ChargingConnectorId != default)
                 {
-                    <div class="border border-gray-300 p-3 rounded col-xl-6 col-12">
-                        <ChargingConnectorDetailsComponent
-                            ChargingConnectorId="loadPoint.ChargingConnectorId" />
+                    <div class="border border-gray-300 p-3 rounded col-xl-6 col-xl-@(loadPoint.CarId == default ? "12" : "6")">
+                        <ChargingConnectorDetailsComponent ChargingConnectorId="loadPoint.ChargingConnectorId" />
                     </div>
                 }
             </div>
