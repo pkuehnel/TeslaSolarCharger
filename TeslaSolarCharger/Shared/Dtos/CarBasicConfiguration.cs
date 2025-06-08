@@ -37,7 +37,7 @@ public class CarBasicConfiguration
     [Postfix("kWh")]
     [HelperText("This value is used to reach a desired SoC in time if on spot price or PVOnly charge mode.")]
     public int UsableEnergy { get; set; }
-    [HelperText("If there is not enough power for all cars, the cars will be charged ordered by priority. Cars with the same priority are ordered randomly.")]
+    [HelperText("If there is not enough power for all cars/charging connectors, the cars/charging connectors will be charged ordered by priority. Cars/Charging connectors with the same priority are ordered randomly.")]
     public int ChargingPriority { get; set; }
     [HelperText("If disabled, this car will not show up in the overview page and TSC does not manage it.")]
     public bool ShouldBeManaged { get; set; } = true;
