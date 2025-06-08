@@ -74,6 +74,7 @@ public class HomeService : IHomeService
         var chargingConnector = new DtoChargingConnectorOverview(chargingConnectorName)
         {
             IsCharging = state != default && state.IsCharging.Value,
+            IsPluggedIn = state != default && state.IsPluggedIn.Value,
         };
         return chargingConnector;
     }

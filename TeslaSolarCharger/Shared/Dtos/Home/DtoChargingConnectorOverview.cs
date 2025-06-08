@@ -9,4 +9,5 @@ public class DtoChargingConnectorOverview
 
     public string Name { get; set; }
     public bool IsCharging { get; set; }
+    public bool IsPluggedIn { get; set; }
 }

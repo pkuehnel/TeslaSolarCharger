@@ -10,8 +10,11 @@
 else
 {
     <div>
-        <MudIcon Icon="@Icons.Material.Filled.EvStation" Class="me-1" />
+        <MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" />
         @ChargingConnector.Name
+        <CustomIcon IconName="@Icons.Material.Outlined.Home"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnector.IsPluggedIn)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnector.IsCharging)"></CustomIcon>
     </div>
     <ChargeSummaryComponent ChargingConnectorId="ChargingConnectorId"></ChargeSummaryComponent>
 }
