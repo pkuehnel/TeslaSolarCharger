@@ -111,6 +111,8 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.ActualCurrent = dtoCar.ChargerActualCurrent;
                 loadPoint.ActualPhases = dtoCar.ActualPhases;
                 loadPoint.MaxPhases = dtoCar.ActualPhases;
+                loadPoint.ChargingPower = dtoCar.ChargingPowerAtHome;
+                loadPoint.ChargingPriority = dtoCar.ChargingPriority;
             }
 
             if (pair.ConnectorId != default)
@@ -124,6 +126,10 @@ public class LoadPointManagementService : ILoadPointManagementService
                 {
                     loadPoint.MaxPhases = databaseConnector.MaxPhases;
                 }
+                if ((loadPoint.ChargingPriority == null) || (loadPoint.ChargingPriority > databaseConnector.ChargingPriority))
+                {
+                    loadPoint.ChargingPriority = databaseConnector.ChargingPriority;
+                }
 
                 var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(pair.ConnectorId.Value);
                 if (connectorState != default)
@@ -136,7 +142,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             result.Add(loadPoint);
         }
 
-        return result;
+        return result.OrderBy(l => l.ChargingPriority ?? 99).ToList();
     }
 
     private HashSet<(int? CarId, int? ConnectorId)> GetCarConnectorMatches(
