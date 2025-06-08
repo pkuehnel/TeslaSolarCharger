@@ -5,6 +5,7 @@ namespace TeslaSolarCharger.Shared.Dtos.Settings;
 public class DtoCar
 {
     private int? _chargingPower;
+    private int? _chargerActualCurrent;
     public int Id { get; set; }
     public string Vin { get; set; }
     public int? TeslaMateCarId { get; set; }
@@ -13,6 +14,7 @@ public class DtoCar
     public ChargeModeV2 ChargeModeV2 { get; set; }
 
     public int MinimumSoC { get; set; }
+    public DtoTimeStampedValue<int> MaximumSoC { get; set; } = new(DateTimeOffset.MinValue, 100);
     /// <summary>
     /// This field is always filled with local time, never with UTC time. The time gets converted to utc when writing to the database.
     /// </summary>
@@ -51,7 +53,20 @@ public class DtoCar
     public int ActualPhases => ChargerPhases is null or > 1 ? 3 : 1;
 
     public int? ChargerVoltage { get; set; }
-    public int? ChargerActualCurrent { get; set; }
+
+    public int? ChargerActualCurrent
+    {
+        get
+        {
+            if (_chargerActualCurrent > ChargerRequestedCurrent)
+            {
+                return ChargerRequestedCurrent;
+            }
+            return _chargerActualCurrent;
+        }
+        set => _chargerActualCurrent = value;
+    }
+
     public int? ChargerPilotCurrent { get; set; }
     public int? ChargerRequestedCurrent { get; set; }
     public DtoTimeStampedValue<double?> MinBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);

@@ -3,15 +3,13 @@
 public class DtoLoadPointOverview
 {
     public int? CarId { get; set; }
-    public string? CarName { get; set; }
     public int? ChargingConnectorId { get; set; }
-    public string? ChargingConnectorName { get; set; }
-    public int ChargingPower { get; set; }
-    public int? MaxPhaseCount { get; set; }
-    public int? ChargingPhaseCount { get; set; }
+    public decimal? ActualCurrent { get; set; }
     public int? MaxCurrent { get; set; }
-    public decimal ChargingCurrent { get; set; }
-    public decimal? Soc { get; set; }
-    public decimal? CarSideSocLimit { get; set; }
-    public int? MinSoc { get; set; }
+    public int? ActualPhases { get; set; }
+    public int? MaxPhases { get; set; }
+    public int? ChargingPower { get; set; }
+    public bool? IsHome { get; set; }
+    public bool? IsPluggedIn { get; set; }
+    public int? ChargingPriority { get; set; }
 }

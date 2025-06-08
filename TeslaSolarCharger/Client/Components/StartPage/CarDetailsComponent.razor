@@ -1,0 +1,170 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+@using MudExtensions
+
+@inject IHomeService HomeService
+@inject ISnackbar Snackbar
+
+@if (Car == default)
+{
+    <PlaceholderComponent Count="6"></PlaceholderComponent>
+}
+else
+{
+    <div>
+        <MudIcon Icon="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
+        <span class="me-1">@Car.Name</span>
+        <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!Car.IsHome)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!Car.IsPluggedIn)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!Car.IsCharging)"></CustomIcon>
+    </div>
+    <div>
+        @if (Car.Soc != default)
+        {
+            <MudProgressLinear Color="@(Car.Soc.Value < 7 ? Color.Error : Car.Soc.Value <= 20 ? Color.Warning : Color.Primary)"
+                               Striped="Car.IsCharging"
+                               Size="Size.Large"
+                               Value="(double)Car.Soc"
+                               Class="my-7"
+                               Buffer="@(Car.CarSideSocLimit != default)"
+                               BufferValue="@(Car.CarSideSocLimit == default ? 0 : (double)Car.CarSideSocLimit.Value)">
+                <MudText Typo="Typo.subtitle1" Style="z-index: 1">
+                    <b>@(Car.Soc.Value.ToString("F0"))%</b>
+                </MudText>
+            </MudProgressLinear>
+        }
+        <div>@(Car.Name) will always charge at full power until @(Car.MinSoc).</div>
+        <MudRangeSlider T="int"
+                        Value="Car.MinSoc"
+                        UpperValue="Car.MaxSoc"
+                        Min="0" Max="100"
+                        Size="Size.Large"
+                        Color="Color.Primary"
+                        Variant="Variant.Filled"
+                        ValueLabel="true"
+                        Range="true"
+                        Immediate="true"
+                        LabelText="@($"Min SOC {Car.MinSoc}")"
+                        UpperLabelText="@($"Max SOC {Car.MaxSoc}")"
+                        Display="false"
+                        MinDistance="@(Car.MinSoc == 0 ? 1 : 0)"
+                        ValueChanged="newValue => OnMinSocChanged(newValue)"
+                        UpperValueChanged="@((newValue) => OnMaxSocChanged(newValue))"></MudRangeSlider>
+        
+    </div>
+    <div>
+        @if (CarId != default)
+        {
+            <ChargingTargetConfigurationComponent CarId="CarId.Value"></ChargingTargetConfigurationComponent>
+        }
+    </div>
+    <ChargeSummaryComponent CarId="CarId"></ChargeSummaryComponent>
+}
+
+
+@code {
+    [Parameter]
+    public int? CarId { get; set; }
+
+    private DtoCarOverview? Car { get; set; }
+
+    // one CTS per “in-flight” debounce
+    private CancellationTokenSource _minSocDebounceCts = new();
+
+    private int? _lastKnownMinValue;
+    private int? _lastKnownMaxValue;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        if (CarId == default)
+        {
+            Car = default;
+            return;
+        }
+        Car = await HomeService.GetCarOverview(CarId.Value);
+        if (Car != default)
+        {
+            _lastKnownMinValue = Car.MinSoc;
+            _lastKnownMaxValue = Car.MaxSoc;
+        }
+
+    }
+
+    private async Task OnMinSocChanged(int newSoc)
+    {
+        if (Car == default || CarId == default)
+            return;
+
+        // update UI immediately
+        Car.MinSoc = newSoc;
+
+        // cancel any pending update
+        await _minSocDebounceCts.CancelAsync();
+        _minSocDebounceCts = new CancellationTokenSource();
+
+        try
+        {
+            // wait 300ms for “settle”
+            await Task.Delay(300, _minSocDebounceCts.Token);
+
+            // now do the API call
+            var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, Car.MinSoc);
+            if (updateResult.HasError)
+            {
+                Snackbar.Add(
+                    $"Failed to update Min SOC: {updateResult.ErrorMessage}",
+                    Severity.Error);
+                if (_lastKnownMinValue != default)
+                {
+                    Car.MinSoc = _lastKnownMinValue.Value;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            else
+            {
+                _lastKnownMinValue = newSoc;
+                Snackbar.Add("Min SOC updated successfully.", Severity.Success);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // user is still dragging—ignore
+        }
+    }
+
+
+    private async Task OnMaxSocChanged(int newSoc)
+    {
+        if (Car == default || CarId == default)
+            return;
+
+        // update UI immediately
+        Car.MaxSoc = newSoc;
+
+        // cancel any pending update
+        await _minSocDebounceCts.CancelAsync();
+        _minSocDebounceCts = new CancellationTokenSource();
+
+        try
+        {
+            // wait 300ms for “settle”
+            await Task.Delay(300, _minSocDebounceCts.Token);
+            Snackbar.Add("Max SOC is currently not supported, will come in a future release, please set it in the Tesla app.", Severity.Warning);
+            if (_lastKnownMaxValue != default)
+            {
+                Car.MaxSoc = _lastKnownMaxValue.Value;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // user is still dragging—ignore
+        }
+    }
+}

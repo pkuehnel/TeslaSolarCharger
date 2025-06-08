@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -17,115 +19,231 @@ public class LoadPointManagementService : ILoadPointManagementService
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IIssueKeys _issueKeys;
 
-    public LoadPointManagementService(ILogger<LoadPointManagementService> logger,
-        ISettings settings,
-        ITeslaSolarChargerContext context,
-        IConfigurationWrapper configurationWrapper,
-        IErrorHandlingService errorHandlingService,
-        IIssueKeys issueKeys)
+    public LoadPointManagementService(
+    ILogger<LoadPointManagementService> logger,
+    IConfigurationWrapper configurationWrapper,
+    IErrorHandlingService errorHandlingService,
+    IIssueKeys issueKeys,
+    ITeslaSolarChargerContext context,
+    ISettings settings)
     {
         _logger = logger;
-        _settings = settings;
-        _context = context;
         _configurationWrapper = configurationWrapper;
         _errorHandlingService = errorHandlingService;
         _issueKeys = issueKeys;
+        _context = context;
+        _settings = settings;
     }
 
     /// <summary>
-    /// Get all loadpoints that are plugged in at home.
+    /// Get all load points with their charging power and voltage details. Lightweight method without database calls.
     /// </summary>
-    /// <returns>List of loadpoints ordered by charging priority</returns>
-    public async Task<List<DtoLoadpoint>> GetPluggedInLoadPoints()
+    /// <returns></returns>
+    public List<DtoLoadPointWithCurrentChargingValues> GetLoadPointsWithChargingDetails()
     {
-        _logger.LogTrace("{method}()", nameof(GetPluggedInLoadPoints));
-        var pluggedInCars = _settings.Cars
-            .Where(c => c.IsHomeGeofence == true && c.PluggedIn == true)
+        _logger.LogTrace("{method}()", nameof(GetLoadPointsWithChargingDetails));
+        var cars = _settings.Cars
+            .Where(c => c.ChargingPowerAtHome > 0)
+            .Select(c => new
+            {
+                CarId = c.Id,
+                ChargingPower = c.ChargingPowerAtHome ?? 0,
+                Voltage = c.ChargerVoltage ?? _settings.AverageHomeGridVoltage ?? 230,
+                ChargingCurrent = c.IsHomeGeofence == true ? (c.ChargerActualCurrent ?? 0) : 0,
+                Phases = c.ActualPhases,
+            })
             .ToList();
-        var pluggedInChargingConnectors = _settings.OcppConnectorStates
-            .Where(c => c.Value.IsPluggedIn.Value)
-            .ToDictionary();
-        var result = new List<DtoLoadpoint>();
-        foreach (var pluggedInCar in pluggedInCars)
-        {
-            result.Add(new()
+        var connectors = _settings.OcppConnectorStates
+            .Where(c => c.Value.ChargingPower.Value > 0)
+            .Select(c => new
             {
-                Car = pluggedInCar,
-            });
-        }
-        await AddPluggedInChargingConnectorsAndTryAutomatchToExistingLoadpoints(pluggedInChargingConnectors, result).ConfigureAwait(false);
-        var pluggedInChargingConnectorIds = result
-            .Where(l => l.OcppConnectorId != default)
-            .Select(l => l.OcppConnectorId!.Value)
-            .ToHashSet();
-        var chargingConnectorPriorites = await _context.OcppChargingStationConnectors
-            .Where(c => pluggedInChargingConnectorIds.Contains(c.Id))
-            .ToDictionaryAsync(c => c.Id, c => c.ChargingPriority);
-        foreach (var dtoLoadpoint in result)
+                ConnectorId = c.Key,
+                ChargingPower = c.Value.ChargingPower.Value,
+                Voltage = (int)c.Value.ChargingVoltage.Value,
+                ChargingCurrent = c.Value.ChargingCurrent.Value,
+                Phases = c.Value.PhaseCount.Value,
+            })
+            .ToList();
+
+        var matches = GetCarConnectorMatches(cars.Select(c => c.CarId), connectors.Select(c => c.ConnectorId));
+        var result = new List<DtoLoadPointWithCurrentChargingValues>();
+        foreach (var match in matches)
         {
-            var carPriority = dtoLoadpoint.Car?.ChargingPriority;
-            if (carPriority == default)
+            var loadPoint = new DtoLoadPointWithCurrentChargingValues
             {
-                dtoLoadpoint.Priority = chargingConnectorPriorites.GetValueOrDefault(dtoLoadpoint.OcppConnectorId ?? 0, 99);
-                continue;
+                CarId = match.CarId,
+                ChargingConnectorId = match.ConnectorId,
+            };
+            if (match.CarId != default)
+            {
+                var car = cars.First(c => c.CarId == match.CarId.Value);
+                loadPoint.ChargingPower = car.ChargingPower;
+                loadPoint.ChargingVoltage = car.Voltage;
+                loadPoint.ChargingCurrent = car.ChargingCurrent;
+                loadPoint.ChargingPhases = car.Phases;
             }
-            dtoLoadpoint.Priority = carPriority.Value;
+            if (match.ConnectorId != default)
+            {
+                var connector = connectors.First(c => c.ConnectorId == match.ConnectorId.Value);
+                loadPoint.ChargingPower = connector.ChargingPower;
+                loadPoint.ChargingVoltage = connector.Voltage;
+                loadPoint.ChargingCurrent = connector.ChargingCurrent;
+                loadPoint.ChargingPhases = connector.Phases;
+            }
+            result.Add(loadPoint);
         }
-        return result.OrderBy(c => c.Priority).ToList();
+        return result;
     }
 
-    private async Task AddPluggedInChargingConnectorsAndTryAutomatchToExistingLoadpoints(Dictionary<int, DtoOcppConnectorState> pluggedInChargingConnectors, List<DtoLoadpoint> result)
+    public async Task<List<DtoLoadPointOverview>> GetLoadPointsToManage()
     {
-        var anyConnectorWithMultipleMatchingCars = false;
-        foreach (var pluggedInCharingConnector in pluggedInChargingConnectors)
-        {
-            if (pluggedInCharingConnector.Value.IsPluggedIn.LastChanged != default)
+        _logger.LogTrace("{method}()", nameof(GetLoadPointsToManage));
+        var carData = await _context.Cars
+            .Where(c => c.ShouldBeManaged == true)
+            .Select(c => new
             {
-                var matchingLoadPoints = result
-                    .Where(l => l.Car?.LastPluggedIn < pluggedInCharingConnector.Value.IsPluggedIn.LastChanged.Value.Add(_configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector())
-                                && l.Car?.LastPluggedIn > pluggedInCharingConnector.Value.IsPluggedIn.LastChanged.Value.Add(-_configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector()))
-                    .ToList();
-                if (matchingLoadPoints.Count < 1)
+                c.Id,
+                MinCurrent = c.MinimumAmpere,
+                MaxCurrent = c.MaximumAmpere,
+            })
+            .ToHashSetAsync();
+        var connectorData = await _context.OcppChargingStationConnectors
+            .Where(c => c.ShouldBeManaged)
+            .Select(c => new
+            {
+                c.Id,
+                c.MinCurrent,
+                c.MaxCurrent,
+                MaxPhases = c.ConnectedPhasesCount,
+                c.ChargingPriority,
+            })
+            .ToHashSetAsync();
+        var connectorPairs = GetCarConnectorMatches(carData.Select(c => c.Id), connectorData.Select(c => c.Id));
+        var result = new List<DtoLoadPointOverview>();
+        foreach (var pair in connectorPairs)
+        {
+            var loadPoint = new DtoLoadPointOverview()
+            {
+                CarId = pair.CarId,
+                ChargingConnectorId = pair.ConnectorId,
+            };
+            if (pair.CarId != default)
+            {
+                var databaseCar = carData.First(c => c.Id == pair.CarId);
+                loadPoint.MaxCurrent = databaseCar.MaxCurrent;
+
+                var dtoCar = _settings.Cars.First(c => c.Id == pair.CarId.Value);
+                loadPoint.ActualCurrent = dtoCar.ChargerActualCurrent;
+                loadPoint.ActualPhases = dtoCar.ActualPhases;
+                loadPoint.MaxPhases = dtoCar.ActualPhases;
+                loadPoint.ChargingPower = dtoCar.ChargingPowerAtHome;
+                loadPoint.ChargingPriority = dtoCar.ChargingPriority;
+                loadPoint.IsHome = dtoCar.IsHomeGeofence;
+                loadPoint.IsPluggedIn = dtoCar.PluggedIn == true;
+            }
+
+            if (pair.ConnectorId != default)
+            {
+                var databaseConnector = connectorData.First(c => c.Id == pair.ConnectorId);
+                if ((loadPoint.MaxCurrent == null) || (loadPoint.MaxCurrent > databaseConnector.MaxCurrent))
                 {
-                    _logger.LogTrace("Did not find any car that was plugged in at the same time as chargepoint connector {chargepointConnectorID}", pluggedInCharingConnector.Key);
-                    result.Add(new()
-                    {
-                        OcppConnectorId = pluggedInCharingConnector.Key,
-                        OcppConnectorState = pluggedInCharingConnector.Value,
-                    });
+                    loadPoint.MaxCurrent = databaseConnector.MaxCurrent;
                 }
-                else if (matchingLoadPoints.Count == 1)
+                if ((loadPoint.MaxPhases == null) || (loadPoint.MaxPhases < databaseConnector.MaxPhases))
                 {
-                    var matchingLoadPoint = matchingLoadPoints.First();
-                    _logger.LogTrace("Car {carId} was plugged in at the same time as ChargingConnector {chargingConnectorId}. Combining to one loadpoint.", matchingLoadPoint.Car?.Id, pluggedInCharingConnector.Key);
-                    matchingLoadPoint.OcppConnectorId = pluggedInCharingConnector.Key;
-                    matchingLoadPoint.OcppConnectorState = pluggedInCharingConnector.Value;
+                    loadPoint.MaxPhases = databaseConnector.MaxPhases;
                 }
-                else
+                if ((loadPoint.ChargingPriority == null) || (loadPoint.ChargingPriority > databaseConnector.ChargingPriority))
                 {
-                    _logger.LogError("More than one car ({carIdList}) was plugged in at the same time as Charging connector {chargingConnectorId}",
-                        string.Join(", ", matchingLoadPoints.Select(l => l.Car?.Id).ToList()), pluggedInCharingConnector.Key);
-                    anyConnectorWithMultipleMatchingCars = true;
-                    result.Add(new()
-                    {
-                        OcppConnectorId = pluggedInCharingConnector.Key,
-                        OcppConnectorState = pluggedInCharingConnector.Value,
-                    });
+                    loadPoint.ChargingPriority = databaseConnector.ChargingPriority;
                 }
-                            
+
+                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(pair.ConnectorId.Value);
+                if (connectorState != default)
+                {
+                    loadPoint.ActualCurrent = connectorState.ChargingCurrent.Value;
+                    loadPoint.ActualPhases = connectorState.PhaseCount.Value;
+                    loadPoint.ChargingPower = connectorState.ChargingPower.Value;
+                    loadPoint.IsPluggedIn = connectorState.IsPluggedIn.Value;
+                    //Charging connectors are always home connectors
+                    loadPoint.IsHome = true;
+                }
+            }
+            result.Add(loadPoint);
+        }
+
+        return result.OrderBy(l => l.ChargingPriority ?? 99).ToList();
+    }
+
+    public HashSet<(int? CarId, int? ConnectorId)> GetCarConnectorMatches(IEnumerable<int> carIds, IEnumerable<int> connectorIds)
+    {
+        _logger.LogTrace("{methdod}({@carId}, {@connectorIds})", nameof(GetCarConnectorMatches), carIds, connectorIds);
+        var matches = new HashSet<(int? CarId, int? ConnectorId)>();
+        var errorForMultipleMatches = false;
+        var maxTimeDiff = _configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
+
+        foreach (var connectorId in connectorIds)
+        {
+            var state = _settings.OcppConnectorStates.GetValueOrDefault(connectorId);
+            if (state == default)
+            {
+                matches.Add((null, connectorId));
+                continue;
+            }
+            if (state.IsPluggedIn.LastChanged == default)
+            {
+                matches.Add((null, connectorId));
+                continue;
+            }
+
+            var matchWindowStart = state.IsPluggedIn.LastChanged.Value.Add(-maxTimeDiff);
+            var matchWindowEnd = state.IsPluggedIn.LastChanged.Value.Add(maxTimeDiff);
+
+            var matchingCars = _settings.Cars
+                .Where(car => car.LastPluggedIn >= matchWindowStart
+                              && car.LastPluggedIn <= matchWindowEnd
+                              && car.IsHomeGeofence == true)
+                .ToList();
+
+            if (matchingCars.Count == 1)
+            {
+                matches.Add((matchingCars.First().Id, connectorId));
+            }
+            else if (matchingCars.Count > 1)
+            {
+                errorForMultipleMatches = true;
+            }
+            else
+            {
+                matches.Add((null, connectorId));
             }
         }
 
-        if (anyConnectorWithMultipleMatchingCars)
+        foreach (var carId in carIds)
         {
-            await _errorHandlingService.HandleError(nameof(LoadPointManagementService), nameof(AddPluggedInChargingConnectorsAndTryAutomatchToExistingLoadpoints),
-                "Could not autodetect cars plugged in in charging points",
-                $"At least two cars were connected nearly at the same time as one charging connector. To autodetect which car is charging on which charging connector plug out all cars but one and then plug in the cars but between each plugin wait at least {_configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector().TotalSeconds * 3} seconds.",
-                _issueKeys.MultipleCarsMatchChargingConnector, null, null).ConfigureAwait(false);
+            if (!matches.Any(c => c.CarId == carId))
+            {
+                matches.Add((carId, null));
+            }
+        }
+
+        if (errorForMultipleMatches)
+        {
+            var waitSeconds = _configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector().TotalSeconds * 3;
+            _errorHandlingService.HandleError(
+                nameof(LoadPointManagementService),
+                nameof(GetCarConnectorMatches),
+                "Could not autodetect cars plugged in charging points",
+                $"Multiple cars matched to a single charging connector. Unplug all but one car and wait {waitSeconds} seconds between each plugin.",
+                _issueKeys.MultipleCarsMatchChargingConnector,
+                null,
+                null);
         }
         else
         {
-            await _errorHandlingService.HandleErrorResolved(_issueKeys.MultipleCarsMatchChargingConnector, null).ConfigureAwait(false);
+            _errorHandlingService.HandleErrorResolved(_issueKeys.MultipleCarsMatchChargingConnector, null);
         }
+
+        return matches;
     }
 }

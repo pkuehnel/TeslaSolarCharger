@@ -31,7 +31,7 @@ public class IndexService(
     ILoadPointManagementService loadPointManagementService)
     : IIndexService
 {
-    public async Task<DtoPvValues> GetPvValues()
+    public DtoPvValues GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
         int? powerBuffer = configurationWrapper.PowerBuffer();
@@ -39,7 +39,7 @@ public class IndexService(
         {
             powerBuffer = null;
         }
-        var loadPoints = await loadPointManagementService.GetPluggedInLoadPoints();
+        var loadPoints = loadPointManagementService.GetLoadPointsWithChargingDetails();
         var pvValues = new DtoPvValues()
         {
             GridPower = settings.Overage,
@@ -47,7 +47,7 @@ public class IndexService(
             HomeBatteryPower = settings.HomeBatteryPower,
             HomeBatterySoc = settings.HomeBatterySoc,
             PowerBuffer = powerBuffer,
-            CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ActualChargingPower ?? 0).Sum(),
+            CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum(),
             LastUpdated = settings.LastPvValueUpdate,
         };
         return pvValues;
