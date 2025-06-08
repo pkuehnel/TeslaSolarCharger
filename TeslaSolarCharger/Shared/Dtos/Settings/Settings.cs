@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
@@ -24,7 +25,7 @@ public class Settings : ISettings
     /// </summary>
     public ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; } = new();
 
-
+    public ConcurrentBag<DtoChargingSchedule> ChargingSchedules { get; set; } = new();
     public Dictionary<int, string> RawRestRequestResults { get; set; } = new();
     public Dictionary<int, string> RawRestValues { get; set; } = new();
     public Dictionary<int, decimal?> CalculatedRestValues { get; set; } = new();

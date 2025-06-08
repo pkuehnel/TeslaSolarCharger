@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+using TeslaSolarCharger.Shared.Dtos;
 using Xunit;
 using Xunit.Abstractions;
 
