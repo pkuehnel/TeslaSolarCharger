@@ -12,10 +12,11 @@
 else
 {
     <div>
-        <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
+        <MudIcon Icon="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
         <span class="me-1">@Car.Name</span>
-        <CustomIcon IconName="@Icons.Material.Filled.Home" IsCrossedOut="@(!Car.IsHome)"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Filled.Power" IsCrossedOut="@(!Car.IsPluggedIn)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!Car.IsHome)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!Car.IsPluggedIn)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!Car.IsCharging)"></CustomIcon>
     </div>
     <div>
         @if (Car.Soc != default)
@@ -154,8 +155,12 @@ else
         {
             // wait 300ms for “settle”
             await Task.Delay(300, _minSocDebounceCts.Token);
-
             Snackbar.Add("Max SOC is currently not supported, will come in a future release, please set it in the Tesla app.", Severity.Warning);
+            if (_lastKnownMaxValue != default)
+            {
+                Car.MaxSoc = _lastKnownMaxValue.Value;
+                await InvokeAsync(StateHasChanged);
+            }
         }
         catch (TaskCanceledException)
         {
