@@ -41,6 +41,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                 SwitchOnAtCurrent = cc.SwitchOnAtCurrent,
                 MaxCurrent = cc.MaxCurrent,
                 ConnectedPhasesCount = cc.ConnectedPhasesCount ?? 3,
+                ChargingPriority = cc.ChargingPriority,
             })
             .ToListAsync().ConfigureAwait(false);
         return chargingConnectors;
@@ -58,6 +59,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         existingChargingStation.MaxCurrent = dtoChargingStation.MaxCurrent;
         existingChargingStation.ConnectedPhasesCount = dtoChargingStation.ConnectedPhasesCount;
         existingChargingStation.AutoSwitchBetween1And3PhasesEnabled = dtoChargingStation.AutoSwitchBetween1And3PhasesEnabled;
+        existingChargingStation.ChargingPriority = dtoChargingStation.ChargingPriority;
         await teslaSolarChargerContext.SaveChangesAsync();
     }
 

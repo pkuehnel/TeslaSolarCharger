@@ -36,6 +36,8 @@ public class DtoChargingStationConnector
 
     [HelperText("Number of connected phases on your charging station. If you're unsure about this value, please contact a qualified electrician. Note: Do not enter the number of phases the car can handle, just the number of phases the charging connector is connected to!")]
     public int ConnectedPhasesCount { get; set; } = 3;
+    [HelperText("If there is not enough power for all cars/charging connectors, the cars/charging connectors will be charged ordered by priority. Cars/Charging connectors with the same priority are ordered randomly.")]
+    public int ChargingPriority { get; set; }
 }
 
 
