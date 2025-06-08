@@ -11,5 +11,6 @@ public class DtoCarOverview
     public int? Soc { get; set; }
     public int? CarSideSocLimit { get; set; }
     public int MinSoc { get; set; }
+    public int MaxSoc { get; set; }
     public bool IsCharging { get; set; }
 }
