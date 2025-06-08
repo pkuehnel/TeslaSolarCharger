@@ -202,7 +202,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var activeChargingSchedules = chargingSchedules.Where(s => s.ValidFrom <= currentDate).ToList();
 
-        var maxAdditionalCurrent = (decimal)_configurationWrapper.MaxCombinedCurrent() - chargingLoadPoints.Select(l => l.ChargingPower).Sum();
+        var maxAdditionalCurrent = _configurationWrapper.MaxCombinedCurrent() - chargingLoadPoints.Select(l => l.ChargingCurrent).Sum();
         foreach (var activeChargingSchedule in activeChargingSchedules)
         {
             if (powerToControl < activeChargingSchedule.OnlyChargeOnAtLeastSolarPower)
