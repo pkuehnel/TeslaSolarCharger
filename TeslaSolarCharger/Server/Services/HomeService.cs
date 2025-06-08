@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
@@ -72,6 +73,16 @@ public class HomeService : IHomeService
             IsCharging = state != default && state.IsCharging.Value,
         };
         return chargingConnector;
+    }
+
+    public List<DtoChargingSchedule> GetChargingSchedules(int? carId, int? chargingConnectorId)
+    {
+        _logger.LogTrace("{method}({carId}, {chargingConnectorId})", nameof(GetChargingSchedules), carId, chargingConnectorId);
+        var elements = _settings.ChargingSchedules
+            .Where(c => c.CarId == carId && c.OccpChargingConnectorId == chargingConnectorId)
+            .OrderBy(c => c.ValidFrom)
+            .ToList();
+        return elements;
     }
 
     private static readonly Expression<Func<CarChargingTarget, DtoCarChargingTarget>> ToDto =

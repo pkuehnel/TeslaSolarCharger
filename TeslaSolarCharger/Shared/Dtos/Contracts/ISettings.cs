@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -30,4 +31,6 @@ public interface ISettings
     /// Key is Id of the connector in database
     /// </summary>
     ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; }
+
+    ConcurrentBag<DtoChargingSchedule> ChargingSchedules { get; set; }
 }
