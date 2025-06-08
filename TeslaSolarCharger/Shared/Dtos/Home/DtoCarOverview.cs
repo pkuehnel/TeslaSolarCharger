@@ -13,4 +13,6 @@ public class DtoCarOverview
     public int MinSoc { get; set; }
     public int MaxSoc { get; set; }
     public bool IsCharging { get; set; }
+    public bool IsHome { get; set; }
+    public bool IsPluggedIn { get; set; }
 }
