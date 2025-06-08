@@ -3,6 +3,7 @@ using System.ComponentModel;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
+using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Home;
 
@@ -31,6 +32,19 @@ public class HomeService : IHomeService
         {
             _logger.LogError(result.ErrorMessage);
             _snackbar.Add("Error while getting Loadpoint overviews", Severity.Error);
+            return null;
+        }
+        return result.Data;
+    }
+
+    public async Task<List<DtoChargingSchedule>?> GetChargingSchedules(int? carId, int? chargingConnectorId)
+    {
+        _logger.LogTrace("{method}()", nameof(GetChargingSchedules));
+        var result = await _httpClientHelper.SendGetRequestAsync<List<DtoChargingSchedule>>($"api/Home/GetChargingSchedules?carId={carId}&chargingConnectorId={chargingConnectorId}");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+            _snackbar.Add("Error while getting Charging schedules", Severity.Error);
             return null;
         }
         return result.Data;

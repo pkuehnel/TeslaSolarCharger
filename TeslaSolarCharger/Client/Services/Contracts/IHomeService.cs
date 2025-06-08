@@ -1,4 +1,5 @@
 ﻿using TeslaSolarCharger.Client.Dtos;
+using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Home;
 
@@ -13,4 +14,5 @@ public interface IHomeService
     Task<Result<object>> DeleteCarChargingTarget(int chargingTargetId);
     Task<DtoCarOverview?> GetCarOverview(int carId);
     Task<DtoChargingConnectorOverview?> GetChargingConnectorOverview(int chargingConnectorId);
+    Task<List<DtoChargingSchedule>?> GetChargingSchedules(int? carId, int? chargingConnectorId);
 }

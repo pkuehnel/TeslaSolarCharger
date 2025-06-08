@@ -1,0 +1,46 @@
+﻿@using Newtonsoft.Json
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Server.Dtos.ChargingServiceV2
+@inject IHomeService HomerService
+
+@if (_elements == default)
+{
+    <PlaceholderComponent Count="2" />
+}
+else
+{
+    <MudExpansionPanels>
+        <MudExpansionPanel Text="@(_elements.Count < 1 ? "Nothing planned" : $"Next planned charge starts at {_elements.First().ValidFrom.ToLocalTime().ToString("f")}")">
+            @JsonConvert.SerializeObject(_elements, Formatting.Indented)
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+}
+
+
+@code {
+    [Parameter]
+    public int? CarId { get; set; }
+
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
+
+    private List<DtoChargingSchedule>? _elements;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await RefreshChargingSchedules();
+    }
+
+    private async Task RefreshChargingSchedules()
+    {
+        if (CarId != default || ChargingConnectorId != default)
+        {
+            _elements = await HomerService.GetChargingSchedules(CarId, ChargingConnectorId);
+        }
+        else
+        {
+            _elements = null;
+        }
+    }
+}

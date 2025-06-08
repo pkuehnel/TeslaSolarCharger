@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net.WebSockets;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -10,11 +11,15 @@ public class HomeController : ApiBaseController
 {
     private readonly IHomeService _homeService;
     private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly ISettings _settings;
 
-    public HomeController(IHomeService homeService, ILoadPointManagementService loadPointManagementService)
+    public HomeController(IHomeService homeService,
+        ILoadPointManagementService loadPointManagementService,
+        ISettings settings)
     {
         _homeService = homeService;
         _loadPointManagementService = loadPointManagementService;
+        _settings = settings;
     }
 
     [HttpGet]
@@ -42,6 +47,13 @@ public class HomeController : ApiBaseController
     public async Task<IActionResult> GetChargingConnectorOverview(int chargingConnectorId)
     {
         var result = await _homeService.GetChargingConnectorOverview(chargingConnectorId);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public IActionResult GetChargingSchedules(int? carId, int? chargingConnectorId)
+    {
+        var result = _homeService.GetChargingSchedules(carId, chargingConnectorId);
         return Ok(result);
     }
 
