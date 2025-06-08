@@ -123,6 +123,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                             .Where(s => s.Value > minPower)
                             .OrderBy(s => s.Key)
                             .ToDictionary(s => s.Key, s => s.Value > maxPower ? maxPower : s.Value);
+                        var scheduledSolarEnergyCharged = 0;
                         foreach (var maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus in maxPowerCappedPredictedHoursWithAtLeastMinPowerSurpluses)
                         {
                             var startDate = maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Key < currentDate
@@ -132,23 +133,26 @@ public class ChargingServiceV2 : IChargingServiceV2
                                 maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Key.AddHours(surplusTimeSpanInHours) > nextTarget.NextExecutionTime
                                     ? nextTarget.NextExecutionTime
                                     : maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Key.AddHours(surplusTimeSpanInHours);
-                            chargingSchedules.Add(new(loadpoint.CarId.Value, loadpoint.ChargingConnectorId)
+                            var energyChargedInThisSchedule =
+                                (int)(maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Value * (endDate - startDate).TotalHours);
+                            scheduledSolarEnergyCharged += energyChargedInThisSchedule;
+                            var chargingScheduleForThisHour = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId)
                             {
                                 ValidFrom = startDate,
                                 ValidTo = endDate,
                                 ChargingPower = maxPowerCappedPredictedHoursWithAtLeastMinPowerSurplus.Value,
-                            });
-                        }
-                        var estimatedSolarEnergy =
-                            (int) chargingSchedules.Select(s => (s.ValidTo - s.ValidFrom).TotalHours * s.ChargingPower).Sum();
-                        if (energyToCharge <= estimatedSolarEnergy)
-                        {
-                            foreach (var chargingSchedule in chargingSchedules)
+                                OnlyChargeOnAtLeastSolarPower = minPower,
+                            };
+                            chargingSchedules.Add(chargingScheduleForThisHour);
+                            var remainingenergyToCharge = energyToCharge - scheduledSolarEnergyCharged;
+                            if (remainingenergyToCharge <= 0)
                             {
-                                chargingSchedule.OnlyChargeOnAtLeastSolarPower = minPower;
+                                var tooMuchChargedEnergy = -remainingenergyToCharge;
+                                var hoursToReduce = (double)tooMuchChargedEnergy / chargingScheduleForThisHour.ChargingPower;
+                                chargingScheduleForThisHour.ValidTo = chargingScheduleForThisHour.ValidTo.AddHours(-hoursToReduce);
+                                _logger.LogDebug("Scheduled enough solar energy to reach target soc, so do not plan any further charging schedules");
+                                break;
                             }
-                            _logger.LogDebug("Estimated solar energy is enough to reach soc, so do not plan any ");
-                            continue;
                         }
                     }
 
