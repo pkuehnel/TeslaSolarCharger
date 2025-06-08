@@ -57,6 +57,8 @@ public class HomeService : IHomeService
             MinSoc = dtoCar.MinimumSoC,
             MaxSoc = dtoCar.MaximumSoC.Value,
             IsCharging = dtoCar.State == CarStateEnum.Charging,
+            IsHome = dtoCar.IsHomeGeofence == true,
+            IsPluggedIn = dtoCar.PluggedIn == true,
         };
         return carOverView;
     }
