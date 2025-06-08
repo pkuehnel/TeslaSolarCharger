@@ -55,6 +55,7 @@ public class HomeService : IHomeService
             Soc = dtoCar.SoC,
             CarSideSocLimit = dtoCar.SocLimit,
             MinSoc = dtoCar.MinimumSoC,
+            MaxSoc = dtoCar.MaximumSoC.Value,
             IsCharging = dtoCar.State == CarStateEnum.Charging,
         };
         return carOverView;

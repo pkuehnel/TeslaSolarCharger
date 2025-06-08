@@ -1,7 +1,9 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using MudExtensions
 
 @inject IHomeService HomeService
+@inject ISnackbar Snackbar
 
 @if (Car == default)
 {
@@ -28,13 +30,23 @@ else
                 </MudText>
             </MudProgressLinear>
         }
-        @if (Car.MinSoc != default)
-        {
-            <GenericInput T="int"
-                          For="() => Car.MinSoc"
-                          PostfixButtonStartIcon="@Icons.Material.Filled.Save"
-                          OnButtonClicked="UpdateMinSoc"></GenericInput>
-        }
+        <MudRangeSlider T="int"
+                        Value="Car.MinSoc"
+                        UpperValue="Car.MaxSoc"
+                        Min="0" Max="100"
+                        Size="Size.Large"
+                        Color="Color.Primary"
+                        Variant="Variant.Filled"
+                        ValueLabel="true"
+                        Range="true"
+                        Immediate="true"
+                        LabelText="@($"Min SOC {Car.MinSoc}")"
+                        UpperLabelText="@($"Max SOC {Car.MaxSoc}")"
+                        Display="false"
+                        MinDistance="@(Car.MinSoc == 0 ? 1 : 0)"
+                        ValueChanged="newValue => OnMinSocChanged(newValue)"
+                        UpperValueChanged="@((newValue) => OnMaxSocChanged(newValue))"></MudRangeSlider>
+        <div>Car will always charge at full power until @(Car.MinSoc).</div>
     </div>
     <div>
         @if (CarId != default)
@@ -52,6 +64,12 @@ else
 
     private DtoCarOverview? Car { get; set; }
 
+    // one CTS per “in-flight” debounce
+    private CancellationTokenSource _minSocDebounceCts = new();
+
+    private int? _lastKnownMinValue;
+    private int? _lastKnownMaxValue;
+
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
@@ -66,14 +84,79 @@ else
             return;
         }
         Car = await HomeService.GetCarOverview(CarId.Value);
+        if (Car != default)
+        {
+            _lastKnownMinValue = Car.MinSoc;
+            _lastKnownMaxValue = Car.MaxSoc;
+        }
+
     }
 
-    private async Task UpdateMinSoc()
+    private async Task OnMinSocChanged(int newSoc)
     {
         if (Car == default || CarId == default)
-        {
             return;
+
+        // update UI immediately
+        Car.MinSoc = newSoc;
+
+        // cancel any pending update
+        await _minSocDebounceCts.CancelAsync();
+        _minSocDebounceCts = new CancellationTokenSource();
+
+        try
+        {
+            // wait 300ms for “settle”
+            await Task.Delay(300, _minSocDebounceCts.Token);
+
+            // now do the API call
+            var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, Car.MinSoc);
+            if (updateResult.HasError)
+            {
+                Snackbar.Add(
+                    $"Failed to update Min SOC: {updateResult.ErrorMessage}",
+                    Severity.Error);
+                if (_lastKnownMinValue != default)
+                {
+                    Car.MinSoc = _lastKnownMinValue.Value;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            else
+            {
+                _lastKnownMinValue = newSoc;
+                Snackbar.Add("Min SOC updated successfully.", Severity.Success);
+            }
         }
-        await HomeService.UpdateCarMinSoc(CarId.Value, Car.MinSoc);
+        catch (TaskCanceledException)
+        {
+            // user is still dragging—ignore
+        }
+    }
+
+
+    private async Task OnMaxSocChanged(int newSoc)
+    {
+        if (Car == default || CarId == default)
+            return;
+
+        // update UI immediately
+        Car.MaxSoc = newSoc;
+
+        // cancel any pending update
+        await _minSocDebounceCts.CancelAsync();
+        _minSocDebounceCts = new CancellationTokenSource();
+
+        try
+        {
+            // wait 300ms for “settle”
+            await Task.Delay(300, _minSocDebounceCts.Token);
+
+            Snackbar.Add("Max SOC is currently not supported, will come in a future release, please set it in the Tesla app.", Severity.Warning);
+        }
+        catch (TaskCanceledException)
+        {
+            // user is still dragging—ignore
+        }
     }
 }
