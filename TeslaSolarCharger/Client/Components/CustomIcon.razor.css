@@ -1,0 +1,10 @@
+﻿.cross-line {
+    position: absolute;
+    top: 50%;
+    left: -15%;
+    width: 130%;
+    height: 2px;
+    background-color: currentColor;
+    transform: rotate(-40deg);
+    transform-origin: center;
+}

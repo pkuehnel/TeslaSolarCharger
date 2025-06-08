@@ -13,7 +13,9 @@ else
 {
     <div>
         <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="me-1" />
-        @Car.Name
+        <span class="me-1">@Car.Name</span>
+        <CustomIcon IconName="@Icons.Material.Filled.Home" IsCrossedOut="@(!Car.IsHome)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Filled.Power" IsCrossedOut="@(!Car.IsPluggedIn)"></CustomIcon>
     </div>
     <div>
         @if (Car.Soc != default)
@@ -30,6 +32,7 @@ else
                 </MudText>
             </MudProgressLinear>
         }
+        <div>@(Car.Name) will always charge at full power until @(Car.MinSoc).</div>
         <MudRangeSlider T="int"
                         Value="Car.MinSoc"
                         UpperValue="Car.MaxSoc"
@@ -46,7 +49,7 @@ else
                         MinDistance="@(Car.MinSoc == 0 ? 1 : 0)"
                         ValueChanged="newValue => OnMinSocChanged(newValue)"
                         UpperValueChanged="@((newValue) => OnMaxSocChanged(newValue))"></MudRangeSlider>
-        <div>Car will always charge at full power until @(Car.MinSoc).</div>
+        
     </div>
     <div>
         @if (CarId != default)
