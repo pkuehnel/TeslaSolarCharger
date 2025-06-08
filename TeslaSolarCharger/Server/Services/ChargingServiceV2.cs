@@ -109,13 +109,6 @@ public class ChargingServiceV2 : IChargingServiceV2
                         nextTarget.TargetSoc,
                         car.SoC ?? 0,
                         carUsableEnergy.Value);
-                    var latestPossibleChargingSchedule =
-                        GenerateEarliestOrLatestPossibleChargingSchedule(nextTarget.NextExecutionTime, currentDate,
-                            energyToCharge, maxPhases.Value, maxCurrent.Value, car.Id, loadpoint.ChargingConnectorId);
-                    if (latestPossibleChargingSchedule != default)
-                    {
-                        chargingSchedules.Add(latestPossibleChargingSchedule);
-                    }
                     var maxPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, maxCurrent.Value);
                     if (_configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules() && minPhases != default && minCurrent != default)
                     {
@@ -172,24 +165,39 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                     var (splittedGridPrices, splittedChargingSchedules) =
                         _validFromToSplitter.SplitByBoundaries(electricityPrices, chargingSchedules, currentDate, nextTarget.NextExecutionTime);
-                    var gridPriceOrderedElectricityPrices = splittedGridPrices.OrderByDescending(p => p.GridPrice).ToList();
+                    var gridPriceOrderedElectricityPrices = splittedGridPrices
+                        .OrderBy(p => p.GridPrice)
+                        .ThenByDescending(p => p.ValidFrom)
+                        .ToList();
                     foreach (var gridPriceOrderedElectricityPrice in gridPriceOrderedElectricityPrices)
                     {
                         if (remainingEnergyToCoverFromGrid <= 0)
                         {
                             break;
                         }
+
                         var correspondingChargingSchedule = splittedChargingSchedules
                             .FirstOrDefault(cs => cs.ValidFrom == gridPriceOrderedElectricityPrice.ValidFrom
-                                         && cs.ValidTo == gridPriceOrderedElectricityPrice.ValidTo) ?? new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId)
+                                                  && cs.ValidTo == gridPriceOrderedElectricityPrice.ValidTo);
+                        if (correspondingChargingSchedule == default)
                         {
-                            ValidFrom = gridPriceOrderedElectricityPrice.ValidFrom,
-                            ValidTo = gridPriceOrderedElectricityPrice.ValidTo,
-                        };
+                            correspondingChargingSchedule = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId)
+                            {
+                                ValidFrom = gridPriceOrderedElectricityPrice.ValidFrom,
+                                ValidTo = gridPriceOrderedElectricityPrice.ValidTo,
+                            };
+                            chargingSchedules.Add(correspondingChargingSchedule);
+                        }
+                        
                         var maxPowerIncrease = maxPower - correspondingChargingSchedule.ChargingPower;
                         correspondingChargingSchedule.ChargingPower += maxPowerIncrease;
                         correspondingChargingSchedule.OnlyChargeOnAtLeastSolarPower = null;
                         remainingEnergyToCoverFromGrid -= (int)(maxPowerIncrease * (gridPriceOrderedElectricityPrice.ValidTo - gridPriceOrderedElectricityPrice.ValidFrom).TotalHours);
+                        if (remainingEnergyToCoverFromGrid < 0)
+                        {
+                            var hoursToReduce = (double)-remainingEnergyToCoverFromGrid / correspondingChargingSchedule.ChargingPower;
+                            correspondingChargingSchedule.ValidFrom = correspondingChargingSchedule.ValidFrom.AddHours(hoursToReduce);
+                        }
                     }
                 }
             }
