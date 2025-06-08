@@ -9,5 +9,7 @@ public class DtoLoadPointOverview
     public int? ActualPhases { get; set; }
     public int? MaxPhases { get; set; }
     public int? ChargingPower { get; set; }
+    public bool? IsHome { get; set; }
+    public bool? IsPluggedIn { get; set; }
     public int? ChargingPriority { get; set; }
 }

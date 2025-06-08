@@ -7,7 +7,7 @@ namespace TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 
 public interface IIndexService
 {
-    Task<DtoPvValues> GetPvValues();
+    DtoPvValues GetPvValues();
     Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars();
     Task<string?> GetVinByCarId(int carId);
     Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars();

@@ -328,8 +328,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var solarPower = overage ?? 0;
         logger.LogTrace("SolarPower: {solarPower}", solarPower);
         logger.LogTrace("HomeBatteryDischargingPower: {homeBatteryDischargingPower}", homeBatteryDischargingPower);
-        var loadPoints = await loadPointManagementService.GetPluggedInLoadPoints();
-        var combinedChargingPowerAtHome = loadPoints.Select(l => l.ActualChargingPower ?? 0).Sum();
+        var loadPoints = loadPointManagementService.GetLoadPointsWithChargingDetails();
+        var combinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum();
         var usedGridPower = 0;
         var usedHomeBatteryPower = 0;
         var usedSolarPower = 0;
@@ -371,13 +371,13 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         //ToDo: order loadpoints by chargingPriority, so the most important car gets the least amount of Grid Power in its calculation
         foreach (var loadPoint in loadPoints)
         {
-            var chargingPowerAtHome = loadPoint.ActualChargingPower ?? 0;
+            var chargingPowerAtHome = loadPoint.ChargingPower;
             if (chargingPowerAtHome < 1)
             {
                 continue;
             }
-            var chargingDetail = await GetAttachedChargingDetail(loadPoint.Car?.Id, loadPoint.OcppConnectorId);
-            chargingDetail.ChargerVoltage = loadPoint.ActualVoltage;
+            var chargingDetail = await GetAttachedChargingDetail(loadPoint.CarId, loadPoint.ChargingConnectorId);
+            chargingDetail.ChargerVoltage = loadPoint.ChargingVoltage;
             if (chargingPowerAtHome < usedGridPower)
             {
                 chargingDetail.GridPower = chargingPowerAtHome;
