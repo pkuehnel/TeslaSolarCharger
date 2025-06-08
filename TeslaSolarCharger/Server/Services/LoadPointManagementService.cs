@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -34,40 +35,64 @@ public class LoadPointManagementService : ILoadPointManagementService
         _settings = settings;
     }
 
-    public async Task<List<DtoLoadpoint>> GetPluggedInLoadPoints()
+    /// <summary>
+    /// Get all load points with their charging power and voltage details. Lightweight method without database calls.
+    /// </summary>
+    /// <returns></returns>
+    public List<DtoLoadPointWithCurrentChargingValues> GetLoadPointsWithChargingDetails()
     {
-        _logger.LogTrace("{Method}()", nameof(GetPluggedInLoadPoints));
-
-        var homePluggedInCarIds = _settings.Cars
-            .Where(car => car.IsHomeGeofence == true
-                          && car.PluggedIn == true
-                          && car.ShouldBeManaged == true)
-            .Select(c => c.Id)
-            .ToHashSet();
-
-        var pluggedInConnectorIds = _settings.OcppConnectorStates
-            .Where(connectorState => connectorState.Value.IsPluggedIn.Value)
-            .Select(connector => connector.Key)
-            .ToHashSet();
-
-        var shouldNotBeManagedChargingConnectorIds = await _context.OcppChargingStationConnectors
-            .Where(c => c.ShouldBeManaged == false)
-            .Select(c => c.Id)
-            .ToHashSetAsync();
-        foreach (var notBeManagedConnectorId in shouldNotBeManagedChargingConnectorIds)
-        {
-            pluggedInConnectorIds.Remove(notBeManagedConnectorId);
-        }
-
-        var carConnectorPairs = GetCarConnectorMatches(homePluggedInCarIds, pluggedInConnectorIds);
-
-        var loadPoints = CreateLoadPointsFromMatches(carConnectorPairs);
-
-        await ApplyConnectorPrioritiesAsync(loadPoints).ConfigureAwait(false);
-
-        return loadPoints
-            .OrderBy(lp => lp.Priority)
+        _logger.LogTrace("{method}()", nameof(GetLoadPointsWithChargingDetails));
+        var cars = _settings.Cars
+            .Where(c => c.ChargingPowerAtHome > 0)
+            .Select(c => new
+            {
+                CarId = c.Id,
+                ChargingPower = c.ChargingPowerAtHome ?? 0,
+                Voltage = c.ChargerVoltage ?? _settings.AverageHomeGridVoltage ?? 230,
+                ChargingCurrent = c.IsHomeGeofence == true ? (c.ChargerActualCurrent ?? 0) : 0,
+                Phases = c.ActualPhases,
+            })
             .ToList();
+        var connectors = _settings.OcppConnectorStates
+            .Where(c => c.Value.ChargingPower.Value > 0)
+            .Select(c => new
+            {
+                ConnectorId = c.Key,
+                ChargingPower = c.Value.ChargingPower.Value,
+                Voltage = (int)c.Value.ChargingVoltage.Value,
+                ChargingCurrent = c.Value.ChargingCurrent.Value,
+                Phases = c.Value.PhaseCount.Value,
+            })
+            .ToList();
+
+        var matches = GetCarConnectorMatches(cars.Select(c => c.CarId), connectors.Select(c => c.ConnectorId));
+        var result = new List<DtoLoadPointWithCurrentChargingValues>();
+        foreach (var match in matches)
+        {
+            var loadPoint = new DtoLoadPointWithCurrentChargingValues
+            {
+                CarId = match.CarId,
+                ChargingConnectorId = match.ConnectorId,
+            };
+            if (match.CarId != default)
+            {
+                var car = cars.First(c => c.CarId == match.CarId.Value);
+                loadPoint.ChargingPower = car.ChargingPower;
+                loadPoint.ChargingVoltage = car.Voltage;
+                loadPoint.ChargingCurrent = car.ChargingCurrent;
+                loadPoint.ChargingPhases = car.Phases;
+            }
+            if (match.ConnectorId != default)
+            {
+                var connector = connectors.First(c => c.ConnectorId == match.ConnectorId.Value);
+                loadPoint.ChargingPower = connector.ChargingPower;
+                loadPoint.ChargingVoltage = connector.Voltage;
+                loadPoint.ChargingCurrent = connector.ChargingCurrent;
+                loadPoint.ChargingPhases = connector.Phases;
+            }
+            result.Add(loadPoint);
+        }
+        return result;
     }
 
     public async Task<List<DtoLoadPointOverview>> GetLoadPointsToManage()
@@ -113,6 +138,8 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.MaxPhases = dtoCar.ActualPhases;
                 loadPoint.ChargingPower = dtoCar.ChargingPowerAtHome;
                 loadPoint.ChargingPriority = dtoCar.ChargingPriority;
+                loadPoint.IsHome = dtoCar.IsHomeGeofence;
+                loadPoint.IsPluggedIn = dtoCar.PluggedIn == true;
             }
 
             if (pair.ConnectorId != default)
@@ -137,6 +164,9 @@ public class LoadPointManagementService : ILoadPointManagementService
                     loadPoint.ActualCurrent = connectorState.ChargingCurrent.Value;
                     loadPoint.ActualPhases = connectorState.PhaseCount.Value;
                     loadPoint.ChargingPower = connectorState.ChargingPower.Value;
+                    loadPoint.IsPluggedIn = connectorState.IsPluggedIn.Value;
+                    //Charging connectors are always home connectors
+                    loadPoint.IsHome = true;
                 }
             }
             result.Add(loadPoint);
@@ -145,10 +175,9 @@ public class LoadPointManagementService : ILoadPointManagementService
         return result.OrderBy(l => l.ChargingPriority ?? 99).ToList();
     }
 
-    private HashSet<(int? CarId, int? ConnectorId)> GetCarConnectorMatches(
-        IEnumerable<int> carIds,
-        IEnumerable<int> connectorIds)
+    public HashSet<(int? CarId, int? ConnectorId)> GetCarConnectorMatches(IEnumerable<int> carIds, IEnumerable<int> connectorIds)
     {
+        _logger.LogTrace("{methdod}({@carId}, {@connectorIds})", nameof(GetCarConnectorMatches), carIds, connectorIds);
         var matches = new HashSet<(int? CarId, int? ConnectorId)>();
         var errorForMultipleMatches = false;
         var maxTimeDiff = _configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
@@ -216,54 +245,5 @@ public class LoadPointManagementService : ILoadPointManagementService
         }
 
         return matches;
-    }
-
-    private List<DtoLoadpoint> CreateLoadPointsFromMatches(HashSet<(int? CarId, int? ConnectorId)> pairs)
-    {
-        var result = new List<DtoLoadpoint>();
-        foreach (var (carId, connectorId) in pairs)
-        {
-            var loadPoint = new DtoLoadpoint
-            {
-                OcppConnectorId = connectorId,
-            };
-            if (carId != default)
-            {
-                loadPoint.Car = _settings.Cars.First(c => c.Id == carId);
-            }
-            if (connectorId != default && _settings.OcppConnectorStates.TryGetValue(connectorId.Value, out var state))
-            {
-                loadPoint.OcppConnectorState = state;
-            }
-            result.Add(loadPoint);
-        }
-
-        return result;
-    }
-
-    private async Task ApplyConnectorPrioritiesAsync(List<DtoLoadpoint> loadPoints)
-    {
-        var connectorIds = loadPoints
-            .Where(lp => lp.OcppConnectorId != default)
-            .Select(lp => lp.OcppConnectorId!.Value)
-            .ToHashSet();
-
-        var priorities = await _context.OcppChargingStationConnectors
-            .Where(conn => connectorIds.Contains(conn.Id))
-            .ToDictionaryAsync(conn => conn.Id, conn => conn.ChargingPriority)
-            .ConfigureAwait(false);
-
-        foreach (var loadPoint in loadPoints)
-        {
-            var carPriority = loadPoint.Car?.ChargingPriority;
-            if (carPriority == default)
-            {
-                loadPoint.Priority = priorities.GetValueOrDefault(loadPoint.OcppConnectorId ?? 0, 99);
-            }
-            else
-            {
-                loadPoint.Priority = carPriority.Value;
-            }
-        }
     }
 }
