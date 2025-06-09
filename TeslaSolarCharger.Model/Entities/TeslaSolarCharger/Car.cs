@@ -12,6 +12,7 @@ public class Car
     public bool IsFleetTelemetryHardwareIncompatible { get; set; }
     public ChargeModeV2 ChargeMode { get; set; }
     public int MinimumSoc { get; set; }
+    public int MaximumSoc { get; set; }
     public DateTime LatestTimeToReachSoC { get; set; }
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }

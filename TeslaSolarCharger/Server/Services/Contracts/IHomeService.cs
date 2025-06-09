@@ -12,7 +12,7 @@ public interface IHomeService
     Task UpdateCarMinSoc(int carId, int newMinSoc);
     Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId);
     Task DeleteCarChargingTarget(int chargingTargetId);
-    DtoCarOverview GetCarOverview(int carId);
+    Task<DtoCarOverview> GetCarOverview(int carId);
     Task<DtoChargingConnectorOverview> GetChargingConnectorOverview(int chargingConnectorId);
     List<DtoChargingSchedule> GetChargingSchedules(int? carId, int? chargingConnectorId);
     Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode);
@@ -20,4 +20,5 @@ public interface IHomeService
     Task StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases, CancellationToken cancellationToken);
     Task SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases, CancellationToken cancellationToken);
     Task StopChargingConnectorCharging(int chargingConnectorId, CancellationToken cancellationToken);
+    Task UpdateCarMaxSoc(int carId, int newSoc);
 }
