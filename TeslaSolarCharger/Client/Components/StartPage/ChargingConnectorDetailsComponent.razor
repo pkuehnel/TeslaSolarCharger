@@ -59,7 +59,16 @@ else
             Snackbar.Add("Charging Connector is not set.", Severity.Error);
             return;
         }
-            
+        if (arg == ChargeModeV2.MaxPower || arg == ChargeModeV2.Off)
+        {
+            Snackbar.Add("Charge Mode currently not supported on OCPP stations.", Severity.Error);
+            if (_lastKnownChargeMode != default)
+            {
+                ChargingConnector.ChargeMode = _lastKnownChargeMode.Value;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        
         var result = await HomeService.UpdateChargingConnectorChargeMode(ChargingConnectorId.Value, arg);
         if (result.HasError)
         {
