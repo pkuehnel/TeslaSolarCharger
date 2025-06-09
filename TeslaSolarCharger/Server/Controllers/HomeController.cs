@@ -37,9 +37,9 @@ public class HomeController : ApiBaseController
     }
 
     [HttpGet]
-    public IActionResult GetCarOverview(int carId)
+    public async Task<IActionResult> GetCarOverview(int carId)
     {
-        var result = _homeService.GetCarOverview(carId);
+        var result = await _homeService.GetCarOverview(carId);
         return Ok(result);
     }
 
@@ -82,6 +82,13 @@ public class HomeController : ApiBaseController
     public async Task<IActionResult> UpdateCarMinSoc(int carId, int minSoc)
     {
         await _homeService.UpdateCarMinSoc(carId, minSoc);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateCarMaxSoc(int carId, int soc)
+    {
+        await _homeService.UpdateCarMaxSoc(carId, soc);
         return Ok();
     }
 

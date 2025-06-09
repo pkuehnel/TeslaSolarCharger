@@ -36,7 +36,6 @@ else
                     <GenericInput T="int"
                                   For="() => Car.MaxSoc"
                                   OnValueChanged="OnMaxSocChanged"
-                                  IsDisabledParameter="true"
                                   ImmediateValueUpdate="true"/>
                 </div>
             </div>
@@ -137,7 +136,7 @@ else
             await Task.Delay(LimitChangeDelayMilliseconds, _minSocDebounceCts.Token);
 
             // now do the API call
-            var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, Car.MinSoc);
+            var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, newSoc);
             if (updateResult.HasError)
             {
                 Snackbar.Add(
@@ -178,11 +177,23 @@ else
         {
             // wait 300ms for “settle”
             await Task.Delay(LimitChangeDelayMilliseconds, _minSocDebounceCts.Token);
-            Snackbar.Add("Max SOC is currently not supported, will come in a future release, please set it in the Tesla app.", Severity.Warning);
-            if (_lastKnownMaxValue != default)
+            // now do the API call
+            var updateResult = await HomeService.UpdateCarMaxSoc(CarId.Value, newSoc);
+            if (updateResult.HasError)
             {
-                Car.MaxSoc = _lastKnownMaxValue.Value;
-                await InvokeAsync(StateHasChanged);
+                Snackbar.Add(
+                    $"Failed to update MAx SOC: {updateResult.ErrorMessage}",
+                    Severity.Error);
+                if (_lastKnownMaxValue != default)
+                {
+                    Car.MinSoc = _lastKnownMaxValue.Value;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            else
+            {
+                _lastKnownMaxValue = newSoc;
+                Snackbar.Add("Min SOC updated successfully.", Severity.Success);
             }
         }
         catch (TaskCanceledException)

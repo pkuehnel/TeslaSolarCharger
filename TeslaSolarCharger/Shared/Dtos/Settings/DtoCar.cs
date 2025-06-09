@@ -14,7 +14,6 @@ public class DtoCar
     public ChargeModeV2 ChargeModeV2 { get; set; }
 
     public int MinimumSoC { get; set; }
-    public DtoTimeStampedValue<int> MaximumSoC { get; set; } = new(DateTimeOffset.MinValue, 100);
     /// <summary>
     /// This field is always filled with local time, never with UTC time. The time gets converted to utc when writing to the database.
     /// </summary>
