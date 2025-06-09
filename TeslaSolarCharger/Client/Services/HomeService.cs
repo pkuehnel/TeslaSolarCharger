@@ -105,6 +105,13 @@ public class HomeService : IHomeService
         return result;
     }
 
+    public async Task<Result<object?>> StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases)
+    {
+        _logger.LogTrace("{method}()", nameof(StartChargingConnectorCharging));
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/StartChargingConnectorCharging?chargingConnectorId={chargingConnectorId}&currentToSet={currentToSet}&numberOfPhases={numberOfPhases}", null);
+        return result;
+    }
+
     public async Task<Result<object>> DeleteCarChargingTarget(int chargingTargetId)
     {
         _logger.LogTrace("{method}()", nameof(DeleteCarChargingTarget));
