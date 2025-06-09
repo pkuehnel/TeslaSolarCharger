@@ -107,8 +107,22 @@ public class HomeService : IHomeService
 
     public async Task<Result<object?>> StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases)
     {
-        _logger.LogTrace("{method}()", nameof(StartChargingConnectorCharging));
+        _logger.LogTrace("{method}({chargingConnectorId}, {currentToSet}, {numberOfPhases})", nameof(StartChargingConnectorCharging), chargingConnectorId, currentToSet, numberOfPhases);
         var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/StartChargingConnectorCharging?chargingConnectorId={chargingConnectorId}&currentToSet={currentToSet}&numberOfPhases={numberOfPhases}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {currentToSet}, {numberOfPhases})", nameof(SetChargingConnectorCurrent), chargingConnectorId, currentToSet, numberOfPhases);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/SetChargingConnectorCurrent?chargingConnectorId={chargingConnectorId}&currentToSet={currentToSet}&numberOfPhases={numberOfPhases}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> StopChargingConnectorCharging(int chargingConnectorId)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId})", nameof(StopChargingConnectorCharging), chargingConnectorId);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/StopChargingConnectorCharging?chargingConnectorId={chargingConnectorId}", null);
         return result;
     }
 

@@ -107,6 +107,20 @@ public class HomeController : ApiBaseController
         return Ok();
     }
 
+    [HttpPost]
+    public async Task<IActionResult> SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases)
+    {
+        await _homeService.SetChargingConnectorCurrent(chargingConnectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StopChargingConnectorCharging(int chargingConnectorId)
+    {
+        await _homeService.StopChargingConnectorCharging(chargingConnectorId, HttpContext.RequestAborted);
+        return Ok();
+    }
+
     //[HttpGet]
     //public async Task<IActionResult> GetChargingSchedulesForLoadPoint(int? carId, int? chargingConnectorId)
     //{
