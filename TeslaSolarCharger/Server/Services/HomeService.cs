@@ -56,6 +56,7 @@ public class HomeService : IHomeService
             CarSideSocLimit = dtoCar.SocLimit,
             MinSoc = dtoCar.MinimumSoC,
             MaxSoc = dtoCar.MaximumSoC.Value,
+            ChargeMode = dtoCar.ChargeModeV2,
             IsCharging = dtoCar.State == CarStateEnum.Charging,
             IsHome = dtoCar.IsHomeGeofence == true,
             IsPluggedIn = dtoCar.PluggedIn == true,
@@ -67,11 +68,11 @@ public class HomeService : IHomeService
     {
         _logger.LogTrace("{method}({chargingConnectorId})", nameof(GetChargingConnectorOverview), chargingConnectorId);
         var state = _settings.OcppConnectorStates.GetValueOrDefault(chargingConnectorId);
-        var chargingConnectorName = await _context.OcppChargingStationConnectors
+        var chargingConnectorData = await _context.OcppChargingStationConnectors
             .Where(c => c.Id == chargingConnectorId)
             .Select(c => c.Name)
             .FirstAsync();
-        var chargingConnector = new DtoChargingConnectorOverview(chargingConnectorName)
+        var chargingConnector = new DtoChargingConnectorOverview(chargingConnectorData)
         {
             IsCharging = state != default && state.IsCharging.Value,
             IsPluggedIn = state != default && state.IsPluggedIn.Value,
@@ -153,5 +154,24 @@ public class HomeService : IHomeService
         await _context.SaveChangesAsync();
         var dtoCar = _settings.Cars.First(c => c.Id == carId);
         dtoCar.MinimumSoC = newMinSoc;
+    }
+
+    public async Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
+    {
+        _logger.LogTrace("{method}({carId}, {minSoc})", nameof(UpdateCarChargeMode), carId, chargeMode);
+        var dbCar = await _context.Cars.FirstAsync(c => c.Id == carId).ConfigureAwait(false);
+        dbCar.ChargeMode = chargeMode;
+        await _context.SaveChangesAsync();
+        var dtoCar = _settings.Cars.First(c => c.Id == carId);
+        dtoCar.ChargeModeV2 = chargeMode;
+    }
+
+    public async Task UpdateChargingConnectorChargeMode(int chargingConnectorId, ChargeModeV2 chargeMode)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {minSoc})", nameof(UpdateChargingConnectorChargeMode), chargingConnectorId, chargeMode);
+        var dbChargingConnector = await _context.OcppChargingStationConnectors
+            .FirstAsync(c => c.Id == chargingConnectorId).ConfigureAwait(false);
+        dbChargingConnector.ChargeMode = chargeMode;
+        await _context.SaveChangesAsync();
     }
 }

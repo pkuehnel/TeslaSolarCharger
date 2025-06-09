@@ -2,8 +2,8 @@
 
 public enum ChargeModeV2
 {
-    NoAutomation,
     Off,
+    Manual,
     Auto,
     MaxPower,
 }
