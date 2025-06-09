@@ -21,4 +21,5 @@ public interface IHomeService
     Task<Result<object?>> StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases);
     Task<Result<object?>> SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases);
     Task<Result<object?>> StopChargingConnectorCharging(int chargingConnectorId);
+    Task<Result<object?>> SetCarChargingCurrent(int carId, int currentToSet);
 }
