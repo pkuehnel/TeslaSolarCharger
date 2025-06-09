@@ -8,10 +8,13 @@
 @inject IJavaScriptWrapper JavaScriptWrapper
 @inject IDialogService DialogService
 
-<h3>Charging Targets</h3>
-<RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
-                             ButtonText="Add Target"
-                             OnButtonClicked="_ => AddTarget()"></RightAlignedButtonComponent>
+<div class="d-flex flex-wrap gap-2">
+    <h3>Charging Targets</h3>
+    <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
+                                 ButtonText="Add Target"
+                                 OnButtonClicked="_ => AddTarget()"></RightAlignedButtonComponent>
+</div>
+
 
 @if (_targets == null)
 {
@@ -19,7 +22,7 @@
 }
 else if (!_targets.Any())
 {
-    <div class="text-muted mt-2">Nothing planned</div>
+    <div class="text-muted">Nothing planned</div>
 }
 else
 {
