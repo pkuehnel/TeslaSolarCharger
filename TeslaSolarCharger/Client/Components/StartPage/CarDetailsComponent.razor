@@ -20,34 +20,36 @@ else
     </div>
     <div>
         <div class="row">
-            <div class="col-4">
+            <div class="col-6">
                 <GenericInput T=" int"
                               For="() => Car.MinSoc"
                               OnValueChanged="OnMinSocChanged"
                               ImmediateValueUpdate="true"/>
-            </div>
-            <div class="col-4">
-                <GenericInput T="int?"
-                              For="() => Car.Soc"
-                              IsDisabledParameter="true" />
-            </div>            
-            <div class="col-4">
+            </div>          
+            <div class="col-6">
                 <GenericInput T="int"
                               For="() => Car.MaxSoc"
                               OnValueChanged="OnMaxSocChanged"
+                              IsDisabledParameter="true"
                               ImmediateValueUpdate="true" />
             </div>
         </div>
         @if (Car.Soc != default)
         {
-            <MudProgressLinear Color="@(Car.Soc.Value < 7 ? Color.Error : Car.Soc.Value <= 20 ? Color.Warning : Color.Primary)"
-                               Striped="Car.IsCharging"
-                               Size="Size.Large"
-                               Value="(double)Car.Soc"
-                               Class="mb-7"
-                               Buffer="@(Car.CarSideSocLimit != default)"
-                               BufferValue="@(Car.CarSideSocLimit == default ? 0 : (double)Car.CarSideSocLimit.Value)">
-            </MudProgressLinear>
+            <div class="mb-7">
+                <ProgressWithLabelComponent Color="@(Car.Soc.Value < 7 ? Color.Error : Car.Soc.Value <= 20 ? Color.Warning : Color.Primary)"
+                                            Striped="Car.IsCharging"
+                                            Size="Size.Large"
+                                            Value="(double)Car.Soc"
+                                            Buffer="@(Car.CarSideSocLimit != default)"
+                                            BufferValue="@(Car.CarSideSocLimit == default ? 0 : (double)Car.CarSideSocLimit.Value)"
+                                            ValueLabelPrefix="SoC: "
+                                            ValueLabelSuffix="%"
+                                            BufferLabelPrefix="Car Limit: "
+                                            BufferLabelSuffix="%">
+                </ProgressWithLabelComponent>
+            </div>
+            
         }
 
     </div>
