@@ -3,14 +3,12 @@
 @using System.ComponentModel.DataAnnotations
 @using System.ComponentModel
 @using MudExtensions
-@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
-@inject IJavaScriptWrapper JavaScriptWrapper
 
 @typeparam T
 
@@ -509,13 +507,14 @@
 
     private string GetEnumDisplayName(T enumValue)
     {
-        if (enumValue == null || enumValue.Equals(default(T)))
+        if (enumValue == null)
         {
             return string.Empty;
         }
 
         var enumType = enumValue.GetType();
-        var memberInfo = enumType.GetMember(enumValue.ToString()).FirstOrDefault();
+        var enumMemberName = enumValue.ToString() ?? string.Empty;
+        var memberInfo = enumType.GetMember(enumMemberName).FirstOrDefault();
         if (memberInfo != null)
         {
             var displayAttribute = memberInfo.GetCustomAttribute<DisplayAttribute>();
@@ -530,8 +529,8 @@
                 return descriptionAttribute.Description;
             }
         }
-
-        return enumValue.ToString();
+        var friendlyName = StringHelper.GenerateFriendlyStringWithOutIdSuffix(enumMemberName);
+        return friendlyName;
     }
 
     [Parameter]
