@@ -6,6 +6,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
@@ -18,16 +19,19 @@ public class HomeService : IHomeService
     private readonly ITeslaSolarChargerContext _context;
     private readonly ISettings _settings;
     private readonly IOcppChargePointActionService _ocppChargePointActionService;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
-        IOcppChargePointActionService ocppChargePointActionService)
+        IOcppChargePointActionService ocppChargePointActionService,
+        IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
         _ocppChargePointActionService = ocppChargePointActionService;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
@@ -50,16 +54,24 @@ public class HomeService : IHomeService
             .ConfigureAwait(false);
     }
 
-    public DtoCarOverview GetCarOverview(int carId)
+    public async Task<DtoCarOverview> GetCarOverview(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetCarOverview), carId);
         var dtoCar = _settings.Cars.First(c => c.Id == carId);
+        var dbCar = await _context.Cars
+            .Where(c => c.Id == carId)
+            .Select(c => new
+            {
+                c.MaximumSoc,
+            })
+            .FirstAsync()
+            .ConfigureAwait(false);
         var carOverView = new DtoCarOverview(dtoCar.Name ?? dtoCar.Vin)
         {
             Soc = dtoCar.SoC,
             CarSideSocLimit = dtoCar.SocLimit,
             MinSoc = dtoCar.MinimumSoC,
-            MaxSoc = dtoCar.MaximumSoC.Value,
+            MaxSoc = dbCar.MaximumSoc,
             ChargeMode = dtoCar.ChargeModeV2,
             IsCharging = dtoCar.State == CarStateEnum.Charging,
             IsHome = dtoCar.IsHomeGeofence == true,
@@ -163,6 +175,14 @@ public class HomeService : IHomeService
         await _context.SaveChangesAsync();
         var dtoCar = _settings.Cars.First(c => c.Id == carId);
         dtoCar.MinimumSoC = newMinSoc;
+    }
+
+    public async Task UpdateCarMaxSoc(int carId, int newSoc)
+    {
+        _logger.LogTrace("{method}({carId}, {newSoc})", nameof(UpdateCarMaxSoc), carId, newSoc);
+        var dbCar = await _context.Cars.FirstAsync(c => c.Id == carId).ConfigureAwait(false);
+        dbCar.MaximumSoc = newSoc;
+        await _context.SaveChangesAsync();
     }
 
     public async Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
