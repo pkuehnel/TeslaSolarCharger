@@ -67,6 +67,7 @@ else
                 ChargingConnector.ChargeMode = _lastKnownChargeMode.Value;
                 await InvokeAsync(StateHasChanged);
             }
+            return;
         }
         
         var result = await HomeService.UpdateChargingConnectorChargeMode(ChargingConnectorId.Value, arg);

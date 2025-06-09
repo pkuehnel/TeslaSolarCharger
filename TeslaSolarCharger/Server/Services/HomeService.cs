@@ -70,12 +70,17 @@ public class HomeService : IHomeService
         var state = _settings.OcppConnectorStates.GetValueOrDefault(chargingConnectorId);
         var chargingConnectorData = await _context.OcppChargingStationConnectors
             .Where(c => c.Id == chargingConnectorId)
-            .Select(c => c.Name)
+            .Select(c => new
+            {
+                c.Name,
+                c.ChargeMode,
+            })
             .FirstAsync();
-        var chargingConnector = new DtoChargingConnectorOverview(chargingConnectorData)
+        var chargingConnector = new DtoChargingConnectorOverview(chargingConnectorData.Name)
         {
             IsCharging = state != default && state.IsCharging.Value,
             IsPluggedIn = state != default && state.IsPluggedIn.Value,
+            ChargeMode = chargingConnectorData.ChargeMode,
         };
         return chargingConnector;
     }
