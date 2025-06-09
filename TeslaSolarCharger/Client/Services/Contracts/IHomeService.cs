@@ -19,4 +19,6 @@ public interface IHomeService
     Task<Result<object?>> UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode);
     Task<Result<object?>> UpdateChargingConnectorChargeMode(int chargingConnectorId, ChargeModeV2 chargeMode);
     Task<Result<object?>> StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases);
+    Task<Result<object?>> SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases);
+    Task<Result<object?>> StopChargingConnectorCharging(int chargingConnectorId);
 }

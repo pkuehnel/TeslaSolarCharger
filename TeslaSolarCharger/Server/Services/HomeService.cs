@@ -193,4 +193,24 @@ public class HomeService : IHomeService
             throw new InvalidOperationException(result.ErrorMessage);
         }
     }
+
+    public async Task SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases, CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {currentToSet}, {numberOfPhases})", nameof(SetChargingConnectorCurrent), chargingConnectorId, currentToSet, numberOfPhases);
+        var result = await _ocppChargePointActionService.SetChargingCurrent(chargingConnectorId, currentToSet, numberOfPhases, cancellationToken);
+        if (result.HasError)
+        {
+            throw new InvalidOperationException(result.ErrorMessage);
+        }
+    }
+
+    public async Task StopChargingConnectorCharging(int chargingConnectorId, CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId})", nameof(StopChargingConnectorCharging), chargingConnectorId);
+        var result = await _ocppChargePointActionService.StopCharging(chargingConnectorId, cancellationToken);
+        if (result.HasError)
+        {
+            throw new InvalidOperationException(result.ErrorMessage);
+        }
+    }
 }

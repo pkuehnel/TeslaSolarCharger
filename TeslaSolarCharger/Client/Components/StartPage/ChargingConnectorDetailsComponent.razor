@@ -120,7 +120,7 @@ else
 
         if (CurrentToSet == default)
         {
-            Snackbar.Add("Current required to start Charging", Severity.Error);
+            Snackbar.Add("Current required", Severity.Error);
             return;
         }
 
@@ -137,14 +137,52 @@ else
         _isCommandLoading = false;
     }
 
-    private Task StopCharging()
+    private async Task SetCurrentAndPhases()
     {
-        throw new NotImplementedException();
+        if (ChargingConnectorId == default)
+        {
+            Snackbar.Add("ChargingConnectorId not set", Severity.Error);
+            return;
+        }
+
+        if (CurrentToSet == default)
+        {
+            Snackbar.Add("Current required.", Severity.Error);
+            return;
+        }
+
+        _isCommandLoading = true;
+        var result = await HomeService.SetChargingConnectorCurrent(ChargingConnectorId.Value, CurrentToSet.Value, Phases);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("Command successfully sent", Severity.Success);
+        }
+        _isCommandLoading = false;
     }
 
-    private Task SetCurrentAndPhases()
+    private async Task StopCharging()
     {
-        throw new NotImplementedException();
+        if (ChargingConnectorId == default)
+        {
+            Snackbar.Add("ChargingConnectorId not set", Severity.Error);
+            return;
+        }
+
+        _isCommandLoading = true;
+        var result = await HomeService.StopChargingConnectorCharging(ChargingConnectorId.Value);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("Command successfully sent", Severity.Success);
+        }
+        _isCommandLoading = false;
     }
 
 }
