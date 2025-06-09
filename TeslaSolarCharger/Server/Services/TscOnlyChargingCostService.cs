@@ -102,14 +102,9 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         logger.LogTrace("{method}({carId})", nameof(GetChargeSummary), carId);
         var chargingProcessQuery = context.ChargingProcesses
             .AsQueryable();
-        if (carId != default)
-        {
-            chargingProcessQuery = chargingProcessQuery.Where(cp => cp.CarId == carId);
-        }
-        if (chargingConnectorId != default)
-        {
-            chargingProcessQuery = chargingProcessQuery.Where(cp => cp.OcppChargingStationConnectorId == chargingConnectorId);
-        }
+
+        chargingProcessQuery = chargingProcessQuery.Where(cp => cp.CarId == carId);
+        chargingProcessQuery = chargingProcessQuery.Where(cp => cp.OcppChargingStationConnectorId == chargingConnectorId);
 
         var chargingProcesses = await chargingProcessQuery.AsNoTracking()
         .ToListAsync().ConfigureAwait(false);
@@ -122,15 +117,10 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         logger.LogTrace("{method}({carId}, {chargingConnectorId})", nameof(GetFinalizedChargingProcesses), carId, chargingConnectorId);
         var handledChargesQuery = context.ChargingProcesses
             .Where(h => h.Cost != null).AsQueryable();
-        if (carId != default)
-        {
-            handledChargesQuery = handledChargesQuery.Where(h => h.CarId == carId);
-        }
 
-        if (chargingConnectorId != default)
-        {
-            handledChargesQuery = handledChargesQuery.Where(h => h.OcppChargingStationConnectorId == chargingConnectorId);
-        }
+        handledChargesQuery = handledChargesQuery.Where(h => h.CarId == carId);
+        handledChargesQuery = handledChargesQuery.Where(h => h.OcppChargingStationConnectorId == chargingConnectorId);
+
         var handledCharges = await handledChargesQuery
             .OrderByDescending(h => h.StartDate)
             .Select(h => new DtoHandledCharge()
