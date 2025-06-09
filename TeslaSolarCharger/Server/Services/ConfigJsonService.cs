@@ -146,26 +146,6 @@ public class ConfigJsonService(
         }
     }
 
-    public async Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
-    {
-        logger.LogTrace("{method}({@carBaseSettings})", nameof(UpdateCarBaseSettings), carBaseSettings);
-        var databaseCar = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carBaseSettings.CarId).ConfigureAwait(false);
-        databaseCar.ChargeMode = carBaseSettings.ChargeMode;
-        databaseCar.MinimumSoc = carBaseSettings.MinimumStateOfCharge;
-        databaseCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
-        databaseCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
-        databaseCar.IgnoreLatestTimeToReachSocDateOnWeekend = carBaseSettings.IgnoreLatestTimeToReachSocDateOnWeekend;
-        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var settingsCar = settings.Cars.First(c => c.Id == carBaseSettings.CarId);
-        settingsCar.ChargeMode = carBaseSettings.ChargeMode;
-        settingsCar.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
-        settingsCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
-        settingsCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
-        settingsCar.IgnoreLatestTimeToReachSocDateOnWeekend = carBaseSettings.IgnoreLatestTimeToReachSocDateOnWeekend;
-
-
-    }
-
     public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations()
     {
         logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
@@ -298,7 +278,7 @@ public class ConfigJsonService(
         await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(settingsCar.Vin, false);
     }
 
-    public async Task SaveOrUpdateCar(DtoCar car)
+    private async Task SaveOrUpdateCar(DtoCar car)
     {
         var entity = teslaSolarChargerContext.Cars.FirstOrDefault(c => c.TeslaMateCarId == car.TeslaMateCarId) ?? new Car()
         {
@@ -312,7 +292,7 @@ public class ConfigJsonService(
         }
         entity.Name = car.Name;
         entity.Vin = car.Vin;
-        entity.ChargeMode = car.ChargeMode;
+        entity.ChargeMode = car.ChargeModeV2;
         entity.MinimumSoc = car.MinimumSoC;
         entity.LatestTimeToReachSoC = car.LatestTimeToReachSoC;
         entity.IgnoreLatestTimeToReachSocDate = car.IgnoreLatestTimeToReachSocDate;
@@ -349,7 +329,7 @@ public class ConfigJsonService(
                 Id = c.Id,
                 Vin = c.Vin ?? string.Empty,
                 TeslaMateCarId = c.TeslaMateCarId,
-                ChargeMode = c.ChargeMode,
+                ChargeModeV2 = c.ChargeMode,
                 MinimumSoC = c.MinimumSoc,
                 LatestTimeToReachSoC = c.LatestTimeToReachSoC,
                 IgnoreLatestTimeToReachSocDate = c.IgnoreLatestTimeToReachSocDate,

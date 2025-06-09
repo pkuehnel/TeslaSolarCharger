@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
@@ -82,6 +83,20 @@ public class HomeController : ApiBaseController
     public async Task<IActionResult> UpdateCarMinSoc(int carId, int minSoc)
     {
         await _homeService.UpdateCarMinSoc(carId, minSoc);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
+    {
+        await _homeService.UpdateCarChargeMode(carId, chargeMode);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateChargingConnectorChargeMode(int chargingConnectorId, ChargeModeV2 chargeMode)
+    {
+        await _homeService.UpdateChargingConnectorChargeMode(chargingConnectorId, chargeMode);
         return Ok();
     }
 
