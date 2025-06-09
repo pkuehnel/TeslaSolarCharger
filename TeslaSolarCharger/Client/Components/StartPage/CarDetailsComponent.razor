@@ -19,38 +19,37 @@ else
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!Car.IsCharging)"></CustomIcon>
     </div>
     <div>
+        <div class="row">
+            <div class="col-4">
+                <GenericInput T=" int"
+                              For="() => Car.MinSoc"
+                              OnValueChanged="OnMinSocChanged"
+                              ImmediateValueUpdate="true"/>
+            </div>
+            <div class="col-4">
+                <GenericInput T="int?"
+                              For="() => Car.Soc"
+                              IsDisabledParameter="true" />
+            </div>            
+            <div class="col-4">
+                <GenericInput T="int"
+                              For="() => Car.MaxSoc"
+                              OnValueChanged="OnMaxSocChanged"
+                              ImmediateValueUpdate="true" />
+            </div>
+        </div>
         @if (Car.Soc != default)
         {
             <MudProgressLinear Color="@(Car.Soc.Value < 7 ? Color.Error : Car.Soc.Value <= 20 ? Color.Warning : Color.Primary)"
                                Striped="Car.IsCharging"
                                Size="Size.Large"
                                Value="(double)Car.Soc"
-                               Class="my-7"
+                               Class="mb-7"
                                Buffer="@(Car.CarSideSocLimit != default)"
                                BufferValue="@(Car.CarSideSocLimit == default ? 0 : (double)Car.CarSideSocLimit.Value)">
-                <MudText Typo="Typo.subtitle1" Style="z-index: 1">
-                    <b>@(Car.Soc.Value.ToString("F0"))%</b>
-                </MudText>
             </MudProgressLinear>
         }
-        <div>@(Car.Name) will always charge at full power until @(Car.MinSoc).</div>
-        <MudRangeSlider T="int"
-                        Value="Car.MinSoc"
-                        UpperValue="Car.MaxSoc"
-                        Min="0" Max="100"
-                        Size="Size.Large"
-                        Color="Color.Primary"
-                        Variant="Variant.Filled"
-                        ValueLabel="true"
-                        Range="true"
-                        Immediate="true"
-                        LabelText="@($"Min SOC {Car.MinSoc}")"
-                        UpperLabelText="@($"Max SOC {Car.MaxSoc}")"
-                        Display="false"
-                        MinDistance="@(Car.MinSoc == 0 ? 1 : 0)"
-                        ValueChanged="newValue => OnMinSocChanged(newValue)"
-                        UpperValueChanged="@((newValue) => OnMaxSocChanged(newValue))"></MudRangeSlider>
-        
+
     </div>
     <div>
         @if (CarId != default)
@@ -73,6 +72,7 @@ else
 
     private int? _lastKnownMinValue;
     private int? _lastKnownMaxValue;
+    private const int LimitChangeDelayMilliseconds = 1000;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -111,7 +111,7 @@ else
         try
         {
             // wait 300ms for “settle”
-            await Task.Delay(300, _minSocDebounceCts.Token);
+            await Task.Delay(LimitChangeDelayMilliseconds, _minSocDebounceCts.Token);
 
             // now do the API call
             var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, Car.MinSoc);
@@ -154,7 +154,7 @@ else
         try
         {
             // wait 300ms for “settle”
-            await Task.Delay(300, _minSocDebounceCts.Token);
+            await Task.Delay(LimitChangeDelayMilliseconds, _minSocDebounceCts.Token);
             Snackbar.Add("Max SOC is currently not supported, will come in a future release, please set it in the Tesla app.", Severity.Warning);
             if (_lastKnownMaxValue != default)
             {
