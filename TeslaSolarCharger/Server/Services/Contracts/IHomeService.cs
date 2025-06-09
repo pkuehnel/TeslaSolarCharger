@@ -17,4 +17,5 @@ public interface IHomeService
     List<DtoChargingSchedule> GetChargingSchedules(int? carId, int? chargingConnectorId);
     Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode);
     Task UpdateChargingConnectorChargeMode(int chargingConnectorId, ChargeModeV2 chargeMode);
+    Task StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases, CancellationToken cancellationToken);
 }

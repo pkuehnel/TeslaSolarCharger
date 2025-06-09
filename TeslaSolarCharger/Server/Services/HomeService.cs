@@ -4,6 +4,7 @@ using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
@@ -16,14 +17,17 @@ public class HomeService : IHomeService
     private readonly ILogger<HomeService> _logger;
     private readonly ITeslaSolarChargerContext _context;
     private readonly ISettings _settings;
+    private readonly IOcppChargePointActionService _ocppChargePointActionService;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
-        ISettings settings)
+        ISettings settings,
+        IOcppChargePointActionService ocppChargePointActionService)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
+        _ocppChargePointActionService = ocppChargePointActionService;
     }
 
     public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
@@ -178,5 +182,15 @@ public class HomeService : IHomeService
             .FirstAsync(c => c.Id == chargingConnectorId).ConfigureAwait(false);
         dbChargingConnector.ChargeMode = chargeMode;
         await _context.SaveChangesAsync();
+    }
+
+    public async Task StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases, CancellationToken cancellationToken)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {currentToSet}, {numberOfPhases})", nameof(StartChargingConnectorCharging), chargingConnectorId, currentToSet, numberOfPhases);
+        var result = await _ocppChargePointActionService.StartCharging(chargingConnectorId, currentToSet, numberOfPhases, cancellationToken);
+        if (result.HasError)
+        {
+            throw new InvalidOperationException(result.ErrorMessage);
+        }
     }
 }
