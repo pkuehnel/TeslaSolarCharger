@@ -53,12 +53,14 @@ else
         }
 
     </div>
-    <div>
+    
         @if (CarId != default)
         {
+        <div class="mb-7">
             <ChargingTargetConfigurationComponent CarId="CarId.Value"></ChargingTargetConfigurationComponent>
+        </div>
         }
-    </div>
+    
     <ChargeSummaryComponent CarId="CarId"></ChargeSummaryComponent>
 }
 
