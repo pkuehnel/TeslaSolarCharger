@@ -6,6 +6,7 @@ using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Client.Services;
 
@@ -87,6 +88,20 @@ public class HomeService : IHomeService
     {
         _logger.LogTrace("{method}()", nameof(UpdateCarMinSoc));
         var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarMinSoc?carId={carId}&minSoc={minSoc}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateCarChargeMode));
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarChargeMode?carId={carId}&chargeMode={chargeMode}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> UpdateChargingConnectorChargeMode(int chargingConnectorId, ChargeModeV2 chargeMode)
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateChargingConnectorChargeMode));
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateChargingConnectorChargeMode?chargingConnectorId={chargingConnectorId}&chargeMode={chargeMode}", null);
         return result;
     }
 

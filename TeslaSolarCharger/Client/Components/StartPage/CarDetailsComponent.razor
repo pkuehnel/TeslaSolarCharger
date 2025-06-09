@@ -1,5 +1,6 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Enums
 
 @inject IHomeService HomeService
 @inject ISnackbar Snackbar
@@ -11,26 +12,29 @@
 else
 {
     <div>
-        <MudIcon Icon="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
+        <CustomIcon IconName="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
         <span class="me-1">@Car.Name</span>
         <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!Car.IsHome)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!Car.IsPluggedIn)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!Car.IsCharging)"></CustomIcon>
     </div>
     <div>
+        <GenericInput T="ChargeModeV2"
+                      For="() => Car.ChargeMode"
+                      OnValueChanged="ChargeModeUpdated"/>
         <div class="row">
             <div class="col-6">
-                <GenericInput T=" int"
+                <GenericInput T="int"
                               For="() => Car.MinSoc"
                               OnValueChanged="OnMinSocChanged"
                               ImmediateValueUpdate="true"/>
-            </div>          
+            </div>
             <div class="col-6">
                 <GenericInput T="int"
                               For="() => Car.MaxSoc"
                               OnValueChanged="OnMaxSocChanged"
                               IsDisabledParameter="true"
-                              ImmediateValueUpdate="true" />
+                              ImmediateValueUpdate="true"/>
             </div>
         </div>
         @if (Car.Soc != default)
@@ -48,7 +52,7 @@ else
                                             BufferLabelSuffix="%">
                 </ProgressWithLabelComponent>
             </div>
-            
+
         }
 
     </div>
@@ -75,6 +79,7 @@ else
 
     private int? _lastKnownMinValue;
     private int? _lastKnownMaxValue;
+    private ChargeModeV2? _lastKnownChargeMode;
     private const int LimitChangeDelayMilliseconds = 1000;
 
     protected override async Task OnParametersSetAsync()
@@ -95,6 +100,7 @@ else
         {
             _lastKnownMinValue = Car.MinSoc;
             _lastKnownMaxValue = Car.MaxSoc;
+            _lastKnownChargeMode = Car.ChargeMode;
         }
 
     }
@@ -170,4 +176,26 @@ else
             // user is still dragging—ignore
         }
     }
+
+    private async Task ChargeModeUpdated(ChargeModeV2 arg)
+    {
+        if (Car == default || CarId == default)
+            return;
+        var result = await HomeService.UpdateCarChargeMode(CarId.Value, arg);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Failed to update Charge Mode: {result.ErrorMessage}", Severity.Error);
+            if (_lastKnownChargeMode != default)
+            {
+                Car.ChargeMode = _lastKnownChargeMode.Value;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        else
+        {
+            _lastKnownChargeMode = arg;
+            Snackbar.Add("Charge Mode updated successfully.", Severity.Success);
+        }
+    }
+
 }

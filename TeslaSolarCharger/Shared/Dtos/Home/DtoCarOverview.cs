@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Dtos.Home;
+﻿using TeslaSolarCharger.Shared.Enums;
+
+namespace TeslaSolarCharger.Shared.Dtos.Home;
 
 public class DtoCarOverview
 {
@@ -15,4 +17,5 @@ public class DtoCarOverview
     public bool IsCharging { get; set; }
     public bool IsHome { get; set; }
     public bool IsPluggedIn { get; set; }
+    public ChargeModeV2 ChargeMode { get; set; }
 }
