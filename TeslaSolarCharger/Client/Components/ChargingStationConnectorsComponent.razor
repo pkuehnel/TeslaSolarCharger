@@ -38,6 +38,7 @@ else
                     @if (AutoPhaseSwitchingSupported)
                     {
                         <GenericInput For="() => chargingStationConnector.Item.AutoSwitchBetween1And3PhasesEnabled"></GenericInput>
+                        <GenericInput For="() => chargingStationConnector.Item.PhaseSwitchCoolDownTimeSeconds"></GenericInput>
                     }
 
                 </EditFormComponent>
