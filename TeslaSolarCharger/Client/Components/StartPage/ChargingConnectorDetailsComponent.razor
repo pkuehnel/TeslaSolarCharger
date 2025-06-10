@@ -18,25 +18,38 @@ else
         <CustomIcon IconName="@Icons.Material.Outlined.Home"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnector.IsPluggedIn)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnector.IsCharging)"></CustomIcon>
-        <GenericInput T="ChargeModeV2"
-                      For="() => ChargingConnector.ChargeMode"
-                      OnValueChanged="ChargeModeUpdated"/>
-        @if (ChargingConnector.ChargeMode == ChargeModeV2.Manual)
+        
+        @if (IsMatchedToCar)
         {
-            <GenericInput For="() => CurrentToSet"></GenericInput>
-            <GenericInput For="() => Phases"></GenericInput>
-            <div class="d-flex flex-wrap gap-2">
-                <RightAlignedButtonComponent ButtonText="Start Charging"
-                                             IsLoading="@_isCommandLoading"
-                                             OnButtonClicked="@(StartCharging)"></RightAlignedButtonComponent>
-                <RightAlignedButtonComponent ButtonText="Stop Charging"
-                                             IsLoading="@_isCommandLoading"
-                                             OnButtonClicked="@(StopCharging)"></RightAlignedButtonComponent>
-                <RightAlignedButtonComponent ButtonText="Set Current and Phases"
-                                             IsLoading="@_isCommandLoading"
-                                             OnButtonClicked="@(SetCurrentAndPhases)"></RightAlignedButtonComponent>
-            </div>
+            <MudAlert Severity="Severity.Info"
+                      NoIcon="true"
+                      ContentAlignment="HorizontalAlignment.Left">
+                As the Charging Connector is matched to a car, the Charge Mode will be set automatically based on the car's settings.
+            </MudAlert>
         }
+        else
+        {
+            <GenericInput T="ChargeModeV2"
+                          For="() => ChargingConnector.ChargeMode"
+                          OnValueChanged="ChargeModeUpdated"/>
+            @if (ChargingConnector.ChargeMode == ChargeModeV2.Manual)
+            {
+                <GenericInput For="() => CurrentToSet"></GenericInput>
+                <GenericInput For="() => Phases"></GenericInput>
+                <div class="d-flex flex-wrap gap-2">
+                    <RightAlignedButtonComponent ButtonText="Start Charging"
+                                                 IsLoading="@_isCommandLoading"
+                                                 OnButtonClicked="@(StartCharging)"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Stop Charging"
+                                                 IsLoading="@_isCommandLoading"
+                                                 OnButtonClicked="@(StopCharging)"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Set Current and Phases"
+                                                 IsLoading="@_isCommandLoading"
+                                                 OnButtonClicked="@(SetCurrentAndPhases)"></RightAlignedButtonComponent>
+                </div>
+            }
+        }
+        
     </div>
     <ChargeSummaryComponent ChargingConnectorId="ChargingConnectorId"></ChargeSummaryComponent>
 }
@@ -44,6 +57,9 @@ else
 @code {
     [Parameter]
     public int? ChargingConnectorId { get; set; }
+
+    [Parameter]
+    public bool IsMatchedToCar { get; set; }
 
     private DtoChargingConnectorOverview? ChargingConnector { get; set; }
 
