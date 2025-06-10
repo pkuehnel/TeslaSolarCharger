@@ -66,10 +66,6 @@ public class ChargingServiceV2 : IChargingServiceV2
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
-        if (!_configurationWrapper.UseChargingServiceV2())
-        {
-            return;
-        }
         await CalculateGeofences();
         var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
         var powerToControl = await CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), cancellationToken).ConfigureAwait(false);

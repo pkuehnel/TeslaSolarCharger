@@ -179,12 +179,6 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
-    public bool UseChargingServiceV2()
-    {
-        var value = GetBaseConfiguration().UseChargingServiceV2;
-        return value;
-    }
-
     public bool IsPredictSolarPowerGenerationEnabled()
     {
         var value = GetBaseConfiguration().PredictSolarPowerGeneration;

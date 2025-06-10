@@ -155,8 +155,6 @@ public class BaseConfigurationBase
     [Postfix("m")]
     [HelperText("Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended")]
     public int HomeGeofenceRadius { get; set; } = 50;
-    [HelperText("If enabled OCPP charging stations are charged based on solar power. This is an experimental feature.")]
-    public bool UseChargingServiceV2 { get; set; }
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 
