@@ -1008,7 +1008,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             var car = _settings.Cars.First(c => c.Id == carId);
             minPhases = car.ActualPhases;
             maxPhases = car.ActualPhases;
-            carMaxSoc = car.MinimumSoC;
+            carMaxSoc = carConfigValues.MaximumSoc;
         }
 
         if (connectorId != default)
