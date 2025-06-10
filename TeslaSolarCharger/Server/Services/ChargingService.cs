@@ -545,7 +545,7 @@ public class ChargingService(
             var actualCurrent = dtoCar.ChargerActualCurrent ?? 0;
             logger.LogTrace("Actual current: {actualCurrent}", actualCurrent);
             //This is needed because sometimes actual current is higher than last set amp, leading to higher calculated amp to set, than actually needed
-            var lastSetAmp = dtoCar.ChargerRequestedCurrent ?? dtoCar.LastSetAmp;
+            var lastSetAmp = dtoCar.ChargerRequestedCurrent ?? dtoCar.LastSetAmp.Value;
             if (actualCurrent > lastSetAmp)
             {
                 logger.LogTrace("Actual current {actualCurrent} higher than last set amp {lastSetAmp}. Setting actual current as last set amp.", actualCurrent, lastSetAmp);

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Spi;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
