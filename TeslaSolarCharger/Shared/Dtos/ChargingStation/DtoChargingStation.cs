@@ -1,5 +1,3 @@
-using FluentValidation;
-
 namespace TeslaSolarCharger.Shared.Dtos.ChargingStation;
 
 public class DtoChargingStation
@@ -11,5 +9,6 @@ public class DtoChargingStation
 
     public int Id { get; set; }
     public string ChargepointId { get; set; }
+    public bool IsConnected { get; set; }
     public bool? CanSwitchBetween1And3Phases { get; set; }
 }

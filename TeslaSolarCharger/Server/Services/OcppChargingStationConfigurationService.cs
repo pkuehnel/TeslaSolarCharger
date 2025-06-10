@@ -3,12 +3,14 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
 public class OcppChargingStationConfigurationService(ILogger<OcppChargingStationConfigurationService> logger,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    IOcppChargePointConfigurationService ocppChargePointConfigurationService) : IOcppChargingStationConfigurationService
+    IOcppChargePointConfigurationService ocppChargePointConfigurationService,
+    ISettings settings) : IOcppChargingStationConfigurationService
 {
     public async Task<List<DtoChargingStation>> GetChargingStations()
     {
@@ -20,6 +22,16 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                 CanSwitchBetween1And3Phases = c.CanSwitchBetween1And3Phases,
             })
             .ToListAsync().ConfigureAwait(false);
+        var connectedChargingConnectorIds = settings.OcppConnectorStates.Keys.ToList();
+        var connectedChargePointIds = await teslaSolarChargerContext.OcppChargingStationConnectors
+            .Where(cc => connectedChargingConnectorIds.Contains(cc.Id))
+            .Select(cc => cc.OcppChargingStation.ChargepointId)
+            .Distinct()
+            .ToHashSetAsync().ConfigureAwait(false);
+        foreach (var chargingStation in chargingStations)
+        {
+            chargingStation.IsConnected = connectedChargePointIds.Contains(chargingStation.ChargepointId);
+        }
         return chargingStations;
     }
 
