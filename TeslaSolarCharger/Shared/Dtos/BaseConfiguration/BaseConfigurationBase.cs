@@ -32,14 +32,13 @@ public class BaseConfigurationBase
     public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
     public bool IsModbusCurrentInverterPowerUrl { get; set; }
     [Required]
-    [Range(25, int.MaxValue)]
-    [DisplayName("Car power adjustment interval")]
+    [DisplayName("Power Change Interval")]
     [Postfix("s")]
-    [HelperText("Note: It is not possible to use values below 25 seconds here, as there is a delay between the car changing its current and the Tesla API getting notified about this change.")]
+    [HelperText("Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power")]
     public int UpdateIntervalSeconds { get; set; } = 30;
     [Required]
     [Range(1, int.MaxValue)]
-    [DisplayName("Solar plant adjustment interval")]
+    [DisplayName("Solar power refresh interval")]
     [Postfix("s")]
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
     [Required] 
