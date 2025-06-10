@@ -100,7 +100,6 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                 var car = _settings.Cars.First(c => c.Id == carId.Value);
                 car.ShouldStartCharging.Update(currentDate, switchOnPower < elementTargetPower);
                 car.ShouldStopCharging.Update(currentDate, switchOffPower > elementTargetPower);
-                continue;
             }
 
             if (ocppConnectorId != default)
