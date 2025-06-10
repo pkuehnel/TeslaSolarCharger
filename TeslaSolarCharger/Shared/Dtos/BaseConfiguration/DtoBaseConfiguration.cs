@@ -59,11 +59,6 @@ public class BaseConfigurationValidator : AbstractValidator<DtoBaseConfiguration
             .Must((model, value) => value >= (model.PvValueUpdateIntervalSeconds * 2))
             .WithMessage("Update interval needs to be at least twice as high as PV Value Refresh Interval.");
 
-        RuleFor(x => x.SkipPowerChangesOnLastAdjustmentNewerThanSeconds)
-            .NotEmpty()
-            .Must((model, value) => value >= model.UpdateIntervalSeconds)
-            .WithMessage("Skip power changes interval needs to be at least as high as Update interval");
-
 
         var minimumSwitchOnAndOffToSkipInterval = 60 * 2;
         RuleFor(x => x.MinutesUntilSwitchOn)

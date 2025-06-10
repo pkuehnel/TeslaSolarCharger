@@ -155,7 +155,8 @@ public class TeslaFleetApiService(
         var vin = GetVinByCarId(carId);
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps).ConfigureAwait(false);
-        car.LastSetAmp = amps;
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        car.LastSetAmp.Update(currentDate, amps);
     }
 
     public async Task<DtoValue<bool>> TestFleetApiAccess(int carId)
