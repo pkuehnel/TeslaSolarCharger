@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PkSoftwareService.Custom.Backend;
 using Serilog.Events;
+using SQLitePCL;
 using System.Text;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos;
@@ -78,6 +79,12 @@ public class DebugService(ILogger<DebugService> logger,
     public DtoOcppConnectorState GetOcppConnectorState(int connectorId)
     {
         return settings.OcppConnectorStates[connectorId];
+    }
+
+    public DtoCar? GetDtoCar(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(GetDtoCar), carId);
+        return settings.Cars.FirstOrDefault(x => x.Id == carId);
     }
 
     public async Task<Dictionary<int, DtoDebugCar>> GetCars()
