@@ -179,10 +179,14 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
-    public bool UseChargingServiceV2()
+    public TimeSpan SkipPowerChangesOnLastAdjustmentNewerThan()
     {
-        var value = GetBaseConfiguration().UseChargingServiceV2;
-        return value;
+        var value = GetBaseConfiguration().SkipPowerChangesOnLastAdjustmentNewerThanSeconds;
+        if (value <= 0)
+        {
+            value = 30; // Default to 60 seconds if not set
+        }
+        return TimeSpan.FromSeconds(value);
     }
 
     public bool IsPredictSolarPowerGenerationEnabled()
@@ -898,6 +902,7 @@ public class ConfigurationWrapper(
         var jsonFileContent = cache[_baseConfigurationMemoryCacheName] as string;
         if (jsonFileContent == null)
         {
+            logger.LogTrace("BaseConfigurationJson not found in cache, reading from file.");
             var filePath = BaseConfigFileFullName();
             var cacheItemPolicy = new CacheItemPolicy();
             var filePathList = new List<string>()

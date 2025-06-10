@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
@@ -66,15 +67,39 @@ public class ChargingServiceV2 : IChargingServiceV2
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
-        if (!_configurationWrapper.UseChargingServiceV2())
-        {
-            return;
-        }
         await CalculateGeofences();
         var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
         var powerToControl = await CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), cancellationToken).ConfigureAwait(false);
-        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
+        var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        var earliestAmpChange = currentDate - skipValueChanges;
+        foreach (var chargingLoadPoint in chargingLoadPoints)
+        {
+            if (chargingLoadPoint.CarId != default)
+            {
+                var car = _settings.Cars.First(c => c.Id == chargingLoadPoint.CarId.Value);
+                var lastAmpChange = car.LastSetAmp.LastChanged;
+                if (lastAmpChange > earliestAmpChange)
+                {
+                    _logger.LogWarning("Skipping amp changes as Car {carId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.CarId, car.LastSetAmp.LastChanged, earliestAmpChange);
+                    return;
+                }
+            }
+
+            if (chargingLoadPoint.ChargingConnectorId != default)
+            {
+                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(chargingLoadPoint.ChargingConnectorId.Value);
+                if (connectorState != default)
+                {
+                    if (connectorState.LastSetCurrent.LastChanged > earliestAmpChange)
+                    {
+                        _logger.LogWarning("Skipping amp changes as Charging Connector {chargingConnectorId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.ChargingConnectorId, connectorState.LastSetCurrent.LastChanged, earliestAmpChange);
+                        return;
+                    }
+                }
+            }
+        }
+        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
 

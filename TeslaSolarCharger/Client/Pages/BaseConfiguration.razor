@@ -1,16 +1,11 @@
 @page "/BaseConfiguration"
-@using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
-@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
-@using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Dtos
-@inject HttpClient HttpClient
-@inject NavigationManager NavigationManager
+
 @inject ISnackbar Snackbar
 @inject IHttpClientHelper HttpClientHelper
-@inject ICloudConnectionCheckService CloudConnectionCheckService
-@inject IDialogHelper DialogHelper
 
 
 <PageTitle>Base Configuration</PageTitle>
@@ -23,65 +18,67 @@
 }
 else
 {
-    <EditForm Model="@_dtoBaseConfiguration" OnValidSubmit="@HandleValidSubmit">
+    <EditFormComponent T="DtoBaseConfiguration" WrappedElement="@(_dtoBaseConfiguration)"
+                       OnAfterSuccessfullSubmit="ShowSuccessMessage"
+                       SubmitUrl="@("api/BaseConfiguration/UpdateBaseConfiguration")">
         <h3>General:</h3>
-        <GenericInput For="() => _dtoBaseConfiguration.MaxCombinedCurrent" />
+        <GenericInput For="() => _dtoBaseConfiguration.Item.MaxCombinedCurrent" />
         <hr />
         <h3>TeslaMate:</h3>
         <GenericInput T="bool"
-        For="() => _dtoBaseConfiguration.UseTeslaMateIntegration"
+        For="() => _dtoBaseConfiguration.Item.UseTeslaMateIntegration"
         OnValueChanged="_ => InvokeAsync(StateHasChanged)"></GenericInput>
-        @if (_dtoBaseConfiguration.UseTeslaMateIntegration)
+        @if (_dtoBaseConfiguration.Item.UseTeslaMateIntegration)
         {
-            <GenericInput For="() => _dtoBaseConfiguration.UseTeslaMateAsDataSource"></GenericInput>
-            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbServer" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.UseTeslaMateAsDataSource"></GenericInput>
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbServer" />
 
-            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbPort" />
-            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbDatabaseName" />
-            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbUser" />
-            <GenericInput For="() => _dtoBaseConfiguration.TeslaMateDbPassword" IsPassword="true" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbPort" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbDatabaseName" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbUser" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.TeslaMateDbPassword" IsPassword="true" />
 
-            <GenericInput For="() => _dtoBaseConfiguration.MosquitoServer" />
+            <GenericInput For="() => _dtoBaseConfiguration.Item.MosquitoServer" />
         }
 
 
         <h3>Home Geofence</h3>
         <div class="mb-3">
-            <MapComponent Longitude="_dtoBaseConfiguration.HomeGeofenceLongitude"
-            Latitude="_dtoBaseConfiguration.HomeGeofenceLatitude"
-            Radius="_dtoBaseConfiguration.HomeGeofenceRadius"
-            LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.HomeGeofenceLatitude = newLatitude)"
-            LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.HomeGeofenceLongitude = newLongitude; Snackbar.Add("To update the location, click the save button on the bottom of the page", Severity.Info); })"></MapComponent>
+            <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
+            Latitude="_dtoBaseConfiguration.Item.HomeGeofenceLatitude"
+            Radius="_dtoBaseConfiguration.Item.HomeGeofenceRadius"
+            LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.Item.HomeGeofenceLatitude = newLatitude)"
+            LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude; Snackbar.Add("To update the location, click the save button on the bottom of the page", Severity.Info); })"></MapComponent>
 
             <small class="form-text text-muted">Click on the map to select your home geofence. Within that area TSC will regulate the charging power.</small>
         </div>
 
-        <GenericInput For="() => _dtoBaseConfiguration.HomeGeofenceRadius" />
-        <GenericInput For="() => _dtoBaseConfiguration.PredictSolarPowerGeneration"></GenericInput>
-        <GenericInput For="() => _dtoBaseConfiguration.UsePredictedSolarPowerGenerationForChargingSchedules" />
-        <GenericInput For="() => _dtoBaseConfiguration.ShowEnergyDataOnHome"></GenericInput>
-        <GenericInput For="() => _dtoBaseConfiguration.PowerBuffer" />
+        <GenericInput For="() => _dtoBaseConfiguration.Item.HomeGeofenceRadius" />
+        <GenericInput For="() => _dtoBaseConfiguration.Item.PredictSolarPowerGeneration"></GenericInput>
+        <GenericInput For="() => _dtoBaseConfiguration.Item.UsePredictedSolarPowerGenerationForChargingSchedules" />
+        <GenericInput For="() => _dtoBaseConfiguration.Item.ShowEnergyDataOnHome"></GenericInput>
+        <GenericInput For="() => _dtoBaseConfiguration.Item.PowerBuffer" />
 
-        <GenericInput For="() => _dtoBaseConfiguration.AllowPowerBufferChangeOnHome"></GenericInput>
+        <GenericInput For="() => _dtoBaseConfiguration.Item.AllowPowerBufferChangeOnHome"></GenericInput>
         
         <div class="row">
             <div class="col-md-6">
                 <GenericInput T="bool?"
-                              For="() => _dtoBaseConfiguration.DynamicHomeBatteryMinSoc"
+                              For="() => _dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc"
                               OnValueChanged="StateHasChanged"/>
             </div>
             <div class="col-md-6">
-                <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryMinSoc"
-                              IsDisabledParameter="@(_dtoBaseConfiguration.DynamicHomeBatteryMinSoc)"/>
+                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinSoc"
+                              IsDisabledParameter="@(_dtoBaseConfiguration.Item.DynamicHomeBatteryMinSoc)"/>
             </div>
         </div>
         
 
-        <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryChargingPower" />
+        <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
 
-        <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryUsableEnergy" />
+        <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
 
-        <GenericInput For="() => _dtoBaseConfiguration.MaxInverterAcPower" />
+        <GenericInput For="() => _dtoBaseConfiguration.Item.MaxInverterAcPower" />
 
         <RestValueConfigurationComponent />
         <ModbusValueConfigurationComponent />
@@ -92,12 +89,12 @@ else
             <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
             <div>Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,...</div>
             <GenericInput T="string?"
-            For="() => _dtoBaseConfiguration.TelegramBotKey"
+            For="() => _dtoBaseConfiguration.Item.TelegramBotKey"
             OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
             <GenericInput T="string?"
-            For="() => _dtoBaseConfiguration.TelegramChannelId"
+            For="() => _dtoBaseConfiguration.Item.TelegramChannelId"
             OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
-            <GenericInput For="() => _dtoBaseConfiguration.SendStackTraceToTelegram"></GenericInput>
+            <GenericInput For="() => _dtoBaseConfiguration.Item.SendStackTraceToTelegram"></GenericInput>
             <RightAlignedButtonComponent ButtonText="Send test message"
             IsDisabled="_telegramSettingsChanged"
             DisabledToolTipText="You need to save the configuration before testing it."
@@ -106,68 +103,54 @@ else
 
         <MudExpansionPanels>
             <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
-                <GenericInput For="() => _dtoBaseConfiguration.UseChargingServiceV2"></GenericInput>
-
-                <GenericInput For="() => _dtoBaseConfiguration.UpdateIntervalSeconds" />
-
-                <GenericInput For="() => _dtoBaseConfiguration.PvValueUpdateIntervalSeconds" />
-
-                <GenericInput For="() => _dtoBaseConfiguration.MinutesUntilSwitchOn" />
-
-                <GenericInput For="() => _dtoBaseConfiguration.MinutesUntilSwitchOff" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.UpdateIntervalSeconds" />
+                @if (_dtoBaseConfiguration.Item.SkipPowerChangesOnLastAdjustmentNewerThanSeconds < 25)
+                {
+                    <MudAlert Severity="Severity.Warning"
+                              ContentAlignment="HorizontalAlignment.Left">
+                        Values blelow 25 seconds are not recommended and might cause performance issues.
+                    </MudAlert>
+                }
+                <GenericInput T="int"
+                              For="() => _dtoBaseConfiguration.Item.SkipPowerChangesOnLastAdjustmentNewerThanSeconds"
+                              OnValueChanged="StateHasChanged"/>
+                <GenericInput For="() => _dtoBaseConfiguration.Item.PvValueUpdateIntervalSeconds" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.MinutesUntilSwitchOn" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.MinutesUntilSwitchOff" />
                 <hr/>
-                <GenericInput For="() => _dtoBaseConfiguration.MqqtClientId" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.MqqtClientId" />
                 <hr/>
 
-                <GenericInput For="() => _dtoBaseConfiguration.HomeBatteryPowerInversionUrl" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryPowerInversionUrl" />
             </MudExpansionPanel>
         </MudExpansionPanels>
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <div class="mt-3 mb-4">
-            <RightAlignedButtonComponent ButtonText="Save"
-            IsLoading="_submitLoading"
-            ButtonType="ButtonType.Submit"></RightAlignedButtonComponent>
-        </div>
-
-    </EditForm>
+    </EditFormComponent>
 }
 
 @code {
-    private DtoBaseConfiguration? _dtoBaseConfiguration;
+    private EditableItem<DtoBaseConfiguration>? _dtoBaseConfiguration;
 
     private bool _telegramSettingsChanged;
-    private bool _submitLoading;
 
     protected override async Task OnInitializedAsync()
     {
-        _dtoBaseConfiguration = await HttpClient.GetFromJsonAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration").ConfigureAwait(false);
-        if (_dtoBaseConfiguration != default && _dtoBaseConfiguration.DynamicHomeBatteryMinSoc == default)
+        var response = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoBaseConfiguration>("/api/BaseConfiguration/GetBaseConfiguration");
+        if (response != default && response.DynamicHomeBatteryMinSoc == default)
         {
-            _dtoBaseConfiguration.DynamicHomeBatteryMinSoc = false;
+            response.DynamicHomeBatteryMinSoc = false;
             await InvokeAsync(() => StateHasChanged());
         }
+
+        if (response != default)
+        {
+            _dtoBaseConfiguration = new(response);
+        }
     }
 
-    private async Task HandleValidSubmit()
+    private void ShowSuccessMessage()
     {
-        _submitLoading = true;
-        var result = await HttpClient.PutAsJsonAsync("api/BaseConfiguration/UpdateBaseConfiguration", _dtoBaseConfiguration).ConfigureAwait(false);
-        if (result.IsSuccessStatusCode)
-        {
-            _telegramSettingsChanged = false;
-            Snackbar.Add("Base Configuration updated", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add("Error updating base configuration", Severity.Error);
-        }
-
-        _submitLoading = false;
+        Snackbar.Add("Saved.", Severity.Success);
     }
-
-
-    private string _correctionFactorHelpText = "Use this to correct the returned value. E.g. if the returned value is 1 but should bei -1 insert -1";
 
     private async Task SendTelegramTestMessage()
     {
@@ -178,7 +161,7 @@ else
             return;
         }
 
-        Snackbar.Add(result.Value, Severity.Success);
+        Snackbar.Add(result.Value ?? string.Empty, Severity.Success);
     }
 
 }

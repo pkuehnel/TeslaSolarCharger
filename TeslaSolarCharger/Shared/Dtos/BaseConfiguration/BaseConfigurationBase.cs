@@ -32,14 +32,17 @@ public class BaseConfigurationBase
     public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
     public bool IsModbusCurrentInverterPowerUrl { get; set; }
     [Required]
-    [Range(25, int.MaxValue)]
-    [DisplayName("Car power adjustment interval")]
+    [DisplayName("Power Change Interval")]
     [Postfix("s")]
-    [HelperText("Note: It is not possible to use values below 25 seconds here, as there is a delay between the car changing its current and the Tesla API getting notified about this change.")]
+    [HelperText("Every x seconds it is checked if any power changes are required.")]
     public int UpdateIntervalSeconds { get; set; } = 30;
     [Required]
+    [Postfix("s")]
+    [HelperText("Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power.")]
+    public int SkipPowerChangesOnLastAdjustmentNewerThanSeconds { get; set; } = 25;
+    [Required]
     [Range(1, int.MaxValue)]
-    [DisplayName("Solar plant adjustment interval")]
+    [DisplayName("Solar power refresh interval")]
     [Postfix("s")]
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
     [Required] 
@@ -152,8 +155,6 @@ public class BaseConfigurationBase
     [Postfix("m")]
     [HelperText("Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended")]
     public int HomeGeofenceRadius { get; set; } = 50;
-    [HelperText("If enabled OCPP charging stations are charged based on solar power. This is an experimental feature.")]
-    public bool UseChargingServiceV2 { get; set; }
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
 
