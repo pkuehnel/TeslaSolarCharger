@@ -186,7 +186,7 @@ else
                     Severity.Error);
                 if (_lastKnownMaxValue != default)
                 {
-                    Car.MinSoc = _lastKnownMaxValue.Value;
+                    Car.MaxSoc = _lastKnownMaxValue.Value;
                     await InvokeAsync(StateHasChanged);
                 }
             }
