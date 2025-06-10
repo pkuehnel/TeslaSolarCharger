@@ -92,6 +92,7 @@ else
     private ChargeModeV2? _lastKnownChargeMode;
     private const int LimitChangeDelayMilliseconds = 1000;
 
+    [Postfix("A")]
     private int? CurrentToSet { get; set; }
     private bool _isCommandLoading;
 
