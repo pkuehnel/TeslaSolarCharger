@@ -233,4 +233,17 @@ public class HomeService : IHomeService
             throw new InvalidOperationException(result.ErrorMessage);
         }
     }
+
+    //public async Task<List<DtoChargeStartStopReason>> GetCarStartStopTime(int? carId, int? chargingConnectorId)
+    //{
+    //    _logger.LogTrace("{method}({carId}, {chargingConnectorId})", nameof(GetChargeStartStopReasons), carId, chargingConnectorId);
+    //    //See DTOChargeInformation for infotexts to post, use start stop time as DatetimeOffset and display start charging Atxyz
+    //    //Add Max Soc as reason for not charging
+    //    //Save required more/less power required per car, so can display if home battery not charged enough is the reason
+    //    //Add info when phases are switched
+
+    //Other idea: complete refactoring of Set amp and use same logic here
+
+
+    //}
 }
