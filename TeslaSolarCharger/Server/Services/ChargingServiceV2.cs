@@ -232,13 +232,14 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     private async Task SetCurrentOfNonChargingTeslasToMax()
     {
+        _logger.LogTrace("{method}()", nameof(SetCurrentOfNonChargingTeslasToMax));
         var carsToSetToMaxCurrent = _settings.CarsToManage
-            .Where(c => c.State == CarStateEnum.Online
-                        && c.IsHomeGeofence == true
-                        && c.PluggedIn == true
-                        && c.ChargerRequestedCurrent != c.MaximumAmpere
-                        && c.ChargerPilotCurrent > c.ChargerRequestedCurrent
-                        && c.ChargeModeV2 != ChargeModeV2.Auto)
+            .Where(c => (c.State == CarStateEnum.Online)
+                        && (c.IsHomeGeofence == true)
+                        && (c.PluggedIn == true)
+                        && (c.ChargerRequestedCurrent != c.MaximumAmpere)
+                        && (c.ChargerPilotCurrent > c.ChargerRequestedCurrent)
+                        && (c.ChargeModeV2 == ChargeModeV2.Auto))
             .ToList();
 
         foreach (var car in carsToSetToMaxCurrent)
