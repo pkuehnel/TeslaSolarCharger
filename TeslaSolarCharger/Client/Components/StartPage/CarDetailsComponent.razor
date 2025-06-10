@@ -40,6 +40,13 @@ else
                 </div>
             </div>
         }
+        else if (Car.ChargeMode == ChargeModeV2.Manual)
+        {
+            <GenericInput For="() => CurrentToSet"></GenericInput>
+            <RightAlignedButtonComponent ButtonText="Set Current"
+                                         IsLoading="@_isCommandLoading"
+                                         OnButtonClicked="@(SetCurrent)"></RightAlignedButtonComponent>
+        }
         @if (Car.Soc != default)
         {
             <div class="mb-7">
@@ -55,13 +62,6 @@ else
                                             BufferLabelSuffix="%">
                 </ProgressWithLabelComponent>
             </div>
-        }
-        else if (Car.ChargeMode == ChargeModeV2.Manual)
-        {
-            <GenericInput For="() => CurrentToSet"></GenericInput>
-            <RightAlignedButtonComponent ButtonText="Set Current"
-                                         IsLoading="@_isCommandLoading"
-                                         OnButtonClicked="@(SetCurrent)"></RightAlignedButtonComponent>
         }
 
 
