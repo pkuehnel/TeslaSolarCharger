@@ -41,12 +41,6 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             _logger.LogWarning("Dynamic Home Battery Min SoC is enabled, but no usable energy configured. Using configured home battery min soc.");
             return;
         }
-        var currentHomeBatterySoc = _settings.HomeBatterySoc;
-        if (currentHomeBatterySoc == default)
-        {
-            _logger.LogWarning("Dynamic Home Battery Min SoC is enabled, bur current Soc is unknown.");
-            return;
-        }
 
         var homeGeofenceLatitude = _configurationWrapper.HomeGeofenceLatitude();
         var homeGeofenceLongitude = _configurationWrapper.HomeGeofenceLongitude();
@@ -64,12 +58,6 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         }
         //Do not try to fully charge to allow some buffer with fast reaction time compared to cars.
         var fullBatterySoc = 95;
-        var requiredEnergyForFullBattery = (int)(homeBatteryUsableEnergy.Value * ((fullBatterySoc - currentHomeBatterySoc.Value) / 100.0m));
-        if (requiredEnergyForFullBattery < 1)
-        {
-            _logger.LogDebug("No energy required to charge home battery to full.");
-            return;
-        }
         var predictionInterval = TimeSpan.FromHours(1);
         var fullBatteryTargetTime = new DateTimeOffset(nextSunset.Value.Year, nextSunset.Value.Month, nextSunset.Value.Day,
             nextSunset.Value.Hour + 1, 0, 0, nextSunset.Value.Offset);
