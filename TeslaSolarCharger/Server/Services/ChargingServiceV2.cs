@@ -981,14 +981,15 @@ public class ChargingServiceV2 : IChargingServiceV2
                         && (phasesToStartChargingWith != ocppConnectorState.LastSetPhases.Value))
                     {
                         _logger.LogTrace("Should start charging with {newPhaseCount} phases while LastSetPhases is {@oldPhaseCount} phases before charge stop", phasesToStartChargingWith, ocppConnectorState.LastSetPhases);
-                        var phaseSwitchCoolDownTime = await _context.OcppChargingStationConnectors
+                        var phaseSwitchCoolDownTimeSeconds = await _context.OcppChargingStationConnectors
                             .Where(c => c.Id == chargingConnectorId!.Value)
-                            .Select(c => c.PhaseSwitchCoolDownTime)
+                            .Select(c => c.PhaseSwitchCoolDownTimeSeconds)
                             .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-                        if (phaseSwitchCoolDownTime != default
-                            && phaseSwitchCoolDownTime < (currentDate - ocppConnectorState.IsCharging.LastChanged))
+                        if (phaseSwitchCoolDownTimeSeconds != default)
                         {
-                            _logger.LogTrace("Do not start charging as cooldown time of {coolDownTime} is not over since charging stopped at {chargeStop}",
+                            var phaseSwitchCoolDownTime = TimeSpan.FromSeconds(phaseSwitchCoolDownTimeSeconds.Value);
+                            if (phaseSwitchCoolDownTime < (currentDate - ocppConnectorState.IsCharging.LastChanged))
+                            _logger.LogTrace("Do not start charging as cooldown time of {phaseSwitchCoolDownTime} is not over since charging stopped at {chargeStop}",
                                 phaseSwitchCoolDownTime, ocppConnectorState.IsCharging.LastChanged);
                             return (0, 0);
                         }
