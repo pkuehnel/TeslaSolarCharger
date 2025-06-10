@@ -65,6 +65,7 @@ else
 
     private ChargeModeV2? _lastKnownChargeMode;
 
+    [Postfix("A")]
     private int? CurrentToSet { get; set; }
     [HelperText("If your Charging station supports phase switching, you can set the number of phases here.")]
     private int? Phases { get; set; }
