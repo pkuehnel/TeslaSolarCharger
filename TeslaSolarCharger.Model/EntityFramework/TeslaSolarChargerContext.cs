@@ -141,6 +141,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             v => v == default ? default : DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeMilliseconds(v.Value).Date)
         );
 
+        var timeSpanToMillisecondsConverter = new ValueConverter<TimeSpan?, long?>(
+            v => v == default ? default : (long)v.Value.TotalMilliseconds,
+            v => v == default ? default : TimeSpan.FromMilliseconds(v.Value, 0));
+
         modelBuilder.Entity<MeterValue>()
             .Property(m => m.Timestamp)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
@@ -172,6 +176,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<CarChargingTarget>()
             .Property(m => m.TargetDate)
             .HasConversion(dateOnlyToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<OcppChargingStationConnector>()
+            .Property(m => m.PhaseSwitchCoolDownTime)
+            .HasConversion(timeSpanToMillisecondsConverter);
 
         modelBuilder.Entity<LoggedError>()
             .Property(e => e.FurtherOccurrences)

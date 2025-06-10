@@ -774,6 +774,16 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
             else
             {
+                _logger.LogTrace(
+                    "{method} evaluating wrongPhaseCount (OCPP): phaseCount={phaseCount}, canHandleOnePhase={canHandleOnePhase}, canHandleThreePhase={canHandleThreePhase}, onePhaseLastChanged={onePhaseLastChanged}, threePhaseLastChanged={threePhaseLastChanged}, switchOnThreshold={switchOnThreshold}, switchOffThreshold={switchOffThreshold}",
+                    nameof(SetLoadPointPower),
+                    ocppConnectorState!.PhaseCount.Value,
+                    ocppConnectorState.CanHandlePowerOnOnePhase.Value,
+                    ocppConnectorState.CanHandlePowerOnThreePhase.Value,
+                    ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged,
+                    ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged,
+                    currentDate - _configurationWrapper.TimespanUntilSwitchOn(),
+                    currentDate - _configurationWrapper.TimespanUntilSwitchOff());
                 var wrongPhaseCount = ((ocppConnectorState!.PhaseCount.Value == 1)
                     && (ocppConnectorState.CanHandlePowerOnOnePhase.Value == false)
                     && (ocppConnectorState.CanHandlePowerOnThreePhase.Value == true)
@@ -964,6 +974,24 @@ public class ChargingServiceV2 : IChargingServiceV2
                         _logger.LogTrace("{method} DECISION: Car is fully charged and last set current > 0 - returning (0, 0)", nameof(SetLoadPointPower));
                         _logger.LogTrace("Do not try to start charging as last set Current is greater than 0 and car is fully charged");
                         return (0, 0);
+                    }
+
+                    if (canChangePhases
+                        && (ocppConnectorState.LastSetPhases.Value != default)
+                        && (phasesToStartChargingWith != ocppConnectorState.LastSetPhases.Value))
+                    {
+                        _logger.LogTrace("Should start charging with {newPhaseCount} phases while LastSetPhases is {@oldPhaseCount} phases before charge stop", phasesToStartChargingWith, ocppConnectorState.LastSetPhases);
+                        var phaseSwitchCoolDownTime = await _context.OcppChargingStationConnectors
+                            .Where(c => c.Id == chargingConnectorId!.Value)
+                            .Select(c => c.PhaseSwitchCoolDownTime)
+                            .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                        if (phaseSwitchCoolDownTime != default
+                            && phaseSwitchCoolDownTime < (currentDate - ocppConnectorState.IsCharging.LastChanged))
+                        {
+                            _logger.LogTrace("Do not start charging as cooldown time of {coolDownTime} is not over since charging stopped at {chargeStop}",
+                                phaseSwitchCoolDownTime, ocppConnectorState.IsCharging.LastChanged);
+                            return (0, 0);
+                        }
                     }
 
                     _logger.LogTrace("{method} DECISION: Starting OCPP charging with current={currentToStartChargingWith}, phases={phases}", nameof(SetLoadPointPower), currentToStartChargingWith, phasesToStartChargingWith);
