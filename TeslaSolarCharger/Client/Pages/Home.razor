@@ -55,7 +55,7 @@ else
                 @if (loadPoint.ChargingConnectorId != default)
                 {
                     <div class="border border-gray-300 p-3 rounded col-xl-6 col-xl-@(loadPoint.CarId == default ? "12" : "6")">
-                        <ChargingConnectorDetailsComponent ChargingConnectorId="loadPoint.ChargingConnectorId" />
+                        <ChargingConnectorDetailsComponent ChargingConnectorId="loadPoint.ChargingConnectorId" IsMatchedToCar="@(loadPoint.CarId != default)" />
                     </div>
                 }
             </div>
