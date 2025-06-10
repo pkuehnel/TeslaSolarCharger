@@ -130,7 +130,7 @@ public class BaseConfigurationBase
     [DisplayName("Home Battery Usable energy")]
     [Postfix("kWh")]
     [HelperText("Set the usable energy your home battery has.")]
-    public decimal? HomeBatteryUsableEnergy { get; set; }
+    public double? HomeBatteryUsableEnergy { get; set; }
     [DisplayName("Max combined current")]
     [Postfix("A")]
     [HelperText("Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.")]
