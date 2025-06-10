@@ -21,6 +21,9 @@ public class DtoChargingStationConnector
     [DisplayName("Auto switch between 1 and 3 phases")]
     [HelperText("When enabled the charger can automatically switch between a 1 and 3 phase charge. Note: Most of the chargers do not support this and some cars might get a hardware damage if enabled, so enable with care.")]
     public bool AutoSwitchBetween1And3PhasesEnabled { get; set; }
+    [Postfix("s")]
+    [HelperText("Some chargers or cars need additional time after switch off to start charging with a different number of phases. To delay a charge start after a phase switch set a value in seconds here.")]
+    public int? PhaseSwitchCoolDownTimeSeconds { get; set; }
     [Postfix("A")]
     [HelperText("The minimum current that the charging point is allowed to use. Charging will never be slower than this current. Note: This value does not have any influence on when charging stops completly, you will find more details on \"Switch Off Current\". Recommended Value: 6.")]
     public int? MinCurrent { get; set; }
