@@ -117,4 +117,5 @@ public interface IConfigurationWrapper
     int? HomeBatteryUsableEnergy();
     bool DynamicHomeBatteryMinSoc();
     bool UsePredictedSolarPowerGenerationForChargingSchedules();
+    TimeSpan SkipPowerChangesOnLastAdjustmentNewerThan();
 }

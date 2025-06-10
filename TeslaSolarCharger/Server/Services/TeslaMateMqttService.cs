@@ -315,13 +315,13 @@ public class TeslaMateMqttService(
                     });
                     await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                     if (car.ChargerActualCurrent < 5 &&
-                        car.ChargerRequestedCurrent == car.LastSetAmp &&
-                        car.LastSetAmp == car.ChargerActualCurrent - 1 &&
-                        car.LastSetAmp > 0)
+                        car.ChargerRequestedCurrent == car.LastSetAmp.Value &&
+                        car.LastSetAmp.Value == car.ChargerActualCurrent - 1 &&
+                        car.LastSetAmp.Value > 0)
                     {
                         logger.LogWarning("CarId {carId}: Reducing {actualCurrent} from {originalValue} to {newValue} due to error in TeslaApi", car.Id, nameof(car.ChargerActualCurrent), car.ChargerActualCurrent, car.LastSetAmp);
                         //ToDo: Set to average of requested and actual current
-                        car.ChargerActualCurrent = car.LastSetAmp;
+                        car.ChargerActualCurrent = car.LastSetAmp.Value;
                     }
 
                     if (car.ChargerActualCurrent > 0 && car.PluggedIn != true)

@@ -46,7 +46,7 @@ public class DtoCar
     public TimeSpan? TimeUntilFullCharge { get; set; }
     public DateTime? ReachingMinSocAtFullSpeedCharge { get; set; }
     public bool AutoFullSpeedCharge { get; set; }
-    public int LastSetAmp { get; set; }
+    public DtoTimeStampedValue<int> LastSetAmp { get; set; } = new DtoTimeStampedValue<int>(DateTimeOffset.MinValue, 0);
     public int? ChargerPhases { get; set; }
 
     public int ActualPhases => ChargerPhases is null or > 1 ? 3 : 1;
