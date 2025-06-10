@@ -27,13 +27,13 @@ else
         {
             <div class="row">
                 <div class="col-6">
-                    <GenericInput T="int"
+                    <GenericInput T="int?"
                                   For="() => Car.MinSoc"
                                   OnValueChanged="OnMinSocChanged"
                                   ImmediateValueUpdate="true"/>
                 </div>
                 <div class="col-6">
-                    <GenericInput T="int"
+                    <GenericInput T="int?"
                                   For="() => Car.MaxSoc"
                                   OnValueChanged="OnMaxSocChanged"
                                   ImmediateValueUpdate="true"/>
@@ -118,7 +118,7 @@ else
 
     }
 
-    private async Task OnMinSocChanged(int newSoc)
+    private async Task OnMinSocChanged(int? newSoc)
     {
         if (Car == default || CarId == default)
             return;
@@ -136,7 +136,7 @@ else
             await Task.Delay(LimitChangeDelayMilliseconds, _minSocDebounceCts.Token);
 
             // now do the API call
-            var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, newSoc);
+            var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, newSoc ?? 0);
             if (updateResult.HasError)
             {
                 Snackbar.Add(
@@ -161,13 +161,10 @@ else
     }
 
 
-    private async Task OnMaxSocChanged(int newSoc)
+    private async Task OnMaxSocChanged(int? newSoc)
     {
         if (Car == default || CarId == default)
             return;
-
-        // update UI immediately
-        Car.MaxSoc = newSoc;
 
         // cancel any pending update
         await _minSocDebounceCts.CancelAsync();
@@ -178,7 +175,7 @@ else
             // wait 300ms for “settle”
             await Task.Delay(LimitChangeDelayMilliseconds, _minSocDebounceCts.Token);
             // now do the API call
-            var updateResult = await HomeService.UpdateCarMaxSoc(CarId.Value, newSoc);
+            var updateResult = await HomeService.UpdateCarMaxSoc(CarId.Value, newSoc ?? 100);
             if (updateResult.HasError)
             {
                 Snackbar.Add(
