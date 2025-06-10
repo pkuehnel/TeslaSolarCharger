@@ -24,7 +24,7 @@ namespace TeslaSolarCharger.Server.Controllers
         [HttpGet]
         public DtoValue<bool> ShowEnergyDataOnHome() => new(configurationWrapper.ShowEnergyDataOnHome());
 
-        [HttpPut]
+        [HttpPost]
         public Task UpdateBaseConfiguration([FromBody] DtoBaseConfiguration baseConfiguration) =>
             service.UpdateBaseConfigurationAsync(baseConfiguration);
 

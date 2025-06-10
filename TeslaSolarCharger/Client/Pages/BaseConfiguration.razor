@@ -104,13 +104,19 @@ else
         <MudExpansionPanels>
             <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
                 <GenericInput For="() => _dtoBaseConfiguration.Item.UseChargingServiceV2"></GenericInput>
-
                 <GenericInput For="() => _dtoBaseConfiguration.Item.UpdateIntervalSeconds" />
-
+                @if (_dtoBaseConfiguration.Item.SkipPowerChangesOnLastAdjustmentNewerThanSeconds < 25)
+                {
+                    <MudAlert Severity="Severity.Warning"
+                              ContentAlignment="HorizontalAlignment.Left">
+                        Values blelow 25 seconds are not recommended and might cause performance issues.
+                    </MudAlert>
+                }
+                <GenericInput T="int"
+                              For="() => _dtoBaseConfiguration.Item.SkipPowerChangesOnLastAdjustmentNewerThanSeconds"
+                              OnValueChanged="StateHasChanged"/>
                 <GenericInput For="() => _dtoBaseConfiguration.Item.PvValueUpdateIntervalSeconds" />
-
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MinutesUntilSwitchOn" />
-
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MinutesUntilSwitchOff" />
                 <hr/>
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MqqtClientId" />

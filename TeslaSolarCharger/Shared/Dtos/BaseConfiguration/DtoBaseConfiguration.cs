@@ -54,6 +54,26 @@ public class BaseConfigurationValidator : AbstractValidator<DtoBaseConfiguration
             RuleFor(x => x.HomeBatteryChargingPower)
                 .NotEmpty();
         });
+        RuleFor(x => x.UpdateIntervalSeconds)
+            .NotEmpty()
+            .Must((model, value) => value >= (model.PvValueUpdateIntervalSeconds * 2))
+            .WithMessage("Update interval needs to be at least twice as high as PV Value Refresh Interval.");
 
+        RuleFor(x => x.SkipPowerChangesOnLastAdjustmentNewerThanSeconds)
+            .NotEmpty()
+            .Must((model, value) => value >= model.UpdateIntervalSeconds)
+            .WithMessage("Skip power changes interval needs to be at least as high as Update interval");
+
+
+        var minimumSwitchOnAndOffToSkipInterval = 60 * 2;
+        RuleFor(x => x.MinutesUntilSwitchOn)
+            .NotEmpty()
+            .Must((model, value) => (value * minimumSwitchOnAndOffToSkipInterval) >= model.SkipPowerChangesOnLastAdjustmentNewerThanSeconds)
+            .WithMessage("Time until switch on needs to be at least twice as high as Skip Power changes interval.");
+
+        RuleFor(x => x.MinutesUntilSwitchOff)
+            .NotEmpty()
+            .Must((model, value) => (value * minimumSwitchOnAndOffToSkipInterval) >= model.SkipPowerChangesOnLastAdjustmentNewerThanSeconds)
+            .WithMessage("Time until switch on needs to be at least twice as high as Skip Power changes interval.");
     }
 }
