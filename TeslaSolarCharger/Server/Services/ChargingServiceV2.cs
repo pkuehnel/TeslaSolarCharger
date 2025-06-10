@@ -384,7 +384,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     {
         _logger.LogTrace("{method}({loadPoint.CarId}, {loadPoint.ConnectorId}, {powerToSet}, {maxAdditionalCurrent})",
             nameof(ForceSetLoadPointPower), carId, chargingConnectorId, powerToSet, maxAdditionalCurrent);
-        var (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, _, _) = await GetMinMaxCurrentsAndPhases(carId, chargingConnectorId, cancellationToken).ConfigureAwait(false);
+        var (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, _, _, _) = await GetMinMaxCurrentsAndPhases(carId, chargingConnectorId, cancellationToken).ConfigureAwait(false);
         if (minPhases == default)
         {
             _logger.LogError("Min phases unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
@@ -510,7 +510,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _logger.LogTrace("{method}({loadPoint.CarId}, {loadPoint.ConnectorId}, {powerToSet}, {maxAdditionalCurrent})",
             nameof(SetLoadPointPower), carId, chargingConnectorId, powerToSet, maxAdditionalCurrent);
 
-        var (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode) = await GetMinMaxCurrentsAndPhases(carId, chargingConnectorId, cancellationToken).ConfigureAwait(false);
+        var (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode, maxSoc) = await GetMinMaxCurrentsAndPhases(carId, chargingConnectorId, cancellationToken).ConfigureAwait(false);
 
         // Decision: minPhases known?
         _logger.LogTrace("{method} decision: minPhases = {minPhases}", nameof(SetLoadPointPower), minPhases);
@@ -653,7 +653,9 @@ public class ChargingServiceV2 : IChargingServiceV2
                 if ((carChargeMode == ChargeModeV2.Off)
                     || ((carChargeMode == ChargeModeV2.Auto)
                         &&(car!.ShouldStopCharging.Value == true)
-                        && (car.ShouldStopCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff()))))
+                        && (car.ShouldStopCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff())))
+                    || ((carChargeMode == ChargeModeV2.Auto)
+                        && (maxSoc <= car.SoC)))
                 {
                     // ToDo: add error handling
                     await _teslaService.StopCharging(car.Id).ConfigureAwait(false);
@@ -863,7 +865,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                 if ((carChargeMode == ChargeModeV2.Manual)
                     || (carChargeMode == ChargeModeV2.Off)
                     || (car.ShouldStartCharging.Value == false)
-                    || (car.ShouldStartCharging.LastChanged > (currentDate - _configurationWrapper.TimespanUntilSwitchOn())))
+                    || (car.ShouldStartCharging.LastChanged > (currentDate - _configurationWrapper.TimespanUntilSwitchOn()))
+                    || (maxSoc <= car.SoC))
                 {
                     return (0, 0);
                 }
@@ -976,7 +979,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     }
 
 
-    private async Task<(int? minCurrent, int? maxCurrent, int? minPhases, int? maxPhases, bool useCarToManageChargingSpeed, bool canChangePhases, ChargeModeV2? carChargeMode, ChargeModeV2? connectorChargeMode)> GetMinMaxCurrentsAndPhases(int? carId, int? connectorId, CancellationToken cancellationToken)
+    private async Task<(int? minCurrent, int? maxCurrent, int? minPhases, int? maxPhases, bool useCarToManageChargingSpeed, bool canChangePhases, ChargeModeV2? carChargeMode, ChargeModeV2? connectorChargeMode, int? carMaxSoc)> GetMinMaxCurrentsAndPhases(int? carId, int? connectorId, CancellationToken cancellationToken)
     {
         int? minCurrent = null;
         int? maxCurrent = null;
@@ -984,6 +987,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         int? maxPhases = null;
         ChargeModeV2? carChargeMode = null;
         ChargeModeV2? connectorChargeMode = null;
+        int? carMaxSoc = null;
         //ToDo: Set this to false if car is no Tesla as soon as other car brands are supported
         var useCarToManageChargingSpeed = carId != default;
         var canChangePhases = false;
@@ -991,7 +995,12 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             var carConfigValues = await _context.Cars
                 .Where(c => c.Id == carId.Value)
-                .Select(c => new { c.MinimumAmpere, c.MaximumAmpere, c.ChargeMode })
+                .Select(c => new {
+                    c.MinimumAmpere,
+                    c.MaximumAmpere,
+                    c.ChargeMode,
+                    c.MaximumSoc,
+                })
                 .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             minCurrent = carConfigValues.MinimumAmpere;
             maxCurrent = carConfigValues.MaximumAmpere;
@@ -999,6 +1008,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             var car = _settings.Cars.First(c => c.Id == carId);
             minPhases = car.ActualPhases;
             maxPhases = car.ActualPhases;
+            carMaxSoc = car.MinimumSoC;
         }
 
         if (connectorId != default)
@@ -1043,7 +1053,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             connectorChargeMode = chargingConnectorConfigValues.ChargeMode;
         }
 
-        return (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode);
+        return (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode, carMaxSoc);
     }
 
     private async Task<int> CalculatePowerToControl(int currentChargingPower, CancellationToken cancellationToken)
