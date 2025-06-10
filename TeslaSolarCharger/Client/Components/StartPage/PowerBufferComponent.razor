@@ -9,10 +9,7 @@
     <div style="max-width: 300px; margin: 0 auto;">
         <GenericInput T="int?"
                       For="() => PowerBuffer"
-                      ImmediateValueUpdate="true"
                       PostfixButtonStartIcon="@Icons.Material.Filled.Save"
-                      IsButtonDisabled="@(PowerBuffer == _lastSavedPowerBuffer || PowerBuffer == default)"
-                      OnValueChanged="_ => InvokeAsync(StateHasChanged)"
                       OnButtonClicked="UpdatePowerBuffer"></GenericInput>
     </div>
 }
