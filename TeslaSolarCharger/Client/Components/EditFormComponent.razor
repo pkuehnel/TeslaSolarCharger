@@ -12,22 +12,25 @@
     <ValidationSummary />
     @if (!HideSubmitButton)
     {
-        <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       ButtonType="ButtonType.Submit"
-                       StartIcon="@Icons.Material.Filled.Save"
-                       Disabled="IsSubmitting">
-                @if (IsSubmitting)
-                {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">Processing</MudText>
-                }
-                else
-                {
-                    <MudText>Save</MudText>
-                }
-            </MudButton>
-        </MudPaper>
+        <div class="m-2">
+            <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           ButtonType="ButtonType.Submit"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="_isSubmitting">
+                    @if (_isSubmitting)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">Processing</MudText>
+                    }
+                    else
+                    {
+                        <MudText>Save</MudText>
+                    }
+                </MudButton>
+            </MudPaper>
+        </div>
+        
     }
 </EditForm>
 
@@ -51,24 +54,24 @@
 
     public bool IsDirty => WrappedElement.EditContext.IsModified();
 
-    private bool IsSubmitting;
+    private bool _isSubmitting;
 
 
 
     private async Task HandleValidSubmit(T wrappedItem)
     {
-        IsSubmitting = true;
+        _isSubmitting = true;
         if (SubmitUrl == default)
         {
             _ = OnValidSubmit.InvokeAsync(wrappedItem);
-            IsSubmitting = false;
+            _isSubmitting = false;
             return;
         }
         var result = await HttpClientHelper.SendPostRequestAsync<object>(SubmitUrl, wrappedItem);
         if (!result.HasError)
         {
             _ = OnAfterSuccessfullSubmit.InvokeAsync(wrappedItem);
-            IsSubmitting = false;
+            _isSubmitting = false;
             return;
         }
 
@@ -80,7 +83,7 @@
         {
             Console.WriteLine("No validationErrors found in ProblemDetails.Extensions.");
         }
-        IsSubmitting = false;
+        _isSubmitting = false;
     }
 
     private void MapErrorsToEditContext(IDictionary<string, string[]> errors)
