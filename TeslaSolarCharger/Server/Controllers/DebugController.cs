@@ -10,8 +10,7 @@ namespace TeslaSolarCharger.Server.Controllers;
 public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     IDebugService debugService,
     ITeslaFleetApiService teslaFleetApiService,
-    IOcppChargePointConfigurationService ocppChargePointConfigurationService,
-    ILoadPointManagementService loadPointManagementService) : ApiBaseController
+    IOcppChargePointConfigurationService ocppChargePointConfigurationService) : ApiBaseController
 {
 
     private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
@@ -171,6 +170,14 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     public IActionResult GetOcppConnectorState(int connectorId)
     {
         var result = debugService.GetOcppConnectorState(connectorId);
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
+    [HttpGet]
+    public IActionResult GetDtoCar(int carId)
+    {
+        var result = debugService.GetDtoCar(carId);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }

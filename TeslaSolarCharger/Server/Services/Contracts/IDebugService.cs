@@ -24,4 +24,5 @@ public interface IDebugService
         CancellationToken cancellationToken);
 
     DtoOcppConnectorState GetOcppConnectorState(int connectorId);
+    DtoCar? GetDtoCar(int carId);
 }
