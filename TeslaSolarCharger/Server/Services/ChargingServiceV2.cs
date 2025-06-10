@@ -5,6 +5,8 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Resources.PossibleIssues;
+using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -34,6 +36,9 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IEnergyDataService _energyDataService;
     private readonly IValidFromToSplitter _validFromToSplitter;
     private readonly IPowerToControlCalculationService _powerToControlCalculationService;
+    private readonly IBackendApiService _backendApiService;
+    private readonly IErrorHandlingService _errorHandlingService;
+    private readonly IIssueKeys _issueKeys;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -48,7 +53,10 @@ public class ChargingServiceV2 : IChargingServiceV2
         IShouldStartStopChargingCalculator shouldStartStopChargingCalculator,
         IEnergyDataService energyDataService,
         IValidFromToSplitter validFromToSplitter,
-        IPowerToControlCalculationService powerToControlCalculationService)
+        IPowerToControlCalculationService powerToControlCalculationService,
+        IBackendApiService backendApiService,
+        IErrorHandlingService errorHandlingService,
+        IIssueKeys issueKeys)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -64,12 +72,26 @@ public class ChargingServiceV2 : IChargingServiceV2
         _energyDataService = energyDataService;
         _validFromToSplitter = validFromToSplitter;
         _powerToControlCalculationService = powerToControlCalculationService;
+        _backendApiService = backendApiService;
+        _errorHandlingService = errorHandlingService;
+        _issueKeys = issueKeys;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
+        if (!await _backendApiService.IsBaseAppLicensed(true))
+        {
+            _logger.LogError("Can not set new charging values as base app is not licensed");
+            await _errorHandlingService.HandleError(nameof(ChargingServiceV2), nameof(SetNewChargingValues), "Base App not licensed",
+                "Can not send commands to car as app is not licensed. Buy a subscription on <a href=\"https://solar4car.com/subscriptions\">Solar4Car Subscriptions</a> to use TSC",
+                _issueKeys.BaseAppNotLicensed, null, null).ConfigureAwait(false);
+            return;
+        }
+
+        await _errorHandlingService.HandleErrorResolved(_issueKeys.BaseAppNotLicensed, null).ConfigureAwait(false);
         await CalculateGeofences();
+        await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
         var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
         var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), cancellationToken).ConfigureAwait(false);
         var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
@@ -205,6 +227,24 @@ public class ChargingServiceV2 : IChargingServiceV2
             var result = await SetLoadPointPower(loadPoint.CarId, loadPoint.ChargingConnectorId, correspondingLoadPoint, powerToControl, maxAdditionalCurrent, cancellationToken).ConfigureAwait(false);
             powerToControl -= result.powerIncrease;
             maxAdditionalCurrent -= result.currentIncrease;
+        }
+    }
+
+    private async Task SetCurrentOfNonChargingTeslasToMax()
+    {
+        var carsToSetToMaxCurrent = _settings.CarsToManage
+            .Where(c => c.State == CarStateEnum.Online
+                        && c.IsHomeGeofence == true
+                        && c.PluggedIn == true
+                        && c.ChargerRequestedCurrent != c.MaximumAmpere
+                        && c.ChargerPilotCurrent > c.ChargerRequestedCurrent
+                        && c.ChargeModeV2 != ChargeModeV2.Auto)
+            .ToList();
+
+        foreach (var car in carsToSetToMaxCurrent)
+        {
+            _logger.LogDebug("Set current of car {carId} to max as is not charging", car.Id);
+            await _teslaService.SetAmp(car.Id, car.MaximumAmpere).ConfigureAwait(false);
         }
     }
 
