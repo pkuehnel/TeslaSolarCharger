@@ -1,16 +1,10 @@
 @page "/BaseConfiguration"
-@using System.Globalization
 @using TeslaSolarCharger.Client.Helper.Contracts
-@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
-@using TeslaSolarCharger.Shared.Enums
 @using TeslaSolarCharger.Shared.Dtos
 @inject HttpClient HttpClient
-@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IHttpClientHelper HttpClientHelper
-@inject ICloudConnectionCheckService CloudConnectionCheckService
-@inject IDialogHelper DialogHelper
 
 
 <PageTitle>Base Configuration</PageTitle>
