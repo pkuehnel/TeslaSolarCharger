@@ -203,8 +203,9 @@ public class ChargingServiceV2 : IChargingServiceV2
                 }
                 if (car.MinimumSoC > car.SoC || car.ChargeModeV2 == ChargeModeV2.MaxPower)
                 {
+                    var dummyEnergyToChargeIfMaxPowerMode = 100000; //Use 100 kWh as dummy value to generate a charging schedule for max power mode
                     var energyToCharge = car.ChargeModeV2 == ChargeModeV2.MaxPower
-                    ? 100000
+                    ? dummyEnergyToChargeIfMaxPowerMode
                     : CalculateEnergyToCharge(
                         car.MinimumSoC,
                         car.SoC ?? 0,
