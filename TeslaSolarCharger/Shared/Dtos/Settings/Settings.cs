@@ -25,6 +25,11 @@ public class Settings : ISettings
     /// </summary>
     public ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; } = new();
 
+    public ConcurrentDictionary<int, List<string>> CarsChargingReasons { get; set; } = new();
+    public ConcurrentDictionary<int, List<string>> CarsNotChargingReasons { get; set; } = new();
+    public ConcurrentDictionary<int, List<string>> ChargingConnectorChargingReasons { get; set; } = new();
+    public ConcurrentDictionary<int, List<string>> ChargingConnectorNotChargingReasons { get; set; } = new();
+
     public ConcurrentBag<DtoChargingSchedule> ChargingSchedules { get; set; } = new();
     public Dictionary<int, string> RawRestRequestResults { get; set; } = new();
     public Dictionary<int, string> RawRestValues { get; set; } = new();
