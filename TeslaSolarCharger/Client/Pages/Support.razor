@@ -76,9 +76,9 @@ else
                 <div>Should be managed: @car.Value.ShouldBeManaged</div>
 
 
-                @if (car.Value.Vin != default && _fleetTelemetryGetConfigs.TryGetValue(car.Value.Vin, out var config))
+                @if (car.Value.Vin != default && _fleetTelemetryGetConfigs.TryGetValue(car.Key, out var config))
                 {
-                    <h4>Fleet Telemetry Config</h4>
+                    <h4>Result</h4>
                     <pre>@config</pre>
                 }
 
@@ -86,9 +86,14 @@ else
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
                                              DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
-                                             OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Value.Vin))"></RightAlignedButtonComponent>
+                                             OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Key))"></RightAlignedButtonComponent>
+                <RightAlignedButtonComponent ButtonText="Get Dto Car"
+                                             IsLoading="@_isFleetTelemetryLoading"
+                                             IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
+                                             OnButtonClicked="@(() => GetDtoCar(car.Key))"></RightAlignedButtonComponent>
 
-                @if (car.Value.Vin != default && _fleetTelemetrySetResults.TryGetValue(car.Value.Vin, out var result))
+                @if (car.Value.Vin != default && _fleetTelemetrySetResults.TryGetValue(car.Key, out var result))
                 {
                     <h4>Fleet Telemetry SetResult</h4>
                     <pre>@result</pre>
@@ -98,12 +103,12 @@ else
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
                                              DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not set config as car is not part of Tesla account")"
-                                             OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Value.Vin, false))"></RightAlignedButtonComponent>
+                                             OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Key, false))"></RightAlignedButtonComponent>
                 <RightAlignedButtonComponent ButtonText="Force Fleet Configuration Set"
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
                                              DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not set config as car is not part of Tesla account")"
-                                             OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Value.Vin, true))"></RightAlignedButtonComponent>
+                                             OnButtonClicked="@(() => SetFleetTelemetryConfig(car.Key, true))"></RightAlignedButtonComponent>
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
@@ -183,9 +188,9 @@ else
 
 
 @code {
-    private readonly Dictionary<string, string> _fleetTelemetryGetConfigs = new();
+    private readonly Dictionary<int, string> _fleetTelemetryGetConfigs = new();
 
-    private readonly Dictionary<string, string> _fleetTelemetrySetResults = new();
+    private readonly Dictionary<int, string> _fleetTelemetrySetResults = new();
 
     private Dictionary<int, DtoDebugCar>? _debugCars;
     private bool _isFleetTelemetryLoading;
@@ -242,16 +247,21 @@ else
     }
 
 
-    private async Task GetFleetTelemetryConfig(string? vin)
+    private async Task GetFleetTelemetryConfig(int key)
     {
-        if (vin == default)
+        if (_debugCars == default)
+        {
+            return;
+        }
+        var car = _debugCars[key];
+        if (car.Vin == default)
         {
             Snackbar.Add("VIN is unknown", Severity.Error);
             return;
         }
 
         _isFleetTelemetryLoading = true;
-        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>($"api/Debug/GetFleetTelemetryConfiguration?vin={Uri.EscapeDataString(vin)}");
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>($"api/Debug/GetFleetTelemetryConfiguration?vin={Uri.EscapeDataString(car.Vin)}");
         string stringToDisplay;
         if (result.HasError)
         {
@@ -261,20 +271,14 @@ else
         {
             stringToDisplay = result.Data?.Value ?? "No data";
         }
-        _fleetTelemetryGetConfigs[vin] = stringToDisplay;
+        _fleetTelemetryGetConfigs[key] = stringToDisplay;
         _isFleetTelemetryLoading = false;
     }
 
-    private async Task SetFleetTelemetryConfig(string? vin, bool forceReconfiguration)
+    private async Task GetDtoCar(int carKey)
     {
-        if (vin == default)
-        {
-            Snackbar.Add("VIN is unknown", Severity.Error);
-            return;
-        }
-
         _isFleetTelemetryLoading = true;
-        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/SetFleetTelemetryConfiguration?vin={Uri.EscapeDataString(vin)}&forceReconfiguration={forceReconfiguration}", null);
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>($"api/Debug/GetDtoCar?carId={carKey}");
         string stringToDisplay;
         if (result.HasError)
         {
@@ -284,7 +288,35 @@ else
         {
             stringToDisplay = result.Data?.Value ?? "No data";
         }
-        _fleetTelemetrySetResults[vin] = stringToDisplay;
+        _fleetTelemetryGetConfigs[carKey] = stringToDisplay;
+        _isFleetTelemetryLoading = false;
+    }
+
+    private async Task SetFleetTelemetryConfig(int carKey, bool forceReconfiguration)
+    {
+        if (_debugCars == default)
+        {
+            return;
+        }
+        var car = _debugCars[carKey];
+        if (car.Vin == default)
+        {
+            Snackbar.Add("VIN is unknown", Severity.Error);
+            return;
+        }
+
+        _isFleetTelemetryLoading = true;
+        var result = await HttpClientHelper.SendPostRequestAsync<DtoValue<string>>($"api/Debug/SetFleetTelemetryConfiguration?vin={Uri.EscapeDataString(car.Vin)}&forceReconfiguration={forceReconfiguration}", null);
+        string stringToDisplay;
+        if (result.HasError)
+        {
+            stringToDisplay = result.ErrorMessage ?? "No error message";
+        }
+        else
+        {
+            stringToDisplay = result.Data?.Value ?? "No data";
+        }
+        _fleetTelemetrySetResults[carKey] = stringToDisplay;
         _isFleetTelemetryLoading = false;
     }
 
@@ -407,5 +439,4 @@ else
         _commandResults[connectorKey] = result.Data?.Value ?? "No data";
         _loadingOcppCommands.Remove(connectorKey);
     }
-
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250609174835_RenameChargeModeV2OnCars")]
+    partial class RenameChargeModeV2OnCars
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.3");
@@ -169,9 +172,6 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("REAL");
 
                     b.Property<int>("MaximumAmpere")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MaximumSoc")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("MinimumAmpere")

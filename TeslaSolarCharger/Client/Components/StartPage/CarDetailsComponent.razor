@@ -1,5 +1,7 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Enums
 
 @inject IHomeService HomeService
 @inject ISnackbar Snackbar
@@ -11,28 +13,33 @@
 else
 {
     <div>
-        <MudIcon Icon="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
+        <CustomIcon IconName="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
         <span class="me-1">@Car.Name</span>
         <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!Car.IsHome)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!Car.IsPluggedIn)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!Car.IsCharging)"></CustomIcon>
     </div>
     <div>
-        <div class="row">
-            <div class="col-6">
-                <GenericInput T=" int"
-                              For="() => Car.MinSoc"
-                              OnValueChanged="OnMinSocChanged"
-                              ImmediateValueUpdate="true"/>
-            </div>          
-            <div class="col-6">
-                <GenericInput T="int"
-                              For="() => Car.MaxSoc"
-                              OnValueChanged="OnMaxSocChanged"
-                              IsDisabledParameter="true"
-                              ImmediateValueUpdate="true" />
+        <GenericInput T="ChargeModeV2"
+                      For="() => Car.ChargeMode"
+                      OnValueChanged="ChargeModeUpdated"/>
+        @if (Car.ChargeMode == ChargeModeV2.Auto)
+        {
+            <div class="row">
+                <div class="col-6">
+                    <GenericInput T="int?"
+                                  For="() => Car.MinSoc"
+                                  OnValueChanged="OnMinSocChanged"
+                                  ImmediateValueUpdate="true"/>
+                </div>
+                <div class="col-6">
+                    <GenericInput T="int?"
+                                  For="() => Car.MaxSoc"
+                                  OnValueChanged="OnMaxSocChanged"
+                                  ImmediateValueUpdate="true"/>
+                </div>
             </div>
-        </div>
+        }
         @if (Car.Soc != default)
         {
             <div class="mb-7">
@@ -48,8 +55,15 @@ else
                                             BufferLabelSuffix="%">
                 </ProgressWithLabelComponent>
             </div>
-            
         }
+        else if (Car.ChargeMode == ChargeModeV2.Manual)
+        {
+            <GenericInput For="() => CurrentToSet"></GenericInput>
+            <RightAlignedButtonComponent ButtonText="Set Current"
+                                         IsLoading="@_isCommandLoading"
+                                         OnButtonClicked="@(SetCurrent)"></RightAlignedButtonComponent>
+        }
+
 
     </div>
     
@@ -75,7 +89,11 @@ else
 
     private int? _lastKnownMinValue;
     private int? _lastKnownMaxValue;
+    private ChargeModeV2? _lastKnownChargeMode;
     private const int LimitChangeDelayMilliseconds = 1000;
+
+    private int? CurrentToSet { get; set; }
+    private bool _isCommandLoading;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -95,11 +113,12 @@ else
         {
             _lastKnownMinValue = Car.MinSoc;
             _lastKnownMaxValue = Car.MaxSoc;
+            _lastKnownChargeMode = Car.ChargeMode;
         }
 
     }
 
-    private async Task OnMinSocChanged(int newSoc)
+    private async Task OnMinSocChanged(int? newSoc)
     {
         if (Car == default || CarId == default)
             return;
@@ -117,7 +136,7 @@ else
             await Task.Delay(LimitChangeDelayMilliseconds, _minSocDebounceCts.Token);
 
             // now do the API call
-            var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, Car.MinSoc);
+            var updateResult = await HomeService.UpdateCarMinSoc(CarId.Value, newSoc ?? 0);
             if (updateResult.HasError)
             {
                 Snackbar.Add(
@@ -142,13 +161,10 @@ else
     }
 
 
-    private async Task OnMaxSocChanged(int newSoc)
+    private async Task OnMaxSocChanged(int? newSoc)
     {
         if (Car == default || CarId == default)
             return;
-
-        // update UI immediately
-        Car.MaxSoc = newSoc;
 
         // cancel any pending update
         await _minSocDebounceCts.CancelAsync();
@@ -158,11 +174,23 @@ else
         {
             // wait 300ms for “settle”
             await Task.Delay(LimitChangeDelayMilliseconds, _minSocDebounceCts.Token);
-            Snackbar.Add("Max SOC is currently not supported, will come in a future release, please set it in the Tesla app.", Severity.Warning);
-            if (_lastKnownMaxValue != default)
+            // now do the API call
+            var updateResult = await HomeService.UpdateCarMaxSoc(CarId.Value, newSoc ?? 100);
+            if (updateResult.HasError)
             {
-                Car.MaxSoc = _lastKnownMaxValue.Value;
-                await InvokeAsync(StateHasChanged);
+                Snackbar.Add(
+                    $"Failed to update Max SOC: {updateResult.ErrorMessage}",
+                    Severity.Error);
+                if (_lastKnownMaxValue != default)
+                {
+                    Car.MaxSoc = _lastKnownMaxValue.Value;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            else
+            {
+                _lastKnownMaxValue = newSoc;
+                Snackbar.Add("Max SOC updated successfully.", Severity.Success);
             }
         }
         catch (TaskCanceledException)
@@ -170,4 +198,50 @@ else
             // user is still dragging—ignore
         }
     }
+
+    private async Task ChargeModeUpdated(ChargeModeV2 arg)
+    {
+        if (Car == default || CarId == default)
+            return;
+        var result = await HomeService.UpdateCarChargeMode(CarId.Value, arg);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Failed to update Charge Mode: {result.ErrorMessage}", Severity.Error);
+            if (_lastKnownChargeMode != default)
+            {
+                Car.ChargeMode = _lastKnownChargeMode.Value;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        else
+        {
+            _lastKnownChargeMode = arg;
+            Snackbar.Add("Charge Mode updated successfully.", Severity.Success);
+        }
+    }
+
+    private async Task SetCurrent()
+    {
+        if (CarId == default)
+        {
+            return;
+        }
+        if(CurrentToSet == default || CurrentToSet < 0)
+        {
+            Snackbar.Add("Please set a valid current.", Severity.Error);
+            return;
+        }
+        _isCommandLoading = true;
+        var result = await HomeService.SetCarChargingCurrent(CarId.Value, CurrentToSet.Value);
+        _isCommandLoading = false;
+        if (result.HasError)
+        {
+            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("Command successfully sent", Severity.Success);
+        }
+    }
+
 }

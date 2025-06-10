@@ -166,29 +166,6 @@ public class IndexService(
         return result;
     }
 
-    public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars()
-    {
-        logger.LogTrace("{method}()", nameof(GetCarBaseSettingsOfEnabledCars));
-        var enabledCars = GetEnabledCars();
-
-        return enabledCars.ToDictionary(enabledCar => enabledCar.Id, enabledCar => new DtoCarBaseSettings()
-        {
-            CarId = enabledCar.Id,
-            ChargeMode = enabledCar.ChargeMode,
-            MinimumStateOfCharge = enabledCar.MinimumSoC,
-            LatestTimeToReachStateOfCharge = enabledCar.LatestTimeToReachSoC,
-            IgnoreLatestTimeToReachSocDate = enabledCar.IgnoreLatestTimeToReachSocDate,
-            IgnoreLatestTimeToReachSocDateOnWeekend = enabledCar.IgnoreLatestTimeToReachSocDateOnWeekend,
-        });
-    }
-
-    public async Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
-    {
-        await latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
-        await chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
-        await configJsonService.UpdateCarBaseSettings(carBaseSettings).ConfigureAwait(false);
-    }
-
     public Dictionary<string, string> GetToolTipTexts()
     {
         return new Dictionary<string, string>()

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Net.WebSockets;
+using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
@@ -11,15 +11,15 @@ public class HomeController : ApiBaseController
 {
     private readonly IHomeService _homeService;
     private readonly ILoadPointManagementService _loadPointManagementService;
-    private readonly ISettings _settings;
+    private readonly ITeslaService _teslaService;
 
     public HomeController(IHomeService homeService,
         ILoadPointManagementService loadPointManagementService,
-        ISettings settings)
+        ITeslaService teslaService)
     {
         _homeService = homeService;
         _loadPointManagementService = loadPointManagementService;
-        _settings = settings;
+        _teslaService = teslaService;
     }
 
     [HttpGet]
@@ -37,9 +37,9 @@ public class HomeController : ApiBaseController
     }
 
     [HttpGet]
-    public IActionResult GetCarOverview(int carId)
+    public async Task<IActionResult> GetCarOverview(int carId)
     {
-        var result = _homeService.GetCarOverview(carId);
+        var result = await _homeService.GetCarOverview(carId);
         return Ok(result);
     }
 
@@ -82,6 +82,55 @@ public class HomeController : ApiBaseController
     public async Task<IActionResult> UpdateCarMinSoc(int carId, int minSoc)
     {
         await _homeService.UpdateCarMinSoc(carId, minSoc);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateCarMaxSoc(int carId, int soc)
+    {
+        await _homeService.UpdateCarMaxSoc(carId, soc);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
+    {
+        await _homeService.UpdateCarChargeMode(carId, chargeMode);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateChargingConnectorChargeMode(int chargingConnectorId, ChargeModeV2 chargeMode)
+    {
+        await _homeService.UpdateChargingConnectorChargeMode(chargingConnectorId, chargeMode);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases)
+    {
+        await _homeService.StartChargingConnectorCharging(chargingConnectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases)
+    {
+        await _homeService.SetChargingConnectorCurrent(chargingConnectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StopChargingConnectorCharging(int chargingConnectorId)
+    {
+        await _homeService.StopChargingConnectorCharging(chargingConnectorId, HttpContext.RequestAborted);
+        return Ok();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetCarChargingCurrent(int carId, int currentToSet)
+    {
+        await _teslaService.SetAmp(carId, currentToSet);
         return Ok();
     }
 

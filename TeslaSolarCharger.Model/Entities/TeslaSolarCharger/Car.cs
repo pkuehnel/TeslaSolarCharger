@@ -10,9 +10,9 @@ public class Car
     public string? Vin { get; set; }
     public TeslaCarFleetApiState? TeslaFleetApiState { get; set; }
     public bool IsFleetTelemetryHardwareIncompatible { get; set; }
-    public ChargeMode ChargeMode { get; set; }
-    public ChargeModeV2 ChargeModeV2 { get; set; }
+    public ChargeModeV2 ChargeMode { get; set; }
     public int MinimumSoc { get; set; }
+    public int MaximumSoc { get; set; }
     public DateTime LatestTimeToReachSoC { get; set; }
 
     public bool IgnoreLatestTimeToReachSocDate { get; set; }

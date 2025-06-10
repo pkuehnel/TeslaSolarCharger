@@ -6,6 +6,7 @@ using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Client.Services;
 
@@ -87,6 +88,55 @@ public class HomeService : IHomeService
     {
         _logger.LogTrace("{method}()", nameof(UpdateCarMinSoc));
         var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarMinSoc?carId={carId}&minSoc={minSoc}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> UpdateCarMaxSoc(int carId, int soc)
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateCarMaxSoc));
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarMaxSoc?carId={carId}&soc={soc}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateCarChargeMode));
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarChargeMode?carId={carId}&chargeMode={chargeMode}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> UpdateChargingConnectorChargeMode(int chargingConnectorId, ChargeModeV2 chargeMode)
+    {
+        _logger.LogTrace("{method}()", nameof(UpdateChargingConnectorChargeMode));
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateChargingConnectorChargeMode?chargingConnectorId={chargingConnectorId}&chargeMode={chargeMode}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> StartChargingConnectorCharging(int chargingConnectorId, int currentToSet, int? numberOfPhases)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {currentToSet}, {numberOfPhases})", nameof(StartChargingConnectorCharging), chargingConnectorId, currentToSet, numberOfPhases);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/StartChargingConnectorCharging?chargingConnectorId={chargingConnectorId}&currentToSet={currentToSet}&numberOfPhases={numberOfPhases}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {currentToSet}, {numberOfPhases})", nameof(SetChargingConnectorCurrent), chargingConnectorId, currentToSet, numberOfPhases);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/SetChargingConnectorCurrent?chargingConnectorId={chargingConnectorId}&currentToSet={currentToSet}&numberOfPhases={numberOfPhases}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> StopChargingConnectorCharging(int chargingConnectorId)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId})", nameof(StopChargingConnectorCharging), chargingConnectorId);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/StopChargingConnectorCharging?chargingConnectorId={chargingConnectorId}", null);
+        return result;
+    }
+
+    public async Task<Result<object?>> SetCarChargingCurrent(int carId, int currentToSet)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {currentToSet})", nameof(SetCarChargingCurrent), carId, currentToSet);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/SetCarChargingCurrent?carId={carId}&currentToSet={currentToSet}", null);
         return result;
     }
 

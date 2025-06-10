@@ -3,14 +3,12 @@
 @using System.ComponentModel.DataAnnotations
 @using System.ComponentModel
 @using MudExtensions
-@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
-@inject IJavaScriptWrapper JavaScriptWrapper
 
 @typeparam T
 
@@ -55,12 +53,38 @@
                                                     { "ErrorText", ErrorMessage ?? string.Empty },
                                                 } :new())" />
                 }
+                else if (typeof(T).IsEnum)
+                {
+                    <MudSelectExtended id="@InputId"
+                                       T="T"
+                                       @bind-Value="Value"
+                                       For="@(For)"
+                                       SearchBox="@DropDownSearchBox"
+                                       Required="@IsRequired"
+                                       Label="@LabelName"
+                                       Disabled="IsDisabled"
+                                       ReadOnly="IsReadOnly"
+                                       Variant="Variant.Outlined"
+                                       Margin="InputMargin"
+                                       SearchBoxAutoFocus="@DropDownSearchBox"
+                                       ToStringFunc="@(new Func<T, string>(GetEnumDisplayName))"
+                                       ItemCollection="Enum.GetValues(typeof(T)).Cast<T>().ToList()"
+                                       Immediate="@ImmediateValueUpdate"
+                                       Virtualize="true"
+                                       Clearable="@(Clearable && !IsReadOnly && !IsDisabled)"
+                                       @attributes="@(ShouldBeInErrorState.HasValue ? new Dictionary<string, object>
+                                                    {
+                                                        { "Error", ShouldBeInErrorState.Value },
+                                                        { "ErrorText", ErrorMessage ?? string.Empty },
+                                                    } : new())">
+                    </MudSelectExtended>
+                }
                 else if (DropDownOptions != default && typeof(T) == typeof(int?))
                 {
                     <MudSelectExtended id="@InputId"
                                        T="int?"
                                        @bind-Value="@NullableIntValue"
-                                       SearchBox="true"
+                                       SearchBox="@DropDownSearchBox"
                                        For="@(ForNullableInt)"
                                        Required="@IsRequired"
                                        Label="@LabelName"
@@ -68,7 +92,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
-                                       SearchBoxAutoFocus="true"
+                                       SearchBoxAutoFocus="@DropDownSearchBox"
                                        ToStringFunc="@(new Func<int?, string>(x => DropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
                                        ItemCollection="@DropDownOptions.Keys.Select(k => (int?)k).ToList()"
                                        Immediate="@ImmediateValueUpdate"
@@ -88,14 +112,14 @@
                                        MultiSelection="true"
                                        @bind-Value="@MultiSelectValue"
                                        @bind-SelectedValues="SelectedMultiSelectValues"
-                                       SearchBox="true"
+                                       SearchBox="@DropDownSearchBox"
                                        Required="@IsRequired"
                                        Label="@LabelName"
                                        Disabled="IsDisabled"
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
-                                       SearchBoxAutoFocus="true"
+                                       SearchBoxAutoFocus="@DropDownSearchBox"
                                        MultiSelectionTextFunc="@GetIntMultiSelectionText"
                                        ToStringFunc="@(new Func<int, string>(x => DropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
                                        ItemCollection="@DropDownOptions.Keys.ToList()"
@@ -115,7 +139,7 @@
                     <MudSelectExtended id="@InputId"
                                        T="long?"
                                        @bind-Value="@NullableLongValue"
-                                       SearchBox="true"
+                                       SearchBox="@DropDownSearchBox"
                                        For="@(ForNullableLong)"
                                        Required="@IsRequired"
                                        Label="@LabelName"
@@ -123,7 +147,7 @@
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
-                                       SearchBoxAutoFocus="true"
+                                       SearchBoxAutoFocus="@DropDownSearchBox"
                                        ToStringFunc="@(new Func<long?, string>(x => LongIdDropDownOptions.TryGetValue(x ?? 0, out var value) ? value : string.Empty))"
                                        ItemCollection="@LongIdDropDownOptions.Keys.Select(k => (long?)k).ToList()"
                                        Immediate="@ImmediateValueUpdate"
@@ -143,14 +167,14 @@
                                        MultiSelection="true"
                                        @bind-Value="@MultiSelectLongValue"
                                        @bind-SelectedValues="SelectedMultiSelectLongValues"
-                                       SearchBox="true"
+                                       SearchBox="@DropDownSearchBox"
                                        Required="@IsRequired"
                                        Label="@LabelName"
                                        Disabled="IsDisabled"
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
-                                       SearchBoxAutoFocus="true"
+                                       SearchBoxAutoFocus="@DropDownSearchBox"
                                        MultiSelectionTextFunc="@GetLongMultiSelectionText"
                                        ToStringFunc="@(new Func<long, string>(x => LongIdDropDownOptions.TryGetValue(x, out var value) ? value : string.Empty))"
                                        ItemCollection="@LongIdDropDownOptions.Keys.ToList()"
@@ -172,14 +196,14 @@
                                        T="string"
                                        @bind-Value="@NullableStringValue"
                                        For="@(ForNullableString)"
-                                       SearchBox="true"
+                                       SearchBox="@DropDownSearchBox"
                                        Required="@IsRequired"
                                        Label="@LabelName"
                                        Disabled="IsDisabled"
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
-                                       SearchBoxAutoFocus="true"
+                                       SearchBoxAutoFocus="@DropDownSearchBox"
                                        ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
                                        ItemCollection="@StringIdDropDownOptions.Keys.ToList()"
                                        Immediate="@ImmediateValueUpdate"
@@ -201,14 +225,14 @@
                                        MultiSelection="true"
                                        @bind-Value="@MultiSelectStringValue"
                                        @bind-SelectedValues="SelectedMultiSelectStringValues"
-                                       SearchBox="true"
+                                       SearchBox="@DropDownSearchBox"
                                        Required="@IsRequired"
                                        Label="@LabelName"
                                        Disabled="IsDisabled"
                                        ReadOnly="IsReadOnly"
                                        Variant="Variant.Outlined"
                                        Margin="InputMargin"
-                                       SearchBoxAutoFocus="true"
+                                       SearchBoxAutoFocus="@DropDownSearchBox"
                                        MultiSelectionTextFunc="@(GetMultiSelectionText)"
                                        ToStringFunc="@(new Func<string, string>(x => StringIdDropDownOptions.TryGetValue(x ?? string.Empty, out var value) ? value : string.Empty))"
                                        ItemCollection="@StringIdDropDownOptions.Keys.ToList()"
@@ -481,6 +505,34 @@
         set => throw new NotImplementedException($"{nameof(ForNullableLong)} can not be set.");
     }
 
+    private string GetEnumDisplayName(T enumValue)
+    {
+        if (enumValue == null)
+        {
+            return string.Empty;
+        }
+
+        var enumType = enumValue.GetType();
+        var enumMemberName = enumValue.ToString() ?? string.Empty;
+        var memberInfo = enumType.GetMember(enumMemberName).FirstOrDefault();
+        if (memberInfo != null)
+        {
+            var displayAttribute = memberInfo.GetCustomAttribute<DisplayAttribute>();
+            if (displayAttribute != null && !string.IsNullOrEmpty(displayAttribute.Name))
+            {
+                return displayAttribute.Name;
+            }
+
+            var descriptionAttribute = memberInfo.GetCustomAttribute<DescriptionAttribute>();
+            if (descriptionAttribute != null && !string.IsNullOrEmpty(descriptionAttribute.Description))
+            {
+                return descriptionAttribute.Description;
+            }
+        }
+        var friendlyName = StringHelper.GenerateFriendlyStringWithOutIdSuffix(enumMemberName);
+        return friendlyName;
+    }
+
     [Parameter]
     public Dictionary<int, string>? DropDownOptions { get; set; }
 
@@ -549,6 +601,9 @@
 
     [Parameter]
     public bool Clearable { get; set; }
+
+    [Parameter]
+    public bool DropDownSearchBox { get; set; }
 
     private string? AdornmentText { get; set; }
     private bool IsRequired { get; set; }
