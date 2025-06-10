@@ -34,8 +34,12 @@ public class BaseConfigurationBase
     [Required]
     [DisplayName("Power Change Interval")]
     [Postfix("s")]
-    [HelperText("Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power")]
+    [HelperText("Every x seconds it is checked if any power changes are required.")]
     public int UpdateIntervalSeconds { get; set; } = 30;
+    [Required]
+    [Postfix("s")]
+    [HelperText("Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power.")]
+    public int SkipPowerChangesOnLastAdjustmentNewerThanSeconds { get; set; } = 30;
     [Required]
     [Range(1, int.MaxValue)]
     [DisplayName("Solar power refresh interval")]
