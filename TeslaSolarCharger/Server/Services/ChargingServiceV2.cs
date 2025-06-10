@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Entities.TeslaMate;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos;
@@ -34,6 +33,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
     private readonly IEnergyDataService _energyDataService;
     private readonly IValidFromToSplitter _validFromToSplitter;
+    private readonly IPowerToControlCalculationService _powerToControlCalculationService;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -47,7 +47,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         ITeslaService teslaService,
         IShouldStartStopChargingCalculator shouldStartStopChargingCalculator,
         IEnergyDataService energyDataService,
-        IValidFromToSplitter validFromToSplitter)
+        IValidFromToSplitter validFromToSplitter,
+        IPowerToControlCalculationService powerToControlCalculationService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -62,6 +63,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
         _energyDataService = energyDataService;
         _validFromToSplitter = validFromToSplitter;
+        _powerToControlCalculationService = powerToControlCalculationService;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -69,7 +71,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
         await CalculateGeofences();
         var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
-        var powerToControl = await CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), cancellationToken).ConfigureAwait(false);
+        var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), cancellationToken).ConfigureAwait(false);
         var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var earliestAmpChange = currentDate - skipValueChanges;
@@ -1191,86 +1193,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         return (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode, carMaxSoc);
-    }
-
-    private async Task<int> CalculatePowerToControl(int currentChargingPower, CancellationToken cancellationToken)
-    {
-        _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
-        var resultConfigurations = await _context.ModbusResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken);
-        resultConfigurations.AddRange(await _context.RestValueResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken));
-        resultConfigurations.AddRange(await _context.MqttResultConfigurations.Select(r => r.UsedFor).ToListAsync(cancellationToken: cancellationToken));
-        var availablePowerSources = new DtoAvailablePowerSources()
-        {
-            InverterPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.InverterPower),
-            GridPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.GridPower),
-            HomeBatteryPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.HomeBatteryPower),
-        };
-
-        var buffer = _configurationWrapper.PowerBuffer();
-        _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
-        var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
-        _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
-
-        if (!availablePowerSources.GridPowerAvailable
-            && availablePowerSources.InverterPowerAvailable)
-        {
-            _logger.LogDebug("Using Inverter power {inverterPower} minus current combined charging power {chargingPowerAtHome} as overage",
-                _settings.InverterPower, currentChargingPower);
-            if (_settings.InverterPower == default)
-            {
-                _logger.LogWarning("Inverter power is not available, can not calculate power to control.");
-                return 0;
-            }
-            averagedOverage = _settings.InverterPower.Value - currentChargingPower;
-        }
-        var overage = averagedOverage - buffer;
-        _logger.LogDebug("Calculated overage {overage} after subtracting power buffer ({buffer})", overage, buffer);
-
-        overage = AddHomeBatterStateToPowerCalculation(overage);
-        return overage + currentChargingPower;
-    }
-
-    private int AddHomeBatterStateToPowerCalculation(int overage)
-    {
-        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
-        _logger.LogDebug("Home battery min soc: {homeBatteryMinSoc}", homeBatteryMinSoc);
-        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
-        _logger.LogDebug("Home battery should charging power: {homeBatteryMaxChargingPower}", homeBatteryMaxChargingPower);
-        if (homeBatteryMinSoc == default || homeBatteryMaxChargingPower == default)
-        {
-            return overage;
-        }
-        var batteryMinChargingPower = GetBatteryTargetChargingPower(homeBatteryMinSoc);
-        var actualHomeBatterySoc = _settings.HomeBatterySoc;
-        _logger.LogDebug("Home battery actual soc: {actualHomeBatterySoc}", actualHomeBatterySoc);
-        var actualHomeBatteryPower = _settings.HomeBatteryPower;
-        _logger.LogDebug("Home battery actual power: {actualHomeBatteryPower}", actualHomeBatteryPower);
-        if (actualHomeBatteryPower == default)
-        {
-            return overage;
-        }
-        var overageToIncrease = actualHomeBatteryPower.Value - batteryMinChargingPower;
-        overage += overageToIncrease;
-        var inverterAcOverload = (_configurationWrapper.MaxInverterAcPower() - _settings.InverterPower) * (-1);
-        if (inverterAcOverload > 0)
-        {
-            _logger.LogDebug("As inverter power is higher than max inverter AC power, overage is reduced by overload");
-            overage -= (inverterAcOverload.Value - batteryMinChargingPower);
-        }
-        return overage;
-    }
-
-    private int GetBatteryTargetChargingPower(int? minSoc)
-    {
-        var actualHomeBatterySoc = _settings.HomeBatterySoc;
-        var homeBatteryMinSoc = minSoc;
-        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
-        if (actualHomeBatterySoc < homeBatteryMinSoc)
-        {
-            return homeBatteryMaxChargingPower ?? 0;
-        }
-
-        return 0;
     }
 
     private async Task<DtoTimeZonedChargingTarget?> GetNextTarget(int carId, CancellationToken cancellationToken)
