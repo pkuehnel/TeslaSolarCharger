@@ -30,7 +30,17 @@ else
     foreach (var chargingStation in _chargingStations)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <h3>@chargingStation.ChargepointId</h3>
+            <MudText Typo="Typo.h6" GutterBottom="true">
+                @chargingStation.ChargepointId
+                @if (chargingStation.IsConnected)
+                {
+                    <MudChip T="string" Text="Connected via OCPP" Color="Color.Success" Size="Size.Small" Class="ml-2" />
+                }
+                else
+                {
+                    <MudChip T="string" Text="Not connected via OCPP" Color="Color.Error" Size="Size.Small" Class="ml-2" />
+                }
+            </MudText>
             <ChargingStationConnectorsComponent ChargingStationId="chargingStation.Id"
                                                 AutoPhaseSwitchingSupported="@(chargingStation.CanSwitchBetween1And3Phases == true)"></ChargingStationConnectorsComponent>
         </div>
