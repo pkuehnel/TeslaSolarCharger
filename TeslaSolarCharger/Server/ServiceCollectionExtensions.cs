@@ -9,6 +9,8 @@ using Quartz.Spi;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Middlewares;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -135,6 +137,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IShouldStartStopChargingCalculator, ShouldStartStopChargingCalculator>()
             .AddTransient<IValidFromToSplitter, ValidFromToSplitter>()
             .AddTransient<IPowerToControlCalculationService, PowerToControlCalculationService>()
+            .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
