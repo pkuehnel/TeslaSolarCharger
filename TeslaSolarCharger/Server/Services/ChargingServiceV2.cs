@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using LanguageExt.Traits;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -114,7 +115,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
             if (settingsOcppConnectorState.Value.IsCarFullyCharged.Value == true)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Car stopped charging, e.g. it is full or its charge limit is reached."));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging stopped by car, e.g. it is full or its charge limit is reached."));
             }
         }
         var chargingConnectorIdsToManage = await _context.OcppChargingStationConnectors
@@ -126,7 +127,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             if (!_settings.OcppConnectorStates.ContainsKey(connectorId))
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, connectorId, new("No OCPP connection to chargepoint."));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, connectorId, new("OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."));
             }
         }
 
@@ -829,7 +830,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     {
                         var reason =
                             new DtoNotChargingWithExpectedPowerReason(
-                                "Waiting for enough time without enough power until ",
+                                $"Waiting {timeSpanUntilSwitchOff} without enough power before charging stops until ",
                                 shouldStopChargingRelevantAt);
                         _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, reason);
                     }
@@ -899,7 +900,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         var shouldStopChargingRelevantAt = startTime + durationToWait;
                         var reason =
                             new DtoNotChargingWithExpectedPowerReason(
-                                "Should switch phases. Waiting until ",
+                                $"Waiting {durationToWait} before switching phases until ",
                                 shouldStopChargingRelevantAt);
                         _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, reason);
                     }
@@ -975,13 +976,13 @@ public class ChargingServiceV2 : IChargingServiceV2
                 }
                 else if ((carChargeMode == ChargeModeV2.Auto))
                 {
-                    if (car.ShouldStartCharging.Value == true)
-                    {
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Should start charging. Waiting until ", relevantAt));
-                    }
                     if (car.SoC > (car.SocLimit - _constants.MinimumSocDifference))
                     {
                         _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Car SoC needs to be at least {_constants.MinimumSocDifference}% below car side Soc limit to start charging."));
+                    }
+                    else if (car.ShouldStartCharging.Value == true)
+                    {
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Waiting {timeSpanUntilSwitchOn} with enough power to start charging until ", relevantAt));
                     }
                 }
                 _logger.LogTrace("{method} DECISION: Should not start charging (car) - conditions not met", nameof(SetLoadPointPower));
@@ -1111,7 +1112,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                 else if ((connectorChargeMode == ChargeModeV2.Auto)
                          && (ocppConnectorState!.ShouldStartCharging.Value == true))
                 {
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Should start charging. Waiting until ", relevantAt));
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Waiting {timeSpanUntilSwitchOn} with enough power to start charging until ", relevantAt));
                 }
                 _logger.LogTrace("{method} DECISION: Should not start charging (OCPP) - conditions not met", nameof(SetLoadPointPower));
             }
@@ -1194,15 +1195,15 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                     if (currentToChargeWith < minCurrent)
                     {
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"The configured minimum current is {minCurrent}A, therefore charge speed is higher than it should be."));
                         currentToChargeWith = minCurrent.Value;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Charge speed increased due to min current"));
                         _logger.LogTrace("{method} DECISION: Below minCurrent - adjusted to minCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
                     }
 
                     if (currentToChargeWith > maxCurrent)
                     {
                         currentToChargeWith = maxCurrent.Value;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Charge speed decreased due to max current"));
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Can not further increase charging speed as configured max current is {maxCurrent}A"));
                         _logger.LogTrace("{method} DECISION: Above maxCurrent - adjusted to maxCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
                     }
 
@@ -1256,14 +1257,14 @@ public class ChargingServiceV2 : IChargingServiceV2
                     if (currentToChargeWith < minCurrent)
                     {
                         currentToChargeWith = minCurrent.Value;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Charge speed increased due to min current"));
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"The configured minimum current is {minCurrent}A, therefore charge speed is higher than it should be."));
                         _logger.LogTrace("{method} DECISION: Below minCurrent - adjusted to minCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
                     }
 
                     if (currentToChargeWith > maxCurrent)
                     {
                         currentToChargeWith = maxCurrent.Value;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Charge speed decreased due to max current"));
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Can not further increase charging speed as configured max current is { maxCurrent }A"));
                         _logger.LogTrace("{method} DECISION: Above maxCurrent - adjusted to maxCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
                     }
 
