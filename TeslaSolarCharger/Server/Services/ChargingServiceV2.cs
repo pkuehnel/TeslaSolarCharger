@@ -111,6 +111,11 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging connector is not plugged in"));
             }
+
+            if (settingsOcppConnectorState.Value.IsCarFullyCharged.Value == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Car stopped charging, e.g. it is full or its charge limit is reached."));
+            }
         }
         var chargingConnectorIdsToManage = await _context.OcppChargingStationConnectors
             .Where(c => c.ShouldBeManaged)
