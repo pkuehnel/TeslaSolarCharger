@@ -156,4 +156,16 @@ public class HomeService : IHomeService
         }
         return result.Data ?? new();
     }
+
+    public async Task<List<DtoNotChargingWithExpectedPowerReason>?> GetNotChargingWithExpectedPowerReasons(int? carId, int? connectorId)
+    {
+        _logger.LogTrace("{method}({carId}, {connectorId})", nameof(GetNotChargingWithExpectedPowerReasons), carId, connectorId);
+        var result = await _httpClientHelper.SendGetRequestAsync<List<DtoNotChargingWithExpectedPowerReason>>($"api/Home/GetNotChargingWithExpectedPowerReasons?carId={carId}&connectorId={connectorId}");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+            _snackbar.Add("Error while getting Not charging with expected power reasons", Severity.Error);
+        }
+        return result.Data;
+    }
 }
