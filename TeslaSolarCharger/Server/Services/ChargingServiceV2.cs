@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -177,8 +177,10 @@ public class ChargingServiceV2 : IChargingServiceV2
                 };
             }
             alreadyControlledLoadPoints.Add((activeChargingSchedule.CarId, activeChargingSchedule.OccpChargingConnectorId));
+            var powerBeforeChanges = correspondingLoadPoint.ChargingPower;
             var result = await ForceSetLoadPointPower(activeChargingSchedule.CarId, activeChargingSchedule.OccpChargingConnectorId, correspondingLoadPoint, activeChargingSchedule.ChargingPower, maxAdditionalCurrent,
                     cancellationToken).ConfigureAwait(false);
+            powerToControl -= powerBeforeChanges;
             powerToControl -= result.powerIncrease;
             maxAdditionalCurrent -= result.currentIncrease;
         }
@@ -217,14 +219,16 @@ public class ChargingServiceV2 : IChargingServiceV2
             var correspondingLoadPoint = chargingLoadPoints.FirstOrDefault(l => l.CarId == loadPoint.CarId
                                                                                 && l.ChargingConnectorId == loadPoint.ChargingConnectorId) ??
                                          new DtoLoadPointWithCurrentChargingValues()
-            {
-                CarId = loadPoint.CarId,
-                ChargingConnectorId = loadPoint.ChargingConnectorId,
-                ChargingPower = 0,
-                ChargingVoltage = _settings.AverageHomeGridVoltage ?? 230,
-                ChargingCurrent = 0,
-            };
+                                         {
+                                             CarId = loadPoint.CarId,
+                                             ChargingConnectorId = loadPoint.ChargingConnectorId,
+                                             ChargingPower = 0,
+                                             ChargingVoltage = _settings.AverageHomeGridVoltage ?? 230,
+                                             ChargingCurrent = 0,
+                                         };
+            var powerBeforeChanges = correspondingLoadPoint.ChargingPower;
             var result = await SetLoadPointPower(loadPoint.CarId, loadPoint.ChargingConnectorId, correspondingLoadPoint, powerToControl, maxAdditionalCurrent, cancellationToken).ConfigureAwait(false);
+            powerToControl-=powerBeforeChanges;
             powerToControl -= result.powerIncrease;
             maxAdditionalCurrent -= result.currentIncrease;
         }
