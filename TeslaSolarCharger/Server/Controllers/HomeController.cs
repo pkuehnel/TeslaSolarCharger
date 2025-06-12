@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
@@ -12,14 +13,17 @@ public class HomeController : ApiBaseController
     private readonly IHomeService _homeService;
     private readonly ILoadPointManagementService _loadPointManagementService;
     private readonly ITeslaService _teslaService;
+    private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
 
     public HomeController(IHomeService homeService,
         ILoadPointManagementService loadPointManagementService,
-        ITeslaService teslaService)
+        ITeslaService teslaService,
+        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
     {
         _homeService = homeService;
         _loadPointManagementService = loadPointManagementService;
         _teslaService = teslaService;
+        _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
     }
 
     [HttpGet]
@@ -132,6 +136,13 @@ public class HomeController : ApiBaseController
     {
         await _teslaService.SetAmp(carId, currentToSet);
         return Ok();
+    }
+
+    [HttpGet]
+    public IActionResult GetNotChargingWithExpectedPowerReasons(int? carId, int? chargingConnectorId)
+    {
+        var result = _notChargingWithExpectedPowerReasonHelper.GetReasons(carId, chargingConnectorId);
+        return Ok(result);
     }
 
     //[HttpGet]
