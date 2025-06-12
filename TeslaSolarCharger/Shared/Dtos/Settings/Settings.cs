@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -24,6 +25,10 @@ public class Settings : ISettings
     /// Key is Id of the connector in database
     /// </summary>
     public ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; } = new();
+
+    public ConcurrentBag<DtoNotChargingWithExpectedPowerReason> GenericNotChargingWithExpectedPowerReasons { get; set; } = new();
+    public ConcurrentDictionary<(int? carId, int? connectorId), List<DtoNotChargingWithExpectedPowerReason>> LoadPointSpecificNotChargingWithExpectedPowerReasons
+    { get; set; } = new();
 
     public ConcurrentDictionary<int, List<string>> CarsChargingReasons { get; set; } = new();
     public ConcurrentDictionary<int, List<string>> CarsNotChargingReasons { get; set; } = new();
