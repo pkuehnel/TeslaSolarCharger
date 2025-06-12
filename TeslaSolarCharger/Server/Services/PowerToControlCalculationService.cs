@@ -49,7 +49,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
         if (buffer != 0)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Power buffer of {buffer} is added"));
+            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Charging speed is {(buffer > 0 ? "decreased" : "increased")} due to power buffer being set to {buffer}W"));
         }
         var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
@@ -112,7 +112,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
         if (actualHomeBatterySoc < homeBatteryMinSoc)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Reserved {homeBatteryMaxChargingPower}W for Home battery charging as its SOC ({actualHomeBatterySoc}) is below minimum SOC ({homeBatteryMinSoc})"));
+            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Reserved {homeBatteryMaxChargingPower}W for Home battery charging as its SOC ({actualHomeBatterySoc}%) is below minimum SOC ({homeBatteryMinSoc}%)"));
             return homeBatteryMaxChargingPower ?? 0;
         }
 
