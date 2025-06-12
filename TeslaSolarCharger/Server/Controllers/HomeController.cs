@@ -139,9 +139,9 @@ public class HomeController : ApiBaseController
     }
 
     [HttpGet]
-    public IActionResult GetNotChargingWithExpectedPowerReasons(int? carId, int? chargingConnectorId)
+    public IActionResult GetNotChargingWithExpectedPowerReasons(int? carId, int? connectorId)
     {
-        var result = _notChargingWithExpectedPowerReasonHelper.GetReasons(carId, chargingConnectorId);
+        var result = _notChargingWithExpectedPowerReasonHelper.GetReasons(carId, connectorId);
         return Ok(result);
     }
 

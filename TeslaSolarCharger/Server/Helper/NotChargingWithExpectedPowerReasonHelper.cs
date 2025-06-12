@@ -51,15 +51,11 @@ public class NotChargingWithExpectedPowerReasonHelper : INotChargingWithExpected
             var entryCarId = loadPointEntry.Key.carId;
             var entryConnectorId = loadPointEntry.Key.connectorId;
 
-            var matchesCarId =
-                searchCarId == default
-                || entryCarId == searchCarId;
+            var matchesCarId = (searchCarId != default) && (entryCarId == searchCarId);
 
-            var matchesConnectorId =
-                searchConnectorId == default
-                || entryConnectorId == searchConnectorId;
+            var matchesConnectorId = (searchConnectorId != default) && (entryConnectorId == searchConnectorId);
 
-            if (matchesCarId && matchesConnectorId)
+            if (matchesCarId || matchesConnectorId)
             {
                 allReasons.AddRange(loadPointEntry.Value);
             }
