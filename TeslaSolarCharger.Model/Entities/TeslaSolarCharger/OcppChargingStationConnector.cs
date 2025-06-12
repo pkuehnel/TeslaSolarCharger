@@ -21,6 +21,7 @@ public class OcppChargingStationConnector
     public int? MaxCurrent { get; set; }
     public int? ConnectedPhasesCount { get; set; }
     public int ChargingPriority { get; set; }
+    public int? PhaseSwitchCoolDownTimeSeconds { get; set; }
 
     public int OcppChargingStationId { get; set; }
 
