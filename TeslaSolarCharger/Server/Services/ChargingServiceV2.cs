@@ -891,20 +891,28 @@ public class ChargingServiceV2 : IChargingServiceV2
                         return (0, 0);
                     }
                     _logger.LogTrace("{method} DECISION: Stop charging successful - returning power decrease", nameof(SetLoadPointPower));
-                    if (wrongPhaseCount)
-                    {
-                        var durationToWait = ocppConnectorState.PhaseCount.Value == 1 ? timeSpanUntilSwitchOn : timeSpanUntilSwitchOff;
-                        var startTime = ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged > ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged
-                            ? ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged
-                            : ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged;
-                        var shouldStopChargingRelevantAt = startTime + durationToWait;
-                        var reason =
-                            new DtoNotChargingWithExpectedPowerReason(
-                                $"Waiting {durationToWait} before switching phases until ",
-                                shouldStopChargingRelevantAt);
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, reason);
-                    }
                     return (-powerBeforeChanges, -currentBeforeChanges);
+                }
+                else if ((connectorChargeMode == ChargeModeV2.Auto)
+                         && !wrongPhaseCount
+                         && (((ocppConnectorState!.PhaseCount.Value == 1)
+                             && (ocppConnectorState.CanHandlePowerOnOnePhase.Value == false)
+                             && (ocppConnectorState.CanHandlePowerOnThreePhase.Value == true))
+                            || ((ocppConnectorState!.PhaseCount.Value == 3)
+                             && (ocppConnectorState.CanHandlePowerOnOnePhase.Value == true)
+                             && (ocppConnectorState.CanHandlePowerOnThreePhase.Value == false))))
+                {
+                    _logger.LogTrace("{method} DECISION: Should switch phases but duration to wait is not over, yet", nameof(SetLoadPointPower));
+                    var durationToWait = ocppConnectorState.PhaseCount.Value == 1 ? timeSpanUntilSwitchOn : timeSpanUntilSwitchOff;
+                    var startTime = ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged > ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged
+                        ? ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged
+                        : ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged;
+                    var shouldStopChargingRelevantAt = startTime + durationToWait;
+                    var reason =
+                        new DtoNotChargingWithExpectedPowerReason(
+                            $"Waiting {durationToWait} before switching phases until ",
+                            shouldStopChargingRelevantAt);
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, reason);
                 }
                 _logger.LogTrace("{method} DECISION: Should not stop charging (OCPP) - continuing", nameof(SetLoadPointPower));
             }
@@ -1078,19 +1086,49 @@ public class ChargingServiceV2 : IChargingServiceV2
                         && (ocppConnectorState.LastSetPhases.Value != default)
                         && (phasesToStartChargingWith != ocppConnectorState.LastSetPhases.Value))
                     {
-                        _logger.LogTrace("Should start charging with {newPhaseCount} phases while LastSetPhases is {@oldPhaseCount} phases before charge stop", phasesToStartChargingWith, ocppConnectorState.LastSetPhases);
+                        _logger.LogTrace("{method} DECISION: Phase switching conditions met - checking cooldown", nameof(SetLoadPointPower));
+
+                        _logger.LogTrace("{method} Should start charging with {newPhaseCount} phases while LastSetPhases is {oldPhaseCount} phases before charge stop",
+                            nameof(SetLoadPointPower), phasesToStartChargingWith, ocppConnectorState.LastSetPhases.Value);
+
                         var phaseSwitchCoolDownTimeSeconds = await _context.OcppChargingStationConnectors
                             .Where(c => c.Id == chargingConnectorId!.Value)
                             .Select(c => c.PhaseSwitchCoolDownTimeSeconds)
                             .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                        _logger.LogTrace("{method} Retrieved cooldown configuration: PhaseSwitchCoolDownTimeSeconds={cooldownSeconds}",
+                            nameof(SetLoadPointPower), phaseSwitchCoolDownTimeSeconds);
+
                         if (phaseSwitchCoolDownTimeSeconds != default)
                         {
                             var phaseSwitchCoolDownTime = TimeSpan.FromSeconds(phaseSwitchCoolDownTimeSeconds.Value);
-                            if (phaseSwitchCoolDownTime < (currentDate - ocppConnectorState.IsCharging.LastChanged))
-                                _logger.LogTrace("Do not start charging as cooldown time of {phaseSwitchCoolDownTime} is not over since charging stopped at {chargeStop}",
-                                    phaseSwitchCoolDownTime, ocppConnectorState.IsCharging.LastChanged);
-                            return (0, 0);
+                            var timeSinceChargeStop = currentDate - ocppConnectorState.IsCharging.LastChanged;
+
+                            _logger.LogTrace("{method} Cooldown evaluation: phaseSwitchCoolDownTime={cooldownTime}, timeSinceChargeStop={timeSinceStop}, currentDate={currentDate}",
+                                nameof(SetLoadPointPower), phaseSwitchCoolDownTime, timeSinceChargeStop, currentDate);
+
+                            if (phaseSwitchCoolDownTime > timeSinceChargeStop)
+                            {
+                                _logger.LogTrace("{method} DECISION: Not starting charging - cooldown time of {phaseSwitchCoolDownTime} is not over since charging stopped at {chargeStop}",
+                                    nameof(SetLoadPointPower), phaseSwitchCoolDownTime, ocppConnectorState.IsCharging.LastChanged);
+                                return (0, 0);
+                            }
+                            else
+                            {
+                                _logger.LogTrace("{method} DECISION: Cooldown period has passed - proceeding with phase switching",
+                                    nameof(SetLoadPointPower));
+                            }
                         }
+                        else
+                        {
+                            _logger.LogTrace("{method} DECISION: No cooldown configured - proceeding with phase switching",
+                                nameof(SetLoadPointPower));
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogTrace("{method} DECISION: Phase switching conditions not met - no action needed",
+                            nameof(SetLoadPointPower));
                     }
 
                     _logger.LogTrace("{method} DECISION: Starting OCPP charging with current={currentToStartChargingWith}, phases={phases}", nameof(SetLoadPointPower), currentToStartChargingWith, phasesToStartChargingWith);
@@ -1264,7 +1302,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     if (currentToChargeWith > maxCurrent)
                     {
                         currentToChargeWith = maxCurrent.Value;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Can not further increase charging speed as configured max current is { maxCurrent }A"));
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Can not further increase charging speed as configured max current is {maxCurrent}A"));
                         _logger.LogTrace("{method} DECISION: Above maxCurrent - adjusted to maxCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
                     }
 
