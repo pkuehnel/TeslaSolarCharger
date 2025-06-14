@@ -2,7 +2,6 @@
 @page "/Home"
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
-@using TeslaSolarCharger.Server.Dtos.ChargingServiceV2
 @using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject IEnergyDataService EnergyDataService
@@ -88,6 +87,7 @@ else
     {
         await HomeService.UpdateCarForLoadpoint(loadPointChargingConnectorId, carId);
         await RefreshLoadPoints();
+        await InvokeAsync(StateHasChanged);
     }
 
 }
