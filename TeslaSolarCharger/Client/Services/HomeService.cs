@@ -184,6 +184,9 @@ public class HomeService : IHomeService
     {
         _logger.LogTrace("{method}({chargingConnectorId})", nameof(StopChargingConnectorCharging), chargingConnectorId);
         var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarForLoadpoint?chargingConnectorId={chargingConnectorId}&carId={carId}", null);
-        return result;
+        if (result.HasError)
+        {
+            _snackbar.Add(result.ErrorMessage ?? "Unknown error", Severity.Error);
+        }
     }
 }
