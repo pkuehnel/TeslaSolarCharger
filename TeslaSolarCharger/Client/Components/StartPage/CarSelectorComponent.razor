@@ -11,8 +11,9 @@ else
                   @key="_genericInputKey"
                   For="() => LocalSelectedCarId"
                   DropDownOptions="_carOptions"
-                  Clearable="true"
-                  OnValueChanged="OnLocalCarChanged"></GenericInput>
+                  OnValueChanged="OnLocalCarChanged"
+                  PostfixButtonStartIcon="@(LocalSelectedCarId == default ? null : Icons.Material.Filled.CallSplit)"
+                  OnButtonClicked="_ => OnLocalCarChanged(null)"></GenericInput>
 }
 
 @code {
