@@ -21,6 +21,12 @@ else
     [Parameter]
     public EventCallback<int?> OnCarSelected { get; set; }
 
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        StateHasChanged();
+    }
+
 
     private Dictionary<int, string>? _carOptions;
 
