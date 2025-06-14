@@ -189,7 +189,24 @@ public class LoadPointManagementService : ILoadPointManagementService
             var state = _settings.OcppConnectorStates.GetValueOrDefault(connectorId);
             if (_settings.ManualSetLoadPointCarCombinations.TryGetValue(connectorId, out var value))
             {
-                if (value.combinationTimeStamp >= state?.IsPluggedIn.LastChanged)
+                var matchValid = true;
+                var carId = value.carId;
+                if (carId != default)
+                {
+                    var car = _settings.Cars.First(c => c.Id == carId.Value);
+                    if (car.PluggedIn != true)
+                    {
+                        matchValid = false;
+                    }
+
+                    if (car.LastPluggedIn > value.combinationTimeStamp)
+                    {
+                        matchValid = false;
+                    }
+                }
+                if (matchValid
+                        && (value.combinationTimeStamp >= state?.IsPluggedIn.LastChanged)
+                        && state.IsPluggedIn.Value)
                 {
                     matches.Add((value.carId, connectorId));
                     continue;
