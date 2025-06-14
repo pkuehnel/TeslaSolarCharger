@@ -30,7 +30,6 @@ else
 
     private Dictionary<int, string>? _carOptions;
 
-    private bool _isUpdatingFromParameter;
 
     protected override void OnParametersSet()
     {
@@ -39,15 +38,9 @@ else
         if (LocalSelectedCarId != SelectedCarId)
         {
             Logger.LogDebug("Updating LocalSelectedCarId from parameter: {SelectedCarId}", SelectedCarId);
-            _isUpdatingFromParameter = true;
             LocalSelectedCarId = SelectedCarId;
             _genericInputKey = Guid.NewGuid();
             StateHasChanged();
-        }
-        else
-        {
-            Logger.LogDebug("No update needed for LocalSelectedCarId, it remains: {LocalSelectedCarId}", LocalSelectedCarId);
-            _isUpdatingFromParameter = false;
         }
     }
 
@@ -60,13 +53,8 @@ else
     private async Task OnLocalCarChanged(int? newCarId)
     {
         Logger.LogTrace("{method}({newCarId}", nameof(OnLocalCarChanged), newCarId);
-        if (_isUpdatingFromParameter)
-        {
-            Logger.LogDebug("Ignoring OnLocalCarChanged call because we are updating from parameter: {newCarId}", newCarId);
-            _isUpdatingFromParameter = false;
-            return;
-        }
         LocalSelectedCarId = newCarId;
         await OnCarSelected.InvokeAsync(newCarId);
     }
+
 }
