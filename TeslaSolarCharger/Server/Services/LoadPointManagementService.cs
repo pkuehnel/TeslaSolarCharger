@@ -6,7 +6,6 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
-using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -14,6 +13,7 @@ public class LoadPointManagementService : ILoadPointManagementService
 {
     private readonly ILogger<LoadPointManagementService> _logger;
     private readonly ISettings _settings;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ITeslaSolarChargerContext _context;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IErrorHandlingService _errorHandlingService;
@@ -25,7 +25,8 @@ public class LoadPointManagementService : ILoadPointManagementService
     IErrorHandlingService errorHandlingService,
     IIssueKeys issueKeys,
     ITeslaSolarChargerContext context,
-    ISettings settings)
+    ISettings settings,
+    IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -33,6 +34,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         _issueKeys = issueKeys;
         _context = context;
         _settings = settings;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     /// <summary>
@@ -185,6 +187,14 @@ public class LoadPointManagementService : ILoadPointManagementService
         foreach (var connectorId in connectorIds)
         {
             var state = _settings.OcppConnectorStates.GetValueOrDefault(connectorId);
+            if (_settings.ManualSetLoadPointCarCombinations.TryGetValue(connectorId, out var value))
+            {
+                if (value.combinationTimeStamp >= state?.IsPluggedIn.LastChanged)
+                {
+                    matches.Add((value.carId, connectorId));
+                    continue;
+                }
+            }
             if (state == default)
             {
                 matches.Add((null, connectorId));
@@ -245,5 +255,20 @@ public class LoadPointManagementService : ILoadPointManagementService
         }
 
         return matches;
+    }
+
+    public void UpdateChargingConnectorCar(int chargingConnectorId, int? carId)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {carId})", nameof(UpdateChargingConnectorCar), chargingConnectorId, carId);
+        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        if (carId != default)
+        {
+            var car = _settings.Cars.First(c => c.Id == carId.Value);
+            if (car.PluggedIn != true)
+            {
+                throw new InvalidOperationException("Car is not plugged in, therefore it can not be set as car for charging connector.");
+            }
+        }
+        _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
     }
 }
