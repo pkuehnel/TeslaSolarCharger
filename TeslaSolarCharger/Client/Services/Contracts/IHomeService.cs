@@ -25,5 +25,5 @@ public interface IHomeService
     Task<Result<object?>> UpdateCarMaxSoc(int carId, int soc);
     Task<List<DtoNotChargingWithExpectedPowerReason>?> GetNotChargingWithExpectedPowerReasons(int? carId, int? connectorId);
     Task<Dictionary<int, string>?> GetLoadPointCarOptions();
-    Task<Result<object?>> UpdateCarForLoadpoint(int chargingConnectorId, int? carId);
+    Task UpdateCarForLoadpoint(int chargingConnectorId, int? carId);
 }
