@@ -11,6 +11,7 @@ else
     <GenericInput T="int?"
                   @key="_genericInputKey"
                   For="() => LocalSelectedCarId"
+                  LabelName="Select Car"
                   DropDownOptions="_carOptions"
                   OnValueChanged="OnLocalCarChanged"
                   PostfixButtonStartIcon="@(LocalSelectedCarId == default ? null : Icons.Material.Filled.CallSplit)"
