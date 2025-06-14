@@ -209,7 +209,7 @@ public class LoadPointManagementService : ILoadPointManagementService
 
                     if (car.LastPluggedIn > value.combinationTimeStamp)
                     {
-                        _logger.LogDebug("Car {carId} changed plugge din state since setup of manual car combination", carId);
+                        _logger.LogDebug("Car {carId} changed plugged in state since setup of manual car combination", carId);
                         matchValid = false;
                     }
                 }
