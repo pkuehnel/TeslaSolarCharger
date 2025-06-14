@@ -26,7 +26,7 @@ else
                       ContentAlignment="HorizontalAlignment.Left">
                 As the Charging Connector is matched to a car, the Charge Mode will be set automatically based on the car's settings. If the wrong car has been detected, you can change or remove the car below.
             </MudAlert>
-            <CarSelectorComponent SelectedCarId="CarId"
+            <CarSelectorComponent SelectedCarId="SelectedCarId"
                                   OnCarSelected="OnCarSelected"></CarSelectorComponent>
         }
         else
@@ -38,7 +38,7 @@ else
                           ContentAlignment="HorizontalAlignment.Left">
                     An unknown car is connected to this charging connector.
                 </MudAlert>
-                <CarSelectorComponent OnCarSelected="OnCarSelected"/>
+                <CarSelectorComponent SelectedCarId="SelectedCarId" OnCarSelected="OnCarSelected" />
             }
             <GenericInput T="ChargeModeV2"
                           For="() => ChargingConnector.ChargeMode"
@@ -75,6 +75,8 @@ else
     [Parameter]
     public EventCallback<int?> OnCarSelected { get; set; }
 
+    private int? SelectedCarId { get; set; }
+
     private DtoChargingConnectorOverview? ChargingConnector { get; set; }
 
     private ChargeModeV2? _lastKnownChargeMode;
@@ -89,6 +91,7 @@ else
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
+        SelectedCarId = CarId;
         await RefreshData();
     }
 

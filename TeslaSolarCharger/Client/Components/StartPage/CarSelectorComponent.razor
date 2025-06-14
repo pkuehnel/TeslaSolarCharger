@@ -8,10 +8,10 @@
 else
 {
     <GenericInput T="int?"
-                  For="() => SelectedCarId"
+                  For="() => LocalSelectedCarId"
                   DropDownOptions="_carOptions"
                   Clearable="true"
-                  OnValueChanged="OnCarSelected"></GenericInput>
+                  OnValueChanged="OnLocalCarChanged"></GenericInput>
 }
 
 @code {
@@ -21,18 +21,37 @@ else
     [Parameter]
     public EventCallback<int?> OnCarSelected { get; set; }
 
-    protected override void OnParametersSet()
-    {
-        base.OnParametersSet();
-        StateHasChanged();
-    }
-
+    private int? LocalSelectedCarId { get; set; }
 
     private Dictionary<int, string>? _carOptions;
 
+    private bool _isUpdatingFromParameter;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (LocalSelectedCarId != SelectedCarId)
+        {
+            _isUpdatingFromParameter = true;
+            LocalSelectedCarId = SelectedCarId;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
-        _carOptions = await HomeService.GetLoadPointCarOptions();
+        var options = await HomeService.GetLoadPointCarOptions();
+        _carOptions = options;
+    }
+
+    private async Task OnLocalCarChanged(int? newCarId)
+    {
+        if (_isUpdatingFromParameter)
+        {
+            _isUpdatingFromParameter = false;
+            return;
+        }
+
+        LocalSelectedCarId = newCarId;
+        await OnCarSelected.InvokeAsync(newCarId);
     }
 }

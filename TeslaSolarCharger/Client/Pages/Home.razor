@@ -87,7 +87,6 @@ else
     {
         await HomeService.UpdateCarForLoadpoint(loadPointChargingConnectorId, carId);
         await RefreshLoadPoints();
-        await InvokeAsync(StateHasChanged);
     }
 
 }
