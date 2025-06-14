@@ -261,6 +261,17 @@ public class LoadPointManagementService : ILoadPointManagementService
     {
         _logger.LogTrace("{method}({chargingConnectorId}, {carId})", nameof(UpdateChargingConnectorCar), chargingConnectorId, carId);
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        if (_settings.OcppConnectorStates.TryGetValue(chargingConnectorId, out var state))
+        {
+            if (!state.IsPluggedIn.Value)
+            {
+                throw new InvalidOperationException("Connector is not plugged in, therefore no car can be set");
+            }
+        }
+        else
+        {
+            throw new InvalidOperationException($"Charging connector is not connected via OCPP");
+        }
         if (carId != default)
         {
             var car = _settings.Cars.First(c => c.Id == carId.Value);
