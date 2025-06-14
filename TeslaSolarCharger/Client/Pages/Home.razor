@@ -6,6 +6,7 @@
 
 @inject IEnergyDataService EnergyDataService
 @inject IHomeService HomeService
+@inject ILogger<Home> Logger
 
 <PageTitle>Solar 4 Car</PageTitle>
 
@@ -80,11 +81,13 @@ else
 
     private async Task RefreshLoadPoints()
     {
+        Logger.LogTrace("{method}()", nameof(RefreshLoadPoints));
         _loadPoints = await HomeService.GetLoadPointsToManage();
     }
 
     private async Task CarSelectedForChargingConnector(int loadPointChargingConnectorId, int? carId)
     {
+        Logger.LogTrace("{method}({chargingConnectorId}, {carId})", nameof(CarSelectedForChargingConnector), loadPointChargingConnectorId, carId);
         await HomeService.UpdateCarForLoadpoint(loadPointChargingConnectorId, carId);
         await RefreshLoadPoints();
     }
