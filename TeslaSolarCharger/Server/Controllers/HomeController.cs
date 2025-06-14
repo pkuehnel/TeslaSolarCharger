@@ -145,6 +145,20 @@ public class HomeController : ApiBaseController
         return Ok(result);
     }
 
+    [HttpGet]
+    public IActionResult GetLoadPointCarOptions()
+    {
+        var result = _homeService.GetLoadPointCarOptions();
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public IActionResult UpdateCarForLoadpoint(int chargingConnectorId, int? carId)
+    {
+        _loadPointManagementService.UpdateChargingConnectorCar(chargingConnectorId, carId);
+        return Ok();
+    }
+
     //[HttpGet]
     //public async Task<IActionResult> GetChargingSchedulesForLoadPoint(int? carId, int? chargingConnectorId)
     //{

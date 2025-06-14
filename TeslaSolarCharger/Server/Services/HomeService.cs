@@ -185,6 +185,12 @@ public class HomeService : IHomeService
         await _context.SaveChangesAsync();
     }
 
+    public Dictionary<int, string> GetLoadPointCarOptions()
+    {
+        _logger.LogTrace("{method}()", nameof(GetLoadPointCarOptions));
+        return _settings.CarsToManage.ToDictionary(c => c.Id, c => c.Name ?? c.Vin);
+    }
+
     public async Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
     {
         _logger.LogTrace("{method}({carId}, {minSoc})", nameof(UpdateCarChargeMode), carId, chargeMode);

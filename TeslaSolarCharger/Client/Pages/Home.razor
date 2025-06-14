@@ -55,9 +55,12 @@ else
                 @if (loadPoint.ChargingConnectorId != default)
                 {
                     <div class="border border-gray-300 p-3 rounded col-xl-6 col-xl-@(loadPoint.CarId == default ? "12" : "6")">
-                        <ChargingConnectorDetailsComponent ChargingConnectorId="loadPoint.ChargingConnectorId" IsMatchedToCar="@(loadPoint.CarId != default)" />
+                        <ChargingConnectorDetailsComponent ChargingConnectorId="loadPoint.ChargingConnectorId"
+                                                           CarId="@(loadPoint.CarId)"
+                                                           OnCarSelected="carId => CarSelectedForChargingConnector(loadPoint.ChargingConnectorId.Value, carId)" />
                     </div>
                 }
+
             </div>
             <ChargingSchedulesComponent CarId="loadPoint.CarId" ChargingConnectorId="loadPoint.ChargingConnectorId" />
         </div>
@@ -80,4 +83,11 @@ else
     {
         _loadPoints = await HomeService.GetLoadPointsToManage();
     }
+
+    private async Task CarSelectedForChargingConnector(int loadPointChargingConnectorId, int? carId)
+    {
+        await HomeService.UpdateCarForLoadpoint(loadPointChargingConnectorId, carId);
+        await RefreshLoadPoints();
+    }
+
 }
