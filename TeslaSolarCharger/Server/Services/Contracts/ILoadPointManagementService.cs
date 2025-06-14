@@ -16,4 +16,6 @@ public interface ILoadPointManagementService
     HashSet<(int? CarId, int? ConnectorId)> GetCarConnectorMatches(
         IEnumerable<int> carIds,
         IEnumerable<int> connectorIds);
+
+    void UpdateChargingConnectorCar(int chargingConnectorId, int? carId);
 }

@@ -1,0 +1,32 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@inject IHomeService HomeService
+
+@if (_carOptions == default)
+{
+    <PlaceholderComponent Count="1"></PlaceholderComponent>
+}
+else
+{
+    <GenericInput T="int?"
+                  For="() => SelectedCarId"
+                  DropDownOptions="_carOptions"
+                  Clearable="true"
+                  OnValueChanged="OnCarSelected"></GenericInput>
+}
+
+@code {
+    [Parameter]
+    public int? SelectedCarId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> OnCarSelected { get; set; }
+
+
+    private Dictionary<int, string>? _carOptions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _carOptions = await HomeService.GetLoadPointCarOptions();
+    }
+}
