@@ -186,45 +186,54 @@ public class LoadPointManagementService : ILoadPointManagementService
 
         foreach (var connectorId in connectorIds)
         {
-            var state = _settings.OcppConnectorStates.GetValueOrDefault(connectorId);
+            if(!_settings.OcppConnectorStates.TryGetValue(connectorId, out var connectorState))
+            {
+                matches.Add((null, connectorId));
+                continue;
+            }
+
             if (_settings.ManualSetLoadPointCarCombinations.TryGetValue(connectorId, out var value))
             {
+                _logger.LogDebug("Found match in {settings}.{manualSetCombinations} for connector {connectorId}", nameof(_settings), nameof(_settings.ManualSetLoadPointCarCombinations), connectorId);
                 var matchValid = true;
                 var carId = value.carId;
                 if (carId != default)
                 {
+                    _logger.LogTrace("Found car {carId} for connector {connectorId} in manual set combinations", carId, connectorId);
                     var car = _settings.Cars.First(c => c.Id == carId.Value);
                     if (car.PluggedIn != true)
                     {
+                        _logger.LogDebug("Car {carId} is not plugged in, therefore it can not be set as car for charging connector {connectorId}.", carId, connectorId);
                         matchValid = false;
                     }
 
                     if (car.LastPluggedIn > value.combinationTimeStamp)
                     {
+                        _logger.LogDebug("Car {carId} changed plugge din state since setup of manual car combination", carId);
                         matchValid = false;
                     }
                 }
+                _logger.LogTrace("Match valid: {matchValid}; combinationTimeStamp: {combinationTimeStamp}; lastPluggedInChange: {lastPluggedInChange}; plugged in state: {pluggedIn}",
+                    matchValid, value.combinationTimeStamp, connectorState.IsPluggedIn.LastChanged, connectorState.IsPluggedIn.Value);
                 if (matchValid
-                        && (value.combinationTimeStamp >= state?.IsPluggedIn.LastChanged)
-                        && state.IsPluggedIn.Value)
+                        && (value.combinationTimeStamp >= connectorState.IsPluggedIn.LastChanged)
+                        && connectorState.IsPluggedIn.Value)
                 {
+                    _logger.LogDebug("Car {carId} is valid for connector {connectorId} in manual set combinations", value.carId, connectorId);
                     matches.Add((value.carId, connectorId));
                     continue;
                 }
             }
-            if (state == default)
-            {
-                matches.Add((null, connectorId));
-                continue;
-            }
-            if (state.IsPluggedIn.LastChanged == default)
+
+
+            if (connectorState.IsPluggedIn.LastChanged == default)
             {
                 matches.Add((null, connectorId));
                 continue;
             }
 
-            var matchWindowStart = state.IsPluggedIn.LastChanged.Value.Add(-maxTimeDiff);
-            var matchWindowEnd = state.IsPluggedIn.LastChanged.Value.Add(maxTimeDiff);
+            var matchWindowStart = connectorState.IsPluggedIn.LastChanged.Value.Add(-maxTimeDiff);
+            var matchWindowEnd = connectorState.IsPluggedIn.LastChanged.Value.Add(maxTimeDiff);
 
             var matchingCars = _settings.Cars
                 .Where(car => car.LastPluggedIn >= matchWindowStart
