@@ -180,7 +180,7 @@ public class HomeService : IHomeService
         return result.Data;
     }
 
-    public async Task<Result<object?>> UpdateCarForLoadpoint(int chargingConnectorId, int? carId)
+    public async Task UpdateCarForLoadpoint(int chargingConnectorId, int? carId)
     {
         _logger.LogTrace("{method}({chargingConnectorId})", nameof(StopChargingConnectorCharging), chargingConnectorId);
         var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarForLoadpoint?chargingConnectorId={chargingConnectorId}&carId={carId}", null);
