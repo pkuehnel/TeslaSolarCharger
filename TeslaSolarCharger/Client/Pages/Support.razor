@@ -1,4 +1,5 @@
 ﻿@page "/support"
+@using PkSoftwareService.Custom.Backend
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.Support
@@ -6,6 +7,8 @@
 @inject IHttpClientHelper HttpClientHelper
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
+@inject IInMemorySink InMemorySink
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 <h1>Support</h1>
 
@@ -19,7 +22,7 @@
     Logs might contain sensitive information like your vehicle's location. Do not share logs publicly.
 </MudAlert>
 
-<RightAlignedButtonComponent ButtonText="Download Logs"
+<RightAlignedButtonComponent ButtonText="Download Server Logs"
                              StartIcon="@Icons.Material.Filled.Download"
                              OnButtonClicked="@(_ => NavigationManager.NavigateTo("api/Debug/DownloadLogs", true))"></RightAlignedButtonComponent>
 
@@ -55,8 +58,20 @@
         </div>
     }
 </div>
-
 <hr />
+
+<MudExpansionPanels>
+    <MudExpansionPanel Text="UI Logs" ExpandedChanged="UiLogExpansionChanged">
+        <div>Fetched @LogMessages.Count logs</div>
+        <RightAlignedButtonComponent ButtonText="Copy logs to clipoard"
+                                     StartIcon="@Icons.Material.Filled.ContentCopy"
+                                     OnButtonClicked="CopyLogsToClipboard"></RightAlignedButtonComponent>
+        @foreach (var logMessage in LogMessages)
+        {
+            <div>@logMessage</div>
+        }
+    </MudExpansionPanel>
+</MudExpansionPanels>
 
 <h3>Car Debug Details</h3>
 @if (_debugCars == default)
@@ -200,6 +215,7 @@ else
     private readonly Dictionary<int, DtoValue<decimal>> _chargingCurrentsToSet = new();
     private readonly Dictionary<int, DtoValue<int?>> _chargingPhasesToSet = new();
     private readonly Dictionary<int, string> _commandResults = new();
+    private List<string> LogMessages = new();
 
 
     private DtoValue<string>? _logLevel;
@@ -439,4 +455,19 @@ else
         _commandResults[connectorKey] = result.Data?.Value ?? "No data";
         _loadingOcppCommands.Remove(connectorKey);
     }
+
+    private void UiLogExpansionChanged(bool isExpanded)
+    {
+        if (isExpanded)
+        {
+            LogMessages = InMemorySink.GetLogs().ToList();
+        }
+    }
+
+    private void CopyLogsToClipboard()
+    {
+        var stringToCopy = string.Join(Environment.NewLine, LogMessages);
+        JavaScriptWrapper.CopyStringToClipboard(stringToCopy);
+    }
+
 }

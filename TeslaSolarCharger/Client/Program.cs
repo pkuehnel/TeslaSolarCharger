@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
 using MudBlazor.Services;
 using MudExtensions.Services;
+using PkSoftwareService.Custom.Backend;
+using Serilog;
+using Serilog.Events;
 using TeslaSolarCharger.Client;
 using TeslaSolarCharger.Client.Helper;
 using TeslaSolarCharger.Client.Helper.Contracts;
@@ -45,5 +48,20 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
 })
     .AddMudExtensions();
+const string outputTemplate = "[{Timestamp:dd-MMM-yyyy HH:mm:ss.fff} {Level:u3} {SourceContext}] {Message:lj}{NewLine}{Exception}";
+var inMemorySink = new InMemorySink(outputTemplate, capacity: 3000);
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Verbose()// overall minimum
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("MudBlazor.KeyInterceptorService", LogEventLevel.Debug)
+    .MinimumLevel.Override("TeslaSolarCharger.Shared.Helper.StringHelper", LogEventLevel.Debug)
+    .WriteTo.Logger(lc => lc
+        .WriteTo.Sink(inMemorySink))
+    .CreateLogger();
+
+builder.Services.AddSingleton<IInMemorySink>(inMemorySink);
+
+builder.Services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
+
 builder.Services.AddApexCharts();
 await builder.Build().RunAsync().ConfigureAwait(false);
