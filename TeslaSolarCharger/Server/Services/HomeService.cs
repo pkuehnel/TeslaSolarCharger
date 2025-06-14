@@ -96,6 +96,7 @@ public class HomeService : IHomeService
         {
             IsCharging = state != default && state.IsCharging.Value,
             IsPluggedIn = state != default && state.IsPluggedIn.Value,
+            IsOcppConnected = state != default,
             ChargeMode = chargingConnectorData.ChargeMode,
         };
         return chargingConnector;
