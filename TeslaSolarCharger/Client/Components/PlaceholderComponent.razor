@@ -1,6 +1,6 @@
 ﻿@for (var i = 0; i < Count; i++)
 {
-    <MudSkeleton />
+    <MudSkeleton Height="@Height" />
 }
 
 @code {
@@ -8,4 +8,6 @@
     [Parameter]
     public int Count { get; set; } = 1;
 
+    [Parameter]
+    public string? Height { get; set; }
 }

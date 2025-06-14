@@ -1,0 +1,52 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+
+@inject IHomeService HomeService
+
+@if (_elements == default)
+{
+    <PlaceholderComponent Count="2" />
+}
+else
+{
+    <MudExpansionPanels>
+        <MudExpansionPanel Text="@($"{_elements.Count} reason(s) why loadpoint charges with different power than you might expect")">
+            <ul>
+                @foreach (var element in _elements)
+                {
+                    <li>
+                        @(element.Reason + (element.ReasonEndTime == default ? string.Empty : element.ReasonEndTime.Value.ToLocalTime().ToString("t")))<br />
+                    </li>
+                }
+            </ul>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter]
+    public int? CarId { get; set; }
+
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
+
+    private List<DtoNotChargingWithExpectedPowerReason>? _elements;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await RefreshNotChargingWithExpectedPowerReasons();
+    }
+
+    private async Task RefreshNotChargingWithExpectedPowerReasons()
+    {
+        if (CarId != default || ChargingConnectorId != default)
+        {
+            _elements = await HomeService.GetNotChargingWithExpectedPowerReasons(CarId, ChargingConnectorId);
+        }
+        else
+        {
+            _elements = null;
+        }
+    }
+}

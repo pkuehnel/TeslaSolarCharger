@@ -50,4 +50,7 @@ public interface IConstants
     string MeterValueEstimatesCreated { get; }
     int MeterValueDatabaseSaveIntervalMinutes { get; }
     int WeatherPredictionInFutureDays { get; }
+    string OcppChargePointConnectorIdDelimiter { get; }
+    string DefaultIdTag { get; }
+    int HomeBatteryMinSocRefreshIntervalMinutes { get; }
 }

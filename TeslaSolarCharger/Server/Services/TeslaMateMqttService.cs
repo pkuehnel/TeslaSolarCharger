@@ -315,19 +315,19 @@ public class TeslaMateMqttService(
                     });
                     await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
                     if (car.ChargerActualCurrent < 5 &&
-                        car.ChargerRequestedCurrent == car.LastSetAmp &&
-                        car.LastSetAmp == car.ChargerActualCurrent - 1 &&
-                        car.LastSetAmp > 0)
+                        car.ChargerRequestedCurrent == car.LastSetAmp.Value &&
+                        car.LastSetAmp.Value == car.ChargerActualCurrent - 1 &&
+                        car.LastSetAmp.Value > 0)
                     {
                         logger.LogWarning("CarId {carId}: Reducing {actualCurrent} from {originalValue} to {newValue} due to error in TeslaApi", car.Id, nameof(car.ChargerActualCurrent), car.ChargerActualCurrent, car.LastSetAmp);
                         //ToDo: Set to average of requested and actual current
-                        car.ChargerActualCurrent = car.LastSetAmp;
+                        car.ChargerActualCurrent = car.LastSetAmp.Value;
                     }
 
                     if (car.ChargerActualCurrent > 0 && car.PluggedIn != true)
                     {
                         logger.LogWarning("Car {carId} is not detected as plugged in but actual current > 0 => set plugged in to true", car.Id);
-                        car.PluggedIn = true;
+                        car.UpdatePluggedIn(dateTimeProvider.DateTimeOffSetUtcNow(), true);
                     }
                 }
                 else
@@ -338,7 +338,7 @@ public class TeslaMateMqttService(
             case TopicPluggedIn:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.PluggedIn = Convert.ToBoolean(value.Value);
+                    car.UpdatePluggedIn(dateTimeProvider.DateTimeOffSetUtcNow(), Convert.ToBoolean(value.Value));
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -512,7 +512,7 @@ public class TeslaMateMqttService(
                     var speed = Convert.ToInt32(value.Value);
                     if (speed > 0 && car.PluggedIn == true)
                     {
-                        car.PluggedIn = false;
+                        car.UpdatePluggedIn(dateTimeProvider.DateTimeOffSetUtcNow(), false);
                     }
                 }
                 break;

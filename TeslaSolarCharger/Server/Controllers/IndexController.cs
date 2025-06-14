@@ -22,17 +22,11 @@ public class IndexController : ApiBaseController
 
     [HttpGet]
     public Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars() => _indexService.GetCarBaseStatesOfEnabledCars();
-
-    [HttpGet]
-    public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars() => _indexService.GetCarBaseSettingsOfEnabledCars();
-
+    
     [HttpGet]
     public DtoCarTopicValues CarDetails(int carId)
         => _indexService.GetCarDetails(carId);
-
-    [HttpPost]
-    public Task UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
-
+    
     [HttpGet]
     public Dictionary<string, string> GetToolTipTexts() => _indexService.GetToolTipTexts();
 

@@ -144,7 +144,6 @@ public class ChargingService : TestBase
             {
                 Id = 1,
                     IsHomeGeofence = true,
-                    PluggedIn = true,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
@@ -153,7 +152,6 @@ public class ChargingService : TestBase
             new DtoCar()
             {
                 Id = 2,
-                    PluggedIn = true,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
@@ -163,13 +161,19 @@ public class ChargingService : TestBase
             {
                 Id = 3,
                     IsHomeGeofence = true,
-                    PluggedIn = true,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
                     ShouldBeManaged = false,
             },
         };
+        var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
+            new NamedParameter("dateTime", new DateTime(2022, 4, 1, 14, 0, 0)));
+        var currentDate = currentTimeProvider.DateTimeOffSetUtcNow();
+        foreach (var dtoCar in cars)
+        {
+            dtoCar.UpdatePluggedIn(currentDate, true);
+        }
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
         var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
 
@@ -188,7 +192,6 @@ public class ChargingService : TestBase
             {
                 Id = 1,
                     IsHomeGeofence = true,
-                    PluggedIn = true,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
@@ -197,7 +200,6 @@ public class ChargingService : TestBase
             new DtoCar()
             {
                 Id = 2,
-                    PluggedIn = true,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
@@ -207,13 +209,19 @@ public class ChargingService : TestBase
             {
                 Id = 3,
                     IsHomeGeofence = true,
-                    PluggedIn = true,
                     ChargerActualCurrent = 3,
                     SoC = 30,
                     SocLimit = 60,
                 ShouldBeManaged = false,
             },
         };
+        var currentTimeProvider = Mock.Create<FakeDateTimeProvider>(
+            new NamedParameter("dateTime", new DateTime(2022, 4, 1, 14, 0, 0)));
+        var currentDate = currentTimeProvider.DateTimeOffSetUtcNow();
+        foreach (var dtoCar in cars)
+        {
+            dtoCar.UpdatePluggedIn(currentDate, true);
+        }
         Mock.Mock<ISettings>().Setup(s => s.Cars).Returns(cars);
         var chargingService = Mock.Create<TeslaSolarCharger.Server.Services.ChargingService>();
 
