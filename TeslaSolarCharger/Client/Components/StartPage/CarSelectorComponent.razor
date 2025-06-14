@@ -8,6 +8,7 @@
 else
 {
     <GenericInput T="int?"
+                  @key="_genericInputKey"
                   For="() => LocalSelectedCarId"
                   DropDownOptions="_carOptions"
                   Clearable="true"
@@ -20,6 +21,8 @@ else
 
     [Parameter]
     public EventCallback<int?> OnCarSelected { get; set; }
+
+    private Guid _genericInputKey = Guid.NewGuid();
 
     private int? LocalSelectedCarId { get; set; }
 
@@ -34,6 +37,12 @@ else
         {
             _isUpdatingFromParameter = true;
             LocalSelectedCarId = SelectedCarId;
+            _genericInputKey = Guid.NewGuid();
+            StateHasChanged();
+        }
+        else
+        {
+            _isUpdatingFromParameter = false;
         }
     }
 
@@ -50,7 +59,6 @@ else
             _isUpdatingFromParameter = false;
             return;
         }
-
         LocalSelectedCarId = newCarId;
         await OnCarSelected.InvokeAsync(newCarId);
     }
