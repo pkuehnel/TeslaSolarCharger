@@ -1,5 +1,4 @@
 ﻿using MudBlazor;
-using System.ComponentModel;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services.Contracts;
@@ -167,5 +166,27 @@ public class HomeService : IHomeService
             _snackbar.Add("Error while getting Not charging with expected power reasons", Severity.Error);
         }
         return result.Data;
+    }
+
+    public async Task<Dictionary<int, string>?> GetLoadPointCarOptions()
+    {
+        _logger.LogTrace("{method}()", nameof(GetLoadPointCarOptions));
+        var result = await _httpClientHelper.SendGetRequestAsync<Dictionary<int, string>>($"api/Home/GetLoadPointCarOptions");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+            _snackbar.Add("Error while getting Not charging with expected power reasons", Severity.Error);
+        }
+        return result.Data;
+    }
+
+    public async Task UpdateCarForLoadpoint(int chargingConnectorId, int? carId)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId})", nameof(StopChargingConnectorCharging), chargingConnectorId);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateCarForLoadpoint?chargingConnectorId={chargingConnectorId}&carId={carId}", null);
+        if (result.HasError)
+        {
+            _snackbar.Add(result.ErrorMessage ?? "Unknown error", Severity.Error);
+        }
     }
 }

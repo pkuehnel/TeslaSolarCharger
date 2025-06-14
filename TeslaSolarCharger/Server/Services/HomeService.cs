@@ -96,6 +96,7 @@ public class HomeService : IHomeService
         {
             IsCharging = state != default && state.IsCharging.Value,
             IsPluggedIn = state != default && state.IsPluggedIn.Value,
+            IsOcppConnected = state != default,
             ChargeMode = chargingConnectorData.ChargeMode,
         };
         return chargingConnector;
@@ -183,6 +184,12 @@ public class HomeService : IHomeService
         var dbCar = await _context.Cars.FirstAsync(c => c.Id == carId).ConfigureAwait(false);
         dbCar.MaximumSoc = newSoc;
         await _context.SaveChangesAsync();
+    }
+
+    public Dictionary<int, string> GetLoadPointCarOptions()
+    {
+        _logger.LogTrace("{method}()", nameof(GetLoadPointCarOptions));
+        return _settings.CarsToManage.ToDictionary(c => c.Id, c => c.Name ?? c.Vin);
     }
 
     public async Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)

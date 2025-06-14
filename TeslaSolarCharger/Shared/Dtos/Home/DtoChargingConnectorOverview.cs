@@ -12,5 +12,6 @@ public class DtoChargingConnectorOverview
     public string Name { get; set; }
     public bool IsCharging { get; set; }
     public bool IsPluggedIn { get; set; }
+    public bool IsOcppConnected { get; set; }
     public ChargeModeV2 ChargeMode { get; set; }
 }

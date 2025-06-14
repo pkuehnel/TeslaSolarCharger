@@ -34,6 +34,7 @@ public class Settings : ISettings
     public ConcurrentDictionary<int, List<string>> CarsNotChargingReasons { get; set; } = new();
     public ConcurrentDictionary<int, List<string>> ChargingConnectorChargingReasons { get; set; } = new();
     public ConcurrentDictionary<int, List<string>> ChargingConnectorNotChargingReasons { get; set; } = new();
+    public ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; } = new();
 
     public ConcurrentBag<DtoChargingSchedule> ChargingSchedules { get; set; } = new();
     public Dictionary<int, string> RawRestRequestResults { get; set; } = new();
