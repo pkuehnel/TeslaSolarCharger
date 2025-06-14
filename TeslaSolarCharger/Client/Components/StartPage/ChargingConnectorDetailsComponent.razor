@@ -5,6 +5,7 @@
 
 @inject IHomeService HomeService
 @inject ISnackbar Snackbar
+@inject ILogger<ChargingConnectorDetailsComponent> Logger
 
 @if (ChargingConnector == default)
 {
@@ -90,6 +91,7 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
+        Logger.LogTrace("{method}()", nameof(OnParametersSetAsync));
         await base.OnParametersSetAsync();
         SelectedCarId = CarId;
         await RefreshData();
@@ -97,6 +99,7 @@ else
 
     private async Task RefreshData()
     {
+        Logger.LogTrace("{method}()", nameof(RefreshData));
         if (ChargingConnectorId == default)
         {
             ChargingConnector = default;
