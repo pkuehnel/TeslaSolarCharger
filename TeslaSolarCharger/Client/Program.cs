@@ -64,4 +64,6 @@ builder.Services.AddSingleton<IInMemorySink>(inMemorySink);
 builder.Services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
 
 builder.Services.AddApexCharts();
+builder.Services.AddBlazorBootstrap();
+
 await builder.Build().RunAsync().ConfigureAwait(false);

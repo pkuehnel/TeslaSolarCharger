@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <PackageReference Include="Blazor-ApexCharts" Version="5.1.0" />
+    <PackageReference Include="Blazor.Bootstrap" Version="3.3.1" />
     <PackageReference Include="Blazored.FluentValidation" Version="2.2.0" />
     <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="8.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="9.0.4" />
