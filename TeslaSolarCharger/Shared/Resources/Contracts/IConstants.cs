@@ -55,4 +55,5 @@ public interface IConstants
     int HomeBatteryMinSocRefreshIntervalMinutes { get; }
     string SunriseIcon { get; }
     string SunsetIcon { get; }
+    string UnknownCarName { get; }
 }
