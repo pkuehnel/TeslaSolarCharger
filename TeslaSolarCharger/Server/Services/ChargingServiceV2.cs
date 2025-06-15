@@ -1,5 +1,4 @@
-﻿using LanguageExt.Traits;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -313,7 +312,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 continue;
             }
-            _logger.LogDebug("Less than {minium time} until next charging schedule {@nextChargingSchedule}. Bridge time with minimum power.", timespanToCombineCharges, nextChargingSchedule);
+            _logger.LogDebug("Less than {minimumTime} until next charging schedule {@nextChargingSchedule}. Bridge time with minimum power.", timespanToCombineCharges, nextChargingSchedule);
             var addedTime = nextChargingSchedule.ValidFrom - currentDate;
             var minPower = GetPowerAtPhasesAndCurrent(dtoLoadPointOverview.ActualPhases.Value, dtoLoadPointOverview.MinCurrent.Value);
             var addedEnergy = addedTime.TotalHours * minPower;
