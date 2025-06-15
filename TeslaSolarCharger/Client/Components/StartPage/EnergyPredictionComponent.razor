@@ -120,7 +120,7 @@
             @if (HousePredictionData == default || SolarActualData == default || HouseActualData == default || (SolarPredictionData == default && _isSolarPredictionEnabled))
             {
                 <div class="align-items-center justify-content-center mb-3">
-                    <PlaceholderComponent Count="8"></PlaceholderComponent>
+                    <PlaceholderComponent Height="@ChartHeight"></PlaceholderComponent>
                 </div>
             }
             else
