@@ -1,0 +1,76 @@
+﻿<div style="@GetWrappingDivStyle()">
+    <MudProgressLinear
+        Color="@Color"
+        Striped="@Striped"
+        Size="@Size"
+        Value="@Value"
+        Buffer="@Buffer"
+        BufferValue="@BufferValue"
+        Class="@ProgressBarClass"
+        Style="@ProgressBarStyle" />
+    <div style="@GetValueLabelStyle()">
+        @( $"{ValueLabelPrefix}{Value}{ValueLabelSuffix}" )
+    </div>
+    @if (Buffer)
+    {
+        <div style="@GetBufferLabelStyle()">
+            @( $"{BufferLabelPrefix}{BufferValue}{BufferLabelSuffix}" )
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public double Value { get; set; }
+    [Parameter] public double BufferValue { get; set; }
+    [Parameter] public bool Buffer { get; set; }
+    [Parameter] public Color Color { get; set; } = Color.Primary;
+    [Parameter] public bool Striped { get; set; }
+    [Parameter] public Size Size { get; set; } = Size.Medium;
+    [Parameter] public string? ProgressBarClass { get; set; }
+    [Parameter] public string? ProgressBarStyle { get; set; }
+    [Parameter] public string LabelOffset { get; set; } = "0.1rem";
+    [Parameter] public string BufferLabelOffset { get; set; } = "0.1rem";
+    [Parameter] public string ValueLabelPrefix { get; set; } = string.Empty;
+    [Parameter] public string BufferLabelPrefix { get; set; }= string.Empty;
+    [Parameter] public string ValueLabelSuffix { get; set; } = string.Empty;
+    [Parameter] public string BufferLabelSuffix { get; set; } = string.Empty;
+
+
+    private string GetWrappingDivStyle()
+    {
+        var value = $"position: relative; margin-top: calc({LabelOffset} + 1em);";
+        if (Buffer)
+        {
+            value += $" margin-bottom: calc({BufferLabelOffset} + 1em);";
+        }
+        return value;
+    }
+
+    private string GetValueLabelStyle()
+    {
+        var leftPosition = $"{Value}%";
+        var bottomOffset = $"calc(100% + {LabelOffset})";
+        var styleString =
+            "position: absolute; " +
+            $"left: {leftPosition}; " +
+            "transform: translateX(-50%); " +
+            $"bottom: {bottomOffset}; " +
+            "white-space: nowrap;";
+
+        return styleString;
+    }
+
+    private string GetBufferLabelStyle()
+    {
+        var leftPosition = $"{BufferValue}%";
+        var topOffset = $"calc(100% + {BufferLabelOffset})";
+        var styleString =
+            "position: absolute; " +
+            $"left: {leftPosition}; " +
+            "transform: translateX(-50%); " +
+            $"top: {topOffset}; " +
+            "white-space: nowrap;";
+
+        return styleString;
+    }
+}

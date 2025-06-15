@@ -12,40 +12,51 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
     {
         return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Get, url, null, cancellationToken);
     }
-
     public async Task SendGetRequestWithSnackbarAsync(string url, CancellationToken cancellationToken)
     {
         await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Get, url, null, cancellationToken);
+    }
+    public async Task<Result<T>> SendGetRequestAsync<T>(string url, CancellationToken cancellationToken)
+    {
+        return await SendRequestCoreAsync<T>(HttpMethod.Get, url, null, cancellationToken);
+    }
+    public async Task<Result<object>> SendGetRequestAsync(string url, CancellationToken cancellationToken)
+    {
+        return await SendRequestCoreAsync<object>(HttpMethod.Get, url, null, cancellationToken);
     }
 
     public async Task<T?> SendPostRequestWithSnackbarAsync<T>(string url, object? content, CancellationToken cancellationToken)
     {
         return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Post, url, content, cancellationToken);
     }
-
     public async Task SendPostRequestWithSnackbarAsync(string url, object? content, CancellationToken cancellationToken)
     {
         await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Post, url, content, cancellationToken);
     }
-
-    public async Task<Result<T>> SendGetRequestAsync<T>(string url, CancellationToken cancellationToken)
-    {
-        return await SendRequestCoreAsync<T>(HttpMethod.Get, url, null, cancellationToken);
-    }
-
-    public async Task<Result<object>> SendGetRequestAsync(string url, CancellationToken cancellationToken)
-    {
-        return await SendRequestCoreAsync<object>(HttpMethod.Get, url, null, cancellationToken);
-    }
-
     public async Task<Result<T>> SendPostRequestAsync<T>(string url, object? content, CancellationToken cancellationToken)
     {
         return await SendRequestCoreAsync<T>(HttpMethod.Post, url, content, cancellationToken);
     }
-
     public async Task<Result<object>> SendPostRequestAsync(string url, object? content, CancellationToken cancellationToken)
     {
         return await SendRequestCoreAsync<object>(HttpMethod.Post, url, content, cancellationToken);
+    }
+
+    public async Task<T?> SendDeleteRequestWithSnackbarAsync<T>(string url, CancellationToken cancellationToken)
+    {
+        return await SendRequestWithSnackbarInternalAsync<T>(HttpMethod.Delete, url, null, cancellationToken);
+    }
+    public async Task SendDeleteRequestWithSnackbarAsync(string url, CancellationToken cancellationToken)
+    {
+        await SendRequestWithSnackbarInternalAsync<object>(HttpMethod.Delete, url, null, cancellationToken);
+    }
+    public async Task<Result<T>> SendDeleteRequestAsync<T>(string url, CancellationToken cancellationToken)
+    {
+        return await SendRequestCoreAsync<T>(HttpMethod.Delete, url, null, cancellationToken);
+    }
+    public async Task<Result<object>> SendDeleteRequestAsync(string url, CancellationToken cancellationToken)
+    {
+        return await SendRequestCoreAsync<object>(HttpMethod.Delete, url, null, cancellationToken);
     }
 
     private async Task<T?> SendRequestWithSnackbarInternalAsync<T>(HttpMethod method,
@@ -103,6 +114,10 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
                     System.Text.Encoding.UTF8,
                     "application/json");
                 response = await httpClient.PostAsync(url, jsonContent, cancellationToken);
+            }
+            else if (method == HttpMethod.Delete)
+            {
+                response = await httpClient.DeleteAsync(url, cancellationToken);
             }
             else
             {
