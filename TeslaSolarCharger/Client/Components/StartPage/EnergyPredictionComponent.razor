@@ -120,7 +120,7 @@
             @if (HousePredictionData == default || SolarActualData == default || HouseActualData == default || (SolarPredictionData == default && _isSolarPredictionEnabled))
             {
                 <div class="align-items-center justify-content-center mb-3">
-                    <PlaceholderComponent Count="8"></PlaceholderComponent>
+                    <PlaceholderComponent Height="@ChartHeight"></PlaceholderComponent>
                 </div>
             }
             else
@@ -131,7 +131,8 @@
                                Options="_options"
                                Width="ChartWidth"
                                Height="ChartHeight"
-                               XAxisType="XAxisType.Category"
+                               XAxisType="XAxisType.Numeric"
+                               FormatXAxisLabel="@(arg => arg.ToString("N0"))"
                                @ref="_chart">
                         @if (SolarPredictionData != default)
                         {
