@@ -554,10 +554,10 @@ public class ChargingServiceV2 : IChargingServiceV2
         return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
     }
 
-    private int GetPowerAtPhasesAndCurrent(int connectedPhasesCount, decimal maxCurrent)
+    private int GetPowerAtPhasesAndCurrent(int phases, decimal current)
     {
         var voltage = _settings.AverageHomeGridVoltage ?? 230;
-        return (int)(connectedPhasesCount * maxCurrent * voltage);
+        return (int)(phases * current * voltage);
     }
 
     private async Task<(int powerIncrease, decimal currentIncrease)> ForceSetLoadPointPower(int? carId, int? chargingConnectorId,
@@ -1151,7 +1151,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                     }
 
                     if ((ocppConnectorState.LastSetCurrent.Value > 0)
-                        && (ocppConnectorState.IsCarFullyCharged.Value == true))
+                        && (ocppConnectorState.IsCarFullyCharged.Value == true)
+                        && (ocppConnectorState.LastSetCurrent.Timestamp > ocppConnectorState.IsCarFullyCharged.Timestamp))
                     {
                         _logger.LogTrace("{method} DECISION: Car is fully charged and last set current > 0 - returning (0, 0)", nameof(SetLoadPointPower));
                         _logger.LogTrace("Do not try to start charging as last set Current is greater than 0 and car is fully charged");
