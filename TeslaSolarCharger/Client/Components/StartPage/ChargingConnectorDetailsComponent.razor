@@ -19,14 +19,9 @@ else
         <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnector.IsOcppConnected)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnector.IsPluggedIn)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnector.IsCharging)"></CustomIcon>
-
+        
         @if (CarId != default)
         {
-            <MudAlert Severity="Severity.Info"
-                      NoIcon="true"
-                      ContentAlignment="HorizontalAlignment.Left">
-                As the Charging Connector is matched to a car, the Charge Mode will be set automatically based on the car's settings. If the wrong car has been detected, you can change or remove the car below.
-            </MudAlert>
             <CarSelectorComponent SelectedCarId="SelectedCarId"
                                   OnCarSelected="OnCarSelected"></CarSelectorComponent>
         }
@@ -34,11 +29,6 @@ else
         {
             @if (ChargingConnector.IsPluggedIn)
             {
-                <MudAlert Severity="Severity.Info"
-                          NoIcon="true"
-                          ContentAlignment="HorizontalAlignment.Left">
-                    An unknown car is connected to this charging connector.
-                </MudAlert>
                 <CarSelectorComponent SelectedCarId="SelectedCarId" OnCarSelected="OnCarSelected" />
             }
             <GenericInput T="ChargeModeV2"

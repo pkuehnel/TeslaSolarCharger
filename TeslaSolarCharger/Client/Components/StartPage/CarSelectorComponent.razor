@@ -11,11 +11,9 @@ else
     <GenericInput T="int?"
                   @key="_genericInputKey"
                   For="() => LocalSelectedCarId"
-                  LabelName="Select Car"
+                  LabelName="Connected car"
                   DropDownOptions="_carOptions"
-                  OnValueChanged="OnLocalCarChanged"
-                  PostfixButtonStartIcon="@(LocalSelectedCarId == default ? null : Icons.Material.Filled.CallSplit)"
-                  OnButtonClicked="_ => OnLocalCarChanged(null)"></GenericInput>
+                  OnValueChanged="OnLocalCarChanged"></GenericInput>
 }
 
 @code {
@@ -36,10 +34,10 @@ else
     {
         Logger.LogDebug("OnParametersSet called with SelectedCarId: {SelectedCarId}", SelectedCarId);
         base.OnParametersSet();
-        if (LocalSelectedCarId != SelectedCarId)
+        if (LocalSelectedCarId != (SelectedCarId ?? 0))
         {
             Logger.LogDebug("Updating LocalSelectedCarId from parameter: {SelectedCarId}", SelectedCarId);
-            LocalSelectedCarId = SelectedCarId;
+            LocalSelectedCarId = SelectedCarId ?? 0;
             _genericInputKey = Guid.NewGuid();
             StateHasChanged();
         }
@@ -54,8 +52,9 @@ else
     private async Task OnLocalCarChanged(int? newCarId)
     {
         Logger.LogTrace("{method}({newCarId})", nameof(OnLocalCarChanged), newCarId);
-        LocalSelectedCarId = newCarId;
-        await OnCarSelected.InvokeAsync(newCarId);
+        LocalSelectedCarId = newCarId ?? 0;
+        var carIdToInvoke = newCarId == 0 ? null : newCarId;
+        await OnCarSelected.InvokeAsync(carIdToInvoke);
     }
 
 }
