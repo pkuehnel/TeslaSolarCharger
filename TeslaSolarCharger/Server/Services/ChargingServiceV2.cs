@@ -166,6 +166,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
+        OptimizeChargingSwitchTimes(chargingSchedules, loadPointsToManage, currentDate);
 
         _settings.ChargingSchedules = new ConcurrentBag<DtoChargingSchedule>(chargingSchedules);
 
@@ -273,6 +274,69 @@ public class ChargingServiceV2 : IChargingServiceV2
             maxAdditionalCurrent -= result.currentIncrease;
         }
         _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings();
+    }
+
+    private void OptimizeChargingSwitchTimes(List<DtoChargingSchedule> chargingSchedules,
+        List<DtoLoadPointOverview> loadPointsToManage, DateTimeOffset currentDate)
+    {
+        _logger.LogTrace("{method}({chargingSchedules}, {loadpointsToManage})", nameof(OptimizeChargingSwitchTimes), chargingSchedules, loadPointsToManage);
+        var timespanToCombineCharges = TimeSpan.FromMinutes(20);
+        foreach (var dtoLoadPointOverview in loadPointsToManage)
+        {
+            if ((!(dtoLoadPointOverview.ChargingPower > 0))
+                || (dtoLoadPointOverview.ActualPhases == default)
+                || (dtoLoadPointOverview.MinCurrent == default))
+            {
+                continue;
+            }
+            var correspondingChargingSchedules = chargingSchedules
+                .Where(c => c.CarId == dtoLoadPointOverview.CarId
+                            && c.OccpChargingConnectorId == dtoLoadPointOverview.ChargingConnectorId)
+                .OrderBy(c => c.ValidFrom)
+                .ToList();
+            if (correspondingChargingSchedules.Count < 1)
+            {
+                continue;
+            }
+
+            var nextChargingSchedule = correspondingChargingSchedules.First();
+            if (nextChargingSchedule.ValidFrom <= currentDate)
+            {
+                continue;
+            }
+            if (nextChargingSchedule.ValidFrom > currentDate.Add(timespanToCombineCharges))
+            {
+                continue;
+            }
+            _logger.LogDebug("Less than {minium time} until next charging schedule {@nextChargingSchedule}. Bridge time with minimum power.", timespanToCombineCharges, nextChargingSchedule);
+            var addedTime = nextChargingSchedule.ValidFrom - currentDate;
+            var minPower = GetPowerAtPhasesAndCurrent(dtoLoadPointOverview.ActualPhases.Value, dtoLoadPointOverview.MinCurrent.Value);
+            var addedEnergy = addedTime.TotalHours * minPower;
+            var nextChargingScheduleDuration = nextChargingSchedule.ValidTo - nextChargingSchedule.ValidFrom;
+            var powerToReduce = addedEnergy / nextChargingScheduleDuration.TotalHours;
+            var resultingPower = nextChargingSchedule.ChargingPower - powerToReduce;
+            if (resultingPower < minPower)
+            {
+                _logger.LogDebug("Resulting power {resultingPower} is below minimum power {minPower}. Using minimum power.", resultingPower, minPower);
+                nextChargingSchedule.ChargingPower = minPower;
+            }
+            else
+            {
+                _logger.LogDebug("Setting resulting power to {resultingPower}", resultingPower);
+                nextChargingSchedule.ChargingPower = (int)resultingPower;
+            }
+
+            var bridgeChargingSchedule = new DtoChargingSchedule(dtoLoadPointOverview.CarId, dtoLoadPointOverview.ChargingConnectorId)
+            {
+                ValidFrom = currentDate,
+                ValidTo = nextChargingSchedule.ValidFrom,
+                ChargingPower = minPower,
+            };
+            _logger.LogDebug("Adding bridge charging schedule {@bridgeChargingSchedule}", bridgeChargingSchedule);
+            chargingSchedules.Add(bridgeChargingSchedule);
+        }
+
+
     }
 
     private async Task SetCurrentOfNonChargingTeslasToMax()

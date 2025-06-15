@@ -133,6 +133,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             {
                 var databaseCar = carData.First(c => c.Id == pair.CarId);
                 loadPoint.MaxCurrent = databaseCar.MaxCurrent;
+                loadPoint.MinCurrent = databaseCar.MinCurrent;
 
                 var dtoCar = _settings.Cars.First(c => c.Id == pair.CarId.Value);
                 loadPoint.ActualCurrent = dtoCar.ChargerActualCurrent;
@@ -150,6 +151,10 @@ public class LoadPointManagementService : ILoadPointManagementService
                 if ((loadPoint.MaxCurrent == null) || (loadPoint.MaxCurrent > databaseConnector.MaxCurrent))
                 {
                     loadPoint.MaxCurrent = databaseConnector.MaxCurrent;
+                }
+                if ((loadPoint.MinCurrent == null) || (loadPoint.MinCurrent < databaseConnector.MinCurrent))
+                {
+                    loadPoint.MinCurrent = databaseConnector.MinCurrent;
                 }
                 if ((loadPoint.MaxPhases == null) || (loadPoint.MaxPhases < databaseConnector.MaxPhases))
                 {

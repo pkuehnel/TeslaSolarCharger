@@ -6,6 +6,7 @@ public class DtoLoadPointOverview
     public int? ChargingConnectorId { get; set; }
     public decimal? ActualCurrent { get; set; }
     public int? MaxCurrent { get; set; }
+    public int? MinCurrent { get; set; }
     public int? ActualPhases { get; set; }
     public int? MaxPhases { get; set; }
     public int? ChargingPower { get; set; }
