@@ -19,7 +19,7 @@ else
         <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnector.IsOcppConnected)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnector.IsPluggedIn)"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnector.IsCharging)"></CustomIcon>
-
+        
         @if (CarId != default)
         {
             <CarSelectorComponent SelectedCarId="SelectedCarId"
@@ -29,11 +29,6 @@ else
         {
             @if (ChargingConnector.IsPluggedIn)
             {
-                <MudAlert Severity="Severity.Info"
-                          NoIcon="true"
-                          ContentAlignment="HorizontalAlignment.Left">
-                    An unknown car is connected to this charging connector.
-                </MudAlert>
                 <CarSelectorComponent SelectedCarId="SelectedCarId" OnCarSelected="OnCarSelected" />
             }
             <GenericInput T="ChargeModeV2"
