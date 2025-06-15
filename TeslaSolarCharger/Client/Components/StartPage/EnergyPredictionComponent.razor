@@ -131,7 +131,8 @@
                                Options="_options"
                                Width="ChartWidth"
                                Height="ChartHeight"
-                               XAxisType="XAxisType.Category"
+                               XAxisType="XAxisType.Numeric"
+                               FormatXAxisLabel="@(arg => arg.ToString("N0"))"
                                @ref="_chart">
                         @if (SolarPredictionData != default)
                         {
