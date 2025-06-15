@@ -10,6 +10,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -19,19 +20,19 @@ public class HomeService : IHomeService
     private readonly ITeslaSolarChargerContext _context;
     private readonly ISettings _settings;
     private readonly IOcppChargePointActionService _ocppChargePointActionService;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IConstants _constants;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
         IOcppChargePointActionService ocppChargePointActionService,
-        IDateTimeProvider dateTimeProvider)
+        IConstants constants)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
         _ocppChargePointActionService = ocppChargePointActionService;
-        _dateTimeProvider = dateTimeProvider;
+        _constants = constants;
     }
 
     public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
@@ -189,7 +190,15 @@ public class HomeService : IHomeService
     public Dictionary<int, string> GetLoadPointCarOptions()
     {
         _logger.LogTrace("{method}()", nameof(GetLoadPointCarOptions));
-        return _settings.CarsToManage.ToDictionary(c => c.Id, c => c.Name ?? c.Vin);
+        var result = new Dictionary<int, string>
+        {
+            [0] = _constants.UnknownCarName,
+        };
+        foreach (var managedCar in _settings.CarsToManage.OrderBy(car => car.ChargingPriority))
+        {
+            result[managedCar.Id] = managedCar.Name ?? managedCar.Vin;
+        }
+        return result;
     }
 
     public async Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
