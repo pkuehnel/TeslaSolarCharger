@@ -1012,7 +1012,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                 if ((carChargeMode == ChargeModeV2.Auto)
                     && (car!.ShouldStartCharging.Value == true)
                     && (isShouldStartChargingRelevant)
-                    && !(car.SoC > (car.SocLimit - _constants.MinimumSocDifference)))
+                    && (!(car.SoC > (car.SocLimit - _constants.MinimumSocDifference)))
+                    && (!(car.SoC >= maxSoc)))
                 {
                     _logger.LogTrace("{method} DECISION: Should start charging (car) - calculating current", nameof(SetLoadPointPower));
 
@@ -1056,10 +1057,17 @@ public class ChargingServiceV2 : IChargingServiceV2
                     if (car.SoC > (car.SocLimit - _constants.MinimumSocDifference))
                     {
                         _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Car SoC needs to be at least {_constants.MinimumSocDifference}% below car side Soc limit to start charging."));
+                        return (0, 0);
                     }
                     else if (car.ShouldStartCharging.Value == true)
                     {
                         _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Waiting {timeSpanUntilSwitchOn} with enough power to start charging until ", relevantAt));
+                        return (0, 0);
+                    }
+                    else if (car.SoC >= maxSoc)
+                    {
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Car Soc ({car.SoC}%) reached configured max soc ({maxSoc}%)"));
+                        return (0, 0);
                     }
                 }
                 _logger.LogTrace("{method} DECISION: Should not start charging (car) - conditions not met", nameof(SetLoadPointPower));
