@@ -182,6 +182,11 @@ public class ChargingServiceV2 : IChargingServiceV2
                 _logger.LogDebug("Skipping charging schedule {@chargingSchedule} as is only placeholder and car should charge with solar power", activeChargingSchedule);
                 continue;
             }
+            if(powerToControl > activeChargingSchedule.ChargingPower)
+            {
+                _logger.LogDebug("Skipping charging schedule {@chargingSchedule} as power to control {powerToControl} is higher than charging power {chargingPower}, so ignore charging schedule but charge with solar power.", activeChargingSchedule, powerToControl, activeChargingSchedule.ChargingPower);
+                continue;
+            }
 
             if (activeChargingSchedule.CarId != default)
             {
