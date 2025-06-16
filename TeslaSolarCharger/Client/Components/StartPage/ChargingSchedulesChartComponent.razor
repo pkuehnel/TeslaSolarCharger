@@ -1,0 +1,14 @@
+﻿@using TeslaSolarCharger.Server.Dtos.ChargingServiceV2
+
+
+
+@code {
+    [Parameter]
+    public List<DtoChargingSchedule>? ChargingSchedules { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+    }
+}
