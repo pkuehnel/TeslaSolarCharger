@@ -188,4 +188,16 @@ public class HomeService : IHomeService
             _snackbar.Add(result.ErrorMessage ?? "Unknown error", Severity.Error);
         }
     }
+
+    public async Task<Dictionary<DateTimeOffset, decimal>> GetGridPrices(DateTimeOffset from, DateTimeOffset to)
+    {
+        _logger.LogTrace("{method}({from}, {to})", nameof(GetGridPrices), from, to);
+        var result = await _httpClientHelper.SendGetRequestAsync<Dictionary<DateTimeOffset, decimal>>($"api/Home/GetGridPrices?from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.ToString("o"))}");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+            return new Dictionary<DateTimeOffset, decimal>();
+        }
+        return result.Data ?? new Dictionary<DateTimeOffset, decimal>();
+    }
 }
