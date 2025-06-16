@@ -6,7 +6,7 @@ using TeslaSolarCharger.Client.Helper.Contracts;
 
 namespace TeslaSolarCharger.Client.Helper;
 
-public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialogHelper dialogHelper) : IHttpClientHelper
+public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpClient, ISnackbar snackbar, IDialogHelper dialogHelper) : IHttpClientHelper
 {
     public async Task<T?> SendGetRequestWithSnackbarAsync<T>(string url, CancellationToken cancellationToken)
     {
@@ -63,6 +63,8 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
         string url,
         object? content, CancellationToken cancellationToken)
     {
+        logger.LogTrace("{method}<{type}>({httpMethod}, {url}, {objectIsNull})", nameof(SendRequestWithSnackbarInternalAsync),
+            typeof(T).ToString(), method, url, content == null);
         try
         {
             var result = await SendRequestCoreAsync<T>(method, url, content, cancellationToken);
@@ -99,6 +101,8 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
         object? content,
         CancellationToken cancellationToken)
     {
+        logger.LogTrace("{method}<{type}>({httpMethod}, {url}, {objectIsNull})", nameof(SendRequestCoreAsync),
+            typeof(T).ToString(), method, url, content == null);
         try
         {
             HttpResponseMessage response;
@@ -121,6 +125,7 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
             }
             else
             {
+                logger.LogError("Unsupported HTPP method {method}", method);
                 return new Result<T>(default, $"Unsupported HTTP method: {method}", null);
             }
 
@@ -158,11 +163,13 @@ public class HttpClientHelper(HttpClient httpClient, ISnackbar snackbar, IDialog
         }
         catch (HttpRequestException ex)
         {
+            logger.LogError(ex, "Network error while calling {url}", url);
             var message = $"{url}: Network error: {ex.Message}";
             return new Result<T>(default, message, null);
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Unexpected error while calling {url}", url);
             var message = $"{url}: Unexpected error: {ex.Message}";
             return new Result<T>(default, message, null);
         }

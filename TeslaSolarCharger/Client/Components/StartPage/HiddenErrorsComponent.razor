@@ -6,6 +6,7 @@
 @implements IDisposable
 @inject ISnackbar Snackar
 @inject IHttpClientHelper HttpClientHelper
+@inject ILogger<LoggedErrorsComponent> Logger
 
 
 @if (_errors == default)
@@ -77,7 +78,14 @@ else
 
     private async Task RefreshErrors()
     {
-        _errors = await HttpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoHiddenError>>("api/LoggedErrors/GetHiddenErrors");
+        var result = await HttpClientHelper.SendGetRequestAsync<List<DtoHiddenError>>("api/LoggedErrors/GetHiddenErrors");
+        if (result.HasError)
+        {
+            Logger.LogError("Could not refresh active logged errors: {errorMessage}", result.ErrorMessage);
+            _errors = default;
+            return;
+        }
+        _errors = result.Data;
         await InvokeAsync(StateHasChanged);
     }
 
