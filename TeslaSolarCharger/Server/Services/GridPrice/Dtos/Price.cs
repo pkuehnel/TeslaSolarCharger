@@ -1,5 +1,4 @@
-﻿using TeslaSolarCharger.Server.Dtos;
-using TeslaSolarCharger.Shared.Dtos;
+﻿using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 
