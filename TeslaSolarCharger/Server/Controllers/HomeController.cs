@@ -159,6 +159,13 @@ public class HomeController : ApiBaseController
         return Ok();
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetGridPrices(DateTimeOffset from, DateTimeOffset to)
+    {
+        var result = await _homeService.GetGridPrices(from, to);
+        return Ok(result);
+    }
+
     //[HttpGet]
     //public async Task<IActionResult> GetChargingSchedulesForLoadPoint(int? carId, int? chargingConnectorId)
     //{

@@ -1,6 +1,7 @@
 ﻿@using ApexCharts
 @using TeslaSolarCharger.Client.Dtos
 @using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Server.Dtos.ChargingServiceV2
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
@@ -9,6 +10,7 @@
 @inject IChartWidthCalculator ChartWidthCalculator
 @inject IDateTimeProvider DateTimeProvider
 @inject IConstants Constants
+@inject IHomeService HomeService
 
 @implements IDisposable
 
@@ -21,7 +23,7 @@
            FormatXAxisLabel="@(arg => arg.ToString("N0"))"
            FormatYAxisLabel="@(arg => arg.ToString("F1"))"
            @ref="_chart">
-           
+
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
                      Items="_chargingValues"
                      Name="@($"Scheduled Energy ({(_chargingValues.Sum(v => v.Value)).ToString("F1")} kWh)")"
@@ -31,7 +33,7 @@
                      Color="@Constants.PrimaryColor" />
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
-                     Items="_chargingValues"
+                     Items="_gridPriceValues"
                      Name="@("Grid Price per kWh)")"
                      SeriesType="SeriesType.Line"
                      XValue="@(e => e.Key)"
@@ -48,6 +50,7 @@
     private string ChartHeight { get; set; } = "400px";
     private ApexChartOptions<DtoChartValue<string, decimal>>? _options;
     private List<DtoChartValue<string, decimal>> _chargingValues = new();
+    private List<DtoChartValue<string, decimal>> _gridPriceValues = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,7 +83,7 @@
                 },
             },
 
-        ];
+    ];
         _options = options;
     }
 
@@ -88,6 +91,24 @@
     {
         await base.OnParametersSetAsync();
         await UpdateChargingValues();
+        await UpdateGridPriceValues();
+    }
+
+    private async Task UpdateGridPriceValues()
+    {
+        var chartStartDate = GetChartStartDate();
+        var chartEndDate = GetChartEndDate(chartStartDate);
+        var dictionary = await HomeService.GetGridPrices(chartStartDate, chartEndDate);
+        var result = new List<DtoChartValue<string, decimal>>();
+        foreach (var kvp in dictionary)
+        {
+            result.Add(new DtoChartValue<string, decimal>(kvp.Key.ToLocalTime().ToString("HH"), kvp.Value));
+        }
+        _gridPriceValues = result;
+        if (_chart != default)
+        {
+            await _chart.UpdateSeriesAsync();
+        }
     }
 
     private async Task UpdateChargingValues()
@@ -95,17 +116,34 @@
 
         _chargingValues = new List<DtoChartValue<string, decimal>>();
         var random = new Random();
-        var currentDate = DateTimeProvider.DateTimeOffSetUtcNow();
-        var currentHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, TimeSpan.Zero);
-        for (var i = 0; i < 15; i++)
+        var chartStartDate = GetChartStartDate();
+        var chartEndDate = GetChartEndDate(chartStartDate);
+        for (var i = 0; i < GetChartDurationHours(); i++)
         {
-            _chargingValues.Add(new DtoChartValue<string, decimal>(currentHour.AddHours(i).ToLocalTime().ToString("HH"), (random.Next(0, 12000) /(decimal) 1000)));
+            _chargingValues.Add(new DtoChartValue<string, decimal>(chartStartDate.AddHours(i).ToLocalTime().ToString("HH"), (random.Next(0, 12000) / (decimal)1000)));
         }
 
         if (_chart != default)
         {
             await _chart.UpdateSeriesAsync();
         }
+    }
+
+    private DateTimeOffset GetChartEndDate(DateTimeOffset startDate)
+    {
+        return startDate.AddHours(GetChartDurationHours());
+    }
+
+    private DateTimeOffset GetChartStartDate()
+    {
+        var currentDate = DateTimeProvider.DateTimeOffSetUtcNow();
+        var currentHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, TimeSpan.Zero);
+        return currentHour;
+    }
+
+    private int GetChartDurationHours()
+    {
+        return 15;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
