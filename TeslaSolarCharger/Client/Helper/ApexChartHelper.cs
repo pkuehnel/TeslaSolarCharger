@@ -47,11 +47,6 @@ public class ApexChartHelper : IApexChartHelper
                 HorizontalAlign = ApexCharts.Align.Center,
                 Floating = false,
             },
-            Xaxis = new XAxis()
-            {
-                Max = 23,
-            },
-
         };
     }
 }
