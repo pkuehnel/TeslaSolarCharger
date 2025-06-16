@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using System.Security.Cryptography.X509Certificates;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -21,18 +23,21 @@ public class HomeService : IHomeService
     private readonly ISettings _settings;
     private readonly IOcppChargePointActionService _ocppChargePointActionService;
     private readonly IConstants _constants;
+    private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
         IOcppChargePointActionService ocppChargePointActionService,
-        IConstants constants)
+        IConstants constants,
+        ITscOnlyChargingCostService tscOnlyChargingCostService)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
         _ocppChargePointActionService = ocppChargePointActionService;
         _constants = constants;
+        _tscOnlyChargingCostService = tscOnlyChargingCostService;
     }
 
     public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
@@ -200,6 +205,57 @@ public class HomeService : IHomeService
             result[managedCar.Id] = managedCar.Name ?? managedCar.Vin;
         }
         return result;
+    }
+
+    public async Task<Dictionary<DateTimeOffset, decimal>> GetGridPrices(DateTimeOffset from, DateTimeOffset to)
+    {
+        _logger.LogTrace("{method}({from}, {to})", nameof(GetGridPrices), from, to);
+        var startOfFirstHour = new DateTimeOffset(from.Year, from.Month, from.Day, from.Hour, 0, 0, from.Offset);
+        var gridPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(startOfFirstHour, to).ConfigureAwait(false);
+        var hours = (int)Math.Ceiling((to - from).TotalHours);
+        var hourlyAverageGridPrices = new Dictionary<DateTimeOffset, decimal>();
+        for (var hourOffset = 0; hourOffset <= hours; hourOffset++)
+        {
+            var currentHourStart = startOfFirstHour.AddHours(hourOffset);
+            var currentHourEnd = currentHourStart.AddHours(1);
+            var overlappingEntries = gridPrices
+                .Where(entry => entry.ValidFrom < currentHourEnd && entry.ValidTo > currentHourStart).ToList();
+            if (!overlappingEntries.Any())
+            {
+                hourlyAverageGridPrices[currentHourStart] = default;
+            }
+            else
+            {
+                var weightedSum = overlappingEntries.Sum(entry =>
+                {
+                    var overlapStart = entry.ValidFrom > currentHourStart
+                        ? entry.ValidFrom
+                        : currentHourStart;
+                    var overlapEnd = entry.ValidTo < currentHourEnd
+                        ? entry.ValidTo
+                        : currentHourEnd;
+                    var overlapHours = (overlapEnd - overlapStart).TotalHours;
+                    return entry.GridPrice * (decimal)overlapHours;
+                });
+
+                // compute total overlap duration in hours
+                var totalOverlapHours = overlappingEntries.Sum(entry =>
+                {
+                    var overlapStart = entry.ValidFrom > currentHourStart
+                        ? entry.ValidFrom
+                        : currentHourStart;
+                    var overlapEnd = entry.ValidTo < currentHourEnd
+                        ? entry.ValidTo
+                        : currentHourEnd;
+                    return (decimal)(overlapEnd - overlapStart).TotalHours;
+                });
+
+                // weighted average = sum(price * hours) / total hours
+                hourlyAverageGridPrices[currentHourStart] =
+                    weightedSum / totalOverlapHours;
+            }
+        }
+        return hourlyAverageGridPrices;
     }
 
     public async Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
