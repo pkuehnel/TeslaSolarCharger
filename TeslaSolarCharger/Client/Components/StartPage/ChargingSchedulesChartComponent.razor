@@ -127,7 +127,7 @@
     {
         var chartStartDate = GetChartStartDate();
         var chartEndDate = GetChartEndDate(chartStartDate);
-        var dictionary = ValidFromToHelper.GetHourlyAverages(ChargingSchedules ?? new(), chartStartDate, chartEndDate, x => x.ChargingPower);
+        var dictionary = ValidFromToHelper.GetHourlyAverages(ChargingSchedules ?? new(), chartStartDate, chartEndDate, x => x.ChargingPower, true);
         var result = new List<DtoChartValue<string, decimal>>();
         var chartDurationHours = GetChartDurationHours();
         for (var i = 0; i < chartDurationHours; i++)
