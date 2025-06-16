@@ -1,4 +1,5 @@
 ﻿@using ApexCharts
+@using Microsoft.AspNetCore.Http.Features
 @using TeslaSolarCharger.Client.Dtos
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
@@ -33,6 +34,7 @@
                      XValue="@(e => e.Key)"
                      YValue="@(e => (decimal?)e.Value)"
                      Color="@Constants.PrimaryColor" />
+
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
                      Items="_gridPriceValues"
@@ -103,9 +105,16 @@
         var chartEndDate = GetChartEndDate(chartStartDate);
         var dictionary = await HomeService.GetGridPrices(chartStartDate, chartEndDate);
         var result = new List<DtoChartValue<string, decimal>>();
-        foreach (var kvp in dictionary)
+        var chartDurationHours = GetChartDurationHours();
+        for (var i = 0; i < chartDurationHours; i++)
         {
-            result.Add(new DtoChartValue<string, decimal>(kvp.Key.ToLocalTime().ToString("HH"), kvp.Value));
+            var currentHour = chartStartDate.AddHours(i);
+            var chartValue = new DtoChartValue<string, decimal>(currentHour.ToLocalTime().ToString("HH"), 0);
+            if (dictionary.TryGetValue(currentHour, out var value))
+            {
+                chartValue.Value = value;
+            }
+            result.Add(chartValue);
         }
         _gridPriceValues = result;
         if (_chart != default)
@@ -118,20 +127,18 @@
     {
         var chartStartDate = GetChartStartDate();
         var chartEndDate = GetChartEndDate(chartStartDate);
-        if (ChargingSchedules == default)
-        {
-            _chargingValues = new();
-            if (_chart != default)
-            {
-                await _chart.UpdateSeriesAsync();
-            }
-            return;
-        }
-        var dictionary = ValidFromToHelper.GetHourlyAverages(ChargingSchedules, chartStartDate, chartEndDate, x => x.ChargingPower);
+        var dictionary = ValidFromToHelper.GetHourlyAverages(ChargingSchedules ?? new(), chartStartDate, chartEndDate, x => x.ChargingPower);
         var result = new List<DtoChartValue<string, decimal>>();
-        foreach (var kvp in dictionary)
+        var chartDurationHours = GetChartDurationHours();
+        for (var i = 0; i < chartDurationHours; i++)
         {
-            result.Add(new DtoChartValue<string, decimal>(kvp.Key.ToLocalTime().ToString("HH"), kvp.Value));
+            var currentHour = chartStartDate.AddHours(i);
+            var chartValue = new DtoChartValue<string, decimal>(currentHour.ToLocalTime().ToString("HH"), 0);
+            if (dictionary.TryGetValue(currentHour, out var value))
+            {
+                chartValue.Value = value;
+            }
+            result.Add(chartValue);
         }
         _chargingValues = result;
         if (_chart != default)
