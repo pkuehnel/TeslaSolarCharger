@@ -214,7 +214,7 @@ public class HomeService : IHomeService
         _logger.LogTrace("{method}({from}, {to})", nameof(GetGridPrices), from, to);
         var startOfFirstHour = new DateTimeOffset(from.Year, from.Month, from.Day, from.Hour, 0, 0, from.Offset);
         var gridPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(startOfFirstHour, to).ConfigureAwait(false);
-        var hourlyAverageGridPrices = _validFromToHelper.GetHourlyAverages(gridPrices, from, to, price => price.GridPrice);
+        var hourlyAverageGridPrices = _validFromToHelper.GetHourlyAverages(gridPrices, from, to, price => price.GridPrice, false);
         return hourlyAverageGridPrices;
     }
 

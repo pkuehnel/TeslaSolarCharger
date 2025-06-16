@@ -9,7 +9,8 @@ public class ValidFromToHelper : IValidFromToHelper
         IEnumerable<T> entries,
         DateTimeOffset from,
         DateTimeOffset to,
-        Func<T, decimal> valueSelector
+        Func<T, decimal> valueSelector,
+        bool treatNonOverlappingAsZero
     ) where T : ValidFromToBase
     {
         var startOfFirstHour = new DateTimeOffset(
@@ -52,7 +53,7 @@ public class ValidFromToHelper : IValidFromToHelper
                     return valueSelector(entry) * (decimal)overlapDurationHours;
                 });
 
-                var totalOverlapHours = overlappingEntries.Sum(entry =>
+                var totalOverlapHours = treatNonOverlappingAsZero ? 1 : overlappingEntries.Sum(entry =>
                 {
                     var overlapStartTime = entry.ValidFrom > hourStart
                         ? entry.ValidFrom
@@ -63,7 +64,7 @@ public class ValidFromToHelper : IValidFromToHelper
                     return (decimal)(overlapEndTime - overlapStartTime).TotalHours;
                 });
 
-                hourlyAverages[hourStart] = weightedSum / 1;
+                hourlyAverages[hourStart] = weightedSum / totalOverlapHours;
             }
         }
 
