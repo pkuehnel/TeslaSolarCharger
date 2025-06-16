@@ -6,7 +6,8 @@
 
 @implements IDisposable
 @inject ISnackbar Snackar
-@inject IHttpClientHelper HttpClient
+@inject IHttpClientHelper HttpClientHelper
+@inject ILogger<LoggedErrorsComponent> Logger
 
 
 @if (_errors == default)
@@ -75,7 +76,14 @@ else
 
     private async Task RefreshErrors()
     {
-        _errors = await HttpClient.SendGetRequestWithSnackbarAsync<List<DtoLoggedError>>("api/LoggedErrors/GetActiveLoggedErrors");
+        var result = await HttpClientHelper.SendGetRequestAsync<List<DtoLoggedError>>("api/LoggedErrors/GetActiveLoggedErrors");
+        if (result.HasError)
+        {
+            Logger.LogError("Could not refresh active logged errors: {errorMessage}", result.ErrorMessage);
+            _errors = default;
+            return;
+        }
+        _errors = result.Data;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -86,7 +94,7 @@ else
 
     private async Task DismissError(int errorId)
     {
-        var idToRemove = await HttpClient.SendPostRequestWithSnackbarAsync<DtoValue<int>>("api/LoggedErrors/DismissError", new DtoValue<int>(errorId));
+        var idToRemove = await HttpClientHelper.SendPostRequestWithSnackbarAsync<DtoValue<int>>("api/LoggedErrors/DismissError", new DtoValue<int>(errorId));
         if (_errors == default || idToRemove == default)
         {
             return;
