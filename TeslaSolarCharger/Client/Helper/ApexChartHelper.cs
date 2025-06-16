@@ -15,15 +15,6 @@ public class ApexChartHelper : IApexChartHelper
                 {
                     Show = false,
                 },
-                DropShadow = new DropShadow
-                {
-                    Enabled = true,
-                    Color = "",
-                    Top = 18,
-                    Left = 7,
-                    Blur = 10,
-                    Opacity = 0.2d,
-                },
                 Zoom = new Zoom
                 {
                     Enabled = false,
@@ -38,8 +29,6 @@ public class ApexChartHelper : IApexChartHelper
                     Opacity = 0.5d,
                 },
             },
-
-            Markers = new Markers { Shape = ShapeEnum.Circle, Size = 5, FillOpacity = new Opacity(0.8d), },
             Stroke = new Stroke { Curve = Curve.Smooth },
             Legend = new Legend
             {
