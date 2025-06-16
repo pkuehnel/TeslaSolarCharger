@@ -22,7 +22,6 @@
            Options="_options"
            Width="@ChartWidthCalculator.ChartWidth"
            Height="ChartHeight"
-           XAxisType="XAxisType.Category"
            FormatXAxisLabel="@(arg => arg.ToString("N0"))"
            FormatYAxisLabel="@(arg => arg.ToString("N0"))"
            @ref="_chart">
@@ -72,6 +71,11 @@
                         Color = Constants.PrimaryColor,
                     },
                 },
+                Crosshairs = new AxisCrosshairs()
+                {
+                    Show = true,
+                },
+                DecimalsInFloat = 2,
                 Min = 0,
             },
 
@@ -86,9 +90,14 @@
                         Color = Constants.SecondaryColor,
                     },
                 },
+                DecimalsInFloat = 4,
                 Min = 0,
             },
         ];
+        options.Xaxis = new XAxis()
+        {
+            Type = XAxisType.Category,
+        };
         _options = options;
         await UpdateGridPriceValues();
     }
