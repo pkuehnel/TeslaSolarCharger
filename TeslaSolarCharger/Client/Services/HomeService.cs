@@ -31,7 +31,6 @@ public class HomeService : IHomeService
         if (result.HasError)
         {
             _logger.LogError(result.ErrorMessage);
-            _snackbar.Add("Error while getting Loadpoint overviews", Severity.Error);
             return null;
         }
         return result.Data;
