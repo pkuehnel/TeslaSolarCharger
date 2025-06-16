@@ -4,6 +4,7 @@
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Server.Dtos.ChargingServiceV2
 @using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IApexChartHelper ApexChartHelper
@@ -11,6 +12,7 @@
 @inject IDateTimeProvider DateTimeProvider
 @inject IConstants Constants
 @inject IHomeService HomeService
+@inject IValidFromToHelper ValidFromToHelper
 
 @implements IDisposable
 
@@ -21,7 +23,7 @@
            Height="ChartHeight"
            XAxisType="XAxisType.Category"
            FormatXAxisLabel="@(arg => arg.ToString("N0"))"
-           FormatYAxisLabel="@(arg => arg.ToString("F1"))"
+           FormatYAxisLabel="@(arg => arg.ToString("N0"))"
            @ref="_chart">
 
     <ApexPointSeries TItem="DtoChartValue<string, decimal>"
@@ -37,7 +39,7 @@
                      Name="@("Grid Price per kWh)")"
                      SeriesType="SeriesType.Line"
                      XValue="@(e => e.Key)"
-                     YValue="@(e => (decimal?)e.Value / 10)"
+                     YValue="@(e => (decimal?)e.Value)"
                      Color="@Constants.SecondaryColor" />
 
 </ApexChart>
@@ -68,6 +70,7 @@
                         Color = Constants.PrimaryColor,
                     },
                 },
+                Min = 0,
             },
 
             new YAxis()
@@ -81,6 +84,7 @@
                         Color = Constants.SecondaryColor,
                     },
                 },
+                Min = 0,
             },
         ];
         _options = options;
@@ -112,16 +116,24 @@
 
     private async Task UpdateChargingValues()
     {
-
-        _chargingValues = new List<DtoChartValue<string, decimal>>();
-        var random = new Random();
         var chartStartDate = GetChartStartDate();
         var chartEndDate = GetChartEndDate(chartStartDate);
-        for (var i = 0; i < GetChartDurationHours(); i++)
+        if (ChargingSchedules == default)
         {
-            _chargingValues.Add(new DtoChartValue<string, decimal>(chartStartDate.AddHours(i).ToLocalTime().ToString("HH"), (random.Next(0, 12000) / (decimal)1000)));
+            _chargingValues = new();
+            if (_chart != default)
+            {
+                await _chart.UpdateSeriesAsync();
+            }
+            return;
         }
-
+        var dictionary = ValidFromToHelper.GetHourlyAverages(ChargingSchedules, chartStartDate, chartEndDate, x => x.ChargingPower);
+        var result = new List<DtoChartValue<string, decimal>>();
+        foreach (var kvp in dictionary)
+        {
+            result.Add(new DtoChartValue<string, decimal>(kvp.Key.ToLocalTime().ToString("HH"), kvp.Value));
+        }
+        _chargingValues = result;
         if (_chart != default)
         {
             await _chart.UpdateSeriesAsync();
