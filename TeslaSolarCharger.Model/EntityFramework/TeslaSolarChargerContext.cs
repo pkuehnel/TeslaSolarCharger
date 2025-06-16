@@ -173,6 +173,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .Property(m => m.TargetDate)
             .HasConversion(dateOnlyToEpochMilliSecondsConverter);
 
+        modelBuilder.Entity<CarChargingTarget>()
+            .Property(m => m.LastFulFilled)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
         modelBuilder.Entity<LoggedError>()
             .Property(e => e.FurtherOccurrences)
             .HasConversion(timeListToStringValueConverter)
