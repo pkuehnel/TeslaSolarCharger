@@ -158,6 +158,7 @@ public class HomeService : IHomeService
         dbValue.RepeatOnSaturdays = dto.RepeatOnSaturdays;
         dbValue.RepeatOnSundays = dto.RepeatOnSundays;
         dbValue.ClientTimeZone = dto.ClientTimeZone;
+        dbValue.LastFulFilled = null;
         await _context.SaveChangesAsync();
         return new(dbValue.Id, null, null);
     }

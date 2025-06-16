@@ -8,6 +8,7 @@ public class CarChargingTarget
     public int TargetSoc { get; set; }
     public DateOnly? TargetDate { get; set; }
     public TimeOnly TargetTime { get; set; }
+    public DateTimeOffset? LastFulFilled { get; set; }
 
     public bool RepeatOnMondays { get; set; }
     public bool RepeatOnTuesdays { get; set; }

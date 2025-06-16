@@ -131,10 +131,11 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
+        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
         var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
         var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), _notChargingWithExpectedPowerReasonHelper, cancellationToken).ConfigureAwait(false);
         var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
-        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var earliestAmpChange = currentDate - skipValueChanges;
         foreach (var chargingLoadPoint in chargingLoadPoints)
         {
@@ -181,7 +182,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                 _logger.LogDebug("Skipping charging schedule {@chargingSchedule} as is only placeholder and car should charge with solar power", activeChargingSchedule);
                 continue;
             }
-            if(powerToControl > activeChargingSchedule.ChargingPower)
+            if (powerToControl > activeChargingSchedule.ChargingPower)
             {
                 _logger.LogDebug("Skipping charging schedule {@chargingSchedule} as power to control {powerToControl} is higher than charging power {chargingPower}, so ignore charging schedule but charge with solar power.", activeChargingSchedule, powerToControl, activeChargingSchedule.ChargingPower);
                 continue;
@@ -278,6 +279,24 @@ public class ChargingServiceV2 : IChargingServiceV2
             maxAdditionalCurrent -= result.currentIncrease;
         }
         _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings();
+    }
+
+    private async Task SetCarChargingTargetsToFulFilled(DateTimeOffset currentDate)
+    {
+        _logger.LogTrace("{method}({currentDate})", nameof(SetCarChargingTargetsToFulFilled), currentDate);
+        var carSocs = _settings.CarsToManage.ToDictionary(c => c.Id, c => c.SoC);
+        var carIds = carSocs.Keys.ToHashSet();
+        var chargingTargets = await _context.CarChargingTargets
+            .Where(c => carIds.Contains(c.CarId))
+            .ToListAsync().ConfigureAwait(false);
+        foreach (var chargingTarget in chargingTargets)
+        {
+            if (carSocs[chargingTarget.CarId] >= chargingTarget.TargetSoc)
+            {
+                chargingTarget.LastFulFilled = currentDate;
+            }
+        }
+        await _context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private void OptimizeChargingSwitchTimes(List<DtoChargingSchedule> chargingSchedules,
@@ -402,7 +421,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     }
                 }
 
-                var nextTarget = await GetNextTarget(car.Id, cancellationToken).ConfigureAwait(false);
+                var nextTarget = await GetRelevantTarget(car.Id, currentDate, cancellationToken).ConfigureAwait(false);
                 if (nextTarget != default)
                 {
                     var energyToCharge = CalculateEnergyToCharge(
@@ -410,7 +429,21 @@ public class ChargingServiceV2 : IChargingServiceV2
                         car.SoC ?? 0,
                         carUsableEnergy.Value);
                     var maxPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, maxCurrent.Value);
-                    if (_configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules() && minPhases != default && minCurrent != default)
+                    if (nextTarget.NextExecutionTime < currentDate)
+                    {
+                        _logger.LogWarning("Next target {nextTarget} is in the past. Plan charging immediatly.", nextTarget);
+                        var chargingDuration = CalculateChargingDuration(energyToCharge, maxPower);
+                        chargingSchedules.Add(new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId)
+                        {
+                            ValidFrom = currentDate,
+                            ValidTo = currentDate + chargingDuration,
+                            ChargingPower = maxPower,
+                        });
+                        continue;
+                    }
+                    if (_configurationWrapper.UsePredictedSolarPowerGenerationForChargingSchedules()
+                        && minPhases != default
+                        && minCurrent != default)
                     {
                         var currentFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, currentDate.Offset);
                         var surplusTimeSpanInHours = 1;
@@ -1505,22 +1538,29 @@ public class ChargingServiceV2 : IChargingServiceV2
         return (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode, carMaxSoc);
     }
 
-    private async Task<DtoTimeZonedChargingTarget?> GetNextTarget(int carId, CancellationToken cancellationToken)
+    private async Task<DtoTimeZonedChargingTarget?> GetRelevantTarget(int carId, DateTimeOffset currentDate,
+        CancellationToken cancellationToken)
     {
-        var chargingTargets = await _context.CarChargingTargets
-            .Where(c => c.CarId == carId)
+        _logger.LogTrace("{method}({carId}, {currentDate})", nameof(GetRelevantTarget), carId, currentDate);
+        var car = _settings.Cars.First(c => c.Id == carId);
+        var lastPluggedIn = car.PluggedIn == true ? (car.LastPluggedIn ?? currentDate) : currentDate;
+        var unfulFilledChargingTargets = await _context.CarChargingTargets
+            .Where(c => c.CarId == carId
+                        && (!(c.LastFulFilled >= currentDate)))
             .AsNoTracking()
             .ToListAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        if (chargingTargets.Count < 1)
+        if (unfulFilledChargingTargets.Count < 1)
         {
             _logger.LogDebug("No charging targets found for car {carId}.", carId);
             return null;
         }
         DtoTimeZonedChargingTarget? nextTarget = null;
-        foreach (var carChargingTarget in chargingTargets)
+        foreach (var carChargingTarget in unfulFilledChargingTargets)
         {
-            var nextTargetUtc = GetNextTargetUtc(carChargingTarget);
-            if (nextTarget == default || (nextTargetUtc < nextTarget.NextExecutionTime))
+            var nextTargetUtc = GetNextTargetUtc(carChargingTarget, lastPluggedIn);
+            if ((nextTargetUtc != default)
+                    && ((nextTarget == default)
+                        || (nextTargetUtc < nextTarget.NextExecutionTime)))
             {
                 nextTarget = new()
                 {
@@ -1537,7 +1577,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     RepeatOnSundays = carChargingTarget.RepeatOnSundays,
                     ClientTimeZone = carChargingTarget.ClientTimeZone,
                     CarId = carChargingTarget.CarId,
-                    NextExecutionTime = nextTargetUtc,
+                    NextExecutionTime = nextTargetUtc.Value,
                 };
             }
         }
@@ -1686,15 +1726,6 @@ public class ChargingServiceV2 : IChargingServiceV2
             : default;
     }
 
-    private double CalculateMaxChargingPower(
-        int maxCurrent,
-        int maxPhases,
-        int voltage)
-    {
-        // W = A * phases * V
-        return (double)maxCurrent * maxPhases * voltage;
-    }
-
     private TimeSpan CalculateChargingDuration(
         int energyToChargeWh,
         double maxChargingPowerW)
@@ -1703,14 +1734,13 @@ public class ChargingServiceV2 : IChargingServiceV2
         return TimeSpan.FromHours(energyToChargeWh / maxChargingPowerW);
     }
 
-    internal DateTimeOffset GetNextTargetUtc(CarChargingTarget chargingTarget)
+    internal DateTimeOffset? GetNextTargetUtc(CarChargingTarget chargingTarget, DateTimeOffset lastPluggedIn)
     {
         var tz = string.IsNullOrWhiteSpace(chargingTarget.ClientTimeZone)
             ? TimeZoneInfo.Utc
             : TimeZoneInfo.FindSystemTimeZoneById(chargingTarget.ClientTimeZone);
 
-        var currentUtcDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        var earliestExecutionTime = TimeZoneInfo.ConvertTime(currentUtcDate, tz);
+        var earliestExecutionTime = TimeZoneInfo.ConvertTime(lastPluggedIn, tz);
 
         DateTimeOffset? candidate;
 
@@ -1769,8 +1799,6 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
         }
 
-        throw new InvalidOperationException(
-            "Could not find any upcoming target. Please check TargetDate or repeat flags."
-        );
+        return null;
     }
 }
