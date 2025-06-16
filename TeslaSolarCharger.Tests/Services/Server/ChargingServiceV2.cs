@@ -94,7 +94,7 @@ public class ChargingServiceV2 : TestBase
             TargetTime = new TimeOnly(14, 0, 0),
         };
         var chargingServiceV2 = Mock.Create<TeslaSolarCharger.Server.Services.ChargingServiceV2>();
-        var nextTargetUtc = chargingServiceV2.GetNextTargetUtc(carValueLog);
+        var nextTargetUtc = chargingServiceV2.GetNextTargetUtc(carValueLog, currentDate);
         Assert.Equal(expectedResult, nextTargetUtc);
     }
 
