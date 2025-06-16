@@ -4,6 +4,7 @@
 @using ApexCharts
 @using MudBlazor.Services
 @using TeslaSolarCharger.Client.Dtos
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using Color = MudBlazor.Color
 @using Size = MudBlazor.Size
 
@@ -11,9 +12,9 @@
 @inject TimeProvider TimeProvider
 @inject ISnackbar Snackbar
 @inject IBrowserViewportService BrowserViewportService
+@inject IChartWidthCalculator ChartWidthCalc
 
-@implements IBrowserViewportObserver
-@implements IAsyncDisposable
+@implements IDisposable
 
 <MudExpansionPanels>
     <MudExpansionPanel ExpandedChanged="isExpanded => ExpandedChanged(isExpanded)">
@@ -129,7 +130,7 @@
                     <ApexChart TItem="DtoChartValue<int, decimal>"
                                Title="kWh"
                                Options="_options"
-                               Width="ChartWidth"
+                               Width="@ChartWidthCalc.ChartWidth"
                                Height="ChartHeight"
                                XAxisType="XAxisType.Numeric"
                                FormatXAxisLabel="@(arg => arg.ToString("N0"))"
@@ -182,11 +183,8 @@
     private ApexChartOptions<DtoChartValue<int, decimal>>? _options;
     private bool _isSolarPredictionEnabled;
     private ApexChart<DtoChartValue<int, decimal>>? _chart;
+    
 
-    public Guid Id { get; } = Guid.NewGuid();
-    public ResizeOptions ResizeOptions { get; } = new ResizeOptions { ReportRate = 500, NotifyOnBreakpointOnly = false };
-
-    private string ChartWidth { get; set; } = "600px";
     private string ChartHeight { get; set; } = "400px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
@@ -261,7 +259,8 @@
     {
         if (firstRender)
         {
-            await BrowserViewportService.SubscribeAsync(this);
+            ChartWidthCalc.ChartWidthChanged += OnChartWidthChangedAsync;
+            await ChartWidthCalc.InitAsync();
         }
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -365,26 +364,7 @@
         await RefreshData(DateOnly.FromDateTime(newDate.Value));
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await BrowserViewportService.UnsubscribeAsync(this);
-    }
-
     private CancellationTokenSource? _debounceTokenSource;
-
-    public async Task NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
-    {
-        var width = browserViewportEventArgs.BrowserWindowSize.Width;
-        var isMenuVisible = width > 640;
-        ChartWidth = isMenuVisible ? ($"{width - 450}px") : $"{width - 50}px";
-        // After 500ms with no interruption, execute the update logic.
-        if (_chart == default)
-        {
-            return;
-        }
-        await _chart.UpdateOptionsAsync(false, false, false);
-        await InvokeAsync(StateHasChanged);
-    }
 
     private async Task ExpandedChanged(bool isExpanded)
     {
@@ -393,6 +373,21 @@
             return;
         }
         await _chart.UpdateOptionsAsync(false, false, false);
+    }
+
+    private async ValueTask OnChartWidthChangedAsync()
+    {
+        if (_chart != default)
+        {
+            await _chart.UpdateOptionsAsync(false, false, false);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        ChartWidthCalc.ChartWidthChanged -= OnChartWidthChangedAsync;
+        _chart?.Dispose();
     }
 
 }
