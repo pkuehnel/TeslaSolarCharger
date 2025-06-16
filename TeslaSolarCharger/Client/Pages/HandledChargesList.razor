@@ -16,7 +16,7 @@ else
 {
     <MudDataGrid Items="_handledCharges" Groupable="true" Filterable="true"
                  Hover="true" Dense="true" Striped="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
-                 Height="@datagridHeight" Breakpoint="Breakpoint.None">
+                 Height="@_datagridHeight" Breakpoint="Breakpoint.None">
         <Columns>
             <PropertyColumn Property="x => x.StartTime"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))">
@@ -61,7 +61,7 @@ else
     public int ViewportWidth { get; set; }
     public int ViewportHeight { get; set; }
 
-    private string datagridHeight = "calc(100vh - 10rem);";
+    private string _datagridHeight = "calc(100vh - 10rem);";
 
     private List<DtoHandledCharge>? _handledCharges;
     private AggregateDefinition<DtoHandledCharge> _calculatedPriceAggregation = new AggregateDefinition<DtoHandledCharge>()
@@ -119,7 +119,7 @@ else
     public void OnResize(int width, int height)
     {
         if(ViewportWidth == width && ViewportHeight == height) return;
-        datagridHeight = height < 430 ? "300px" : "calc(100vh - 10rem);";
+        _datagridHeight = height < 430 ? "300px" : "calc(100vh - 10rem);";
         StateHasChanged();
     }
 
