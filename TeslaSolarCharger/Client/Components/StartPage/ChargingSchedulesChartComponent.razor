@@ -82,16 +82,15 @@
                     },
                 },
             },
-
-    ];
+        ];
         _options = options;
+        await UpdateGridPriceValues();
     }
 
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
         await UpdateChargingValues();
-        await UpdateGridPriceValues();
     }
 
     private async Task UpdateGridPriceValues()
