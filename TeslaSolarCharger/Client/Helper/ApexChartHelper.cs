@@ -29,6 +29,10 @@ public class ApexChartHelper : IApexChartHelper
                     Opacity = 0.5d,
                 },
             },
+            Markers = new Markers
+            {
+                Size = 5,
+            },
             Stroke = new Stroke { Curve = Curve.Smooth },
             Legend = new Legend
             {
