@@ -1,0 +1,202 @@
+﻿@using ApexCharts
+@using Microsoft.AspNetCore.Http.Features
+@using TeslaSolarCharger.Client.Dtos
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Server.Dtos.ChargingServiceV2
+@using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject IApexChartHelper ApexChartHelper
+@inject IChartWidthCalculator ChartWidthCalculator
+@inject IDateTimeProvider DateTimeProvider
+@inject IConstants Constants
+@inject IHomeService HomeService
+@inject IValidFromToHelper ValidFromToHelper
+
+@implements IDisposable
+
+<ApexChart TItem="DtoChartValue<string, decimal>"
+           Title="Scheduled power"
+           Options="_options"
+           Width="@ChartWidthCalculator.ChartWidth"
+           Height="@ChartHeight"
+           FormatXAxisLabel="@(arg => arg.ToString("N"))"
+           FormatYAxisLabel="@(arg => arg.ToString("N"))"
+           @ref="_chart">
+
+    <ApexPointSeries TItem="DtoChartValue<string, decimal>"
+                     Items="_chargingValues"
+                     Name="@($"Scheduled Energy ({(_chargingValues.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                     SeriesType="SeriesType.Line"
+                     XValue="@(e => e.Key)"
+                     YValue="@(e => (decimal?)e.Value)"
+                     Color="@Constants.PrimaryColor"/>
+
+
+    <ApexPointSeries TItem="DtoChartValue<string, decimal>"
+                     Items="_gridPriceValues"
+                     Name="@("Grid Price per kWh)")"
+                     SeriesType="SeriesType.Line"
+                     XValue="@(e => e.Key)"
+                     YValue="@(e => (decimal?)e.Value)"
+                     Color="@Constants.SecondaryColor" />
+
+</ApexChart>
+
+@code {
+    [Parameter]
+    public List<DtoChargingSchedule>? ChargingSchedules { get; set; }
+
+    private ApexChart<DtoChartValue<string, decimal>>? _chart;
+    private string ChartHeight { get; set; } = "400px";
+    private ApexChartOptions<DtoChartValue<string, decimal>>? _options;
+    private List<DtoChartValue<string, decimal>> _chargingValues = new();
+    private List<DtoChartValue<string, decimal>> _gridPriceValues = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<string, decimal>>();
+        options.Yaxis =
+        [
+            new YAxis()
+            {
+                Title = new AxisTitle()
+                {
+                    Text = new MultiLineText("avg. kW"),
+                    Style = new AxisTitleStyle()
+                    {
+                        Color = Constants.PrimaryColor,
+                    },
+                },
+                Crosshairs = new AxisCrosshairs()
+                {
+                    Show = true,
+                },
+                DecimalsInFloat = 2,
+                Min = 0,
+            },
+
+            new YAxis()
+            {
+                Opposite = true,
+                Title = new AxisTitle()
+                {
+                    Text = new MultiLineText("Gridprice / kWh"),
+                    Style = new AxisTitleStyle()
+                    {
+                        Color = Constants.SecondaryColor,
+                    },
+                },
+                DecimalsInFloat = 4,
+                Min = 0,
+            },
+        ];
+        options.Xaxis = new XAxis()
+        {
+            Type = XAxisType.Category,
+        };
+        _options = options;
+        await UpdateGridPriceValues();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await UpdateChargingValues();
+    }
+
+    private async Task UpdateGridPriceValues()
+    {
+        var chartStartDate = GetChartStartDate();
+        var chartEndDate = GetChartEndDate(chartStartDate);
+        var dictionary = await HomeService.GetGridPrices(chartStartDate, chartEndDate);
+        var result = new List<DtoChartValue<string, decimal>>();
+        var chartDurationHours = GetChartDurationHours();
+        for (var i = 0; i < chartDurationHours; i++)
+        {
+            var currentHour = chartStartDate.AddHours(i);
+            var chartValue = new DtoChartValue<string, decimal>(currentHour.ToLocalTime().ToString("HH"), 0);
+            if (dictionary.TryGetValue(currentHour, out var value))
+            {
+                chartValue.Value = value;
+            }
+            result.Add(chartValue);
+        }
+        _gridPriceValues = result;
+        if (_chart != default)
+        {
+            await _chart.UpdateSeriesAsync();
+        }
+    }
+
+    private async Task UpdateChargingValues()
+    {
+        var chartStartDate = GetChartStartDate();
+        var chartEndDate = GetChartEndDate(chartStartDate);
+        var dictionary = ValidFromToHelper.GetHourlyAverages(ChargingSchedules ?? new(), chartStartDate, chartEndDate, x => x.ChargingPower, true);
+        var result = new List<DtoChartValue<string, decimal>>();
+        var chartDurationHours = GetChartDurationHours();
+        for (var i = 0; i < chartDurationHours; i++)
+        {
+            var currentHour = chartStartDate.AddHours(i);
+            var chartValue = new DtoChartValue<string, decimal>(currentHour.ToLocalTime().ToString("HH"), 0);
+            if (dictionary.TryGetValue(currentHour, out var value))
+            {
+                chartValue.Value = value / 1000;
+            }
+            result.Add(chartValue);
+        }
+        _chargingValues = result;
+        if (_chart != default)
+        {
+            await _chart.UpdateSeriesAsync();
+        }
+    }
+
+    private DateTimeOffset GetChartEndDate(DateTimeOffset startDate)
+    {
+        return startDate.AddHours(GetChartDurationHours());
+    }
+
+    private DateTimeOffset GetChartStartDate()
+    {
+        var currentDate = DateTimeProvider.DateTimeOffSetUtcNow();
+        var currentHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0, TimeSpan.Zero);
+        return currentHour;
+    }
+
+    private int GetChartDurationHours()
+    {
+        return 15;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            ChartWidthCalculator.ChartWidthChanged += OnChartWidthChangedAsync;
+            await ChartWidthCalculator.InitAsync();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+
+
+    private async ValueTask OnChartWidthChangedAsync()
+    {
+        if (_chart != default)
+        {
+            await _chart.UpdateOptionsAsync(false, false, false);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
+        _chart?.Dispose();
+    }
+}

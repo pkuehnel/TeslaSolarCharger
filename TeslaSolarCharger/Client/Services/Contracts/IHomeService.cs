@@ -26,4 +26,5 @@ public interface IHomeService
     Task<List<DtoNotChargingWithExpectedPowerReason>?> GetNotChargingWithExpectedPowerReasons(int? carId, int? connectorId);
     Task<Dictionary<int, string>?> GetLoadPointCarOptions();
     Task UpdateCarForLoadpoint(int chargingConnectorId, int? carId);
+    Task<Dictionary<DateTimeOffset, decimal>> GetGridPrices(DateTimeOffset from, DateTimeOffset to);
 }

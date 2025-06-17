@@ -2,8 +2,8 @@
 
 @using TeslaSolarCharger.Client.Services.Contracts
 @using ApexCharts
-@using MudBlazor.Services
 @using TeslaSolarCharger.Client.Dtos
+@using TeslaSolarCharger.Client.Helper.Contracts
 @using Color = MudBlazor.Color
 @using Size = MudBlazor.Size
 
@@ -11,9 +11,10 @@
 @inject TimeProvider TimeProvider
 @inject ISnackbar Snackbar
 @inject IBrowserViewportService BrowserViewportService
+@inject IChartWidthCalculator ChartWidthCalculator
+@inject IApexChartHelper ApexChartHelper
 
-@implements IBrowserViewportObserver
-@implements IAsyncDisposable
+@implements IDisposable
 
 <MudExpansionPanels>
     <MudExpansionPanel ExpandedChanged="isExpanded => ExpandedChanged(isExpanded)">
@@ -129,10 +130,11 @@
                     <ApexChart TItem="DtoChartValue<int, decimal>"
                                Title="kWh"
                                Options="_options"
-                               Width="ChartWidth"
+                               Width="@ChartWidthCalculator.ChartWidth"
                                Height="ChartHeight"
                                XAxisType="XAxisType.Numeric"
                                FormatXAxisLabel="@(arg => arg.ToString("N0"))"
+                               FormatYAxisLabel="@(arg => arg.ToString("F1"))"
                                @ref="_chart">
                         @if (SolarPredictionData != default)
                         {
@@ -183,10 +185,7 @@
     private bool _isSolarPredictionEnabled;
     private ApexChart<DtoChartValue<int, decimal>>? _chart;
 
-    public Guid Id { get; } = Guid.NewGuid();
-    public ResizeOptions ResizeOptions { get; } = new ResizeOptions { ReportRate = 500, NotifyOnBreakpointOnly = false };
 
-    private string ChartWidth { get; set; } = "600px";
     private string ChartHeight { get; set; } = "400px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
@@ -197,62 +196,7 @@
         await base.OnInitializedAsync();
         _isSolarPredictionEnabled = await EnergyDataService.SolarPowerPredictionEnabled();
         await InvokeAsync(() => StateHasChanged());
-        _options = new ApexChartOptions<DtoChartValue<int, decimal>>
-            {
-                Chart = new Chart
-                {
-                    Toolbar = new Toolbar
-                    {
-                        Show = false,
-                    },
-                    DropShadow = new DropShadow
-                    {
-                        Enabled = true,
-                        Color = "",
-                        Top = 18,
-                        Left = 7,
-                        Blur = 10,
-                        Opacity = 0.2d,
-                    },
-                    Zoom = new Zoom
-                    {
-                        Enabled = false,
-                    },
-                },
-                Grid = new Grid
-                {
-                    BorderColor = "#e7e7e7",
-                    Row = new GridRow
-                    {
-                        Colors = new List<string> { "#f3f3f3", "transparent" },
-                        Opacity = 0.5d,
-                    },
-                },
-
-                Markers = new Markers { Shape = ShapeEnum.Circle, Size = 5, FillOpacity = new Opacity(0.8d), },
-                Stroke = new Stroke { Curve = Curve.Smooth },
-                Legend = new Legend
-                {
-                    Position = LegendPosition.Bottom,
-                    HorizontalAlign = ApexCharts.Align.Center,
-                    Floating = false,
-                },
-                Yaxis = new List<YAxis>
-                {
-                    new YAxis
-                    {
-                        Labels = new YAxisLabels
-                        {
-                            Formatter = "function(value) { return value.toLocaleString(); }"
-                        },
-                    },
-                },
-                Xaxis = new XAxis()
-                {
-                    Max = 23,
-                },
-
-            };
+        _options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal>>();
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
     }
@@ -261,7 +205,8 @@
     {
         if (firstRender)
         {
-            await BrowserViewportService.SubscribeAsync(this);
+            ChartWidthCalculator.ChartWidthChanged += OnChartWidthChangedAsync;
+            await ChartWidthCalculator.InitAsync();
         }
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -365,26 +310,7 @@
         await RefreshData(DateOnly.FromDateTime(newDate.Value));
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await BrowserViewportService.UnsubscribeAsync(this);
-    }
-
     private CancellationTokenSource? _debounceTokenSource;
-
-    public async Task NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
-    {
-        var width = browserViewportEventArgs.BrowserWindowSize.Width;
-        var isMenuVisible = width > 640;
-        ChartWidth = isMenuVisible ? ($"{width - 450}px") : $"{width - 50}px";
-        // After 500ms with no interruption, execute the update logic.
-        if (_chart == default)
-        {
-            return;
-        }
-        await _chart.UpdateOptionsAsync(false, false, false);
-        await InvokeAsync(StateHasChanged);
-    }
 
     private async Task ExpandedChanged(bool isExpanded)
     {
@@ -393,6 +319,21 @@
             return;
         }
         await _chart.UpdateOptionsAsync(false, false, false);
+    }
+
+    private async ValueTask OnChartWidthChangedAsync()
+    {
+        if (_chart != default)
+        {
+            await _chart.UpdateOptionsAsync(false, false, false);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
+        _chart?.Dispose();
     }
 
 }

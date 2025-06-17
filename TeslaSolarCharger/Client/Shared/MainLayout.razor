@@ -2,11 +2,13 @@
 @using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Resources.Contracts
 @implements IDisposable
 
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
 @inject IHttpClientHelper HttpClientHelper
+@inject IConstants Constants
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
 <MudPopoverProvider />
@@ -37,19 +39,19 @@
     private string? _version;
     PeriodicTaskHelper? _periodicTaskHelper;
 
-    readonly MudTheme _tscTheme = new MudTheme()
-        {
-            PaletteLight = new PaletteLight()
-            {
-                Primary = "#1b6ec2",
-                Secondary = "#6c757d",
-                AppbarBackground = "#1b6ec2",
-            },
-        };
-
+    private MudTheme? _tscTheme;
 
     protected override void OnInitialized()
     {
+        _tscTheme = new MudTheme
+        {
+            PaletteLight = new PaletteLight
+            {
+                Primary = Constants.PrimaryColor,
+                Secondary = Constants.SecondaryColor,
+                AppbarBackground = Constants.PrimaryColor, // or a const you define
+            },
+        };
         _periodicTaskHelper = new();
         _periodicTaskHelper.Start(CheckVersion, TimeSpan.FromSeconds(30));
     }

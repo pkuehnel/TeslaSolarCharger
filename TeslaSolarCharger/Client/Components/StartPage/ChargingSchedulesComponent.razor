@@ -1,20 +1,52 @@
-﻿@using Newtonsoft.Json
-@using TeslaSolarCharger.Client.Services.Contracts
+﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Server.Dtos.ChargingServiceV2
+@using TeslaSolarCharger.Shared.Helper.Contracts
 @inject IHomeService HomerService
+@inject IStringHelper StringHelper
 
-@if (_elements == default)
-{
-    <PlaceholderComponent Count="2" />
-}
-else
-{
-    <MudExpansionPanels>
-        <MudExpansionPanel Text="@(_elements.Count < 1 ? "Nothing planned" : $"Next planned charge starts at {_elements.First().ValidFrom.ToLocalTime().ToString("f")}")">
-            @JsonConvert.SerializeObject(_elements, Formatting.Indented)
+<MudExpansionPanels>
+        <MudExpansionPanel>
+            <TitleContent>
+                @if (_elements == default)
+                {
+                    <PlaceholderComponent Count="1" />
+                }
+                else
+                {
+                    @(_elements.Count < 1 ? "Nothing planned" : $"Next planned charge starts at {_elements.First().ValidFrom.ToLocalTime().ToString("f")}")
+                }
+            </TitleContent>
+            <ChildContent>
+                <MudDataGrid Items="_elements" Groupable="true" Filterable="true"
+                             Hover="true" Dense="true" Striped="true" Breakpoint="Breakpoint.None"
+                             Loading="@(_elements == null)">
+                    <Columns>
+                        <PropertyColumn Property="x => x.ValidFrom"
+                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom))">
+                            <CellTemplate>
+                                @(context.Item.ValidFrom.ToLocalTime().ToString("g"))W
+                            </CellTemplate>
+                        </PropertyColumn>
+                        <PropertyColumn Property="x => x.ValidTo"
+                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo))">
+                            <CellTemplate>
+                                @(context.Item.ValidTo.ToLocalTime().ToString("g"))W
+                            </CellTemplate>
+                        </PropertyColumn>
+                        <PropertyColumn Property="x => x.ChargingPower"
+                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ChargingPower))">
+                            <CellTemplate>
+                                @(context.Item.ChargingPower.ToString("N0"))W
+                            </CellTemplate>
+                        </PropertyColumn>
+                    </Columns>
+                </MudDataGrid>
+                <div class="d-flex align-items-center justify-content-center mt-3 border border-gray-300 p-3 rounded">
+                    <ChargingSchedulesChartComponent ChargingSchedules="_elements" />
+                </div>
+            </ChildContent>
         </MudExpansionPanel>
     </MudExpansionPanels>
-}
 
 
 @code {
@@ -36,7 +68,13 @@ else
     {
         if (CarId != default || ChargingConnectorId != default)
         {
-            _elements = await HomerService.GetChargingSchedules(CarId, ChargingConnectorId);
+            var result = await HomerService.GetChargingSchedules(CarId, ChargingConnectorId);
+            if (result == default)
+            {
+                _elements = result;
+                return;
+            }
+            _elements = result.OrderBy(c => c.ValidFrom).ToList();
         }
         else
         {

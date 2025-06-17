@@ -4,12 +4,13 @@ using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
-using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -21,18 +22,24 @@ public class HomeService : IHomeService
     private readonly ISettings _settings;
     private readonly IOcppChargePointActionService _ocppChargePointActionService;
     private readonly IConstants _constants;
+    private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
+    private readonly IValidFromToHelper _validFromToHelper;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
         IOcppChargePointActionService ocppChargePointActionService,
-        IConstants constants)
+        IConstants constants,
+        ITscOnlyChargingCostService tscOnlyChargingCostService,
+        IValidFromToHelper validFromToHelper)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
         _ocppChargePointActionService = ocppChargePointActionService;
         _constants = constants;
+        _tscOnlyChargingCostService = tscOnlyChargingCostService;
+        _validFromToHelper = validFromToHelper;
     }
 
     public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
@@ -200,6 +207,15 @@ public class HomeService : IHomeService
             result[managedCar.Id] = managedCar.Name ?? managedCar.Vin;
         }
         return result;
+    }
+
+    public async Task<Dictionary<DateTimeOffset, decimal>> GetGridPrices(DateTimeOffset from, DateTimeOffset to)
+    {
+        _logger.LogTrace("{method}({from}, {to})", nameof(GetGridPrices), from, to);
+        var startOfFirstHour = new DateTimeOffset(from.Year, from.Month, from.Day, from.Hour, 0, 0, from.Offset);
+        var gridPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(startOfFirstHour, to).ConfigureAwait(false);
+        var hourlyAverageGridPrices = _validFromToHelper.GetHourlyAverages(gridPrices, from, to, price => price.GridPrice, false);
+        return hourlyAverageGridPrices;
     }
 
     public async Task UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode)
