@@ -25,7 +25,7 @@ public class ValidFromToHelper : IValidFromToHelper
         var totalHours = (int)Math.Ceiling((to - from).TotalHours);
         var hourlyAverages = new Dictionary<DateTimeOffset, decimal>();
 
-        for (var hourIndex = 0; hourIndex <= totalHours; hourIndex++)
+        for (var hourIndex = 0; hourIndex < totalHours; hourIndex++)
         {
             var hourStart = startOfFirstHour.AddHours(hourIndex);
             var hourEnd = hourStart.AddHours(1);
@@ -43,25 +43,14 @@ public class ValidFromToHelper : IValidFromToHelper
             {
                 var weightedSum = overlappingEntries.Sum(entry =>
                 {
-                    var overlapStartTime = entry.ValidFrom > hourStart
-                        ? entry.ValidFrom
-                        : hourStart;
-                    var overlapEndTime = entry.ValidTo < hourEnd
-                        ? entry.ValidTo
-                        : hourEnd;
-                    var overlapDurationHours = (overlapEndTime - overlapStartTime).TotalHours;
+                    var overlapDurationHours = GetOverLapDurationInHours(entry, hourStart, hourEnd);
                     return valueSelector(entry) * (decimal)overlapDurationHours;
                 });
 
                 var totalOverlapHours = treatNonOverlappingAsZero ? 1 : overlappingEntries.Sum(entry =>
                 {
-                    var overlapStartTime = entry.ValidFrom > hourStart
-                        ? entry.ValidFrom
-                        : hourStart;
-                    var overlapEndTime = entry.ValidTo < hourEnd
-                        ? entry.ValidTo
-                        : hourEnd;
-                    return (decimal)(overlapEndTime - overlapStartTime).TotalHours;
+                    var overlapDurationHours = GetOverLapDurationInHours(entry, hourStart, hourEnd);
+                    return (decimal)overlapDurationHours;
                 });
 
                 hourlyAverages[hourStart] = weightedSum / totalOverlapHours;
@@ -69,5 +58,18 @@ public class ValidFromToHelper : IValidFromToHelper
         }
 
         return hourlyAverages;
+    }
+
+    private static double GetOverLapDurationInHours<T>(T entry, DateTimeOffset hourStart, DateTimeOffset hourEnd)
+        where T : ValidFromToBase
+    {
+        var overlapStartTime = entry.ValidFrom > hourStart
+            ? entry.ValidFrom
+            : hourStart;
+        var overlapEndTime = entry.ValidTo < hourEnd
+            ? entry.ValidTo
+            : hourEnd;
+        var overlapDurationHours = (overlapEndTime - overlapStartTime).TotalHours;
+        return overlapDurationHours;
     }
 }
