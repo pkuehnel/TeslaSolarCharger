@@ -3,6 +3,7 @@
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.Support
+@using TeslaSolarCharger.Client.Components.StartPage
 
 @inject IHttpClientHelper HttpClientHelper
 @inject ISnackbar Snackbar
@@ -196,7 +197,7 @@ else
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
-
+    <HiddenErrorsComponent></HiddenErrorsComponent>
     <InstallationInformation></InstallationInformation>
 }
 
