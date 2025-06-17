@@ -10,7 +10,7 @@
 @inject IHttpClientHelper HttpClientHelper
 @inject IConstants Constants
 
-<MudThemeProvider @ref="@_mudThemeProvider" Theme="TscTheme" />
+<MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
 <MudPopoverProvider />
 <MudDialogProvider FullWidth="true"
                    MaxWidth="MaxWidth.Medium" />
@@ -39,20 +39,19 @@
     private string? _version;
     PeriodicTaskHelper? _periodicTaskHelper;
 
-    private MudTheme TscTheme =>
-        new()
-        {
-            PaletteLight = new PaletteLight()
-            {
-                Primary = Constants.PrimaryColor,
-                Secondary = Constants.SecondaryColor,
-                AppbarBackground = "#1b6ec2",
-            },
-        };
-
+    private MudTheme? _tscTheme;
 
     protected override void OnInitialized()
     {
+        _tscTheme = new MudTheme
+        {
+            PaletteLight = new PaletteLight
+            {
+                Primary = Constants.PrimaryColor,
+                Secondary = Constants.SecondaryColor,
+                AppbarBackground = Constants.PrimaryColor, // or a const you define
+            },
+        };
         _periodicTaskHelper = new();
         _periodicTaskHelper.Start(CheckVersion, TimeSpan.FromSeconds(30));
     }
