@@ -5,7 +5,7 @@
 @inject IStringHelper StringHelper
 
 <MudExpansionPanels>
-        <MudExpansionPanel>
+        <MudExpansionPanel ExpandedChanged="IsExpandedChanged">
             <TitleContent>
                 @if (_elements == default)
                 {
@@ -41,9 +41,12 @@
                         </PropertyColumn>
                     </Columns>
                 </MudDataGrid>
-                <div class="d-flex align-items-center justify-content-center mt-3 border border-gray-300 p-3 rounded">
-                    <ChargingSchedulesChartComponent ChargingSchedules="_elements" />
-                </div>
+                @if(_showChart)
+                {
+                    <div class="d-flex align-items-center justify-content-center mt-3 border border-gray-300 p-3 rounded">
+                        <ChargingSchedulesChartComponent ChargingSchedules="_elements" />
+                    </div>
+                }
             </ChildContent>
         </MudExpansionPanel>
     </MudExpansionPanels>
@@ -57,6 +60,8 @@
     public int? ChargingConnectorId { get; set; }
 
     private List<DtoChargingSchedule>? _elements;
+
+    private bool _showChart;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -81,4 +86,13 @@
             _elements = null;
         }
     }
+
+    private void IsExpandedChanged(bool obj)
+    {
+        if (!_showChart)
+        {
+            _showChart = obj;
+        }
+    }
+
 }
