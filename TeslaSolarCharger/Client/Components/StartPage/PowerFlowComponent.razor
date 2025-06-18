@@ -2,10 +2,13 @@
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.SignalRClients
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
-@implements IDisposable
+@inject ISignalRConnector SignalRConnector
+@implements IAsyncDisposable
 
 @if (_pvValues != default)
 {
@@ -175,7 +178,6 @@
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
 
-    PeriodicTaskHelper? _periodicTaskHelper;
 
 
 
@@ -185,21 +187,25 @@
     {
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
+        SignalRConnector.Configure("/pvValuesHub");
 
-        _periodicTaskHelper = new();
-        _periodicTaskHelper.Start(RefreshPvValues, TimeSpan.FromSeconds(5));
-    }
+        SignalRConnector.RegisterHandler<DtoPvValues>(
+            nameof(IPvValuesClient.ReceivePvValues),
+            newValues =>
+            {
+                _pvValues = newValues;
+                _couldNotRefreshStates = false;
+                UpdateBalls();
+                _ = InvokeAsync(StateHasChanged);
+            }
+        );
 
-    private async Task RefreshPvValues()
-    {
         try
         {
-            _pvValues = await HttpClient.GetFromJsonAsync<DtoPvValues>("api/Index/GetPvValues").ConfigureAwait(false);
-            await InvokeAsync(StateHasChanged);
-            _couldNotRefreshStates = false;
-            UpdateBalls();
+            await SignalRConnector.StartAsync()
+                .ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             _couldNotRefreshStates = true;
         }
@@ -605,11 +611,6 @@
         public int Y => StartY;
     }
 
-    public void Dispose()
-    {
-        _periodicTaskHelper?.Dispose();
-    }
-
     private int? CalculateHomePower()
     {
         if (_pvValues == null)
@@ -630,6 +631,11 @@
         var chargingPower = _pvValues.CarCombinedChargingPowerAtHome ?? 0;
         var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
         return homePower;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await SignalRConnector.DisposeAsync();
     }
 
 }
