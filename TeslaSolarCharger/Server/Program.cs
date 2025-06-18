@@ -17,6 +17,7 @@ using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.ServerValidators;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
@@ -32,6 +33,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddControllers(options => options.Filters.Add<ApiExceptionFilterAttribute>())
     .AddNewtonsoftJson();
 builder.Services.AddRazorPages();
+builder.Services.AddSignalR();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -133,6 +135,7 @@ app.UseWhen(
 app.UseWebSockets();
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<PvValuesHub>("/pvValuesHub");
 app.MapFallbackToFile("index.html");
 
 app.Run();
