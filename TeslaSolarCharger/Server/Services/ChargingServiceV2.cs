@@ -980,7 +980,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                     || ((connectorChargeMode == ChargeModeV2.Auto)
                         && (ocppConnectorState!.ShouldStopCharging.Value == true)
                         && (ocppConnectorState.ShouldStopCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff())))
-                    || wrongPhaseCount)
+                    || (wrongPhaseCount
+                        && (connectorChargeMode == ChargeModeV2.Auto)))
                 {
                     _logger.LogTrace("{method} DECISION: Should stop charging (OCPP) - stopping and returning power decrease", nameof(SetLoadPointPower));
                     var result = await _ocppChargePointActionService.StopCharging(chargingConnectorId!.Value, cancellationToken);
