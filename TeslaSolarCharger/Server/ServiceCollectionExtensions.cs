@@ -23,6 +23,8 @@ using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.SignalR.Notifiers;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -143,6 +145,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
             .AddSingleton<IMeterValueBufferService, MeterValueBufferService>()
             .AddSingleton<IOcppWebSocketConnectionHandlingService, OcppWebSocketConnectionHandlingService>()
+            .AddSingleton<IPvValueNotifier, PvValueNotifier>()
             .AddScoped<ErrorHandlingMiddleware>()
             .AddHostedService<MeterValueFlushService>()
             .AddSharedBackendDependencies();
