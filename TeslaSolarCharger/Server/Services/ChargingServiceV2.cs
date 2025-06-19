@@ -401,11 +401,13 @@ public class ChargingServiceV2 : IChargingServiceV2
                     _logger.LogWarning("Can not schedule charging as at least one required value is unknown.");
                     continue;
                 }
-                if (car.MinimumSoC > car.SoC || car.ChargeModeV2 == ChargeModeV2.MaxPower)
+                if (car.MinimumSoC > car.SoC || (car.ChargeModeV2 == ChargeModeV2.MaxPower))
                 {
-                    var dummyEnergyToChargeIfMaxPowerMode = 100000; //Use 100 kWh as dummy value to generate a charging schedule for max power mode
                     var energyToCharge = car.ChargeModeV2 == ChargeModeV2.MaxPower
-                    ? dummyEnergyToChargeIfMaxPowerMode
+                    ? CalculateEnergyToCharge(
+                            car.SocLimit ?? 100,
+                            car.SoC ?? 0,
+                            carUsableEnergy.Value)
                     : CalculateEnergyToCharge(
                         car.MinimumSoC,
                         car.SoC ?? 0,
@@ -978,7 +980,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                     || ((connectorChargeMode == ChargeModeV2.Auto)
                         && (ocppConnectorState!.ShouldStopCharging.Value == true)
                         && (ocppConnectorState.ShouldStopCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff())))
-                    || wrongPhaseCount)
+                    || (wrongPhaseCount
+                        && (connectorChargeMode == ChargeModeV2.Auto)))
                 {
                     _logger.LogTrace("{method} DECISION: Should stop charging (OCPP) - stopping and returning power decrease", nameof(SetLoadPointPower));
                     var result = await _ocppChargePointActionService.StopCharging(chargingConnectorId!.Value, cancellationToken);
