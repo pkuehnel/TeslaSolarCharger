@@ -17,6 +17,7 @@ using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.ServerValidators;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Services;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
@@ -32,6 +33,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddControllers(options => options.Filters.Add<ApiExceptionFilterAttribute>())
     .AddNewtonsoftJson();
 builder.Services.AddRazorPages();
+builder.Services.AddSignalR();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -69,7 +71,11 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
     .MinimumLevel.Override("TeslaSolarCharger.Model.EntityFramework.DbConnectionStringHelper", LogEventLevel.Information)
-    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Debug)
+    //.MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppWebSocketConnectionHandlingService", LogEventLevel.Verbose)
+    //.MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppChargePointConfigurationService", LogEventLevel.Verbose)
+    //.MinimumLevel.Override("TeslaSolarCharger.Server.Services.OcppChargingStationConfigurationService", LogEventLevel.Verbose)
+    //.MinimumLevel.Override("TeslaSolarCharger.Server.Services.ChargepointAction.OcppChargePointActionService", LogEventLevel.Verbose)
+    .WriteTo.Console(outputTemplate: outputTemplate, restrictedToMinimumLevel: LogEventLevel.Information)
     // Send events to the in–memory sink using a sub–logger and the dynamic level switch.
     .WriteTo.Logger(lc => lc
         .MinimumLevel.ControlledBy(inMemoryLevelSwitch)
@@ -111,8 +117,25 @@ app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseWhen(
+    ctx => ctx.Request.Path.StartsWithSegments("/api/ocpp"),
+    branch => branch.Use(async (ctx, next) =>
+    {
+        var state = ctx.RequestServices.GetRequiredService<ISettings>();
+        if (!state.IsStartupCompleted)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await ctx.Response.WriteAsync("OCPP endpoint not ready");
+            return;
+        }
+        await next();
+    })
+);
+
+app.UseWebSockets();
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<PvValuesHub>("/pvValuesHub");
 app.MapFallbackToFile("index.html");
 
 app.Run();
@@ -208,6 +231,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
+
+        await backendApiService.RefreshBackendTokenIfNeeded().ConfigureAwait(false);
+        var fleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
+        await fleetApiService.RefreshFleetApiTokenIfNeeded().ConfigureAwait(false);
 
         var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
         if (!configurationWrapper.ShouldUseFakeSolarValues())

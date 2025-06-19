@@ -9,6 +9,8 @@ using Quartz.Spi;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Middlewares;
 using TeslaSolarCharger.Server.Resources.PossibleIssues;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -17,9 +19,12 @@ using TeslaSolarCharger.Server.Scheduling.Jobs;
 using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.ApiServices;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
+using TeslaSolarCharger.Server.SignalR.Notifiers;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -58,6 +63,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<FleetTelemetryReconfigurationJob>()
             .AddTransient<WeatherDataRefreshJob>()
             .AddTransient<MeterValueDatabaseSaveJob>()
+            .AddTransient<HomeBatteryMinSocRefreshJob>()
             .AddTransient<JobFactory>()
             .AddTransient<IJobFactory, JobFactory>()
             .AddTransient<ISchedulerFactory, StdSchedulerFactory>()
@@ -122,10 +128,24 @@ public static class ServiceCollectionExtensions
             .AddTransient<IWeatherDataService, WeatherDataService>()
             .AddTransient<IEnergyDataService, EnergyDataService>()
             .AddTransient<IMeterValueEstimationService, MeterValueEstimationService>()
+            .AddTransient<IOcppChargePointActionService, OcppChargePointActionService>()
+            .AddTransient<IOcppChargePointConfigurationService, OcppChargePointConfigurationService>()
+            .AddTransient<IOcppChargingStationConfigurationService, OcppChargingStationConfigurationService>()
+            .AddTransient<ILoadPointManagementService, LoadPointManagementService>()
+            .AddTransient<IChargingServiceV2, ChargingServiceV2>()
+            .AddTransient<IHomeService, HomeService>()
+            .AddTransient<ISunCalculator, SunCalculator>()
+            .AddTransient<IHomeBatteryEnergyCalculator, HomeBatteryEnergyCalculator>()
+            .AddTransient<IShouldStartStopChargingCalculator, ShouldStartStopChargingCalculator>()
+            .AddTransient<IValidFromToSplitter, ValidFromToSplitter>()
+            .AddTransient<IPowerToControlCalculationService, PowerToControlCalculationService>()
+            .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
             .AddSingleton<IMeterValueBufferService, MeterValueBufferService>()
+            .AddSingleton<IOcppWebSocketConnectionHandlingService, OcppWebSocketConnectionHandlingService>()
+            .AddSingleton<IPvValueNotifier, PvValueNotifier>()
             .AddScoped<ErrorHandlingMiddleware>()
             .AddHostedService<MeterValueFlushService>()
             .AddSharedBackendDependencies();
