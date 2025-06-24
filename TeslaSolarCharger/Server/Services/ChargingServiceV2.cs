@@ -163,17 +163,18 @@ public class ChargingServiceV2 : IChargingServiceV2
                 }
             }
         }
-        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
         OptimizeChargingSwitchTimes(chargingSchedules, loadPointsToManage, currentDate);
-
         _settings.ChargingSchedules = new ConcurrentBag<DtoChargingSchedule>(chargingSchedules);
 
+        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
+
+
         _logger.LogDebug("Final calculated power to control: {powerToControl}", powerToControl);
-        var alreadyControlledLoadPoints = new HashSet<(int? carId, int? connectorId)>();
-        currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var activeChargingSchedules = chargingSchedules.Where(s => s.ValidFrom <= currentDate).ToList();
+
+        var alreadyControlledLoadPoints = new HashSet<(int? carId, int? connectorId)>();
         var maxAdditionalCurrent = _configurationWrapper.MaxCombinedCurrent() - chargingLoadPoints.Select(l => l.ChargingCurrent).Sum();
         foreach (var activeChargingSchedule in activeChargingSchedules)
         {
