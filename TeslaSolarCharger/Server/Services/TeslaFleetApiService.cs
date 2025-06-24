@@ -107,6 +107,12 @@ public class TeslaFleetApiService(
             logger.LogDebug("Should start charging with 0 amp. Skipping charge start.");
             return;
         }
+
+        if (car.SoC > (car.SocLimit - constants.MinimumSocDifference))
+        {
+            logger.LogWarning("Triggered start charging but can not start charging as Soc is lower than Soc Limit - {minDifference}", constants.MinimumSocDifference);
+            return;
+        }
         await WakeUpCarIfNeeded(carId).ConfigureAwait(false);
 
         var vin = GetVinByCarId(carId);
