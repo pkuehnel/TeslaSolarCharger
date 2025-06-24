@@ -189,6 +189,18 @@ public class LoadPointManagementService : ILoadPointManagementService
         var errorForMultipleMatches = false;
         var maxTimeDiff = _configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
 
+        var plugInRelevantCarData = _settings.Cars.Where(c => carIds.Contains(c.Id)).Select(
+            c => new
+            {
+                c.Id,
+                c.LastPluggedIn,
+                c.IsHomeGeofence,
+            }).ToList();
+        foreach (var plugInRelevantCarDatum in plugInRelevantCarData)
+        {
+            _logger.LogTrace("{@carDatum}", plugInRelevantCarDatum);
+        }
+
         foreach (var connectorId in connectorIds)
         {
             if(!_settings.OcppConnectorStates.TryGetValue(connectorId, out var connectorState))
@@ -239,8 +251,10 @@ public class LoadPointManagementService : ILoadPointManagementService
 
             var matchWindowStart = connectorState.IsPluggedIn.LastChanged.Value.Add(-maxTimeDiff);
             var matchWindowEnd = connectorState.IsPluggedIn.LastChanged.Value.Add(maxTimeDiff);
+            _logger.LogTrace("Charging Connector {chargingConnectorId} match window start {matchWindowStart}, {matchWindowEnd}",
+                connectorId, matchWindowStart, matchWindowEnd);
 
-            var matchingCars = _settings.Cars
+            var matchingCars = plugInRelevantCarData
                 .Where(car => car.LastPluggedIn >= matchWindowStart
                               && car.LastPluggedIn <= matchWindowEnd
                               && car.IsHomeGeofence == true)
@@ -248,14 +262,18 @@ public class LoadPointManagementService : ILoadPointManagementService
 
             if (matchingCars.Count == 1)
             {
-                matches.Add((matchingCars.First().Id, connectorId));
+                var carId = matchingCars.First().Id;
+                _logger.LogTrace("Found car match for {connectorId}: {carId}", connectorId, carId);
+                matches.Add((carId, connectorId));
             }
             else if (matchingCars.Count > 1)
             {
+                _logger.LogTrace("Found car match for {connectorId}: {@cars}", connectorId, matchingCars);
                 errorForMultipleMatches = true;
             }
             else
             {
+                _logger.LogTrace("Found no car match for {connectorId}.", connectorId);
                 matches.Add((null, connectorId));
             }
         }
@@ -264,6 +282,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         {
             if (!matches.Any(c => c.CarId == carId))
             {
+                _logger.LogTrace("Add additional loadpoint for car {carId} as did not match to any charging connector", carId);
                 matches.Add((carId, null));
             }
         }
