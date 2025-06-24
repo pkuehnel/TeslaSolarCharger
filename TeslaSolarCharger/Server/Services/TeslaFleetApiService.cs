@@ -110,7 +110,7 @@ public class TeslaFleetApiService(
 
         if (car.SoC > (car.SocLimit - constants.MinimumSocDifference))
         {
-            logger.LogWarning("Triggered start charging but can not start charging as Soc is lower than Soc Limit - {minDifference}", constants.MinimumSocDifference);
+            logger.LogWarning("Triggered start charging but cannot start charging as SoC is too high compared to Soc Limit - {minDifference}", constants.MinimumSocDifference);
             return;
         }
         await WakeUpCarIfNeeded(carId).ConfigureAwait(false);
