@@ -720,7 +720,6 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     }
 
-
     private async Task<(int powerIncrease, decimal currentIncrease)> SetLoadPointPower(int? carId, int? chargingConnectorId,
         DtoLoadPointWithCurrentChargingValues correspondingLoadPoint, int powerToSet, decimal maxAdditionalCurrent,
         CancellationToken cancellationToken)
