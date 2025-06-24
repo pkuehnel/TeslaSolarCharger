@@ -700,6 +700,12 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             if (useCarToManageChargingSpeed)
             {
+                var car = _settings.Cars.First(c => c.Id == loadpoint.CarId!.Value);
+                if (car.SoC > (car.SocLimit - _constants.MinimumSocDifference))
+                {
+                    _logger.LogDebug("Do not start charging for car {carId} as soc is to high compared to soc Limit", loadpoint.CarId);
+                    return (0, 0);
+                }
                 await _teslaService.StartCharging(loadpoint.CarId!.Value, (int)currentToSet).ConfigureAwait(false);
                 var actuallySetPower = GetPowerAtPhasesAndCurrent(loadpoint.ChargingPhases!.Value, currentToSet);
                 return (actuallySetPower - powerBeforeChanges, currentToSet - currentBeforeChanges);
