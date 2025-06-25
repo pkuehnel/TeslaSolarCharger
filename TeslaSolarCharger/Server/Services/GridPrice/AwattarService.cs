@@ -39,7 +39,7 @@ public class AwattarService : IPriceDataService
         }
         return agileResponse.Results.Select(x => new Price
         {
-            Value = (x.MarketPrice / 1000) * _options.VATMultiplier,
+            GridPrice = (x.MarketPrice / 1000) * _options.VATMultiplier,
             ValidFrom = DateTimeOffset.FromUnixTimeSeconds(x.StartTimestamp / 1000),
             ValidTo = DateTimeOffset.FromUnixTimeSeconds(x.EndTimestamp / 1000)
         });

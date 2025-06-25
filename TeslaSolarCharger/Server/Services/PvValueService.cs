@@ -10,11 +10,14 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 using TeslaSolarCharger.Shared.Enums;
@@ -37,7 +40,9 @@ public class PvValueService(
     IModbusValueExecutionService modbusValueExecutionService,
     IMqttClientHandlingService mqttClientHandlingService,
     IMqttConfigurationService mqttConfigurationService,
-    IConstants constants)
+    IConstants constants,
+    ILoadPointManagementService loadPointManagementService,
+    IPvValueNotifier pvValueNotifier)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -962,6 +967,23 @@ public class PvValueService(
         {
             settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
         }
+        int? powerBuffer = configurationWrapper.PowerBuffer();
+        if (settings.InverterPower == null && settings.Overage == null)
+        {
+            powerBuffer = null;
+        }
+        var loadPoints = loadPointManagementService.GetLoadPointsWithChargingDetails();
+        var pvValues = new DtoPvValues()
+        {
+            GridPower = settings.Overage,
+            InverterPower = settings.InverterPower,
+            HomeBatteryPower = settings.HomeBatteryPower,
+            HomeBatterySoc = settings.HomeBatterySoc,
+            PowerBuffer = powerBuffer,
+            CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum(),
+            LastUpdated = settings.LastPvValueUpdate,
+        };
+        await pvValueNotifier.NotifyNewValuesAsync(pvValues);
     }
 
     /// <summary>

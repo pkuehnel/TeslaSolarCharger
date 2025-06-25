@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.CarValues;
-using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.SharedBackend.Abstracts;
@@ -18,21 +17,12 @@ public class IndexController : ApiBaseController
     }
 
     [HttpGet]
-    public DtoPvValues GetPvValues() => _indexService.GetPvValues();
-
-    [HttpGet]
     public Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars() => _indexService.GetCarBaseStatesOfEnabledCars();
-
-    [HttpGet]
-    public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars() => _indexService.GetCarBaseSettingsOfEnabledCars();
-
+    
     [HttpGet]
     public DtoCarTopicValues CarDetails(int carId)
         => _indexService.GetCarDetails(carId);
-
-    [HttpPost]
-    public Task UpdateCarBaseSettings([FromBody] DtoCarBaseSettings carBaseSettings) => _indexService.UpdateCarBaseSettings(carBaseSettings);
-
+    
     [HttpGet]
     public Dictionary<string, string> GetToolTipTexts() => _indexService.GetToolTipTexts();
 
