@@ -1192,7 +1192,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                         currentToStartChargingWith = maxCurrent.Value;
                         _logger.LogTrace("{method} DECISION: Limited by maxCurrent - adjusted currentToStartChargingWith={currentToStartChargingWith}", nameof(SetLoadPointPower), currentToStartChargingWith);
                     }
-
+                    _logger.LogTrace("{method} variables: lastSetCurrent={currentToStartChargingWith}, isCarFullyCharged={isCarFullyCharged}, lastSetCurrentTimeStamp={lastSetCurrentTimeStamp}, isCarFullyChargedTimeStamp={isCarFullyChargedTimeStamp}",
+                        nameof(SetLoadPointPower), ocppConnectorState.LastSetCurrent.Value, ocppConnectorState.IsCarFullyCharged.Value, ocppConnectorState.LastSetCurrent.Timestamp, ocppConnectorState.IsCarFullyCharged.Timestamp);
                     if ((ocppConnectorState.LastSetCurrent.Value > 0)
                         && (ocppConnectorState.IsCarFullyCharged.Value == true)
                         && (ocppConnectorState.LastSetCurrent.Timestamp > ocppConnectorState.IsCarFullyCharged.Timestamp))
