@@ -194,8 +194,10 @@ public class LoadPointManagementService : ILoadPointManagementService
             {
                 c.Id,
                 c.LastPluggedIn,
+                c.PluggedIn,
                 c.IsHomeGeofence,
             }).ToList();
+        _logger.LogTrace("Logging states of carIds.");
         foreach (var plugInRelevantCarDatum in plugInRelevantCarData)
         {
             _logger.LogTrace("{@carDatum}", plugInRelevantCarDatum);
