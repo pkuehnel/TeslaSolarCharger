@@ -13,4 +13,5 @@ public class DtoLoadPointOverview
     public bool? IsHome { get; set; }
     public bool? IsPluggedIn { get; set; }
     public int? ChargingPriority { get; set; }
+    public bool ManageChargingPowerByCar { get; set; }
 }
