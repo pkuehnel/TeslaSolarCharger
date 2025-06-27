@@ -143,6 +143,8 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.ChargingPriority = dtoCar.ChargingPriority;
                 loadPoint.IsHome = dtoCar.IsHomeGeofence;
                 loadPoint.IsPluggedIn = dtoCar.PluggedIn == true;
+                //Currently always true as all cars are Teslas
+                loadPoint.ManageChargingPowerByCar = true;
             }
 
             if (pair.ConnectorId != default)

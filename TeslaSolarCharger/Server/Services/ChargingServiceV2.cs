@@ -92,87 +92,28 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
         await _errorHandlingService.HandleErrorResolved(_issueKeys.BaseAppNotLicensed, null).ConfigureAwait(false);
         await CalculateGeofences();
-        foreach (var dtoCar in _settings.CarsToManage)
-        {
-            if (dtoCar.IsHomeGeofence != true)
-            {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, new("Car is not at home"));
-            }
-
-            if (dtoCar.PluggedIn != true)
-            {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, new("Car is not plugged in"));
-            }
-        }
-
-        foreach (var settingsOcppConnectorState in _settings.OcppConnectorStates)
-        {
-            if (!settingsOcppConnectorState.Value.IsPluggedIn.Value)
-            {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging connector is not plugged in"));
-            }
-
-            if (settingsOcppConnectorState.Value.IsCarFullyCharged.Value == true)
-            {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging stopped by car, e.g. it is full or its charge limit is reached."));
-            }
-        }
-        var chargingConnectorIdsToManage = await _context.OcppChargingStationConnectors
-            .Where(c => c.ShouldBeManaged)
-            .Select(c => c.Id)
-            .ToHashSetAsync(cancellationToken).ConfigureAwait(false);
-
-        foreach (var connectorId in chargingConnectorIdsToManage)
-        {
-            if (!_settings.OcppConnectorStates.ContainsKey(connectorId))
-            {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, connectorId, new("OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."));
-            }
-        }
-
+        await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
         var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
         var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), _notChargingWithExpectedPowerReasonHelper, cancellationToken).ConfigureAwait(false);
-        var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
-        var earliestAmpChange = currentDate - skipValueChanges;
-        foreach (var chargingLoadPoint in chargingLoadPoints)
+        if (ShouldSkipPowerUpdatesDueToTooRecentAmpChanges(chargingLoadPoints, currentDate))
         {
-            if (chargingLoadPoint.CarId != default)
-            {
-                var car = _settings.Cars.First(c => c.Id == chargingLoadPoint.CarId.Value);
-                var lastAmpChange = car.LastSetAmp.LastChanged;
-                if (lastAmpChange > earliestAmpChange)
-                {
-                    _logger.LogWarning("Skipping amp changes as Car {carId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.CarId, car.LastSetAmp.LastChanged, earliestAmpChange);
-                    return;
-                }
-            }
-
-            if (chargingLoadPoint.ChargingConnectorId != default)
-            {
-                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(chargingLoadPoint.ChargingConnectorId.Value);
-                if (connectorState != default)
-                {
-                    if (connectorState.LastSetCurrent.LastChanged > earliestAmpChange)
-                    {
-                        _logger.LogWarning("Skipping amp changes as Charging Connector {chargingConnectorId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.ChargingConnectorId, connectorState.LastSetCurrent.LastChanged, earliestAmpChange);
-                        return;
-                    }
-                }
-            }
+            return;
         }
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
+        AddNotChargingReasons(loadPointsToManage);
+
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
         OptimizeChargingSwitchTimes(chargingSchedules, loadPointsToManage, currentDate);
         _settings.ChargingSchedules = new ConcurrentBag<DtoChargingSchedule>(chargingSchedules);
 
-        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
-
-
         _logger.LogDebug("Final calculated power to control: {powerToControl}", powerToControl);
         var activeChargingSchedules = chargingSchedules.Where(s => s.ValidFrom <= currentDate).ToList();
+
+        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
+
 
         var alreadyControlledLoadPoints = new HashSet<(int? carId, int? connectorId)>();
         var maxAdditionalCurrent = _configurationWrapper.MaxCombinedCurrent() - chargingLoadPoints.Select(l => l.ChargingCurrent).Sum();
@@ -280,6 +221,107 @@ public class ChargingServiceV2 : IChargingServiceV2
             maxAdditionalCurrent -= result.currentIncrease;
         }
         _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings();
+    }
+
+    private bool ShouldSkipPowerUpdatesDueToTooRecentAmpChanges(List<DtoLoadPointWithCurrentChargingValues> chargingLoadPoints,
+        DateTimeOffset currentDate)
+    {
+        var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
+        var earliestAmpChange = currentDate - skipValueChanges;
+        var earliestPlugin = currentDate - (2 * skipValueChanges);
+        foreach (var chargingLoadPoint in chargingLoadPoints)
+        {
+            if (chargingLoadPoint.CarId != default)
+            {
+                var car = _settings.Cars.First(c => c.Id == chargingLoadPoint.CarId.Value);
+                var lastAmpChange = car.LastSetAmp.LastChanged;
+                if (lastAmpChange > earliestAmpChange)
+                {
+                    _logger.LogWarning("Skipping amp changes as Car {carId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.CarId, car.LastSetAmp.LastChanged, earliestAmpChange);
+                    return true;
+                }
+
+                var lastPlugIn = car.LastPluggedIn;
+                if ((car.PluggedIn == true) && (lastPlugIn > earliestPlugin) && (car.ChargerRequestedCurrent > car.ChargerActualCurrent))
+                {
+                    _logger.LogWarning("Skipping amp changes as Car {carId} was plugged in after {earliestPlugIn}.", chargingLoadPoint.CarId, earliestPlugin);
+                    return true;
+                }
+            }
+
+            if (chargingLoadPoint.ChargingConnectorId != default)
+            {
+                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(chargingLoadPoint.ChargingConnectorId.Value);
+                if (connectorState != default)
+                {
+                    if (connectorState.LastSetCurrent.LastChanged > earliestAmpChange)
+                    {
+                        _logger.LogWarning("Skipping amp changes as Charging Connector {chargingConnectorId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.ChargingConnectorId, connectorState.LastSetCurrent.LastChanged, earliestAmpChange);
+                        return true;
+                    }
+
+                    if (connectorState.IsPluggedIn.Value
+                        && (connectorState.IsPluggedIn.LastChanged > earliestPlugin)
+                        && (connectorState.ChargingCurrent.Value > 0)
+                        && (connectorState.ChargingCurrent.Value < connectorState.LastSetCurrent.Value))
+                    {
+                        _logger.LogWarning("Skipping amp changes as Charging Connector {chargingConnectorId} was plugged in after {earliestPlugin}.", chargingLoadPoint.ChargingConnectorId, earliestPlugin);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private async Task AddNoOcppConnectionReason(CancellationToken cancellationToken)
+    {
+        var chargingConnectorIdsToManage = await _context.OcppChargingStationConnectors
+            .Where(c => c.ShouldBeManaged)
+            .Select(c => c.Id)
+            .ToHashSetAsync(cancellationToken).ConfigureAwait(false);
+
+        foreach (var connectorId in chargingConnectorIdsToManage)
+        {
+            if (!_settings.OcppConnectorStates.ContainsKey(connectorId))
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, connectorId, new("OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."));
+            }
+        }
+    }
+
+    private void AddNotChargingReasons(List<DtoLoadPointOverview> loadPointsToManage)
+    {
+        foreach (var dtoCar in _settings.CarsToManage)
+        {
+            if (dtoCar.IsHomeGeofence != true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, new("Car is not at home"));
+            }
+
+            if (dtoCar.PluggedIn != true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, new("Car is not plugged in"));
+            }
+        }
+
+        foreach (var settingsOcppConnectorState in _settings.OcppConnectorStates)
+        {
+            if (!settingsOcppConnectorState.Value.IsPluggedIn.Value)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging connector is not plugged in"));
+            }
+
+            if (settingsOcppConnectorState.Value.IsCarFullyCharged.Value == true)
+            {
+                var loadPoint = loadPointsToManage.FirstOrDefault(l => l.ChargingConnectorId == settingsOcppConnectorState.Key);
+                if ((loadPoint == default) || (!loadPoint.ManageChargingPowerByCar))
+                {
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging stopped by car, e.g. it is full or its charge limit is reached."));
+                }
+            }
+        }
     }
 
     private async Task SetCarChargingTargetsToFulFilled(DateTimeOffset currentDate)
