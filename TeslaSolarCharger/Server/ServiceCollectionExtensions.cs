@@ -138,6 +138,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IHomeBatteryEnergyCalculator, HomeBatteryEnergyCalculator>()
             .AddTransient<IShouldStartStopChargingCalculator, ShouldStartStopChargingCalculator>()
             .AddTransient<IValidFromToSplitter, ValidFromToSplitter>()
+            .AddTransient<ITargetChargingValueCalculationService, TargetChargingValueCalculationService>()
             .AddTransient<IPowerToControlCalculationService, PowerToControlCalculationService>()
             .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
