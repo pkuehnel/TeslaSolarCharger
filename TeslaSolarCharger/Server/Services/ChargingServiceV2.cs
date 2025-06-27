@@ -39,6 +39,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IIssueKeys _issueKeys;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
+    private readonly ITargetChargingValueCalculationService _targetChargingValueCalculationService;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -57,7 +58,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         IBackendApiService backendApiService,
         IErrorHandlingService errorHandlingService,
         IIssueKeys issueKeys,
-        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
+        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
+        ITargetChargingValueCalculationService targetChargingValueCalculationService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -77,6 +79,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _errorHandlingService = errorHandlingService;
         _issueKeys = issueKeys;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
+        _targetChargingValueCalculationService = targetChargingValueCalculationService;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -117,6 +120,13 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         var alreadyControlledLoadPoints = new HashSet<(int? carId, int? connectorId)>();
         var maxAdditionalCurrent = _configurationWrapper.MaxCombinedCurrent() - chargingLoadPoints.Select(l => l.ChargingCurrent).Sum();
+        var targetChargingValues = loadPointsToManage
+            .OrderBy(l => l.ChargingPriority)
+            .Select(l => new DtoTargetChargingValues(l))
+            .ToList();
+
+        await _targetChargingValueCalculationService.SetTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, cancellationToken);
+
         foreach (var activeChargingSchedule in activeChargingSchedules)
         {
             if (powerToControl < activeChargingSchedule.OnlyChargeOnAtLeastSolarPower)
@@ -222,6 +232,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
         _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings();
     }
+
+    
 
     private bool ShouldSkipPowerUpdatesDueToTooRecentAmpChanges(List<DtoLoadPointWithCurrentChargingValues> chargingLoadPoints,
         DateTimeOffset currentDate)
