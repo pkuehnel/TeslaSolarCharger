@@ -1,7 +1,6 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Resources.Contracts
-@using TeslaSolarCharger.Client.Helper
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Shared.SignalRClients
 
@@ -10,10 +9,15 @@
 @inject ISignalRConnector SignalRConnector
 @implements IAsyncDisposable
 
-@if (_pvValues != default)
+@if (_pvValues == default)
+{
+    <PlaceholderComponent Height="@(ThirdLineY)px"
+                          Width="@(_widthInPixel)px"></PlaceholderComponent>
+}
+else
 {
     <div class="d-flex justify-content-center align-items-center">
-        <svg width="420" height="@SvgHeight" viewBox="@($"0 0 420 {SvgHeight}")">
+        <svg width="@(_widthInPixel)" height="@SvgHeight" viewBox="@($"0 0 {_widthInPixel} {SvgHeight}")">
             <!-- Lines -->
             <!-- Grid to Solar -->
             @if (GridLocation != default && InverterLocation != default)
@@ -177,6 +181,7 @@
     private DtoPvValues? _pvValues;
     private bool? _isSolarEdgeInstallation;
     private bool? _couldNotRefreshStates;
+    private int _widthInPixel = 420;
 
 
 
