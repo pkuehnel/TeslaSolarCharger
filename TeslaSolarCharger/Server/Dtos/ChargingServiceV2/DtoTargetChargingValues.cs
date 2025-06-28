@@ -1,5 +1,4 @@
 ﻿using TeslaSolarCharger.Shared.Dtos.Home;
-using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 
@@ -11,7 +10,7 @@ public class DtoTargetChargingValues
     }
 
     public DtoLoadPointOverview LoadPoint { get; set; }
-    public TargetValues? Values { get; set; }
+    public TargetValues? TargetValues { get; set; }
 }
 
 public class TargetValues

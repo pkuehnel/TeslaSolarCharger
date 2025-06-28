@@ -388,7 +388,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
             _logger.LogDebug("Less than {minimumTime} until next charging schedule {@nextChargingSchedule}. Bridge time with minimum power.", timespanToCombineCharges, nextChargingSchedule);
             var addedTime = nextChargingSchedule.ValidFrom - currentDate;
-            var minPower = GetPowerAtPhasesAndCurrent(dtoLoadPointOverview.ActualPhases.Value, dtoLoadPointOverview.MinCurrent.Value);
+            var minPower = GetPowerAtPhasesAndCurrent(dtoLoadPointOverview.ActualPhases.Value, dtoLoadPointOverview.MinCurrent.Value, dtoLoadPointOverview.EstimatedVoltageWhileCharging);
             var addedEnergy = addedTime.TotalHours * minPower;
             var nextChargingScheduleDuration = nextChargingSchedule.ValidTo - nextChargingSchedule.ValidFrom;
             var powerToReduce = addedEnergy / nextChargingScheduleDuration.TotalHours;
@@ -469,7 +469,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         carUsableEnergy.Value);
                     var earliestPossibleChargingSchedule =
                         GenerateEarliestOrLatestPossibleChargingSchedule(null, currentDate,
-                            energyToCharge, maxPhases.Value, maxCurrent.Value, car.Id, loadpoint.ChargingConnectorId);
+                            energyToCharge, maxPhases.Value, maxCurrent.Value, car.Id, loadpoint.ChargingConnectorId, loadpoint.EstimatedVoltageWhileCharging);
                     if (earliestPossibleChargingSchedule != default)
                     {
                         chargingSchedules.Add(earliestPossibleChargingSchedule);
@@ -485,7 +485,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         nextTarget.TargetSoc,
                         car.SoC ?? 0,
                         carUsableEnergy.Value);
-                    var maxPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, maxCurrent.Value);
+                    var maxPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, maxCurrent.Value, loadpoint.EstimatedVoltageWhileCharging);
                     if (nextTarget.NextExecutionTime < currentDate)
                     {
                         _logger.LogWarning("Next target {nextTarget} is in the past. Plan charging immediatly.", nextTarget);
@@ -508,7 +508,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         var predictedSurplusSlices = await _energyDataService
                             .GetPredictedSurplusPerSlice(currentFullHour, fullHourAfterNextTarget, TimeSpan.FromHours(surplusTimeSpanInHours), cancellationToken)
                             .ConfigureAwait(false);
-                        var minPower = GetPowerAtPhasesAndCurrent(minPhases.Value, minCurrent.Value);
+                        var minPower = GetPowerAtPhasesAndCurrent(minPhases.Value, minCurrent.Value, loadpoint.EstimatedVoltageWhileCharging);
                         var maxPowerCappedPredictedHoursWithAtLeastMinPowerSurpluses = predictedSurplusSlices
                             .Where(s => s.Value > minPower)
                             .OrderBy(s => s.Key)
@@ -644,10 +644,9 @@ public class ChargingServiceV2 : IChargingServiceV2
         return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
     }
 
-    private int GetPowerAtPhasesAndCurrent(int phases, decimal current)
+    private int GetPowerAtPhasesAndCurrent(int phases, decimal current, int? voltage)
     {
-        var voltage = _settings.AverageHomeGridVoltage ?? 230;
-        return (int)(phases * current * voltage);
+        return (int)(phases * current * (voltage ?? 230));
     }
 
     private async Task<(int powerIncrease, decimal currentIncrease)> ForceSetLoadPointPower(int? carId, int? chargingConnectorId,
@@ -720,7 +719,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 await _teslaService.SetAmp(carId!.Value, (int)currentToSet).ConfigureAwait(false);
                 //charging phases can not be null as useCarToManageChargingSpeed is true and charging
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(loadpoint.ChargingPhases!.Value, currentToSet);
+                var actuallySetPower = GetPowerAtPhasesAndCurrent(loadpoint.ChargingPhases!.Value, currentToSet, loadpoint.ChargingVoltage);
                 return (actuallySetPower - powerBeforeChanges, currentToSet - currentBeforeChanges);
             }
             else
@@ -746,7 +745,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         chargingConnectorId!.Value, ampChangeResult.ErrorMessage);
                     return (0, 0);
                 }
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToUse, currentToSet);
+                var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToUse, currentToSet, loadpoint.ChargingVoltage);
                 return (actuallySetPower, currentToSet);
             }
         }
@@ -761,7 +760,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     return (0, 0);
                 }
                 await _teslaService.StartCharging(loadpoint.CarId!.Value, (int)currentToSet).ConfigureAwait(false);
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(loadpoint.ChargingPhases!.Value, currentToSet);
+                var actuallySetPower = GetPowerAtPhasesAndCurrent(loadpoint.ChargingPhases!.Value, currentToSet, loadpoint.ChargingVoltage);
                 return (actuallySetPower - powerBeforeChanges, currentToSet - currentBeforeChanges);
             }
             else
@@ -773,7 +772,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         loadpoint.ChargingConnectorId, ampChangeResult.ErrorMessage);
                     return (0, 0);
                 }
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToUse, currentToSet);
+                var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToUse, currentToSet, loadpoint.ChargingVoltage);
                 return (actuallySetPower, currentToSet);
             }
         }
@@ -837,7 +836,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
         _logger.LogTrace("{method} DECISION: maxCurrent is known ({maxCurrent}) - continuing", nameof(SetLoadPointPower), maxCurrent);
 
-        var voltage = _settings.AverageHomeGridVoltage ?? 230;
+        var voltage = correspondingLoadPoint.ChargingVoltage;
         var powerBeforeChanges = correspondingLoadPoint.ChargingPower;
         var currentBeforeChanges = correspondingLoadPoint.ChargingCurrent;
 
@@ -1145,7 +1144,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                     _logger.LogTrace("{method} DECISION: Starting charging with current={currentToStartChargingWith}", nameof(SetLoadPointPower), currentToStartChargingWith);
                     await _teslaService.StartCharging(car.Id, currentToStartChargingWith).ConfigureAwait(false);
-                    var actuallySetPower = GetPowerAtPhasesAndCurrent(car.ActualPhases, currentToStartChargingWith);
+                    var actuallySetPower = GetPowerAtPhasesAndCurrent(car.ActualPhases, currentToStartChargingWith, voltage);
                     return (actuallySetPower, currentToStartChargingWith);
                 }
                 else if ((carChargeMode == ChargeModeV2.Auto))
@@ -1319,7 +1318,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     }
 
                     _logger.LogTrace("{method} DECISION: Start charging successful - returning power increase", nameof(SetLoadPointPower));
-                    var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToStartChargingWith, currentToStartChargingWith);
+                    var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToStartChargingWith, currentToStartChargingWith, voltage);
                     return (actuallySetPower, currentToStartChargingWith);
                 }
                 else if ((connectorChargeMode == ChargeModeV2.Auto)
@@ -1422,7 +1421,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                     _logger.LogTrace("{method} DECISION: Setting car amp to {currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
                     await _teslaService.SetAmp(car.Id, currentToChargeWith).ConfigureAwait(false);
-                    var actuallySetPower = GetPowerAtPhasesAndCurrent(car.ActualPhases, currentToChargeWith);
+                    var actuallySetPower = GetPowerAtPhasesAndCurrent(car.ActualPhases, currentToChargeWith, voltage);
                     return (actuallySetPower - powerBeforeChanges, currentToChargeWith - currentBeforeChanges);
                 }
                 else
@@ -1494,7 +1493,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     }
 
                     _logger.LogTrace("{method} DECISION: Amp change successful - returning power change", nameof(SetLoadPointPower));
-                    var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToChargeWith.Value, currentToChargeWith);
+                    var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToChargeWith.Value, currentToChargeWith, voltage);
                     return (powerBeforeChanges - actuallySetPower, currentBeforeChanges - currentToChargeWith);
                 }
                 _logger.LogTrace("{method} DECISION: OCPP not in Auto mode - returning (0, 0)", nameof(SetLoadPointPower));
@@ -1659,6 +1658,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     /// <param name="maxCurrent"></param>
     /// <param name="carId"></param>
     /// <param name="chargingConnectorId"></param>
+    /// <param name="voltage"></param>
     /// <returns></returns>
     private DtoChargingSchedule? GenerateEarliestOrLatestPossibleChargingSchedule(
         DateTimeOffset? targetTimeUtc,
@@ -1667,7 +1667,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         int maxPhases,
         int maxCurrent,
         int? carId,
-        int? chargingConnectorId)
+        int? chargingConnectorId,
+        int? voltage)
     {
         _logger.LogTrace("{method}({targetTimeUtc}, {currentDate}, {energyToCharge}, {maxPhases}, {maxCurrent}, {carId}, {chargingConnectorId})",
             targetTimeUtc, currentDate, energyToCharge, maxPhases, maxCurrent, targetTimeUtc, carId, chargingConnectorId);
@@ -1675,7 +1676,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             return null;
         }
-        var maxChargingPower = GetPowerAtPhasesAndCurrent(maxPhases, maxCurrent);
+        var maxChargingPower = GetPowerAtPhasesAndCurrent(maxPhases, maxCurrent, voltage);
 
         var chargingDuration = CalculateChargingDuration(
             energyToCharge,
