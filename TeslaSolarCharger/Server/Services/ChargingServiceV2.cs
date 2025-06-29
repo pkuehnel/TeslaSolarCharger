@@ -133,6 +133,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
             if (targetChargingValue.LoadPoint.ManageChargingPowerByCar)
             {
+                _logger.LogTrace("Loadpoint {carId}, {connectorId} is managed by car", targetChargingValue.LoadPoint.CarId, targetChargingValue.LoadPoint.ChargingConnectorId);
                 var carId = targetChargingValue.LoadPoint.CarId!.Value;
                 if (targetChargingValue.TargetValues.StopCharging)
                 {
@@ -193,12 +194,15 @@ public class ChargingServiceV2 : IChargingServiceV2
     /// <returns>Succeeded</returns>
     private async Task<bool> SetChargingPowerOfOccpConnectorForCarManagedLoadpoint(DtoTargetChargingValues targetChargingValue, DateTimeOffset currentDate, CancellationToken cancellationToken)
     {
+        _logger.LogTrace("{method}({@targetChargingValue}, {currentDate})", nameof(SetChargingPowerOfOccpConnectorForCarManagedLoadpoint), targetChargingValue, currentDate);
         if (targetChargingValue.LoadPoint.ManageChargingPowerByCar
             && (targetChargingValue.LoadPoint.ChargingConnectorId != default)
             && (_settings.OcppConnectorStates.TryGetValue(targetChargingValue.LoadPoint.ChargingConnectorId.Value, out var ocppState)))
         {
+            _logger.LogDebug("Loadpoint {carId}, {connectorId} is managed by car", targetChargingValue.LoadPoint.CarId, targetChargingValue.LoadPoint.ChargingConnectorId);
             if (!(ocppState.LastSetCurrent.Value >= targetChargingValue.TargetValues?.TargetCurrent))
             {
+                _logger.LogDebug("OCPP connector {connectorId} current {current} is lower than target current {targetCurrent}. Set new current.", targetChargingValue.LoadPoint.ChargingConnectorId, ocppState.LastSetCurrent.Value, targetChargingValue.TargetValues?.TargetCurrent);
                 var connectorConfig = await _context.OcppChargingStationConnectors
                     .Where(c => c.Id == targetChargingValue.LoadPoint.ChargingConnectorId.Value)
                     .Select(c => new
@@ -211,6 +215,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     .FirstAsync(cancellationToken).ConfigureAwait(false);
                 if (ocppState.IsCharging.Value != true)
                 {
+                    _logger.LogDebug("OCPP connector {connectorId} is not charging.", targetChargingValue.LoadPoint.ChargingConnectorId);
                     if ((ocppState.LastSetPhases.Value != connectorConfig.ConnectedPhasesCount)
                         && (connectorConfig.AutoSwitchBetween1And3PhasesEnabled)
                         && (ocppState.IsCharging.LastChanged > currentDate.AddSeconds(-connectorConfig.PhaseSwitchCoolDownTimeSeconds ?? 0)))
@@ -219,6 +224,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         _logger.LogTrace("Wait with charge start for connector {connectorId} until {waitUntil} for phase switch cooldown", targetChargingValue.LoadPoint.ChargingConnectorId, waitUntil);
                         return false;
                     }
+                    _logger.LogDebug("OCPP connector {connectorId} is not charging. Start charging with max current {maxCurrent}.", targetChargingValue.LoadPoint.ChargingConnectorId, connectorConfig.MaxCurrent);
                     // Max current can not be null as otherwise target values would be null.
                     var result = await _ocppChargePointActionService.StartCharging(targetChargingValue.LoadPoint.ChargingConnectorId.Value,
                         (decimal)connectorConfig.MaxCurrent!, connectorConfig.AutoSwitchBetween1And3PhasesEnabled ? connectorConfig.ConnectedPhasesCount : null, cancellationToken);
@@ -230,6 +236,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                 }
                 else
                 {
+                    _logger.LogDebug("OCPP connector {connectorId} is charging. Set charging current to {targetCurrent}.", targetChargingValue.LoadPoint.ChargingConnectorId, targetChargingValue.TargetValues?.TargetCurrent);
                     // Max current can not be null as otherwise target values would be null.
                     var result = await _ocppChargePointActionService.SetChargingCurrent(targetChargingValue.LoadPoint.ChargingConnectorId.Value,
                         (decimal)connectorConfig.MaxCurrent!, null, cancellationToken).ConfigureAwait(false);
