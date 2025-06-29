@@ -41,7 +41,6 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var carConnectorMatches =
             _loadPointManagementService.GetCarConnectorMatches(carElements.Select(c => c.Id), ocppElements.Select(e => e.Id));
-        var alreadySetCarIds = new HashSet<int>();
         var alreadySetChargingConnectors = new HashSet<int>();
         foreach (var element in orderedElements)
         {
@@ -51,10 +50,6 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
             var elementTargetPower = additionalAvailablePower;
             if (element.DeviceType == DeviceType.Car)
             {
-                if (!alreadySetCarIds.Add(element.Id))
-                {
-                    continue;
-                }
                 carId = element.Id;
             }
             if (element.DeviceType == DeviceType.OcppConnector)
@@ -73,10 +68,6 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
             };
             if (matchingCombination != default)
             {
-                if (matchingCombination.CarId != default)
-                {
-                    alreadySetCarIds.Add(matchingCombination.CarId.Value);
-                }
                 if (matchingCombination.ConnectorId != default)
                 {
                     alreadySetChargingConnectors.Add(matchingCombination.ConnectorId.Value);
