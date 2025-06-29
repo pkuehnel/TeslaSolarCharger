@@ -45,10 +45,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OccpChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default)))
         {
+            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OccpChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default);
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
-            loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControl, true, currentDate);
+            loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, chargingSchedule.ChargingPower, true, currentDate);
             maxCombinedCurrent -= CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
         }
 
