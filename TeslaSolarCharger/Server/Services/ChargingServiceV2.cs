@@ -13,9 +13,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
-using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
-using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -29,7 +27,6 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IOcppChargePointActionService _ocppChargePointActionService;
     private readonly ISettings _settings;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
-    private readonly IConstants _constants;
     private readonly ITeslaService _teslaService;
     private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
     private readonly IEnergyDataService _energyDataService;
@@ -49,7 +46,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         IOcppChargePointActionService ocppChargePointActionService,
         ISettings settings,
         ITscOnlyChargingCostService tscOnlyChargingCostService,
-        IConstants constants,
         ITeslaService teslaService,
         IShouldStartStopChargingCalculator shouldStartStopChargingCalculator,
         IEnergyDataService energyDataService,
@@ -69,7 +65,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         _ocppChargePointActionService = ocppChargePointActionService;
         _settings = settings;
         _tscOnlyChargingCostService = tscOnlyChargingCostService;
-        _constants = constants;
         _teslaService = teslaService;
         _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
         _energyDataService = energyDataService;
@@ -117,123 +112,138 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
 
-
-        var alreadyControlledLoadPoints = new HashSet<(int? carId, int? connectorId)>();
-        var maxAdditionalCurrent = _configurationWrapper.MaxCombinedCurrent() - chargingLoadPoints.Select(l => l.ChargingCurrent).Sum();
         var targetChargingValues = loadPointsToManage
             .OrderBy(l => l.ChargingPriority)
             .Select(l => new DtoTargetChargingValues(l))
             .ToList();
 
-        await _targetChargingValueCalculationService.SetTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, cancellationToken);
-
-        foreach (var activeChargingSchedule in activeChargingSchedules)
+        await _targetChargingValueCalculationService.AppendTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, cancellationToken);
+        foreach (var targetChargingValue in targetChargingValues)
         {
-            if (powerToControl < activeChargingSchedule.OnlyChargeOnAtLeastSolarPower)
+            if (targetChargingValue.TargetValues == default)
             {
-                _logger.LogDebug("Skipping charging schedule {@chargingSchedule} as is only placeholder and car should charge with solar power", activeChargingSchedule);
                 continue;
             }
-            if (powerToControl > activeChargingSchedule.ChargingPower)
+            if (!(await SetChargingPowerOfOccpConnectorForCarManagedLoadpoint(targetChargingValue, currentDate, cancellationToken)
+                    .ConfigureAwait(false)))
             {
-                _logger.LogDebug("Skipping charging schedule {@chargingSchedule} as power to control {powerToControl} is higher than charging power {chargingPower}, so ignore charging schedule but charge with solar power.", activeChargingSchedule, powerToControl, activeChargingSchedule.ChargingPower);
+                _logger.LogDebug("Skipping further processing for loadpoint {@loadPoint} as OCPP charging power could not be set.", targetChargingValue.LoadPoint);
                 continue;
             }
 
-            if (activeChargingSchedule.CarId != default)
+            if (targetChargingValue.LoadPoint.ManageChargingPowerByCar)
             {
-                var car = _settings.Cars.First(c => c.Id == activeChargingSchedule.CarId.Value);
-                if ((car.PluggedIn != true) || (car.IsHomeGeofence != true))
+                var carId = targetChargingValue.LoadPoint.CarId!.Value;
+                if (targetChargingValue.TargetValues.StopCharging)
                 {
-                    _logger.LogWarning("Can not execute active charging schedule as car {carId} is not plugged in at home", activeChargingSchedule.CarId);
+                    await _teslaService.StopCharging(carId).ConfigureAwait(false);
                     continue;
                 }
-            }
 
-            if (activeChargingSchedule.OccpChargingConnectorId != default)
-            {
-                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(activeChargingSchedule.OccpChargingConnectorId.Value);
-                if (connectorState == default || (!connectorState.IsPluggedIn.Value))
+                if (targetChargingValue.TargetValues.StartCharging && (targetChargingValue.TargetValues.TargetCurrent != default))
                 {
-                    _logger.LogWarning("Can not execute charging schedule as charging connector {chargingConnectorId} is not connected via OCPP or not plugged in", activeChargingSchedule.OccpChargingConnectorId);
+                    await _teslaService.StartCharging(carId, (int)targetChargingValue.TargetValues.TargetCurrent.Value)
+                        .ConfigureAwait(false);
                     continue;
                 }
-            }
+                
 
-            var correspondingLoadPoint = chargingLoadPoints.FirstOrDefault(l => l.CarId == activeChargingSchedule.CarId
-                                                                                && l.ChargingConnectorId == activeChargingSchedule.OccpChargingConnectorId);
-            if (correspondingLoadPoint == default)
-            {
-                correspondingLoadPoint = new DtoLoadPointWithCurrentChargingValues()
+                if (targetChargingValue.TargetValues.TargetCurrent != default)
                 {
-                    CarId = activeChargingSchedule.CarId,
-                    ChargingConnectorId = activeChargingSchedule.OccpChargingConnectorId,
-                    ChargingPower = 0,
-                    ChargingVoltage = _settings.AverageHomeGridVoltage ?? 230,
-                    ChargingCurrent = 0,
-                };
+                    await _teslaService.SetAmp(carId, (int)targetChargingValue.TargetValues.TargetCurrent.Value).ConfigureAwait(false);
+                    continue;
+                }
+                _logger.LogError("Invalid target values for car {carId}: {@targetValues}", carId, targetChargingValue);
             }
-            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(activeChargingSchedule.CarId, activeChargingSchedule.OccpChargingConnectorId, new("Charging schedule is active to reach charging target in time"));
-            alreadyControlledLoadPoints.Add((activeChargingSchedule.CarId, activeChargingSchedule.OccpChargingConnectorId));
-            var powerBeforeChanges = correspondingLoadPoint.ChargingPower;
-            var result = await ForceSetLoadPointPower(activeChargingSchedule.CarId, activeChargingSchedule.OccpChargingConnectorId, correspondingLoadPoint, activeChargingSchedule.ChargingPower, maxAdditionalCurrent,
-                    cancellationToken).ConfigureAwait(false);
-            powerToControl -= powerBeforeChanges;
-            powerToControl -= result.powerIncrease;
-            maxAdditionalCurrent -= result.currentIncrease;
+            else
+            {
+                var connectorId = targetChargingValue.LoadPoint.ChargingConnectorId!.Value;
+                if (targetChargingValue.TargetValues.StopCharging)
+                {
+                    await _ocppChargePointActionService.StopCharging(connectorId, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (targetChargingValue.TargetValues.StartCharging && (targetChargingValue.TargetValues.TargetCurrent != default))
+                {
+                    await _ocppChargePointActionService.StartCharging(connectorId, targetChargingValue.TargetValues.TargetCurrent.Value, targetChargingValue.TargetValues.TargetPhases, cancellationToken)
+                        .ConfigureAwait(false);
+                    continue;
+                }
+
+                if (targetChargingValue.TargetValues.TargetCurrent != default)
+                {
+                    await _ocppChargePointActionService.SetChargingCurrent(connectorId, targetChargingValue.TargetValues.TargetCurrent.Value, targetChargingValue.TargetValues.TargetPhases, cancellationToken)
+                        .ConfigureAwait(false);
+                    continue;
+                }
+                _logger.LogError("Invalid target values for OCPP connector {connectorId}: {@targetValues}", connectorId, targetChargingValue);
+            }
         }
 
-        if (powerToControl < 1)
-        {
-            loadPointsToManage = loadPointsToManage.OrderByDescending(l => l.ChargingPriority).ToList();
-        }
-
-        foreach (var loadPoint in loadPointsToManage)
-        {
-            if (!alreadyControlledLoadPoints.Add((loadPoint.CarId, loadPoint.ChargingConnectorId)))
-            {
-                //Continue if this load point has already been controlled in the previous loop
-                continue;
-            }
-            if (loadPoint.CarId != default)
-            {
-                var car = _settings.Cars.First(c => c.Id == loadPoint.CarId.Value);
-                if ((car.PluggedIn != true) || (car.IsHomeGeofence != true))
-                {
-                    _logger.LogInformation("Can not execute active charging schedule as car {carId} is not plugged in at home", loadPoint.CarId);
-                    continue;
-                }
-            }
-
-            if (loadPoint.ChargingConnectorId != default)
-            {
-                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(loadPoint.ChargingConnectorId.Value);
-                if (connectorState == default || (!connectorState.IsPluggedIn.Value))
-                {
-                    _logger.LogInformation("Can not execute charging schedule as charging connector {chargingConnectorId} is not connected via OCPP or not plugged in", loadPoint.ChargingConnectorId);
-                    continue;
-                }
-            }
-            var correspondingLoadPoint = chargingLoadPoints.FirstOrDefault(l => l.CarId == loadPoint.CarId
-                                                                                && l.ChargingConnectorId == loadPoint.ChargingConnectorId) ??
-                                         new DtoLoadPointWithCurrentChargingValues()
-                                         {
-                                             CarId = loadPoint.CarId,
-                                             ChargingConnectorId = loadPoint.ChargingConnectorId,
-                                             ChargingPower = 0,
-                                             ChargingVoltage = _settings.AverageHomeGridVoltage ?? 230,
-                                             ChargingCurrent = 0,
-                                         };
-            var powerBeforeChanges = correspondingLoadPoint.ChargingPower;
-            var result = await SetLoadPointPower(loadPoint.CarId, loadPoint.ChargingConnectorId, correspondingLoadPoint, powerToControl, maxAdditionalCurrent, cancellationToken).ConfigureAwait(false);
-            powerToControl -= powerBeforeChanges;
-            powerToControl -= result.powerIncrease;
-            maxAdditionalCurrent -= result.currentIncrease;
-        }
         _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings();
     }
 
-    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    /// <param name="targetChargingValue"></param>
+    /// <param name="currentDate"></param>
+    /// <returns>Succeeded</returns>
+    private async Task<bool> SetChargingPowerOfOccpConnectorForCarManagedLoadpoint(DtoTargetChargingValues targetChargingValue, DateTimeOffset currentDate, CancellationToken cancellationToken)
+    {
+        if (targetChargingValue.LoadPoint.ManageChargingPowerByCar
+            && (targetChargingValue.LoadPoint.ChargingConnectorId != default)
+            && (_settings.OcppConnectorStates.TryGetValue(targetChargingValue.LoadPoint.ChargingConnectorId.Value, out var ocppState)))
+        {
+            if (!(ocppState.LastSetCurrent.Value >= targetChargingValue.TargetValues?.TargetCurrent))
+            {
+                var connectorConfig = await _context.OcppChargingStationConnectors
+                    .Where(c => c.Id == targetChargingValue.LoadPoint.ChargingConnectorId.Value)
+                    .Select(c => new
+                    {
+                        c.MaxCurrent,
+                        c.ConnectedPhasesCount,
+                        c.AutoSwitchBetween1And3PhasesEnabled,
+                        c.PhaseSwitchCoolDownTimeSeconds,
+                    })
+                    .FirstAsync(cancellationToken).ConfigureAwait(false);
+                if (ocppState.IsCharging.Value != true)
+                {
+                    if ((ocppState.LastSetPhases.Value != connectorConfig.ConnectedPhasesCount)
+                        && (connectorConfig.AutoSwitchBetween1And3PhasesEnabled)
+                        && (ocppState.IsCharging.LastChanged > currentDate.AddSeconds(-connectorConfig.PhaseSwitchCoolDownTimeSeconds ?? 0)))
+                    {
+                        var waitUntil = ocppState.IsCharging.LastChanged.Value.AddSeconds(connectorConfig.PhaseSwitchCoolDownTimeSeconds ?? 0);
+                        _logger.LogTrace("Wait with charge start for connector {connectorId} until {waitUntil} for phase switch cooldown", targetChargingValue.LoadPoint.ChargingConnectorId, waitUntil);
+                        return false;
+                    }
+                    // Max current can not be null as otherwise target values would be null.
+                    var result = await _ocppChargePointActionService.StartCharging(targetChargingValue.LoadPoint.ChargingConnectorId.Value,
+                        (decimal)connectorConfig.MaxCurrent!, connectorConfig.AutoSwitchBetween1And3PhasesEnabled ? connectorConfig.ConnectedPhasesCount : null, cancellationToken);
+                    if (result.HasError)
+                    {
+                        _logger.LogError("Could not start charging for ocpp connector {ocppConnectorId}", targetChargingValue.LoadPoint.ChargingConnectorId);
+                        return false;
+                    }
+                }
+                else
+                {
+                    // Max current can not be null as otherwise target values would be null.
+                    var result = await _ocppChargePointActionService.SetChargingCurrent(targetChargingValue.LoadPoint.ChargingConnectorId.Value,
+                        (decimal)connectorConfig.MaxCurrent!, null, cancellationToken).ConfigureAwait(false);
+                    if (result.HasError)
+                    {
+                        _logger.LogError("Could not start update charging current for ocpp connector {ocppConnectorId}", targetChargingValue.LoadPoint.ChargingConnectorId);
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
 
     private bool ShouldSkipPowerUpdatesDueToTooRecentAmpChanges(List<DtoLoadPointWithCurrentChargingValues> chargingLoadPoints,
         DateTimeOffset currentDate)
@@ -649,958 +659,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         return (int)(phases * current * (voltage ?? 230));
     }
 
-    private async Task<(int powerIncrease, decimal currentIncrease)> ForceSetLoadPointPower(int? carId, int? chargingConnectorId,
-        DtoLoadPointWithCurrentChargingValues loadpoint, int powerToSet,
-        decimal maxAdditionalCurrent, CancellationToken cancellationToken)
-    {
-        _logger.LogTrace("{method}({loadPoint.CarId}, {loadPoint.ConnectorId}, {powerToSet}, {maxAdditionalCurrent})",
-            nameof(ForceSetLoadPointPower), carId, chargingConnectorId, powerToSet, maxAdditionalCurrent);
-        var (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, _, _, _) = await GetMinMaxCurrentsAndPhases(carId, chargingConnectorId, cancellationToken).ConfigureAwait(false);
-        if (minPhases == default)
-        {
-            _logger.LogError("Min phases unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
-            return (0, 0);
-        }
-        if (maxPhases == default)
-        {
-            _logger.LogError("Max phases unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
-            return (0, 0);
-        }
-        if (minCurrent == default)
-        {
-            _logger.LogError("Min current unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
-            return (0, 0);
-        }
-        if (maxCurrent == default)
-        {
-            _logger.LogError("Max current unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
-            return (0, 0);
-        }
-
-        var voltage = _settings.AverageHomeGridVoltage ?? 230;
-        var currentToSetOnMaxPhases = (decimal)powerToSet / voltage / maxPhases.Value;
-        var phasesToUse = maxPhases.Value;
-        if (currentToSetOnMaxPhases < minCurrent)
-        {
-            phasesToUse = minPhases.Value;
-        }
-        var currentToSet = (decimal)powerToSet / voltage / phasesToUse;
-        if (currentToSet < minCurrent)
-        {
-            currentToSet = minCurrent.Value;
-        }
-        else if (currentToSet > maxCurrent)
-        {
-            currentToSet = maxCurrent.Value;
-        }
-        var powerBeforeChanges = loadpoint.ChargingPower;
-        var currentBeforeChanges = loadpoint.ChargingCurrent;
-        if (currentToSet > (currentBeforeChanges + maxAdditionalCurrent))
-        {
-            currentToSet = currentBeforeChanges + maxAdditionalCurrent;
-        }
-
-        bool isCharging;
-        if (useCarToManageChargingSpeed)
-        {
-            var car = _settings.Cars.First(c => c.Id == carId);
-            isCharging = (car.State == CarStateEnum.Charging) && (car.IsHomeGeofence == true);
-        }
-        else
-        {
-            //ChargingConnectorId can not be null as if ueCarToManageChargingSpeed is false, the loadpoint must have an OCPP connector assigned
-            var ocppConnectorState = _settings.OcppConnectorStates.GetValueOrDefault(chargingConnectorId!.Value);
-            isCharging = ocppConnectorState?.IsCharging.Value ?? false;
-        }
-
-        if (isCharging)
-        {
-            if (useCarToManageChargingSpeed)
-            {
-                await _teslaService.SetAmp(carId!.Value, (int)currentToSet).ConfigureAwait(false);
-                //charging phases can not be null as useCarToManageChargingSpeed is true and charging
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(loadpoint.ChargingPhases!.Value, currentToSet, loadpoint.ChargingVoltage);
-                return (actuallySetPower - powerBeforeChanges, currentToSet - currentBeforeChanges);
-            }
-            else
-            {
-                //charging phases can not be null as charging
-                if (phasesToUse != loadpoint.ChargingPhases!.Value)
-                {
-                    var chargeStopResult = await _ocppChargePointActionService.StopCharging(chargingConnectorId!.Value, cancellationToken).ConfigureAwait(false);
-                    if (chargeStopResult.HasError)
-                    {
-                        _logger.LogError("Error stopping OCPP charge point for connector {loadpointId}: {errorMessage}",
-                            chargingConnectorId!.Value, chargeStopResult.ErrorMessage);
-                        return (0, 0);
-                    }
-                    _logger.LogTrace("Stopped OCPP charge point for connector {loadpointId} to change phases from {oldPhases} to {newPhases}",
-                        chargingConnectorId!.Value, loadpoint.ChargingPhases, phasesToUse);
-                    return (-powerBeforeChanges, -currentBeforeChanges);
-                }
-                var ampChangeResult = await _ocppChargePointActionService.SetChargingCurrent(chargingConnectorId!.Value, currentToSet, canChangePhases ? phasesToUse : null, cancellationToken).ConfigureAwait(false);
-                if (ampChangeResult.HasError)
-                {
-                    _logger.LogError("Error starting OCPP charge point for connector {loadpointId}: {errorMessage}",
-                        chargingConnectorId!.Value, ampChangeResult.ErrorMessage);
-                    return (0, 0);
-                }
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToUse, currentToSet, loadpoint.ChargingVoltage);
-                return (actuallySetPower, currentToSet);
-            }
-        }
-        else
-        {
-            if (useCarToManageChargingSpeed)
-            {
-                var car = _settings.Cars.First(c => c.Id == loadpoint.CarId!.Value);
-                if (car.SoC > (car.SocLimit - _constants.MinimumSocDifference))
-                {
-                    _logger.LogDebug("Do not start charging for car {carId} as soc is to high compared to soc Limit", loadpoint.CarId);
-                    return (0, 0);
-                }
-                await _teslaService.StartCharging(loadpoint.CarId!.Value, (int)currentToSet).ConfigureAwait(false);
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(loadpoint.ChargingPhases!.Value, currentToSet, loadpoint.ChargingVoltage);
-                return (actuallySetPower - powerBeforeChanges, currentToSet - currentBeforeChanges);
-            }
-            else
-            {
-                var ampChangeResult = await _ocppChargePointActionService.StartCharging(loadpoint.ChargingConnectorId!.Value, currentToSet, canChangePhases ? phasesToUse : null, cancellationToken).ConfigureAwait(false);
-                if (ampChangeResult.HasError)
-                {
-                    _logger.LogError("Error starting OCPP charge point for connector {loadpointId}: {errorMessage}",
-                        loadpoint.ChargingConnectorId, ampChangeResult.ErrorMessage);
-                    return (0, 0);
-                }
-                var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToUse, currentToSet, loadpoint.ChargingVoltage);
-                return (actuallySetPower, currentToSet);
-            }
-        }
-
-    }
-
-
-    private async Task<(int powerIncrease, decimal currentIncrease)> SetLoadPointPower(int? carId, int? chargingConnectorId,
-        DtoLoadPointWithCurrentChargingValues correspondingLoadPoint, int powerToSet, decimal maxAdditionalCurrent,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogTrace("{method}({loadPoint.CarId}, {loadPoint.ConnectorId}, {powerToSet}, {maxAdditionalCurrent})",
-            nameof(SetLoadPointPower), carId, chargingConnectorId, powerToSet, maxAdditionalCurrent);
-
-        var (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode, maxSoc) = await GetMinMaxCurrentsAndPhases(carId, chargingConnectorId, cancellationToken).ConfigureAwait(false);
-
-        _logger.LogTrace("{method} variables: minCurrent={minCurrent}, maxCurrent={maxCurrent}, minPhases={minPhases}, maxPhases={maxPhases}, useCarToManageChargingSpeed={useCarToManageChargingSpeed}, canChangePhases={canChangePhases}, carChargeMode={carChargeMode}, connectorChargeMode={connectorChargeMode}, maxSoc={maxSoc}",
-            nameof(SetLoadPointPower), minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode, maxSoc);
-
-        // Decision: minPhases known?
-        _logger.LogTrace("{method} evaluating: minPhases = {minPhases}", nameof(SetLoadPointPower), minPhases);
-        if (minPhases == default)
-        {
-            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Min phases is unknown, therefore can not calculate required power to set"));
-            _logger.LogTrace("{method} DECISION: minPhases is unknown - returning (0, 0)", nameof(SetLoadPointPower));
-            _logger.LogError("Min phases unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
-            return (0, 0);
-        }
-        _logger.LogTrace("{method} DECISION: minPhases is known ({minPhases}) - continuing", nameof(SetLoadPointPower), minPhases);
-
-        // Decision: maxPhases known?
-        _logger.LogTrace("{method} evaluating: maxPhases = {maxPhases}", nameof(SetLoadPointPower), maxPhases);
-        if (maxPhases == default)
-        {
-            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Max phases is unknown, therefore can not calculate required power to set"));
-            _logger.LogTrace("{method} DECISION: maxPhases is unknown - returning (0, 0)", nameof(SetLoadPointPower));
-            _logger.LogError("Max phases unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
-            return (0, 0);
-        }
-        _logger.LogTrace("{method} DECISION: maxPhases is known ({maxPhases}) - continuing", nameof(SetLoadPointPower), maxPhases);
-
-        // Decision: minCurrent known?
-        _logger.LogTrace("{method} evaluating: minCurrent = {minCurrent}", nameof(SetLoadPointPower), minCurrent);
-        if (minCurrent == default)
-        {
-            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Min current is unknown, therefore can not calculate required power to set"));
-            _logger.LogTrace("{method} DECISION: minCurrent is unknown - returning (0, 0)", nameof(SetLoadPointPower));
-            _logger.LogError("Min current unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
-            return (0, 0);
-        }
-        _logger.LogTrace("{method} DECISION: minCurrent is known ({minCurrent}) - continuing", nameof(SetLoadPointPower), minCurrent);
-
-        // Decision: maxCurrent known?
-        _logger.LogTrace("{method} evaluating: maxCurrent = {maxCurrent}", nameof(SetLoadPointPower), maxCurrent);
-        if (maxCurrent == default)
-        {
-            _logger.LogTrace("{method} DECISION: maxCurrent is unknown - returning (0, 0)", nameof(SetLoadPointPower));
-            _logger.LogError("Max current unknown for loadpoint {carId}, {connectorId}", carId, chargingConnectorId);
-            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Max current is unknown, therefore can not calculate required power to set"));
-            return (0, 0);
-        }
-        _logger.LogTrace("{method} DECISION: maxCurrent is known ({maxCurrent}) - continuing", nameof(SetLoadPointPower), maxCurrent);
-
-        var voltage = correspondingLoadPoint.ChargingVoltage;
-        var powerBeforeChanges = correspondingLoadPoint.ChargingPower;
-        var currentBeforeChanges = correspondingLoadPoint.ChargingCurrent;
-
-        var timeSpanUntilSwitchOn = _configurationWrapper.TimespanUntilSwitchOn();
-        var timeSpanUntilSwitchOff = _configurationWrapper.TimespanUntilSwitchOff();
-
-        _logger.LogTrace("{method} variables: voltage={voltage}, powerBeforeChanges={powerBeforeChanges}, currentBeforeChanges={currentBeforeChanges}",
-            nameof(SetLoadPointPower), voltage, powerBeforeChanges, currentBeforeChanges);
-
-        // Decision: useCarToManageChargingSpeed AND connector assigned?
-        _logger.LogTrace("{method} evaluating: useCarToManageChargingSpeed={useCarToManageChargingSpeed}, chargingConnectorId={connectorId})",
-            nameof(SetLoadPointPower), useCarToManageChargingSpeed, chargingConnectorId);
-        if (useCarToManageChargingSpeed && chargingConnectorId != default)
-        {
-            _logger.LogTrace("{method} DECISION: Using car to manage charging speed AND connector assigned - setting OCPP to max power", nameof(SetLoadPointPower));
-
-            #region Set OCPP to max power on OCPP loadpoints where car is directly controlled by TSC
-
-            var anyOpenTransaction = await _context.OcppTransactions
-                .Where(t => t.ChargingStationConnectorId == chargingConnectorId
-                                        && t.EndDate == default)
-                .AnyAsync(cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
-
-            // Decision: anyOpenTransaction?
-            _logger.LogTrace("{method} evaluating: anyOpenTransaction = {anyOpenTransaction}", nameof(SetLoadPointPower), anyOpenTransaction);
-            if (!anyOpenTransaction)
-            {
-                _logger.LogTrace("{method} DECISION: No open transaction - starting new charge with max power", nameof(SetLoadPointPower));
-                var chargeStartResponse = await _ocppChargePointActionService
-                    .StartCharging(chargingConnectorId.Value, maxCurrent.Value, maxPhases, cancellationToken)
-                    .ConfigureAwait(false);
-
-                // Decision: chargeStartResponse.HasError?
-                _logger.LogTrace("{method} evaluating: chargeStartResponse.HasError = {hasError}", nameof(SetLoadPointPower), chargeStartResponse.HasError);
-                if (chargeStartResponse.HasError)
-                {
-                    _logger.LogTrace("{method} DECISION: Charge start failed - returning (0, 0)", nameof(SetLoadPointPower));
-                    _logger.LogError("Error start OCPP charge point with max power for connector {loadpointId}: {errorMessage}",
-                        chargingConnectorId, chargeStartResponse.ErrorMessage);
-                    return (0, 0);
-                }
-                _logger.LogTrace("{method} DECISION: Charge start successful - continuing", nameof(SetLoadPointPower));
-            }
-            else
-            {
-                _logger.LogTrace("{method} DECISION: Open transaction exists - checking if update needed", nameof(SetLoadPointPower));
-                if (_settings.OcppConnectorStates.TryGetValue(chargingConnectorId.Value, out var connectorState))
-                {
-                    // Decision: connectorState.LastSetCurrent vs maxCurrent and connectorState.LastSetPhases vs maxPhases
-                    _logger.LogTrace("{method} evaluating: LastSetCurrent={lastSetCurrent}, maxCurrent={maxCurrent}, LastSetPhases={lastSetPhases}, maxPhases={maxPhases}",
-                        nameof(SetLoadPointPower),
-                        connectorState.LastSetCurrent.Value,
-                        maxCurrent,
-                        connectorState.LastSetPhases.Value,
-                        maxPhases);
-
-                    if ((connectorState.LastSetCurrent.Value != maxCurrent) || (connectorState.LastSetPhases.Value != maxPhases))
-                    {
-                        _logger.LogTrace("{method} DECISION: Current or phases need update - updating to max power", nameof(SetLoadPointPower));
-                        var chargeUpdateResponse = await _ocppChargePointActionService
-                            .SetChargingCurrent(chargingConnectorId.Value, maxCurrent.Value, maxPhases, cancellationToken)
-                            .ConfigureAwait(false);
-
-                        // Decision: chargeUpdateResponse.HasError?
-                        _logger.LogTrace("{method} evaluating: chargeUpdateResponse.HasError = {hasError}", nameof(SetLoadPointPower), chargeUpdateResponse.HasError);
-                        if (chargeUpdateResponse.HasError)
-                        {
-                            _logger.LogTrace("{method} DECISION: Charge update failed - returning (0, 0)", nameof(SetLoadPointPower));
-                            _logger.LogError("Error setting OCPP charge point to max power for connector {loadpointId}: {errorMessage}",
-                                chargingConnectorId, chargeUpdateResponse.ErrorMessage);
-                            return (0, 0);
-                        }
-                        _logger.LogTrace("{method} DECISION: Charge update successful - continuing", nameof(SetLoadPointPower));
-                    }
-                    else
-                    {
-                        _logger.LogTrace("{method} DECISION: Current and phases already at max - no update needed", nameof(SetLoadPointPower));
-                    }
-                }
-            }
-
-            #endregion
-        }
-        else
-        {
-            _logger.LogTrace("{method} DECISION: Not using car to manage charging speed OR no connector assigned - skipping OCPP max power setup", nameof(SetLoadPointPower));
-        }
-
-        var car = _settings.Cars.FirstOrDefault(c => c.Id == carId);
-        DtoOcppConnectorState? ocppConnectorState = null;
-        if (chargingConnectorId != default && _settings.OcppConnectorStates.TryGetValue(chargingConnectorId.Value, out var state))
-        {
-            ocppConnectorState = state;
-        }
-
-        _logger.LogTrace("{method} variables: car.State={carState}, car.IsHomeGeofence={isHomeGeofence}, ocppConnectorState.IsCharging={ocppIsCharging}",
-            nameof(SetLoadPointPower), car?.State, car?.IsHomeGeofence, ocppConnectorState?.IsCharging.Value);
-
-        bool isCharging;
-        // Decision: useCarToManageChargingSpeed branch for isCharging
-        _logger.LogTrace("{method} evaluating isCharging: useCarToManageChargingSpeed={useCarToManageChargingSpeed}",
-            nameof(SetLoadPointPower), useCarToManageChargingSpeed);
-
-        if (useCarToManageChargingSpeed)
-        {
-            isCharging = (car!.State == CarStateEnum.Charging) && (car!.IsHomeGeofence == true);
-            _logger.LogTrace("{method} DECISION: Using car to determine charging status - isCharging={isCharging} (car.State={carState}, car.IsHomeGeofence={isHomeGeofence})",
-                nameof(SetLoadPointPower), isCharging, car.State, car.IsHomeGeofence);
-        }
-        else
-        {
-            isCharging = ocppConnectorState?.IsCharging.Value ?? false;
-            _logger.LogTrace("{method} DECISION: Using OCPP to determine charging status - isCharging={isCharging}", nameof(SetLoadPointPower), isCharging);
-        }
-
-        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        _logger.LogTrace("{method} variables: currentDate={currentDate}", nameof(SetLoadPointPower), currentDate);
-
-        if (isCharging)
-        {
-            _logger.LogTrace("{method} DECISION: Currently charging - checking if should stop", nameof(SetLoadPointPower));
-
-            #region Stop charging if required
-
-            if (useCarToManageChargingSpeed)
-            {
-                _logger.LogTrace("{method} evaluating stop conditions (car): carChargeMode={carChargeMode}, car.ShouldStopCharging.Value={shouldStop}, car.ShouldStopCharging.LastChanged={lastChanged}, threshold={threshold}, maxSoc={maxSoc}, car.SoC={carSoc}",
-                    nameof(SetLoadPointPower),
-                    carChargeMode,
-                    car!.ShouldStopCharging.Value,
-                    car.ShouldStopCharging.LastChanged,
-                    currentDate - _configurationWrapper.TimespanUntilSwitchOff(),
-                    maxSoc,
-                    car.SoC);
-
-                var isShouldStopChargingRelevant =
-                    IsTimeStampedValueRelevant(car.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff, out var shouldStopChargingRelevantAt);
-                if ((carChargeMode == ChargeModeV2.Off)
-                    || ((carChargeMode == ChargeModeV2.Auto)
-                        && ((car.ShouldStopCharging.Value == true) && isShouldStopChargingRelevant)
-                    || ((carChargeMode == ChargeModeV2.Auto)
-                        && (maxSoc <= car.SoC))))
-                {
-                    _logger.LogTrace("{method} DECISION: Should stop charging (car) - stopping and returning power decrease", nameof(SetLoadPointPower));
-                    // ToDo: add error handling
-                    await _teslaService.StopCharging(car.Id).ConfigureAwait(false);
-                    return (-powerBeforeChanges, -currentBeforeChanges);
-                }
-                if ((carChargeMode == ChargeModeV2.Auto))
-                {
-                    if ((car.ShouldStopCharging.Value == true)
-                        && !isShouldStopChargingRelevant)
-                    {
-                        var reason =
-                            new DtoNotChargingWithExpectedPowerReason(
-                                $"Waiting {timeSpanUntilSwitchOff} without enough power before charging stops until ",
-                                shouldStopChargingRelevantAt);
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, reason);
-                    }
-                    if (maxSoc <= car.SoC)
-                    {
-                        var reason = new DtoNotChargingWithExpectedPowerReason("Car reached max SoC.");
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, reason);
-                    }
-                }
-                _logger.LogTrace("{method} DECISION: Should not stop charging (car) - continuing", nameof(SetLoadPointPower));
-            }
-            else
-            {
-                _logger.LogTrace(
-                    "{method} evaluating wrongPhaseCount (OCPP): phaseCount={phaseCount}, canHandleOnePhase={canHandleOnePhase}, canHandleThreePhase={canHandleThreePhase}, onePhaseLastChanged={onePhaseLastChanged}, threePhaseLastChanged={threePhaseLastChanged}, switchOnThreshold={switchOnThreshold}, switchOffThreshold={switchOffThreshold}",
-                    nameof(SetLoadPointPower),
-                    ocppConnectorState!.PhaseCount.Value,
-                    ocppConnectorState.CanHandlePowerOnOnePhase.Value,
-                    ocppConnectorState.CanHandlePowerOnThreePhase.Value,
-                    ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged,
-                    ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged,
-                    currentDate - timeSpanUntilSwitchOn,
-                    currentDate - timeSpanUntilSwitchOff);
-                var wrongPhaseCount = ((ocppConnectorState!.PhaseCount.Value == 1)
-                    && (ocppConnectorState.CanHandlePowerOnOnePhase.Value == false)
-                    && IsTimeStampedValueRelevant(ocppConnectorState.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOn, out _)
-                    && (ocppConnectorState.CanHandlePowerOnThreePhase.Value == true)
-                    && IsTimeStampedValueRelevant(ocppConnectorState.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOn, out _))
-                    || (ocppConnectorState.PhaseCount.Value == 3
-                    && (ocppConnectorState.CanHandlePowerOnOnePhase.Value == true)
-                    && IsTimeStampedValueRelevant(ocppConnectorState.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, out _)
-                    && (ocppConnectorState.CanHandlePowerOnThreePhase.Value == false)
-                    && IsTimeStampedValueRelevant(ocppConnectorState.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, out _));
-
-                _logger.LogTrace("{method} evaluating stop conditions (OCPP): connectorChargeMode={connectorChargeMode}, ocppConnectorState.ShouldStopCharging.Value={shouldStop}, ocppConnectorState.ShouldStopCharging.LastChanged={lastChanged}, threshold={threshold}, wrongPhaseCount={wrongPhaseCount}",
-                    nameof(SetLoadPointPower),
-                    connectorChargeMode,
-                    ocppConnectorState!.ShouldStopCharging.Value,
-                    ocppConnectorState.ShouldStopCharging.LastChanged,
-                    currentDate - _configurationWrapper.TimespanUntilSwitchOff(),
-                    wrongPhaseCount);
-
-                if ((connectorChargeMode == ChargeModeV2.Off)
-                    || ((connectorChargeMode == ChargeModeV2.Auto)
-                        && (ocppConnectorState!.ShouldStopCharging.Value == true)
-                        && (ocppConnectorState.ShouldStopCharging.LastChanged < (currentDate - _configurationWrapper.TimespanUntilSwitchOff())))
-                    || (wrongPhaseCount
-                        && (connectorChargeMode == ChargeModeV2.Auto)))
-                {
-                    _logger.LogTrace("{method} DECISION: Should stop charging (OCPP) - stopping and returning power decrease", nameof(SetLoadPointPower));
-                    var result = await _ocppChargePointActionService.StopCharging(chargingConnectorId!.Value, cancellationToken);
-
-                    _logger.LogTrace("{method} evaluating: StopCharging result.HasError = {hasError}", nameof(SetLoadPointPower), result.HasError);
-                    if (result.HasError)
-                    {
-                        _logger.LogTrace("{method} DECISION: Stop charging failed - returning (0, 0)", nameof(SetLoadPointPower));
-                        _logger.LogError("Error stopping OCPP charge point for connector {loadpointId}: {errorMessage}",
-                            chargingConnectorId, result.ErrorMessage);
-                        return (0, 0);
-                    }
-                    _logger.LogTrace("{method} DECISION: Stop charging successful - returning power decrease", nameof(SetLoadPointPower));
-                    return (-powerBeforeChanges, -currentBeforeChanges);
-                }
-                else if ((connectorChargeMode == ChargeModeV2.Auto)
-                         && !wrongPhaseCount
-                         && (((ocppConnectorState!.PhaseCount.Value == 1)
-                             && (ocppConnectorState.CanHandlePowerOnOnePhase.Value == false)
-                             && (ocppConnectorState.CanHandlePowerOnThreePhase.Value == true))
-                            || ((ocppConnectorState!.PhaseCount.Value == 3)
-                             && (ocppConnectorState.CanHandlePowerOnOnePhase.Value == true)
-                             && (ocppConnectorState.CanHandlePowerOnThreePhase.Value == false))))
-                {
-                    _logger.LogTrace("{method} DECISION: Should switch phases but duration to wait is not over, yet", nameof(SetLoadPointPower));
-                    var durationToWait = ocppConnectorState.PhaseCount.Value == 1 ? timeSpanUntilSwitchOn : timeSpanUntilSwitchOff;
-                    var startTime = ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged > ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged
-                        ? ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged
-                        : ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged;
-                    var shouldStopChargingRelevantAt = startTime + durationToWait;
-                    var reason =
-                        new DtoNotChargingWithExpectedPowerReason(
-                            $"Waiting {durationToWait} before switching phases until ",
-                            shouldStopChargingRelevantAt);
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, reason);
-                }
-                _logger.LogTrace("{method} DECISION: Should not stop charging (OCPP) - continuing", nameof(SetLoadPointPower));
-            }
-
-            #endregion
-        }
-
-        if (!isCharging)
-        {
-            _logger.LogTrace("{method} DECISION: Not currently charging - checking if should start", nameof(SetLoadPointPower));
-
-            #region Start charging if required
-
-            if (useCarToManageChargingSpeed)
-            {
-                _logger.LogTrace("{method} evaluating start conditions (car): carChargeMode={carChargeMode}, car.ShouldStartCharging.Value={shouldStart}, car.ShouldStartCharging.LastChanged={lastChanged}, threshold={threshold}, car.SocLimit={socLimit}, car.SoC={carSoc}, minSocDifference={minSocDifference}",
-                    nameof(SetLoadPointPower),
-                    carChargeMode,
-                    car!.ShouldStartCharging.Value,
-                    car.ShouldStartCharging.LastChanged,
-                    currentDate - _configurationWrapper.TimespanUntilSwitchOn(),
-                    car.SocLimit,
-                    car.SoC,
-                    _constants.MinimumSocDifference);
-
-                var isShouldStartChargingRelevant =
-                    IsTimeStampedValueRelevant(car.ShouldStartCharging, currentDate, timeSpanUntilSwitchOn, out var relevantAt);
-                if ((carChargeMode == ChargeModeV2.Auto)
-                    && (car!.ShouldStartCharging.Value == true)
-                    && (isShouldStartChargingRelevant)
-                    && (!(car.SoC > (car.SocLimit - _constants.MinimumSocDifference)))
-                    && (!(car.SoC >= maxSoc)))
-                {
-                    _logger.LogTrace("{method} DECISION: Should start charging (car) - calculating current", nameof(SetLoadPointPower));
-
-                    var currentToStartChargingWith = powerToSet / voltage / car.ActualPhases;
-                    _logger.LogTrace("{method} variables: initial currentToStartChargingWith={currentToStartChargingWith}, car.ActualPhases={actualPhases}",
-                        nameof(SetLoadPointPower), currentToStartChargingWith, car.ActualPhases);
-
-                    if (maxAdditionalCurrent < (currentToStartChargingWith - currentBeforeChanges))
-                    {
-                        currentToStartChargingWith = (int)(currentBeforeChanges + maxAdditionalCurrent);
-                        _logger.LogTrace("{method} DECISION: Limited by maxAdditionalCurrent - adjusted currentToStartChargingWith={currentToStartChargingWith}", nameof(SetLoadPointPower), currentToStartChargingWith);
-                    }
-
-                    if (currentToStartChargingWith < minCurrent)
-                    {
-                        _logger.LogTrace("{method} DECISION: Current too low ({currentToStartChargingWith} < {minCurrent}) - returning (0, 0)", nameof(SetLoadPointPower), currentToStartChargingWith, minCurrent);
-                        return (0, 0);
-                    }
-
-                    if (currentToStartChargingWith > maxCurrent)
-                    {
-                        currentToStartChargingWith = maxCurrent.Value;
-                        _logger.LogTrace("{method} DECISION: Limited by maxCurrent - adjusted currentToStartChargingWith={currentToStartChargingWith}", nameof(SetLoadPointPower), currentToStartChargingWith);
-                    }
-
-                    if (car.SocLimit < (car.SoC + _constants.MinimumSocDifference))
-                    {
-                        _logger.LogTrace("{method} DECISION: SOC limit too low - returning (0, 0)", nameof(SetLoadPointPower));
-                        _logger.LogTrace("Car {carId} has a SOC limit of {socLimit}, which is too low to start charging. Current SOC: {currentSoc}",
-                            car.Id, car.SocLimit, car.SoC);
-                        return (0, 0);
-                    }
-
-                    _logger.LogTrace("{method} DECISION: Starting charging with current={currentToStartChargingWith}", nameof(SetLoadPointPower), currentToStartChargingWith);
-                    await _teslaService.StartCharging(car.Id, currentToStartChargingWith).ConfigureAwait(false);
-                    var actuallySetPower = GetPowerAtPhasesAndCurrent(car.ActualPhases, currentToStartChargingWith, voltage);
-                    return (actuallySetPower, currentToStartChargingWith);
-                }
-                else if ((carChargeMode == ChargeModeV2.Auto))
-                {
-                    if (car.SoC > (car.SocLimit - _constants.MinimumSocDifference))
-                    {
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Car SoC needs to be at least {_constants.MinimumSocDifference}% below car side Soc limit to start charging."));
-                        return (0, 0);
-                    }
-                    else if (car.ShouldStartCharging.Value == true)
-                    {
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Waiting {timeSpanUntilSwitchOn} with enough power to start charging until ", relevantAt));
-                        return (0, 0);
-                    }
-                    else if (car.SoC >= maxSoc)
-                    {
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Car Soc ({car.SoC}%) reached configured max soc ({maxSoc}%)"));
-                        return (0, 0);
-                    }
-                }
-                _logger.LogTrace("{method} DECISION: Should not start charging (car) - conditions not met", nameof(SetLoadPointPower));
-            }
-            else
-            {
-                _logger.LogTrace("{method} evaluating start conditions (OCPP): connectorChargeMode={connectorChargeMode}, ocppConnectorState.ShouldStartCharging.Value={shouldStart}, ocppConnectorState.ShouldStartCharging.LastChanged={lastChanged}, threshold={threshold}",
-                    nameof(SetLoadPointPower),
-                    connectorChargeMode,
-                    ocppConnectorState!.ShouldStartCharging.Value,
-                    ocppConnectorState.ShouldStartCharging.LastChanged,
-                    currentDate - _configurationWrapper.TimespanUntilSwitchOn());
-                var isShouldStartChargingRelevant =
-                        IsTimeStampedValueRelevant(ocppConnectorState.ShouldStartCharging, currentDate, timeSpanUntilSwitchOn, out var relevantAt);
-                if ((connectorChargeMode == ChargeModeV2.Auto)
-                    && (ocppConnectorState!.ShouldStartCharging.Value == true)
-                    && isShouldStartChargingRelevant)
-                {
-                    _logger.LogTrace("{method} DECISION: Should start charging (OCPP) - determining phases", nameof(SetLoadPointPower));
-
-                    int phasesToStartChargingWith;
-                    _logger.LogTrace("{method} evaluating phases: minPhases={minPhases}, maxPhases={maxPhases}", nameof(SetLoadPointPower), minPhases, maxPhases);
-                    if (minPhases.Value == maxPhases.Value)
-                    {
-                        phasesToStartChargingWith = minPhases.Value;
-                        _logger.LogTrace("{method} DECISION: Min and max phases equal - using {phases} phases", nameof(SetLoadPointPower), phasesToStartChargingWith);
-                    }
-                    else
-                    {
-                        _logger.LogTrace("{method} evaluating phase capabilities: CanHandlePowerOnOnePhase={onePhase}, CanHandlePowerOnThreePhase={threePhase}, OnePhaseLastChanged={onePhaseChanged}, ThreePhaseLastChanged={threePhaseChanged}",
-                            nameof(SetLoadPointPower),
-                            ocppConnectorState.CanHandlePowerOnOnePhase.Value,
-                            ocppConnectorState.CanHandlePowerOnThreePhase.Value,
-                            ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged,
-                            ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged);
-
-                        if ((ocppConnectorState.CanHandlePowerOnOnePhase.Value == true)
-                            && (ocppConnectorState.CanHandlePowerOnThreePhase.Value != true))
-                        {
-                            phasesToStartChargingWith = minPhases.Value;
-                            _logger.LogTrace("{method} DECISION: Can only handle one phase - using {phases} phases", nameof(SetLoadPointPower), phasesToStartChargingWith);
-                        }
-                        else if ((ocppConnectorState.CanHandlePowerOnThreePhase.Value == true)
-                                 && (ocppConnectorState.CanHandlePowerOnOnePhase.Value != true))
-                        {
-                            phasesToStartChargingWith = maxPhases.Value;
-                            _logger.LogTrace("{method} DECISION: Can only handle three phases - using {phases} phases", nameof(SetLoadPointPower), phasesToStartChargingWith);
-                        }
-                        else if ((ocppConnectorState.CanHandlePowerOnThreePhase.Value == true)
-                                 && ocppConnectorState.CanHandlePowerOnThreePhase.LastChanged < ocppConnectorState.CanHandlePowerOnOnePhase.LastChanged)
-                        {
-                            phasesToStartChargingWith = maxPhases.Value;
-                            _logger.LogTrace("{method} DECISION: Three phase capability more recent - using {phases} phases", nameof(SetLoadPointPower), phasesToStartChargingWith);
-                        }
-                        else
-                        {
-                            phasesToStartChargingWith = minPhases.Value;
-                            _logger.LogTrace("{method} DECISION: Default to min phases - using {phases} phases", nameof(SetLoadPointPower), phasesToStartChargingWith);
-                        }
-                    }
-
-                    var currentToStartChargingWith = powerToSet / voltage / phasesToStartChargingWith;
-                    _logger.LogTrace("{method} variables: initial currentToStartChargingWith={currentToStartChargingWith}, phasesToStartChargingWith={phases}",
-                        nameof(SetLoadPointPower), currentToStartChargingWith, phasesToStartChargingWith);
-
-                    if (maxAdditionalCurrent < (currentToStartChargingWith - currentBeforeChanges))
-                    {
-                        currentToStartChargingWith = (int)(currentBeforeChanges + maxAdditionalCurrent);
-                        _logger.LogTrace("{method} DECISION: Limited by maxAdditionalCurrent - adjusted currentToStartChargingWith={currentToStartChargingWith}", nameof(SetLoadPointPower), currentToStartChargingWith);
-                    }
-
-                    if (currentToStartChargingWith < minCurrent)
-                    {
-                        _logger.LogTrace("{method} DECISION: Current too low ({currentToStartChargingWith} < {minCurrent}) - returning (0, 0)", nameof(SetLoadPointPower), currentToStartChargingWith, minCurrent);
-                        return (0, 0);
-                    }
-
-                    if (currentToStartChargingWith > maxCurrent)
-                    {
-                        currentToStartChargingWith = maxCurrent.Value;
-                        _logger.LogTrace("{method} DECISION: Limited by maxCurrent - adjusted currentToStartChargingWith={currentToStartChargingWith}", nameof(SetLoadPointPower), currentToStartChargingWith);
-                    }
-                    _logger.LogTrace("{method} variables: lastSetCurrent={currentToStartChargingWith}, isCarFullyCharged={isCarFullyCharged}, lastSetCurrentTimeStamp={lastSetCurrentTimeStamp}, isCarFullyChargedTimeStamp={isCarFullyChargedTimeStamp}",
-                        nameof(SetLoadPointPower), ocppConnectorState.LastSetCurrent.Value, ocppConnectorState.IsCarFullyCharged.Value, ocppConnectorState.LastSetCurrent.Timestamp, ocppConnectorState.IsCarFullyCharged.Timestamp);
-                    if ((ocppConnectorState.LastSetCurrent.Value > 0)
-                        && (ocppConnectorState.IsCarFullyCharged.Value == true)
-                        && (ocppConnectorState.LastSetCurrent.Timestamp > ocppConnectorState.IsCarFullyCharged.Timestamp))
-                    {
-                        _logger.LogTrace("{method} DECISION: Car is fully charged and last set current > 0 - returning (0, 0)", nameof(SetLoadPointPower));
-                        _logger.LogTrace("Do not try to start charging as last set Current is greater than 0 and car is fully charged");
-                        return (0, 0);
-                    }
-
-                    if (canChangePhases
-                        && (ocppConnectorState.LastSetPhases.Value != default)
-                        && (phasesToStartChargingWith != ocppConnectorState.LastSetPhases.Value))
-                    {
-                        _logger.LogTrace("{method} DECISION: Phase switching conditions met - checking cooldown", nameof(SetLoadPointPower));
-
-                        _logger.LogTrace("{method} Should start charging with {newPhaseCount} phases while LastSetPhases is {oldPhaseCount} phases before charge stop",
-                            nameof(SetLoadPointPower), phasesToStartChargingWith, ocppConnectorState.LastSetPhases.Value);
-
-                        var phaseSwitchCoolDownTimeSeconds = await _context.OcppChargingStationConnectors
-                            .Where(c => c.Id == chargingConnectorId!.Value)
-                            .Select(c => c.PhaseSwitchCoolDownTimeSeconds)
-                            .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                        _logger.LogTrace("{method} Retrieved cooldown configuration: PhaseSwitchCoolDownTimeSeconds={cooldownSeconds}",
-                            nameof(SetLoadPointPower), phaseSwitchCoolDownTimeSeconds);
-
-                        if (phaseSwitchCoolDownTimeSeconds != default)
-                        {
-                            var phaseSwitchCoolDownTime = TimeSpan.FromSeconds(phaseSwitchCoolDownTimeSeconds.Value);
-                            var timeSinceChargeStop = currentDate - ocppConnectorState.IsCharging.LastChanged;
-
-                            _logger.LogTrace("{method} Cooldown evaluation: phaseSwitchCoolDownTime={cooldownTime}, timeSinceChargeStop={timeSinceStop}, currentDate={currentDate}",
-                                nameof(SetLoadPointPower), phaseSwitchCoolDownTime, timeSinceChargeStop, currentDate);
-
-                            if (phaseSwitchCoolDownTime > timeSinceChargeStop)
-                            {
-                                _logger.LogTrace("{method} DECISION: Not starting charging - cooldown time of {phaseSwitchCoolDownTime} is not over since charging stopped at {chargeStop}",
-                                    nameof(SetLoadPointPower), phaseSwitchCoolDownTime, ocppConnectorState.IsCharging.LastChanged);
-                                return (0, 0);
-                            }
-                            else
-                            {
-                                _logger.LogTrace("{method} DECISION: Cooldown period has passed - proceeding with phase switching",
-                                    nameof(SetLoadPointPower));
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogTrace("{method} DECISION: No cooldown configured - proceeding with phase switching",
-                                nameof(SetLoadPointPower));
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogTrace("{method} DECISION: Phase switching conditions not met - no action needed",
-                            nameof(SetLoadPointPower));
-                    }
-
-                    _logger.LogTrace("{method} DECISION: Starting OCPP charging with current={currentToStartChargingWith}, phases={phases}", nameof(SetLoadPointPower), currentToStartChargingWith, phasesToStartChargingWith);
-                    var result = await _ocppChargePointActionService.StartCharging(chargingConnectorId!.Value, currentToStartChargingWith, canChangePhases ? phasesToStartChargingWith : null, cancellationToken).ConfigureAwait(false);
-
-                    _logger.LogTrace("{method} evaluating: StartCharging result.HasError = {hasError}", nameof(SetLoadPointPower), result.HasError);
-                    if (result.HasError)
-                    {
-                        _logger.LogTrace("{method} DECISION: Start charging failed - returning (0, 0)", nameof(SetLoadPointPower));
-                        _logger.LogError("Error starting OCPP charge point for connector {loadpointId}: {errorMessage}",
-                            chargingConnectorId, result.ErrorMessage);
-                        return (0, 0);
-                    }
-
-                    _logger.LogTrace("{method} DECISION: Start charging successful - returning power increase", nameof(SetLoadPointPower));
-                    var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToStartChargingWith, currentToStartChargingWith, voltage);
-                    return (actuallySetPower, currentToStartChargingWith);
-                }
-                else if ((connectorChargeMode == ChargeModeV2.Auto)
-                         && (ocppConnectorState!.ShouldStartCharging.Value == true))
-                {
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Waiting {timeSpanUntilSwitchOn} with enough power to start charging until ", relevantAt));
-                }
-                _logger.LogTrace("{method} DECISION: Should not start charging (OCPP) - conditions not met", nameof(SetLoadPointPower));
-            }
-
-            #endregion
-        }
-
-        if (!isCharging)
-        {
-            _logger.LogTrace("{method} DECISION: Not charging - checking if should remain stopped", nameof(SetLoadPointPower));
-
-            #region Let charging stopped if should not start
-
-            if (useCarToManageChargingSpeed)
-            {
-                _logger.LogTrace("{method} evaluating stop conditions (car): carChargeMode={carChargeMode}, car.ShouldStartCharging.Value={shouldStart}, car.ShouldStartCharging.LastChanged={lastChanged}, threshold={threshold}, maxSoc={maxSoc}, car.SoC={carSoc}",
-                    nameof(SetLoadPointPower),
-                    carChargeMode,
-                    car!.ShouldStartCharging.Value,
-                    car.ShouldStartCharging.LastChanged,
-                    currentDate - _configurationWrapper.TimespanUntilSwitchOn(),
-                    maxSoc,
-                    car.SoC);
-
-                if ((carChargeMode == ChargeModeV2.Manual)
-                    || (carChargeMode == ChargeModeV2.Off)
-                    || (car.ShouldStartCharging.Value == false)
-                    || (car.ShouldStartCharging.LastChanged > (currentDate - _configurationWrapper.TimespanUntilSwitchOn()))
-                    || (maxSoc <= car.SoC))
-                {
-                    _logger.LogTrace("{method} DECISION: Should remain stopped (car) - returning (0, 0)", nameof(SetLoadPointPower));
-                    return (0, 0);
-                }
-            }
-            else
-            {
-                _logger.LogTrace("{method} evaluating stop conditions (OCPP): connectorChargeMode={connectorChargeMode}, ocppConnectorState.ShouldStartCharging.Value={shouldStart}, ocppConnectorState.ShouldStartCharging.LastChanged={lastChanged}, threshold={threshold}",
-                    nameof(SetLoadPointPower),
-                    connectorChargeMode,
-                    ocppConnectorState!.ShouldStartCharging.Value,
-                    ocppConnectorState.ShouldStartCharging.LastChanged,
-                    currentDate - _configurationWrapper.TimespanUntilSwitchOn());
-
-                if ((connectorChargeMode == ChargeModeV2.Manual)
-                    || (connectorChargeMode == ChargeModeV2.Off)
-                    || (ocppConnectorState.ShouldStartCharging.Value == false)
-                    || (ocppConnectorState.ShouldStartCharging.LastChanged > (currentDate - _configurationWrapper.TimespanUntilSwitchOn())))
-                {
-                    _logger.LogTrace("{method} DECISION: Should remain stopped (OCPP) - returning (0, 0)", nameof(SetLoadPointPower));
-                    return (0, 0);
-                }
-            }
-
-            #endregion
-        }
-
-        if (isCharging)
-        {
-            _logger.LogTrace("{method} DECISION: Currently charging - adjusting power/current", nameof(SetLoadPointPower));
-
-            #region Continue to charge with new values
-
-            if (useCarToManageChargingSpeed)
-            {
-                _logger.LogTrace("{method} evaluating charging adjustment (car): carChargeMode={carChargeMode}", nameof(SetLoadPointPower), carChargeMode);
-                if (carChargeMode == ChargeModeV2.Auto)
-                {
-                    _logger.LogTrace("{method} DECISION: Car in Auto mode - calculating new current", nameof(SetLoadPointPower));
-
-                    var currentToChargeWith = powerToSet / voltage / car!.ActualPhases;
-                    _logger.LogTrace("{method} variables: initial currentToChargeWith={currentToChargeWith}, car.ActualPhases={actualPhases}",
-                        nameof(SetLoadPointPower), currentToChargeWith, car.ActualPhases);
-
-                    if (maxAdditionalCurrent < (currentToChargeWith - currentBeforeChanges))
-                    {
-                        currentToChargeWith = (int)(currentBeforeChanges + maxAdditionalCurrent);
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Charge speed limited due to Max combined current configured in Base Configuration"));
-                        _logger.LogTrace("{method} DECISION: Limited by maxAdditionalCurrent - adjusted currentToChargeWith={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
-                    }
-
-                    if (currentToChargeWith < minCurrent)
-                    {
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"The configured minimum current is {minCurrent}A, therefore charge speed is higher than it should be."));
-                        currentToChargeWith = minCurrent.Value;
-                        _logger.LogTrace("{method} DECISION: Below minCurrent - adjusted to minCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
-                    }
-
-                    if (currentToChargeWith > maxCurrent)
-                    {
-                        currentToChargeWith = maxCurrent.Value;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Can not further increase charging speed as configured max current is {maxCurrent}A"));
-                        _logger.LogTrace("{method} DECISION: Above maxCurrent - adjusted to maxCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
-                    }
-
-                    _logger.LogTrace("{method} DECISION: Setting car amp to {currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
-                    await _teslaService.SetAmp(car.Id, currentToChargeWith).ConfigureAwait(false);
-                    var actuallySetPower = GetPowerAtPhasesAndCurrent(car.ActualPhases, currentToChargeWith, voltage);
-                    return (actuallySetPower - powerBeforeChanges, currentToChargeWith - currentBeforeChanges);
-                }
-                else
-                {
-                    _logger.LogTrace("{method} DECISION: Car not in Auto mode - returning (0, 0)", nameof(SetLoadPointPower));
-                    return (0, 0);
-                }
-            }
-            else
-            {
-                _logger.LogTrace("{method} evaluating charging adjustment (OCPP): connectorChargeMode={connectorChargeMode}", nameof(SetLoadPointPower), connectorChargeMode);
-                if (connectorChargeMode == ChargeModeV2.Auto)
-                {
-                    _logger.LogTrace("{method} DECISION: OCPP in Auto mode - calculating new current and phases", nameof(SetLoadPointPower));
-
-                    var phasesToChargeWith = ocppConnectorState!.PhaseCount.Value;
-                    _logger.LogTrace("{method} variables: initial phasesToChargeWith={phasesToChargeWith}, LastSetPhases={lastSetPhases}",
-                        nameof(SetLoadPointPower), phasesToChargeWith, ocppConnectorState.LastSetPhases.Value);
-
-                    if (phasesToChargeWith == default)
-                    {
-                        if (ocppConnectorState!.LastSetPhases.Value == default)
-                        {
-                            phasesToChargeWith = maxPhases.Value;
-                            _logger.LogTrace("{method} DECISION: No phase info - using maxPhases={phasesToChargeWith}", nameof(SetLoadPointPower), phasesToChargeWith);
-                        }
-                        else
-                        {
-                            phasesToChargeWith = ocppConnectorState!.LastSetPhases.Value.Value;
-                            _logger.LogTrace("{method} DECISION: Using LastSetPhases={phasesToChargeWith}", nameof(SetLoadPointPower), phasesToChargeWith);
-                        }
-                    }
-
-                    var currentToChargeWith = (decimal)powerToSet / voltage / phasesToChargeWith.Value;
-                    _logger.LogTrace("{method} variables: initial currentToChargeWith={currentToChargeWith}, phasesToChargeWith={phasesToChargeWith}",
-                        nameof(SetLoadPointPower), currentToChargeWith, phasesToChargeWith);
-
-                    if (maxAdditionalCurrent < (currentToChargeWith - currentBeforeChanges))
-                    {
-                        currentToChargeWith = currentBeforeChanges + maxAdditionalCurrent;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new("Charge speed limited due to Max combined current configured in Base Configuration"));
-                        _logger.LogTrace("{method} DECISION: Limited by maxAdditionalCurrent - adjusted currentToChargeWith={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
-                    }
-
-                    if (currentToChargeWith < minCurrent)
-                    {
-                        currentToChargeWith = minCurrent.Value;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"The configured minimum current is {minCurrent}A, therefore charge speed is higher than it should be."));
-                        _logger.LogTrace("{method} DECISION: Below minCurrent - adjusted to minCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
-                    }
-
-                    if (currentToChargeWith > maxCurrent)
-                    {
-                        currentToChargeWith = maxCurrent.Value;
-                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(carId, chargingConnectorId, new($"Can not further increase charging speed as configured max current is {maxCurrent}A"));
-                        _logger.LogTrace("{method} DECISION: Above maxCurrent - adjusted to maxCurrent={currentToChargeWith}", nameof(SetLoadPointPower), currentToChargeWith);
-                    }
-
-                    _logger.LogTrace("{method} DECISION: Setting OCPP charging current to {currentToChargeWith} with {phasesToChargeWith} phases", nameof(SetLoadPointPower), currentToChargeWith, phasesToChargeWith);
-                    var ampChangeResult = await _ocppChargePointActionService.SetChargingCurrent(chargingConnectorId!.Value, currentToChargeWith, canChangePhases ? phasesToChargeWith : null, cancellationToken).ConfigureAwait(false);
-
-                    _logger.LogTrace("{method} evaluating: ampChangeResult.HasError = {hasError}", nameof(SetLoadPointPower), ampChangeResult.HasError);
-                    if (ampChangeResult.HasError)
-                    {
-                        _logger.LogTrace("{method} DECISION: Amp change failed - returning (0, 0)", nameof(SetLoadPointPower));
-                        _logger.LogError("Error starting OCPP charge point for connector {loadpointId}: {errorMessage}",
-                            chargingConnectorId, ampChangeResult.ErrorMessage);
-                        return (0, 0);
-                    }
-
-                    _logger.LogTrace("{method} DECISION: Amp change successful - returning power change", nameof(SetLoadPointPower));
-                    var actuallySetPower = GetPowerAtPhasesAndCurrent(phasesToChargeWith.Value, currentToChargeWith, voltage);
-                    return (powerBeforeChanges - actuallySetPower, currentBeforeChanges - currentToChargeWith);
-                }
-                _logger.LogTrace("{method} DECISION: OCPP not in Auto mode - returning (0, 0)", nameof(SetLoadPointPower));
-                return (0, 0);
-            }
-
-            #endregion
-        }
-
-        _logger.LogTrace("{method} DECISION: No path met all conditions - returning (0, 0)", nameof(SetLoadPointPower));
-        _logger.LogError("No path meets all conditions, check data why not: {carID}, {connectorId}", carId, chargingConnectorId);
-        return (0, 0);
-    }
-
-    private bool IsTimeStampedValueRelevant<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
-        TimeSpan timeSpanUntilIsRelevant, out DateTimeOffset? relevantAt)
-    {
-        relevantAt = null;
-        if (timeStampedValue.LastChanged == default)
-        {
-            return true; // If no last changed time is set, we assume it is relevant as it might never change when the value is true since startup
-        }
-        var isRelevant = timeStampedValue.LastChanged < (currentDate - timeSpanUntilIsRelevant);
-        if (!isRelevant)
-        {
-            relevantAt = timeStampedValue.LastChanged.Value.Add(timeSpanUntilIsRelevant);
-        }
-        return isRelevant;
-    }
-
-    private async Task<(int? minCurrent, int? maxCurrent, int? minPhases, int? maxPhases, bool useCarToManageChargingSpeed, bool canChangePhases, ChargeModeV2? carChargeMode, ChargeModeV2? connectorChargeMode, int? carMaxSoc)> GetMinMaxCurrentsAndPhases(int? carId, int? connectorId, CancellationToken cancellationToken)
-    {
-        int? minCurrent = null;
-        int? maxCurrent = null;
-        int? minPhases = null;
-        int? maxPhases = null;
-        ChargeModeV2? carChargeMode = null;
-        ChargeModeV2? connectorChargeMode = null;
-        int? carMaxSoc = null;
-        //ToDo: Set this to false if car is no Tesla as soon as other car brands are supported
-        var useCarToManageChargingSpeed = carId != default;
-        var canChangePhases = false;
-        if (carId != default)
-        {
-            var carConfigValues = await _context.Cars
-                .Where(c => c.Id == carId.Value)
-                .Select(c => new
-                {
-                    c.MinimumAmpere,
-                    c.MaximumAmpere,
-                    c.ChargeMode,
-                    c.MaximumSoc,
-                })
-                .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            minCurrent = carConfigValues.MinimumAmpere;
-            maxCurrent = carConfigValues.MaximumAmpere;
-            carChargeMode = carConfigValues.ChargeMode;
-            var car = _settings.Cars.First(c => c.Id == carId);
-            minPhases = car.ActualPhases;
-            maxPhases = car.ActualPhases;
-            carMaxSoc = carConfigValues.MaximumSoc;
-        }
-
-        if (connectorId != default)
-        {
-            var chargingConnectorConfigValues = await _context.OcppChargingStationConnectors
-                .Where(c => c.Id == connectorId.Value)
-                .Select(c => new
-                {
-                    c.MinCurrent,
-                    c.MaxCurrent,
-                    c.ConnectedPhasesCount,
-                    c.AutoSwitchBetween1And3PhasesEnabled,
-                    c.ChargeMode
-                })
-                .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (minCurrent == default)
-            {
-                minCurrent = chargingConnectorConfigValues.MinCurrent;
-            }
-            else if ((!useCarToManageChargingSpeed) && (chargingConnectorConfigValues.MinCurrent > minCurrent))
-            {
-                minCurrent = chargingConnectorConfigValues.MinCurrent;
-            }
-
-            if (maxCurrent == default || chargingConnectorConfigValues.MaxCurrent < maxCurrent)
-            {
-                maxCurrent = chargingConnectorConfigValues.MaxCurrent;
-            }
-
-            if (minPhases == default)
-            {
-                minPhases = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled
-                    ? 1
-                    : chargingConnectorConfigValues.ConnectedPhasesCount;
-            }
-
-            if (maxPhases == default)
-            {
-                maxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
-            }
-            canChangePhases = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
-            connectorChargeMode = chargingConnectorConfigValues.ChargeMode;
-        }
-
-        return (minCurrent, maxCurrent, minPhases, maxPhases, useCarToManageChargingSpeed, canChangePhases, carChargeMode, connectorChargeMode, carMaxSoc);
-    }
 
     private async Task<DtoTimeZonedChargingTarget?> GetRelevantTarget(int carId, DateTimeOffset currentDate,
         CancellationToken cancellationToken)

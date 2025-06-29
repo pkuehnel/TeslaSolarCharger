@@ -11,8 +11,8 @@
 
 @if (_pvValues == default)
 {
-    <PlaceholderComponent Height="@(ThirdLineY)px"
-                          Width="@(_widthInPixel)px"></PlaceholderComponent>
+    <PlaceholderComponent Height="@($"{ThirdLineY}px")"
+                          Width="@($"{_widthInPixel}px")"></PlaceholderComponent>
 }
 else
 {

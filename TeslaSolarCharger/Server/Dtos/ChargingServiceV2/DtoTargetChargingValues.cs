@@ -11,7 +11,7 @@ public class DtoTargetChargingValues
 
     public DtoLoadPointOverview LoadPoint { get; set; }
     public TargetValues? TargetValues { get; set; }
-}
+ }
 
 public class TargetValues
 {
@@ -19,4 +19,6 @@ public class TargetValues
     public bool StopCharging { get; set; }
     public decimal? TargetCurrent { get; set; }
     public int? TargetPhases { get; set; }
+    public int? ChargerTargetCurrent { get; set; }
+    public int? ChargerTargetPhases { get; set; }
 }

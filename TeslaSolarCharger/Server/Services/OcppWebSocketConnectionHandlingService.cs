@@ -571,8 +571,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var ocppTransaction = await scopedContext.OcppTransactions
             .FirstAsync(t => t.Id == req.TransactionId);
-        ocppTransaction.EndDate = new DateTimeOffset(req.TimestampUtc, TimeSpan.Zero);
+        var ocppTransactionEndDate = new DateTimeOffset(req.TimestampUtc, TimeSpan.Zero);
+        ocppTransaction.EndDate = ocppTransactionEndDate;
         await scopedContext.SaveChangesAsync().ConfigureAwait(false);
+        if (settings.OcppConnectorStates.TryGetValue(ocppTransaction.ChargingStationConnectorId, out var connectorState))
+        {
+            connectorState.LastSetCurrent.Update(ocppTransactionEndDate, 0);
+            connectorState.ChargingCurrent.Update(ocppTransactionEndDate, 0);
+            connectorState.ChargingPower.Update(ocppTransactionEndDate, 0);
+            connectorState.IsCharging.Update(ocppTransactionEndDate, false);
+            connectorState.PhaseCount.Update(ocppTransactionEndDate, null);
+        }
 
         // b) Build the response payload
         var respPayload = new StopTransactionResponse()
