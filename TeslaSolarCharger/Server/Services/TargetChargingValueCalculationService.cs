@@ -197,13 +197,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if (currentToSet < constraintValues.MinCurrent)
             {
                 _logger.LogTrace("Increase current to set from {oldCurrentToSet} as is below min current of {newCurrentToSet}", currentToSet, constraintValues.MinCurrent);
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new($"Current is increased from {currentToSet}A to {constraintValues.MinCurrent}A to match configured min current."));
                 currentToSet = constraintValues.MinCurrent.Value;
             }
             else if (currentToSet > constraintValues.MaxCurrent)
             {
                 _logger.LogTrace("Decrease current to set from {oldCurrentToSet} as is above max current of {newCurrentToSet}.", currentToSet, constraintValues.MaxCurrent);
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new($"Current is decreased from {currentToSet}A to {constraintValues.MaxCurrent}A to match configured max current/max combined current."));
                 currentToSet = constraintValues.MaxCurrent.Value;
             }
 
