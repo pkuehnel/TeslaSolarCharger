@@ -463,7 +463,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (loadpoint.CarId != default)
             {
                 var car = _settings.Cars.First(c => c.Id == loadpoint.CarId.Value);
-                if (car.ChargeModeV2 == ChargeModeV2.Manual || car.ChargeModeV2 == ChargeModeV2.Off)
+                if (car.ChargeModeV2 == ChargeModeV2.Auto)
                 {
                     continue;
                 }
@@ -472,27 +472,6 @@ public class ChargingServiceV2 : IChargingServiceV2
                 {
                     _logger.LogWarning("Can not schedule charging as at least one required value is unknown.");
                     continue;
-                }
-                if (car.MinimumSoC > car.SoC || (car.ChargeModeV2 == ChargeModeV2.MaxPower))
-                {
-                    var energyToCharge = car.ChargeModeV2 == ChargeModeV2.MaxPower
-                    ? CalculateEnergyToCharge(
-                            car.SocLimit ?? 100,
-                            car.SoC ?? 0,
-                            carUsableEnergy.Value)
-                    : CalculateEnergyToCharge(
-                        car.MinimumSoC,
-                        car.SoC ?? 0,
-                        carUsableEnergy.Value);
-                    var earliestPossibleChargingSchedule =
-                        GenerateEarliestOrLatestPossibleChargingSchedule(null, currentDate,
-                            energyToCharge, maxPhases.Value, maxCurrent.Value, car.Id, loadpoint.ChargingConnectorId, loadpoint.EstimatedVoltageWhileCharging);
-                    if (earliestPossibleChargingSchedule != default)
-                    {
-                        chargingSchedules.Add(earliestPossibleChargingSchedule);
-                        //Do not plan anything else, before min Soc is reached
-                        continue;
-                    }
                 }
 
                 var nextTarget = await GetRelevantTarget(car.Id, currentDate, cancellationToken).ConfigureAwait(false);
