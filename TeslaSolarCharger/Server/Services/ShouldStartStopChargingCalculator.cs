@@ -45,7 +45,7 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
         var alreadySetChargingConnectors = new HashSet<int>();
         foreach (var element in orderedElements)
         {
-            _logger.LogTrace("Set Start/Stop Charging for loadpoint: {@elemet}", element);
+            _logger.LogTrace("Set Start/Stop Charging for loadpoint: {@element}", element);
             int? carId = null;
             int? ocppConnectorId = null;
             var elementTargetPower = additionalAvailablePower;
