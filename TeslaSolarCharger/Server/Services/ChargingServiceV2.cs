@@ -463,7 +463,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (loadpoint.CarId != default)
             {
                 var car = _settings.Cars.First(c => c.Id == loadpoint.CarId.Value);
-                if (car.ChargeModeV2 == ChargeModeV2.Auto)
+                if (car.ChargeModeV2 != ChargeModeV2.Auto)
                 {
                     continue;
                 }
