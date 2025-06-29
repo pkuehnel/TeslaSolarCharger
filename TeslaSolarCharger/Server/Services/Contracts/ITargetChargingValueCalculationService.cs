@@ -4,7 +4,7 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface ITargetChargingValueCalculationService
 {
-    Task SetTargetValues(List<DtoTargetChargingValues> targetChargingValues,
+    Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
         List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl,
         CancellationToken cancellationToken);
 }

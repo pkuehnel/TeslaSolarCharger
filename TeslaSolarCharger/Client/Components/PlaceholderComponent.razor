@@ -1,7 +1,11 @@
-﻿@for (var i = 0; i < Count; i++)
-{
-    <MudSkeleton Height="@Height" Width="@Width" />
-}
+﻿<div class="d-flex justify-content-center">
+    @for (var i = 0; i < Count; i++)
+    {
+        <MudSkeleton Height="@Height" Width="@Width" />
+    }
+</div>
+
+
 
 @code {
 
@@ -12,5 +16,5 @@
     public string? Height { get; set; }
 
     [Parameter]
-    public string? Width { get; set; }
+    public string? Width { get; set; } = "100%";
 }

@@ -46,14 +46,6 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
                         && t.EndDate == null)
             .OrderBy(t => t.StartDate)
             .ToListAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        foreach (var openTransaction in openTransactions)
-        {
-            if (openTransaction != openTransactions.Last())
-            {
-                openTransaction.EndDate = dateTimeProvider.DateTimeOffSetUtcNow();
-            }
-        }
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         if (openTransactions.Any())
         {
             var result = await SetChargingCurrent(chargepointIdentifier, currentToSet, numberOfPhases, cancellationToken);
@@ -66,7 +58,14 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
                     }, null, null);
             }
         }
-
+        foreach (var openTransaction in openTransactions)
+        {
+            if (openTransaction != openTransactions.Last())
+            {
+                openTransaction.EndDate = dateTimeProvider.DateTimeOffSetUtcNow();
+            }
+        }
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         var remoteStartTransaction = new RemoteStartTransactionRequest()
         {
             ConnectorId = connectorId,

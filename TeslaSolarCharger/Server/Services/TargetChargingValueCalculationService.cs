@@ -36,11 +36,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
     }
 
-    public async Task SetTargetValues(List<DtoTargetChargingValues> targetChargingValues,
+    public async Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
         List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl,
         CancellationToken cancellationToken)
     {
-        _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate})", nameof(SetTargetValues), targetChargingValues, activeChargingSchedules, currentDate);
+        _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate})", nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate);
         var maxCombinedCurrent = (decimal)_configurationWrapper.MaxCombinedCurrent();
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OccpChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default)))
@@ -97,7 +97,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private TargetValues? GetTargetValue(ConstraintValues constraintValues, DtoLoadPointOverview loadpoint, int powerToSet, bool ignoreTimers, DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}({@constraintValues}, {@loadpoint}, {powerToSet}, {ignoreTimers}, {currentDate})", nameof(GetTargetValue), constraintValues, loadpoint, powerToSet, ignoreTimers, currentDate);
-        if (loadpoint.IsPluggedIn != true || loadpoint.IsHome != false)
+        if (loadpoint.IsPluggedIn != true || loadpoint.IsHome == false)
         {
             _logger.LogTrace("Loadpoint is not plugged in or not home, returning null.");
             return null;
@@ -353,7 +353,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 constraintValues.ChargeMode = chargingConnectorConfigValues.ChargeMode;
             }
             constraintValues.PhaseSwitchCoolDownTime = chargingConnectorConfigValues.PhaseSwitchCoolDownTimeSeconds == default
-                ? default
+                ? null
                 : TimeSpan.FromSeconds(chargingConnectorConfigValues.PhaseSwitchCoolDownTimeSeconds.Value);
             var ocppValues = _settings.OcppConnectorStates.GetValueOrDefault(connectorId.Value);
             constraintValues.IsCarFullyCharged = ocppValues?.IsCarFullyCharged.Value;
@@ -390,6 +390,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             constraintValues.PhaseReductionAllowed = false;
             constraintValues.PhaseIncreaseAllowed = false;
         }
+
+        if (constraintValues.MaxCurrent > maxCombinedCurrent)
+        {
+            constraintValues.MaxCurrent = (int)maxCombinedCurrent;
+        }
         return constraintValues;
     }
 
@@ -415,27 +420,5 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             relevantAt = timeStampedValue.LastChanged.Value.Add(timeSpanUntilIsRelevant);
         }
         return isRelevant;
-    }
-
-    private class ConstraintValues
-    {
-        public int? MinCurrent { get; set; }
-        public int? MaxCurrent { get; set; }
-        public int? MinPhases { get; set; }
-        public int? MaxPhases { get; set; }
-        public ChargeModeV2? ChargeMode { get; set; }
-        public int? MaxSoc { get; set; }
-        public bool? PhaseReductionAllowed { get; set; }
-        public bool? PhaseIncreaseAllowed { get; set; }
-        public bool? PhaseSwitchingEnabled { get; set; }
-        public bool? ChargeStopAllowed { get; set; }
-        public bool? ChargeStartAllowed { get; set; }
-        public int? Soc { get; set; }
-        public int? CarSocLimit { get; set; }
-        public bool? IsCharging { get; set; }
-        public DateTimeOffset? LastIsChargingChange { get; set; }
-        public bool? IsCarFullyCharged { get; set; }
-        public bool? RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet { get; set; }
-        public TimeSpan? PhaseSwitchCoolDownTime { get; set; }
     }
 }
