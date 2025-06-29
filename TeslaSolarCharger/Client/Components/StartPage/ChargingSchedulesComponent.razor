@@ -24,13 +24,13 @@
                         <PropertyColumn Property="x => x.ValidFrom"
                                         Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom))">
                             <CellTemplate>
-                                @(context.Item.ValidFrom.ToLocalTime().ToString("g"))W
+                                @(context.Item.ValidFrom.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
                         <PropertyColumn Property="x => x.ValidTo"
                                         Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo))">
                             <CellTemplate>
-                                @(context.Item.ValidTo.ToLocalTime().ToString("g"))W
+                                @(context.Item.ValidTo.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
                         <PropertyColumn Property="x => x.ChargingPower"

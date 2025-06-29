@@ -8,9 +8,14 @@ public class DtoLoadPointOverview
     public int? MaxCurrent { get; set; }
     public int? MinCurrent { get; set; }
     public int? ActualPhases { get; set; }
+    /// <summary>
+    /// Shows actual voltage if available, otherwise an estimated value based on historical data.
+    /// </summary>
+    public int? EstimatedVoltageWhileCharging { get; set; }
     public int? MaxPhases { get; set; }
     public int? ChargingPower { get; set; }
     public bool? IsHome { get; set; }
     public bool? IsPluggedIn { get; set; }
     public int? ChargingPriority { get; set; }
+    public bool ManageChargingPowerByCar { get; set; }
 }
