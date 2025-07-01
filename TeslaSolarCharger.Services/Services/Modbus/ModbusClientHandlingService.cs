@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net;
@@ -14,7 +13,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     private readonly ConcurrentDictionary<string, RetryInfo> _retryInfos = new();
 
     private readonly TimeSpan _initialBackoff = TimeSpan.FromSeconds(16);
-    private readonly TimeSpan _maxBackoffDuration = TimeSpan.FromHours(2);
+    private readonly TimeSpan _maxBackoffDuration = TimeSpan.FromHours(5);
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _connectionLocks = new();
 
