@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net;
@@ -7,7 +8,7 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 
-public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService
+public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService, IDisposable
 {
     private readonly ConcurrentDictionary<string, IModbusTcpClient> _modbusClients = new();
     private readonly ConcurrentDictionary<string, RetryInfo> _retryInfos = new();
@@ -78,23 +79,11 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
                 {
                     try
                     {
-                        if (client.IsConnected)
-                        {
-                            client.Disconnect();
-                        }
+                        client.Dispose();
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Error while disconnecting Modbus client for host {host} and port {port}.", host, port);
-                    }
-
-                    try
-                    {
-                        client.Dispose();
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogError(e, "Error while disposing Modbus client for host {host} and port {port}.", host, port);
+                        logger.LogError(ex, "Error while disposing Modbus client for host {host} and port {port}.", host, port);
                     }
                     _modbusClients.Remove(key, out _);
                 }
@@ -253,5 +242,22 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     {
         logger.LogTrace("{method}({host}, {port})", nameof(CreateModbusTcpClientKey), host, port);
         return $"{host}:{port}";
+    }
+
+    public void Dispose()
+    {
+        logger.LogTrace("{method}()", nameof(Dispose));
+        foreach (var modbusTcpClient in _modbusClients)
+        {
+            try
+            {
+                modbusTcpClient.Value.Dispose();
+                _connectionLocks.TryRemove(modbusTcpClient.Key, out _);
+            }
+            catch(Exception ex)
+            {
+                logger.LogError(ex, "Error while disposing Modbus client {key}.", modbusTcpClient.Key);
+            }
+        }
     }
 }
