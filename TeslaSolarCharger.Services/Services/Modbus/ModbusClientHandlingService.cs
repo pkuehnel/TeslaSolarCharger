@@ -120,7 +120,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
 
         if (remainingWaitTime > TimeSpan.Zero)
         {
-            logger.LogError("No connections allowed to Modbus device {host}:{port} for {remainingWaitTime.TotalSeconds} seconds (retry attempt {retryInfo.RetryCount})",
+            logger.LogError("No connections allowed to Modbus device {host}:{port} for {waitSeconds} seconds (retry attempt {retryCount})",
                 host, port, remainingWaitTime.TotalSeconds, retryInfo.RetryCount);
             throw new InvalidOperationException($"No connections allowed to Modbus device {host}:{port} for {remainingWaitTime.TotalSeconds} seconds (retry attempt {retryInfo.RetryCount})");
         }
@@ -187,7 +187,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     {
         logger.LogTrace("{method}({host}, {port})", nameof(GetConnectedModbusTcpClient), host, port);
         var ipAddress = GetIpAddressFromHost(host);
-        var key = CreateModbusTcpClientKey(ipAddress.ToString(), port);
+        var key = CreateModbusTcpClientKey(host, port);
 
         var connectionLock = _connectionLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
 
