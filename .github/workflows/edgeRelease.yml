@@ -17,6 +17,21 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Determine Docker tag
+      id: docker_tag
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          BRANCH_NAME="${{ github.head_ref }}"
+        else
+          BRANCH_NAME="${{ github.ref_name }}"
+        fi
+        
+        if [[ "$BRANCH_NAME" == hotfix/* ]]; then
+          echo "tag=hotfix" >> "$GITHUB_OUTPUT"
+        else
+          echo "tag=edge" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
 
@@ -53,7 +68,7 @@ jobs:
         file: ./TeslaSolarCharger/Server/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarcharger:edge
+        tags: pkuehnel/teslasolarcharger:${{ steps.docker_tag.outputs.tag }}
 
   SmaEnergymeterPlugin:
     name: Building SMAPlugin Image
@@ -62,6 +77,21 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: Determine Docker tag
+      id: docker_tag
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          BRANCH_NAME="${{ github.head_ref }}"
+        else
+          BRANCH_NAME="${{ github.ref_name }}"
+        fi
+        
+        if [[ "$BRANCH_NAME" == hotfix/* ]]; then
+          echo "tag=hotfix" >> "$GITHUB_OUTPUT"
+        else
+          echo "tag=edge" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
@@ -82,7 +112,7 @@ jobs:
         file: ./Plugins.SmaEnergymeter/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarchargersmaplugin:edge
+        tags: pkuehnel/teslasolarchargersmaplugin:${{ steps.docker_tag.outputs.tag }}
 
   SolarEdgePlugin:
     name: Building SolarEdgePlugin Image
@@ -91,6 +121,21 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: Determine Docker tag
+      id: docker_tag
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          BRANCH_NAME="${{ github.head_ref }}"
+        else
+          BRANCH_NAME="${{ github.ref_name }}"
+        fi
+        
+        if [[ "$BRANCH_NAME" == hotfix/* ]]; then
+          echo "tag=hotfix" >> "$GITHUB_OUTPUT"
+        else
+          echo "tag=edge" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
@@ -111,7 +156,7 @@ jobs:
         file: ./Plugins.SolarEdge/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarchargersolaredgeplugin:edge
+        tags: pkuehnel/teslasolarchargersolaredgeplugin:${{ steps.docker_tag.outputs.tag }}
 
   ModbusPlugin:
     name: Building ModbusPlugin Image
@@ -120,6 +165,21 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: Determine Docker tag
+      id: docker_tag
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          BRANCH_NAME="${{ github.head_ref }}"
+        else
+          BRANCH_NAME="${{ github.ref_name }}"
+        fi
+        
+        if [[ "$BRANCH_NAME" == hotfix/* ]]; then
+          echo "tag=hotfix" >> "$GITHUB_OUTPUT"
+        else
+          echo "tag=edge" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
@@ -140,7 +200,7 @@ jobs:
         file: ./Plugins.Modbus/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarchargermodbusplugin:edge
+        tags: pkuehnel/teslasolarchargermodbusplugin:${{ steps.docker_tag.outputs.tag }}
 
   SolaxPlugin:
     name: Building SolaxPlugin Image
@@ -149,6 +209,21 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: Determine Docker tag
+      id: docker_tag
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          BRANCH_NAME="${{ github.head_ref }}"
+        else
+          BRANCH_NAME="${{ github.ref_name }}"
+        fi
+        
+        if [[ "$BRANCH_NAME" == hotfix/* ]]; then
+          echo "tag=hotfix" >> "$GITHUB_OUTPUT"
+        else
+          echo "tag=edge" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
@@ -169,4 +244,4 @@ jobs:
         file: ./Plugins.Solax/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: pkuehnel/teslasolarchargersolaxplugin:edge
+        tags: pkuehnel/teslasolarchargersolaxplugin:${{ steps.docker_tag.outputs.tag }}
