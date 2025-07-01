@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Net;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -8,14 +9,36 @@ namespace TeslaSolarCharger.Services.Services.Modbus;
 
 public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService
 {
-    private readonly Dictionary<string, IModbusTcpClient> _modbusClients = new();
+    private readonly ConcurrentDictionary<string, IModbusTcpClient> _modbusClients = new();
+    private readonly ConcurrentDictionary<string, RetryInfo> _retryInfos = new();
+
+    private readonly TimeSpan _initialBackoff = TimeSpan.FromSeconds(16);
+    private readonly TimeSpan _maxBackoffDuration = TimeSpan.FromHours(2);
+
+    private class RetryInfo
+    {
+        public int RetryCount { get; set; }
+        public DateTime LastAttemptTime { get; set; }
+        public TimeSpan NextBackoffDelay { get; set; }
+    }
 
     public async Task<byte[]> GetByteArray(byte unitIdentifier, string host, int port, ModbusEndianess endianess, TimeSpan connectDelay, TimeSpan readTimeout,
         ModbusRegisterType registerType, ushort address, ushort length)
     {
         logger.LogTrace("{method}({unitIdentifier}, {host}, {port}, {endianess}, {connectDelay}, {readTimeout}, {registerType}, {address}, {length})",
                        nameof(GetByteArray), unitIdentifier, host, port, endianess, connectDelay, readTimeout, registerType, address, length);
-        var client = await GetConnectedModbusTcpClient(host, port, endianess, connectDelay, readTimeout);
+        await ThrowExpectionIfBackoofRequired(host, port);
+        IModbusTcpClient client;
+        try
+        {
+            client = await GetConnectedModbusTcpClient(host, port, endianess, connectDelay, readTimeout);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get connected Modbus client for host {host} and port {port}", host, port);
+            IncrementRetryCount(host, port);
+            throw;
+        }
         byte[] byteArray;
         try
         {
@@ -27,11 +50,13 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
             {
                 byteArray = await client.GetByteArrayFromInputRegisters(unitIdentifier, address, length, readTimeout);
             }
+            ResetRetryCount(host, port);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error while getting byte arry from Modbus TCP client for host {host} and port {port}. Remove client.", host, port);
+            logger.LogError(ex, "Error while getting byte array from Modbus TCP client for host {host} and port {port}. Remove client.", host, port);
             RemoveClient(host, port);
+            IncrementRetryCount(host, port);
             throw;
         }
         return ConvertToCorrectEndianess(endianess, byteArray);
@@ -63,9 +88,65 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
             {
                 logger.LogError(e, "Error while disposing Modbus client for host {host} and port {port}.", host, port);
             }
-            _modbusClients.Remove(key);
+            _modbusClients.Remove(key, out _);
         }
     }
+
+    private async Task ThrowExpectionIfBackoofRequired(string host, int port)
+    {
+        var key = CreateModbusTcpClientKey(host, port);
+        if (!_retryInfos.TryGetValue(key, out var retryInfo))
+        {
+            return; // No previous failures, no need to wait
+        }
+        var timeSinceLastAttempt = DateTime.UtcNow - retryInfo.LastAttemptTime;
+        var remainingWaitTime = retryInfo.NextBackoffDelay - timeSinceLastAttempt;
+
+        if (remainingWaitTime > TimeSpan.Zero)
+        {
+            logger.LogError($"No connections allowed to Modbus device {host}:{port} for {remainingWaitTime.TotalSeconds} seconds (retry attempt {retryInfo.RetryCount})",
+                host, port, remainingWaitTime.TotalSeconds, retryInfo.RetryCount);
+            throw new InvalidOperationException($"No connections allowed to Modbus device {host}:{port} for {remainingWaitTime.TotalSeconds} seconds (retry attempt {retryInfo.RetryCount})");
+        }
+    }
+
+    private void IncrementRetryCount(string host, int port)
+    {
+        var key = CreateModbusTcpClientKey(host, port);
+        if (!_retryInfos.TryGetValue(key, out var retryInfo))
+        {
+            retryInfo = new RetryInfo
+            {
+                RetryCount = 0,
+                NextBackoffDelay = _initialBackoff,
+            };
+            _retryInfos[key] = retryInfo;
+        }
+
+        retryInfo.RetryCount++;
+        retryInfo.LastAttemptTime = DateTime.UtcNow;
+
+        // Calculate next backoff delay with exponential increase
+        var nextDelaySeconds = Math.Min(
+            _initialBackoff.TotalSeconds * Math.Pow(2, retryInfo.RetryCount - 1),
+            _maxBackoffDuration.TotalSeconds
+        );
+        retryInfo.NextBackoffDelay = TimeSpan.FromSeconds(nextDelaySeconds);
+
+        logger.LogWarning("Incremented retry count for {host}:{port} to {retryCount}. Next backoff delay: {nextDelay} seconds",
+            host, port, retryInfo.RetryCount, nextDelaySeconds);
+    }
+
+    private void ResetRetryCount(string host, int port)
+    {
+        var key = CreateModbusTcpClientKey(host, port);
+        if (_retryInfos.ContainsKey(key))
+        {
+            _retryInfos.Remove(key, out _);
+            logger.LogInformation("Reset retry count for {host}:{port} after successful operation", host, port);
+        }
+    }
+
 
     private static byte[] ConvertToCorrectEndianess(ModbusEndianess endianess, byte[] byteArray)
     {
@@ -103,7 +184,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         }
         logger.LogTrace("Did not find Modbus client, create new one.");
         var client = serviceProvider.GetRequiredService<IModbusTcpClient>();
-        _modbusClients.Add(key, client);
+        _modbusClients.TryAdd(key, client);
         await ConnectModbusClient(client, ipAddress, port, endianess, connectDelay, connectTimeout);
         return client;
     }
