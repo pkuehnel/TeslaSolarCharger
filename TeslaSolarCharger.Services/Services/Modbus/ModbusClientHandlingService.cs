@@ -68,7 +68,12 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     {
         logger.LogTrace("{method}({host}, {port})", nameof(RemoveClient), host, port);
         var key = CreateModbusTcpClientKey(host, port);
+        RemoveClientByKey(key);
+    }
 
+    private void RemoveClientByKey(string key)
+    {
+        logger.LogTrace("{method}({key})", nameof(RemoveClientByKey), key);
         if (_connectionLocks.TryGetValue(key, out var connectionLock))
         {
             connectionLock.Wait();
@@ -82,7 +87,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Error while disposing Modbus client for host {host} and port {port}.", host, port);
+                        logger.LogError(ex, "Error while disposing Modbus client for key {key}.", key);
                     }
                     _modbusClients.Remove(key, out _);
                 }
@@ -242,19 +247,10 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     public void Dispose()
     {
         logger.LogTrace("{method}()", nameof(Dispose));
-        foreach (var modbusTcpClient in _modbusClients)
+        var keysToRemove = _modbusClients.Keys.ToList();
+        foreach (var key in keysToRemove)
         {
-            try
-            {
-                modbusTcpClient.Value.Dispose();
-                _connectionLocks.TryRemove(modbusTcpClient.Key, out var semaphoreSlim);
-                semaphoreSlim?.Dispose();
-            }
-            catch(Exception ex)
-            {
-                logger.LogError(ex, "Error while disposing Modbus client {key}.", modbusTcpClient.Key);
-            }
+            RemoveClientByKey(key);
         }
-        _modbusClients.Clear();
     }
 }
