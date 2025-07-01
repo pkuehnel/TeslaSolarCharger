@@ -17,13 +17,22 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
                        nameof(GetByteArray), unitIdentifier, host, port, endianess, connectDelay, readTimeout, registerType, address, length);
         var client = await GetConnectedModbusTcpClient(host, port, endianess, connectDelay, readTimeout);
         byte[] byteArray;
-        if (registerType == ModbusRegisterType.HoldingRegister)
+        try
         {
-            byteArray = await client.GetByteArrayFromHoldingRegisters(unitIdentifier, address, length, readTimeout);
+            if (registerType == ModbusRegisterType.HoldingRegister)
+            {
+                byteArray = await client.GetByteArrayFromHoldingRegisters(unitIdentifier, address, length, readTimeout);
+            }
+            else
+            {
+                byteArray = await client.GetByteArrayFromInputRegisters(unitIdentifier, address, length, readTimeout);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            byteArray = await client.GetByteArrayFromInputRegisters(unitIdentifier, address, length, readTimeout);
+            logger.LogError(ex, "Error while getting byte arry from Modbus TCP client for host {host} and port {port}. Remove client.", host, port);
+            RemoveClient(host, port);
+            throw;
         }
         return ConvertToCorrectEndianess(endianess, byteArray);
     }
@@ -34,11 +43,26 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         var key = CreateModbusTcpClientKey(host, port);
         if (_modbusClients.TryGetValue(key, out var client))
         {
-            if (client.IsConnected)
+            try
             {
-                client.Disconnect();
+                if (client.IsConnected)
+                {
+                    client.Disconnect();
+                }
             }
-            client.Dispose();
+            catch(Exception ex)
+            {
+                logger.LogError(ex, "Error while disconnecting Modbus client for host {host} and port {port}.", host, port);
+            }
+
+            try
+            {
+                client.Dispose();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error while disposing Modbus client for host {host} and port {port}.", host, port);
+            }
             _modbusClients.Remove(key);
         }
     }
