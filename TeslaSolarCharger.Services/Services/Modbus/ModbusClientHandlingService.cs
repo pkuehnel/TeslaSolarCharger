@@ -9,13 +9,11 @@ namespace TeslaSolarCharger.Services.Services.Modbus;
 
 public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService, IDisposable
 {
-    private readonly ConcurrentDictionary<string, IModbusTcpClient> _modbusClients = new();
-    private readonly ConcurrentDictionary<string, RetryInfo> _retryInfos = new();
+    private readonly ConcurrentDictionary<string, (IModbusTcpClient client, RetryInfo? retryInfo, SemaphoreSlim semaphoreSlim)> _modbusClients = new();
 
     private readonly TimeSpan _initialBackoff = TimeSpan.FromSeconds(16);
     private readonly TimeSpan _maxBackoffDuration = TimeSpan.FromHours(5);
 
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _connectionLocks = new();
 
     private class RetryInfo
     {
@@ -74,29 +72,25 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     private void RemoveClientByKey(string key)
     {
         logger.LogTrace("{method}({key})", nameof(RemoveClientByKey), key);
-        if (_connectionLocks.TryGetValue(key, out var connectionLock))
+        if (_modbusClients.TryGetValue(key, out var element))
         {
-            connectionLock.Wait();
+            element.semaphoreSlim.Wait();
             try
             {
-                if (_modbusClients.TryGetValue(key, out var client))
+                try
                 {
-                    try
-                    {
-                        client.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Error while disposing Modbus client for key {key}.", key);
-                    }
-                    _modbusClients.Remove(key, out _);
+                    element.client.Dispose();
                 }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error while disposing Modbus client for key {key}.", key);
+                }
+                _modbusClients.Remove(key, out _);
             }
             finally
             {
-                connectionLock.Release();
-                _connectionLocks.TryRemove(key, out var semaphoreSlim);
-                semaphoreSlim?.Dispose();
+                element.semaphoreSlim.Release();
+                element.semaphoreSlim.Dispose();
             }
         }
     }
@@ -104,29 +98,31 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     private void EnsureNoBackoffRequired(string host, int port)
     {
         var key = CreateModbusTcpClientKey(host, port);
-        if (!_retryInfos.TryGetValue(key, out var retryInfo))
+        if (!_modbusClients.TryGetValue(key, out var element) || element.retryInfo == default)
         {
             return; // No previous failures, no need to wait
         }
-        var timeSinceLastAttempt = DateTime.UtcNow - retryInfo.LastAttemptTime;
-        var remainingWaitTime = retryInfo.NextBackoffDelay - timeSinceLastAttempt;
+        var timeSinceLastAttempt = DateTime.UtcNow - element.retryInfo.LastAttemptTime;
+        var remainingWaitTime = element.retryInfo.NextBackoffDelay - timeSinceLastAttempt;
 
         if (remainingWaitTime > TimeSpan.Zero)
         {
             logger.LogError("No connections allowed to Modbus device {host}:{port} for {waitSeconds} seconds (retry attempt {retryCount})",
-                host, port, remainingWaitTime.TotalSeconds, retryInfo.RetryCount);
-            throw new InvalidOperationException($"No connections allowed to Modbus device {host}:{port} for {remainingWaitTime.TotalSeconds} seconds (retry attempt {retryInfo.RetryCount})");
+                host, port, remainingWaitTime.TotalSeconds, element.retryInfo.RetryCount);
+            throw new InvalidOperationException($"No connections allowed to Modbus device {host}:{port} for {remainingWaitTime.TotalSeconds} seconds (retry attempt {element.retryInfo.RetryCount})");
         }
     }
 
     private void IncrementRetryCount(string host, int port)
     {
         var key = CreateModbusTcpClientKey(host, port);
-        var retryInfo = _retryInfos.GetOrAdd(key, _ => new RetryInfo
+        var element = _modbusClients[key];
+
+        var retryInfo = element.retryInfo ?? new RetryInfo()
         {
             RetryCount = 0,
             NextBackoffDelay = _initialBackoff,
-        });
+        };
 
         retryInfo.RetryCount++;
         retryInfo.LastAttemptTime = DateTime.UtcNow;
@@ -145,9 +141,10 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     private void ResetRetryCount(string host, int port)
     {
         var key = CreateModbusTcpClientKey(host, port);
-        if (_retryInfos.ContainsKey(key))
+        var element = _modbusClients[key];
+        if (element.retryInfo != default)
         {
-            _retryInfos.Remove(key, out _);
+            element.retryInfo = null;
             logger.LogInformation("Reset retry count for {host}:{port} after successful operation", host, port);
         }
     }
@@ -178,32 +175,40 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         var ipAddress = GetIpAddressFromHost(host);
         var key = CreateModbusTcpClientKey(host, port);
 
-        var connectionLock = _connectionLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-
-        await connectionLock.WaitAsync();
-        try
+        if (_modbusClients.TryGetValue(key, out var element))
         {
-            if (_modbusClients.TryGetValue(key, out var modbusClient))
+            logger.LogTrace("Found Modbus client, check if connected.");
+            await element.semaphoreSlim.WaitAsync();
+            try
             {
-                logger.LogTrace("Found Modbus client, check if connected.");
-                if (!modbusClient.IsConnected)
+                if (!element.client.IsConnected)
                 {
                     logger.LogTrace("Modbus client not connected, try to connect.");
-                    await ConnectModbusClient(modbusClient, ipAddress, port, endianess, connectDelay, connectTimeout);
+                    await ConnectModbusClient(element.client, ipAddress, port, endianess, connectDelay, connectTimeout);
                 }
-                return modbusClient;
+
+                return element.client;
+            }
+            finally
+            {
+                element.semaphoreSlim.Release();
             }
 
-            logger.LogTrace("Did not find Modbus client, create new one.");
-            var client = serviceProvider.GetRequiredService<IModbusTcpClient>();
-            _modbusClients.TryAdd(key, client);
+        }
+        logger.LogTrace("Did not find Modbus client, create new one.");
+        var client = serviceProvider.GetRequiredService<IModbusTcpClient>();
+        var semaphoreSlim = new SemaphoreSlim(1, 1);
+        _modbusClients.TryAdd(key, (client, null, semaphoreSlim));
+        await semaphoreSlim.WaitAsync().ConfigureAwait(false);
+        try
+        {
             await ConnectModbusClient(client, ipAddress, port, endianess, connectDelay, connectTimeout);
-            return client;
         }
         finally
         {
-            connectionLock.Release();
+            semaphoreSlim.Release();
         }
+        return client;
     }
 
     private async Task ConnectModbusClient(IModbusTcpClient modbusClient, IPAddress ipAddress, int port, ModbusEndianess endianess,
