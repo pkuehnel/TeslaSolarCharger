@@ -2,15 +2,18 @@
 using PkSoftwareService.Custom.Backend;
 using Serilog.Events;
 using SQLitePCL;
+using System.IO.Compression;
 using System.Text;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Dtos.Support;
+using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -18,10 +21,13 @@ namespace TeslaSolarCharger.Server.Services;
 public class DebugService(ILogger<DebugService> logger,
     ITeslaSolarChargerContext context,
     IInMemorySink inMemorySink,
-    Serilog.Core.LoggingLevelSwitch inMemoryLogLevelSwitch,
+    [FromKeyedServices(StaticConstants.InMemoryLogDependencyInjectionKey)] Serilog.Core.LoggingLevelSwitch inMemoryLogLevelSwitch,
+    [FromKeyedServices(StaticConstants.FileLogDependencyInjectionKey)] Serilog.Core.LoggingLevelSwitch fileLogLevelSwitch,
     IOcppChargePointActionService ocppChargePointActionService,
     IConstants constants,
-    ISettings settings) : IDebugService
+    ISettings settings,
+    IConfigurationWrapper configurationWrapper,
+    IDateTimeProvider dateTimeProvider) : IDebugService
 {
     public async Task<Dictionary<int, DtoDebugChargingConnector>> GetChargingConnectors()
     {
@@ -87,6 +93,18 @@ public class DebugService(ILogger<DebugService> logger,
         return settings.Cars.FirstOrDefault(x => x.Id == carId);
     }
 
+    public async Task<MemoryStream> GetFileLogsStream()
+    {
+        logger.LogTrace("{method}", nameof(GetFileLogsStream));
+        var memoryStream = new MemoryStream();
+        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            await AddFilesOlderThanToArchiveAsync(configurationWrapper.LogFilesDirectory(), archive, TimeSpan.FromMinutes(1));
+        }
+        memoryStream.Position = 0;
+        return memoryStream;
+    }
+
     public async Task<Dictionary<int, DtoDebugCar>> GetCars()
     {
         logger.LogTrace("{method}", nameof(GetCars));
@@ -103,18 +121,18 @@ public class DebugService(ILogger<DebugService> logger,
         return cars;
     }
 
-    public byte[] GetLogBytes()
+    public byte[] GetInMemoryLogBytes()
     {
-        logger.LogTrace("{method}", nameof(GetLogBytes));
+        logger.LogTrace("{method}", nameof(GetInMemoryLogBytes));
         var logEntries = inMemorySink.GetLogs();
         var content = string.Join(Environment.NewLine, logEntries);
         var bytes = Encoding.UTF8.GetBytes(content);
         return bytes;
     }
 
-    public string GetLogLevel()
+    public string GetInMemoryLogLevel()
     {
-        logger.LogTrace("{method}", nameof(GetLogLevel));
+        logger.LogTrace("{method}", nameof(GetInMemoryLogLevel));
         return inMemoryLogLevelSwitch.MinimumLevel.ToString();
     }
 
@@ -138,5 +156,24 @@ public class DebugService(ILogger<DebugService> logger,
     {
         logger.LogTrace("{method} {capacity}", nameof(SetLogCapacity), capacity);
         inMemorySink.UpdateCapacity(capacity);
+    }
+
+    private async Task AddFilesOlderThanToArchiveAsync(string sourceDir, ZipArchive archive, TimeSpan minimumFileAge)
+    {
+        foreach (var fileFullName in Directory.GetFiles(sourceDir))
+        {
+            var file = new FileInfo(fileFullName);
+            if(file.LastWriteTimeUtc > (dateTimeProvider.UtcNow() - minimumFileAge))
+            {
+                continue;
+            }
+            var entry = archive.CreateEntry(file.Name);
+
+            using (var entryStream = entry.Open())
+            using (var fileStream = File.OpenRead(fileFullName))
+            {
+                await fileStream.CopyToAsync(entryStream);
+            }
+        }
     }
 }

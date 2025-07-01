@@ -8,10 +8,10 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 public interface IDebugService
 {
     Task<Dictionary<int, DtoDebugCar>> GetCars();
-    byte[] GetLogBytes();
+    byte[] GetInMemoryLogBytes();
     void SetLogLevel(string level);
     void SetLogCapacity(int capacity);
-    string GetLogLevel();
+    string GetInMemoryLogLevel();
     int GetLogCapacity();
     Task<Dictionary<int, DtoDebugChargingConnector>> GetChargingConnectors();
 
@@ -25,4 +25,5 @@ public interface IDebugService
 
     DtoOcppConnectorState GetOcppConnectorState(int connectorId);
     DtoCar? GetDtoCar(int carId);
+    Task<MemoryStream> GetFileLogsStream();
 }

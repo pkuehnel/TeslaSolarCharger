@@ -109,6 +109,16 @@ public class ConfigurationWrapper(
         return path;
     }
 
+    public string LogFilesDirectory()
+    {
+        var environmentVariableName = "LogFilesLocation";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
+        path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), value);
+        return path;
+    }
+
     public string GetAwattarBaseUrl()
     {
         var environmentVariableName = "AwattarBaseUrl";
