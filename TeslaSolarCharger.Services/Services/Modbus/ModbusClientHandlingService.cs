@@ -116,26 +116,30 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     private void IncrementRetryCount(string host, int port)
     {
         var key = CreateModbusTcpClientKey(host, port);
-        var element = _modbusClients[key];
+        if (!_modbusClients.TryGetValue(key, out var element))
+        {
+            logger.LogWarning("Failed to increment retry count: No Modbus client found for key {key}.", key);
+            return;
+        }
 
-        var retryInfo = element.retryInfo ?? new RetryInfo()
+        element.retryInfo ??= new RetryInfo()
         {
             RetryCount = 0,
             NextBackoffDelay = _initialBackoff,
         };
 
-        retryInfo.RetryCount++;
-        retryInfo.LastAttemptTime = DateTime.UtcNow;
+        element.retryInfo.RetryCount++;
+        element.retryInfo.LastAttemptTime = DateTime.UtcNow;
 
         // Calculate next backoff delay with exponential increase
         var nextDelaySeconds = Math.Min(
-            _initialBackoff.TotalSeconds * Math.Pow(2, retryInfo.RetryCount - 1),
+            _initialBackoff.TotalSeconds * Math.Pow(2, element.retryInfo.RetryCount - 1),
             _maxBackoffDuration.TotalSeconds
         );
-        retryInfo.NextBackoffDelay = TimeSpan.FromSeconds(nextDelaySeconds);
+        element.retryInfo.NextBackoffDelay = TimeSpan.FromSeconds(nextDelaySeconds);
 
         logger.LogWarning("Incremented retry count for {host}:{port} to {retryCount}. Next backoff delay: {nextDelay} seconds",
-            host, port, retryInfo.RetryCount, nextDelaySeconds);
+            host, port, element.retryInfo.RetryCount, nextDelaySeconds);
     }
 
     private void ResetRetryCount(string host, int port)
