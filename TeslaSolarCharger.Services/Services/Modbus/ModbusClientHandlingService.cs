@@ -255,5 +255,6 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
                 logger.LogError(ex, "Error while disposing Modbus client {key}.", modbusTcpClient.Key);
             }
         }
+        _modbusClients.Clear();
     }
 }
