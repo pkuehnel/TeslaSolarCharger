@@ -90,8 +90,8 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
             finally
             {
                 connectionLock.Release();
-                // Optionally remove the lock if no longer needed
-                _connectionLocks.TryRemove(key, out _);
+                _connectionLocks.TryRemove(key, out var semaphoreSlim);
+                semaphoreSlim?.Dispose();
             }
         }
     }
@@ -117,15 +117,11 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     private void IncrementRetryCount(string host, int port)
     {
         var key = CreateModbusTcpClientKey(host, port);
-        if (!_retryInfos.TryGetValue(key, out var retryInfo))
+        var retryInfo = _retryInfos.GetOrAdd(key, _ => new RetryInfo
         {
-            retryInfo = new RetryInfo
-            {
-                RetryCount = 0,
-                NextBackoffDelay = _initialBackoff,
-            };
-            _retryInfos[key] = retryInfo;
-        }
+            RetryCount = 0,
+            NextBackoffDelay = _initialBackoff,
+        });
 
         retryInfo.RetryCount++;
         retryInfo.LastAttemptTime = DateTime.UtcNow;
@@ -251,7 +247,8 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
             try
             {
                 modbusTcpClient.Value.Dispose();
-                _connectionLocks.TryRemove(modbusTcpClient.Key, out _);
+                _connectionLocks.TryRemove(modbusTcpClient.Key, out var semaphoreSlim);
+                semaphoreSlim?.Dispose();
             }
             catch(Exception ex)
             {
