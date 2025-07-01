@@ -7,7 +7,7 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 
-public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService, IDisposable
+public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, (IModbusTcpClient client, RetryInfo? retryInfo, SemaphoreSlim semaphoreSlim)> _modbusClients = new();
 
@@ -55,26 +55,26 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         catch (Exception ex)
         {
             logger.LogError(ex, "Error while getting byte array from Modbus TCP client for host {host} and port {port}. Remove client.", host, port);
-            RemoveClient(host, port);
+            await RemoveClient(host, port);
             IncrementRetryCount(host, port);
             throw;
         }
         return ConvertToCorrectEndianess(endianess, byteArray);
     }
 
-    public void RemoveClient(string host, int port)
+    public async Task RemoveClient(string host, int port)
     {
         logger.LogTrace("{method}({host}, {port})", nameof(RemoveClient), host, port);
         var key = CreateModbusTcpClientKey(host, port);
-        RemoveClientByKey(key);
+        await RemoveClientByKey(key).ConfigureAwait(false);
     }
 
-    private void RemoveClientByKey(string key)
+    private async Task RemoveClientByKey(string key)
     {
         logger.LogTrace("{method}({key})", nameof(RemoveClientByKey), key);
         if (_modbusClients.TryGetValue(key, out var element))
         {
-            element.semaphoreSlim.Wait();
+            await element.semaphoreSlim.WaitAsync();
             try
             {
                 try
@@ -127,6 +127,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
             RetryCount = 0,
             NextBackoffDelay = _initialBackoff,
         };
+        _modbusClients[key] = (element.client, element.retryInfo, element.semaphoreSlim);
 
         element.retryInfo.RetryCount++;
         element.retryInfo.LastAttemptTime = DateTime.UtcNow;
@@ -145,10 +146,9 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     private void ResetRetryCount(string host, int port)
     {
         var key = CreateModbusTcpClientKey(host, port);
-        var element = _modbusClients[key];
-        if (element.retryInfo != default)
+        if (_modbusClients.TryGetValue(key, out var element) && element.retryInfo != null)
         {
-            element.retryInfo = null;
+            _modbusClients[key] = (element.client, null, element.semaphoreSlim);
             logger.LogInformation("Reset retry count for {host}:{port} after successful operation", host, port);
         }
     }
@@ -253,13 +253,13 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         return $"{host}:{port}";
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        logger.LogTrace("{method}()", nameof(Dispose));
+        logger.LogTrace("{method}()", nameof(DisposeAsync));
         var keysToRemove = _modbusClients.Keys.ToList();
         foreach (var key in keysToRemove)
         {
-            RemoveClientByKey(key);
+            await RemoveClientByKey(key);
         }
     }
 }

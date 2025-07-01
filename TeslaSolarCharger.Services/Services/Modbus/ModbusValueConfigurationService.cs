@@ -133,11 +133,11 @@ public class ModbusValueConfigurationService (
         logger.LogTrace("{method}({@dtoData})", nameof(SaveModbusConfiguration), dtoData);
         if (dtoData.Id != default)
         {
-            modbusClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port);
+            await modbusClientHandlingService.RemoveClient(dtoData.Host, dtoData.Port);
             var hostPortCombination = context.ModbusConfigurations.Where(x => x.Id == dtoData.Id)
                 .Select(x => new { x.Host, x.Port })
                 .Single();
-            modbusClientHandlingService.RemoveClient(hostPortCombination.Host, hostPortCombination.Port);
+            await modbusClientHandlingService.RemoveClient(hostPortCombination.Host, hostPortCombination.Port);
         }
 
         var dbData = new ModbusConfiguration()
