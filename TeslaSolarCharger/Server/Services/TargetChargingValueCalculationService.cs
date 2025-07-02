@@ -111,7 +111,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charging stopped because of not enough max combined current."));
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
         }
-        if (constraintValues.ChargeMode == ChargeModeV2.Off)
+        if ((constraintValues.ChargeMode == ChargeModeV2.Off)
+            || (constraintValues.Soc > constraintValues.MaxSoc))
         {
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
         }
@@ -130,7 +131,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 TargetPhases = phasesToSet,
             };
         }
-        if (constraintValues.ChargeMode == ChargeModeV2.Auto)
+        if ((constraintValues.ChargeMode == ChargeModeV2.Auto)
+            && (!(constraintValues.MinSoc < constraintValues.Soc)))
         {
             if ((!ignoreTimers) && (constraintValues.ChargeStopAllowed == true))
             {
@@ -235,7 +237,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             };
 
         }
-        if (constraintValues.ChargeMode == ChargeModeV2.MaxPower)
+        if ((constraintValues.ChargeMode == ChargeModeV2.MaxPower)
+            || (constraintValues.MinSoc < constraintValues.Soc))
         {
             if ((constraintValues.IsCharging == false)
                 && (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference)))
@@ -283,6 +286,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     c.MaximumAmpere,
                     c.ChargeMode,
                     c.MaximumSoc,
+                    c.MinimumSoc,
                 })
                 .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
@@ -292,6 +296,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             constraintValues.MinPhases = car.ActualPhases;
             constraintValues.MaxPhases = car.ActualPhases;
             constraintValues.MaxSoc = carConfigValues.MaximumSoc;
+            constraintValues.MinSoc = carConfigValues.MinimumSoc;
             constraintValues.CarSocLimit = car.SocLimit;
             constraintValues.Soc = car.SoC;
             if (useCarToManageChargingSpeed)

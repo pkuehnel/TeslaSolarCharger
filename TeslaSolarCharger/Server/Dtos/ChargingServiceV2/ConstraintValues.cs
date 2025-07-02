@@ -9,6 +9,7 @@ public class ConstraintValues
     public int? MinPhases { get; set; }
     public int? MaxPhases { get; set; }
     public ChargeModeV2? ChargeMode { get; set; }
+    public int? MinSoc { get; set; }
     public int? MaxSoc { get; set; }
     public bool? PhaseReductionAllowed { get; set; }
     public bool? PhaseIncreaseAllowed { get; set; }
