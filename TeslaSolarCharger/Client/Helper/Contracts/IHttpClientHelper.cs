@@ -13,4 +13,8 @@ public interface IHttpClientHelper
     Task<Result<object>> SendGetRequestAsync(string url, CancellationToken cancellationToken = new());
     Task<Result<T>> SendPostRequestAsync<T>(string url, object? content, CancellationToken cancellationToken = new());
     Task<Result<object>> SendPostRequestAsync(string url, object? content, CancellationToken cancellationToken = new());
+    Task<T?> SendDeleteRequestWithSnackbarAsync<T>(string url, CancellationToken cancellationToken = new());
+    Task SendDeleteRequestWithSnackbarAsync(string url, CancellationToken cancellationToken = new());
+    Task<Result<T>> SendDeleteRequestAsync<T>(string url, CancellationToken cancellationToken = new());
+    Task<Result<object>> SendDeleteRequestAsync(string url, CancellationToken cancellationToken = new());
 }

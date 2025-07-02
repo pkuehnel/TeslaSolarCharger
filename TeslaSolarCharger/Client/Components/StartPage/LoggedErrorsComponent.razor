@@ -1,0 +1,114 @@
+﻿@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Dtos.LoggedError
+@using TeslaSolarCharger.Shared.Enums
+
+@implements IDisposable
+@inject ISnackbar Snackar
+@inject IHttpClientHelper HttpClientHelper
+@inject ILogger<LoggedErrorsComponent> Logger
+
+
+@if (_errors == default)
+{
+    <PlaceholderComponent></PlaceholderComponent>
+}
+else
+{
+    if (_errors.Count > 0)
+    {
+        <div class="my-2">
+            <MudExpansionPanels>
+                <MudExpansionPanel Expanded="true">
+                    <TitleContent>
+                        <div class="d-flex">
+                            <div class="flex-grow-0">
+                                <MudBadge Content="_errors.Count" Color="Color.Error" Overlap="true" Class="d-flex ml-auto">
+                                    <MudText Class="mt-1">Errors</MudText>
+                                </MudBadge>
+                            
+                            </div>
+                            <div class="mt-1 ml-2 flex-grow-1">
+                            </div>
+                            <div class="mt-1 ml-2 flex-grow-0">
+                                <small>The list is only updated once per minute</small>
+                            </div>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @foreach (var error in _errors)
+                        {
+                            <div class="mb-2">
+                                <MudAlert Severity="GetSeverity(error.Severity)"
+                                          NoIcon="true"
+                                          ContentAlignment="HorizontalAlignment.Left"
+                                          ShowCloseIcon="true"
+                                          CloseIconClicked="@(_ => DismissError(error.Id))">
+                                    <h4>@(error.Headline + $"{(error.HideOccurrenceCount ? string.Empty : $" occured {error.OccurrenceCount} time(s)")}")</h4>
+                                    <div style="word-break: break-word;">
+                                        @((MarkupString)error.Message)
+                                    </div>
+                                </MudAlert>
+                            </div>
+
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </div>
+    }
+    
+}
+
+
+@code {
+    private List<DtoLoggedError>? _errors;
+
+    PeriodicTaskHelper? _periodicTaskHelper;
+
+
+    protected override void OnInitialized()
+    {
+        _periodicTaskHelper = new();
+        _periodicTaskHelper.Start(RefreshErrors, TimeSpan.FromSeconds(15));
+    }
+
+    private async Task RefreshErrors()
+    {
+        var result = await HttpClientHelper.SendGetRequestAsync<List<DtoLoggedError>>("api/LoggedErrors/GetActiveLoggedErrors");
+        if (result.HasError)
+        {
+            Logger.LogError("Could not refresh active logged errors: {errorMessage}", result.ErrorMessage);
+            _errors = default;
+            return;
+        }
+        _errors = result.Data;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _periodicTaskHelper?.Dispose();
+    }
+
+    private async Task DismissError(int errorId)
+    {
+        var idToRemove = await HttpClientHelper.SendPostRequestWithSnackbarAsync<DtoValue<int>>("api/LoggedErrors/DismissError", new DtoValue<int>(errorId));
+        if (_errors == default || idToRemove == default)
+        {
+            return;
+        }
+        _errors.RemoveAll(e => e.Id == idToRemove.Value);
+    }
+
+    private Severity GetSeverity(IssueSeverity issueSeverity)
+    {
+        return issueSeverity switch
+        {
+            IssueSeverity.Warning => Severity.Warning,
+            IssueSeverity.Error => Severity.Error,
+            _ => Severity.Info,
+        };
+    }
+}

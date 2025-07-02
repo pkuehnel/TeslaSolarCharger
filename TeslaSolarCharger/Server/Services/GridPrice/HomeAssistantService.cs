@@ -44,7 +44,7 @@ public class HomeAssistantService : IPriceDataService
 
             prices.Add(new Price
             {
-                Value = price,
+                GridPrice = price,
                 ValidFrom = validFrom,
                 ValidTo = validTo
             });
