@@ -356,14 +356,14 @@ public class ChargingServiceV2 : IChargingServiceV2
     private async Task SetCarChargingTargetsToFulFilled(DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}({currentDate})", nameof(SetCarChargingTargetsToFulFilled), currentDate);
-        var carSocs = _settings.CarsToManage.ToDictionary(c => c.Id, c => c.SoC);
-        var carIds = carSocs.Keys.ToHashSet();
+        var carIds = _settings.CarsToManage.Select(c => c.Id).ToHashSet();
         var chargingTargets = await _context.CarChargingTargets
             .Where(c => carIds.Contains(c.CarId))
             .ToListAsync().ConfigureAwait(false);
         foreach (var chargingTarget in chargingTargets)
         {
-            if (carSocs[chargingTarget.CarId] >= chargingTarget.TargetSoc)
+            var car = _settings.Cars.First(c => c.Id == chargingTarget.CarId);
+            if (car.SoC >= chargingTarget.TargetSoc || car.PluggedIn != true)
             {
                 chargingTarget.LastFulFilled = currentDate;
             }
@@ -456,7 +456,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private async Task<List<DtoChargingSchedule>> GenerateChargingSchedules(DateTimeOffset currentDate, List<DtoLoadPointOverview> loadPointsToManage,
         CancellationToken cancellationToken)
     {
-        ToDo: Does not charge until soc is reached but stops as soon as time is over
+        //ToDo: Does not charge until soc is reached but stops as soon as time is over
         _logger.LogTrace("{method}({currentDate}, {loadPointsToManage})", nameof(GenerateChargingSchedules), currentDate, loadPointsToManage.Count);
         var chargingSchedules = new List<DtoChargingSchedule>();
         foreach (var loadpoint in loadPointsToManage)
@@ -652,7 +652,6 @@ public class ChargingServiceV2 : IChargingServiceV2
     {
         _logger.LogTrace("{method}({carId}, {currentDate})", nameof(GetRelevantTarget), carId, currentDate);
         var car = _settings.Cars.First(c => c.Id == carId);
-        var lastPluggedIn = car.PluggedIn == true ? (car.LastPluggedIn ?? currentDate) : currentDate;
         var unfulFilledChargingTargets = await _context.CarChargingTargets
             .Where(c => c.CarId == carId
                         && (!(c.LastFulFilled >= currentDate)))
@@ -664,6 +663,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             return null;
         }
         DtoTimeZonedChargingTarget? nextTarget = null;
+        var lastPluggedIn = car.PluggedIn == true ? (car.LastPluggedIn ?? currentDate) : currentDate;
         foreach (var carChargingTarget in unfulFilledChargingTargets)
         {
             var nextTargetUtc = GetNextTargetUtc(carChargingTarget, lastPluggedIn);
@@ -847,11 +847,13 @@ public class ChargingServiceV2 : IChargingServiceV2
 
     internal DateTimeOffset? GetNextTargetUtc(CarChargingTarget chargingTarget, DateTimeOffset lastPluggedIn)
     {
+        _logger.LogTrace("{method}({@chargingTarget}, {lastPluggedIn})", nameof(GetNextTargetUtc), chargingTarget, lastPluggedIn);
         var tz = string.IsNullOrWhiteSpace(chargingTarget.ClientTimeZone)
             ? TimeZoneInfo.Utc
             : TimeZoneInfo.FindSystemTimeZoneById(chargingTarget.ClientTimeZone);
 
         var earliestExecutionTime = TimeZoneInfo.ConvertTime(lastPluggedIn, tz);
+        _logger.LogTrace("Earliest execution time for target {targetId} is {earliestExecutionTime} in timezone {tz}.", chargingTarget.Id, earliestExecutionTime, tz.Id);
 
         DateTimeOffset? candidate;
 
@@ -859,9 +861,10 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             candidate = new DateTimeOffset(chargingTarget.TargetDate.Value, chargingTarget.TargetTime,
                 tz.GetUtcOffset(new(chargingTarget.TargetDate.Value, chargingTarget.TargetTime)));
+            _logger.LogTrace("Candidate: {candidate} for target {targetId} in timezone {tz}.", candidate, chargingTarget.Id, tz.Id);
 
             //candidate is irrelevant if it is in the past
-            if (candidate > earliestExecutionTime)
+            if (candidate >= earliestExecutionTime)
             {
                 // if no repetition is set, return the candidate
                 if (!chargingTarget.RepeatOnMondays
