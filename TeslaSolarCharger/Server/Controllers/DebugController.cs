@@ -45,6 +45,13 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
         return Ok(new DtoValue<string>(level));
     }
 
+    [HttpGet]
+    public IActionResult GetFileLogLevel()
+    {
+        var level = debugService.GetFileLogLevel();
+        return Ok(new DtoValue<string>(level));
+    }
+
     /// <summary>
     /// Adjusts the minimum log level for the in-memory sink.
     /// </summary>
@@ -53,7 +60,14 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     [HttpPost]
     public IActionResult SetInMemoryLogLevel([FromQuery] string level)
     {
-        debugService.SetLogLevel(level);
+        debugService.SetInMemoryLogLevel(level);
+        return Ok();
+    }
+
+    [HttpPost]
+    public IActionResult SetFileLogLevel([FromQuery] string level)
+    {
+        debugService.SetFileLogLevel(level);
         return Ok();
     }
 

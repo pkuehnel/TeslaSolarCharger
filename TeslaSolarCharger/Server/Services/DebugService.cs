@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PkSoftwareService.Custom.Backend;
 using Serilog.Events;
-using SQLitePCL;
 using System.IO.Compression;
 using System.Text;
 using TeslaSolarCharger.Model.Contracts;
@@ -26,8 +25,7 @@ public class DebugService(ILogger<DebugService> logger,
     IOcppChargePointActionService ocppChargePointActionService,
     IConstants constants,
     ISettings settings,
-    IConfigurationWrapper configurationWrapper,
-    IDateTimeProvider dateTimeProvider) : IDebugService
+    IConfigurationWrapper configurationWrapper) : IDebugService
 {
     public async Task<Dictionary<int, DtoDebugChargingConnector>> GetChargingConnectors()
     {
@@ -51,7 +49,7 @@ public class DebugService(ILogger<DebugService> logger,
     {
         logger.LogTrace("{method}({chargePointId}, {connectorId}, {currentToSet}, {numberOfPhases})", nameof(StartCharging),
             chargePointId, connectorId, currentToSet, numberOfPhases);
-        
+
         var result = await ocppChargePointActionService.StartCharging(
             chargePointId + constants.OcppChargePointConnectorIdDelimiter + connectorId,
             currentToSet,
@@ -99,7 +97,7 @@ public class DebugService(ILogger<DebugService> logger,
         var memoryStream = new MemoryStream();
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {
-            await AddFilesOlderThanToArchiveAsync(configurationWrapper.LogFilesDirectory(), archive, TimeSpan.FromMinutes(1));
+            await AddFilesOlderThanToArchiveAsync(configurationWrapper.LogFilesDirectory(), archive);
         }
         memoryStream.Position = 0;
         return memoryStream;
@@ -135,15 +133,30 @@ public class DebugService(ILogger<DebugService> logger,
         logger.LogTrace("{method}", nameof(GetInMemoryLogLevel));
         return inMemoryLogLevelSwitch.MinimumLevel.ToString();
     }
-
-    public void SetLogLevel(string level)
+    public string GetFileLogLevel()
     {
-        logger.LogTrace("{method} {level}", nameof(SetLogLevel), level);
+        logger.LogTrace("{method}", nameof(GetFileLogLevel));
+        return fileLogLevelSwitch.MinimumLevel.ToString();
+    }
+
+    public void SetInMemoryLogLevel(string level)
+    {
+        logger.LogTrace("{method} {level}", nameof(SetInMemoryLogLevel), level);
         if (!Enum.TryParse<LogEventLevel>(level, true, out var newLevel))
         {
             throw new ArgumentException("Invalid log level. Use one of: Verbose, Debug, Information, Warning, Error, Fatal", nameof(level));
         }
         inMemoryLogLevelSwitch.MinimumLevel = newLevel;
+    }
+
+    public void SetFileLogLevel(string level)
+    {
+        logger.LogTrace("{method} {level}", nameof(SetFileLogLevel), level);
+        if (!Enum.TryParse<LogEventLevel>(level, true, out var newLevel))
+        {
+            throw new ArgumentException("Invalid log level. Use one of: Verbose, Debug, Information, Warning, Error, Fatal", nameof(level));
+        }
+        fileLogLevelSwitch.MinimumLevel = newLevel;
     }
 
     public int GetLogCapacity()
@@ -158,19 +171,15 @@ public class DebugService(ILogger<DebugService> logger,
         inMemorySink.UpdateCapacity(capacity);
     }
 
-    private async Task AddFilesOlderThanToArchiveAsync(string sourceDir, ZipArchive archive, TimeSpan minimumFileAge)
+    private async Task AddFilesOlderThanToArchiveAsync(string sourceDir, ZipArchive archive)
     {
         foreach (var fileFullName in Directory.GetFiles(sourceDir))
         {
             var file = new FileInfo(fileFullName);
-            if(file.LastWriteTimeUtc > (dateTimeProvider.UtcNow() - minimumFileAge))
-            {
-                continue;
-            }
             var entry = archive.CreateEntry(file.Name);
 
             using (var entryStream = entry.Open())
-            using (var fileStream = File.OpenRead(fileFullName))
+            using (var fileStream = new FileStream(fileFullName, FileMode.Open, FileAccess.Read, FileShare.Write))
             {
                 await fileStream.CopyToAsync(entryStream);
             }

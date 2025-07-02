@@ -60,7 +60,7 @@ builder.Services.AddSingleton(inMemorySink);
 var inMemoryLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Verbose);
 builder.Services.AddKeyedSingleton(StaticConstants.InMemoryLogDependencyInjectionKey, inMemoryLevelSwitch);
 
-var fileLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Verbose);
+var fileLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Fatal);
 builder.Services.AddKeyedSingleton(StaticConstants.FileLogDependencyInjectionKey, fileLevelSwitch);
 
 
