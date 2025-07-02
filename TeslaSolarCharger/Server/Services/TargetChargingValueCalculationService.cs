@@ -240,6 +240,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         if ((constraintValues.ChargeMode == ChargeModeV2.MaxPower)
             || (constraintValues.MinSoc < constraintValues.Soc))
         {
+            // Check for maximum SOC reached is already done above, so we can skip it here
             if ((constraintValues.IsCharging == false)
                 && (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference)))
             {
