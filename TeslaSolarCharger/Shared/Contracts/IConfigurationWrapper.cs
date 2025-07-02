@@ -118,4 +118,5 @@ public interface IConfigurationWrapper
     bool DynamicHomeBatteryMinSoc();
     bool UsePredictedSolarPowerGenerationForChargingSchedules();
     TimeSpan SkipPowerChangesOnLastAdjustmentNewerThan();
+    string LogFilesDirectory();
 }

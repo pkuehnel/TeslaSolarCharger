@@ -23,18 +23,32 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     };
 
     [HttpGet]
-    public IActionResult DownloadLogs()
+    public IActionResult DownloadInMemoryLogs()
     {
-        var bytes = debugService.GetLogBytes();
+        var bytes = debugService.GetInMemoryLogBytes();
 
         // Return the file with the appropriate content type and file name.
         return File(bytes, "text/plain", "logs.log");
     }
 
     [HttpGet]
-    public IActionResult GetLogLevel()
+    public async Task<IActionResult> DownloadFileLogs()
     {
-        var level = debugService.GetLogLevel();
+        var bytes = await debugService.GetFileLogsStream();
+        return File(bytes, "application/zip", "logs.zip");
+    }
+
+    [HttpGet]
+    public IActionResult GetInMemoryLogLevel()
+    {
+        var level = debugService.GetInMemoryLogLevel();
+        return Ok(new DtoValue<string>(level));
+    }
+
+    [HttpGet]
+    public IActionResult GetFileLogLevel()
+    {
+        var level = debugService.GetFileLogLevel();
         return Ok(new DtoValue<string>(level));
     }
 
@@ -44,21 +58,28 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     /// <param name="level">The new log level (e.g. Verbose, Debug, Information, Warning, Error, Fatal).</param>
     /// <returns>Status message.</returns>
     [HttpPost]
-    public IActionResult SetLogLevel([FromQuery] string level)
+    public IActionResult SetInMemoryLogLevel([FromQuery] string level)
     {
-        debugService.SetLogLevel(level);
+        debugService.SetInMemoryLogLevel(level);
+        return Ok();
+    }
+
+    [HttpPost]
+    public IActionResult SetFileLogLevel([FromQuery] string level)
+    {
+        debugService.SetFileLogLevel(level);
         return Ok();
     }
 
     [HttpGet]
-    public IActionResult GetLogCapacity()
+    public IActionResult GetInMemoryLogCapacity()
     {
         var capacity = debugService.GetLogCapacity();
         return Ok(new DtoValue<int>(capacity));
     }
 
     [HttpPost]
-    public IActionResult SetLogCapacity([FromQuery] int capacity)
+    public IActionResult SetInMemoryLogCapacity([FromQuery] int capacity)
     {
         debugService.SetLogCapacity(capacity);
         return Ok();

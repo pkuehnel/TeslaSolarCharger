@@ -25,7 +25,7 @@
 
 <RightAlignedButtonComponent ButtonText="Download Server Logs"
                              StartIcon="@Icons.Material.Filled.Download"
-                             OnButtonClicked="@(_ => NavigationManager.NavigateTo("api/Debug/DownloadLogs", true))"></RightAlignedButtonComponent>
+                             OnButtonClicked="@(_ => NavigationManager.NavigateTo("api/Debug/DownloadInMemoryLogs", true))"></RightAlignedButtonComponent>
 
 <MudAlert Severity="Severity.Warning"
           NoIcon="true"
@@ -34,28 +34,51 @@
 </MudAlert>
 
 <div class="row">
-    @if (_logCapacity == default || _logLevel == default)
+    @if (_inMemoryLogCapacity == default || _inMemoryLogLevel == default)
     {
         <PlaceholderComponent></PlaceholderComponent>
     }
     else
     {
         <div class="col">
-            <GenericInput For="() => _logLevel.Value"
-                          LabelName="Log Level"
-                          ShouldBeInErrorState="@(_logLevelSetErrorMessage != default)"
-                          ErrorMessage="@_logLevelSetErrorMessage"
-                          OnButtonClicked="@(UpdateLogLevel)"
+            <GenericInput For="() => _inMemoryLogLevel.Value"
+                          LabelName="In Memory Log Level"
+                          ShouldBeInErrorState="@(_inMemoryLogLevelSetErrorMessage != default)"
+                          ErrorMessage="@_inMemoryLogLevelSetErrorMessage"
+                          OnButtonClicked="@(UpdateInMemoryLogLevel)"
                           StringIdDropDownOptions="LogLevelOptions"
                           PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
         </div>
         <div class="col">
-            <GenericInput For="() => _logCapacity.Value"
-                          LabelName="Log Capacity"
-                          ShouldBeInErrorState="@(_logCapacitySetErrorMessage != default)"
-                          ErrorMessage="@_logCapacitySetErrorMessage"
-                          OnButtonClicked="@(UpdateLogCapacity)"
+            <GenericInput For="() => _inMemoryLogCapacity.Value"
+                          LabelName="In Memory Log Capacity"
+                          ShouldBeInErrorState="@(_inMemoryLogCapacitySetErrorMessage != default)"
+                          ErrorMessage="@_inMemoryLogCapacitySetErrorMessage"
+                          OnButtonClicked="@(UpdateInMemoryLogCapacity)"
                           PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
+        </div>
+    }
+</div>
+<div class="row">
+    @if (_fileLogLevel == default)
+    {
+        <PlaceholderComponent></PlaceholderComponent>
+    }
+    else
+    {
+        <div class="col">
+            <GenericInput For="() => _fileLogLevel.Value"
+                          LabelName="File Log Level"
+                          ShouldBeInErrorState="@(_fileLogLevelSetErrorMessage != default)"
+                          ErrorMessage="@_fileLogLevelSetErrorMessage"
+                          OnButtonClicked="@(UpdateFileLogLevel)"
+                          StringIdDropDownOptions="LogLevelOptions"
+                          PostfixButtonStartIcon="@Icons.Material.Filled.Save" />
+        </div>
+        <div class="col">
+            <RightAlignedButtonComponent ButtonText="Download Server File Logs"
+                                         StartIcon="@Icons.Material.Filled.Download"
+                                         OnButtonClicked="@(_ => NavigationManager.NavigateTo("api/Debug/DownloadFileLogs", true))"></RightAlignedButtonComponent>
         </div>
     }
 </div>
@@ -63,11 +86,11 @@
 
 <MudExpansionPanels>
     <MudExpansionPanel Text="UI Logs" ExpandedChanged="UiLogExpansionChanged">
-        <div>Fetched @LogMessages.Count logs</div>
+        <div>Fetched @_uiLogMessages.Count logs</div>
         <RightAlignedButtonComponent ButtonText="Copy logs to clipoard"
                                      StartIcon="@Icons.Material.Filled.ContentCopy"
                                      OnButtonClicked="CopyLogsToClipboard"></RightAlignedButtonComponent>
-        @foreach (var logMessage in LogMessages)
+        @foreach (var logMessage in _uiLogMessages)
         {
             <div>@logMessage</div>
         }
@@ -216,13 +239,16 @@ else
     private readonly Dictionary<int, DtoValue<decimal>> _chargingCurrentsToSet = new();
     private readonly Dictionary<int, DtoValue<int?>> _chargingPhasesToSet = new();
     private readonly Dictionary<int, string> _commandResults = new();
-    private List<string> LogMessages = new();
+    private List<string> _uiLogMessages = new();
 
 
-    private DtoValue<string>? _logLevel;
-    private string? _logLevelSetErrorMessage;
-    private DtoValue<int>? _logCapacity;
-    private string? _logCapacitySetErrorMessage;
+    private DtoValue<string>? _inMemoryLogLevel;
+    private string? _inMemoryLogLevelSetErrorMessage;
+    private DtoValue<int>? _inMemoryLogCapacity;
+    private string? _inMemoryLogCapacitySetErrorMessage;
+    private DtoValue<string>? _fileLogLevel;
+    private string? _fileLogLevelSetErrorMessage;
+
 
     private Dictionary<string, string> LogLevelOptions => new()
     {
@@ -242,8 +268,9 @@ else
             _debugCars = cars;
         }
         await RefreshChargingConnectors();
-        _logLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetLogLevel");
-        _logCapacity = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<int>>("api/Debug/GetLogCapacity");
+        _inMemoryLogLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetInMemoryLogLevel");
+        _fileLogLevel = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Debug/GetFileLogLevel");
+        _inMemoryLogCapacity = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<int>>("api/Debug/GetInMemoryLogCapacity");
     }
 
     private async Task RefreshChargingConnectors()
@@ -337,36 +364,56 @@ else
         _isFleetTelemetryLoading = false;
     }
 
-    private async Task UpdateLogLevel()
+    private async Task UpdateInMemoryLogLevel()
     {
-        if (_logLevel == default)
+        if (_inMemoryLogLevel == default)
         {
             return;
         }
 
-        if (string.IsNullOrEmpty(_logLevel.Value))
+        if (string.IsNullOrEmpty(_inMemoryLogLevel.Value))
         {
             return;
         }
-        var result = await HttpClientHelper.SendPostRequestAsync<object>($"api/Debug/SetLogLevel?level={Uri.EscapeDataString(_logLevel.Value)}", null);
+        var result = await HttpClientHelper.SendPostRequestAsync<object>($"api/Debug/SetInMemoryLogLevel?level={Uri.EscapeDataString(_inMemoryLogLevel.Value)}", null);
         if (result.HasError)
         {
-            _logLevelSetErrorMessage = result.ErrorMessage;
+            _inMemoryLogLevelSetErrorMessage = result.ErrorMessage;
             return;
         }
         Snackbar.Add("Log level updated", Severity.Success);
     }
 
-    private async Task UpdateLogCapacity()
+    private async Task UpdateFileLogLevel()
     {
-        if (_logCapacity == default)
+        if (_fileLogLevel == default)
         {
             return;
         }
-        var result = await HttpClientHelper.SendPostRequestAsync<object>($"api/Debug/SetLogCapacity?capacity={_logCapacity.Value}", null);
+
+        if (string.IsNullOrEmpty(_fileLogLevel.Value))
+        {
+            return;
+        }
+        var result = await HttpClientHelper.SendPostRequestAsync<object>($"api/Debug/SetFileLogLevel?level={Uri.EscapeDataString(_fileLogLevel.Value)}", null);
         if (result.HasError)
         {
-            _logCapacitySetErrorMessage = result.ErrorMessage;
+            _fileLogLevelSetErrorMessage = result.ErrorMessage;
+            return;
+        }
+        Snackbar.Add("File Log level updated", Severity.Success);
+    }
+
+    private async Task UpdateInMemoryLogCapacity()
+    {
+        if (_inMemoryLogCapacity == default)
+        {
+            return;
+        }
+        var result = await HttpClientHelper.SendPostRequestAsync<object>($"api/Debug/SetInMemoryLogCapacity?capacity={_inMemoryLogCapacity.Value}", null);
+        if (result.HasError)
+        {
+            _inMemoryLogCapacitySetErrorMessage = result.ErrorMessage;
             return;
         }
         Snackbar.Add("Log capacity updated", Severity.Success);
@@ -461,13 +508,13 @@ else
     {
         if (isExpanded)
         {
-            LogMessages = InMemorySink.GetLogs().ToList();
+            _uiLogMessages = InMemorySink.GetLogs().ToList();
         }
     }
 
     private void CopyLogsToClipboard()
     {
-        var stringToCopy = string.Join(Environment.NewLine, LogMessages);
+        var stringToCopy = string.Join(Environment.NewLine, _uiLogMessages);
         JavaScriptWrapper.CopyStringToClipboard(stringToCopy);
     }
 
