@@ -76,7 +76,7 @@ public class DtoCar
 
     public void UpdatePluggedIn(DateTimeOffset timestamp, bool pluggedIn)
     {
-        if (pluggedIn && (PluggedIn == false))
+        if (pluggedIn && ((PluggedIn == false) || (LastPluggedIn == null)))
         {
             LastPluggedIn = timestamp;
         }

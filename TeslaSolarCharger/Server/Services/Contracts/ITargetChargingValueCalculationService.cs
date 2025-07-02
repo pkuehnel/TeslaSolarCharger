@@ -1,4 +1,5 @@
 ﻿using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+using TeslaSolarCharger.Shared.Dtos;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
 

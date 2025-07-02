@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -11,6 +12,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
@@ -124,6 +126,8 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 continue;
             }
+            //Next line sets target power OCPP stations if loadpoint is managed by car. Returns true if power does not need to be set or if it was set successfully.
+            //Returns false if power should be set but did not succeed, e.g. OCPP connection is not established.
             if (!(await SetChargingPowerOfOccpConnectorForCarManagedLoadpoint(targetChargingValue, currentDate, cancellationToken)
                     .ConfigureAwait(false)))
             {
@@ -131,6 +135,11 @@ public class ChargingServiceV2 : IChargingServiceV2
                 continue;
             }
 
+            //Round as sometimes 4.9999999999991 is the result and this would reduce current by 1A on cars with 1A step size.
+            if (targetChargingValue.TargetValues.TargetCurrent != default)
+            {
+                targetChargingValue.TargetValues.TargetCurrent = Math.Round(targetChargingValue.TargetValues.TargetCurrent.Value, 1);
+            }
             if (targetChargingValue.LoadPoint.ManageChargingPowerByCar)
             {
                 _logger.LogTrace("Loadpoint {carId}, {connectorId} is managed by car", targetChargingValue.LoadPoint.CarId, targetChargingValue.LoadPoint.ChargingConnectorId);
@@ -363,7 +372,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         foreach (var chargingTarget in chargingTargets)
         {
             var car = _settings.Cars.First(c => c.Id == chargingTarget.CarId);
-            if (car.SoC >= chargingTarget.TargetSoc || car.PluggedIn != true)
+            if (car.SoC >= chargingTarget.TargetSoc || car.PluggedIn != true || car.IsHomeGeofence != true)
             {
                 chargingTarget.LastFulFilled = currentDate;
             }
@@ -588,6 +597,17 @@ public class ChargingServiceV2 : IChargingServiceV2
                         {
                             var hoursToReduce = (double)-remainingEnergyToCoverFromGrid / correspondingChargingSchedule.ChargingPower;
                             correspondingChargingSchedule.ValidFrom = correspondingChargingSchedule.ValidFrom.AddHours(hoursToReduce);
+                        }
+                    }
+
+                    if (remainingEnergyToCoverFromGrid > 0)
+                    {
+                        var lastChargingSchedule = chargingSchedules.OrderByDescending(c => c.ValidTo).FirstOrDefault();
+                        if(lastChargingSchedule != default)
+                        {
+                            _logger.LogDebug("Last charging schedule {@lastChargingSchedule} is not enough to cover remaining energy {remainingEnergyToCoverFromGrid}. Extend it.", lastChargingSchedule, remainingEnergyToCoverFromGrid);
+                            var chargingDuration = CalculateChargingDuration(remainingEnergyToCoverFromGrid, lastChargingSchedule.ChargingPower);
+                            lastChargingSchedule.ValidTo += chargingDuration;
                         }
                     }
                 }
