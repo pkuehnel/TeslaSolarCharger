@@ -132,7 +132,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             };
         }
         if ((constraintValues.ChargeMode == ChargeModeV2.Auto)
-            && (!(constraintValues.MinSoc < constraintValues.Soc)))
+            && (!(constraintValues.MinSoc > constraintValues.Soc)))
         {
             if ((!ignoreTimers) && (constraintValues.ChargeStopAllowed == true))
             {
@@ -238,7 +238,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
 
         }
         if ((constraintValues.ChargeMode == ChargeModeV2.MaxPower)
-            || (constraintValues.MinSoc < constraintValues.Soc))
+            || (constraintValues.MinSoc > constraintValues.Soc))
         {
             // Check for maximum SOC reached is already done above, so we can skip it here
             if ((constraintValues.IsCharging == false)
