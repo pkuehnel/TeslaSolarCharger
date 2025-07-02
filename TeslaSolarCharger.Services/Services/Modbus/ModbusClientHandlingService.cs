@@ -97,6 +97,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
 
     private void EnsureNoBackoffRequired(string host, int port)
     {
+        logger.LogTrace("{method}({host}, {port})", nameof(EnsureNoBackoffRequired), host, port);
         var key = CreateModbusTcpClientKey(host, port);
         if (!_modbusClients.TryGetValue(key, out var element) || element.retryInfo == default)
         {
@@ -115,6 +116,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
 
     private void IncrementRetryCount(string host, int port)
     {
+        logger.LogTrace("{method}({host}, {port})", nameof(IncrementRetryCount), host, port);
         var key = CreateModbusTcpClientKey(host, port);
         if (!_modbusClients.TryGetValue(key, out var element))
         {
@@ -145,6 +147,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
 
     private void ResetRetryCount(string host, int port)
     {
+        logger.LogTrace("{method}({host}, {port})", nameof(ResetRetryCount), host, port);
         var key = CreateModbusTcpClientKey(host, port);
         if (_modbusClients.TryGetValue(key, out var element) && element.retryInfo != null)
         {
@@ -202,7 +205,11 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         logger.LogTrace("Did not find Modbus client, create new one.");
         var client = serviceProvider.GetRequiredService<IModbusTcpClient>();
         var semaphoreSlim = new SemaphoreSlim(1, 1);
-        _modbusClients.TryAdd(key, (client, null, semaphoreSlim));
+        if (!_modbusClients.TryAdd(key, (client, null, semaphoreSlim)))
+        {
+            throw new InvalidOperationException($"Looks like a modbus client with key {key} has been added in the meantime.");
+        }
+        
         await semaphoreSlim.WaitAsync().ConfigureAwait(false);
         try
         {
