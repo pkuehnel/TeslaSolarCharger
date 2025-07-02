@@ -143,6 +143,9 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.ChargingPriority = dtoCar.ChargingPriority;
                 loadPoint.IsHome = dtoCar.IsHomeGeofence;
                 loadPoint.IsPluggedIn = dtoCar.PluggedIn == true;
+                loadPoint.EstimatedVoltageWhileCharging = CalculateEstimatedChargerVoltageWhileCharging(dtoCar.ChargerVoltage);
+                //Currently always true as all cars are Teslas
+                loadPoint.ManageChargingPowerByCar = true;
             }
 
             if (pair.ConnectorId != default)
@@ -172,6 +175,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                     loadPoint.ActualPhases = connectorState.PhaseCount.Value;
                     loadPoint.ChargingPower = connectorState.ChargingPower.Value;
                     loadPoint.IsPluggedIn = connectorState.IsPluggedIn.Value;
+                    loadPoint.EstimatedVoltageWhileCharging = CalculateEstimatedChargerVoltageWhileCharging((int?)connectorState.ChargingVoltage.Value);
                     //Charging connectors are always home connectors
                     loadPoint.IsHome = true;
                 }
@@ -333,5 +337,15 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
         }
         _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
+    }
+
+    private int CalculateEstimatedChargerVoltageWhileCharging(int? actualVoltage)
+    {
+        _logger.LogTrace("{method}({actualVoltage})", nameof(CalculateEstimatedChargerVoltageWhileCharging), actualVoltage);
+        if (actualVoltage == default || actualVoltage <= 70)
+        {
+            return _settings.AverageHomeGridVoltage ?? 230;
+        }
+        return actualVoltage.Value;
     }
 }

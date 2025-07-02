@@ -1,5 +1,5 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
-@using TeslaSolarCharger.Server.Dtos.ChargingServiceV2
+@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @inject IHomeService HomerService
 @inject IStringHelper StringHelper
@@ -24,13 +24,13 @@
                         <PropertyColumn Property="x => x.ValidFrom"
                                         Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom))">
                             <CellTemplate>
-                                @(context.Item.ValidFrom.ToLocalTime().ToString("g"))W
+                                @(context.Item.ValidFrom.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
                         <PropertyColumn Property="x => x.ValidTo"
                                         Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo))">
                             <CellTemplate>
-                                @(context.Item.ValidTo.ToLocalTime().ToString("g"))W
+                                @(context.Item.ValidTo.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
                         <PropertyColumn Property="x => x.ChargingPower"

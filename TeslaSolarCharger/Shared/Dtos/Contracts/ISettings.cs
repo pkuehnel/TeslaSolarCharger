@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 

@@ -1,6 +1,4 @@
-﻿using TeslaSolarCharger.Shared.Dtos;
-
-namespace TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
+﻿namespace TeslaSolarCharger.Shared.Dtos;
 
 public class DtoChargingSchedule : ValidFromToBase
 {
