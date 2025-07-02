@@ -97,7 +97,7 @@ public class DebugService(ILogger<DebugService> logger,
         var memoryStream = new MemoryStream();
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {
-            await AddFilesOlderThanToArchiveAsync(configurationWrapper.LogFilesDirectory(), archive);
+            await AddFilesToArchive(configurationWrapper.LogFilesDirectory(), archive);
         }
         memoryStream.Position = 0;
         return memoryStream;
@@ -171,8 +171,9 @@ public class DebugService(ILogger<DebugService> logger,
         inMemorySink.UpdateCapacity(capacity);
     }
 
-    private async Task AddFilesOlderThanToArchiveAsync(string sourceDir, ZipArchive archive)
+    private async Task AddFilesToArchive(string sourceDir, ZipArchive archive)
     {
+        logger.LogTrace("{method}({sourceDir}, archive)", nameof(AddFilesToArchive), sourceDir);
         foreach (var fileFullName in Directory.GetFiles(sourceDir))
         {
             var file = new FileInfo(fileFullName);
