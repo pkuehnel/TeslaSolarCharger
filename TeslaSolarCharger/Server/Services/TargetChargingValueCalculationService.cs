@@ -46,12 +46,14 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OccpChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default)))
         {
+            //ToDo: When pv Power (power to control) is higher than charging schedule power, the charging power should be set to the pv power instead of charging schedule power
             var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OccpChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default);
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, chargingSchedule.ChargingPower, true, currentDate);
             maxCombinedCurrent -= CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
+            //ToDo: reduce power to control after claculating target values
         }
 
         var ascending = powerToControl > 0;
@@ -64,6 +66,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 cancellationToken).ConfigureAwait(false);
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControl, false, currentDate);
             maxCombinedCurrent -= CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
+            //ToDo: reduce power to control after claculating target values
         }
     }
 
