@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Newtonsoft.Json;
-using TeslaSolarCharger.Model.BaseClasses;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -42,22 +41,11 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
-    public void RejectChanges()
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
-        foreach (var entry in ChangeTracker.Entries())
-        {
-            switch (entry.State)
-            {
-                case EntityState.Modified:
-                case EntityState.Deleted:
-                    entry.State = EntityState.Modified; //Revert changes made to deleted entity.
-                    entry.State = EntityState.Unchanged;
-                    break;
-                case EntityState.Added:
-                    entry.State = EntityState.Detached;
-                    break;
-            }
-        }
+        //Workaround for https://github.com/dotnet/efcore/issues/29514
+        await Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000;", cancellationToken: cancellationToken);
+        return await base.SaveChangesAsync(cancellationToken);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
