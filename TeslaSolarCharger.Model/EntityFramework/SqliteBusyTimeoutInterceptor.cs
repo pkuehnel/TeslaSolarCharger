@@ -39,8 +39,8 @@ public class SqliteBusyTimeoutInterceptor : DbConnectionInterceptor
         {
             return;
         }
-        var command = connection.CreateCommand();
-        await using var command1 = command.ConfigureAwait(false);
+        // ReSharper disable once UseAwaitUsing
+        using var command = connection.CreateCommand();
         command.CommandText = $"PRAGMA busy_timeout={_busyTimeout};";
         await command.ExecuteNonQueryAsync();
     }
