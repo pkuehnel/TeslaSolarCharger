@@ -91,7 +91,8 @@ public static class ServiceCollectionExtensions
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
             .AddDbContext<ITeslaSolarChargerContext, TeslaSolarChargerContext>((provider, options) =>
             {
-                options.UseSqlite(provider.GetRequiredService<IDbConnectionStringHelper>().GetTeslaSolarChargerDbPath());
+                options.UseSqlite(provider.GetRequiredService<IDbConnectionStringHelper>().GetTeslaSolarChargerDbPath())
+                    .AddInterceptors(new SqliteBusyTimeoutInterceptor(5000));
                 options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
             }, ServiceLifetime.Transient, ServiceLifetime.Transient)
