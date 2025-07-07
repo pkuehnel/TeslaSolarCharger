@@ -70,7 +70,7 @@ public class BaseConfigurationService(
 
             //Backup Sqlite database
             using (var source = new SqliteConnection(dbConnectionStringHelper.GetTeslaSolarChargerDbPath()))
-            using (var destination = new SqliteConnection(string.Format($"Data Source={Path.Combine(backupCopyDestinationDirectory, configurationWrapper.GetSqliteFileNameWithoutPath())};Pooling=False")))
+            using (var destination = new SqliteConnection(string.Format($"Data Source={Path.Combine(backupCopyDestinationDirectory, configurationWrapper.GetSqliteFileNameWithoutPath())}")))
             {
                 source.Open();
                 destination.Open();

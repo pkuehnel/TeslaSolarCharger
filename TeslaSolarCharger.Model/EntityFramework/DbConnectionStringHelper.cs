@@ -41,7 +41,7 @@ public class DbConnectionStringHelper : IDbConnectionStringHelper
     {
         _logger.LogTrace("{method}()", nameof(GetTeslaSolarChargerDbPath));
         var filePath = _configurationWrapper.SqliteFileFullName();
-        var connectionString = $"Data Source={filePath};Pooling=False";
+        var connectionString = $"Data Source={filePath}";
         return connectionString;
     }
 }
