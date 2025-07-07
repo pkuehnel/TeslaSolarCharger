@@ -44,14 +44,20 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate})", nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate);
         var maxCombinedCurrent = (decimal)_configurationWrapper.MaxCombinedCurrent();
         foreach (var loadPoint in targetChargingValues
-                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OccpChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default)))
+                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OccpChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
+                     .OrderBy(x => x.LoadPoint.ChargingPriority))
         {
             var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OccpChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default);
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
-            loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, chargingSchedule.ChargingPower, true, currentDate);
-            maxCombinedCurrent -= CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
+            var targetPower = chargingSchedule.ChargingPower > powerToControl
+                ? chargingSchedule.ChargingPower
+                : powerToControl;
+            loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
+            var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
+            maxCombinedCurrent -= estimatedCurrentUsage;
+            powerToControl -= CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
         }
 
         var ascending = powerToControl > 0;
@@ -63,9 +69,22 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControl, false, currentDate);
-            maxCombinedCurrent -= CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
+            var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
+            maxCombinedCurrent -= estimatedCurrentUsage;
+            powerToControl -= CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
         }
     }
+
+    private int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
+    {
+        _logger.LogTrace("{method}({@loadPointTargetValues}, {estimatedCurrentUsage})", nameof(CalculateEstimatedPowerUsage), loadPointTargetValues, estimatedCurrentUsage);
+        var voltage = loadPointTargetValues.LoadPoint.EstimatedVoltageWhileCharging ?? _settings.AverageHomeGridVoltage ?? 230m;
+        var phases = loadPointTargetValues.LoadPoint.ActualPhases ?? loadPointTargetValues.TargetValues?.TargetPhases ?? 3;
+        var estimatedPower = estimatedCurrentUsage * voltage * phases;
+        _logger.LogTrace("Estimated power: {estimatedPower})", estimatedPower);
+        return (int)estimatedPower;
+    }
+
 
     private decimal CalculateEstimatedCurrentUsage(DtoTargetChargingValues loadPoint, ConstraintValues constraintValues)
     {
@@ -91,9 +110,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             lastSetCurrent = ocppValues?.LastSetCurrent.Value ?? 0m;
         }
         var notUsedCurrent = lastSetCurrent - actualCurrent;
+        if (notUsedCurrent > 1)
+        {
+            return actualCurrent;
+        }
         var currentToSet = loadPoint.TargetValues.TargetCurrent ?? actualCurrent;
-        //If not all current was used on last current set, we estimate that the same amount of current will not be used again
-        return currentToSet - notUsedCurrent;
+        return currentToSet;
     }
 
     private TargetValues? GetTargetValue(ConstraintValues constraintValues, DtoLoadPointOverview loadpoint, int powerToSet, bool ignoreTimers, DateTimeOffset currentDate)
