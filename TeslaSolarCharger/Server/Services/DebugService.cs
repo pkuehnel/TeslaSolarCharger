@@ -114,13 +114,16 @@ public class DebugService(ILogger<DebugService> logger,
         return cars;
     }
 
-    public byte[] GetInMemoryLogBytes()
+    public async Task StreamLogsToAsync(Stream stream)
     {
-        logger.LogTrace("{method}", nameof(GetInMemoryLogBytes));
-        var logEntries = inMemorySink.GetLogs();
-        var content = string.Join(Environment.NewLine, logEntries);
-        var bytes = Encoding.UTF8.GetBytes(content);
-        return bytes;
+        logger.LogTrace("{method}", nameof(StreamLogsToAsync));
+
+        // Important: Set leaveOpen to true so we don't close the HTTP response stream
+        using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 4096, leaveOpen: true))
+        {
+            await inMemorySink.StreamLogsAsync(writer);
+            await writer.FlushAsync(); // Ensure all data is written
+        }
     }
 
     public string GetInMemoryLogLevel()

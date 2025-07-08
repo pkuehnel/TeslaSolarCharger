@@ -24,12 +24,13 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     };
 
     [HttpGet]
-    public IActionResult DownloadInMemoryLogs()
+    public async Task<IActionResult> DownloadInMemoryLogs()
     {
-        var bytes = debugService.GetInMemoryLogBytes();
+        var stream = new MemoryStream();
+        await debugService.StreamLogsToAsync(stream);
+        stream.Position = 0; // Reset position to beginning
 
-        // Return the file with the appropriate content type and file name.
-        return File(bytes, "text/plain", "logs.log");
+        return File(stream, "text/plain", "logs.log");
     }
 
     [HttpGet]

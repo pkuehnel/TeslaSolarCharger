@@ -8,7 +8,6 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 public interface IDebugService
 {
     Task<Dictionary<int, DtoDebugCar>> GetCars();
-    byte[] GetInMemoryLogBytes();
     void SetInMemoryLogLevel(string level);
     void SetLogCapacity(int capacity);
     string GetInMemoryLogLevel();
@@ -28,4 +27,5 @@ public interface IDebugService
     void SetFileLogLevel(string level);
     string GetFileLogLevel();
     Task WriteFileLogsToStream(Stream outputStream);
+    Task StreamLogsToAsync(Stream stream);
 }

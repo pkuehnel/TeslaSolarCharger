@@ -42,6 +42,25 @@ public class InMemorySink : ILogEventSink, IInMemorySink
         }
     }
 
+    public async Task StreamLogsAsync(StreamWriter writer)
+    {
+        List<string> batch;
+        lock (_syncRoot)
+        {
+            // Create a snapshot to minimize lock time
+            batch = _logMessages.Select(x => x.Trim()).ToList();
+        }
+
+        for (var i = 0; i < batch.Count; i++)
+        {
+            if (i > 0)
+            {
+                await writer.WriteAsync(Environment.NewLine);
+            }
+            await writer.WriteAsync(batch[i]);
+        }
+    }
+
     /// <summary>
     /// Returns a snapshot of the current log messages.
     /// </summary>
