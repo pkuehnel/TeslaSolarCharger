@@ -18,7 +18,8 @@ public class BaseConfigurationService(
     ITeslaMateMqttService teslaMateMqttService,
     ISettings settings,
     IDbConnectionStringHelper dbConnectionStringHelper,
-    IConstants constants)
+    IConstants constants,
+    IDateTimeProvider dateTimeProvider)
     : IBaseConfigurationService
 {
     public async Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration)
@@ -52,11 +53,14 @@ public class BaseConfigurationService(
         await configurationWrapper.UpdateBaseConfigurationAsync(config);
     }
 
-    public async Task<byte[]> DownloadBackup(string backupFileNamePrefix, string? backupZipDestinationDirectory)
+    public async Task<(Stream stream, string fileName)> DownloadBackupStream(string backupFileNamePrefix, string? backupZipDestinationDirectory)
     {
         var destinationArchiveFileName = await CreateLocalBackupZipFile(backupFileNamePrefix, backupZipDestinationDirectory, true).ConfigureAwait(false);
-        var bytes = await File.ReadAllBytesAsync(destinationArchiveFileName).ConfigureAwait(false);
-        return bytes;
+
+        var stream = new FileStream(destinationArchiveFileName, FileMode.Open, FileAccess.Read, FileShare.Read,
+            bufferSize: 4096, useAsync: true);
+
+        return (stream, $"TSCBackup_{dateTimeProvider.DateTimeOffSetUtcNow().ToLocalTime().ToString("yy-MM-dd-HH-mm-ss")}.zip");
     }
 
     public async Task<string> CreateLocalBackupZipFile(string backupFileNamePrefix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup)

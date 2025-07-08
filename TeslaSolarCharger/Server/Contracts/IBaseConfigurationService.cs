@@ -9,9 +9,9 @@ public interface IBaseConfigurationService
     Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration);
     Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent);
     Task UpdatePowerBuffer(int powerBuffer);
-    Task<byte[]> DownloadBackup(string backupFileNamePrefix, string? backupZipDestinationDirectory);
     Task RestoreBackup(IFormFile file);
     Task<string> CreateLocalBackupZipFile(string backupFileNamePrefix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup);
     List<DtoBackupFileInformation> GetAutoBackupFileInformations();
     Task<byte[]> DownloadAutoBackup(string fileName);
+    Task<(Stream stream, string fileName)> DownloadBackupStream(string backupFileNamePrefix, string? backupZipDestinationDirectory);
 }
