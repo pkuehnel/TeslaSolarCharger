@@ -9,4 +9,5 @@ public interface IInMemorySink
 
     int GetCapacity();
     void UpdateCapacity(int newCapacity);
+    Task StreamLogsAsync(StreamWriter writer);
 }
