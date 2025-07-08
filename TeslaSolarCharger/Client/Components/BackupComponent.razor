@@ -14,17 +14,10 @@
     Note: The backup contains private information like password for your database, possibly access codes to your solar system, latest known location of your car(s),... Do not share the backup in public.
 </div>
 
-<MudButton Disabled="@(_processingBackup || _processingRestore)" OnClick="StartBackup" Variant="Variant.Filled" Color="Color.Primary">
-    @if (_processingBackup)
-    {
-        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-        <MudText Class="ms-2">Processing</MudText>
-    }
-    else
-    {
-        <MudText>Start Backup</MudText>
-    }
-</MudButton>
+<RightAlignedButtonComponent IsDisabled="@(_processingBackup || _processingRestore)"
+                             OnButtonClicked="StartBackup"
+                             IsLoading="_processingBackup"
+                             ButtonText="Start Backup"></RightAlignedButtonComponent>
 
 <hr />
 <h2>Restore</h2>
@@ -51,17 +44,11 @@
     </div>
 }
 
-<MudButton Disabled="@(_processingBackup || _processingRestore || _file == default)" OnClick="StartRestore" Variant="Variant.Filled" Color="Color.Primary">
-    @if (_processingRestore)
-    {
-        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-        <MudText Class="ms-2">Processing</MudText>
-    }
-    else
-    {
-        <MudText>Start restore</MudText>
-    }
-</MudButton>
+<RightAlignedButtonComponent IsDisabled="@(_processingBackup || _processingRestore || _file == default)"
+                             DisabledToolTipText=""
+                             OnButtonClicked="StartRestore"
+                             IsLoading="_processingRestore"
+                             ButtonText="Start restore"></RightAlignedButtonComponent>
 
 <MudExpansionPanels>
     <MudExpansionPanel Text="Automatically created backups before each update" ExpandedChanged="RefreshBackups">
@@ -97,13 +84,14 @@
     private async Task StartBackup()
     {
         _processingBackup = true;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
         var fileName = "TSCBackup.zip";
         var url = "api/BaseConfiguration/DownloadBackup";
-        // ReSharper disable once UseConfigureAwaitFalse
-        await JsRuntime.InvokeVoidAsync("triggerFileDownload", fileName, url);
+        await JsRuntime.InvokeVoidAsync("triggerFileDownload", fileName, url).ConfigureAwait(false);
+        await Task.Delay(5000);
         _processingBackup = false;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void SelectFile(IBrowserFile? file)

@@ -93,9 +93,9 @@ public class TeslaFleetApiService(
         TeslaApiRequestType = TeslaApiRequestType.VehicleData,
     };
 
-    public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
+    public async Task StartCharging(int carId, int startAmp)
     {
-        logger.LogTrace("{method}({carId}, {startAmp}, {carState})", nameof(StartCharging), carId, startAmp, carState);
+        logger.LogTrace("{method}({carId}, {startAmp})", nameof(StartCharging), carId, startAmp);
         var car = settings.Cars.First(c => c.Id == carId);
         if (car.ChargeStartCalls.OrderDescending().FirstOrDefault() > (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(1)))
         {
@@ -105,6 +105,12 @@ public class TeslaFleetApiService(
         if (startAmp == 0)
         {
             logger.LogDebug("Should start charging with 0 amp. Skipping charge start.");
+            return;
+        }
+
+        if (car.SoC > (car.SocLimit - constants.MinimumSocDifference))
+        {
+            logger.LogWarning("Triggered start charging but cannot start charging as SoC is too high compared to Soc Limit - {minDifference}", constants.MinimumSocDifference);
             return;
         }
         await WakeUpCarIfNeeded(carId).ConfigureAwait(false);
@@ -155,7 +161,8 @@ public class TeslaFleetApiService(
         var vin = GetVinByCarId(carId);
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps).ConfigureAwait(false);
-        car.LastSetAmp = amps;
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        car.LastSetAmp.Update(currentDate, amps);
     }
 
     public async Task<DtoValue<bool>> TestFleetApiAccess(int carId)
@@ -301,7 +308,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargerActualCurrent,
                     });
-                    car.PluggedIn = vehicleDataResult.ChargeState.ChargingState != "Disconnected";
+                    car.UpdatePluggedIn(new(timeStamp, TimeSpan.Zero), vehicleDataResult.ChargeState.ChargingState != "Disconnected");
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
