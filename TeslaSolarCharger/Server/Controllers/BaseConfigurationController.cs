@@ -42,7 +42,7 @@ namespace TeslaSolarCharger.Server.Controllers
         [HttpGet]
         public async Task<IActionResult> DownloadBackup()
         {
-            var (stream, fileName) = await service.DownloadBackupStream(string.Empty, null).ConfigureAwait(false);
+            var (stream, fileName) = await service.DownloadBackupStream(null).ConfigureAwait(false);
             return File(stream, "application/zip", fileName);
         }
 

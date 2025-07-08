@@ -53,9 +53,9 @@ public class BaseConfigurationService(
         await configurationWrapper.UpdateBaseConfigurationAsync(config);
     }
 
-    public async Task<(Stream stream, string fileName)> DownloadBackupStream(string backupFileNamePrefix, string? backupZipDestinationDirectory)
+    public async Task<(Stream stream, string fileName)> DownloadBackupStream(string? backupZipDestinationDirectory)
     {
-        var destinationArchiveFileName = await CreateLocalBackupZipFile(backupFileNamePrefix, backupZipDestinationDirectory, true).ConfigureAwait(false);
+        var destinationArchiveFileName = await CreateLocalBackupZipFile(string.Empty, backupZipDestinationDirectory, true).ConfigureAwait(false);
 
         var stream = new FileStream(destinationArchiveFileName, FileMode.Open, FileAccess.Read, FileShare.Read,
             bufferSize: 4096, useAsync: true);

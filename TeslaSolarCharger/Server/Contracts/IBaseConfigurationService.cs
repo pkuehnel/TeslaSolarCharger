@@ -13,5 +13,5 @@ public interface IBaseConfigurationService
     Task<string> CreateLocalBackupZipFile(string backupFileNamePrefix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup);
     List<DtoBackupFileInformation> GetAutoBackupFileInformations();
     Task<byte[]> DownloadAutoBackup(string fileName);
-    Task<(Stream stream, string fileName)> DownloadBackupStream(string backupFileNamePrefix, string? backupZipDestinationDirectory);
+    Task<(Stream stream, string fileName)> DownloadBackupStream(string? backupZipDestinationDirectory);
 }
