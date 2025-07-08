@@ -91,16 +91,11 @@ public class DebugService(ILogger<DebugService> logger,
         return settings.Cars.FirstOrDefault(x => x.Id == carId);
     }
 
-    public async Task<MemoryStream> GetFileLogsStream()
+    public async Task WriteFileLogsToStream(Stream outputStream)
     {
-        logger.LogTrace("{method}", nameof(GetFileLogsStream));
-        var memoryStream = new MemoryStream();
-        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
-        {
-            await AddFilesToArchive(configurationWrapper.LogFilesDirectory(), archive);
-        }
-        memoryStream.Position = 0;
-        return memoryStream;
+        logger.LogTrace("{method}", nameof(WriteFileLogsToStream));
+        using var archive = new ZipArchive(outputStream, ZipArchiveMode.Create, leaveOpen: true);
+        await AddFilesToArchive(configurationWrapper.LogFilesDirectory(), archive);
     }
 
     public async Task<Dictionary<int, DtoDebugCar>> GetCars()
@@ -177,12 +172,16 @@ public class DebugService(ILogger<DebugService> logger,
         foreach (var fileFullName in Directory.GetFiles(sourceDir))
         {
             var file = new FileInfo(fileFullName);
-            var entry = archive.CreateEntry(file.Name);
+            var entry = archive.CreateEntry(file.Name, CompressionLevel.Fastest);
 
-            using (var entryStream = entry.Open())
-            using (var fileStream = new FileStream(fileFullName, FileMode.Open, FileAccess.Read, FileShare.Write))
+            var entryStream = entry.Open();
+            await using (entryStream.ConfigureAwait(false))
             {
-                await fileStream.CopyToAsync(entryStream);
+                var fileStream = new FileStream(fileFullName, FileMode.Open, FileAccess.Read, FileShare.Write);
+                await using (fileStream.ConfigureAwait(false))
+                {
+                    await fileStream.CopyToAsync(entryStream);
+                }
             }
         }
     }

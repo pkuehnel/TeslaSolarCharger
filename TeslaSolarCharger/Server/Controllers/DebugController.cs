@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -32,10 +33,19 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     }
 
     [HttpGet]
-    public async Task<IActionResult> DownloadFileLogs()
+    public async Task DownloadFileLogs()
     {
-        var bytes = await debugService.GetFileLogsStream();
-        return File(bytes, "application/zip", "logs.zip");
+        // Enable synchronous I/O for this request only
+        var syncIoFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
+        if (syncIoFeature != null)
+        {
+            syncIoFeature.AllowSynchronousIO = true;
+        }
+
+        Response.ContentType = "application/zip";
+        Response.Headers.Add("Content-Disposition", "attachment; filename=\"logs.zip\"");
+
+        await debugService.WriteFileLogsToStream(Response.Body);
     }
 
     [HttpGet]

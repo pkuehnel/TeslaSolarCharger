@@ -25,7 +25,7 @@ public interface IDebugService
 
     DtoOcppConnectorState GetOcppConnectorState(int connectorId);
     DtoCar? GetDtoCar(int carId);
-    Task<MemoryStream> GetFileLogsStream();
     void SetFileLogLevel(string level);
     string GetFileLogLevel();
+    Task WriteFileLogsToStream(Stream outputStream);
 }
