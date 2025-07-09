@@ -147,7 +147,9 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
             .AddSingleton<IMeterValueBufferService, MeterValueBufferService>()
             .AddSingleton<IOcppWebSocketConnectionHandlingService, OcppWebSocketConnectionHandlingService>()
-            .AddSingleton<IPvValueNotifier, PvValueNotifier>()
+            .AddSingleton<IChangeTrackingService, ChangeTrackingService>()
+            .AddScoped<IStateSnapshotService, StateSnapshotService>()
+            .AddSingleton<IAppStateNotifier, AppStateNotifier>()
             .AddScoped<ErrorHandlingMiddleware>()
             .AddHostedService<MeterValueFlushService>()
             .AddSharedBackendDependencies();

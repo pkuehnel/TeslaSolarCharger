@@ -145,7 +145,7 @@ app.UseWhen(
 app.UseWebSockets();
 app.MapRazorPages();
 app.MapControllers();
-app.MapHub<PvValuesHub>("/pvValuesHub");
+app.MapHub<AppStateHub>("/appStateHub");
 app.MapFallbackToFile("index.html");
 
 app.Run();
