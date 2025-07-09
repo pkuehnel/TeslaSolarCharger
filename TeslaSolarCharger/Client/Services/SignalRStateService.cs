@@ -15,7 +15,6 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly Dictionary<string, object> _stateStore = new();
     private readonly Dictionary<string, List<Action<object>>> _subscribers = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
-    private readonly JsonSerializerOptions _jsonOptions;
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -23,12 +22,6 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     {
         _navigationManager = navigationManager;
         _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            Converters = { new JsonStringEnumConverter(), },
-        };
     }
 
     public async Task InitializeAsync()
@@ -155,7 +148,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 return;
             }
 
-            var state = JsonSerializer.Deserialize(jsonData, stateType, _jsonOptions);
+            var state = JsonSerializer.Deserialize(jsonData, stateType);
             if (state != null)
             {
                 _stateStore[dataType] = state;

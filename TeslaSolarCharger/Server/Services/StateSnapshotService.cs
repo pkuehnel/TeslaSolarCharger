@@ -10,20 +10,12 @@ public class StateSnapshotService : IStateSnapshotService
 {
     private readonly ILogger<StateSnapshotService> _logger;
     private readonly IIndexService _indexService;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     public StateSnapshotService(ILogger<StateSnapshotService> logger,
         IIndexService indexService)
     {
         _logger = logger;
         _indexService = indexService;
-
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            Converters = { new JsonStringEnumConverter(), },
-        };
     }
 
     public async Task<Dictionary<string, string>> GetAllCurrentStatesAsync()
@@ -74,7 +66,7 @@ public class StateSnapshotService : IStateSnapshotService
         try
         {
             var pvValues = _indexService.GetPvValues();
-            return JsonSerializer.Serialize(pvValues, _jsonOptions);
+            return JsonSerializer.Serialize(pvValues);
         }
         catch (Exception ex)
         {
