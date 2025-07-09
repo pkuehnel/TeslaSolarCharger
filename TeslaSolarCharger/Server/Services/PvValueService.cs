@@ -22,6 +22,7 @@ using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.Shared.SignalRClients;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -42,7 +43,8 @@ public class PvValueService(
     IMqttConfigurationService mqttConfigurationService,
     IConstants constants,
     ILoadPointManagementService loadPointManagementService,
-    IPvValueNotifier pvValueNotifier)
+    IAppStateNotifier appStateNotifier,
+    IChangeTrackingService changeTrackingService)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -983,7 +985,15 @@ public class PvValueService(
             CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum(),
             LastUpdated = settings.LastPvValueUpdate,
         };
-        await pvValueNotifier.NotifyNewValuesAsync(pvValues);
+        var changes = changeTrackingService.DetectChanges(
+            DataTypeConstants.PvValues,
+            string.Empty, // No entity ID for singleton PV values
+            pvValues);
+
+        if (changes != null)
+        {
+            await appStateNotifier.NotifyStateUpdateAsync(changes);
+        }
     }
 
     /// <summary>

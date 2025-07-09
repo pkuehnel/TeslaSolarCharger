@@ -35,7 +35,7 @@ builder.Services.AddScoped<IChargingStationsService, ChargingStationsService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
 builder.Services.AddTransient<IChartWidthCalculator, ChartWidthCalculator>();
 builder.Services.AddTransient<IApexChartHelper, ApexChartHelper>();
-builder.Services.AddTransient<ISignalRConnector, SignalRConnector>();
+builder.Services.AddSingleton<ISignalRStateService, SignalRStateService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();

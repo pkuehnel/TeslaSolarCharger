@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <Folder Include="Dtos\MqttConfiguration\" />
+    <Folder Include="Dtos\SignalR\" />
     <Folder Include="Dtos\Support\" />
     <Folder Include="Dtos\TimeSeries\" />
     <Folder Include="TimeProviding\" />
