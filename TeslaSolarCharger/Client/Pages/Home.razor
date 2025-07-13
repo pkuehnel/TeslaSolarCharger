@@ -60,6 +60,8 @@ else
                     Logger.LogError(e, "{method}() failed", nameof(RefreshLoadPoints));
                 }
             });
+
+        await RefreshLoadPoints();
     }
 
     private async Task RefreshLoadPoints()
