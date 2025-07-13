@@ -52,6 +52,7 @@
         await base.OnInitializedAsync();
         await SignalRStateService.InitializeAsync();
         var entityKey = EntityKeyGenerationHelper.GetLoadPointEntityKey(LoadPoint.CarId, LoadPoint.ChargingConnectorId);
+        Logger.LogTrace("Generated entity key: {entityKey}", entityKey);
 
         // Subscribe to updates
         SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
