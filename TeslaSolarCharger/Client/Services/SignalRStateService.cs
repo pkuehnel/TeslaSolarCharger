@@ -248,11 +248,12 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
     }
 
-    private void HandleInitialState(string dataType, string jsonData)
+    private void HandleInitialState(string key, string jsonData)
     {
-        _logger.LogTrace("Received initial state for {DataType}: {data}", dataType, jsonData);
+        _logger.LogTrace("Received initial state for {key}: {data}", key, jsonData);
         try
         {
+            var dataType = key.Split(":").First();
             var stateType = GetStateType(dataType);
             if (stateType == null)
             {
@@ -263,13 +264,13 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             var state = JsonSerializer.Deserialize(jsonData, stateType);
             if (state != null)
             {
-                _stateStore[dataType] = state;
-                NotifySubscribers(dataType, state);
+                _stateStore[key] = state;
+                NotifySubscribers(key, state);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling initial state for {DataType}", dataType);
+            _logger.LogError(ex, "Error handling initial state for {DataType}", key);
         }
     }
 
