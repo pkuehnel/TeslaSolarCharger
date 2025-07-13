@@ -68,7 +68,7 @@ public class StateSnapshotService : IStateSnapshotService
     {
         try
         {
-            var pvValues = _indexService.GetPvValues();
+            var pvValues = await _indexService.GetPvValues();
             return JsonSerializer.Serialize(pvValues);
         }
         catch (Exception ex)

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
-using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.SignalR.Notifiers;

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
@@ -11,7 +12,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private HubConnection? _hubConnection;
     private readonly NavigationManager _navigationManager;
     private readonly ILogger<SignalRStateService> _logger;
-    private readonly Dictionary<string, object> _stateStore = new();
+    private readonly ConcurrentDictionary<string, object> _stateStore = new();
     private readonly Dictionary<string, List<Action<object>>> _subscribers = new();
     private readonly Dictionary<string, List<Action>> _triggerSubscribers = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
