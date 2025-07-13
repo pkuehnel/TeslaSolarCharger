@@ -31,7 +31,7 @@ public class IndexService(
     ILoadPointManagementService loadPointManagementService)
     : IIndexService
 {
-    public DtoPvValues GetPvValues()
+    public async Task<DtoPvValues> GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
         int? powerBuffer = configurationWrapper.PowerBuffer();
@@ -39,7 +39,7 @@ public class IndexService(
         {
             powerBuffer = null;
         }
-        var loadPoints = loadPointManagementService.GetLoadPointsWithChargingDetails();
+        var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var pvValues = new DtoPvValues()
         {
             GridPower = settings.Overage,

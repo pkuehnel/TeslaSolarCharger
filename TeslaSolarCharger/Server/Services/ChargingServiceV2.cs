@@ -95,7 +95,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
-        var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
+        var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), _notChargingWithExpectedPowerReasonHelper, cancellationToken).ConfigureAwait(false);
         if (ShouldSkipPowerUpdatesDueToTooRecentAmpChanges(chargingLoadPoints, currentDate))
         {

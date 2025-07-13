@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -8,16 +9,18 @@ public class ChangeTrackingService : IChangeTrackingService
 {
     private readonly Dictionary<string, object> _previousStates = new();
     private readonly ILogger<ChangeTrackingService> _logger;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
-    public ChangeTrackingService(ILogger<ChangeTrackingService> logger)
+    public ChangeTrackingService(ILogger<ChangeTrackingService> logger, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
+        _dateTimeProvider = dateTimeProvider;
     }
 
-    public StateUpdateDto? DetectChanges<T>(string dataType, string entityId, T currentState)
+    public StateUpdateDto? DetectChanges<T>(string dataType, string? entityId, T currentState)
         where T : class
     {
-        var key = $"{dataType}:{entityId}";
+        var key = $"{dataType}:{entityId ?? string.Empty}";
         var changedProperties = new Dictionary<string, object?>();
 
         if (_previousStates.TryGetValue(key, out var previousState) && previousState is T typedPreviousState)
@@ -57,7 +60,7 @@ public class ChangeTrackingService : IChangeTrackingService
                 DataType = dataType,
                 EntityId = entityId,
                 ChangedProperties = changedProperties,
-                Timestamp = DateTimeOffset.UtcNow
+                Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
             };
         }
 

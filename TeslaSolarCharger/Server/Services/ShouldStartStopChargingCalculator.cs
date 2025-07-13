@@ -36,11 +36,11 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
         var orderedElements = ocppElements.Concat(carElements)
             .OrderBy(e => e.ChargingPriority)
             .ToList();
-        var chargingLoadPoints = _loadPointManagementService.GetLoadPointsWithChargingDetails();
+        var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var additionalAvailablePower = targetPower - chargingLoadPoints.Select(l => l.ChargingPower).Sum();
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var carConnectorMatches =
-            _loadPointManagementService.GetCarConnectorMatches(carElements.Select(c => c.Id), ocppElements.Select(e => e.Id));
+            await _loadPointManagementService.GetCarConnectorMatches(carElements.Select(c => c.Id), ocppElements.Select(e => e.Id)).ConfigureAwait(false);
         var alreadySetChargingConnectors = new HashSet<int>();
         foreach (var element in orderedElements)
         {
@@ -63,14 +63,14 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
             var matchingCombination = element.DeviceType switch
             {
                 DeviceType.Car => carConnectorMatches.FirstOrDefault(lp => lp.CarId == element.Id),
-                DeviceType.OcppConnector => carConnectorMatches.FirstOrDefault(lp => lp.ConnectorId == element.Id),
+                DeviceType.OcppConnector => carConnectorMatches.FirstOrDefault(lp => lp.ChargingConnectorId == element.Id),
                 _ => throw new ArgumentException(),
             };
             if (matchingCombination != default)
             {
-                if (matchingCombination.ConnectorId != default)
+                if (matchingCombination.ChargingConnectorId != default)
                 {
-                    alreadySetChargingConnectors.Add(matchingCombination.ConnectorId.Value);
+                    alreadySetChargingConnectors.Add(matchingCombination.ChargingConnectorId.Value);
                 }
             }
             var matchingLoadPoint = element.DeviceType switch

@@ -974,7 +974,7 @@ public class PvValueService(
         {
             powerBuffer = null;
         }
-        var loadPoints = loadPointManagementService.GetLoadPointsWithChargingDetails();
+        var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var pvValues = new DtoPvValues()
         {
             GridPower = settings.Overage,
@@ -987,7 +987,7 @@ public class PvValueService(
         };
         var changes = changeTrackingService.DetectChanges(
             DataTypeConstants.PvValues,
-            string.Empty, // No entity ID for singleton PV values
+            null, // No entity ID for singleton PV values
             pvValues);
 
         if (changes != null)

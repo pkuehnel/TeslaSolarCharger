@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
@@ -14,6 +13,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly ILogger<SignalRStateService> _logger;
     private readonly Dictionary<string, object> _stateStore = new();
     private readonly Dictionary<string, List<Action<object>>> _subscribers = new();
+    private readonly Dictionary<string, List<Action>> _triggerSubscribers = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
@@ -98,6 +98,24 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         if (_stateStore.TryGetValue(key, out var existingState) && existingState is T typedState)
         {
             callback(typedState);
+        }
+    }
+
+    public void SubscribeToTrigger(string dataType, Action callback, string entityId = "")
+    {
+        var key = string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
+
+        if (!_triggerSubscribers.ContainsKey(key))
+        {
+            _triggerSubscribers[key] = new List<Action>();
+        }
+
+        _triggerSubscribers[key].Add(callback);
+
+        // If we already have state, invoke callback immediately
+        if (_stateStore.ContainsKey(key))
+        {
+            callback();
         }
     }
 

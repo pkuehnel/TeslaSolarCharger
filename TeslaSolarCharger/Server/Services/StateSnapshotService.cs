@@ -10,12 +10,15 @@ public class StateSnapshotService : IStateSnapshotService
 {
     private readonly ILogger<StateSnapshotService> _logger;
     private readonly IIndexService _indexService;
+    private readonly ILoadPointManagementService _loadPointManagementService;
 
     public StateSnapshotService(ILogger<StateSnapshotService> logger,
-        IIndexService indexService)
+        IIndexService indexService,
+        ILoadPointManagementService loadPointManagementService)
     {
         _logger = logger;
         _indexService = indexService;
+        _loadPointManagementService = loadPointManagementService;
     }
 
     public async Task<Dictionary<string, string>> GetAllCurrentStatesAsync()

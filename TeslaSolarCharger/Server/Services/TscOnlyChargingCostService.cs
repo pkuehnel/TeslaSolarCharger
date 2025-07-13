@@ -328,7 +328,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var solarPower = overage ?? 0;
         logger.LogTrace("SolarPower: {solarPower}", solarPower);
         logger.LogTrace("HomeBatteryDischargingPower: {homeBatteryDischargingPower}", homeBatteryDischargingPower);
-        var loadPoints = loadPointManagementService.GetLoadPointsWithChargingDetails();
+        var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var combinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum();
         var usedGridPower = 0;
         var usedHomeBatteryPower = 0;

@@ -3,10 +3,13 @@
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
+@using TeslaSolarCharger.Shared.SignalRClients
 
 @inject IEnergyDataService EnergyDataService
 @inject IHomeService HomeService
 @inject ILogger<Home> Logger
+@inject ISignalRStateService SignalRStateService
 
 <PageTitle>Solar 4 Car</PageTitle>
 
@@ -75,6 +78,22 @@ else
     {
         await base.OnInitializedAsync();
         _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+
+        await SignalRStateService.InitializeAsync();
+        SignalRStateService.SubscribeToTrigger(
+            DataTypeConstants.LoadPointMatchesChangeTrigger,
+            async void () =>
+            {
+                try
+                {
+                    await RefreshLoadPoints();
+                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshLoadPoints));
+                }
+            });
         await RefreshLoadPoints();
     }
 

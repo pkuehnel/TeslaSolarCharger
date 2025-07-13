@@ -3,9 +3,11 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -13,6 +15,7 @@ public class LoadPointManagementService : ILoadPointManagementService
 {
     private readonly ILogger<LoadPointManagementService> _logger;
     private readonly ISettings _settings;
+    private readonly IAppStateNotifier _appStateNotifier;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ITeslaSolarChargerContext _context;
     private readonly IConfigurationWrapper _configurationWrapper;
@@ -26,6 +29,7 @@ public class LoadPointManagementService : ILoadPointManagementService
     IIssueKeys issueKeys,
     ITeslaSolarChargerContext context,
     ISettings settings,
+    IAppStateNotifier appStateNotifier,
     IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
@@ -34,6 +38,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         _issueKeys = issueKeys;
         _context = context;
         _settings = settings;
+        _appStateNotifier = appStateNotifier;
         _dateTimeProvider = dateTimeProvider;
     }
 
@@ -41,7 +46,7 @@ public class LoadPointManagementService : ILoadPointManagementService
     /// Get all load points with their charging power and voltage details. Lightweight method without database calls.
     /// </summary>
     /// <returns></returns>
-    public List<DtoLoadPointWithCurrentChargingValues> GetLoadPointsWithChargingDetails()
+    public async Task<List<DtoLoadPointWithCurrentChargingValues>> GetLoadPointsWithChargingDetails()
     {
         _logger.LogTrace("{method}()", nameof(GetLoadPointsWithChargingDetails));
         var cars = _settings.Cars
@@ -67,14 +72,14 @@ public class LoadPointManagementService : ILoadPointManagementService
             })
             .ToList();
 
-        var matches = GetCarConnectorMatches(cars.Select(c => c.CarId), connectors.Select(c => c.ConnectorId));
+        var matches = await GetCarConnectorMatches(cars.Select(c => c.CarId), connectors.Select(c => c.ConnectorId)).ConfigureAwait(false);
         var result = new List<DtoLoadPointWithCurrentChargingValues>();
         foreach (var match in matches)
         {
             var loadPoint = new DtoLoadPointWithCurrentChargingValues
             {
                 CarId = match.CarId,
-                ChargingConnectorId = match.ConnectorId,
+                ChargingConnectorId = match.ChargingConnectorId,
             };
             if (match.CarId != default)
             {
@@ -84,9 +89,9 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.ChargingCurrent = car.ChargingCurrent;
                 loadPoint.ChargingPhases = car.Phases;
             }
-            if (match.ConnectorId != default)
+            if (match.ChargingConnectorId != default)
             {
-                var connector = connectors.First(c => c.ConnectorId == match.ConnectorId.Value);
+                var connector = connectors.First(c => c.ConnectorId == match.ChargingConnectorId.Value);
                 loadPoint.ChargingPower = connector.ChargingPower;
                 loadPoint.ChargingVoltage = connector.Voltage;
                 loadPoint.ChargingCurrent = connector.ChargingCurrent;
@@ -120,14 +125,14 @@ public class LoadPointManagementService : ILoadPointManagementService
                 c.ChargingPriority,
             })
             .ToHashSetAsync();
-        var connectorPairs = GetCarConnectorMatches(carData.Select(c => c.Id), connectorData.Select(c => c.Id));
+        var connectorPairs = await GetCarConnectorMatches(carData.Select(c => c.Id), connectorData.Select(c => c.Id)).ConfigureAwait(false);
         var result = new List<DtoLoadPointOverview>();
         foreach (var pair in connectorPairs)
         {
             var loadPoint = new DtoLoadPointOverview()
             {
                 CarId = pair.CarId,
-                ChargingConnectorId = pair.ConnectorId,
+                ChargingConnectorId = pair.ChargingConnectorId,
             };
             if (pair.CarId != default)
             {
@@ -148,9 +153,9 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.ManageChargingPowerByCar = true;
             }
 
-            if (pair.ConnectorId != default)
+            if (pair.ChargingConnectorId != default)
             {
-                var databaseConnector = connectorData.First(c => c.Id == pair.ConnectorId);
+                var databaseConnector = connectorData.First(c => c.Id == pair.ChargingConnectorId);
                 if ((loadPoint.MaxCurrent == null) || (loadPoint.MaxCurrent > databaseConnector.MaxCurrent))
                 {
                     loadPoint.MaxCurrent = databaseConnector.MaxCurrent;
@@ -168,7 +173,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                     loadPoint.ChargingPriority = databaseConnector.ChargingPriority;
                 }
 
-                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(pair.ConnectorId.Value);
+                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(pair.ChargingConnectorId.Value);
                 if (connectorState != default)
                 {
                     loadPoint.ActualCurrent = connectorState.ChargingCurrent.Value;
@@ -186,10 +191,10 @@ public class LoadPointManagementService : ILoadPointManagementService
         return result.OrderBy(l => l.ChargingPriority ?? 99).ToList();
     }
 
-    public HashSet<(int? CarId, int? ConnectorId)> GetCarConnectorMatches(IEnumerable<int> carIds, IEnumerable<int> connectorIds)
+    public async Task<HashSet<DtoLoadpointCombination>> GetCarConnectorMatches(IEnumerable<int> carIds, IEnumerable<int> connectorIds)
     {
         _logger.LogTrace("{methdod}({@carId}, {@connectorIds})", nameof(GetCarConnectorMatches), carIds, connectorIds);
-        var matches = new HashSet<(int? CarId, int? ConnectorId)>();
+        var matches = new HashSet<DtoLoadpointCombination>();
         var errorForMultipleMatches = false;
         var maxTimeDiff = _configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
 
@@ -211,7 +216,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         {
             if(!_settings.OcppConnectorStates.TryGetValue(connectorId, out var connectorState))
             {
-                matches.Add((null, connectorId));
+                matches.Add(new(null, connectorId));
                 continue;
             }
 
@@ -243,7 +248,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                         && connectorState.IsPluggedIn.Value)
                 {
                     _logger.LogDebug("Car {carId} is valid for connector {connectorId} in manual set combinations", value.carId, connectorId);
-                    matches.Add((value.carId, connectorId));
+                    matches.Add(new(value.carId, connectorId));
                     continue;
                 }
             }
@@ -251,7 +256,7 @@ public class LoadPointManagementService : ILoadPointManagementService
 
             if (connectorState.IsPluggedIn.LastChanged == default)
             {
-                matches.Add((null, connectorId));
+                matches.Add(new(null, connectorId));
                 continue;
             }
 
@@ -270,7 +275,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             {
                 var carId = matchingCars.First().Id;
                 _logger.LogTrace("Found car match for {connectorId}: {carId}", connectorId, carId);
-                matches.Add((carId, connectorId));
+                matches.Add(new(carId, connectorId));
             }
             else if (matchingCars.Count > 1)
             {
@@ -280,7 +285,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             else
             {
                 _logger.LogTrace("Found no car match for {connectorId}.", connectorId);
-                matches.Add((null, connectorId));
+                matches.Add(new(null, connectorId));
             }
         }
 
@@ -289,27 +294,37 @@ public class LoadPointManagementService : ILoadPointManagementService
             if (!matches.Any(c => c.CarId == carId))
             {
                 _logger.LogTrace("Add additional loadpoint for car {carId} as did not match to any charging connector", carId);
-                matches.Add((carId, null));
+                matches.Add(new(carId, null));
             }
         }
 
         if (errorForMultipleMatches)
         {
             var waitSeconds = _configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector().TotalSeconds * 3;
-            _errorHandlingService.HandleError(
+            await _errorHandlingService.HandleError(
                 nameof(LoadPointManagementService),
                 nameof(GetCarConnectorMatches),
                 "Could not autodetect cars plugged in charging points",
                 $"Multiple cars matched to a single charging connector. Unplug all but one car and wait {waitSeconds} seconds between each plugin.",
                 _issueKeys.MultipleCarsMatchChargingConnector,
                 null,
-                null);
+                null).ConfigureAwait(false);
         }
         else
         {
-            _errorHandlingService.HandleErrorResolved(_issueKeys.MultipleCarsMatchChargingConnector, null);
+            await _errorHandlingService.HandleErrorResolved(_issueKeys.MultipleCarsMatchChargingConnector, null).ConfigureAwait(false);
         }
 
+        if (!_settings.LatestLoadPointCombinations.SetEquals(matches))
+        {
+            var changes = new StateUpdateDto()
+            {
+                DataType = DataTypeConstants.LoadPointMatchesChangeTrigger,
+                Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
+            };
+            await _appStateNotifier.NotifyStateUpdateAsync(changes);
+            _settings.LatestLoadPointCombinations = matches.ToHashSet();
+        }
         return matches;
     }
 

@@ -6,7 +6,7 @@
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
-@inject ISignalRStateService SignalRState
+@inject ISignalRStateService SignalRStateService
 
 @if (_pvValues == default)
 {
@@ -191,10 +191,10 @@ else
     {
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
-        await SignalRState.InitializeAsync();
+        await SignalRStateService.InitializeAsync();
 
         // Subscribe to PV value changes
-        SignalRState.Subscribe<DtoPvValues>(
+        SignalRStateService.Subscribe<DtoPvValues>(
             DataTypeConstants.PvValues,
             pvValues =>
             {
@@ -204,7 +204,7 @@ else
             });
 
         // Get initial state
-        _pvValues = await SignalRState.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
+        _pvValues = await SignalRStateService.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
         UpdateBalls();
     }
 
