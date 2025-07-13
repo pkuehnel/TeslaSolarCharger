@@ -57,6 +57,7 @@
             {
                 try
                 {
+                    Logger.LogTrace("Received new LoadpointOverviewValues: {@values})", loadpointValues);
                     LoadPoint.ChargingPower = loadpointValues.ChargingPower;
                     LoadPoint.ActualCurrent = loadpointValues.ChargingCurrent;
                     LoadPoint.ActualPhases = loadpointValues.ChargingPhases;

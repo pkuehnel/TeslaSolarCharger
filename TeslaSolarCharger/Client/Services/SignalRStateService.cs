@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
@@ -204,6 +205,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private void HandleStateUpdate(StateUpdateDto update)
     {
+        _logger.LogTrace("Received state update {@update}", update);
         var key = GetDataKey(update.DataType, update.EntityId);
 
         // Check if this is a trigger update (no state to update)
@@ -248,6 +250,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private void HandleInitialState(string dataType, string jsonData)
     {
+        _logger.LogTrace("Received initial state for {DataType}: {data}", dataType, jsonData);
         try
         {
             var stateType = GetStateType(dataType);
