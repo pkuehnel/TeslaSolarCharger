@@ -20,11 +20,13 @@ public class ChangeTrackingService : IChangeTrackingService
     public StateUpdateDto? DetectChanges<T>(string dataType, string? entityId, T currentState)
         where T : class
     {
+        _logger.LogTrace("{method}<{type}>({dataType}, {entityId}, {@currentState})", nameof(DetectChanges), typeof(T), dataType, entityId, currentState);
         var key = $"{dataType}:{entityId ?? string.Empty}";
         var changedProperties = new Dictionary<string, object?>();
 
         if (_previousStates.TryGetValue(key, out var previousState) && previousState is T typedPreviousState)
         {
+            _logger.LogTrace("Previous state found for entity {EntityId} of type {DataType}", entityId, dataType);
             var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
             foreach (var property in properties)
@@ -43,6 +45,7 @@ public class ChangeTrackingService : IChangeTrackingService
         else
         {
             // First time seeing this entity, all properties are "changed"
+            _logger.LogTrace("First time seeing entity {EntityId} of type {DataType}, all properties are considered changed", entityId, dataType);
             var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var property in properties)
             {

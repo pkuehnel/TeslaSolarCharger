@@ -80,11 +80,11 @@ public class LoadPointManagementService : ILoadPointManagementService
     private async Task NotifyClientsForChangedValues(DtoLoadpointCombination loadpoint)
     {
         _logger.LogTrace("{method}({@loadpoint})", nameof(NotifyClientsForChangedValues), loadpoint);
-        var loadPointWitchChargingValues = GetLoadPointWithChargingValues(loadpoint);
+        var loadpointWithChargingValues = GetLoadPointWithChargingValues(loadpoint);
         var changes = _changeTrackingService.DetectChanges(
             DataTypeConstants.LoadPointOverviewValues,
             _entityKeyGenerationHelper.GetLoadPointEntityKey(loadpoint.CarId, loadpoint.ChargingConnectorId),
-            loadPointWitchChargingValues);
+            loadpointWithChargingValues);
         if (changes != default)
         {
             await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
