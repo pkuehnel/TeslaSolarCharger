@@ -51,6 +51,9 @@
     {
         await base.OnInitializedAsync();
         await SignalRStateService.InitializeAsync();
+        var entityKey = EntityKeyGenerationHelper.GetLoadPointEntityKey(LoadPoint.CarId, LoadPoint.ChargingConnectorId);
+
+        // Subscribe to updates
         SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
             DataTypeConstants.LoadPointOverviewValues,
             async void (loadpointValues) =>
@@ -68,8 +71,20 @@
                     Logger.LogError(e, "Failed to update loadpoint values");
                 }
             },
-            EntityKeyGenerationHelper.GetLoadPointEntityKey(LoadPoint.CarId, LoadPoint.ChargingConnectorId)
-            );
+            entityKey
+        );
+
+        // Get initial state
+        var initialValues = await SignalRStateService.GetStateAsync<DtoLoadPointWithCurrentChargingValues>(
+            DataTypeConstants.LoadPointOverviewValues,
+            entityKey);
+
+        if (initialValues != null)
+        {
+            LoadPoint.ChargingPower = initialValues.ChargingPower;
+            LoadPoint.ActualCurrent = initialValues.ChargingCurrent;
+            LoadPoint.ActualPhases = initialValues.ChargingPhases;
+        }
     }
 
     private async Task CarSelectedForChargingConnector(int loadPointChargingConnectorId, int? carId)

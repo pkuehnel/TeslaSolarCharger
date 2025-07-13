@@ -77,6 +77,21 @@ public class LoadPointManagementService : ILoadPointManagementService
         await NotifyClientsForChangedValues(loadpoint);
     }
 
+    public async Task<HashSet<DtoLoadpointCombination>> GetCombinationsToManage()
+    {
+        _logger.LogTrace("{method}()", nameof(GetCombinationsToManage));
+        var carIdsToManage = await _context.Cars
+            .Where(c => c.ShouldBeManaged == true)
+            .Select(c => c.Id)
+            .ToHashSetAsync().ConfigureAwait(false);
+        var connectorIdsToManage = await _context.OcppChargingStationConnectors
+            .Where(c => c.ShouldBeManaged)
+            .Select(c => c.Id)
+            .ToHashSetAsync().ConfigureAwait(false);
+        var combinations = await GetCarConnectorMatches(carIdsToManage, connectorIdsToManage, true);
+        return combinations;
+    }
+
     private async Task NotifyClientsForChangedValues(DtoLoadpointCombination loadpoint)
     {
         _logger.LogTrace("{method}({@loadpoint})", nameof(NotifyClientsForChangedValues), loadpoint);
@@ -117,7 +132,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         return result;
     }
 
-    private DtoLoadPointWithCurrentChargingValues GetLoadPointWithChargingValues(DtoLoadpointCombination match)
+    public DtoLoadPointWithCurrentChargingValues GetLoadPointWithChargingValues(DtoLoadpointCombination match)
     {
         var loadPoint = new DtoLoadPointWithCurrentChargingValues
         {
@@ -134,11 +149,13 @@ public class LoadPointManagementService : ILoadPointManagementService
         }
         if (match.ChargingConnectorId != default)
         {
-            var connector = _settings.OcppConnectorStates[match.ChargingConnectorId.Value];
-            loadPoint.ChargingPower = connector.ChargingPower.Value;
-            loadPoint.ChargingVoltage = (int) connector.ChargingVoltage.Value;
-            loadPoint.ChargingCurrent = connector.ChargingCurrent.Value;
-            loadPoint.ChargingPhases = connector.PhaseCount.Value;
+            if (_settings.OcppConnectorStates.TryGetValue(match.ChargingConnectorId.Value, out var connector))
+            {
+                loadPoint.ChargingPower = connector.ChargingPower.Value;
+                loadPoint.ChargingVoltage = (int)connector.ChargingVoltage.Value;
+                loadPoint.ChargingCurrent = connector.ChargingCurrent.Value;
+                loadPoint.ChargingPhases = connector.PhaseCount.Value;
+            }
         }
 
         return loadPoint;

@@ -19,4 +19,6 @@ public interface ILoadPointManagementService
     void UpdateChargingConnectorCar(int chargingConnectorId, int? carId);
     Task OcppStateChanged(int chargingConnectorId);
     Task CarStateChanged(int carId);
+    DtoLoadPointWithCurrentChargingValues GetLoadPointWithChargingValues(DtoLoadpointCombination match);
+    Task<HashSet<DtoLoadpointCombination>> GetCombinationsToManage();
 }

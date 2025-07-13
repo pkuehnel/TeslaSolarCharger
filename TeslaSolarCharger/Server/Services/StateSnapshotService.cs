@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -11,14 +12,17 @@ public class StateSnapshotService : IStateSnapshotService
     private readonly ILogger<StateSnapshotService> _logger;
     private readonly IIndexService _indexService;
     private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly IEntityKeyGenerationHelper _entityKeyGenerationHelper;
 
     public StateSnapshotService(ILogger<StateSnapshotService> logger,
         IIndexService indexService,
-        ILoadPointManagementService loadPointManagementService)
+        ILoadPointManagementService loadPointManagementService,
+        IEntityKeyGenerationHelper entityKeyGenerationHelper)
     {
         _logger = logger;
         _indexService = indexService;
         _loadPointManagementService = loadPointManagementService;
+        _entityKeyGenerationHelper = entityKeyGenerationHelper;
     }
 
     public async Task<Dictionary<string, string>> GetAllCurrentStatesAsync()
@@ -32,6 +36,11 @@ public class StateSnapshotService : IStateSnapshotService
             if (!string.IsNullOrEmpty(pvValuesJson))
             {
                 states[DataTypeConstants.PvValues] = pvValuesJson;
+            }
+            var loadPointStates = await GetLoadPointOverviewValuesAsync();
+            foreach (var kvp in loadPointStates)
+            {
+                states[kvp.Key] = kvp.Value;
             }
         }
         catch (Exception ex)
@@ -54,6 +63,7 @@ public class StateSnapshotService : IStateSnapshotService
             return baseDataType switch
             {
                 DataTypeConstants.PvValues => await GetPvValuesJsonAsync(),
+                DataTypeConstants.LoadPointOverviewValues => GetLoadPointOverviewValueJson(entityId),
                 _ => string.Empty,
             };
         }
@@ -62,6 +72,42 @@ public class StateSnapshotService : IStateSnapshotService
             _logger.LogError(ex, "Error getting current state for {DataType}", dataType);
             return string.Empty;
         }
+    }
+
+    private async Task<Dictionary<string, string>> GetLoadPointOverviewValuesAsync()
+    {
+        var result = new Dictionary<string, string>();
+        try
+        {
+            var matches = await _loadPointManagementService.GetCombinationsToManage().ConfigureAwait(false);
+            foreach (var match in matches)
+            {
+                var loadPoint = _loadPointManagementService.GetLoadPointWithChargingValues(match);
+                var entityKey = _entityKeyGenerationHelper.GetLoadPointEntityKey(loadPoint.CarId, loadPoint.ChargingConnectorId);
+                var key = $"{DataTypeConstants.LoadPointOverviewValues}:{entityKey}";
+                result[key] = JsonSerializer.Serialize(loadPoint);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting load point overview values");
+        }
+        return result;
+    }
+
+    private string GetLoadPointOverviewValueJson(string entityId)
+    {
+        try
+        {
+            var match = _entityKeyGenerationHelper.GetCombinationByKey(entityId);
+            var loadPoint = _loadPointManagementService.GetLoadPointWithChargingValues(match);
+            return JsonSerializer.Serialize(loadPoint);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting load point overview value for entity {EntityId}", entityId);
+        }
+        return string.Empty;
     }
 
     private async Task<string> GetPvValuesJsonAsync()
