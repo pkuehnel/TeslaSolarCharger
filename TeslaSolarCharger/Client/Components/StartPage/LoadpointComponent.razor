@@ -1,10 +1,12 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.SignalRClients
 
 @inject ILogger<LoadpointComponent> Logger
 @inject IHomeService HomeService
 @inject ISignalRStateService SignalRStateService
+@inject IEntityKeyGenerationHelper EntityKeyGenerationHelper
 
 <div class="shadow p-3 mb-5 bg-white rounded">
     <div class="text-center">@((LoadPoint.ChargingPower ?? 0).ToString("N0")) W</div>
@@ -64,7 +66,9 @@
                 {
                     Logger.LogError(e, "Failed to update loadpoint values");
                 }
-            });
+            },
+            EntityKeyGenerationHelper.GetLoadPointEntityKey(LoadPoint.CarId, LoadPoint.ChargingConnectorId)
+            );
     }
 
     private async Task CarSelectedForChargingConnector(int loadPointChargingConnectorId, int? carId)
