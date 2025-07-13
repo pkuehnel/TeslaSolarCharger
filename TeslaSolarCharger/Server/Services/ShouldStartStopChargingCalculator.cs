@@ -40,7 +40,7 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
         var additionalAvailablePower = targetPower - chargingLoadPoints.Select(l => l.ChargingPower).Sum();
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         var carConnectorMatches =
-            await _loadPointManagementService.GetCarConnectorMatches(carElements.Select(c => c.Id), ocppElements.Select(e => e.Id)).ConfigureAwait(false);
+            await _loadPointManagementService.GetCarConnectorMatches(carElements.Select(c => c.Id), ocppElements.Select(e => e.Id), false).ConfigureAwait(false);
         var alreadySetChargingConnectors = new HashSet<int>();
         foreach (var element in orderedElements)
         {

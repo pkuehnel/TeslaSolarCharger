@@ -14,7 +14,7 @@ public interface ILoadPointManagementService
     Task<List<DtoLoadPointWithCurrentChargingValues>> GetLoadPointsWithChargingDetails();
 
     Task<HashSet<DtoLoadpointCombination>> GetCarConnectorMatches(IEnumerable<int> carIds,
-        IEnumerable<int> connectorIds);
+        IEnumerable<int> connectorIds, bool updateSettingsMatches);
 
     void UpdateChargingConnectorCar(int chargingConnectorId, int? carId);
 }

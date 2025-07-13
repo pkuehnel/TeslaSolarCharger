@@ -65,7 +65,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task<T?> GetStateAsync<T>(string dataType, string entityId = "") where T : class
     {
-        var key = string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
+        var key = GetDataKey(dataType, entityId);
 
         if (_stateStore.TryGetValue(key, out var state) && state is T typedState)
         {
@@ -77,9 +77,14 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         return default;
     }
 
+    private static string GetDataKey(string dataType, string? entityId)
+    {
+        return string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
+    }
+
     public void Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
     {
-        var key = string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
+        var key = GetDataKey(dataType, entityId);
 
         if (!_subscribers.ContainsKey(key))
         {
@@ -103,7 +108,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public void SubscribeToTrigger(string dataType, Action callback, string entityId = "")
     {
-        var key = string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
+        var key = GetDataKey(dataType, entityId);
 
         if (!_triggerSubscribers.ContainsKey(key))
         {
@@ -129,7 +134,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private void HandleStateUpdate(StateUpdateDto update)
     {
-        var key = string.IsNullOrEmpty(update.EntityId) ? update.DataType : $"{update.DataType}:{update.EntityId}";
+        var key = GetDataKey(update.DataType, update.EntityId);
 
         if (!_stateStore.TryGetValue(key, out var currentState))
         {
@@ -213,6 +218,6 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         {
             await _hubConnection.DisposeAsync();
         }
-        _connectionLock?.Dispose();
+        _connectionLock.Dispose();
     }
 }

@@ -72,7 +72,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             })
             .ToList();
 
-        var matches = await GetCarConnectorMatches(cars.Select(c => c.CarId), connectors.Select(c => c.ConnectorId)).ConfigureAwait(false);
+        var matches = await GetCarConnectorMatches(cars.Select(c => c.CarId), connectors.Select(c => c.ConnectorId), false).ConfigureAwait(false);
         var result = new List<DtoLoadPointWithCurrentChargingValues>();
         foreach (var match in matches)
         {
@@ -125,7 +125,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                 c.ChargingPriority,
             })
             .ToHashSetAsync();
-        var connectorPairs = await GetCarConnectorMatches(carData.Select(c => c.Id), connectorData.Select(c => c.Id)).ConfigureAwait(false);
+        var connectorPairs = await GetCarConnectorMatches(carData.Select(c => c.Id), connectorData.Select(c => c.Id), true).ConfigureAwait(false);
         var result = new List<DtoLoadPointOverview>();
         foreach (var pair in connectorPairs)
         {
@@ -191,9 +191,9 @@ public class LoadPointManagementService : ILoadPointManagementService
         return result.OrderBy(l => l.ChargingPriority ?? 99).ToList();
     }
 
-    public async Task<HashSet<DtoLoadpointCombination>> GetCarConnectorMatches(IEnumerable<int> carIds, IEnumerable<int> connectorIds)
+    public async Task<HashSet<DtoLoadpointCombination>> GetCarConnectorMatches(IEnumerable<int> carIds, IEnumerable<int> connectorIds, bool updateSettingsMatches)
     {
-        _logger.LogTrace("{methdod}({@carId}, {@connectorIds})", nameof(GetCarConnectorMatches), carIds, connectorIds);
+        _logger.LogTrace("{methdod}({@carId}, {@connectorIds}, {updateSettingsMatches})", nameof(GetCarConnectorMatches), carIds, connectorIds, updateSettingsMatches);
         var matches = new HashSet<DtoLoadpointCombination>();
         var errorForMultipleMatches = false;
         var maxTimeDiff = _configurationWrapper.MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector();
@@ -315,7 +315,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             await _errorHandlingService.HandleErrorResolved(_issueKeys.MultipleCarsMatchChargingConnector, null).ConfigureAwait(false);
         }
 
-        if (!_settings.LatestLoadPointCombinations.SetEquals(matches))
+        if (updateSettingsMatches && (!_settings.LatestLoadPointCombinations.SetEquals(matches)))
         {
             var changes = new StateUpdateDto()
             {
