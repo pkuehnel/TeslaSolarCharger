@@ -13,9 +13,11 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private readonly NavigationManager _navigationManager;
     private readonly ILogger<SignalRStateService> _logger;
     private readonly ConcurrentDictionary<string, object> _stateStore = new();
-    private readonly Dictionary<string, List<Action<object>>> _subscribers = new();
-    private readonly Dictionary<string, List<Action>> _triggerSubscribers = new();
+    private readonly ConcurrentDictionary<string, List<Action<object>>> _subscribers = new();
+    private readonly ConcurrentDictionary<string, List<Action>> _triggerSubscribers = new();
+    private readonly ConcurrentDictionary<string, bool> _subscribedDataTypes = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
+    private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -49,10 +51,12 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
                 return Task.CompletedTask;
             };
 
-            _hubConnection.Reconnected += (connectionId) =>
+            _hubConnection.Reconnected += async (connectionId) =>
             {
                 _logger.LogInformation("SignalR reconnected with ID: {ConnectionId}", connectionId);
-                return Task.CompletedTask;
+
+                // Re-subscribe to all data types after reconnection
+                await ResubscribeToAllDataTypes();
             };
 
             await _hubConnection.StartAsync();
@@ -73,55 +77,87 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             return typedState;
         }
 
-        // First time request, subscribe to this data type
-        await SubscribeToDataTypeAsync(dataType);
+        // Subscribe to this data type if not already subscribed
+        await EnsureSubscribedToDataType(dataType);
         return default;
     }
 
-    private static string GetDataKey(string dataType, string? entityId)
-    {
-        return string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
-    }
-
-    public void Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
+    public async void Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
     {
         var key = GetDataKey(dataType, entityId);
 
-        if (!_subscribers.ContainsKey(key))
-        {
-            _subscribers[key] = new List<Action<object>>();
-        }
-
-        _subscribers[key].Add(obj =>
-        {
-            if (obj is T typedObj)
+        // Add the callback
+        _subscribers.AddOrUpdate(key,
+            _ => new List<Action<object>> { obj => { if (obj is T typedObj) callback(typedObj); } },
+            (_, list) =>
             {
-                callback(typedObj);
-            }
-        });
+                list.Add(obj => { if (obj is T typedObj) callback(typedObj); });
+                return list;
+            });
+
+        // Subscribe to the data type if not already subscribed
+        await EnsureSubscribedToDataType(dataType);
 
         // If we already have state, invoke callback immediately
         if (_stateStore.TryGetValue(key, out var existingState) && existingState is T typedState)
         {
-            callback(typedState);
+            try
+            {
+                callback(typedState);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error invoking initial callback for {Key}", key);
+            }
         }
     }
 
-    public void SubscribeToTrigger(string dataType, Action callback, string entityId = "")
+    public async void SubscribeToTrigger(string dataType, Action callback, string entityId = "")
     {
         var key = GetDataKey(dataType, entityId);
 
-        if (!_triggerSubscribers.ContainsKey(key))
+        // Add the callback
+        _triggerSubscribers.AddOrUpdate(key,
+            _ => new List<Action> { callback },
+            (_, list) =>
+            {
+                list.Add(callback);
+                return list;
+            });
+
+        // Subscribe to the data type if not already subscribed
+        await EnsureSubscribedToDataType(dataType);
+
+        // For triggers, we might want to invoke immediately if we've seen this trigger before
+        // This depends on your business logic - you might not want this behavior for triggers
+    }
+
+    private async Task EnsureSubscribedToDataType(string dataType)
+    {
+        // Check if we've already subscribed to this data type
+        if (_subscribedDataTypes.ContainsKey(dataType))
         {
-            _triggerSubscribers[key] = new List<Action>();
+            return;
         }
 
-        _triggerSubscribers[key].Add(callback);
-
-        // If we already have state, invoke callback immediately
-        if (_stateStore.ContainsKey(key))
+        await _subscriptionLock.WaitAsync();
+        try
         {
-            callback();
+            // Double-check after acquiring the lock
+            if (_subscribedDataTypes.ContainsKey(dataType))
+            {
+                return;
+            }
+
+            // Subscribe to the data type
+            await SubscribeToDataTypeAsync(dataType);
+
+            // Mark as subscribed
+            _subscribedDataTypes[dataType] = true;
+        }
+        finally
+        {
+            _subscriptionLock.Release();
         }
     }
 
@@ -129,36 +165,85 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     {
         if (_hubConnection?.State == HubConnectionState.Connected)
         {
-            await _hubConnection.InvokeAsync("SubscribeToDataType", dataType);
+            try
+            {
+                await _hubConnection.InvokeAsync("SubscribeToDataType", dataType);
+                _logger.LogDebug("Subscribed to data type: {DataType}", dataType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to subscribe to data type: {DataType}", dataType);
+                throw;
+            }
         }
+        else
+        {
+            _logger.LogWarning("Cannot subscribe to {DataType} - SignalR connection not established", dataType);
+        }
+    }
+
+    private async Task ResubscribeToAllDataTypes()
+    {
+        foreach (var dataType in _subscribedDataTypes.Keys)
+        {
+            try
+            {
+                await SubscribeToDataTypeAsync(dataType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to re-subscribe to data type: {DataType}", dataType);
+            }
+        }
+    }
+
+    private static string GetDataKey(string dataType, string? entityId)
+    {
+        return string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
     }
 
     private void HandleStateUpdate(StateUpdateDto update)
     {
         var key = GetDataKey(update.DataType, update.EntityId);
 
-        if (!_stateStore.TryGetValue(key, out var currentState))
+        // Check if this is a trigger update (no state to update)
+        if (_triggerSubscribers.ContainsKey(key))
         {
-            _logger.LogWarning("Received update for unknown entity: {Key}", key);
-            return;
+            NotifyTriggerSubscribers(key);
         }
 
-        // Apply changes to the current state
-        var stateType = currentState.GetType();
-        foreach (var change in update.ChangedProperties)
+        // Check if we have state to update
+        if (_stateStore.TryGetValue(key, out var currentState))
         {
-            var property = stateType.GetProperty(change.Key);
-            if (property != null && property.CanWrite)
+            // Apply changes to the current state
+            var stateType = currentState.GetType();
+            foreach (var change in update.ChangedProperties)
             {
-                var value = JsonSerializer.Deserialize(
-                    JsonSerializer.Serialize(change.Value),
-                    property.PropertyType);
-                property.SetValue(currentState, value);
+                var property = stateType.GetProperty(change.Key);
+                if (property != null && property.CanWrite)
+                {
+                    try
+                    {
+                        var value = JsonSerializer.Deserialize(
+                            JsonSerializer.Serialize(change.Value),
+                            property.PropertyType);
+                        property.SetValue(currentState, value);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to update property {Property} for {Key}", change.Key, key);
+                    }
+                }
             }
-        }
 
-        // Notify subscribers
-        NotifySubscribers(key, currentState);
+            // Notify subscribers with updated state
+            NotifySubscribers(key, currentState);
+        }
+        else if (!_triggerSubscribers.ContainsKey(key))
+        {
+            // Only log warning if this isn't a trigger
+            _logger.LogDebug("Received update for entity without local state: {Key}", key);
+        }
     }
 
     private void HandleInitialState(string dataType, string jsonData)
@@ -190,6 +275,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         return dataType switch
         {
             DataTypeConstants.PvValues => typeof(TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues.DtoPvValues),
+            DataTypeConstants.LoadPointOverviewValues => typeof(TeslaSolarCharger.Shared.Dtos.Home.DtoLoadPointWithCurrentChargingValues),
             // Add more mappings as needed
             _ => null,
         };
@@ -199,7 +285,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     {
         if (_subscribers.TryGetValue(key, out var callbacks))
         {
-            foreach (var callback in callbacks)
+            foreach (var callback in callbacks.ToList()) // ToList to avoid modification during enumeration
             {
                 try
                 {
@@ -213,6 +299,24 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
     }
 
+    private void NotifyTriggerSubscribers(string key)
+    {
+        if (_triggerSubscribers.TryGetValue(key, out var callbacks))
+        {
+            foreach (var callback in callbacks.ToList()) // ToList to avoid modification during enumeration
+            {
+                try
+                {
+                    callback();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in trigger subscriber callback for {Key}", key);
+                }
+            }
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_hubConnection != null)
@@ -220,5 +324,6 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             await _hubConnection.DisposeAsync();
         }
         _connectionLock.Dispose();
+        _subscriptionLock.Dispose();
     }
 }
