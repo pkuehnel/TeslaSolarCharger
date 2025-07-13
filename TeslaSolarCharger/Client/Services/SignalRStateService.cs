@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
@@ -85,8 +84,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async void Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
     {
+        _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(Subscribe), typeof(T), dataType, entityId);
         var key = GetDataKey(dataType, entityId);
-
         // Add the callback
         _subscribers.AddOrUpdate(key,
             _ => new List<Action<object>> { obj => { if (obj is T typedObj) callback(typedObj); } },
@@ -115,6 +114,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async void SubscribeToTrigger(string dataType, Action callback, string entityId = "")
     {
+        _logger.LogTrace("{method}({dataType}, callback, {entityId})", nameof(SubscribeToTrigger), dataType, entityId);
         var key = GetDataKey(dataType, entityId);
 
         // Add the callback
