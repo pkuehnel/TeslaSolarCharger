@@ -28,7 +28,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
         IConstants constants,
         IServiceProvider serviceProvider,
         ISettings settings,
-        IDateTimeProvider dateTimeProvider) : IOcppWebSocketConnectionHandlingService
+        IDateTimeProvider dateTimeProvider,
+        ILoadPointManagementService loadPointManagementService) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private readonly TimeSpan _messageHandlingTimeout = TimeSpan.FromSeconds(20);
@@ -502,6 +503,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
                 break;
         }
+        loadPointManagementService.OcppStateChanged(databaseChargePointId);
         logger.LogTrace("Updated cache to {@cache}", ocppConnectorState);
     }
 
@@ -581,6 +583,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             connectorState.ChargingPower.Update(ocppTransactionEndDate, 0);
             connectorState.IsCharging.Update(ocppTransactionEndDate, false);
             connectorState.PhaseCount.Update(ocppTransactionEndDate, null);
+            _ = loadPointManagementService.OcppStateChanged(ocppTransaction.ChargingStationConnectorId);
         }
 
         // b) Build the response payload
@@ -642,6 +645,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             SetPower(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
             SetCurrent(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
             SetPhases(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
+            _ = loadPointManagementService.OcppStateChanged(chargingConnectorId);
         }
 
         // b) Build the response payload

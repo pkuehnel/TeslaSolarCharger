@@ -15,6 +15,7 @@ using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Helper;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 
@@ -33,6 +34,7 @@ builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckSer
 builder.Services.AddScoped<IEnergyDataService, EnergyDataService>();
 builder.Services.AddScoped<IChargingStationsService, ChargingStationsService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
+builder.Services.AddScoped<IEntityKeyGenerationHelper, EntityKeyGenerationHelper>();
 builder.Services.AddTransient<IChartWidthCalculator, ChartWidthCalculator>();
 builder.Services.AddTransient<IApexChartHelper, ApexChartHelper>();
 builder.Services.AddSingleton<ISignalRStateService, SignalRStateService>();

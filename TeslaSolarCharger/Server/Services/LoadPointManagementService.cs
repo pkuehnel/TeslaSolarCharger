@@ -7,6 +7,7 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -17,6 +18,8 @@ public class LoadPointManagementService : ILoadPointManagementService
     private readonly ISettings _settings;
     private readonly IAppStateNotifier _appStateNotifier;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IChangeTrackingService _changeTrackingService;
+    private readonly IEntityKeyGenerationHelper _entityKeyGenerationHelper;
     private readonly ITeslaSolarChargerContext _context;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IErrorHandlingService _errorHandlingService;
@@ -30,7 +33,9 @@ public class LoadPointManagementService : ILoadPointManagementService
     ITeslaSolarChargerContext context,
     ISettings settings,
     IAppStateNotifier appStateNotifier,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IChangeTrackingService changeTrackingService,
+    IEntityKeyGenerationHelper entityKeyGenerationHelper)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -40,6 +45,50 @@ public class LoadPointManagementService : ILoadPointManagementService
         _settings = settings;
         _appStateNotifier = appStateNotifier;
         _dateTimeProvider = dateTimeProvider;
+        _changeTrackingService = changeTrackingService;
+        _entityKeyGenerationHelper = entityKeyGenerationHelper;
+    }
+
+    public async Task OcppStateChanged(int chargingConnectorId)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId})", nameof(OcppStateChanged), chargingConnectorId);
+        var loadpoint = _settings.LatestLoadPointCombinations
+            .FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
+        if (loadpoint == default)
+        {
+            _logger.LogWarning("No loadpoint with charging connector {chargingConnector} found, do not send updates to client", chargingConnectorId);
+            return;
+        }
+
+        await NotifyClientsForChangedValues(loadpoint);
+    }
+
+    public async Task CarStateChanged(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(CarStateChanged), carId);
+        var loadpoint = _settings.LatestLoadPointCombinations
+            .FirstOrDefault(l => l.CarId == carId);
+        if (loadpoint == default)
+        {
+            _logger.LogWarning("No loadpoint with car {carId} found, do not send updates to client", carId);
+            return;
+        }
+
+        await NotifyClientsForChangedValues(loadpoint);
+    }
+
+    private async Task NotifyClientsForChangedValues(DtoLoadpointCombination loadpoint)
+    {
+        _logger.LogTrace("{method}({@loadpoint})", nameof(NotifyClientsForChangedValues), loadpoint);
+        var loadPointWitchChargingValues = GetLoadPointWithChargingValues(loadpoint);
+        var changes = _changeTrackingService.DetectChanges(
+            DataTypeConstants.LoadPointOverviewValues,
+            _entityKeyGenerationHelper.GetLoadPointEntityKey(loadpoint.CarId, loadpoint.ChargingConnectorId),
+            loadPointWitchChargingValues);
+        if (changes != default)
+        {
+            await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -49,57 +98,50 @@ public class LoadPointManagementService : ILoadPointManagementService
     public async Task<List<DtoLoadPointWithCurrentChargingValues>> GetLoadPointsWithChargingDetails()
     {
         _logger.LogTrace("{method}()", nameof(GetLoadPointsWithChargingDetails));
-        var cars = _settings.Cars
+        var carIds = _settings.Cars
             .Where(c => c.ChargingPowerAtHome > 0)
-            .Select(c => new
-            {
-                CarId = c.Id,
-                ChargingPower = c.ChargingPowerAtHome ?? 0,
-                Voltage = c.ChargerVoltage ?? _settings.AverageHomeGridVoltage ?? 230,
-                ChargingCurrent = c.IsHomeGeofence == true ? (c.ChargerActualCurrent ?? 0) : 0,
-                Phases = c.ActualPhases,
-            })
-            .ToList();
-        var connectors = _settings.OcppConnectorStates
+            .Select(c => c.Id)
+            .ToHashSet();
+        var connectorIds = _settings.OcppConnectorStates
             .Where(c => c.Value.ChargingPower.Value > 0)
-            .Select(c => new
-            {
-                ConnectorId = c.Key,
-                ChargingPower = c.Value.ChargingPower.Value,
-                Voltage = (int)c.Value.ChargingVoltage.Value,
-                ChargingCurrent = c.Value.ChargingCurrent.Value,
-                Phases = c.Value.PhaseCount.Value,
-            })
+            .Select(c => c.Key)
             .ToList();
 
-        var matches = await GetCarConnectorMatches(cars.Select(c => c.CarId), connectors.Select(c => c.ConnectorId), false).ConfigureAwait(false);
+        var matches = await GetCarConnectorMatches(carIds, connectorIds, false).ConfigureAwait(false);
         var result = new List<DtoLoadPointWithCurrentChargingValues>();
         foreach (var match in matches)
         {
-            var loadPoint = new DtoLoadPointWithCurrentChargingValues
-            {
-                CarId = match.CarId,
-                ChargingConnectorId = match.ChargingConnectorId,
-            };
-            if (match.CarId != default)
-            {
-                var car = cars.First(c => c.CarId == match.CarId.Value);
-                loadPoint.ChargingPower = car.ChargingPower;
-                loadPoint.ChargingVoltage = car.Voltage;
-                loadPoint.ChargingCurrent = car.ChargingCurrent;
-                loadPoint.ChargingPhases = car.Phases;
-            }
-            if (match.ChargingConnectorId != default)
-            {
-                var connector = connectors.First(c => c.ConnectorId == match.ChargingConnectorId.Value);
-                loadPoint.ChargingPower = connector.ChargingPower;
-                loadPoint.ChargingVoltage = connector.Voltage;
-                loadPoint.ChargingCurrent = connector.ChargingCurrent;
-                loadPoint.ChargingPhases = connector.Phases;
-            }
+            var loadPoint = GetLoadPointWithChargingValues(match);
             result.Add(loadPoint);
         }
         return result;
+    }
+
+    private DtoLoadPointWithCurrentChargingValues GetLoadPointWithChargingValues(DtoLoadpointCombination match)
+    {
+        var loadPoint = new DtoLoadPointWithCurrentChargingValues
+        {
+            CarId = match.CarId,
+            ChargingConnectorId = match.ChargingConnectorId,
+        };
+        if (match.CarId != default)
+        {
+            var car = _settings.Cars.First(c => c.Id == match.CarId.Value);
+            loadPoint.ChargingPower = car.ChargingPowerAtHome ?? 0;
+            loadPoint.ChargingVoltage = car.ChargerVoltage ?? _settings.AverageHomeGridVoltage ?? 230;
+            loadPoint.ChargingCurrent = car.IsHomeGeofence == true ? (car.ChargerActualCurrent ?? 0) : 0;
+            loadPoint.ChargingPhases = car.ActualPhases;
+        }
+        if (match.ChargingConnectorId != default)
+        {
+            var connector = _settings.OcppConnectorStates[match.ChargingConnectorId.Value];
+            loadPoint.ChargingPower = connector.ChargingPower.Value;
+            loadPoint.ChargingVoltage = (int) connector.ChargingVoltage.Value;
+            loadPoint.ChargingCurrent = connector.ChargingCurrent.Value;
+            loadPoint.ChargingPhases = connector.PhaseCount.Value;
+        }
+
+        return loadPoint;
     }
 
     public async Task<List<DtoLoadPointOverview>> GetLoadPointsToManage()

@@ -1,0 +1,75 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.SignalRClients
+
+@inject ILogger<LoadpointComponent> Logger
+@inject IHomeService HomeService
+@inject ISignalRStateService SignalRStateService
+
+<div class="shadow p-3 mb-5 bg-white rounded">
+    <div class="text-center">@((LoadPoint.ChargingPower ?? 0).ToString("N0")) W</div>
+    <div class="progress-wrapper">
+        @for (var i = 1; i <= LoadPoint.MaxPhases; i++)
+        {
+            <MudProgressLinear Color="Color.Primary"
+                               Striped="LoadPoint.ChargingPower > 0"
+                               Size="Size.Small"
+                               Value="@((double)(i <= LoadPoint.ActualPhases ? LoadPoint.ActualCurrent ?? 0 : 0))"
+                               Max="LoadPoint.MaxCurrent ?? 16"
+                               Class="mt-1 mb-3 mx-1">
+            </MudProgressLinear>
+        }
+    </div>
+    <NotChargingAtExpectedPowerReasonsComponent CarId="LoadPoint.CarId" ChargingConnectorId="LoadPoint.ChargingConnectorId" />
+    <div class="row g-1 mb-2">
+        @if (LoadPoint.CarId != default)
+        {
+            <div class="border border-gray-300 p-3 rounded col-12 col-xl-@(LoadPoint.ChargingConnectorId == default ? "12" : "6")">
+                <CarDetailsComponent CarId="LoadPoint.CarId" />
+            </div>
+        }
+        @if (LoadPoint.ChargingConnectorId != default)
+        {
+            <div class="border border-gray-300 p-3 rounded col-xl-6 col-xl-@(LoadPoint.CarId == default ? "12" : "6")">
+                <ChargingConnectorDetailsComponent ChargingConnectorId="LoadPoint.ChargingConnectorId"
+                                                   CarId="@(LoadPoint.CarId)"
+                                                   OnCarSelected="carId => CarSelectedForChargingConnector(LoadPoint.ChargingConnectorId.Value, carId)" />
+            </div>
+        }
+
+    </div>
+    <ChargingSchedulesComponent CarId="LoadPoint.CarId" ChargingConnectorId="LoadPoint.ChargingConnectorId" />
+</div>
+
+@code {
+    [Parameter]
+    public DtoLoadPointOverview LoadPoint { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await SignalRStateService.InitializeAsync();
+        SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
+            DataTypeConstants.LoadPointOverviewValues,
+            async void (loadpointValues) =>
+            {
+                try
+                {
+                    LoadPoint.ChargingPower = loadpointValues.ChargingPower;
+                    LoadPoint.ActualCurrent = loadpointValues.ChargingCurrent;
+                    LoadPoint.ActualPhases = loadpointValues.ChargingPhases;
+                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "Failed to update loadpoint values");
+                }
+            });
+    }
+
+    private async Task CarSelectedForChargingConnector(int loadPointChargingConnectorId, int? carId)
+    {
+        Logger.LogTrace("{method}({chargingConnectorId}, {carId})", nameof(CarSelectedForChargingConnector), loadPointChargingConnectorId, carId);
+        await HomeService.UpdateCarForLoadpoint(loadPointChargingConnectorId, carId);
+    }
+}

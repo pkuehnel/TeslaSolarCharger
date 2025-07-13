@@ -358,6 +358,8 @@ public class FleetTelemetryWebSocketService(
                         {
                             UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
                         }
+                        var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
+                        _ = loadPointManagementService.CarStateChanged(settingsCar.Id);
                     }
 
                 }

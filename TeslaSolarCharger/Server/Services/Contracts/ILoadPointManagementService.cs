@@ -17,4 +17,6 @@ public interface ILoadPointManagementService
         IEnumerable<int> connectorIds, bool updateSettingsMatches);
 
     void UpdateChargingConnectorCar(int chargingConnectorId, int? carId);
+    Task OcppStateChanged(int chargingConnectorId);
+    Task CarStateChanged(int carId);
 }
