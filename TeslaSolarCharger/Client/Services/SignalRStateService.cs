@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using TeslaSolarCharger.Client.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Client.Services;
@@ -279,7 +280,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         return dataType switch
         {
             DataTypeConstants.PvValues => typeof(TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues.DtoPvValues),
-            DataTypeConstants.LoadPointOverviewValues => typeof(TeslaSolarCharger.Shared.Dtos.Home.DtoLoadPointWithCurrentChargingValues),
+            DataTypeConstants.LoadPointOverviewValues => typeof(DtoLoadPointWithCurrentChargingValues),
+            DataTypeConstants.CarOverviewState => typeof(DtoCarOverviewState),
             // Add more mappings as needed
             _ => null,
         };

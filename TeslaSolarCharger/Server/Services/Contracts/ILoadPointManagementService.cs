@@ -21,4 +21,5 @@ public interface ILoadPointManagementService
     Task CarStateChanged(int carId);
     DtoLoadPointWithCurrentChargingValues GetLoadPointWithChargingValues(DtoLoadpointCombination match);
     Task<HashSet<DtoLoadpointCombination>> GetCombinationsToManage();
+    DtoCarOverviewState GetCarOverviewState(int carId);
 }

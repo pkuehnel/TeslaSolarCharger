@@ -73,20 +73,23 @@ public class LoadPointManagementService : ILoadPointManagementService
         {
             await NotifyClientsForChangedLoadpointValues(loadpoint);
         }
-        var car = _settings.Cars.FirstOrDefault(c => c.Id == carId);
-        if (car != default)
+        var carState = GetCarOverviewState(carId);
+        await NotifyClientsForChangedCarValues(carId, carState).ConfigureAwait(false);
+
+    }
+
+    public DtoCarOverviewState GetCarOverviewState(int carId)
+    {
+        var car = _settings.Cars.First(c => c.Id == carId);
+        var carState = new DtoCarOverviewState()
         {
-            var carState = new DtoCarOverviewState()
-            {
-                CarSideSocLimit = car.SocLimit,
-                IsCharging = car.State == CarStateEnum.Charging,
-                IsHome = car.IsHomeGeofence == true,
-                IsPluggedIn = car.PluggedIn == true,
-                Soc = car.SoC,
-            };
-            await NotifyClientsForChangedCarValues(carId, carState).ConfigureAwait(false);
-        }
-        
+            CarSideSocLimit = car.SocLimit,
+            IsCharging = car.State == CarStateEnum.Charging,
+            IsHome = car.IsHomeGeofence == true,
+            IsPluggedIn = car.PluggedIn == true,
+            Soc = car.SoC,
+        };
+        return carState;
     }
 
     public async Task<HashSet<DtoLoadpointCombination>> GetCombinationsToManage()

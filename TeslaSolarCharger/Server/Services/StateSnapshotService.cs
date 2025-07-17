@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Helper.Contracts;
@@ -64,6 +65,7 @@ public class StateSnapshotService : IStateSnapshotService
             {
                 DataTypeConstants.PvValues => await GetPvValuesJsonAsync(),
                 DataTypeConstants.LoadPointOverviewValues => GetLoadPointOverviewValueJson(entityId),
+                DataTypeConstants.CarOverviewState => GetCarOverviewValueJson(entityId),
                 _ => string.Empty,
             };
         }
@@ -102,6 +104,24 @@ public class StateSnapshotService : IStateSnapshotService
             var match = _entityKeyGenerationHelper.GetCombinationByKey(entityId);
             var loadPoint = _loadPointManagementService.GetLoadPointWithChargingValues(match);
             return JsonSerializer.Serialize(loadPoint);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting load point overview value for entity {EntityId}", entityId);
+        }
+        return string.Empty;
+    }
+
+    private string GetCarOverviewValueJson(string entityId)
+    {
+        try
+        {
+            if (int.TryParse(entityId, out var parsedCarId))
+            {
+                var loadPoint = _loadPointManagementService.GetCarOverviewState(parsedCarId);
+                return JsonSerializer.Serialize(loadPoint);
+            }
+            return string.Empty;
         }
         catch (Exception ex)
         {
