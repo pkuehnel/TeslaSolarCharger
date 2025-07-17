@@ -992,7 +992,7 @@ public class PvValueService(
 
         if (changes != null)
         {
-            await appStateNotifier.NotifyStateUpdateAsync(changes);
+            await appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
         }
     }
 

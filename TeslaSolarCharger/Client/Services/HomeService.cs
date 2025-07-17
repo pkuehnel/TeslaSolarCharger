@@ -60,10 +60,10 @@ public class HomeService : IHomeService
         return result.Data;
     }
 
-    public async Task<DtoCarOverview?> GetCarOverview(int carId)
+    public async Task<DtoCarOverviewSettings?> GetCarOverview(int carId)
     {
         _logger.LogTrace("{method}()", nameof(GetCarChargingTargets));
-        var result = await _httpClientHelper.SendGetRequestAsync<DtoCarOverview>($"api/Home/GetCarOverview?carId={carId}");
+        var result = await _httpClientHelper.SendGetRequestAsync<DtoCarOverviewSettings>($"api/Home/GetCarOverview?carId={carId}");
         if (result.HasError)
         {
             _logger.LogError(result.ErrorMessage);

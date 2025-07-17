@@ -63,28 +63,26 @@ public class HomeService : IHomeService
             .ConfigureAwait(false);
     }
 
-    public async Task<DtoCarOverview> GetCarOverview(int carId)
+    public async Task<DtoCarOverviewSettings> GetCarOverview(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetCarOverview), carId);
-        var dtoCar = _settings.Cars.First(c => c.Id == carId);
         var dbCar = await _context.Cars
             .Where(c => c.Id == carId)
             .Select(c => new
             {
+                c.Name,
+                c.Vin,
+                c.MinimumSoc,
                 c.MaximumSoc,
+                c.ChargeMode,
             })
             .FirstAsync()
             .ConfigureAwait(false);
-        var carOverView = new DtoCarOverview(dtoCar.Name ?? dtoCar.Vin)
+        var carOverView = new DtoCarOverviewSettings(dbCar.Name ?? dbCar.Vin ?? "Unknown name")
         {
-            Soc = dtoCar.SoC,
-            CarSideSocLimit = dtoCar.SocLimit,
-            MinSoc = dtoCar.MinimumSoC,
+            MinSoc = dbCar.MinimumSoc,
             MaxSoc = dbCar.MaximumSoc,
-            ChargeMode = dtoCar.ChargeModeV2,
-            IsCharging = dtoCar.State == CarStateEnum.Charging,
-            IsHome = dtoCar.IsHomeGeofence == true,
-            IsPluggedIn = dtoCar.PluggedIn == true,
+            ChargeMode = dbCar.ChargeMode,
         };
         return carOverView;
     }

@@ -7,6 +7,7 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
@@ -60,7 +61,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             return;
         }
 
-        await NotifyClientsForChangedValues(loadpoint);
+        await NotifyClientsForChangedLoadpointValues(loadpoint);
     }
 
     public async Task CarStateChanged(int carId)
@@ -68,13 +69,24 @@ public class LoadPointManagementService : ILoadPointManagementService
         _logger.LogTrace("{method}({carId})", nameof(CarStateChanged), carId);
         var loadpoint = _settings.LatestLoadPointCombinations
             .FirstOrDefault(l => l.CarId == carId);
-        if (loadpoint == default)
+        if (loadpoint != default)
         {
-            _logger.LogWarning("No loadpoint with car {carId} found, do not send updates to client", carId);
-            return;
+            await NotifyClientsForChangedLoadpointValues(loadpoint);
         }
-
-        await NotifyClientsForChangedValues(loadpoint);
+        var car = _settings.Cars.FirstOrDefault(c => c.Id == carId);
+        if (car != default)
+        {
+            var carState = new DtoCarOverviewState()
+            {
+                CarSideSocLimit = car.SocLimit,
+                IsCharging = car.State == CarStateEnum.Charging,
+                IsHome = car.IsHomeGeofence == true,
+                IsPluggedIn = car.PluggedIn == true,
+                Soc = car.SoC,
+            };
+            await NotifyClientsForChangedCarValues(carId, carState).ConfigureAwait(false);
+        }
+        
     }
 
     public async Task<HashSet<DtoLoadpointCombination>> GetCombinationsToManage()
@@ -92,9 +104,22 @@ public class LoadPointManagementService : ILoadPointManagementService
         return combinations;
     }
 
-    private async Task NotifyClientsForChangedValues(DtoLoadpointCombination loadpoint)
+    private async Task NotifyClientsForChangedCarValues(int carId, DtoCarOverviewState carState)
     {
-        _logger.LogTrace("{method}({@loadpoint})", nameof(NotifyClientsForChangedValues), loadpoint);
+        _logger.LogTrace("{method}({@carState})", nameof(NotifyClientsForChangedCarValues), carState);
+        var changes = _changeTrackingService.DetectChanges(
+            DataTypeConstants.CarOverviewState,
+            carId.ToString(),
+            carState);
+        if (changes != default)
+        {
+            await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
+        }
+    }
+
+    private async Task NotifyClientsForChangedLoadpointValues(DtoLoadpointCombination loadpoint)
+    {
+        _logger.LogTrace("{method}({@loadpoint})", nameof(NotifyClientsForChangedLoadpointValues), loadpoint);
         var loadpointWithChargingValues = GetLoadPointWithChargingValues(loadpoint);
         var changes = _changeTrackingService.DetectChanges(
             DataTypeConstants.LoadPointOverviewValues,
@@ -381,7 +406,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                 DataType = DataTypeConstants.LoadPointMatchesChangeTrigger,
                 Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
             };
-            await _appStateNotifier.NotifyStateUpdateAsync(changes);
+            await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
             _settings.LatestLoadPointCombinations = matches.ToHashSet();
         }
         return matches;

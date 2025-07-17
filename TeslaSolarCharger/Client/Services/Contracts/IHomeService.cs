@@ -13,7 +13,7 @@ public interface IHomeService
     Task<Result<object?>> UpdateCarMinSoc(int carId, int minSoc);
     Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId);
     Task<Result<object>> DeleteCarChargingTarget(int chargingTargetId);
-    Task<DtoCarOverview?> GetCarOverview(int carId);
+    Task<DtoCarOverviewSettings?> GetCarOverview(int carId);
     Task<DtoChargingConnectorOverview?> GetChargingConnectorOverview(int chargingConnectorId);
     Task<List<DtoChargingSchedule>?> GetChargingSchedules(int? carId, int? chargingConnectorId);
     Task<Result<object?>> UpdateCarChargeMode(int carId, ChargeModeV2 chargeMode);
