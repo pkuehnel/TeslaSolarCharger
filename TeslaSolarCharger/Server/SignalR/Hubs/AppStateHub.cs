@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.SignalR.Hubs;
@@ -8,36 +9,34 @@ public class AppStateHub : Hub<IAppStateClient>
 {
     private readonly IStateSnapshotService _stateSnapshotService;
     private readonly ILogger<AppStateHub> _logger;
+    private readonly IEntityKeyGenerationHelper _entityKeyGenerationHelper;
 
-    public AppStateHub(IStateSnapshotService stateSnapshotService, ILogger<AppStateHub> logger)
+    public AppStateHub(IStateSnapshotService stateSnapshotService, ILogger<AppStateHub> logger, IEntityKeyGenerationHelper entityKeyGenerationHelper)
     {
         _stateSnapshotService = stateSnapshotService;
         _logger = logger;
+        _entityKeyGenerationHelper = entityKeyGenerationHelper;
     }
 
     public override async Task OnConnectedAsync()
     {
         _logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
-
-        // Send initial state for all data types
-        var initialStates = await _stateSnapshotService.GetAllCurrentStatesAsync();
-        foreach (var state in initialStates)
-        {
-            await Clients.Caller.ReceiveInitialState(state.Key, state.Value);
-        }
-
         await base.OnConnectedAsync();
     }
 
     public async Task SubscribeToDataType(string dataType)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, dataType);
+    }
 
+    public async Task GetStateFor(string dataType, string entityId)
+    {
         // Send current state for this specific data type
-        var currentState = await _stateSnapshotService.GetCurrentStateAsync(dataType);
+        var currentState = await _stateSnapshotService.GetCurrentStateAsync(dataType, entityId);
         if (!string.IsNullOrEmpty(currentState))
         {
-            await Clients.Caller.ReceiveInitialState(dataType, currentState);
+            var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
+            await Clients.Caller.ReceiveInitialState(key, currentState);
         }
     }
 

@@ -8,6 +8,11 @@ public class EntityKeyGenerationHelper : IEntityKeyGenerationHelper
     private const string LoadPointEntityKeyDelimiter = "_";
     private const string NullPlaceholder = "null";
 
+    public string GetDataKey(string dataType, string? entityId)
+    {
+        return string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
+    }
+
     public string GetLoadPointEntityKey(int? carId, int? connectorId)
     {
         var carIdStr = carId?.ToString() ?? NullPlaceholder;

@@ -52,16 +52,11 @@ public class StateSnapshotService : IStateSnapshotService
         return states;
     }
 
-    public async Task<string> GetCurrentStateAsync(string dataType)
+    public async Task<string> GetCurrentStateAsync(string dataType, string entityId)
     {
         try
         {
-            // Check if it's a composite key (e.g., "CarState:1")
-            var parts = dataType.Split(':');
-            var baseDataType = parts[0];
-            var entityId = parts.Length > 1 ? parts[1] : string.Empty;
-
-            return baseDataType switch
+            return dataType switch
             {
                 DataTypeConstants.PvValues => await GetPvValuesJsonAsync(),
                 DataTypeConstants.LoadPointOverviewValues => GetLoadPointOverviewValueJson(entityId),

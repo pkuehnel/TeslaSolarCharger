@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Client.Services;
@@ -13,6 +14,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     private HubConnection? _hubConnection;
     private readonly NavigationManager _navigationManager;
     private readonly ILogger<SignalRStateService> _logger;
+    private readonly IEntityKeyGenerationHelper _entityKeyGenerationHelper;
     private readonly ConcurrentDictionary<string, object> _stateStore = new();
     private readonly ConcurrentDictionary<string, List<Action<object>>> _subscribers = new();
     private readonly ConcurrentDictionary<string, List<Action>> _triggerSubscribers = new();
@@ -22,10 +24,13 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
-    public SignalRStateService(NavigationManager navigationManager, ILogger<SignalRStateService> logger)
+    public SignalRStateService(NavigationManager navigationManager,
+        ILogger<SignalRStateService> logger,
+        IEntityKeyGenerationHelper entityKeyGenerationHelper)
     {
         _navigationManager = navigationManager;
         _logger = logger;
+        _entityKeyGenerationHelper = entityKeyGenerationHelper;
     }
 
     public async Task InitializeAsync()
@@ -71,7 +76,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     public async Task<T?> GetStateAsync<T>(string dataType, string entityId = "") where T : class
     {
-        var key = GetDataKey(dataType, entityId);
+        var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
         if (_stateStore.TryGetValue(key, out var state) && state is T typedState)
         {
@@ -80,13 +85,18 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
         // Subscribe to this data type if not already subscribed
         await EnsureSubscribedToDataType(dataType);
+        await GetState(dataType, entityId);
+        if (_stateStore.TryGetValue(key, out var state1) && state1 is T typedState1)
+        {
+            return typedState1;
+        }
         return default;
     }
 
     public async void Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
     {
         _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(Subscribe), typeof(T), dataType, entityId);
-        var key = GetDataKey(dataType, entityId);
+        var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
         // Add the callback
         _subscribers.AddOrUpdate(key,
             _ => new List<Action<object>> { obj => { if (obj is T typedObj) callback(typedObj); } },
@@ -116,7 +126,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
     public async void SubscribeToTrigger(string dataType, Action callback, string entityId = "")
     {
         _logger.LogTrace("{method}({dataType}, callback, {entityId})", nameof(SubscribeToTrigger), dataType, entityId);
-        var key = GetDataKey(dataType, entityId);
+        var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
 
         // Add the callback
         _triggerSubscribers.AddOrUpdate(key,
@@ -163,6 +173,27 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
     }
 
+    private async Task GetState(string dataType, string entityId)
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _hubConnection.InvokeAsync("GetStateFor", dataType, entityId);
+                _logger.LogDebug("Got initial state for: {DataType}:{enitityId}", dataType, entityId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get initialState for: {DataType}:{entityId}", dataType, entityId);
+                throw;
+            }
+        }
+        else
+        {
+            _logger.LogWarning("Cannot subscribe to {DataType} - SignalR connection not established", dataType);
+        }
+    }
+
     private async Task SubscribeToDataTypeAsync(string dataType)
     {
         if (_hubConnection?.State == HubConnectionState.Connected)
@@ -199,15 +230,10 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
     }
 
-    private static string GetDataKey(string dataType, string? entityId)
-    {
-        return string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
-    }
-
     private void HandleStateUpdate(StateUpdateDto update)
     {
         _logger.LogTrace("Received state update {@update}", update);
-        var key = GetDataKey(update.DataType, update.EntityId);
+        var key = _entityKeyGenerationHelper.GetDataKey(update.DataType, update.EntityId);
 
         // Check if this is a trigger update (no state to update)
         if (_triggerSubscribers.ContainsKey(key))
