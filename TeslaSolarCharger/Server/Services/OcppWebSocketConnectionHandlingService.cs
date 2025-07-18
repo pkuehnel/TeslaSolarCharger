@@ -592,7 +592,18 @@ public sealed class OcppWebSocketConnectionHandlingService(
             connectorState.ChargingPower.Update(ocppTransactionEndDate, 0);
             connectorState.IsCharging.Update(ocppTransactionEndDate, false);
             connectorState.PhaseCount.Update(ocppTransactionEndDate, null);
-            _ = loadPointManagementService.OcppStateChanged(ocppTransaction.ChargingStationConnectorId);
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await loadPointManagementService.OcppStateChanged(ocppTransaction.ChargingStationConnectorId);
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception or handle it as needed
+                    Console.Error.WriteLine($"Error in OcppStateChanged: {ex}");
+                }
+            });
         }
 
         // b) Build the response payload
