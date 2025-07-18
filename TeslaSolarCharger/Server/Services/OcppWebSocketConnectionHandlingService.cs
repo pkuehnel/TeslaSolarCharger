@@ -71,7 +71,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 settings.OcppConnectorStates.TryAdd(chargingConnectorId, new());
                 logger.LogInformation("Added charging connector state for chargingconnectorId {chargingConnectorId}", chargingConnectorId);
-                _ = loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "An error occurred while handling OCPP state change for chargingConnectorId {chargingConnectorId}", chargingConnectorId);
+                    }
+                });
             }
             dto.FullyConfigured = true;
             var ocppChargePointConfigurationService = scope.ServiceProvider.GetRequiredService<IOcppChargePointConfigurationService>();
