@@ -36,4 +36,5 @@ public interface ISettings
     ConcurrentBag<DtoNotChargingWithExpectedPowerReason> GenericNotChargingWithExpectedPowerReasons { get; set; }
     ConcurrentDictionary<(int? carId, int? connectorId), List<DtoNotChargingWithExpectedPowerReason>> LoadPointSpecificNotChargingWithExpectedPowerReasons { get; set; }
     ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; }
+    HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; }
 }

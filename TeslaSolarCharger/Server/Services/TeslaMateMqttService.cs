@@ -3,6 +3,7 @@ using System.Globalization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -16,7 +17,8 @@ public class TeslaMateMqttService(
     ISettings settings,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
-    ITeslaSolarChargerContext teslaSolarChargerContext)
+    ITeslaSolarChargerContext teslaSolarChargerContext,
+    ILoadPointManagementService loadPointManagementService)
     : ITeslaMateMqttService
 {
 
@@ -517,6 +519,8 @@ public class TeslaMateMqttService(
                 }
                 break;
         }
+
+        _ = loadPointManagementService.CarStateChanged(car.Id);
     }
 
     private TeslaMateValue GetValueFromMessage(MqttApplicationMessage mqttApplicationMessage)

@@ -11,11 +11,16 @@ public interface ILoadPointManagementService
     /// Get all load points with their charging power and voltage details. Lightweight method without database calls.
     /// </summary>
     /// <returns></returns>
-    List<DtoLoadPointWithCurrentChargingValues> GetLoadPointsWithChargingDetails();
+    Task<List<DtoLoadPointWithCurrentChargingValues>> GetLoadPointsWithChargingDetails();
 
-    HashSet<(int? CarId, int? ConnectorId)> GetCarConnectorMatches(
-        IEnumerable<int> carIds,
-        IEnumerable<int> connectorIds);
+    Task<HashSet<DtoLoadpointCombination>> GetCarConnectorMatches(IEnumerable<int> carIds,
+        IEnumerable<int> connectorIds, bool updateSettingsMatches);
 
     void UpdateChargingConnectorCar(int chargingConnectorId, int? carId);
+    Task OcppStateChanged(int chargingConnectorId);
+    Task CarStateChanged(int carId);
+    DtoLoadPointWithCurrentChargingValues GetLoadPointWithChargingValues(DtoLoadpointCombination match);
+    Task<HashSet<DtoLoadpointCombination>> GetCombinationsToManage();
+    DtoCarOverviewState GetCarOverviewState(int carId);
+    DtoChargingConnectorOverviewState GetChargingConnectorOverviewState(int chargingConnectorId);
 }

@@ -30,6 +30,7 @@ using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Helper;
+using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 using TeslaSolarCharger.Shared.Wrappers;
@@ -141,13 +142,16 @@ public static class ServiceCollectionExtensions
             .AddTransient<IValidFromToSplitter, ValidFromToSplitter>()
             .AddTransient<ITargetChargingValueCalculationService, TargetChargingValueCalculationService>()
             .AddTransient<IPowerToControlCalculationService, PowerToControlCalculationService>()
+            .AddTransient<IEntityKeyGenerationHelper, EntityKeyGenerationHelper>()
             .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
             .AddSingleton<IMeterValueBufferService, MeterValueBufferService>()
             .AddSingleton<IOcppWebSocketConnectionHandlingService, OcppWebSocketConnectionHandlingService>()
-            .AddSingleton<IPvValueNotifier, PvValueNotifier>()
+            .AddSingleton<IChangeTrackingService, ChangeTrackingService>()
+            .AddScoped<IStateSnapshotService, StateSnapshotService>()
+            .AddSingleton<IAppStateNotifier, AppStateNotifier>()
             .AddScoped<ErrorHandlingMiddleware>()
             .AddHostedService<MeterValueFlushService>()
             .AddSharedBackendDependencies();

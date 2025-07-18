@@ -2,16 +2,21 @@
 
 namespace TeslaSolarCharger.Shared.Dtos.Home;
 
-public class DtoChargingConnectorOverview
+public class DtoChargingConnectorOverviewSettings
 {
-    public DtoChargingConnectorOverview(string name)
+    public DtoChargingConnectorOverviewSettings(string name)
     {
         Name = name;
     }
 
     public string Name { get; set; }
+    public ChargeModeV2 ChargeMode { get; set; }
+}
+
+
+public class DtoChargingConnectorOverviewState
+{
     public bool IsCharging { get; set; }
     public bool IsPluggedIn { get; set; }
     public bool IsOcppConnected { get; set; }
-    public ChargeModeV2 ChargeMode { get; set; }
 }

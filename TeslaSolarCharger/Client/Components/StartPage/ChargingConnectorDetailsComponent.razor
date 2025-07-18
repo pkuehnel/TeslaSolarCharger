@@ -2,12 +2,14 @@
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.SignalRClients
 
 @inject IHomeService HomeService
 @inject ISnackbar Snackbar
 @inject ILogger<ChargingConnectorDetailsComponent> Logger
+@inject ISignalRStateService SignalRStateService
 
-@if (ChargingConnector == default)
+@if (ChargingConnectorSettings == default || ChargingConnectorState == default)
 {
     <PlaceholderComponent Count="6"></PlaceholderComponent>
 }
@@ -15,10 +17,10 @@ else
 {
     <div>
         <MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" />
-        @ChargingConnector.Name
-        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnector.IsOcppConnected)"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnector.IsPluggedIn)"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnector.IsCharging)"></CustomIcon>
+        @ChargingConnectorSettings.Name
+        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)"></CustomIcon>
         
         @if (CarId != default)
         {
@@ -27,14 +29,14 @@ else
         }
         else
         {
-            @if (ChargingConnector.IsPluggedIn)
+            @if (ChargingConnectorState.IsPluggedIn)
             {
                 <CarSelectorComponent SelectedCarId="SelectedCarId" OnCarSelected="OnCarSelected" />
             }
             <GenericInput T="ChargeModeV2"
-                          For="() => ChargingConnector.ChargeMode"
+                          For="() => ChargingConnectorSettings.ChargeMode"
                           OnValueChanged="ChargeModeUpdated"/>
-            @if (ChargingConnector.ChargeMode == ChargeModeV2.Manual)
+            @if (ChargingConnectorSettings.ChargeMode == ChargeModeV2.Manual)
             {
                 <GenericInput For="() => CurrentToSet"></GenericInput>
                 <GenericInput For="() => Phases"></GenericInput>
@@ -68,7 +70,9 @@ else
 
     private int? SelectedCarId { get; set; }
 
-    private DtoChargingConnectorOverview? ChargingConnector { get; set; }
+    private DtoChargingConnectorOverviewSettings? ChargingConnectorSettings { get; set; }
+
+    private DtoChargingConnectorOverviewState? ChargingConnectorState { get; set; }
 
     private ChargeModeV2? _lastKnownChargeMode;
 
@@ -85,6 +89,31 @@ else
         await base.OnParametersSetAsync();
         SelectedCarId = CarId;
         await RefreshData();
+
+        if (ChargingConnectorId == default)
+        {
+            return;
+        }
+
+        await SignalRStateService.Subscribe<DtoChargingConnectorOverviewState>(
+            DataTypeConstants.ChargingConnectorOverviewState,
+            async void (state) =>
+            {
+                try
+                {
+                    ChargingConnectorState = state;
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "Failed to update car state for CarId: {CarId}", CarId);
+                }
+            },
+            ChargingConnectorId.Value.ToString());
+
+        ChargingConnectorState = await SignalRStateService.GetStateAsync<DtoChargingConnectorOverviewState>(
+            DataTypeConstants.ChargingConnectorOverviewState,
+            ChargingConnectorId.Value.ToString());
     }
 
     private async Task RefreshData()
@@ -92,19 +121,19 @@ else
         Logger.LogTrace("{method}()", nameof(RefreshData));
         if (ChargingConnectorId == default)
         {
-            ChargingConnector = default;
+            ChargingConnectorSettings = default;
             return;
         }
-        ChargingConnector = await HomeService.GetChargingConnectorOverview(ChargingConnectorId.Value);
-        if(ChargingConnector != default)
+        ChargingConnectorSettings = await HomeService.GetChargingConnectorOverview(ChargingConnectorId.Value);
+        if(ChargingConnectorSettings != default)
         {
-            _lastKnownChargeMode = ChargingConnector.ChargeMode;
+            _lastKnownChargeMode = ChargingConnectorSettings.ChargeMode;
         }
     }
 
     private async Task ChargeModeUpdated(ChargeModeV2 arg)
     {
-        if (ChargingConnector == default || ChargingConnectorId == default)
+        if (ChargingConnectorSettings == default || ChargingConnectorId == default)
         {
             Snackbar.Add("Charging Connector is not set.", Severity.Error);
             return;
@@ -116,7 +145,7 @@ else
             Snackbar.Add($"Failed to update Charge Mode: {result.ErrorMessage}", Severity.Error);
             if (_lastKnownChargeMode != default)
             {
-                ChargingConnector.ChargeMode = _lastKnownChargeMode.Value;
+                ChargingConnectorSettings.ChargeMode = _lastKnownChargeMode.Value;
                 await InvokeAsync(StateHasChanged);
             }
         }

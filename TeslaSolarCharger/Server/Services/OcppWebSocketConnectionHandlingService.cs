@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -9,7 +8,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.Migrations;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
@@ -28,7 +26,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
         IConstants constants,
         IServiceProvider serviceProvider,
         ISettings settings,
-        IDateTimeProvider dateTimeProvider) : IOcppWebSocketConnectionHandlingService
+        IDateTimeProvider dateTimeProvider,
+        ILoadPointManagementService loadPointManagementService) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private readonly TimeSpan _messageHandlingTimeout = TimeSpan.FromSeconds(20);
@@ -72,6 +71,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 settings.OcppConnectorStates.TryAdd(chargingConnectorId, new());
                 logger.LogInformation("Added charging connector state for chargingconnectorId {chargingConnectorId}", chargingConnectorId);
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "An error occurred while handling OCPP state change for chargingConnectorId {chargingConnectorId}", chargingConnectorId);
+                    }
+                });
             }
             dto.FullyConfigured = true;
             var ocppChargePointConfigurationService = scope.ServiceProvider.GetRequiredService<IOcppChargePointConfigurationService>();
@@ -502,6 +512,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
                 break;
         }
+        Task.Run(async () =>
+        {
+            try
+            {
+                await loadPointManagementService.OcppStateChanged(databaseChargePointId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while updating OCPP state for connector ID {databaseChargePointId}.", databaseChargePointId);
+            }
+        });
         logger.LogTrace("Updated cache to {@cache}", ocppConnectorState);
     }
 
@@ -581,6 +602,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
             connectorState.ChargingPower.Update(ocppTransactionEndDate, 0);
             connectorState.IsCharging.Update(ocppTransactionEndDate, false);
             connectorState.PhaseCount.Update(ocppTransactionEndDate, null);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await loadPointManagementService.OcppStateChanged(ocppTransaction.ChargingStationConnectorId);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "An error occurred while updating OCPP state for connector ID {chargepointId}.", ocppTransaction.ChargingStationConnectorId);
+                }
+            });
         }
 
         // b) Build the response payload
@@ -642,6 +674,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
             SetPower(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
             SetCurrent(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
             SetPhases(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await loadPointManagementService.OcppStateChanged(chargingConnectorId).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "An error occurred while updating OCPP state for connector ID {chargingConnectorId}.", chargingConnectorId);
+                }
+            });
         }
 
         // b) Build the response payload
@@ -841,6 +884,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
         foreach (var chargingConnectorId in chargingConnectorIds)
         {
             settings.OcppConnectorStates.Remove(chargingConnectorId, out _);
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error in OcppStateChanged for connector {chargingConnectorId}", chargingConnectorId);
+                }
+            });
         }
     }
 

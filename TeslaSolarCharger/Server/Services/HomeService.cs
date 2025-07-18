@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -63,36 +62,33 @@ public class HomeService : IHomeService
             .ConfigureAwait(false);
     }
 
-    public async Task<DtoCarOverview> GetCarOverview(int carId)
+    public async Task<DtoCarOverviewSettings> GetCarOverview(int carId)
     {
         _logger.LogTrace("{method}({carId})", nameof(GetCarOverview), carId);
-        var dtoCar = _settings.Cars.First(c => c.Id == carId);
         var dbCar = await _context.Cars
             .Where(c => c.Id == carId)
             .Select(c => new
             {
+                c.Name,
+                c.Vin,
+                c.MinimumSoc,
                 c.MaximumSoc,
+                c.ChargeMode,
             })
             .FirstAsync()
             .ConfigureAwait(false);
-        var carOverView = new DtoCarOverview(dtoCar.Name ?? dtoCar.Vin)
+        var carOverView = new DtoCarOverviewSettings(dbCar.Name ?? dbCar.Vin ?? "Unknown name")
         {
-            Soc = dtoCar.SoC,
-            CarSideSocLimit = dtoCar.SocLimit,
-            MinSoc = dtoCar.MinimumSoC,
+            MinSoc = dbCar.MinimumSoc,
             MaxSoc = dbCar.MaximumSoc,
-            ChargeMode = dtoCar.ChargeModeV2,
-            IsCharging = dtoCar.State == CarStateEnum.Charging,
-            IsHome = dtoCar.IsHomeGeofence == true,
-            IsPluggedIn = dtoCar.PluggedIn == true,
+            ChargeMode = dbCar.ChargeMode,
         };
         return carOverView;
     }
 
-    public async Task<DtoChargingConnectorOverview> GetChargingConnectorOverview(int chargingConnectorId)
+    public async Task<DtoChargingConnectorOverviewSettings> GetChargingConnectorOverview(int chargingConnectorId)
     {
         _logger.LogTrace("{method}({chargingConnectorId})", nameof(GetChargingConnectorOverview), chargingConnectorId);
-        var state = _settings.OcppConnectorStates.GetValueOrDefault(chargingConnectorId);
         var chargingConnectorData = await _context.OcppChargingStationConnectors
             .Where(c => c.Id == chargingConnectorId)
             .Select(c => new
@@ -101,11 +97,8 @@ public class HomeService : IHomeService
                 c.ChargeMode,
             })
             .FirstAsync();
-        var chargingConnector = new DtoChargingConnectorOverview(chargingConnectorData.Name)
+        var chargingConnector = new DtoChargingConnectorOverviewSettings(chargingConnectorData.Name)
         {
-            IsCharging = state != default && state.IsCharging.Value,
-            IsPluggedIn = state != default && state.IsPluggedIn.Value,
-            IsOcppConnected = state != default,
             ChargeMode = chargingConnectorData.ChargeMode,
         };
         return chargingConnector;

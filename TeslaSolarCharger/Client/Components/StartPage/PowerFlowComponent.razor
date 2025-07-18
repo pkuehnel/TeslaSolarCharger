@@ -1,18 +1,18 @@
 ﻿@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues
 @using TeslaSolarCharger.Shared.Resources.Contracts
-@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.SignalRClients
 
 @inject HttpClient HttpClient
 @inject IConstants Constants
-@inject ISignalRConnector SignalRConnector
-@implements IAsyncDisposable
+@inject ISignalRStateService SignalRStateService
 
 @if (_pvValues == default)
 {
     <PlaceholderComponent Height="@($"{ThirdLineY}px")"
-                          Width="@($"{_widthInPixel}px")"></PlaceholderComponent>
+                          Width="@($"{_widthInPixel}px")"
+                          Class="d-flex justify-content-center"></PlaceholderComponent>
 }
 else
 {
@@ -192,28 +192,21 @@ else
     {
         var dtoSolarChargerInstallation = await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsSolarEdgeInstallation").ConfigureAwait(false);
         _isSolarEdgeInstallation = dtoSolarChargerInstallation?.Value;
-        SignalRConnector.Configure("/pvValuesHub");
+        await SignalRStateService.InitializeAsync();
 
-        SignalRConnector.RegisterHandler<DtoPvValues>(
-            nameof(IPvValuesClient.ReceivePvValues),
-            newValues =>
+        // Subscribe to PV value changes
+        await SignalRStateService.Subscribe<DtoPvValues>(
+            DataTypeConstants.PvValues,
+            pvValues =>
             {
-                _pvValues = newValues;
-                _couldNotRefreshStates = false;
+                _pvValues = pvValues;
                 UpdateBalls();
-                _ = InvokeAsync(StateHasChanged);
-            }
-        );
+                InvokeAsync(StateHasChanged);
+            });
 
-        try
-        {
-            await SignalRConnector.StartAsync()
-                .ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            _couldNotRefreshStates = true;
-        }
+        // Get initial state
+        _pvValues = await SignalRStateService.GetStateAsync<DtoPvValues>(DataTypeConstants.PvValues);
+        UpdateBalls();
     }
 
     private void UpdateBalls()
@@ -637,10 +630,4 @@ else
         var homePower = _pvValues.InverterPower - _pvValues.GridPower - homeBatteryPower - chargingPower;
         return homePower;
     }
-
-    public async ValueTask DisposeAsync()
-    {
-        await SignalRConnector.DisposeAsync();
-    }
-
 }

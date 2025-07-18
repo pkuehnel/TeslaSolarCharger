@@ -19,6 +19,8 @@ public class Settings : ISettings
     public string? StartupCrashMessage { get; set; }
     public bool RestartNeeded { get; set; }
 
+    public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
+
     public List<DtoCar> Cars { get; set; } = new();
     /// <summary>
     /// Key is Id of the connector in database

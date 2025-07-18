@@ -3,10 +3,12 @@
 @using TeslaSolarCharger.Client.Components.StartPage
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.SignalRClients
 
 @inject IEnergyDataService EnergyDataService
 @inject IHomeService HomeService
 @inject ILogger<Home> Logger
+@inject ISignalRStateService SignalRStateService
 
 <PageTitle>Solar 4 Car</PageTitle>
 
@@ -30,40 +32,7 @@ else
 {
     foreach (var loadPoint in _loadPoints)
     {
-        <div class="shadow p-3 mb-5 bg-white rounded">
-            <div class="text-center">@((loadPoint.ChargingPower ?? 0).ToString("N0")) W</div>
-            <div class="progress-wrapper">
-                @for (var i = 1; i <= loadPoint.MaxPhases; i++)
-                {
-                    <MudProgressLinear Color="Color.Primary"
-                                       Striped="loadPoint.ChargingPower > 0"
-                                       Size="Size.Small"
-                                       Value="@((double)(i <= loadPoint.ActualPhases ? loadPoint.ActualCurrent ?? 0 : 0))"
-                                       Max="loadPoint.MaxCurrent ?? 16"
-                                       Class="mt-1 mb-3 mx-1">
-                    </MudProgressLinear>
-                }
-            </div>
-            <NotChargingAtExpectedPowerReasonsComponent CarId="loadPoint.CarId" ChargingConnectorId="loadPoint.ChargingConnectorId" />
-            <div class="row g-1 mb-2">
-                @if (loadPoint.CarId != default)
-                {
-                    <div class="border border-gray-300 p-3 rounded col-12 col-xl-@(loadPoint.ChargingConnectorId == default ? "12" : "6")">
-                        <CarDetailsComponent CarId="loadPoint.CarId" />
-                    </div>
-                }
-                @if (loadPoint.ChargingConnectorId != default)
-                {
-                    <div class="border border-gray-300 p-3 rounded col-xl-6 col-xl-@(loadPoint.CarId == default ? "12" : "6")">
-                        <ChargingConnectorDetailsComponent ChargingConnectorId="loadPoint.ChargingConnectorId"
-                                                           CarId="@(loadPoint.CarId)"
-                                                           OnCarSelected="carId => CarSelectedForChargingConnector(loadPoint.ChargingConnectorId.Value, carId)" />
-                    </div>
-                }
-
-            </div>
-            <ChargingSchedulesComponent CarId="loadPoint.CarId" ChargingConnectorId="loadPoint.ChargingConnectorId" />
-        </div>
+        <LoadpointComponent LoadPoint="@loadPoint"></LoadpointComponent>
     }
 }
 
@@ -75,20 +44,30 @@ else
     {
         await base.OnInitializedAsync();
         _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+
+        await SignalRStateService.InitializeAsync();
+        await SignalRStateService.SubscribeToTrigger(
+            DataTypeConstants.LoadPointMatchesChangeTrigger,
+            async void () =>
+            {
+                try
+                {
+                    await RefreshLoadPoints();
+                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshLoadPoints));
+                }
+            });
+
         await RefreshLoadPoints();
     }
 
     private async Task RefreshLoadPoints()
     {
         Logger.LogTrace("{method}()", nameof(RefreshLoadPoints));
+        _loadPoints = null;
         _loadPoints = await HomeService.GetLoadPointsToManage();
     }
-
-    private async Task CarSelectedForChargingConnector(int loadPointChargingConnectorId, int? carId)
-    {
-        Logger.LogTrace("{method}({chargingConnectorId}, {carId})", nameof(CarSelectedForChargingConnector), loadPointChargingConnectorId, carId);
-        await HomeService.UpdateCarForLoadpoint(loadPointChargingConnectorId, carId);
-        await RefreshLoadPoints();
-    }
-
 }
