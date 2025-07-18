@@ -46,7 +46,7 @@ else
         _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
 
         await SignalRStateService.InitializeAsync();
-        SignalRStateService.SubscribeToTrigger(
+        await SignalRStateService.SubscribeToTrigger(
             DataTypeConstants.LoadPointMatchesChangeTrigger,
             async void () =>
             {

@@ -55,7 +55,7 @@
         Logger.LogTrace("Generated entity key: {entityKey}", entityKey);
 
         // Subscribe to updates
-        SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
+        await SignalRStateService.Subscribe<DtoLoadPointWithCurrentChargingValues>(
             DataTypeConstants.LoadPointOverviewValues,
             async void (loadpointValues) =>
             {

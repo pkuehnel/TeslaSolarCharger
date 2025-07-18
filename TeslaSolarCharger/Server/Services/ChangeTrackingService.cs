@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
@@ -7,7 +8,7 @@ namespace TeslaSolarCharger.Server.Services;
 
 public class ChangeTrackingService : IChangeTrackingService
 {
-    private readonly Dictionary<string, object> _previousStates = new();
+    private readonly ConcurrentDictionary<string, object> _previousStates = new();
     private readonly ILogger<ChangeTrackingService> _logger;
     private readonly IDateTimeProvider _dateTimeProvider;
 
@@ -73,6 +74,6 @@ public class ChangeTrackingService : IChangeTrackingService
     public void ClearState(string dataType, string entityId)
     {
         var key = $"{dataType}:{entityId}";
-        _previousStates.Remove(key);
+        _previousStates.Remove(key, out _);
     }
 }

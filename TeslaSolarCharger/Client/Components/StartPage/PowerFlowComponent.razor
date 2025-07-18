@@ -195,7 +195,7 @@ else
         await SignalRStateService.InitializeAsync();
 
         // Subscribe to PV value changes
-        SignalRStateService.Subscribe<DtoPvValues>(
+        await SignalRStateService.Subscribe<DtoPvValues>(
             DataTypeConstants.PvValues,
             pvValues =>
             {

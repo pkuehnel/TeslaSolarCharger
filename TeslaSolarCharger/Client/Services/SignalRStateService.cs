@@ -93,7 +93,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         return default;
     }
 
-    public async void Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
+    public async Task Subscribe<T>(string dataType, Action<T> callback, string entityId = "") where T : class
     {
         _logger.LogTrace("{method}<{type}>({dataType}, callback, {entityId})", nameof(Subscribe), typeof(T), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
@@ -123,7 +123,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         }
     }
 
-    public async void SubscribeToTrigger(string dataType, Action callback, string entityId = "")
+    public async Task SubscribeToTrigger(string dataType, Action callback, string entityId = "")
     {
         _logger.LogTrace("{method}({dataType}, callback, {entityId})", nameof(SubscribeToTrigger), dataType, entityId);
         var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);

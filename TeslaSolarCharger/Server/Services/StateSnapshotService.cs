@@ -119,7 +119,7 @@ public class StateSnapshotService : IStateSnapshotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting load point overview value for entity {EntityId}", entityId);
+            _logger.LogError(ex, "Error getting car overview value for entity {EntityId}", entityId);
         }
         return string.Empty;
     }
@@ -137,7 +137,7 @@ public class StateSnapshotService : IStateSnapshotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting load point overview value for entity {EntityId}", entityId);
+            _logger.LogError(ex, "Error getting charging connector overview value for entity {EntityId}", entityId);
         }
         return string.Empty;
     }
