@@ -512,7 +512,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
                 break;
         }
-        loadPointManagementService.OcppStateChanged(databaseChargePointId);
+        Task.Run(async () =>
+        {
+            try
+            {
+                await loadPointManagementService.OcppStateChanged(databaseChargePointId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while updating OCPP state for connector ID {databaseChargePointId}.", databaseChargePointId);
+            }
+        });
         logger.LogTrace("Updated cache to {@cache}", ocppConnectorState);
     }
 
@@ -592,7 +602,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             connectorState.ChargingPower.Update(ocppTransactionEndDate, 0);
             connectorState.IsCharging.Update(ocppTransactionEndDate, false);
             connectorState.PhaseCount.Update(ocppTransactionEndDate, null);
-            Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 try
                 {
@@ -600,8 +610,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception or handle it as needed
-                    Console.Error.WriteLine($"Error in OcppStateChanged: {ex}");
+                    logger.LogError(ex, "An error occurred while updating OCPP state for connector ID {chargepointId}.", ocppTransaction.ChargingStationConnectorId);
                 }
             });
         }
