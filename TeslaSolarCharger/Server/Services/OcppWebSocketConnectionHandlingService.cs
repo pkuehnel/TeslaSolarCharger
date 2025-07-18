@@ -875,7 +875,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
         foreach (var chargingConnectorId in chargingConnectorIds)
         {
             settings.OcppConnectorStates.Remove(chargingConnectorId, out _);
-            _ = loadPointManagementService.OcppStateChanged(chargingConnectorId);
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error in OcppStateChanged for connector {chargingConnectorId}", chargingConnectorId);
+                }
+            });
         }
     }
 
