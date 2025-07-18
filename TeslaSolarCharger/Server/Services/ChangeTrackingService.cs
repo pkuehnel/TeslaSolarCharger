@@ -35,7 +35,7 @@ public class ChangeTrackingService : IChangeTrackingService
                 var previousValue = property.GetValue(typedPreviousState);
                 var currentValue = property.GetValue(currentState);
 
-                if (!Equals(previousValue, currentValue))
+                if (!EqualityComparer<object>.Default.Equals(previousValue, currentValue))
                 {
                     changedProperties[property.Name] = currentValue;
                     _logger.LogTrace("Property {PropertyName} changed from {OldValue} to {NewValue}",
