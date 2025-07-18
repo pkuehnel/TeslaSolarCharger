@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -60,8 +61,9 @@ public class LoadPointManagementService : ILoadPointManagementService
             _logger.LogWarning("No loadpoint with charging connector {chargingConnector} found, do not send updates to client", chargingConnectorId);
             return;
         }
-
-        await NotifyClientsForChangedLoadpointValues(loadpoint);
+        var connectorState = GetChargingConnectorOverviewState(chargingConnectorId);
+        await NotifyClientsForChangedChargingConnectorValues(chargingConnectorId, connectorState).ConfigureAwait(false);
+        await NotifyClientsForChangedLoadpointValues(loadpoint).ConfigureAwait(false);
     }
 
     public async Task CarStateChanged(int carId)
@@ -92,6 +94,25 @@ public class LoadPointManagementService : ILoadPointManagementService
         return carState;
     }
 
+    public DtoChargingConnectorOverviewState GetChargingConnectorOverviewState(int chargingConnectorId)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId})", nameof(GetChargingConnectorOverviewState), chargingConnectorId);
+        if (!_settings.OcppConnectorStates.TryGetValue(chargingConnectorId, out var connector))
+        {
+            return new DtoChargingConnectorOverviewState()
+            {
+                IsOcppConnected = false,
+            };
+        }
+
+        return new DtoChargingConnectorOverviewState()
+        {
+            IsCharging = connector.IsCharging.Value,
+            IsPluggedIn = connector.IsPluggedIn.Value,
+            IsOcppConnected = true,
+        };
+    }
+
     public async Task<HashSet<DtoLoadpointCombination>> GetCombinationsToManage()
     {
         _logger.LogTrace("{method}()", nameof(GetCombinationsToManage));
@@ -105,6 +126,19 @@ public class LoadPointManagementService : ILoadPointManagementService
             .ToHashSetAsync().ConfigureAwait(false);
         var combinations = await GetCarConnectorMatches(carIdsToManage, connectorIdsToManage, true);
         return combinations;
+    }
+
+    private async Task NotifyClientsForChangedChargingConnectorValues(int chargingConnectorId, DtoChargingConnectorOverviewState connectorState)
+    {
+        _logger.LogTrace("{method}({chargingConnectorId}, {@carState})", nameof(NotifyClientsForChangedChargingConnectorValues), chargingConnectorId, connectorState);
+        var changes = _changeTrackingService.DetectChanges(
+            DataTypeConstants.ChargingConnectorOverviewState,
+            chargingConnectorId.ToString(),
+            connectorState);
+        if (changes != default)
+        {
+            await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
+        }
     }
 
     private async Task NotifyClientsForChangedCarValues(int carId, DtoCarOverviewState carState)

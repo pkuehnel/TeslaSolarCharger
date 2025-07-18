@@ -71,10 +71,10 @@ public class HomeService : IHomeService
         return result.Data;
     }
 
-    public async Task<DtoChargingConnectorOverview?> GetChargingConnectorOverview(int chargingConnectorId)
+    public async Task<DtoChargingConnectorOverviewSettings?> GetChargingConnectorOverview(int chargingConnectorId)
     {
         _logger.LogTrace("{method}()", nameof(GetCarChargingTargets));
-        var result = await _httpClientHelper.SendGetRequestAsync<DtoChargingConnectorOverview>($"api/Home/GetChargingConnectorOverview?chargingConnectorId={chargingConnectorId}");
+        var result = await _httpClientHelper.SendGetRequestAsync<DtoChargingConnectorOverviewSettings>($"api/Home/GetChargingConnectorOverview?chargingConnectorId={chargingConnectorId}");
         if (result.HasError)
         {
             _logger.LogError(result.ErrorMessage);

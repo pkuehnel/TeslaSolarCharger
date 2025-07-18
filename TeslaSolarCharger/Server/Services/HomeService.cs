@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using TeslaSolarCharger.Client.Dtos;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -87,10 +86,9 @@ public class HomeService : IHomeService
         return carOverView;
     }
 
-    public async Task<DtoChargingConnectorOverview> GetChargingConnectorOverview(int chargingConnectorId)
+    public async Task<DtoChargingConnectorOverviewSettings> GetChargingConnectorOverview(int chargingConnectorId)
     {
         _logger.LogTrace("{method}({chargingConnectorId})", nameof(GetChargingConnectorOverview), chargingConnectorId);
-        var state = _settings.OcppConnectorStates.GetValueOrDefault(chargingConnectorId);
         var chargingConnectorData = await _context.OcppChargingStationConnectors
             .Where(c => c.Id == chargingConnectorId)
             .Select(c => new
@@ -99,11 +97,8 @@ public class HomeService : IHomeService
                 c.ChargeMode,
             })
             .FirstAsync();
-        var chargingConnector = new DtoChargingConnectorOverview(chargingConnectorData.Name)
+        var chargingConnector = new DtoChargingConnectorOverviewSettings(chargingConnectorData.Name)
         {
-            IsCharging = state != default && state.IsCharging.Value,
-            IsPluggedIn = state != default && state.IsPluggedIn.Value,
-            IsOcppConnected = state != default,
             ChargeMode = chargingConnectorData.ChargeMode,
         };
         return chargingConnector;

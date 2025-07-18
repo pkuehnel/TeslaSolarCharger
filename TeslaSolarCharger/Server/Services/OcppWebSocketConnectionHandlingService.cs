@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -9,7 +8,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.Migrations;
 using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Dtos.Ocpp.Generics;
@@ -73,6 +71,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 settings.OcppConnectorStates.TryAdd(chargingConnectorId, new());
                 logger.LogInformation("Added charging connector state for chargingconnectorId {chargingConnectorId}", chargingConnectorId);
+                _ = loadPointManagementService.OcppStateChanged(chargingConnectorId);
             }
             dto.FullyConfigured = true;
             var ocppChargePointConfigurationService = scope.ServiceProvider.GetRequiredService<IOcppChargePointConfigurationService>();
@@ -845,6 +844,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         foreach (var chargingConnectorId in chargingConnectorIds)
         {
             settings.OcppConnectorStates.Remove(chargingConnectorId, out _);
+            _ = loadPointManagementService.OcppStateChanged(chargingConnectorId);
         }
     }
 

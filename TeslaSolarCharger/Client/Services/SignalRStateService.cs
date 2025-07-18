@@ -308,6 +308,7 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             DataTypeConstants.PvValues => typeof(TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues.DtoPvValues),
             DataTypeConstants.LoadPointOverviewValues => typeof(DtoLoadPointWithCurrentChargingValues),
             DataTypeConstants.CarOverviewState => typeof(DtoCarOverviewState),
+            DataTypeConstants.ChargingConnectorOverviewState => typeof(DtoChargingConnectorOverviewState),
             // Add more mappings as needed
             _ => null,
         };
