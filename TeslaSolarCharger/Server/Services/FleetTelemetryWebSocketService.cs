@@ -359,7 +359,17 @@ public class FleetTelemetryWebSocketService(
                             UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
                         }
                         var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
-                        _ = loadPointManagementService.CarStateChanged(settingsCar.Id);
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await loadPointManagementService.CarStateChanged(settingsCar.Id);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
+                            }
+                        });
                     }
 
                 }
