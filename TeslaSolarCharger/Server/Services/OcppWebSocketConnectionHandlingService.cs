@@ -665,7 +665,17 @@ public sealed class OcppWebSocketConnectionHandlingService(
             SetPower(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
             SetCurrent(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
             SetPhases(latestMeterValue.SampledValue, latestMeterValue.Timestamp, ocppConnector);
-            _ = loadPointManagementService.OcppStateChanged(chargingConnectorId);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await loadPointManagementService.OcppStateChanged(chargingConnectorId).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "An error occurred while updating OCPP state for connector ID {chargingConnectorId}.", chargingConnectorId);
+                }
+            });
         }
 
         // b) Build the response payload
