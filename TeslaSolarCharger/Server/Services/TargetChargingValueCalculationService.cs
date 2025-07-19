@@ -164,8 +164,6 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var ocppValues = loadpoint.ChargingConnectorId != default
                 ? _settings.OcppConnectorStates.GetValueOrDefault(loadpoint.ChargingConnectorId.Value)
                 : null;
-            var car = loadpoint.CarId != default ? _settings.Cars.FirstOrDefault(c => c.Id == loadpoint.CarId.Value) : null;
-
             if (constraintValues.MinPhases == default || constraintValues.MaxPhases == default)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Min Phases or Max Phases is unkown. Check the logs for further details."));
@@ -181,7 +179,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var lastSetPhases = ocppValues?.LastSetPhases.Value;
             var phasesToUse = loadpoint.ActualPhases ?? lastSetPhases ?? constraintValues.MaxPhases.Value;
             var currentToSet = powerToSet * (1m / (loadpoint.EstimatedVoltageWhileCharging.Value * phasesToUse));
-            // should reduce phases
+            // should reduce phases and is allowed
             if ((currentToSet < constraintValues.MinCurrent)
                  && (phasesToUse != constraintValues.MinPhases.Value)
                  && ((constraintValues.PhaseReductionAllowed == true)
@@ -194,12 +192,22 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 }
                 if (constraintValues.LastIsChargingChange > (currentDate - constraintValues.PhaseSwitchCoolDownTime))
                 {
-                    _logger.LogTrace("Waiting cooldone time of {coolDownTime} before starting to charge", loadpoint);
+                    _logger.LogTrace("Waiting cooldown time of {coolDownTime} before starting to charge", loadpoint);
                     return null;
                 }
                 phasesToUse = 1;
             }
-            // should increase phases
+            // should reduce phases but is not allowed
+            else if ((currentToSet < constraintValues.MinCurrent)
+                     && (phasesToUse != constraintValues.MinPhases.Value)
+                     && (constraintValues.PhaseReductionAllowed != true)
+                     && (!ignoreTimers))
+            {
+                _logger.LogTrace("Loadpoint {@loadpoint} is not charging with expected power as it should reduce phases but is not allowed to do so.", loadpoint);
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                    new("Waiting for phase reduction", constraintValues.PhaseReductionAllowedAt));
+            }
+            // should increase phases and is allowed
             else if ((currentToSet > constraintValues.MaxCurrent)
                        && (phasesToUse != constraintValues.MaxPhases.Value)
                         && ((constraintValues.PhaseIncreaseAllowed == true)
@@ -217,13 +225,27 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 }
                 phasesToUse = 3;
             }
-            //recalculate current to set based on phases to use
-            currentToSet = powerToSet * (1m / (loadpoint.EstimatedVoltageWhileCharging.Value * phasesToUse));
+            else if ((currentToSet > constraintValues.MaxCurrent)
+                     && (phasesToUse != constraintValues.MaxPhases.Value)
+                     && (constraintValues.PhaseIncreaseAllowed != true)
+                     && (!ignoreTimers))
+            {
+                _logger.LogTrace("Loadpoint {@loadpoint} is not charging with expected power as it should increase phases but is not allowed to do so.", loadpoint);
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                    new("Waiting for phase increase", constraintValues.PhaseIncreaseAllowedAt));
+            }
+                //recalculate current to set based on phases to use
+                currentToSet = powerToSet * (1m / (loadpoint.EstimatedVoltageWhileCharging.Value * phasesToUse));
 
             if (currentToSet < constraintValues.MinCurrent)
             {
                 _logger.LogTrace("Increase current to set from {oldCurrentToSet} as is below min current of {newCurrentToSet}", currentToSet, constraintValues.MinCurrent);
                 currentToSet = constraintValues.MinCurrent.Value;
+                if (constraintValues.ChargeStopAllowedAt != default)
+                {
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Waiting for charge stop", constraintValues.ChargeStopAllowedAt));
+                }
             }
             else if (currentToSet > constraintValues.MaxCurrent)
             {
@@ -235,7 +257,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 if ((constraintValues.ChargeStartAllowed != true) && (!ignoreTimers))
                 {
-
+                    if (constraintValues.ChargeStartAllowedAt != default)
+                    {
+                        _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                            new("Waiting for charge start", constraintValues.ChargeStartAllowedAt));
+                    }
                     return null;
                 }
                 if (constraintValues.Soc >= constraintValues.MaxSoc)

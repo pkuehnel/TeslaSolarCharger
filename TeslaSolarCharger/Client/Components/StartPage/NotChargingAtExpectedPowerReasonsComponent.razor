@@ -15,7 +15,7 @@ else
                 @foreach (var element in _elements)
                 {
                     <li>
-                        @(element.Reason + (element.ReasonEndTime == default ? string.Empty : element.ReasonEndTime.Value.ToLocalTime().ToString("t")))
+                        @(element.Reason + (element.ReasonEndTime == default ? string.Empty : " until " + element.ReasonEndTime.Value.ToLocalTime().ToString("t")))
                     </li>
                 }
             </ul>
