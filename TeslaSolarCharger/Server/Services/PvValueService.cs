@@ -10,15 +10,19 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
 using TeslaSolarCharger.Services.Services.Mqtt.Contracts;
 using TeslaSolarCharger.Services.Services.Rest.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Dtos.ModbusConfiguration;
 using TeslaSolarCharger.Shared.Dtos.MqttConfiguration;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.Shared.SignalRClients;
 using TeslaSolarCharger.SharedModel.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -37,7 +41,10 @@ public class PvValueService(
     IModbusValueExecutionService modbusValueExecutionService,
     IMqttClientHandlingService mqttClientHandlingService,
     IMqttConfigurationService mqttConfigurationService,
-    IConstants constants)
+    IConstants constants,
+    ILoadPointManagementService loadPointManagementService,
+    IAppStateNotifier appStateNotifier,
+    IChangeTrackingService changeTrackingService)
     : IPvValueService
 {
     public async Task ConvertToNewConfiguration()
@@ -961,6 +968,31 @@ public class PvValueService(
         if (!errorWhileUpdatingPvValues)
         {
             settings.LastPvValueUpdate = dateTimeProvider.DateTimeOffSetUtcNow();
+        }
+        int? powerBuffer = configurationWrapper.PowerBuffer();
+        if (settings.InverterPower == null && settings.Overage == null)
+        {
+            powerBuffer = null;
+        }
+        var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
+        var pvValues = new DtoPvValues()
+        {
+            GridPower = settings.Overage,
+            InverterPower = settings.InverterPower,
+            HomeBatteryPower = settings.HomeBatteryPower,
+            HomeBatterySoc = settings.HomeBatterySoc,
+            PowerBuffer = powerBuffer,
+            CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum(),
+            LastUpdated = settings.LastPvValueUpdate,
+        };
+        var changes = changeTrackingService.DetectChanges(
+            DataTypeConstants.PvValues,
+            null, // No entity ID for singleton PV values
+            pvValues);
+
+        if (changes != null)
+        {
+            await appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
         }
     }
 

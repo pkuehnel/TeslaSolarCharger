@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using System.Text.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -12,7 +13,6 @@ using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using TeslaSolarCharger.SharedBackend.Contracts;
 
 namespace TeslaSolarCharger.Server.Services.ApiServices;
 
@@ -27,10 +27,11 @@ public class IndexService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ITscOnlyChargingCostService tscOnlyChargingCostService)
+    ITscOnlyChargingCostService tscOnlyChargingCostService,
+    ILoadPointManagementService loadPointManagementService)
     : IIndexService
 {
-    public DtoPvValues GetPvValues()
+    public async Task<DtoPvValues> GetPvValues()
     {
         logger.LogTrace("{method}()", nameof(GetPvValues));
         int? powerBuffer = configurationWrapper.PowerBuffer();
@@ -38,17 +39,18 @@ public class IndexService(
         {
             powerBuffer = null;
         }
-
-        return new DtoPvValues()
+        var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
+        var pvValues = new DtoPvValues()
         {
             GridPower = settings.Overage,
             InverterPower = settings.InverterPower,
             HomeBatteryPower = settings.HomeBatteryPower,
             HomeBatterySoc = settings.HomeBatterySoc,
-            PowerBuffer = powerBuffer, 
-            CarCombinedChargingPowerAtHome = settings.CarsToManage.Select(c => c.ChargingPowerAtHome).Sum(),
+            PowerBuffer = powerBuffer,
+            CarCombinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum(),
             LastUpdated = settings.LastPvValueUpdate,
         };
+        return pvValues;
     }
 
     public async Task<List<DtoCarBaseStates>> GetCarBaseStatesOfEnabledCars()
@@ -71,8 +73,10 @@ public class IndexService(
                 IsAutoFullSpeedCharging = enabledCar.AutoFullSpeedCharge,
                 ChargingSlots = enabledCar.PlannedChargingSlots,
                 State = enabledCar.State,
+                ModuleTemperatureMin = enabledCar.MinBatteryTemperature.Value,
+                ModuleTemperatureMax = enabledCar.MaxBatteryTemperature.Value,
             };
-            dtoCarBaseValues.DtoChargeSummary = await tscOnlyChargingCostService.GetChargeSummary(enabledCar.Id).ConfigureAwait(false);
+            dtoCarBaseValues.DtoChargeSummary = await tscOnlyChargingCostService.GetChargeSummary(enabledCar.Id, null).ConfigureAwait(false);
             if (enabledCar.ChargeMode == ChargeMode.SpotPrice)
             {
                 dtoCarBaseValues.ChargingNotPlannedDueToNoSpotPricesAvailable =
@@ -82,16 +86,6 @@ public class IndexService(
             var dbCar = await teslaSolarChargerContext.Cars.Where(c => c.Id == enabledCar.Id).SingleAsync();
             dtoCarBaseValues.FleetApiState = dbCar.TeslaFleetApiState;
             dtoCarBaseValues.ChargeInformation = GenerateChargeInformation(enabledCar);
-            dtoCarBaseValues.ModuleTemperatureMin = await teslaSolarChargerContext.CarValueLogs
-                .Where(c => c.CarId == enabledCar.Id && c.Type == CarValueType.ModuleTempMin)
-                .OrderByDescending(c => c.Timestamp)
-                .Select(c => c.DoubleValue)
-                .FirstOrDefaultAsync().ConfigureAwait(false);
-            dtoCarBaseValues.ModuleTemperatureMax = await teslaSolarChargerContext.CarValueLogs
-                .Where(c => c.CarId == enabledCar.Id && c.Type == CarValueType.ModuleTempMax)
-                .OrderByDescending(c => c.Timestamp)
-                .Select(c => c.DoubleValue)
-                .FirstOrDefaultAsync().ConfigureAwait(false);
 
             carBaseValues.Add(dtoCarBaseValues);
             
@@ -172,29 +166,6 @@ public class IndexService(
         return result;
     }
 
-    public Dictionary<int, DtoCarBaseSettings> GetCarBaseSettingsOfEnabledCars()
-    {
-        logger.LogTrace("{method}()", nameof(GetCarBaseSettingsOfEnabledCars));
-        var enabledCars = GetEnabledCars();
-
-        return enabledCars.ToDictionary(enabledCar => enabledCar.Id, enabledCar => new DtoCarBaseSettings()
-        {
-            CarId = enabledCar.Id,
-            ChargeMode = enabledCar.ChargeMode,
-            MinimumStateOfCharge = enabledCar.MinimumSoC,
-            LatestTimeToReachStateOfCharge = enabledCar.LatestTimeToReachSoC,
-            IgnoreLatestTimeToReachSocDate = enabledCar.IgnoreLatestTimeToReachSocDate,
-            IgnoreLatestTimeToReachSocDateOnWeekend = enabledCar.IgnoreLatestTimeToReachSocDateOnWeekend,
-        });
-    }
-
-    public async Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
-    {
-        await latestTimeToReachSocUpdateService.UpdateAllCars().ConfigureAwait(false);
-        await chargeTimeCalculationService.PlanChargeTimesForAllCars().ConfigureAwait(false);
-        await configJsonService.UpdateCarBaseSettings(carBaseSettings).ConfigureAwait(false);
-    }
-
     public Dictionary<string, string> GetToolTipTexts()
     {
         return new Dictionary<string, string>()
@@ -203,16 +174,10 @@ public class IndexService(
             { toolTipTextKeys.CarSoc, "State of charge" },
             { toolTipTextKeys.CarSocLimit, "SoC Limit (configured in the car or in the Tesla App)" },
             { toolTipTextKeys.CarChargingPowerHome, "Power your car is currently charging at home" },
-            { toolTipTextKeys.CarChargedSolarEnergy, "Total charged solar energy" },
-            { toolTipTextKeys.CarChargedHomeBatteryEnergy, "Total charged home battery energy" },
-            { toolTipTextKeys.CarChargedGridEnergy, "Total charged grid energy" },
-            { toolTipTextKeys.CarChargeCost, "Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed." },
             { toolTipTextKeys.CarAtHome, "Your car is in your defined GeoFence" },
             { toolTipTextKeys.CarNotHealthy, "Your car has no optimal internet connection or there is an issue with the Tesla API." },
             { toolTipTextKeys.CarPluggedIn, "Your car is plugged in" },
             { toolTipTextKeys.CarChargeMode, "ChargeMode of your car. Click <a href=\"https://github.com/pkuehnel/TeslaSolarCharger#charge-modes\"  target=\"_blank\">here</a> for details."},
-            { toolTipTextKeys.ServerTime, "This is needed to properly start charging sessions. If this time does not match your current time, check your server time." },
-            { toolTipTextKeys.ServerTimeZone, "This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" },
         };
     }
 
@@ -225,14 +190,17 @@ public class IndexService(
             NonDateValues = nonDateValues,
             DateValues = dateValues,
         };
+
         var carState = settings.Cars.First(c => c.Id == carId);
+
         var propertiesToExclude = new List<string>()
-        {
-            nameof(DtoCar.PlannedChargingSlots),
-            nameof(DtoCar.Name),
-            nameof(DtoCar.SocLimit),
-            nameof(DtoCar.SoC),
-        };
+    {
+        nameof(DtoCar.PlannedChargingSlots),
+        nameof(DtoCar.Name),
+        nameof(DtoCar.SocLimit),
+        nameof(DtoCar.SoC),
+    };
+
         foreach (var property in carState.GetType().GetProperties())
         {
             if (propertiesToExclude.Any(p => property.Name.Equals(p)))
@@ -240,32 +208,56 @@ public class IndexService(
                 continue;
             }
 
+            var propertyValue = property.GetValue(carState, null);
+
             if (property.PropertyType == typeof(List<DateTime>))
             {
-                var list = (List<DateTime>?) property.GetValue(carState, null);
+                var dateList = (List<DateTime>?)propertyValue;
                 var currentDate = dateTimeProvider.UtcNow().Date;
-                dtoCarTopicValues.NonDateValues.Add(new DtoCarTopicValue()
+                nonDateValues.Add(new DtoCarTopicValue()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    Value = list?.Where(d => d > currentDate).Count().ToString(),
+                    Value = dateList?
+                        .Where(d => d > currentDate)
+                        .Count()
+                        .ToString(),
                 });
             }
-            else if (property.PropertyType == typeof(DateTimeOffset?)
-                || property.PropertyType == typeof(DateTimeOffset))
+            else if (
+                property.PropertyType == typeof(DateTimeOffset?)
+                || property.PropertyType == typeof(DateTimeOffset)
+            )
             {
-                dtoCarTopicValues.DateValues.Add(new DtoCarDateTopics()
+                dateValues.Add(new DtoCarDateTopics()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    DateTime = ((DateTimeOffset?) property.GetValue(carState, null))?.LocalDateTime,
+                    DateTime = ((DateTimeOffset?)propertyValue)?.LocalDateTime,
                 });
             }
-            else if (property.PropertyType == typeof(DateTime?)
-                     || property.PropertyType == typeof(DateTime))
+            else if (
+                property.PropertyType == typeof(DateTime?)
+                || property.PropertyType == typeof(DateTime)
+            )
             {
-                dtoCarTopicValues.DateValues.Add(new DtoCarDateTopics()
+                dateValues.Add(new DtoCarDateTopics()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    DateTime = (DateTime?) property.GetValue(carState, null),
+                    DateTime = (DateTime?)propertyValue,
+                });
+            }
+            else if (
+                property.PropertyType.IsGenericType
+                && property.PropertyType.GetGenericTypeDefinition() == typeof(DtoTimeStampedValue<>)
+            )
+            {
+                // Serialize entire DtoTimeStampedValue<T> as JSON
+                var timeStampedValueObject = propertyValue;
+                var jsonString = JsonSerializer.Serialize(timeStampedValueObject);
+
+                nonDateValues.Add(new DtoCarTopicValue()
+                {
+                    Topic = AddSpacesBeforeCapitalLetters(property.Name),
+                    Value = jsonString,
                 });
             }
             else
@@ -273,14 +265,13 @@ public class IndexService(
                 nonDateValues.Add(new DtoCarTopicValue()
                 {
                     Topic = AddSpacesBeforeCapitalLetters(property.Name),
-                    Value = property.GetValue(carState, null)?.ToString(),
+                    Value = propertyValue?.ToString(),
                 });
             }
         }
 
         return dtoCarTopicValues;
     }
-
     public List<DtoChargingSlot> RecalculateAndGetChargingSlots(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(RecalculateAndGetChargingSlots), carId);

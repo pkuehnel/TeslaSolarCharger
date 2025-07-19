@@ -12,5 +12,6 @@ public static class ServiceCollectionExtensions
         services
             .AddTransient<IStringHelper, StringHelper>()
             .AddTransient<IConstants, Constants>()
+            .AddTransient<IValidFromToHelper, ValidFromToHelper>()
         ;
 }

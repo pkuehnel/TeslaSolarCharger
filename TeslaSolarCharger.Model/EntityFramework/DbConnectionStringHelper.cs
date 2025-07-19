@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
@@ -40,7 +41,7 @@ public class DbConnectionStringHelper : IDbConnectionStringHelper
     {
         _logger.LogTrace("{method}()", nameof(GetTeslaSolarChargerDbPath));
         var filePath = _configurationWrapper.SqliteFileFullName();
-        var connectionString = $"Data Source={filePath};Pooling=False";
+        var connectionString = $"Data Source={filePath}";
         return connectionString;
     }
 }

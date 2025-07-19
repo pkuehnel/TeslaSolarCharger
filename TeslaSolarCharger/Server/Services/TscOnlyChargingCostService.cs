@@ -4,6 +4,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Contracts;
@@ -20,7 +21,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     IDateTimeProvider dateTimeProvider,
     IConfigurationWrapper configurationWrapper,
     IServiceProvider serviceProvider,
-    IConstants constants) : ITscOnlyChargingCostService
+    IConstants constants,
+    ILoadPointManagementService loadPointManagementService) : ITscOnlyChargingCostService
 {
     public async Task FinalizeFinishedChargingProcesses()
     {
@@ -80,9 +82,11 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()
     {
         var chargingProcessGroups = (await context.ChargingProcesses
-                .Where(h => h.Cost != null)
+                //do not remove the carId not null filter as otherwise will crash
+                .Where(h => h.Cost != null && h.CarId != null)
                 .ToListAsync().ConfigureAwait(false))
-            .GroupBy(h => h.CarId).ToList();
+                //CarId can not be null as is filtered above
+                .GroupBy(h => h.CarId!.Value).ToList();
         var chargeSummaries = new Dictionary<int, DtoChargeSummary>();
         foreach (var chargingProcessGroup in chargingProcessGroups)
         {
@@ -93,21 +97,41 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         return chargeSummaries;
     }
 
-    public async Task<DtoChargeSummary> GetChargeSummary(int carId)
+    public async Task<DtoChargeSummary> GetChargeSummary(int? carId, int? chargingConnectorId)
     {
         logger.LogTrace("{method}({carId})", nameof(GetChargeSummary), carId);
-        var chargingProcesses = await context.ChargingProcesses
-            .Where(cp => cp.CarId == carId)
-            .AsNoTracking()
-            .ToListAsync().ConfigureAwait(false);
+        var chargingProcessQuery = context.ChargingProcesses
+            .AsQueryable();
+        if (carId != default)
+        {
+            chargingProcessQuery = chargingProcessQuery.Where(cp => cp.CarId == carId);
+        }
+        if (chargingConnectorId != default)
+        {
+            chargingProcessQuery = chargingProcessQuery.Where(cp => cp.OcppChargingStationConnectorId == chargingConnectorId);
+        }
+
+        var chargingProcesses = await chargingProcessQuery.AsNoTracking()
+        .ToListAsync().ConfigureAwait(false);
         var chargeSummary = GetChargeSummaryByChargingProcesses(chargingProcesses);
         return chargeSummary;
     }
 
-    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int carId)
+    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int? carId, int? chargingConnectorId)
     {
-        var handledCharges = await context.ChargingProcesses
-            .Where(h => h.CarId == carId && h.Cost != null)
+        logger.LogTrace("{method}({carId}, {chargingConnectorId})", nameof(GetFinalizedChargingProcesses), carId, chargingConnectorId);
+        var handledChargesQuery = context.ChargingProcesses
+            .Where(h => h.Cost != null).AsQueryable();
+        if (carId != default)
+        {
+            handledChargesQuery = handledChargesQuery.Where(h => h.CarId == carId);
+        }
+
+        if (chargingConnectorId != default)
+        {
+            handledChargesQuery = handledChargesQuery.Where(h => h.OcppChargingStationConnectorId == chargingConnectorId);
+        }
+        var handledCharges = await handledChargesQuery
             .OrderByDescending(h => h.StartDate)
             .Select(h => new DtoHandledCharge()
             {
@@ -145,7 +169,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     private async Task FinalizeChargingProcess(ChargingProcess chargingProcess)
     {
         logger.LogTrace("{method}({chargingProcessId})", nameof(FinalizeChargingProcess), chargingProcess.Id);
-        
+
         var chargingDetails = await context.ChargingDetails
             .Where(cd => cd.ChargingProcessId == chargingProcess.Id)
             .OrderBy(cd => cd.TimeStamp)
@@ -155,7 +179,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         decimal usedGridEnergyWh = 0;
         decimal cost = 0;
         chargingProcess.EndDate = chargingDetails.Last().TimeStamp;
-        var prices = await GetPricesInTimeSpan(chargingDetails.First().TimeStamp, chargingProcess.EndDate.Value);        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
+        var prices = await GetGridPricesInTimeSpan(chargingDetails.First().TimeStamp, chargingProcess.EndDate.Value);        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
         var maxChargingDetailsDuration = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds).Add(TimeSpan.FromSeconds(10));
         for (var index = 1; index < chargingDetails.Count; index++)
         {
@@ -163,7 +187,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             logger.LogTrace("Price for timestamp {timeStamp}: {@price}", chargingDetails[index].TimeStamp, price);
             var chargingDetail = chargingDetails[index];
             var timeSpanSinceLastDetail = chargingDetail.TimeStamp - chargingDetails[index - 1].TimeStamp;
-            
+
             if (timeSpanSinceLastDetail > maxChargingDetailsDuration)
             {
                 logger.LogWarning("Do not use charging detail as last charging detail ist too old");
@@ -175,7 +199,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             usedHomeBatteryEnergyWh += usedHomeBatteryWhSinceLastChargingDetail;
             var usedGridPowerSinceLastChargingDetail = (decimal)(chargingDetail.GridPower * timeSpanSinceLastDetail.TotalHours);
             usedGridEnergyWh += usedGridPowerSinceLastChargingDetail;
-            cost += usedGridPowerSinceLastChargingDetail * price.Value;
+            cost += usedGridPowerSinceLastChargingDetail * price.GridPrice;
             cost += usedSolarWhSinceLastChargingDetail * price.SolarPrice;
             cost += usedHomeBatteryWhSinceLastChargingDetail * price.SolarPrice;
         }
@@ -191,9 +215,24 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         return prices.First(p => p.ValidFrom <= timeStamp && p.ValidTo > timeStamp);
     }
 
-    private async Task<List<Price>> GetPricesInTimeSpan(DateTime from, DateTime to)
+    public async Task<List<Price>> GetPricesInTimeSpan(DateTimeOffset from, DateTimeOffset to)
     {
-        logger.LogTrace("{method}({from}, {to})", nameof(GetPricesInTimeSpan), from, to);
+        logger.LogTrace("{method}({from}, {to})", nameof(GetGridPricesInTimeSpan), from, to);
+        var prices = await GetGridPricesInTimeSpan(from.ToUniversalTime().DateTime, to.ToUniversalTime().DateTime).ConfigureAwait(false);
+        return prices;
+    }
+
+    /// <summary>
+    /// Gets prices in a given time span.
+    /// </summary>
+    /// <param name="from">DateTime in UTC format</param>
+    /// <param name="to">DateTime in UTC format</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <exception cref="NotImplementedException"></exception>
+    private async Task<List<Price>> GetGridPricesInTimeSpan(DateTime from, DateTime to)
+    {
+        logger.LogTrace("{method}({from}, {to})", nameof(GetGridPricesInTimeSpan), from, to);
         var chargePrice = await context.ChargePrices
             .Where(c => c.ValidSince < from)
             .OrderByDescending(c => c.ValidSince)
@@ -212,7 +251,6 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 priceDataService = serviceProvider.GetRequiredService<IFixedPriceService>();
                 prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.EnergyProviderConfiguration).ConfigureAwait(false)).ToList();
                 prices = AddDefaultChargePrices(prices, fromDateTimeOffset, toDateTimeOffset, chargePrice.GridPrice, chargePrice.SolarPrice);
-
                 return prices;
             case EnergyProvider.Awattar:
                 break;
@@ -224,7 +262,6 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 priceDataService = serviceProvider.GetRequiredService<IOldTscConfigPriceService>();
                 prices = (await priceDataService.GetPriceData(fromDateTimeOffset, toDateTimeOffset, chargePrice.Id.ToString()).ConfigureAwait(false)).ToList();
                 return prices;
-                break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -248,7 +285,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             {
                 updatedPrices.Add(new Price
                 {
-                    Value = defaultValue,
+                    GridPrice = defaultValue,
                     SolarPrice = defaultSolarPrice,
                     ValidFrom = currentStart,
                     ValidTo = price.ValidFrom,
@@ -264,7 +301,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         {
             updatedPrices.Add(new Price
             {
-                Value = defaultValue,
+                GridPrice = defaultValue,
                 SolarPrice = defaultSolarPrice,
                 ValidFrom = currentStart,
                 ValidTo = to,
@@ -282,7 +319,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         logger.LogTrace("{method}()", nameof(AddChargingDetailsForAllCars));
         var powerBuffer = configurationWrapper.PowerBuffer();
         var overage = settings.Overage ?? (settings.InverterPower - (powerBuffer < 0 ? 0 : powerBuffer));
-        var homeBatteryDischargingPower =  (- settings.HomeBatteryPower) ?? 0;
+        var homeBatteryDischargingPower = (-settings.HomeBatteryPower) ?? 0;
         if (homeBatteryDischargingPower < 0)
         {
             homeBatteryDischargingPower = 0;
@@ -291,7 +328,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var solarPower = overage ?? 0;
         logger.LogTrace("SolarPower: {solarPower}", solarPower);
         logger.LogTrace("HomeBatteryDischargingPower: {homeBatteryDischargingPower}", homeBatteryDischargingPower);
-        var combinedChargingPowerAtHome = settings.CarsToManage.Sum(c => c.ChargingPowerAtHome ?? 0);
+        var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
+        var combinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum();
         var usedGridPower = 0;
         var usedHomeBatteryPower = 0;
         var usedSolarPower = 0;
@@ -330,42 +368,36 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 logger.LogTrace("Using {usedSolarPower} W from solar", usedSolarPower);
             }
         }
-        foreach (var car in settings.CarsToManage.OrderByDescending(c => c.ChargingPriority))
+        //ToDo: order loadpoints by chargingPriority, so the most important car gets the least amount of Grid Power in its calculation
+        foreach (var loadPoint in loadPoints)
         {
-            var chargingPowerAtHome = car.ChargingPowerAtHome ?? 0;
+            var chargingPowerAtHome = loadPoint.ChargingPower;
             if (chargingPowerAtHome < 1)
             {
-                logger.LogTrace("Car with ID {carId} currently not charging at home so no charging detail to create.", car.Id);
                 continue;
             }
-            var chargingDetail = await GetAttachedChargingDetail(car.Id);
-            chargingDetail.ChargerVoltage = car.ChargerVoltage;
+            var chargingDetail = await GetAttachedChargingDetail(loadPoint.CarId, loadPoint.ChargingConnectorId);
+            chargingDetail.ChargerVoltage = loadPoint.ChargingVoltage;
             if (chargingPowerAtHome < usedGridPower)
             {
-                logger.LogTrace("Grid power is enough for car with ID {carId}.", car.Id);
                 chargingDetail.GridPower = chargingPowerAtHome;
                 usedGridPower -= chargingPowerAtHome;
-                logger.LogTrace("Grid power after charging detail: {gridPower}", usedGridPower);
             }
             else
             {
                 chargingDetail.GridPower = usedGridPower;
                 usedGridPower = 0;
                 chargingPowerAtHome -= chargingDetail.GridPower;
-                logger.LogTrace("Remaining charging power after using gridPower for car {carId}: {chargingPowerAtHome}", car.Id, chargingPowerAtHome);
                 if (chargingPowerAtHome < usedHomeBatteryPower)
                 {
-                    logger.LogTrace("Home battery power is enough for car with ID {carId}.", car.Id);
                     chargingDetail.HomeBatteryPower = chargingPowerAtHome;
                     usedHomeBatteryPower -= chargingPowerAtHome;
-                    logger.LogTrace("Home battery power after charging detail: {homeBatteryDischargingPower}", usedHomeBatteryPower);
                 }
                 else
                 {
                     chargingDetail.HomeBatteryPower = usedHomeBatteryPower;
                     usedHomeBatteryPower = 0;
                     chargingPowerAtHome -= chargingDetail.HomeBatteryPower;
-                    logger.LogTrace("Remaining charging power after using home battery power for car {carId}: {chargingPowerAtHome}", car.Id, chargingPowerAtHome);
                     chargingDetail.SolarPower = chargingPowerAtHome;
                 }
             }
@@ -377,10 +409,12 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    private async Task<ChargingDetail> GetAttachedChargingDetail(int carId)
+    private async Task<ChargingDetail> GetAttachedChargingDetail(int? carId, int? chargingConnectorId)
     {
         var latestOpenChargingProcessId = await context.ChargingProcesses
-            .Where(cp => cp.CarId == carId && cp.EndDate == null)
+            .Where(cp => cp.CarId == carId
+                         && cp.OcppChargingStationConnectorId == chargingConnectorId
+                         && cp.EndDate == null)
             .OrderByDescending(cp => cp.StartDate)
             .Select(cp => cp.Id)
             .FirstOrDefaultAsync().ConfigureAwait(false);
@@ -394,6 +428,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             {
                 StartDate = chargingDetail.TimeStamp,
                 CarId = carId,
+                OcppChargingStationConnectorId = chargingConnectorId,
             };
             context.ChargingProcesses.Add(chargingProcess);
             chargingProcess.ChargingDetails.Add(chargingDetail);
