@@ -261,7 +261,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                         new("Configured max Soc is reached"));
                     return null;
                 }
-                if (constraintValues.CarSocLimit <= (constraintValues.Soc - _constants.MinimumSocDifference))
+                if (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference))
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                         new("Car side SOC limit is reached"));
