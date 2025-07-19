@@ -25,7 +25,7 @@ public class EntityKeyGenerationHelper : IEntityKeyGenerationHelper
         {
             return (parts[0], null);
         }
-        return (parts[0], parts[1]);
+        return (parts[0], string.Join(DataKeyDelimiter, parts.Skip(1)));
     }
 
     public string GetLoadPointEntityKey(int? carId, int? connectorId)
