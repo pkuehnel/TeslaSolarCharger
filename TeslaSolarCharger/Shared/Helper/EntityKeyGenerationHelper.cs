@@ -6,11 +6,26 @@ namespace TeslaSolarCharger.Shared.Helper;
 public class EntityKeyGenerationHelper : IEntityKeyGenerationHelper
 {
     private const string LoadPointEntityKeyDelimiter = "_";
+    private const string DataKeyDelimiter = ":";
     private const string NullPlaceholder = "null";
 
     public string GetDataKey(string dataType, string? entityId)
     {
-        return string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}:{entityId}";
+        return string.IsNullOrEmpty(entityId) ? dataType : $"{dataType}{DataKeyDelimiter}{entityId}";
+    }
+
+    public (string dataType, string? entityId) GetDataKeyParts(string dataKey)
+    {
+        if (string.IsNullOrWhiteSpace(dataKey))
+        {
+            throw new ArgumentException("Data key cannot be null or empty", nameof(dataKey));
+        }
+        var parts = dataKey.Split(DataKeyDelimiter);
+        if (parts.Length == 1)
+        {
+            return (parts[0], null);
+        }
+        return (parts[0], parts[1]);
     }
 
     public string GetLoadPointEntityKey(int? carId, int? connectorId)
