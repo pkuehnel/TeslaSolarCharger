@@ -255,6 +255,18 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
 
             if (constraintValues.IsCharging != true)
             {
+                if (constraintValues.Soc >= constraintValues.MaxSoc)
+                {
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Configured max Soc is reached"));
+                    return null;
+                }
+                if (constraintValues.CarSocLimit <= (constraintValues.Soc - _constants.MinimumSocDifference))
+                {
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Car side SOC limit is reached"));
+                    return null;
+                }
                 if ((constraintValues.ChargeStartAllowed != true) && (!ignoreTimers))
                 {
                     if (constraintValues.ChargeStartAllowedAt != default)
@@ -262,14 +274,6 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                         _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                             new("Waiting for charge start", constraintValues.ChargeStartAllowedAt));
                     }
-                    return null;
-                }
-                if (constraintValues.Soc >= constraintValues.MaxSoc)
-                {
-                    return null;
-                }
-                if (constraintValues.CarSocLimit <= (constraintValues.Soc - _constants.MinimumSocDifference))
-                {
                     return null;
                 }
                 return new()
