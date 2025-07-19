@@ -61,8 +61,8 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
             {
                 _logger.LogInformation("SignalR reconnected with ID: {ConnectionId}", connectionId);
 
-                // Re-subscribe to all data types after reconnection
                 await ResubscribeToAllDataTypes();
+                await RefreshAllStates();
             };
 
             await _hubConnection.StartAsync();
@@ -71,6 +71,34 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
         finally
         {
             _connectionLock.Release();
+        }
+    }
+
+    private async Task RefreshAllStates()
+    {
+        var uniqueRequests = new HashSet<(string dataType, string entityId)>();
+
+        foreach (var key in _subscribers.Keys.Union(_triggerSubscribers.Keys))
+        {
+            var parts = key.Split(':');
+            if (parts.Length >= 1)
+            {
+                var dataType = parts[0];
+                var entityId = parts.Length > 1 ? string.Join(":", parts.Skip(1)) : "";
+                uniqueRequests.Add((dataType, entityId));
+            }
+        }
+
+        foreach (var (dataType, entityId) in uniqueRequests)
+        {
+            try
+            {
+                await GetState(dataType, entityId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to refresh state for {DataType}:{EntityId}", dataType, entityId);
+            }
         }
     }
 
