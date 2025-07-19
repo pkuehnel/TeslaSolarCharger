@@ -16,6 +16,10 @@ public class ConstraintValues
     public bool? PhaseSwitchingEnabled { get; set; }
     public bool? ChargeStopAllowed { get; set; }
     public bool? ChargeStartAllowed { get; set; }
+    public DateTimeOffset? PhaseReductionAllowedAt { get; set; }
+    public DateTimeOffset? PhaseIncreaseAllowedAt { get; set; }
+    public DateTimeOffset? ChargeStopAllowedAt { get; set; }
+    public DateTimeOffset? ChargeStartAllowedAt { get; set; }
     public int? Soc { get; set; }
     public int? CarSocLimit { get; set; }
     public bool? IsCharging { get; set; }

@@ -3,7 +3,9 @@
 public class DtoNotChargingWithExpectedPowerReason
 {
     //Required for serialization
+#pragma warning disable CS8618, CS9264
     public DtoNotChargingWithExpectedPowerReason()
+#pragma warning restore CS8618, CS9264
     {
         
     }
