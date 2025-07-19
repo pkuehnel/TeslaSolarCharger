@@ -1,7 +1,12 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject IHomeService HomeService
+@inject IDateTimeProvider DateTimeProvider
+@inject ILogger<NotChargingAtExpectedPowerReasonsComponent> Logger
+
+@implements IDisposable
 
 @if (_elements == default)
 {
@@ -15,7 +20,22 @@ else
                 @foreach (var element in _elements)
                 {
                     <li>
-                        @(element.Reason + (element.ReasonEndTime == default ? string.Empty : " until " + element.ReasonEndTime.Value.ToLocalTime().ToString("t")))
+                        @if (element.ReasonEndTime == default)
+                        {
+                            @element.Reason
+                        }
+                        else
+                        {
+                            var remainingTime = GetRemainingTime(element.ReasonEndTime.Value);
+                            @if (remainingTime.HasValue)
+                            {
+                                @($"{element.Reason} ({FormatTimeSpan(remainingTime.Value)} remaining)")
+                            }
+                            else
+                            {
+                                @(element.Reason)
+                            }
+                        }
                     </li>
                 }
             </ul>
@@ -31,11 +51,29 @@ else
     public int? ChargingConnectorId { get; set; }
 
     private List<DtoNotChargingWithExpectedPowerReason>? _elements;
+    private Timer? _countdownTimer;
 
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
         await RefreshNotChargingWithExpectedPowerReasons();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        // Start the countdown timer - updates every second
+        _countdownTimer = new(async void (_) =>
+        {
+            try
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Failed to update NotChargingAtExpectedPowerReasonsComponent state");
+            }
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
     }
 
     private async Task RefreshNotChargingWithExpectedPowerReasons()
@@ -48,5 +86,36 @@ else
         {
             _elements = null;
         }
+    }
+
+    private TimeSpan? GetRemainingTime(DateTimeOffset endTimeUtc)
+    {
+        var remaining = endTimeUtc - DateTimeProvider.DateTimeOffSetUtcNow();
+        return remaining.TotalSeconds > 0 ? remaining : null;
+    }
+
+    private string FormatTimeSpan(TimeSpan timeSpan)
+    {
+        if (timeSpan.TotalDays >= 1)
+        {
+            return $"{(int)timeSpan.TotalDays}d {timeSpan.Hours}h {timeSpan.Minutes}m";
+        }
+        else if (timeSpan.TotalHours >= 1)
+        {
+            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
+        }
+        else if (timeSpan.TotalMinutes >= 1)
+        {
+            return $"{(int)timeSpan.TotalMinutes}m {timeSpan.Seconds}s";
+        }
+        else
+        {
+            return $"{(int)timeSpan.TotalSeconds}s";
+        }
+    }
+
+    public void Dispose()
+    {
+        _countdownTimer?.Dispose();
     }
 }
