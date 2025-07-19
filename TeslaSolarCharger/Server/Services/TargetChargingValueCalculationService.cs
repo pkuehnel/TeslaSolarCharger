@@ -264,7 +264,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 if (constraintValues.CarSocLimit <= (constraintValues.Soc + _constants.MinimumSocDifference))
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new("Car side SOC limit is reached"));
+                        new($"Car side SOC limit is reached. To start charging, the car side SOC limit needs to be at least {_constants.MinimumSocDifference}% higher than the actual SOC."));
                     return null;
                 }
                 if ((constraintValues.ChargeStartAllowed != true) && (!ignoreTimers))
