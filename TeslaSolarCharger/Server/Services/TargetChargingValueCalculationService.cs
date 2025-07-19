@@ -235,6 +235,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 if ((constraintValues.ChargeStartAllowed != true) && (!ignoreTimers))
                 {
+
                     return null;
                 }
                 if (constraintValues.Soc >= constraintValues.MaxSoc)
@@ -324,10 +325,16 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             constraintValues.Soc = car.SoC;
             if (useCarToManageChargingSpeed)
             {
+                DateTimeOffset? chargeStartAllowedAt = null;
                 constraintValues.ChargeStartAllowed = (car.ShouldStartCharging.Value == true)
-                                                      && IsTimeStampedValueRelevant(car.ShouldStartCharging, currentDate, timeSpanUntilSwitchOn, out _);
+                                                      && IsTimeStampedValueRelevant(car.ShouldStartCharging, currentDate, timeSpanUntilSwitchOn,
+                                                          out chargeStartAllowedAt);
+                constraintValues.ChargeStartAllowedAt = chargeStartAllowedAt;
+                DateTimeOffset? chargeStopAllowedAt = null;
                 constraintValues.ChargeStopAllowed = (car.ShouldStopCharging.Value == true)
-                                                     && IsTimeStampedValueRelevant(car.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff, out _);
+                                                     && IsTimeStampedValueRelevant(car.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff,
+                                                         out chargeStopAllowedAt);
+                constraintValues.ChargeStopAllowedAt = chargeStopAllowedAt;
                 constraintValues.IsCharging = car.State == CarStateEnum.Charging;
             }
         }
@@ -393,16 +400,44 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if ((ocppValues != default) && (!useCarToManageChargingSpeed))
             {
                 constraintValues.IsCharging = ocppValues.IsCharging.Value;
+                DateTimeOffset? chargeStartAllowedAt = null;
                 constraintValues.ChargeStartAllowed = (ocppValues.ShouldStartCharging.Value == true)
-                                                      && IsTimeStampedValueRelevant(ocppValues.ShouldStartCharging, currentDate, timeSpanUntilSwitchOn, out _);
+                                                      && IsTimeStampedValueRelevant(ocppValues.ShouldStartCharging, currentDate, timeSpanUntilSwitchOn,
+                                                          out chargeStartAllowedAt);
+                constraintValues.ChargeStartAllowedAt = chargeStartAllowedAt;
+                DateTimeOffset? chargeStopAllowedAt = null;
                 constraintValues.ChargeStopAllowed = (ocppValues.ShouldStopCharging.Value == true)
-                                                     && IsTimeStampedValueRelevant(ocppValues.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff, out _);
+                                                     && IsTimeStampedValueRelevant(ocppValues.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff,
+                                                         out chargeStopAllowedAt);
+                constraintValues.ChargeStopAllowedAt = chargeStopAllowedAt;
                 if (chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled)
                 {
-                    constraintValues.PhaseReductionAllowed = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, true, out _)
-                                                             && IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, false, out _);
-                    constraintValues.PhaseIncreaseAllowed = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, false, out _)
-                                                             && IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, true, out _);
+                    DateTimeOffset? phaseReductionAllowedBasedOnThreePhaseHandling = null;
+                    constraintValues.PhaseReductionAllowed = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, true,
+                                                                 out var phaseReductionAllowedBasedOnOnePhaseHandling)
+                                                             && IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, false,
+                                                                 out phaseReductionAllowedBasedOnThreePhaseHandling);
+                    if ((constraintValues.PhaseReductionAllowed != true)
+                        && (phaseReductionAllowedBasedOnOnePhaseHandling != default)
+                        && (phaseReductionAllowedBasedOnThreePhaseHandling != default))
+                    {
+                        constraintValues.PhaseReductionAllowedAt = phaseReductionAllowedBasedOnOnePhaseHandling > phaseReductionAllowedBasedOnThreePhaseHandling
+                            ? phaseReductionAllowedBasedOnOnePhaseHandling
+                            : phaseReductionAllowedBasedOnThreePhaseHandling;
+                    }
+                    DateTimeOffset? phaseIncreaseAllowedBasedOnThreePhaseHandling = null;
+                    constraintValues.PhaseIncreaseAllowed = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, false,
+                                                                out var phaseIncreaseAllowedBasedOnOnePhaseHandling)
+                                                             && IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, true,
+                                                                 out phaseIncreaseAllowedBasedOnThreePhaseHandling);
+                    if ((constraintValues.PhaseIncreaseAllowed != true)
+                        && (phaseIncreaseAllowedBasedOnOnePhaseHandling != default)
+                        && (phaseIncreaseAllowedBasedOnThreePhaseHandling != default))
+                    {
+                        constraintValues.PhaseIncreaseAllowedAt = phaseIncreaseAllowedBasedOnOnePhaseHandling > phaseIncreaseAllowedBasedOnThreePhaseHandling
+                            ? phaseIncreaseAllowedBasedOnOnePhaseHandling
+                            : phaseIncreaseAllowedBasedOnThreePhaseHandling;
+                    }
                 }
                 else
                 {
