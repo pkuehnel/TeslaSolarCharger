@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using TeslaSolarCharger.Client.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
@@ -76,24 +77,19 @@ public class SignalRStateService : ISignalRStateService, IAsyncDisposable
 
     private async Task RefreshAllStates()
     {
-        var uniqueRequests = new HashSet<(string dataType, string entityId)>();
+        var uniqueRequests = new HashSet<(string dataType, string? entityId)>();
 
         foreach (var key in _subscribers.Keys.Union(_triggerSubscribers.Keys))
         {
-            var parts = key.Split(':');
-            if (parts.Length >= 1)
-            {
-                var dataType = parts[0];
-                var entityId = parts.Length > 1 ? string.Join(":", parts.Skip(1)) : "";
-                uniqueRequests.Add((dataType, entityId));
-            }
+            var dataKeyParts = _entityKeyGenerationHelper.GetDataKeyParts(key);
+            uniqueRequests.Add((dataKeyParts.dataType, dataKeyParts.entityId));
         }
 
         foreach (var (dataType, entityId) in uniqueRequests)
         {
             try
             {
-                await GetState(dataType, entityId);
+                await GetState(dataType, entityId ?? string.Empty);
             }
             catch (Exception ex)
             {
