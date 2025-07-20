@@ -1,11 +1,10 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+﻿@using System.Runtime.ExceptionServices
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
-
 @inject IHomeService HomeService
 @inject IDateTimeProvider DateTimeProvider
 @inject ILogger<NotChargingAtExpectedPowerReasonsComponent> Logger
-
 @implements IDisposable
 
 @if (_elements == default)
@@ -15,30 +14,75 @@
 else
 {
     <MudExpansionPanels>
-        <MudExpansionPanel Text="@($"{_elements.Count} reason(s) why loadpoint charges with different power than you might expect")">
-            <ul>
-                @foreach (var element in _elements)
-                {
-                    <li>
-                        @if (element.ReasonEndTime == default)
+        <MudExpansionPanel @bind-Expanded="_isExpanded" HideIcon="true">
+            <TitleContent>
+                <div class="d-flex">
+                    @{
+                        var nextEndingReason = GetNextEndingReason();
+                        if (nextEndingReason != null && !_isExpanded)
                         {
-                            @element.Reason
+                            var remainingTime = GetRemainingTime(nextEndingReason.ReasonEndTime!.Value);
+                            if (remainingTime.HasValue)
+                            {
+                                <div>
+                                    @($"{nextEndingReason.Reason}:")
+                                    <span><MudChip T="string"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   Icon="@Icons.Material.Filled.Timer">
+                                        @(FormatTimeSpan(remainingTime.Value))
+                                    </MudChip></span>
+                                </div>
+                                
+                            }
                         }
                         else
                         {
-                            var remainingTime = GetRemainingTime(element.ReasonEndTime.Value);
-                            @if (remainingTime.HasValue)
+                            <div>@($"{_elements.Count} reason(s) why loadpoint charges with different power than you might expect")</div>
+                        }
+                    }
+                    @if (_elements.Count > 0)
+                    {
+                        <MudBadge Content="@(_elements.Count)" Color="Color.Primary" Overlap="true" Class="d-flex ml-auto">
+                            <MudIcon Icon="@(_isExpanded ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Color="Color.Default" />
+                        </MudBadge>
+                    }
+                </div>
+            </TitleContent>
+            <ChildContent>
+                <ul>
+                    @foreach (var element in _elements)
+                    {
+                        <li>
+                            @if (element.ReasonEndTime == default)
                             {
-                                @($"{element.Reason} ({FormatTimeSpan(remainingTime.Value)} remaining)")
+                                @element.Reason
                             }
                             else
                             {
-                                @(element.Reason)
+                                var remainingTime = GetRemainingTime(element.ReasonEndTime.Value);
+                                @if (remainingTime.HasValue)
+                                {
+                                    @($"{element.Reason} (")
+                                    <span>
+                                        <MudChip T="string"
+                                                 Color="Color.Primary"
+                                                 Size="Size.Small"
+                                                 Icon="@Icons.Material.Filled.Timer">
+                                            @(FormatTimeSpan(remainingTime.Value))
+                                        </MudChip>
+                                    </span>
+                                    <span>remaining)</span>
+                                }
+                                else
+                                {
+                                    @(element.Reason)
+                                }
                             }
-                        }
-                    </li>
-                }
-            </ul>
+                        </li>
+                    }
+                </ul>
+            </ChildContent>
         </MudExpansionPanel>
     </MudExpansionPanels>
 }
@@ -53,6 +97,8 @@ else
     private List<DtoNotChargingWithExpectedPowerReason>? _elements;
     private Timer? _countdownTimer;
 
+    private bool _isExpanded = false;
+
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
@@ -63,7 +109,7 @@ else
     {
         base.OnInitialized();
         // Start the countdown timer - updates every second
-        _countdownTimer = new(async void (_) =>
+        _countdownTimer = new(async (state) =>
         {
             try
             {
@@ -94,24 +140,23 @@ else
         return remaining.TotalSeconds > 0 ? remaining : null;
     }
 
+    private DtoNotChargingWithExpectedPowerReason? GetNextEndingReason()
+    {
+        if (_elements == null || _elements.Count == 0)
+            return null;
+
+        var currentTime = DateTimeProvider.DateTimeOffSetUtcNow();
+
+        // Find the reason with the soonest end time that's still in the future
+        return _elements
+            .Where(e => e.ReasonEndTime.HasValue && e.ReasonEndTime.Value > currentTime)
+            .OrderBy(e => e.ReasonEndTime!.Value)
+            .FirstOrDefault();
+    }
+
     private string FormatTimeSpan(TimeSpan timeSpan)
     {
-        if (timeSpan.TotalDays >= 1)
-        {
-            return $"{(int)timeSpan.TotalDays}d {timeSpan.Hours}h {timeSpan.Minutes}m";
-        }
-        else if (timeSpan.TotalHours >= 1)
-        {
-            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
-        }
-        else if (timeSpan.TotalMinutes >= 1)
-        {
-            return $"{(int)timeSpan.TotalMinutes}m {timeSpan.Seconds}s";
-        }
-        else
-        {
-            return $"{(int)timeSpan.TotalSeconds}s";
-        }
+        return timeSpan.ToString(@"mm\:ss");
     }
 
     public void Dispose()
