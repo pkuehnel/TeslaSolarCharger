@@ -191,7 +191,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
         }
 
-        _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings();
+        await _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -349,15 +349,6 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (!settingsOcppConnectorState.Value.IsPluggedIn.Value)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging connector is not plugged in"));
-            }
-
-            if (settingsOcppConnectorState.Value.IsCarFullyCharged.Value == true)
-            {
-                var loadPoint = loadPointsToManage.FirstOrDefault(l => l.ChargingConnectorId == settingsOcppConnectorState.Key);
-                if ((loadPoint == default) || (!loadPoint.ManageChargingPowerByCar))
-                {
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging stopped by car, e.g. it is full or its charge limit is reached."));
-                }
             }
         }
     }
@@ -661,7 +652,12 @@ public class ChargingServiceV2 : IChargingServiceV2
                 _configurationWrapper.HomeGeofenceLongitude(), _configurationWrapper.HomeGeofenceLatitude());
             _logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
             var radius = _configurationWrapper.HomeGeofenceRadius();
+            var wasAtHomeBefore = car.IsHomeGeofence;
             car.IsHomeGeofence = distance < radius;
+            if (wasAtHomeBefore != car.IsHomeGeofence)
+            {
+                await _loadPointManagementService.CarStateChanged(car.Id);
+            }
             car.DistanceToHomeGeofence = (int)distance - radius;
         }
     }
