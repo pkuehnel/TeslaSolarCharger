@@ -191,7 +191,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
         }
 
-        _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings();
+        await _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings().ConfigureAwait(false);
     }
 
     /// <summary>

@@ -1,9 +1,12 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.SignalRClients
 @inject IHomeService HomeService
 @inject IDateTimeProvider DateTimeProvider
 @inject ILogger<NotChargingAtExpectedPowerReasonsComponent> Logger
+@inject ISignalRStateService SignalRStateService
+
 @implements IDisposable
 
 @if (_elements == default)
@@ -101,6 +104,24 @@ else
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
+        
+
+        await SignalRStateService.InitializeAsync();
+        await SignalRStateService.SubscribeToTrigger(
+            DataTypeConstants.NotChargingAsExpectedChangeTrigger,
+            async void () =>
+            {
+                try
+                {
+                    await RefreshNotChargingWithExpectedPowerReasons();
+                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshNotChargingWithExpectedPowerReasons));
+                }
+            });
+
         await RefreshNotChargingWithExpectedPowerReasons();
     }
 

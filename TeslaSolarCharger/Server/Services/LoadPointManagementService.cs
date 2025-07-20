@@ -438,13 +438,13 @@ public class LoadPointManagementService : ILoadPointManagementService
 
         if (updateSettingsMatches && (!_settings.LatestLoadPointCombinations.SetEquals(matches)))
         {
+            _settings.LatestLoadPointCombinations = matches.ToHashSet();
             var changes = new StateUpdateDto()
             {
                 DataType = DataTypeConstants.LoadPointMatchesChangeTrigger,
                 Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
             };
             await _appStateNotifier.NotifyStateUpdateAsync(changes).ConfigureAwait(false);
-            _settings.LatestLoadPointCombinations = matches.ToHashSet();
         }
         return matches;
     }

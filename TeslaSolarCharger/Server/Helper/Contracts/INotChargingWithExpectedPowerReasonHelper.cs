@@ -7,7 +7,7 @@ public interface INotChargingWithExpectedPowerReasonHelper
     void AddGenericReason(DtoNotChargingWithExpectedPowerReason reason);
     void AddLoadPointSpecificReason(int? carId, int? connectorId, DtoNotChargingWithExpectedPowerReason reason);
 
-    void UpdateReasonsInSettings();
+    Task UpdateReasonsInSettings();
 
     List<DtoNotChargingWithExpectedPowerReason> GetReasons(int? carId, int? connectorId);
 }
