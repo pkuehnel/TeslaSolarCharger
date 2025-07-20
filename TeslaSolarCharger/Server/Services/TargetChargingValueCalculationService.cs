@@ -241,7 +241,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 _logger.LogTrace("Increase current to set from {oldCurrentToSet} as is below min current of {newCurrentToSet}", currentToSet, constraintValues.MinCurrent);
                 currentToSet = constraintValues.MinCurrent.Value;
-                if (constraintValues.ChargeStopAllowedAt != default)
+                if ((constraintValues.ChargeStopAllowedAt != default)
+                    && (constraintValues.IsCharging == true))
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                         new("Waiting for charge stop", constraintValues.ChargeStopAllowedAt));
@@ -265,6 +266,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                         new($"Car side SOC limit is reached. To start charging, the car side SOC limit needs to be at least {_constants.MinimumSocDifference}% higher than the actual SOC."));
+                    return null;
+                }
+                if (constraintValues.IsCarFullyCharged == true
+                    && !loadpoint.ManageChargingPowerByCar)
+                {
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charging stopped by car, e.g. it is full or its charge limit is reached."));
                     return null;
                 }
                 if ((constraintValues.ChargeStartAllowed != true) && (!ignoreTimers))

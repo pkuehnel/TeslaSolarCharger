@@ -350,15 +350,6 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging connector is not plugged in"));
             }
-
-            if (settingsOcppConnectorState.Value.IsCarFullyCharged.Value == true)
-            {
-                var loadPoint = loadPointsToManage.FirstOrDefault(l => l.ChargingConnectorId == settingsOcppConnectorState.Key);
-                if ((loadPoint == default) || (!loadPoint.ManageChargingPowerByCar))
-                {
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging stopped by car, e.g. it is full or its charge limit is reached."));
-                }
-            }
         }
     }
 
