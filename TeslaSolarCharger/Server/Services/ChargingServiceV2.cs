@@ -652,7 +652,12 @@ public class ChargingServiceV2 : IChargingServiceV2
                 _configurationWrapper.HomeGeofenceLongitude(), _configurationWrapper.HomeGeofenceLatitude());
             _logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
             var radius = _configurationWrapper.HomeGeofenceRadius();
+            var wasAtHomeBefore = car.IsHomeGeofence;
             car.IsHomeGeofence = distance < radius;
+            if (wasAtHomeBefore != car.IsHomeGeofence)
+            {
+                await _loadPointManagementService.CarStateChanged(car.Id);
+            }
             car.DistanceToHomeGeofence = (int)distance - radius;
         }
     }
