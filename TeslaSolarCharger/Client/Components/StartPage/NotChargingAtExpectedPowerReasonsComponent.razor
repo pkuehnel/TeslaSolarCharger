@@ -1,5 +1,4 @@
-﻿@using System.Runtime.ExceptionServices
-@using TeslaSolarCharger.Client.Services.Contracts
+﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
 @inject IHomeService HomeService
@@ -109,7 +108,7 @@ else
     {
         base.OnInitialized();
         // Start the countdown timer - updates every second
-        _countdownTimer = new(async (state) =>
+        _countdownTimer = new(async void (_) =>
         {
             try
             {
