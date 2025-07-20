@@ -84,6 +84,14 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .Property(c => c.LatestTimeToReachSoC)
             .HasConversion(localDateTimeConverter);
 
+        modelBuilder.Entity<Car>()
+            .Property(c => c.ChargeMode)
+            .HasDefaultValue(ChargeModeV2.Auto);
+
+        modelBuilder.Entity<OcppChargingStationConnector>()
+            .Property(c => c.ChargeMode)
+            .HasDefaultValue(ChargeModeV2.Auto);
+
         modelBuilder.Entity<ChargePrice>()
             .Property(c => c.EnergyProvider)
             .HasDefaultValue(EnergyProvider.OldTeslaSolarChargerConfig);
