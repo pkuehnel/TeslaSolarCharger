@@ -188,12 +188,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 if (constraintValues.IsCharging == true)
                 {
                     _logger.LogTrace("Stopping charging to allow phase reduction for loadpoint {@loadpoint}", loadpoint);
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Waiting phase switch cooldown time before starting to charge", currentDate + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
                     return new() { StopCharging = true, };
-                }
-                if (constraintValues.LastIsChargingChange > (currentDate - constraintValues.PhaseSwitchCoolDownTime))
-                {
-                    _logger.LogTrace("Waiting cooldown time of {coolDownTime} before starting to charge", loadpoint);
-                    return null;
                 }
                 phasesToUse = 1;
             }
@@ -201,7 +198,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             else if ((currentToSet < constraintValues.MinCurrent)
                      && (phasesToUse != constraintValues.MinPhases.Value)
                      && (constraintValues.PhaseReductionAllowed != true)
-                     && (!ignoreTimers))
+                     && (!ignoreTimers)
+                     && (constraintValues.IsCharging == true)
+                     && (constraintValues.ChargeStopAllowedAt == default))
             {
                 _logger.LogTrace("Loadpoint {@loadpoint} is not charging with expected power as it should reduce phases but is not allowed to do so.", loadpoint);
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
@@ -216,26 +215,24 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 if (constraintValues.IsCharging == true)
                 {
                     _logger.LogTrace("Stopping charging to allow phase increase for loadpoint {@loadpoint}", loadpoint);
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Waiting phase switch cooldown time before starting to charge", currentDate + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
                     return new() { StopCharging = true, };
-                }
-                if (constraintValues.LastIsChargingChange > (currentDate - constraintValues.PhaseSwitchCoolDownTime))
-                {
-                    _logger.LogTrace("Waiting cooldone time of {coolDownTime} before starting to charge", loadpoint);
-                    return null;
                 }
                 phasesToUse = 3;
             }
             else if ((currentToSet > constraintValues.MaxCurrent)
                      && (phasesToUse != constraintValues.MaxPhases.Value)
                      && (constraintValues.PhaseIncreaseAllowed != true)
-                     && (!ignoreTimers))
+                     && (!ignoreTimers)
+                     && (constraintValues.IsCharging == true))
             {
                 _logger.LogTrace("Loadpoint {@loadpoint} is not charging with expected power as it should increase phases but is not allowed to do so.", loadpoint);
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                     new("Waiting for phase increase", constraintValues.PhaseIncreaseAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
             }
-                //recalculate current to set based on phases to use
-                currentToSet = powerToSet * (1m / (loadpoint.EstimatedVoltageWhileCharging.Value * phasesToUse));
+            //recalculate current to set based on phases to use
+            currentToSet = powerToSet * (1m / (loadpoint.EstimatedVoltageWhileCharging.Value * phasesToUse));
 
             if (currentToSet < constraintValues.MinCurrent)
             {
@@ -283,6 +280,15 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     }
                     return null;
                 }
+                if ((constraintValues.PhaseSwitchingEnabled == true)
+                    && (constraintValues.LastIsChargingChange > (currentDate - constraintValues.PhaseSwitchCoolDownTime)))
+                {
+                    _logger.LogTrace("Waitingcool down time of {coolDownTime} before starting to charge", loadpoint);
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Waiting phase switch cooldown time before starting to charge", constraintValues.LastIsChargingChange + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+                    return null;
+                }
+
                 return new()
                 {
                     StartCharging = true,
@@ -449,31 +455,83 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 constraintValues.ChargeStopAllowedAt = chargeStopAllowedAt;
                 if (chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled)
                 {
+                    _logger.LogTrace("Set auto phase switching timers.");
                     DateTimeOffset? phaseReductionAllowedBasedOnThreePhaseHandling = null;
-                    constraintValues.PhaseReductionAllowed = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, true,
-                                                                 out var phaseReductionAllowedBasedOnOnePhaseHandling)
-                                                             && IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, false,
-                                                                 out phaseReductionAllowedBasedOnThreePhaseHandling);
+                    _logger.LogTrace("Starting phase reduction check for connector {connectorId}", connectorId);
+                    _logger.LogTrace("Initial values - currentDate: {currentDate}, timeSpanUntilSwitchOff: {timeSpanUntilSwitchOff}", currentDate, timeSpanUntilSwitchOff);
+                    _logger.LogTrace("CanHandlePowerOnOnePhase: {@canHandlePowerOnOnePhase}", ocppValues.CanHandlePowerOnOnePhase);
+                    _logger.LogTrace("CanHandlePowerOnThreePhase: {@canHandlePowerOnThreePhase}", ocppValues.CanHandlePowerOnThreePhase);
+
+                    var phaseReductionOnePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, true,
+                        out var phaseReductionAllowedBasedOnOnePhaseHandling);
+                    _logger.LogTrace("Phase reduction one phase handling result: {result}, relevantAt: {relevantAt}",
+                        phaseReductionOnePhaseResult, phaseReductionAllowedBasedOnOnePhaseHandling);
+
+                    var phaseReductionThreePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, false,
+                        out phaseReductionAllowedBasedOnThreePhaseHandling);
+                    _logger.LogTrace("Phase reduction three phase handling result: {result}, relevantAt: {relevantAt}",
+                        phaseReductionThreePhaseResult, phaseReductionAllowedBasedOnThreePhaseHandling);
+
+                    constraintValues.PhaseReductionAllowed = phaseReductionOnePhaseResult && phaseReductionThreePhaseResult;
+                    _logger.LogTrace("Phase reduction allowed: {phaseReductionAllowed}", constraintValues.PhaseReductionAllowed);
+
                     if ((constraintValues.PhaseReductionAllowed != true)
                         && (phaseReductionAllowedBasedOnOnePhaseHandling != default)
                         && (phaseReductionAllowedBasedOnThreePhaseHandling != default))
                     {
+                        _logger.LogTrace("Phase reduction not allowed, calculating PhaseReductionAllowedAt");
+                        _logger.LogTrace("OnePhaseHandling date: {onePhase}, ThreePhaseHandling date: {threePhase}",
+                            phaseReductionAllowedBasedOnOnePhaseHandling, phaseReductionAllowedBasedOnThreePhaseHandling);
+
                         constraintValues.PhaseReductionAllowedAt = phaseReductionAllowedBasedOnOnePhaseHandling > phaseReductionAllowedBasedOnThreePhaseHandling
                             ? phaseReductionAllowedBasedOnOnePhaseHandling
                             : phaseReductionAllowedBasedOnThreePhaseHandling;
+
+                        _logger.LogTrace("Setting phase reduction allowed at value for ocppConnector {connectorId} to {phaseReductionAllowedAt}",
+                            connectorId, constraintValues.PhaseReductionAllowedAt);
                     }
+                    else
+                    {
+                        _logger.LogTrace("Skipping PhaseReductionAllowedAt calculation - PhaseReductionAllowed: {allowed}, OnePhaseDate: {onePhase}, ThreePhaseDate: {threePhase}",
+                            constraintValues.PhaseReductionAllowed, phaseReductionAllowedBasedOnOnePhaseHandling, phaseReductionAllowedBasedOnThreePhaseHandling);
+                    }
+
+                    // Phase Increase Logic
                     DateTimeOffset? phaseIncreaseAllowedBasedOnThreePhaseHandling = null;
-                    constraintValues.PhaseIncreaseAllowed = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, false,
-                                                                out var phaseIncreaseAllowedBasedOnOnePhaseHandling)
-                                                             && IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, true,
-                                                                 out phaseIncreaseAllowedBasedOnThreePhaseHandling);
+                    _logger.LogTrace("Starting phase increase check for connector {connectorId}", connectorId);
+
+                    var phaseIncreaseOnePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOn, false,
+                        out var phaseIncreaseAllowedBasedOnOnePhaseHandling);
+                    _logger.LogTrace("Phase increase one phase handling result: {result}, relevantAt: {relevantAt}",
+                        phaseIncreaseOnePhaseResult, phaseIncreaseAllowedBasedOnOnePhaseHandling);
+
+                    var phaseIncreaseThreePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOn, true,
+                        out phaseIncreaseAllowedBasedOnThreePhaseHandling);
+                    _logger.LogTrace("Phase increase three phase handling result: {result}, relevantAt: {relevantAt}",
+                        phaseIncreaseThreePhaseResult, phaseIncreaseAllowedBasedOnThreePhaseHandling);
+
+                    constraintValues.PhaseIncreaseAllowed = phaseIncreaseOnePhaseResult && phaseIncreaseThreePhaseResult;
+                    _logger.LogTrace("Phase increase allowed: {phaseIncreaseAllowed}", constraintValues.PhaseIncreaseAllowed);
+
                     if ((constraintValues.PhaseIncreaseAllowed != true)
                         && (phaseIncreaseAllowedBasedOnOnePhaseHandling != default)
                         && (phaseIncreaseAllowedBasedOnThreePhaseHandling != default))
                     {
+                        _logger.LogTrace("Phase increase not allowed, calculating PhaseIncreaseAllowedAt");
+                        _logger.LogTrace("OnePhaseHandling date: {onePhase}, ThreePhaseHandling date: {threePhase}",
+                            phaseIncreaseAllowedBasedOnOnePhaseHandling, phaseIncreaseAllowedBasedOnThreePhaseHandling);
+
                         constraintValues.PhaseIncreaseAllowedAt = phaseIncreaseAllowedBasedOnOnePhaseHandling > phaseIncreaseAllowedBasedOnThreePhaseHandling
                             ? phaseIncreaseAllowedBasedOnOnePhaseHandling
                             : phaseIncreaseAllowedBasedOnThreePhaseHandling;
+
+                        _logger.LogTrace("Setting phase increase allowed at value for ocppConnector {connectorId} to {phaseIncreaseAllowedAt}",
+                            connectorId, constraintValues.PhaseIncreaseAllowedAt);
+                    }
+                    else
+                    {
+                        _logger.LogTrace("Skipping PhaseIncreaseAllowedAt calculation - PhaseIncreaseAllowed: {allowed}, OnePhaseDate: {onePhase}, ThreePhaseDate: {threePhase}",
+                            constraintValues.PhaseIncreaseAllowed, phaseIncreaseAllowedBasedOnOnePhaseHandling, phaseIncreaseAllowedBasedOnThreePhaseHandling);
                     }
                 }
                 else
@@ -501,24 +559,54 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private bool IsTimeStampedValueRelevantAndFullFilled<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
         TimeSpan timeSpanUntilIsRelevant, T comparator, out DateTimeOffset? relevantAt)
     {
-        _logger.LogTrace("{method}({@timeStampedValue}, {currentDate}, {timeSpanUntilIsRelevant}, {comparator})", nameof(IsTimeStampedValueRelevantAndFullFilled), timeStampedValue, currentDate, timeSpanUntilIsRelevant, comparator);
+        _logger.LogTrace("{method}({@timeStampedValue}, {currentDate}, {timeSpanUntilIsRelevant}, {comparator})",
+            nameof(IsTimeStampedValueRelevantAndFullFilled), timeStampedValue, currentDate, timeSpanUntilIsRelevant, comparator);
+
         var isValueRelevant = IsTimeStampedValueRelevant(timeStampedValue, currentDate, timeSpanUntilIsRelevant, out relevantAt);
-        return isValueRelevant && EqualityComparer<T>.Default.Equals(timeStampedValue.Value, comparator);
+        _logger.LogTrace("IsTimeStampedValueRelevant returned: {isValueRelevant}, relevantAt: {relevantAt}", isValueRelevant, relevantAt);
+
+        var valuesEqual = EqualityComparer<T>.Default.Equals(timeStampedValue.Value, comparator);
+        _logger.LogTrace("Value comparison - timeStampedValue.Value: {value}, comparator: {comparator}, equals: {equals}",
+            timeStampedValue.Value, comparator, valuesEqual);
+
+        var result = isValueRelevant && valuesEqual;
+        _logger.LogTrace("IsTimeStampedValueRelevantAndFullFilled final result: {result}", result);
+
+        return result;
     }
 
     private bool IsTimeStampedValueRelevant<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
         TimeSpan timeSpanUntilIsRelevant, out DateTimeOffset? relevantAt)
     {
+        _logger.LogTrace("{method}({@timeStampedValue}, {currentDate}, {timespanUntilIsRelevant})",
+            nameof(IsTimeStampedValueRelevant), timeStampedValue, currentDate, timeSpanUntilIsRelevant);
+
         relevantAt = null;
+
         if (timeStampedValue.LastChanged == default)
         {
+            _logger.LogTrace("No last changed time set for timestamped value (LastChanged is default), assuming it is relevant.");
             return true; // If no last changed time is set, we assume it is relevant as it might never change when the value is true since startup
         }
-        var isRelevant = timeStampedValue.LastChanged < (currentDate - timeSpanUntilIsRelevant);
+
+        var thresholdDate = currentDate - timeSpanUntilIsRelevant;
+        _logger.LogTrace("Calculating relevance - LastChanged: {lastChanged}, currentDate: {currentDate}, threshold: {threshold}",
+            timeStampedValue.LastChanged, currentDate, thresholdDate);
+
+        var isRelevant = timeStampedValue.LastChanged < thresholdDate;
+
         if (!isRelevant)
         {
+            _logger.LogTrace("TimeStampedValue is not relevant yet (LastChanged >= threshold)");
             relevantAt = timeStampedValue.LastChanged.Value.Add(timeSpanUntilIsRelevant);
+            _logger.LogTrace("Calculated relevantAt: {relevantAt} (LastChanged + timeSpan)", relevantAt);
         }
+        else
+        {
+            _logger.LogTrace("Time stamped value is relevant (LastChanged < threshold)");
+        }
+
+        _logger.LogTrace("IsTimeStampedValueRelevant returning: {isRelevant}", isRelevant);
         return isRelevant;
     }
 }
