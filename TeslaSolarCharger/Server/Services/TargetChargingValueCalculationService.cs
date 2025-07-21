@@ -500,12 +500,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     DateTimeOffset? phaseIncreaseAllowedBasedOnThreePhaseHandling = null;
                     _logger.LogTrace("Starting phase increase check for connector {connectorId}", connectorId);
 
-                    var phaseIncreaseOnePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOff, false,
+                    var phaseIncreaseOnePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOn, false,
                         out var phaseIncreaseAllowedBasedOnOnePhaseHandling);
                     _logger.LogTrace("Phase increase one phase handling result: {result}, relevantAt: {relevantAt}",
                         phaseIncreaseOnePhaseResult, phaseIncreaseAllowedBasedOnOnePhaseHandling);
 
-                    var phaseIncreaseThreePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOff, true,
+                    var phaseIncreaseThreePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnThreePhase, currentDate, timeSpanUntilSwitchOn, true,
                         out phaseIncreaseAllowedBasedOnThreePhaseHandling);
                     _logger.LogTrace("Phase increase three phase handling result: {result}, relevantAt: {relevantAt}",
                         phaseIncreaseThreePhaseResult, phaseIncreaseAllowedBasedOnThreePhaseHandling);
