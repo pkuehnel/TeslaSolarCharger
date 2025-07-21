@@ -193,6 +193,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 if (constraintValues.LastIsChargingChange > (currentDate - constraintValues.PhaseSwitchCoolDownTime))
                 {
                     _logger.LogTrace("Waiting cooldown time of {coolDownTime} before starting to charge", loadpoint);
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Waiting phase switch cooldown time before starting to charge", constraintValues.LastIsChargingChange + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
                     return null;
                 }
                 phasesToUse = 1;
@@ -201,7 +203,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             else if ((currentToSet < constraintValues.MinCurrent)
                      && (phasesToUse != constraintValues.MinPhases.Value)
                      && (constraintValues.PhaseReductionAllowed != true)
-                     && (!ignoreTimers))
+                     && (!ignoreTimers)
+                     && (constraintValues.IsCharging == false))
             {
                 _logger.LogTrace("Loadpoint {@loadpoint} is not charging with expected power as it should reduce phases but is not allowed to do so.", loadpoint);
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
@@ -220,7 +223,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 }
                 if (constraintValues.LastIsChargingChange > (currentDate - constraintValues.PhaseSwitchCoolDownTime))
                 {
-                    _logger.LogTrace("Waiting cooldone time of {coolDownTime} before starting to charge", loadpoint);
+                    _logger.LogTrace("Waitingcool down time of {coolDownTime} before starting to charge", loadpoint);
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Waiting phase switch cooldown time before starting to charge", constraintValues.LastIsChargingChange + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
                     return null;
                 }
                 phasesToUse = 3;
@@ -228,7 +233,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             else if ((currentToSet > constraintValues.MaxCurrent)
                      && (phasesToUse != constraintValues.MaxPhases.Value)
                      && (constraintValues.PhaseIncreaseAllowed != true)
-                     && (!ignoreTimers))
+                     && (!ignoreTimers)
+                     && (constraintValues.IsCharging == true))
             {
                 _logger.LogTrace("Loadpoint {@loadpoint} is not charging with expected power as it should increase phases but is not allowed to do so.", loadpoint);
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
