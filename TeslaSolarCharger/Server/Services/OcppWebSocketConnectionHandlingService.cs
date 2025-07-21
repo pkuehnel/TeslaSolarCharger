@@ -648,8 +648,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
             .ToHashSetAsync().ConfigureAwait(false);
         if (chargingConnectorIds.Count < 1)
         {
-            throw new OcppCallErrorException(CallErrorCode.PropertyConstraintViolation,
-                "The connector ID does not exist for charging station.");
+            if (req.ConnectorId != 0)
+            {
+                throw new OcppCallErrorException(CallErrorCode.PropertyConstraintViolation,
+                    "The connector ID does not exist for charging station.");
+            }
         }
         var latestMeterValue = req.MeterValue.OrderByDescending(m => m.Timestamp).First();
         foreach (var chargingConnectorId in chargingConnectorIds)
