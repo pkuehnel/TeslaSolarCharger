@@ -458,6 +458,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                         && (phaseReductionAllowedBasedOnOnePhaseHandling != default)
                         && (phaseReductionAllowedBasedOnThreePhaseHandling != default))
                     {
+                        _logger.LogTrace("Setting phase reduction allowed at value for ocppConnector {connectorId}.", connectorId);
                         constraintValues.PhaseReductionAllowedAt = phaseReductionAllowedBasedOnOnePhaseHandling > phaseReductionAllowedBasedOnThreePhaseHandling
                             ? phaseReductionAllowedBasedOnOnePhaseHandling
                             : phaseReductionAllowedBasedOnThreePhaseHandling;
@@ -471,6 +472,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                         && (phaseIncreaseAllowedBasedOnOnePhaseHandling != default)
                         && (phaseIncreaseAllowedBasedOnThreePhaseHandling != default))
                     {
+                        _logger.LogTrace("Setting phase increase allowed at value for ocppConnector {connectorId}.", connectorId);
                         constraintValues.PhaseIncreaseAllowedAt = phaseIncreaseAllowedBasedOnOnePhaseHandling > phaseIncreaseAllowedBasedOnThreePhaseHandling
                             ? phaseIncreaseAllowedBasedOnOnePhaseHandling
                             : phaseIncreaseAllowedBasedOnThreePhaseHandling;
@@ -509,16 +511,20 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private bool IsTimeStampedValueRelevant<T>(DtoTimeStampedValue<T> timeStampedValue, DateTimeOffset currentDate,
         TimeSpan timeSpanUntilIsRelevant, out DateTimeOffset? relevantAt)
     {
+        _logger.LogTrace("{method}({@timeStampedValue}, {currentDate}, {timespanUntilIsRelevant})", nameof(IsTimeStampedValueRelevant), timeStampedValue, currentDate, timeSpanUntilIsRelevant);
         relevantAt = null;
         if (timeStampedValue.LastChanged == default)
         {
+            _logger.LogTrace("No last changed time set for timespamped value, assuming it is relevant.");
             return true; // If no last changed time is set, we assume it is relevant as it might never change when the value is true since startup
         }
         var isRelevant = timeStampedValue.LastChanged < (currentDate - timeSpanUntilIsRelevant);
         if (!isRelevant)
         {
+            _logger.LogTrace("TimeStampedValue is not relevant yet");
             relevantAt = timeStampedValue.LastChanged.Value.Add(timeSpanUntilIsRelevant);
         }
+        _logger.LogTrace("Time stamped value is relevant");
         return isRelevant;
     }
 }
