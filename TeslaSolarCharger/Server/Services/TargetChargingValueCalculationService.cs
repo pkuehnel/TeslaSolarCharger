@@ -188,6 +188,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 if (constraintValues.IsCharging == true)
                 {
                     _logger.LogTrace("Stopping charging to allow phase reduction for loadpoint {@loadpoint}", loadpoint);
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Waiting phase switch cooldown time before starting to charge", constraintValues.LastIsChargingChange + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
                     return new() { StopCharging = true, };
                 }
                 phasesToUse = 1;
@@ -213,6 +215,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 if (constraintValues.IsCharging == true)
                 {
                     _logger.LogTrace("Stopping charging to allow phase increase for loadpoint {@loadpoint}", loadpoint);
+                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                        new("Waiting phase switch cooldown time before starting to charge", constraintValues.LastIsChargingChange + constraintValues.PhaseSwitchCoolDownTime + _configurationWrapper.ChargingValueJobUpdateIntervall()));
                     return new() { StopCharging = true, };
                 }
                 phasesToUse = 3;
