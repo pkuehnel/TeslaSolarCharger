@@ -438,7 +438,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             constraintValues.LastIsChargingChange = ocppValues?.IsCharging.LastChanged;
             if ((constraintValues.IsCarFullyCharged == true) && (!useCarToManageChargingSpeed))
             {
-                constraintValues.RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet = ocppValues?.IsCarFullyCharged.LastChanged > ocppValues?.LastSetCurrent.Timestamp;
+                //Only set to max current if is fully charged is longer qual to 2 minutes ago as some cars switch this value on and off very quickly on charge start
+                if (ocppValues?.IsCarFullyCharged.LastChanged < currentDate.AddMinutes(2))
+                {
+                    constraintValues.RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet = ocppValues?.IsCarFullyCharged.LastChanged > ocppValues?.LastSetCurrent.Timestamp;
+                }
             }
             if ((ocppValues != default) && (!useCarToManageChargingSpeed))
             {
