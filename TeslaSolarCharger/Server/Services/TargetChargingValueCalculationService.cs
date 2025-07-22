@@ -438,10 +438,16 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             constraintValues.LastIsChargingChange = ocppValues?.IsCharging.LastChanged;
             if ((constraintValues.IsCarFullyCharged == true) && (!useCarToManageChargingSpeed))
             {
+                _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged}", carId, connectorId, ocppValues?.IsCarFullyCharged);
                 //Only set to max current if is fully charged is longer qual to 2 minutes ago as some cars switch this value on and off very quickly on charge start
                 if (ocppValues?.IsCarFullyCharged.LastChanged < currentDate.AddMinutes(2))
                 {
                     constraintValues.RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet = ocppValues?.IsCarFullyCharged.LastChanged > ocppValues?.LastSetCurrent.Timestamp;
+                    _logger.LogTrace("Set {propertyName} to {propertyValue} on Loadpint (CarId: {carId}, ConnectorId {connectorId}) as is fully charged for more than two minutes", nameof(constraintValues.RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet), constraintValues.RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet, carId, connectorId);
+                }
+                else
+                {
+                    _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged} but last changed is less than 2 minutes ago, so not setting RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet", carId, connectorId, ocppValues?.IsCarFullyCharged);
                 }
             }
             if ((ocppValues != default) && (!useCarToManageChargingSpeed))
