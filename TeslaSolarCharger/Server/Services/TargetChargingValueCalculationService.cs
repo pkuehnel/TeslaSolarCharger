@@ -441,7 +441,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 //Only set to max current if is fully charged is longer qual to 2 minutes ago as some cars switch this value on and off very quickly on charge start
                 if (ocppValues?.IsCarFullyCharged.LastChanged < currentDate.AddMinutes(-2))
                 {
-                    constraintValues.IsCarFullyCharged = ocppValues?.IsCarFullyCharged.LastChanged > ocppValues?.LastSetCurrent.Timestamp;
+                    constraintValues.IsCarFullyCharged = true;
                     _logger.LogTrace("Set {propertyName} to {propertyValue} on Loadpint (CarId: {carId}, ConnectorId {connectorId}) as is fully charged for more than two minutes", nameof(constraintValues.IsCarFullyCharged), constraintValues.IsCarFullyCharged, carId, connectorId);
                 }
                 else
