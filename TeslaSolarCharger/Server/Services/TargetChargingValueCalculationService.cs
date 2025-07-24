@@ -438,7 +438,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if ((ocppValues?.IsCarFullyCharged.Value == true) && (!useCarToManageChargingSpeed))
             {
                 _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged}", carId, connectorId, ocppValues?.IsCarFullyCharged);
-                //Only set to max current if is fully charged is longer equal to 2 minutes ago as some cars switch this value on and off very quickly on charge start
+                //Only set to max current if is fully charged is longer than 2 minutes ago as some cars switch this value on and off very quickly on charge start
                 if (ocppValues?.IsCarFullyCharged.LastChanged < currentDate.AddMinutes(-2))
                 {
                     constraintValues.IsCarFullyCharged = true;
