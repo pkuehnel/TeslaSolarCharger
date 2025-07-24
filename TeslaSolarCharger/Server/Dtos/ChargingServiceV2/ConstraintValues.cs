@@ -25,6 +25,5 @@ public class ConstraintValues
     public bool? IsCharging { get; set; }
     public DateTimeOffset? LastIsChargingChange { get; set; }
     public bool? IsCarFullyCharged { get; set; }
-    public bool? RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet { get; set; }
     public TimeSpan? PhaseSwitchCoolDownTime { get; set; }
 }
