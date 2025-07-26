@@ -202,7 +202,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return maxCacheDate;
     }
 
-    private void SetCacheValue(bool shouldExpire, object value, string key)
+    private void SetCacheValue(bool shouldExpire, object? value, string key)
     {
         var options = new MemoryCacheEntryOptions();
         if (shouldExpire)
@@ -216,17 +216,19 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         memoryCache.Set(key, value, options);
     }
 
-    private MeterValue? GetCachedMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength)
+    private (bool Cached, MeterValue? Value) GetCachedMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength)
     {
+        logger.LogTrace("{method}({meterValueKind}, {hourlyTimeStamp})", nameof(GetCachedMeterValue), meterValueKind, hourlyTimeStamp);
         var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp, sliceLength);
         if (memoryCache.TryGetValue(key, out MeterValue? value))
         {
-            return value;
+            logger.LogTrace("Found cached value for {key}", key);
+            return (true, value);
         }
-        return default;
+        return (false, default);
     }
 
-    private void CacheMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength, MeterValue value)
+    private void CacheMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength, MeterValue? value)
     {
         logger.LogTrace("{method}({meterValueKind}, {hourlyTimeStamp}, {value})",
             nameof(CacheMeterValue), meterValueKind, hourlyTimeStamp, value);
@@ -288,6 +290,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         TimeSpan sliceLength,
         MeterValueKind meterValueKind, CancellationToken cancellationToken)
     {
+        logger.LogTrace("{method}({slicedTimeStamps}, {sliceLength}, {meterValueKind})", nameof(GetMeterEnergyDifferencesAsync), slicedTimeStamps.Count, sliceLength, meterValueKind);
         var createdWh = new Dictionary<DateTimeOffset, int>();
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         var maxDbConcurrency = 5;
@@ -307,9 +310,10 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                 var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
                 var minimumAge = dateTimeOffset - sliceLength;
 
-                var meterValue = GetCachedMeterValue(meterValueKind, dateTimeOffset, sliceLength);
-                if (meterValue == default && currentDate > dateTimeOffset)
+                var (cached, meterValue) = GetCachedMeterValue(meterValueKind, dateTimeOffset, sliceLength);
+                if (!cached && currentDate > dateTimeOffset)
                 {
+                    logger.LogTrace("No cached value found for {meterValueKind} at {dateTimeOffset}, querying database.", meterValueKind, dateTimeOffset);
                     meterValue = await scopedContext.MeterValues
                         .Where(m => m.MeterValueKind == meterValueKind
                                     && m.Timestamp <= dateTimeOffset
@@ -318,10 +322,18 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                         .AsNoTracking()
                         .FirstOrDefaultAsync(cancellationToken);
 
-                    if (meterValue != default && meterValue.Timestamp < GetMaxCacheDate(sliceLength))
+                    // Cache the result regardless of whether it's null or not
+                    if (meterValue != null && dateTimeOffset < GetMaxCacheDate(sliceLength))
+                    {
                         CacheMeterValue(meterValueKind, dateTimeOffset, sliceLength, meterValue);
+                    }
+                    else if(dateTimeOffset < GetMaxCacheDate(sliceLength))
+                    {
+                        // Cache null to indicate confirmed absence (no value in DB)
+                        CacheMeterValue(meterValueKind, dateTimeOffset, sliceLength, null);
+                    }
 
-                    // optional: small delay so you don’t slam the DB in bursts
+                    // Small delay to not slam the DB in bursts
                     await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
                 }
 
