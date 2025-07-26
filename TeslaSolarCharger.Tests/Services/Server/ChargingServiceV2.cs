@@ -6,6 +6,7 @@ using TeslaSolarCharger.Shared.TimeProviding;
 using Xunit;
 using Xunit.Abstractions;
 using static MudBlazor.FilterOperator;
+using DateOnly = System.DateOnly;
 
 namespace TeslaSolarCharger.Tests.Services.Server;
 
