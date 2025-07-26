@@ -53,7 +53,7 @@
         var styleString =
             "position: absolute; " +
             $"left: {leftPosition}; " +
-            "transform: translateX(-50%); " +
+            $"transform: translateX({GetTransformValue(Value)}); " +
             $"bottom: {bottomOffset}; " +
             "white-space: nowrap;";
 
@@ -67,10 +67,24 @@
         var styleString =
             "position: absolute; " +
             $"left: {leftPosition}; " +
-            "transform: translateX(-50%); " +
+            $"transform: translateX({GetTransformValue(BufferValue)}); " +
             $"top: {topOffset}; " +
             "white-space: nowrap;";
 
         return styleString;
+    }
+
+    private string GetTransformValue(double? value)
+    {
+        if (value < 25)
+        {
+            return "0";
+        }
+
+        if (value > 75)
+        {
+            return "-100%";
+        }
+        return "-50%";
     }
 }
