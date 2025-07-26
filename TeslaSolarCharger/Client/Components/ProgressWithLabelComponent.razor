@@ -76,15 +76,11 @@
 
     private string GetTransformValue(double? value)
     {
-        if (value < 25)
+        if (value == null)
         {
-            return "0";
+            return "-50%";
         }
-
-        if (value > 75)
-        {
-            return "-100%";
-        }
-        return "-50%";
+        int negativeInt = -(int)Math.Floor(value.Value);
+        return $"{negativeInt}%";
     }
 }
