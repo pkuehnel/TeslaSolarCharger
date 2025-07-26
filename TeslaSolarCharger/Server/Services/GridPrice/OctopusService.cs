@@ -47,7 +47,7 @@ public class OctopusService : IPriceDataService
         return list
             .Select(x => new Price
             {
-                Value = x.ValueIncVAT / 100,
+                GridPrice = x.ValueIncVAT / 100,
                 ValidFrom = x.ValidFrom,
                 ValidTo = x.ValidTo
             });

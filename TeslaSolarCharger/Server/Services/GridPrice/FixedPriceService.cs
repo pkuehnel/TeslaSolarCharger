@@ -57,7 +57,7 @@ public class FixedPriceService : IFixedPriceService
 
                     result.Add(new Price
                     {
-                        Value = fixedPrice.Value,
+                        GridPrice = fixedPrice.Value,
                         ValidFrom = validFrom,
                         ValidTo = validTo,
                     });

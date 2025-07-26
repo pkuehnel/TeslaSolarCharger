@@ -60,6 +60,8 @@ else
                 @if (carBasicConfiguration.Item.ShouldBeManaged)
                 {
                     <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
+                    <GenericInput For="() => carBasicConfiguration.Item.SwitchOffAtCurrent"></GenericInput>
+                    <GenericInput For="() => carBasicConfiguration.Item.SwitchOnAtCurrent"></GenericInput>
                     <GenericInput For="() => carBasicConfiguration.Item.MaximumAmpere" />
                     <GenericInput For="() => carBasicConfiguration.Item.UsableEnergy" />
                     <GenericInput For="() => carBasicConfiguration.Item.ChargingPriority" />

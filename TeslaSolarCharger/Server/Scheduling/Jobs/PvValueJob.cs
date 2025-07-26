@@ -11,6 +11,6 @@ public class PvValueJob(ILogger<PvValueJob> logger, IPvValueService service, IMe
     {
         logger.LogTrace("{method}({context})", nameof(Execute), context);
         await service.UpdatePvValues().ConfigureAwait(false);
-        meterValueLogService.AddPvValuesToBuffer();
+        await meterValueLogService.AddPvValuesToBuffer().ConfigureAwait(false);
     }
 }

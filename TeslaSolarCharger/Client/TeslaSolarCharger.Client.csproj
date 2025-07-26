@@ -23,18 +23,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blazor-ApexCharts" Version="5.1.0" />
+    <PackageReference Include="Blazor-ApexCharts" Version="6.0.1" />
     <PackageReference Include="Blazored.FluentValidation" Version="2.2.0" />
-    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="8.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="9.0.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.4" PrivateAssets="all" />
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="8.2.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Forms" Version="9.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.7" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.0" />
-    <PackageReference Include="MudBlazor" Version="8.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.7" />
+    <PackageReference Include="MudBlazor" Version="8.10.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\PkSoftwareService.Custom.Backend\PkSoftwareService.Custom.Backend.csproj" />
     <ProjectReference Include="..\Shared\TeslaSolarCharger.Shared.csproj" />
   </ItemGroup>
 
@@ -48,7 +51,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Components\BackendInformationDisplayComponent.razor">
+    <Content Update="Components\StartPage\BackendInformationDisplayComponent.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
   </ItemGroup>

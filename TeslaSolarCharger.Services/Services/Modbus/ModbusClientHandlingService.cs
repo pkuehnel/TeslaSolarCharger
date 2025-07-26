@@ -9,7 +9,7 @@ namespace TeslaSolarCharger.Services.Services.Modbus;
 
 public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService, IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, (IModbusTcpClient client, RetryInfo? retryInfo, SemaphoreSlim semaphoreSlim)> _modbusClients = new();
+    private readonly ConcurrentDictionary<string, ModbusClientElement> _modbusClients = new();
 
     private readonly TimeSpan _initialBackoff = TimeSpan.FromSeconds(16);
     private readonly TimeSpan _maxBackoffDuration = TimeSpan.FromHours(5);
@@ -20,6 +20,19 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         public int RetryCount { get; set; }
         public DateTime LastAttemptTime { get; set; }
         public TimeSpan NextBackoffDelay { get; set; }
+    }
+
+    private class ModbusClientElement
+    {
+        public IModbusTcpClient client;
+        public RetryInfo? retryInfo;
+        public SemaphoreSlim semaphoreSlim;
+        public ModbusClientElement(IModbusTcpClient client, RetryInfo? retryInfo, SemaphoreSlim semaphoreSlim)
+        {
+            this.client = client;
+            this.retryInfo = retryInfo;
+            this.semaphoreSlim = semaphoreSlim;
+        }
     }
 
     public async Task<byte[]> GetByteArray(byte unitIdentifier, string host, int port, ModbusEndianess endianess, TimeSpan connectDelay, TimeSpan readTimeout,
@@ -55,7 +68,6 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         catch (Exception ex)
         {
             logger.LogError(ex, "Error while getting byte array from Modbus TCP client for host {host} and port {port}. Remove client.", host, port);
-            await RemoveClient(host, port);
             IncrementRetryCount(host, port);
             throw;
         }
@@ -129,7 +141,6 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
             RetryCount = 0,
             NextBackoffDelay = _initialBackoff,
         };
-        _modbusClients[key] = (element.client, element.retryInfo, element.semaphoreSlim);
 
         element.retryInfo.RetryCount++;
         element.retryInfo.LastAttemptTime = DateTime.UtcNow;
@@ -151,7 +162,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         var key = CreateModbusTcpClientKey(host, port);
         if (_modbusClients.TryGetValue(key, out var element) && element.retryInfo != null)
         {
-            _modbusClients[key] = (element.client, null, element.semaphoreSlim);
+            element.retryInfo = null;
             logger.LogInformation("Reset retry count for {host}:{port} after successful operation", host, port);
         }
     }
@@ -190,7 +201,9 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
             {
                 if (!element.client.IsConnected)
                 {
-                    logger.LogTrace("Modbus client not connected, try to connect.");
+                    logger.LogTrace("Modbus client not connected, create new client.");
+                    element.client.Dispose();
+                    element.client = serviceProvider.GetRequiredService<IModbusTcpClient>();
                     await ConnectModbusClient(element.client, ipAddress, port, endianess, connectDelay, connectTimeout);
                 }
 
@@ -205,7 +218,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         logger.LogTrace("Did not find Modbus client, create new one.");
         var client = serviceProvider.GetRequiredService<IModbusTcpClient>();
         var semaphoreSlim = new SemaphoreSlim(1, 1);
-        if (!_modbusClients.TryAdd(key, (client, null, semaphoreSlim)))
+        if (!_modbusClients.TryAdd(key, new(client, null, semaphoreSlim)))
         {
             throw new InvalidOperationException($"Looks like a modbus client with key {key} has been added in the meantime.");
         }

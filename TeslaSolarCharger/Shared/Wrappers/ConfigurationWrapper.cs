@@ -109,6 +109,16 @@ public class ConfigurationWrapper(
         return path;
     }
 
+    public string LogFilesDirectory()
+    {
+        var environmentVariableName = "LogFilesLocation";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        var path = new FileInfo(Assembly.GetExecutingAssembly().Location).Directory?.FullName;
+        path = Path.Combine(path ?? throw new InvalidOperationException("Could not get Assembly directory"), value);
+        return path;
+    }
+
     public string GetAwattarBaseUrl()
     {
         var environmentVariableName = "AwattarBaseUrl";
@@ -126,6 +136,20 @@ public class ConfigurationWrapper(
     public bool ShouldUseFakeSolarValues()
     {
         var environmentVariableName = "ShouldUseFakeSolarValues";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
+    public bool UseFakeEnergyPredictions()
+    {
+        var environmentVariableName = "UseFakeEnergyPredictions";
+        var value = configuration.GetValue<bool>(environmentVariableName);
+        return value;
+    }
+
+    public bool UseFakeEnergyHistory()
+    {
+        var environmentVariableName = "UseFakeEnergyHistory";
         var value = configuration.GetValue<bool>(environmentVariableName);
         return value;
     }
@@ -158,9 +182,32 @@ public class ConfigurationWrapper(
         return TimeSpan.FromSeconds(value);
     }
 
+    public TimeSpan MaxPluggedInTimeDifferenceToMatchCarAndOcppConnector()
+    {
+        var environmentVariableName = "MaxPluggedInTimeDifferenceToMatchCarAndOcppConnectorSeconds";
+        var value = configuration.GetValue<int>(environmentVariableName);
+        return TimeSpan.FromSeconds(value);
+    }
+
+    public TimeSpan SkipPowerChangesOnLastAdjustmentNewerThan()
+    {
+        var value = GetBaseConfiguration().SkipPowerChangesOnLastAdjustmentNewerThanSeconds;
+        if (value <= 0)
+        {
+            value = 30; // Default to 60 seconds if not set
+        }
+        return TimeSpan.FromSeconds(value);
+    }
+
     public bool IsPredictSolarPowerGenerationEnabled()
     {
         var value = GetBaseConfiguration().PredictSolarPowerGeneration;
+        return value;
+    }
+
+    public bool UsePredictedSolarPowerGenerationForChargingSchedules()
+    {
+        var value = GetBaseConfiguration().UsePredictedSolarPowerGenerationForChargingSchedules;
         return value;
     }
 
@@ -542,6 +589,11 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().HomeBatteryPowerCorrectionFactor;
     }
 
+    public bool DynamicHomeBatteryMinSoc()
+    {
+        return GetBaseConfiguration().DynamicHomeBatteryMinSoc == true;
+    }
+
     public int? HomeBatteryMinSoc()
     {
         return GetBaseConfiguration().HomeBatteryMinSoc;
@@ -550,6 +602,15 @@ public class ConfigurationWrapper(
     public int? HomeBatteryChargingPower()
     {
         return GetBaseConfiguration().HomeBatteryChargingPower;
+    }
+
+    /// <summary>
+    /// Value is in Wh
+    /// </summary>
+    /// <returns></returns>
+    public int? HomeBatteryUsableEnergy()
+    {
+        return GetBaseConfiguration().HomeBatteryUsableEnergy == default ? null : (int?)(GetBaseConfiguration().HomeBatteryUsableEnergy * 1000);
     }
 
     public int? MaxInverterAcPower()
@@ -851,6 +912,7 @@ public class ConfigurationWrapper(
         var jsonFileContent = cache[_baseConfigurationMemoryCacheName] as string;
         if (jsonFileContent == null)
         {
+            logger.LogTrace("BaseConfigurationJson not found in cache, reading from file.");
             var filePath = BaseConfigFileFullName();
             var cacheItemPolicy = new CacheItemPolicy();
             var filePathList = new List<string>()

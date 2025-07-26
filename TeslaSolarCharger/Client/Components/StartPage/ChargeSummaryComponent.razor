@@ -1,0 +1,69 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.ChargingCost
+@using TeslaSolarCharger.Shared.Resources.Contracts
+
+@inject IConstants Constants
+@inject IHomeService HomeService
+
+
+@if (_chargeSummary == default)
+{
+    <PlaceholderComponent Count="5"></PlaceholderComponent>
+}
+else
+{
+    <div class="d-flex align-items-center mb-1">
+        <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
+        <TooltipComponent Text="Total charged solar energy">
+            @_chargeSummary.ChargedSolarEnergy.ToString("0.00") kWh (@_chargeSummary.SolarPortionPercent.ToString("0.0") %)
+        </TooltipComponent>
+    </div>
+    @if (_chargeSummary.ChargedHomeBatteryEnergy > 0)
+    {
+        <div class="d-flex align-items-center mb-1">
+            <MudIcon Class="mr-1" Icon="@Icons.Material.Filled.BatteryFull"></MudIcon>
+            <TooltipComponent Text="Total charged home battery energy">
+                @_chargeSummary.ChargedHomeBatteryEnergy.ToString("0.00") kWh (@_chargeSummary.HomeBatteryPortionPercent.ToString("0.0") %)
+            </TooltipComponent>
+        </div>
+    }
+
+    <div class="d-flex align-items-center mb-1">
+        <MudIcon Class="mr-1" Icon="@Constants.GridPoleIcon"></MudIcon>
+        <TooltipComponent Text="Total charged grid energy">
+            @_chargeSummary.ChargedGridEnergy.ToString("0.00") kWh (@((100 - _chargeSummary.SolarPortionPercent - _chargeSummary.HomeBatteryPortionPercent).ToString("0.0")) %)
+        </TooltipComponent>
+    </div>
+    <div class="d-flex align-items-center mb-1">
+        <span class="material-symbols-outlined">
+            attach_money
+        </span>
+        <TooltipComponent Text="Total Charge cost. Note: The charge costs are also autoupdated in the charges you find in TeslaMate. This update can take up to 10 minutes after a charge is completed.">
+            <a href="@($"HandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}")">@_chargeSummary.ChargeCost.ToString("0.00") (@(_chargeSummary.AverageEnergyPrice.ToString("0.000")) per kWh)</a>
+        </TooltipComponent>
+    </div>
+}
+
+
+@code {
+    [Parameter]
+    public int? CarId { get; set; }
+
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
+
+    private DtoChargeSummary? _chargeSummary;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await RefreshChargeSummary();
+    }
+
+    private async Task RefreshChargeSummary()
+    {
+        _chargeSummary = default;
+        _chargeSummary = await HomeService.GetChargeSummary(CarId, ChargingConnectorId);
+    }
+
+}

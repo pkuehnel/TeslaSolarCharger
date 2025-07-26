@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Spi;
 using TeslaSolarCharger.Server.Scheduling.Jobs;
@@ -57,6 +56,7 @@ public class JobManager(
         var fleetTelemetryReconfigurationJob = JobBuilder.Create<FleetTelemetryReconfigurationJob>().WithIdentity(nameof(FleetTelemetryReconfigurationJob)).Build();
         var weatherDataRefreshJob = JobBuilder.Create<WeatherDataRefreshJob>().WithIdentity(nameof(WeatherDataRefreshJob)).Build();
         var meterValueDatabaseSaveJob = JobBuilder.Create<MeterValueDatabaseSaveJob>().WithIdentity(nameof(MeterValueDatabaseSaveJob)).Build();
+        var homeBatteryMinSocRefreshJob = JobBuilder.Create<HomeBatteryMinSocRefreshJob>().WithIdentity(nameof(HomeBatteryMinSocRefreshJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
         var chargingTriggerStartTime = currentDate.AddSeconds(5);
@@ -145,6 +145,11 @@ public class JobManager(
         var meterValueDatabaseSaveTrigger = TriggerBuilder.Create().WithIdentity("meterValueDatabaseSaveTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.MeterValueDatabaseSaveIntervalMinutes)).Build();
 
+        var homeBatteryMinSocRefreshTrigger = TriggerBuilder.Create().WithIdentity("homeBatteryMinSocRefreshTrigger")
+            //Delay refresh to reduce initial load as many services try to calculate expcted home power and solar values
+            .StartAt(currentDate.Add(TimeSpan.FromMinutes(7)))
+            .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.HomeBatteryMinSocRefreshIntervalMinutes)).Build();
+
         var random = new Random();
         var hour = random.Next(0, 5);
         var minute = random.Next(0, 59);
@@ -172,6 +177,7 @@ public class JobManager(
             {fleetTelemetryReconfigurationJob, new HashSet<ITrigger> {fleetTelemetryReconfigurationTrigger}},
             {weatherDataRefreshJob, new HashSet<ITrigger> {weatherDataRefreshTrigger}},
             {meterValueDatabaseSaveJob, new HashSet<ITrigger> {meterValueDatabaseSaveTrigger}},
+            {homeBatteryMinSocRefreshJob, new HashSet<ITrigger> {homeBatteryMinSocRefreshTrigger}},
         };
 
         if (!configurationWrapper.ShouldUseFakeSolarValues())

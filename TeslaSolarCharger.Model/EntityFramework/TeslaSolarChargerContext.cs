@@ -33,25 +33,19 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<CarValueLog> CarValueLogs { get; set; } = null!;
     public DbSet<MeterValue> MeterValues { get; set; } = null!;
     public DbSet<SolarRadiation> SolarRadiations { get; set; } = null!;
+    public DbSet<OcppChargingStation> OcppChargingStations { get; set; } = null!;
+    public DbSet<OcppChargingStationConnector> OcppChargingStationConnectors { get; set; } = null!;
+    public DbSet<OcppTransaction> OcppTransactions { get; set; } = null!;
+    public DbSet<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; } = null!;
+    public DbSet<CarChargingTarget> CarChargingTargets { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
-    public void RejectChanges()
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
-        foreach (var entry in ChangeTracker.Entries())
-        {
-            switch (entry.State)
-            {
-                case EntityState.Modified:
-                case EntityState.Deleted:
-                    entry.State = EntityState.Modified; //Revert changes made to deleted entity.
-                    entry.State = EntityState.Unchanged;
-                    break;
-                case EntityState.Added:
-                    entry.State = EntityState.Detached;
-                    break;
-            }
-        }
+        //Workaround for https://github.com/dotnet/efcore/issues/29514
+        await Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000;", cancellationToken: cancellationToken);
+        return await base.SaveChangesAsync(cancellationToken);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -68,7 +62,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         {
             foreach (var property in entityType.GetProperties())
             {
-                
+
                 if (entityType.ClrType == typeof(Car) && property.Name == nameof(Car.LatestTimeToReachSoC))
                 {
                     continue;
@@ -89,6 +83,14 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<Car>()
             .Property(c => c.LatestTimeToReachSoC)
             .HasConversion(localDateTimeConverter);
+
+        modelBuilder.Entity<Car>()
+            .Property(c => c.ChargeMode)
+            .HasDefaultValue(ChargeModeV2.Auto);
+
+        modelBuilder.Entity<OcppChargingStationConnector>()
+            .Property(c => c.ChargeMode)
+            .HasDefaultValue(ChargeModeV2.Auto);
 
         modelBuilder.Entity<ChargePrice>()
             .Property(c => c.EnergyProvider)
@@ -121,10 +123,19 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             c => c.ToList() // Makes a snapshot copy
         );
 
-        var dateTimeOffsetToEpochMilliSecondsConverter = new ValueConverter<DateTimeOffset, long>(
-            v => v.ToUnixTimeMilliseconds(),
-            v => DateTimeOffset.FromUnixTimeMilliseconds(v)
+        var dateTimeOffsetToEpochMilliSecondsConverter = new ValueConverter<DateTimeOffset?, long?>(
+            v => v == default ? default : v.Value.ToUnixTimeMilliseconds(),
+            v => v == default ? default : DateTimeOffset.FromUnixTimeMilliseconds(v.Value)
             );
+
+        var timeOnlyToMillisecondsOfDayConverter = new ValueConverter<TimeOnly?, long?>(
+            v => v == default ? default : (long)v.Value.ToTimeSpan().TotalMilliseconds,
+            v => v == default ? default : TimeOnly.FromTimeSpan(TimeSpan.FromMilliseconds(v.Value, 0)));
+
+        var dateOnlyToEpochMilliSecondsConverter = new ValueConverter<DateOnly?, long?>(
+            v => v == default ? default : new DateTimeOffset(v.Value, TimeOnly.MinValue, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+            v => v == default ? default : DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeMilliseconds(v.Value).Date)
+        );
 
         modelBuilder.Entity<MeterValue>()
             .Property(m => m.Timestamp)
@@ -142,6 +153,25 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .Property(m => m.CreatedAt)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 
+        modelBuilder.Entity<OcppTransaction>()
+            .Property(m => m.StartDate)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<OcppTransaction>()
+            .Property(m => m.EndDate)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<CarChargingTarget>()
+            .Property(m => m.TargetTime)
+            .HasConversion(timeOnlyToMillisecondsOfDayConverter);
+
+        modelBuilder.Entity<CarChargingTarget>()
+            .Property(m => m.TargetDate)
+            .HasConversion(dateOnlyToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<CarChargingTarget>()
+            .Property(m => m.LastFulFilled)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 
         modelBuilder.Entity<LoggedError>()
             .Property(e => e.FurtherOccurrences)

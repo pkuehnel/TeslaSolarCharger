@@ -1,11 +1,23 @@
-﻿@for (var i = 0; i < Count; i++)
-{
-    <MudSkeleton />
-}
+﻿<div class="@Class">
+    @for (var i = 0; i < Count; i++)
+    {
+        <MudSkeleton Height="@Height" Width="@Width" />
+    }
+</div>
+
+
 
 @code {
 
     [Parameter]
     public int Count { get; set; } = 1;
 
+    [Parameter]
+    public string? Height { get; set; }
+
+    [Parameter]
+    public string? Width { get; set; } = "100%";
+
+    [Parameter]
+    public string? Class { get; set; }
 }

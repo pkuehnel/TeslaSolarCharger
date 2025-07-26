@@ -1,9 +1,10 @@
 ﻿using Microsoft.JSInterop;
+using MudBlazor;
 using TeslaSolarCharger.Client.Helper.Contracts;
 
-namespace Lysando.LabStorageV2.UiHelper.Wrapper;
+namespace TeslaSolarCharger.Client.Helper;
 
-public class JavaScriptWrapper(IJSRuntime jsRuntime) : IJavaScriptWrapper
+public class JavaScriptWrapper(IJSRuntime jsRuntime, ISnackbar snackbar) : IJavaScriptWrapper
 {
     /// <summary>
     /// Sets the focus to an element with a specific ID
@@ -49,6 +50,26 @@ public class JavaScriptWrapper(IJSRuntime jsRuntime) : IJavaScriptWrapper
         catch (Exception)
         {
             return false;
+        }
+    }
+
+    public async Task<string> GetTimeZoneId()
+    {
+        var timeZone = await jsRuntime.InvokeAsync<string>("getTimeZone");
+        return timeZone;
+    }
+
+    public async Task CopyStringToClipboard(string inputString)
+    {
+        try
+        {
+            await jsRuntime.InvokeVoidAsync("copyToClipboard", inputString);
+            snackbar.Add("Copied to clipboard.", Severity.Success);
+            
+        }
+        catch (Exception e)
+        {
+            snackbar.Add("Failed to copy to clipboard.", Severity.Error);
         }
     }
 }
