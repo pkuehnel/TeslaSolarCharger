@@ -327,7 +327,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                     {
                         CacheMeterValue(meterValueKind, dateTimeOffset, sliceLength, meterValue);
                     }
-                    else if(dateTimeOffset < GetMaxCacheDate(sliceLength))
+                    else if (dateTimeOffset < GetMaxCacheDate(sliceLength))
                     {
                         // Cache null to indicate confirmed absence (no value in DB)
                         CacheMeterValue(meterValueKind, dateTimeOffset, sliceLength, null);
