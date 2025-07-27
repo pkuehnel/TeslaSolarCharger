@@ -262,6 +262,10 @@ public class ConfigJsonService(
         databaseCar.UseBle = carBasicConfiguration.UseBle;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
+        if (carBasicConfiguration.UseFleetTelemetry)
+        {
+            databaseCar.IsFleetTelemetryHardwareIncompatible = false;
+        }
         databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
         databaseCar.HomeDetectionVia = carBasicConfiguration.HomeDetectionVia;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);

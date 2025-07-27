@@ -223,8 +223,9 @@ public class BackendApiService(
             .OrderByDescending(n => n.BackendIssueId)
             .Select(n => n.BackendIssueId)
             .FirstOrDefaultAsync().ConfigureAwait(false);
-        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
-        var result = await SendRequestToBackend<List<DtoBackendNotification>>(HttpMethod.Get, token.AccessToken,
+        //for notifications allow anonymous access but may be helpful to know the user, so add the token if available
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        var result = await SendRequestToBackend<List<DtoBackendNotification>>(HttpMethod.Get, token?.AccessToken,
             $"Client/GetBackendNotifications?lastKnownNotificationId={lastKnownNotificationId}", null);
         if (result.HasError)
         {
