@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 using PkSoftwareService.Custom.Backend;
 using Serilog;
 using Serilog.Context;
@@ -7,13 +8,16 @@ using Serilog.Core;
 using Serilog.Events;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Reflection;
+using TeslaSolarCharger.Client.Contracts;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server;
+using TeslaSolarCharger.Server.Components;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Middlewares;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.ServerValidators;
+using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Services;
@@ -31,7 +35,8 @@ var configurationManager = builder.Configuration;
 builder.Services.AddControllersWithViews();
 builder.Services.AddControllers(options => options.Filters.Add<ApiExceptionFilterAttribute>())
     .AddNewtonsoftJson();
-builder.Services.AddRazorPages();
+builder.Services.AddRazorComponents()
+    .AddInteractiveWebAssemblyComponents();
 builder.Services.AddSignalR();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -46,6 +51,8 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddMyDependencies();
 builder.Services.AddSharedDependencies();
 builder.Services.AddServicesDependencies();
+builder.Services.AddMudServices();
+builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
@@ -70,7 +77,7 @@ var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Verbose()// overall minimum
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
     .MinimumLevel.Override("System", LogEventLevel.Error)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
@@ -118,11 +125,14 @@ if (configurationWrapper.AllowCors())
         .AllowCredentials()); // allow credentials
 }
 
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
+app.UseAntiforgery();
+
+app.MapStaticAssets();
+app.MapRazorComponents<App>()
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddAdditionalAssemblies(typeof(TeslaSolarCharger.Client._Imports).Assembly);
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseRouting();
 
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -143,10 +153,8 @@ app.UseWhen(
 );
 
 app.UseWebSockets();
-app.MapRazorPages();
 app.MapControllers();
 app.MapHub<AppStateHub>("/appStateHub");
-app.MapFallbackToFile("index.html");
 
 app.Run();
 
