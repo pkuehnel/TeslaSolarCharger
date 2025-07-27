@@ -1,5 +1,7 @@
 ﻿@using TeslaSolarCharger.Client.Contracts
+@using TeslaSolarCharger.Client.Helper.Contracts
 @inject IIsStartupCompleteChecker IsStartupCompleteChecker
+@inject IJSRuntime JsRuntime
 
 @if (_isStartupCompleted != false)
 {
@@ -21,6 +23,12 @@ else
     </div>
 }
 
+<script>
+    function hideElementById(id) {
+        var element = document.getElementById(id);
+        element.style.display = "none";
+    }
+</script>
 
 @code
 {
@@ -28,6 +36,16 @@ else
     protected override async Task OnInitializedAsync()
     {
         AutoRefreshPageUntilStartupCompleted();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            await JsRuntime.InvokeAsync<object>("hideElementById", "loading-message");
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task AutoRefreshPageUntilStartupCompleted()
