@@ -18,9 +18,9 @@ else
     <div>
         <MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" />
         @ChargingConnectorSettings.Name
-        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)" TooltipText="connected via OCPP"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)" TooltipText="charging"></CustomIcon>
         
         @if (CarId != default)
         {
