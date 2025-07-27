@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-	<ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+    <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,14 +13,6 @@
     <Content Remove="Components\Dialogs\**" />
     <EmbeddedResource Remove="Components\Dialogs\**" />
     <None Remove="Components\Dialogs\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Components\TooltipComponent.razor.css" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Components\TooltipComponent.razor.css" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,18 +35,9 @@
   </ItemGroup>
 
   <ItemGroup>
-  	<ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Enums\" />
+    <Folder Include="Contracts\" />
     <Folder Include="Wrapper\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Update="Components\StartPage\BackendInformationDisplayComponent.razor">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
   </ItemGroup>
 
 </Project>

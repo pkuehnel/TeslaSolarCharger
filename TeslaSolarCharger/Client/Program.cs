@@ -1,5 +1,4 @@
 using ApexCharts;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
 using MudBlazor.Services;
@@ -7,7 +6,7 @@ using MudExtensions.Services;
 using PkSoftwareService.Custom.Backend;
 using Serilog;
 using Serilog.Events;
-using TeslaSolarCharger.Client;
+using TeslaSolarCharger.Client.Contracts;
 using TeslaSolarCharger.Client.Helper;
 using TeslaSolarCharger.Client.Helper.Contracts;
 using TeslaSolarCharger.Client.Services;
@@ -20,8 +19,6 @@ using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
-builder.RootComponents.Add<App>("#app");
-builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 //builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri("http://192.168.1.50:7190/") });
@@ -34,6 +31,7 @@ builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckSer
 builder.Services.AddScoped<IEnergyDataService, EnergyDataService>();
 builder.Services.AddScoped<IChargingStationsService, ChargingStationsService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
+builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>();
 builder.Services.AddSingleton<IEntityKeyGenerationHelper, EntityKeyGenerationHelper>();
 builder.Services.AddTransient<IChartWidthCalculator, ChartWidthCalculator>();
 builder.Services.AddTransient<IApexChartHelper, ApexChartHelper>();

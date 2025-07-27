@@ -1,19 +1,13 @@
-﻿@using TeslaSolarCharger.Shared.Dtos
-@inject HttpClient HttpClient
+﻿@using TeslaSolarCharger.Client.Contracts
+@inject IIsStartupCompleteChecker IsStartupCompleteChecker
 
-@if(_isStartupCompleted != false)
+@if (_isStartupCompleted != false)
 {
-    <Router AppAssembly="@typeof(App).Assembly">
+    <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
-            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Shared.MainLayout)"/>
+            <FocusOnNavigate RouteData="routeData" Selector="h1"/>
         </Found>
-        <NotFound>
-            <PageTitle>Not found</PageTitle>
-            <LayoutView Layout="@typeof(MainLayout)">
-                <p role="alert">Sorry, there's nothing at this address.</p>
-            </LayoutView>
-        </NotFound>
     </Router>
 }
 else
@@ -25,8 +19,6 @@ else
             <div>TeslaSolarCharger is starting up. Depending on your device and the size of your database, this can take up to 15 minutes after an update. Do not restart the container as this might damage the database. For further information, check the logs. After the startup is finished, the page will reload automatically.</div>
         </div>
     </div>
-    
-    
 }
 
 
@@ -41,7 +33,7 @@ else
     private async Task AutoRefreshPageUntilStartupCompleted()
     {
         await RefreshIsStartupCompleted();
-        if(_isStartupCompleted != true)
+        if (_isStartupCompleted != true)
         {
             StateHasChanged();
             await Task.Delay(TimeSpan.FromSeconds(2));
@@ -52,6 +44,6 @@ else
 
     private async Task RefreshIsStartupCompleted()
     {
-        _isStartupCompleted = (await HttpClient.GetFromJsonAsync<DtoValue<bool>>("api/Hello/IsStartupCompleted"))?.Value;
+        _isStartupCompleted = await IsStartupCompleteChecker.IsStartupCompleteAsync();
     }
 }

@@ -1,0 +1,51 @@
+﻿@using TeslaSolarCharger.Client
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <base href="/" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link href=@Assets["_content/MudBlazor/MudBlazor.min.css"] rel="stylesheet" />
+    <link href=@Assets["_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.css"] rel="stylesheet" />
+    <link href=@Assets["css/bootstrap/bootstrap.min.css"] rel="stylesheet" />
+    <link href=@Assets["css/app.css"] rel="stylesheet" />
+    <link href=@Assets["TeslaSolarCharger.Server.styles.css"] rel="stylesheet" />
+    <link href=@Assets["manifest.json"] rel="manifest" />
+    <link href=@Assets["icon-512.png"] sizes="512x512" rel="apple-touch-icon" />
+    <link href=@Assets["icon-192.png"] sizes="192x192" rel="apple-touch-icon" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.ico" />
+    <HeadOutlet @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+</head>
+
+<body>
+
+    <Routes @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+    <script src=@Assets["_framework/blazor.webassembly.js"]></script>
+    <script src=@Assets["js/fileDownload.js"]></script>
+    <script src=@Assets["js/textAreaLineCount.js"]></script>
+    <script src=@Assets["js/copyToClipboard.js"]></script>
+    <script src=@Assets["js/javaScriptWrapperFunctions_1.0.js"]></script>
+    <script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
+    <script src=@Assets["_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.js"]></script>
+    <script src=@Assets["js/map.js"]></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+    <script>
+        window.registerViewportChangeCallback = (dotnetHelper) => {
+            window.addEventListener('load', () => {
+                dotnetHelper.invokeMethodAsync('OnResize', window.innerWidth, window.innerHeight);
+            });
+            window.addEventListener('resize', () => {
+                dotnetHelper.invokeMethodAsync('OnResize', window.innerWidth, window.innerHeight);
+            });
+        }
+    </script>
+</body>
+
+</html>
+

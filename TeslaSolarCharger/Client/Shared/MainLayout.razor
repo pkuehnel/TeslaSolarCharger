@@ -1,13 +1,6 @@
 ﻿@inherits LayoutComponentBase
-@using TeslaSolarCharger.Client.Helper
-@using TeslaSolarCharger.Client.Helper.Contracts
-@using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Resources.Contracts
-@implements IDisposable
 
-@inject IJSRuntime JsRuntime
-@inject ISnackbar Snackbar
-@inject IHttpClientHelper HttpClientHelper
 @inject IConstants Constants
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
@@ -32,12 +25,15 @@
     </main>
 </div>
 
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
 @code
 {
     private MudThemeProvider? _mudThemeProvider;
-
-    private string? _version;
-    PeriodicTaskHelper? _periodicTaskHelper;
 
     private MudTheme? _tscTheme;
 
@@ -52,40 +48,5 @@
                 AppbarBackground = Constants.PrimaryColor, // or a const you define
             },
         };
-        _periodicTaskHelper = new();
-        _periodicTaskHelper.Start(CheckVersion, TimeSpan.FromSeconds(30));
-    }
-
-    private async Task CheckVersion()
-    {
-        try
-        {
-            var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string?>>("api/Hello/ProductVersion");
-            if (result.HasError)
-            {
-                return;
-            }
-            var version = result.Data?.Value;
-            if (!string.IsNullOrEmpty(_version) && version != _version)
-            {
-                var reloadTimeout = TimeSpan.FromSeconds(10);
-                Snackbar.Add($"New backend version detected. Page will autoreload in {reloadTimeout.TotalSeconds} seconds", Severity.Warning, config => { config.VisibleStateDuration = (int)reloadTimeout.TotalMilliseconds; });
-                await Task.Delay(reloadTimeout);
-                await JsRuntime.InvokeVoidAsync("location.reload");
-            }
-
-            _version = version;
-        }
-        catch (Exception ex)
-        {
-            return;
-        }
-
-        
-    }
-
-    public void Dispose()
-    {
-        _periodicTaskHelper?.Dispose();
     }
 }
