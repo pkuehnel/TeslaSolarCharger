@@ -1,4 +1,5 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
@@ -8,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject ISignalRStateService SignalRStateService
 @inject ILogger<CarDetailsComponent> Logger
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 @if (CarSettings == default || CarState == default)
 {
@@ -18,24 +20,35 @@ else
     <div>
         <CustomIcon IconName="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
         <span class="me-1">@CarSettings.Name</span>
-        <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText="at home"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText="charging"></CustomIcon>
     </div>
     <div>
-        <GenericInput T="ChargeModeV2"
-                      For="() => CarSettings.ChargeMode"
-                      OnValueChanged="ChargeModeUpdated"/>
+        <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+                <GenericInput T="ChargeModeV2"
+                              For="() => CarSettings.ChargeMode"
+                              OnValueChanged="ChargeModeUpdated"/>
+            </div>
+            <div class="mx-2 flex-grow-0">
+                <MudIconButton Icon="@Icons.Material.Outlined.Info"
+                               Color="Color.Primary"
+                               OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab("https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#charge-modes"))" />
+            </div>
+        </div>
+        
         @if (CarSettings.ChargeMode == ChargeModeV2.Auto)
         {
             <div class="row">
-                <div class="col-6">
+                <div class="col-12 col-md-6">
                     <GenericInput T="int?"
                                   For="() => CarSettings.MinSoc"
                                   OnValueChanged="OnMinSocChanged"
                                   ImmediateValueUpdate="true"/>
+
                 </div>
-                <div class="col-6">
+                <div class="col-12 col-md-6">
                     <GenericInput T="int?"
                                   For="() => CarSettings.MaxSoc"
                                   OnValueChanged="OnMaxSocChanged"
@@ -45,6 +58,9 @@ else
         }
         else if (CarSettings.ChargeMode == ChargeModeV2.Manual)
         {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                You need to manually wake up the car and start charging via the Tesla app. You can only change the current here.
+            </MudAlert>
             <GenericInput For="() => CurrentToSet"></GenericInput>
             <RightAlignedButtonComponent ButtonText="Set Current"
                                          IsLoading="@_isCommandLoading"
