@@ -17,7 +17,8 @@
             var actualCurrentOnPhase = (double)(i1 <= LoadPoint.ActualPhases ? LoadPoint.ActualCurrent ?? 0 : 0);
             var maxCurrentOnPhase = LoadPoint.MaxCurrent ?? 16;
             <MudTooltip Text="@($"Phase {i1}: {actualCurrentOnPhase.ToString("N1")}/{maxCurrentOnPhase.ToString("N0")} A")"
-                        RootClass="mt-1 mb-3 mx-1 w-100">
+                        RootClass="mt-1 mb-3 mx-1 w-100"
+                        ShowOnClick="true">
                 <MudProgressLinear Color="Color.Primary"
                                    Striped="LoadPoint.ChargingPower > 0"
                                    Size="Size.Small"
