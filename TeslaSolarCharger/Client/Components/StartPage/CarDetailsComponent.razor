@@ -34,6 +34,7 @@ else
                                   For="() => CarSettings.MinSoc"
                                   OnValueChanged="OnMinSocChanged"
                                   ImmediateValueUpdate="true"/>
+                    
                 </div>
                 <div class="col-6">
                     <GenericInput T="int?"
@@ -45,6 +46,9 @@ else
         }
         else if (CarSettings.ChargeMode == ChargeModeV2.Manual)
         {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                You need to manually wake up the car and start charging via the Tesla app. You can only change the current here.
+            </MudAlert>
             <GenericInput For="() => CurrentToSet"></GenericInput>
             <RightAlignedButtonComponent ButtonText="Set Current"
                                          IsLoading="@_isCommandLoading"

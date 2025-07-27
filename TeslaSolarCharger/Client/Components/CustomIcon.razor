@@ -1,6 +1,6 @@
 ﻿@if (!string.IsNullOrWhiteSpace(TooltipText))
 {
-    <MudTooltip Text="@(IsCrossedOut? TooltipText : $"{IsCrossedOutToolTipPrefix}{TooltipText}")">
+    <MudTooltip Text="@(IsCrossedOut ? $"{IsCrossedOutTooltipPrefix}{TooltipText}" : TooltipText)">
         @if (IsCrossedOut)
         {
             <span class="@Class" style="position: relative; display: inline-block;">
@@ -42,5 +42,5 @@ else
     [Parameter]
     public string? TooltipText { get; set; }
 
-    [Parameter] public string IsCrossedOutToolTipPrefix { get; set; } = "Not ";
+    [Parameter] public string IsCrossedOutTooltipPrefix { get; set; } = "Not ";
 }
