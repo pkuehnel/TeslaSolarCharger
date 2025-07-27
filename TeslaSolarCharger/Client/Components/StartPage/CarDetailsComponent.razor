@@ -1,4 +1,5 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
@@ -8,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject ISignalRStateService SignalRStateService
 @inject ILogger<CarDetailsComponent> Logger
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 @if (CarSettings == default || CarState == default)
 {
@@ -23,9 +25,19 @@ else
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText="charging"></CustomIcon>
     </div>
     <div>
-        <GenericInput T="ChargeModeV2"
-                      For="() => CarSettings.ChargeMode"
-                      OnValueChanged="ChargeModeUpdated"/>
+        <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+                <GenericInput T="ChargeModeV2"
+                              For="() => CarSettings.ChargeMode"
+                              OnValueChanged="ChargeModeUpdated"/>
+            </div>
+            <div class="mx-2 flex-grow-0">
+                <MudIconButton Icon="@Icons.Material.Outlined.Info"
+                               Color="Color.Primary"
+                               OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab("https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#charge-modes"))" />
+            </div>
+        </div>
+        
         @if (CarSettings.ChargeMode == ChargeModeV2.Auto)
         {
             <div class="row">
@@ -34,7 +46,7 @@ else
                                   For="() => CarSettings.MinSoc"
                                   OnValueChanged="OnMinSocChanged"
                                   ImmediateValueUpdate="true"/>
-                    
+
                 </div>
                 <div class="col-6">
                     <GenericInput T="int?"

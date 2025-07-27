@@ -683,11 +683,10 @@ After setting everything up, you can use the software via `http://your-ip-addres
 
 Currently, there are four different charge modes available:
 
-1. **PV only**: Only solar energy is used to charge. You can set a SOC level that should be reached at the specified date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). If solar power is insufficient to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, specify `usable kWh` in the car settings section.
-1. **Maximum Power**: The car charges with the maximum available power
-1. **Min SoC + PV**: If plugged in, the car starts charging with maximum power until the set Min SoC is reached. Thereafter, only PV Power is used to charge the car.
-1. **Spot Price + PV**: You can set a Min Soc, which should be reached at a specific date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). The charge times are then planned to charge at the cheapest possible time. This is especially useful if you have hourly electricity prices, like with [Tibber](https://tibber.com/) or [aWATTar](https://www.awattar.de/). Note: The car will still charge based on Solar energy if available, and you need to enable `Use Spot Price` in the Charge Prices settings for correct charge price calculation.
-1. **TSC Disabled**: TSC leaves this car as is and does not update the charging speed etc.
+1. **Off**: The car does not charge at all. This is useful if you need your solar power for other devices and do not want to charge the car at all.
+1. **Manual**: You can set the charging speed manually.
+1. **Auto**: TSC automatically sets the charging speed based on the available solar power. If a charging target is set, TSC automatically sets the charging speed to reach the target in time based on predicted solar energy and energy prices.
+1. **Max Power**: The car charges with maximum power. This is useful if you want to charge the car as fast as possible, e.g., if you are going on a trip and need the car charged quickly.
 
 ## Generate logfiles
 

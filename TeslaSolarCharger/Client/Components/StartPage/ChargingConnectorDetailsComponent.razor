@@ -1,4 +1,5 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
@@ -8,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject ILogger<ChargingConnectorDetailsComponent> Logger
 @inject ISignalRStateService SignalRStateService
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 @if (ChargingConnectorSettings == default || ChargingConnectorState == default)
 {
@@ -21,7 +23,7 @@ else
         <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)" TooltipText="connected via OCPP"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)" TooltipText="charging"></CustomIcon>
-        
+
         @if (CarId != default)
         {
             <CarSelectorComponent SelectedCarId="SelectedCarId"
@@ -33,9 +35,19 @@ else
             {
                 <CarSelectorComponent SelectedCarId="SelectedCarId" OnCarSelected="OnCarSelected" />
             }
-            <GenericInput T="ChargeModeV2"
-                          For="() => ChargingConnectorSettings.ChargeMode"
-                          OnValueChanged="ChargeModeUpdated"/>
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <GenericInput T="ChargeModeV2"
+                                  For="() => ChargingConnectorSettings.ChargeMode"
+                                  OnValueChanged="ChargeModeUpdated" />
+                </div>
+                <div class="mx-2 flex-grow-0">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Info"
+                                   Color="Color.Primary"
+                                   OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab("https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#charge-modes"))" />
+                </div>
+            </div>
+            
             @if (ChargingConnectorSettings.ChargeMode == ChargeModeV2.Manual)
             {
                 <GenericInput For="() => CurrentToSet"></GenericInput>
@@ -53,7 +65,7 @@ else
                 </div>
             }
         }
-        
+
     </div>
     <ChargeSummaryComponent ChargingConnectorId="ChargingConnectorId"></ChargeSummaryComponent>
 }
@@ -125,7 +137,7 @@ else
             return;
         }
         ChargingConnectorSettings = await HomeService.GetChargingConnectorOverview(ChargingConnectorId.Value);
-        if(ChargingConnectorSettings != default)
+        if (ChargingConnectorSettings != default)
         {
             _lastKnownChargeMode = ChargingConnectorSettings.ChargeMode;
         }
@@ -230,5 +242,4 @@ else
         }
         _isCommandLoading = false;
     }
-
 }
