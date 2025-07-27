@@ -24,8 +24,45 @@
 
 <body>
 
-    <Routes @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
-    <script src=@Assets["_framework/blazor.webassembly.js"]></script>
+<Routes @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
+    <style>
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Full viewport height for vertical centering */
+        }
+
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #1b6ec2;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+            text-align: center;
+        }
+
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <div class="even:hidden loading-container">
+        <div class="loader"></div>
+    </div>
+    <script src="_framework/blazor.web.js"></script>
     <script src=@Assets["js/fileDownload.js"]></script>
     <script src=@Assets["js/textAreaLineCount.js"]></script>
     <script src=@Assets["js/copyToClipboard.js"]></script>
@@ -34,7 +71,6 @@
     <script src=@Assets["_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.js"]></script>
     <script src=@Assets["js/map.js"]></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script>
         window.registerViewportChangeCallback = (dotnetHelper) => {
             window.addEventListener('load', () => {
