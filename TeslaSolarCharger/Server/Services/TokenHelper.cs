@@ -81,7 +81,7 @@ public class TokenHelper(ILogger<TokenHelper> logger,
 
         foreach (var claim in claims)
         {
-            if(claim.Type == ClaimTypes.Name)
+            if (claim.Type == ClaimTypes.Name)
             {
                 return claim.Value;
             }
@@ -92,9 +92,13 @@ public class TokenHelper(ILogger<TokenHelper> logger,
     public async Task<DateTimeOffset?> GetBackendTokenExpirationDate()
     {
         logger.LogTrace("{method}()", nameof(GetBackendTokenExpirationDate));
-        var expirationDate = await teslaSolarChargerContext.BackendTokens.Select(t => t.ExpiresAtUtc)
+        var expirationDate = await teslaSolarChargerContext.BackendTokens
+            .Select(t => new
+            {
+                t.ExpiresAtUtc,
+            })
             .SingleOrDefaultAsync();
-        return expirationDate;
+        return expirationDate?.ExpiresAtUtc;
     }
 
     private async Task<TokenStateIncludingExpirationTime> GetUncachedFleetApiTokenState()
