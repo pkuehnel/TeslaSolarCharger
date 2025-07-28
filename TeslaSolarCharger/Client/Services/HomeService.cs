@@ -208,7 +208,6 @@ public class HomeService : IHomeService
         if (result.HasError)
         {
             _logger.LogError(result.ErrorMessage);
-            
         }
         return new(result.Data?.Value, result.ErrorMessage, result.ValidationProblemDetails);
     }

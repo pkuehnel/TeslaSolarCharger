@@ -167,7 +167,7 @@ public class TeslaFleetApiService(
 
     public async Task<TeslaCarFleetApiState?> GetFleetApiState(int carId)
     {
-        logger.LogTrace("{method}({carId}", nameof(GetFleetApiState), carId);
+        logger.LogTrace("{method}({carId})", nameof(GetFleetApiState), carId);
         var fleetApiState = await teslaSolarChargerContext.Cars
             .Where(c => c.Id == carId)
             .Select(c => c.TeslaFleetApiState)

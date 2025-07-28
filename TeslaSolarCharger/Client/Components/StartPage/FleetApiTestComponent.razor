@@ -53,14 +53,14 @@ else if (_initialLoaded)
     else if (_fleetApiState is TeslaCarFleetApiState.NotConfigured or TeslaCarFleetApiState.NotWorking)
     {
         <div class="alert alert-danger" role="alert">
-            TSC is not registerd in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage()">here</button> to register the car. <br />
+            TSC is not registered in car, click <button class="btn btn-link" type="button" @onclick="_ => OpenRegisterPublicKeyPage()">here</button> to register the car. <br />
             Note: It is not possible to select the correct car. In order to register the correct car you need to select the car in the Tesla App before clicking on the button.
         </div>
     }
     else if (_fleetApiState == TeslaCarFleetApiState.OpenedLinkButNotTested)
     {
         <div class="alert alert-danger" role="alert">
-            You registerd the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">here</button> to test the connection.
+            You registered the car but did not test the connection yet. Click <button class="btn btn-link" type="button" @onclick="_ => TestFleetApiAccess()">here</button> to test the connection.
         </div>
     }
 }
@@ -107,7 +107,7 @@ else if (_initialLoaded)
         }
         _isTesting = true;
         var response = await HttpClient.GetFromJsonAsync<DtoValue<bool>>($"api/FleetApi/TestFleetApiAccess?carId={CarId}").ConfigureAwait(false);
-        //Try again if non success because first try may result in no success bacause of Fleet API proxy required is only set after first error. So maybe the error is due to fleet api proxy beeing required but not used.
+        //Try again if non success because first try may result in no success because of Fleet API proxy required is only set after first error. So maybe the error is due to fleet Api proxy being required but not used.
         if (response!.Value == false)
         {
             await Task.Delay(TimeSpan.FromSeconds(1));
