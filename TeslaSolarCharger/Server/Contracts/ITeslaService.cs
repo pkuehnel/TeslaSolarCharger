@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Server.Contracts;
+﻿using TeslaSolarCharger.Shared.Enums;
+
+namespace TeslaSolarCharger.Server.Contracts;
 
 public interface ITeslaService
 {

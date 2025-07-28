@@ -26,6 +26,13 @@ public class FleetApiController(
     public Task<DtoValue<string>> GetOauthUrl(string locale, string baseUrl) => backendApiService.StartTeslaOAuth(locale, baseUrl);
 
     [HttpGet]
+    public async Task<IActionResult> GetFleetApiState(int carId)
+    {
+        var result = await fleetApiService.GetFleetApiState(carId);
+        return Ok(new DtoValue<TeslaCarFleetApiState?>(result));
+    }
+
+    [HttpGet]
     public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => fleetApiService.TestFleetApiAccess(carId);
     [HttpGet]
     public Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin) => fleetApiService.IsFleetApiProxyEnabled(vin);
