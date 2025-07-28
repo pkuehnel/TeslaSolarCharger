@@ -46,7 +46,8 @@ public class FleetTelemetryConfigurationService(ILogger<FleetTelemetryConfigurat
     public async Task<DtoFleetTelemetryConfigurationResult> SetFleetTelemetryConfiguration(string vin, bool forceReconfiguration)
     {
         logger.LogTrace("{method}({vin}, {forceReconfiguration})", nameof(SetFleetTelemetryConfiguration), vin, forceReconfiguration);
-        if (!await backendApiService.IsBaseAppLicensed(true))
+        var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
+        if (isBaseAppLicensed.Data != true)
         {
             logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
             return new DtoFleetTelemetryConfigurationResult

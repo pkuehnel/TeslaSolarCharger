@@ -51,7 +51,8 @@ public class FleetTelemetryWebSocketService(
                         && (c.IsFleetTelemetryHardwareIncompatible == false))
             .Select(c => new { c.Vin, IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields, })
             .ToListAsync();
-        if (cars.Any() && (!await backendApiService.IsBaseAppLicensed(true)))
+        var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
+        if (cars.Any() && (isBaseAppLicensed.Data != true))
         {
             logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
             return;
