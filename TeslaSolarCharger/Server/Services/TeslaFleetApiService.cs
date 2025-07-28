@@ -165,6 +165,16 @@ public class TeslaFleetApiService(
         car.LastSetAmp.Update(currentDate, amps);
     }
 
+    public async Task<TeslaCarFleetApiState?> GetFleetApiState(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(GetFleetApiState), carId);
+        var fleetApiState = await teslaSolarChargerContext.Cars
+            .Where(c => c.Id == carId)
+            .Select(c => c.TeslaFleetApiState)
+            .FirstOrDefaultAsync();
+        return fleetApiState;
+    }
+
     public async Task<DtoValue<bool>> TestFleetApiAccess(int carId)
     {
         logger.LogTrace("{method}({carId})", nameof(TestFleetApiAccess), carId);

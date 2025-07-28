@@ -27,4 +27,5 @@ public interface IHomeService
     Task<Dictionary<int, string>?> GetLoadPointCarOptions();
     Task UpdateCarForLoadpoint(int chargingConnectorId, int? carId);
     Task<Dictionary<DateTimeOffset, decimal>> GetGridPrices(DateTimeOffset from, DateTimeOffset to);
+    Task<Result<TeslaCarFleetApiState?>> GetFleetApiState(int carId);
 }

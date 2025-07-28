@@ -200,4 +200,15 @@ public class HomeService : IHomeService
         }
         return result.Data ?? new Dictionary<DateTimeOffset, decimal>();
     }
+
+    public async Task<Result<TeslaCarFleetApiState?>> GetFleetApiState(int carId)
+    {
+        _logger.LogTrace("{method}({carId})", nameof(GetFleetApiState), carId);
+        var result = await _httpClientHelper.SendGetRequestAsync<DtoValue<TeslaCarFleetApiState?>>($"api/FleetApi/GetFleetApiState?carId={carId}");
+        if (result.HasError)
+        {
+            _logger.LogError(result.ErrorMessage);
+        }
+        return new(result.Data?.Value, result.ErrorMessage, result.ValidationProblemDetails);
+    }
 }

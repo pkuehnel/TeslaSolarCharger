@@ -24,6 +24,7 @@ else
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText="charging"></CustomIcon>
     </div>
+    <FleetApiTestComponent CarId="CarId"/>
     <div>
         <div class="d-flex align-items-center">
             <div class="flex-grow-1">
