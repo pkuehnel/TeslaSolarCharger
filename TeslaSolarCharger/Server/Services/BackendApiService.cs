@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend.User;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
@@ -249,26 +250,31 @@ public class BackendApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public async Task<bool> IsBaseAppLicensed(bool useCache)
+    public async Task<Result<bool?>> IsBaseAppLicensed(bool useCache)
     {
         logger.LogTrace("{method}({useCache})", nameof(IsBaseAppLicensed), useCache);
 
         if (useCache && memoryCache.TryGetValue(constants.IsBaseAppLicensedKey, out bool cachedIsLicense))
         {
             logger.LogTrace("Returning is base app licensed from cache: {isLicensed}", cachedIsLicense);
-            return cachedIsLicense;
+            return new(cachedIsLicense, null, null);
         }
 
-        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            logger.LogError("No backend token found. Cannot check if base app is licensed.");
+            return new(null, "Login to Solar4car.com via Cloud connection is required.", null);
+        }
         var isLicensed = await SendRequestToBackend<DtoValue<bool>>(HttpMethod.Get, token.AccessToken, "Client/IsBaseAppLicensed", null);
         if (isLicensed.HasError)
         {
             logger.LogError("Could not check if base app is licensed. {errorMessage}", isLicensed.ErrorMessage);
-            return false;
+            return new(null, isLicensed.ErrorMessage, null);
         }
         var isBaseAppLicensed = isLicensed.Data?.Value ?? false;
         memoryCache.Set(constants.IsBaseAppLicensedKey, isBaseAppLicensed, GetLicenseCacheEntryOptions());
-        return isBaseAppLicensed;
+        return new(isBaseAppLicensed, null, null);
     }
 
     public async Task<bool> IsFleetApiLicensed(string vin, bool useCache)

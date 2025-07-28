@@ -81,15 +81,11 @@ public class ChargingServiceV2 : IChargingServiceV2
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(SetNewChargingValues));
-        if (!await _backendApiService.IsBaseAppLicensed(true))
+        if ((await _backendApiService.IsBaseAppLicensed(true)).Data != true)
         {
             _logger.LogError("Can not set new charging values as base app is not licensed");
-            await _errorHandlingService.HandleError(nameof(ChargingServiceV2), nameof(SetNewChargingValues), "Base App not licensed",
-                "Can not send commands to car as app is not licensed. Buy a subscription on <a href=\"https://solar4car.com/subscriptions\">Solar4Car Subscriptions</a> to use TSC",
-                _issueKeys.BaseAppNotLicensed, null, null).ConfigureAwait(false);
             return;
         }
-        await _errorHandlingService.HandleErrorResolved(_issueKeys.BaseAppNotLicensed, null).ConfigureAwait(false);
         await CalculateGeofences();
         await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
