@@ -34,6 +34,13 @@ else
     {
         <LoadpointComponent LoadPoint="@loadPoint"></LoadpointComponent>
     }
+
+    if (_loadPoints.Count < 1)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-3">
+            No cars and no charging stations should be managed. Check out <MudLink Href="CarSettings">Car Settings</MudLink> to add a car or <MudLink Href="ChargingStations">Charging Stations</MudLink> to add a charging station.
+        </MudAlert>
+    }
 }
 
 @code {
