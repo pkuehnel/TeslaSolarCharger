@@ -412,6 +412,7 @@ If you are using a plugin, you need to use the following values:
   - Node Pattern Type: JSON
   - Add a result with the configuration seen in the screenshot
 ![SMA plugin](https://github.com/user-attachments/assets/2785c050-e51e-404c-8c61-898f72177374)
+  If you do not get values from your Home Manager, you probably need to add the IP address of your Raspberry Pi to your sunnyportal configuration. You can do that like described [here](https://tff-forum.de/t/teslasolarcharger-pv-ueberschussladen-mit-beliebiger-wallbox-teil-1/170369/2001?u=mane123). 
 
 - SolarEdge Plugin:
   - Url: `http://solaredgeplugin/api/CurrentValues/GetCurrentPvValues`
