@@ -39,7 +39,7 @@ else
     <RightAlignedButtonComponent OnButtonClicked="FakeLogout"
     ButtonText="ChangeUser" />
 }
-else
+else if(BackendTokenState != default)
 {
     <GenericInput For="() => _backendLogin.EMail"></GenericInput>
     <GenericInput For="() => _backendLogin.Password"
@@ -130,7 +130,7 @@ else
             switch (FleetApiTokenState)
             {
                 case TokenState.MissingPrecondition:
-                    return "You are not logged in in the Solar4car.com account. When requesting a new Tesla Token there will also be a request to log in to your Solar4car.com account.";
+                    return "A login to solar4car.com is required before requesting a Tesla Fleet API Token.";
                 case TokenState.NotAvailable:
                     return "You did not request a Fleet API Token, yet. Request a new token, allow access to all scopes and enable mobile access in your car.";
                 case TokenState.Unauthorized:

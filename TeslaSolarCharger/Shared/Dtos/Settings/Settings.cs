@@ -1,4 +1,6 @@
-﻿using TeslaSolarCharger.Shared.Dtos.Contracts;
+﻿using System.Collections.Concurrent;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 
 namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
@@ -15,15 +17,27 @@ public class Settings : ISettings
 
     public bool CrashedOnStartup { get; set; }
     public string? StartupCrashMessage { get; set; }
-
-    public bool FleetApiProxyNeeded { get; set; }
-
-    public bool AllowUnlimitedFleetApiRequests { get; set; }
-    public DateTime LastFleetApiRequestAllowedCheck { get; set; }
     public bool RestartNeeded { get; set; }
 
-    public List<DtoCar> Cars { get; set; } = new();
+    public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
 
+    public List<DtoCar> Cars { get; set; } = new();
+    /// <summary>
+    /// Key is Id of the connector in database
+    /// </summary>
+    public ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; } = new();
+
+    public ConcurrentBag<DtoNotChargingWithExpectedPowerReason> GenericNotChargingWithExpectedPowerReasons { get; set; } = new();
+    public ConcurrentDictionary<(int? carId, int? connectorId), List<DtoNotChargingWithExpectedPowerReason>> LoadPointSpecificNotChargingWithExpectedPowerReasons
+    { get; set; } = new();
+
+    public ConcurrentDictionary<int, List<string>> CarsChargingReasons { get; set; } = new();
+    public ConcurrentDictionary<int, List<string>> CarsNotChargingReasons { get; set; } = new();
+    public ConcurrentDictionary<int, List<string>> ChargingConnectorChargingReasons { get; set; } = new();
+    public ConcurrentDictionary<int, List<string>> ChargingConnectorNotChargingReasons { get; set; } = new();
+    public ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; } = new();
+
+    public ConcurrentBag<DtoChargingSchedule> ChargingSchedules { get; set; } = new();
     public Dictionary<int, string> RawRestRequestResults { get; set; } = new();
     public Dictionary<int, string> RawRestValues { get; set; } = new();
     public Dictionary<int, decimal?> CalculatedRestValues { get; set; } = new();

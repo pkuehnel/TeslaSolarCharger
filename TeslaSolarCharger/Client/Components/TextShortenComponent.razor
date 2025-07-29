@@ -1,4 +1,5 @@
-﻿@inject IJSRuntime JavaScriptRuntime
+﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@inject IJavaScriptWrapper JavaScriptWrapper
 @inject ISnackbar Snackbar
 
 
@@ -80,17 +81,8 @@ else
 
     private async Task CopyToClipBoard()
     {
-        try
-        {
-            await JavaScriptRuntime.InvokeVoidAsync("copyToClipboard", InputString);
-            Snackbar.Add("Copied to clipboard.", Severity.Success);
-            await OnCopyClicked.InvokeAsync();
-        }
-        catch(Exception e)
-        {
-            Snackbar.Add("Failed to copy to clipboard.", Severity.Error);
-        }
-        
+        await JavaScriptWrapper.CopyStringToClipboard(InputString ?? string.Empty);
+        await OnCopyClicked.InvokeAsync();
     }
 
 }

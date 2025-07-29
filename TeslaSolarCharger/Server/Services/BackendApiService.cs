@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
-using System.Configuration;
 using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend.User;
 using TeslaSolarCharger.Server.Dtos.TscBackend;
@@ -145,7 +145,7 @@ public class BackendApiService(
             logger.LogError("Could not refresh backend token. {errorMessage}", result.ErrorMessage);
             memoryCache.Remove(constants.BackendTokenStateKey);
             logger.LogError("Could not refresh backend token. Error Message: {errorMessage}", result.ErrorMessage);
-            throw new InvalidOperationException($"Could not refresh backend token {result.ErrorMessage}");
+            return;
         }
         await errorHandlingService.HandleErrorResolved(issueKeys.BackendTokenNotRefreshable, null);
         await errorHandlingService.HandleErrorResolved(issueKeys.NoBackendApiToken, null);
@@ -162,7 +162,7 @@ public class BackendApiService(
     {
         logger.LogTrace("{method}({@oAuthInformation})", nameof(GenerateAuthUrl), oAuthInformation);
         var url =
-            $"https://auth.tesla.com/oauth2/v3/authorize?&client_id={Uri.EscapeDataString(oAuthInformation.ClientId)}&locale={Uri.EscapeDataString(locale)}&prompt={Uri.EscapeDataString(oAuthInformation.Prompt)}&redirect_uri={Uri.EscapeDataString(oAuthInformation.RedirectUri)}&response_type={Uri.EscapeDataString(oAuthInformation.ResponseType)}&scope={Uri.EscapeDataString(oAuthInformation.Scope)}&state={Uri.EscapeDataString(oAuthInformation.State)}&prompt_missing_scopes=true";
+            $"https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/authorize?&client_id={Uri.EscapeDataString(oAuthInformation.ClientId)}&locale={Uri.EscapeDataString(locale)}&prompt={Uri.EscapeDataString(oAuthInformation.Prompt)}&redirect_uri={Uri.EscapeDataString(oAuthInformation.RedirectUri)}&response_type={Uri.EscapeDataString(oAuthInformation.ResponseType)}&scope={Uri.EscapeDataString(oAuthInformation.Scope)}&state={Uri.EscapeDataString(oAuthInformation.State)}&prompt_missing_scopes=true";
         return url;
     }
 
@@ -224,8 +224,9 @@ public class BackendApiService(
             .OrderByDescending(n => n.BackendIssueId)
             .Select(n => n.BackendIssueId)
             .FirstOrDefaultAsync().ConfigureAwait(false);
-        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
-        var result = await SendRequestToBackend<List<DtoBackendNotification>>(HttpMethod.Get, token.AccessToken,
+        //for notifications allow anonymous access but may be helpful to know the user, so add the token if available
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync();
+        var result = await SendRequestToBackend<List<DtoBackendNotification>>(HttpMethod.Get, token?.AccessToken,
             $"Client/GetBackendNotifications?lastKnownNotificationId={lastKnownNotificationId}", null);
         if (result.HasError)
         {
@@ -249,26 +250,31 @@ public class BackendApiService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public async Task<bool> IsBaseAppLicensed(bool useCache)
+    public async Task<Result<bool?>> IsBaseAppLicensed(bool useCache)
     {
         logger.LogTrace("{method}({useCache})", nameof(IsBaseAppLicensed), useCache);
 
         if (useCache && memoryCache.TryGetValue(constants.IsBaseAppLicensedKey, out bool cachedIsLicense))
         {
             logger.LogTrace("Returning is base app licensed from cache: {isLicensed}", cachedIsLicense);
-            return cachedIsLicense;
+            return new(cachedIsLicense, null, null);
         }
 
-        var token = await teslaSolarChargerContext.BackendTokens.SingleAsync();
+        var token = await teslaSolarChargerContext.BackendTokens.SingleOrDefaultAsync().ConfigureAwait(false);
+        if (token == default)
+        {
+            logger.LogError("No backend token found. Cannot check if base app is licensed.");
+            return new(null, "Login to Solar4car.com via Cloud connection is required.", null);
+        }
         var isLicensed = await SendRequestToBackend<DtoValue<bool>>(HttpMethod.Get, token.AccessToken, "Client/IsBaseAppLicensed", null);
         if (isLicensed.HasError)
         {
             logger.LogError("Could not check if base app is licensed. {errorMessage}", isLicensed.ErrorMessage);
-            return false;
+            return new(null, isLicensed.ErrorMessage, null);
         }
         var isBaseAppLicensed = isLicensed.Data?.Value ?? false;
         memoryCache.Set(constants.IsBaseAppLicensedKey, isBaseAppLicensed, GetLicenseCacheEntryOptions());
-        return isBaseAppLicensed;
+        return new(isBaseAppLicensed, null, null);
     }
 
     public async Task<bool> IsFleetApiLicensed(string vin, bool useCache)

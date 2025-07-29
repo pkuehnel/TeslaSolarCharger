@@ -1,0 +1,80 @@
+@page "/"
+@page "/Home"
+@using TeslaSolarCharger.Client.Components.StartPage
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.SignalRClients
+
+@inject IEnergyDataService EnergyDataService
+@inject IHomeService HomeService
+@inject ILogger<Home> Logger
+@inject ISignalRStateService SignalRStateService
+
+<PageTitle>Solar 4 Car</PageTitle>
+
+<MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
+
+<BackendInformationDisplayComponent></BackendInformationDisplayComponent>
+<LoggedErrorsComponent></LoggedErrorsComponent>
+
+<PowerFlowComponent></PowerFlowComponent>
+<PowerBufferComponent></PowerBufferComponent>
+@if (_showEnergyData)
+{
+    <EnergyPredictionComponent></EnergyPredictionComponent>
+}
+
+@if (_loadPoints == default)
+{
+    <PlaceholderComponent Count="1" Height="200px"></PlaceholderComponent>
+}
+else
+{
+    foreach (var loadPoint in _loadPoints)
+    {
+        <LoadpointComponent LoadPoint="@loadPoint"></LoadpointComponent>
+    }
+
+    if (_loadPoints.Count < 1)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-3">
+            No cars and no charging stations should be managed. Check out <MudLink Href="CarSettings">Car Settings</MudLink> to add a car or <MudLink Href="ChargingStations">Charging Stations</MudLink> to add a charging station.
+        </MudAlert>
+    }
+}
+
+@code {
+    private bool _showEnergyData;
+    private List<DtoLoadPointOverview>? _loadPoints;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _showEnergyData = await EnergyDataService.ShowEnergyDataOnHome();
+
+        await SignalRStateService.InitializeAsync();
+        await SignalRStateService.SubscribeToTrigger(
+            DataTypeConstants.LoadPointMatchesChangeTrigger,
+            async void () =>
+            {
+                try
+                {
+                    await RefreshLoadPoints();
+                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshLoadPoints));
+                }
+            });
+
+        await RefreshLoadPoints();
+    }
+
+    private async Task RefreshLoadPoints()
+    {
+        Logger.LogTrace("{method}()", nameof(RefreshLoadPoints));
+        _loadPoints = null;
+        _loadPoints = await HomeService.GetLoadPointsToManage();
+    }
+}

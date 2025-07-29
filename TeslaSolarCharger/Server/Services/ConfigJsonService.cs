@@ -146,26 +146,6 @@ public class ConfigJsonService(
         }
     }
 
-    public async Task UpdateCarBaseSettings(DtoCarBaseSettings carBaseSettings)
-    {
-        logger.LogTrace("{method}({@carBaseSettings})", nameof(UpdateCarBaseSettings), carBaseSettings);
-        var databaseCar = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carBaseSettings.CarId).ConfigureAwait(false);
-        databaseCar.ChargeMode = carBaseSettings.ChargeMode;
-        databaseCar.MinimumSoc = carBaseSettings.MinimumStateOfCharge;
-        databaseCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
-        databaseCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
-        databaseCar.IgnoreLatestTimeToReachSocDateOnWeekend = carBaseSettings.IgnoreLatestTimeToReachSocDateOnWeekend;
-        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var settingsCar = settings.Cars.First(c => c.Id == carBaseSettings.CarId);
-        settingsCar.ChargeMode = carBaseSettings.ChargeMode;
-        settingsCar.MinimumSoC = carBaseSettings.MinimumStateOfCharge;
-        settingsCar.LatestTimeToReachSoC = carBaseSettings.LatestTimeToReachStateOfCharge;
-        settingsCar.IgnoreLatestTimeToReachSocDate = carBaseSettings.IgnoreLatestTimeToReachSocDate;
-        settingsCar.IgnoreLatestTimeToReachSocDateOnWeekend = carBaseSettings.IgnoreLatestTimeToReachSocDateOnWeekend;
-
-
-    }
-
     public async Task<List<CarBasicConfiguration>> GetCarBasicConfigurations()
     {
         logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
@@ -177,6 +157,8 @@ public class ConfigJsonService(
             {
                 Vin = c.Vin ?? string.Empty,
                 MinimumAmpere = c.MinimumAmpere,
+                SwitchOffAtCurrent = c.SwitchOffAtCurrent,
+                SwitchOnAtCurrent = c.SwitchOnAtCurrent,
                 MaximumAmpere = c.MaximumAmpere,
                 UsableEnergy = c.UsableEnergy,
                 ChargingPriority = c.ChargingPriority,
@@ -271,6 +253,8 @@ public class ConfigJsonService(
         databaseCar.Name = carBasicConfiguration.Name;
         databaseCar.Vin = carBasicConfiguration.Vin;
         databaseCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
+        databaseCar.SwitchOffAtCurrent = carBasicConfiguration.SwitchOffAtCurrent;
+        databaseCar.SwitchOnAtCurrent = carBasicConfiguration.SwitchOnAtCurrent;
         databaseCar.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
         databaseCar.UsableEnergy = carBasicConfiguration.UsableEnergy;
         databaseCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
@@ -278,6 +262,10 @@ public class ConfigJsonService(
         databaseCar.UseBle = carBasicConfiguration.UseBle;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
+        if (carBasicConfiguration.UseFleetTelemetry)
+        {
+            databaseCar.IsFleetTelemetryHardwareIncompatible = false;
+        }
         databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
         databaseCar.HomeDetectionVia = carBasicConfiguration.HomeDetectionVia;
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
@@ -294,7 +282,7 @@ public class ConfigJsonService(
         await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(settingsCar.Vin, false);
     }
 
-    public async Task SaveOrUpdateCar(DtoCar car)
+    private async Task SaveOrUpdateCar(DtoCar car)
     {
         var entity = teslaSolarChargerContext.Cars.FirstOrDefault(c => c.TeslaMateCarId == car.TeslaMateCarId) ?? new Car()
         {
@@ -308,7 +296,7 @@ public class ConfigJsonService(
         }
         entity.Name = car.Name;
         entity.Vin = car.Vin;
-        entity.ChargeMode = car.ChargeMode;
+        entity.ChargeMode = car.ChargeModeV2;
         entity.MinimumSoc = car.MinimumSoC;
         entity.LatestTimeToReachSoC = car.LatestTimeToReachSoC;
         entity.IgnoreLatestTimeToReachSocDate = car.IgnoreLatestTimeToReachSocDate;
@@ -345,7 +333,7 @@ public class ConfigJsonService(
                 Id = c.Id,
                 Vin = c.Vin ?? string.Empty,
                 TeslaMateCarId = c.TeslaMateCarId,
-                ChargeMode = c.ChargeMode,
+                ChargeModeV2 = c.ChargeMode,
                 MinimumSoC = c.MinimumSoc,
                 LatestTimeToReachSoC = c.LatestTimeToReachSoC,
                 IgnoreLatestTimeToReachSocDate = c.IgnoreLatestTimeToReachSocDate,
@@ -363,7 +351,6 @@ public class ConfigJsonService(
                 ChargerActualCurrent = c.ChargerActualCurrent,
                 ChargerPilotCurrent = c.ChargerPilotCurrent,
                 ChargerRequestedCurrent = c.ChargerRequestedCurrent,
-                PluggedIn = c.PluggedIn,
                 Latitude = c.Latitude,
                 Longitude = c.Longitude,
                 State = c.State,
@@ -378,6 +365,40 @@ public class ConfigJsonService(
                 OtherCommandCalls = c.OtherCommandCalls,
             })
             .ToListAsync().ConfigureAwait(false);
+        foreach (var dtoCar in cars)
+        {
+            var latestPluggedOut = await teslaSolarChargerContext.CarValueLogs
+                .Where(c => c.CarId == dtoCar.Id
+                            && c.Type == CarValueType.IsPluggedIn
+                            && c.BooleanValue == false)
+                .OrderByDescending(c => c.Timestamp)
+                .Select(c => c.Timestamp)
+                .FirstOrDefaultAsync();
+            var latestPluggedIn = await teslaSolarChargerContext.CarValueLogs
+                .Where(c => c.CarId == dtoCar.Id
+                            && c.Type == CarValueType.IsPluggedIn
+                            && c.BooleanValue == true)
+                .OrderByDescending(c => c.Timestamp)
+                .Select(c => c.Timestamp)
+                .FirstOrDefaultAsync();
+            var isPluggedIn = latestPluggedIn > latestPluggedOut;
+            if (isPluggedIn)
+            {
+                var earliestPluggedInAfterLatestPluggedOut = await teslaSolarChargerContext.CarValueLogs
+                    .Where(c => c.CarId == dtoCar.Id
+                                && c.Type == CarValueType.IsPluggedIn
+                                && c.BooleanValue == true
+                                && c.Timestamp > latestPluggedOut)
+                    .OrderBy(c => c.Timestamp)
+                    .Select(c => c.Timestamp)
+                    .FirstOrDefaultAsync();
+                dtoCar.UpdatePluggedIn(new DateTimeOffset(earliestPluggedInAfterLatestPluggedOut, TimeSpan.Zero), true);
+            }
+            else
+            {
+                dtoCar.UpdatePluggedIn(new DateTimeOffset(latestPluggedOut, TimeSpan.Zero), false);
+            }
+        }
         var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
         if (configurationWrapper.UseTeslaMateIntegration() && (teslaMateContext != default))
         {
@@ -488,7 +509,8 @@ public class ConfigJsonService(
             car.ChargerActualCurrent = carState.ChargerActualCurrent;
             car.ChargerPilotCurrent = carState.ChargerPilotCurrent;
             car.ChargerRequestedCurrent = carState.ChargerRequestedCurrent;
-            car.PluggedIn = carState.PluggedIn;
+            //Do not update car as at this point latest plugged in/out is not known as previous version was too old
+            //car.PluggedIn = carState.PluggedIn;
             car.Latitude = carState.Latitude;
             car.Longitude = carState.Longitude;
         }

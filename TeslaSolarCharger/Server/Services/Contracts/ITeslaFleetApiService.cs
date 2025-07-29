@@ -21,4 +21,5 @@ public interface ITeslaFleetApiService
     Task<DtoBackendApiTeslaResponse> GetAllProductsFromTeslaAccount();
     Task<DtoBackendApiTeslaResponse> GetEnergyLiveStatus(string energySiteId);
 
+    Task<TeslaCarFleetApiState?> GetFleetApiState(int carId);
 }

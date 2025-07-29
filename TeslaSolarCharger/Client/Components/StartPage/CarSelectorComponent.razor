@@ -1,0 +1,60 @@
+﻿@using TeslaSolarCharger.Client.Services.Contracts
+@inject IHomeService HomeService
+@inject ILogger<CarSelectorComponent> Logger
+
+@if (_carOptions == default)
+{
+    <PlaceholderComponent Count="1"></PlaceholderComponent>
+}
+else
+{
+    <GenericInput T="int?"
+                  @key="_genericInputKey"
+                  For="() => LocalSelectedCarId"
+                  LabelName="Connected car"
+                  DropDownOptions="_carOptions"
+                  OnValueChanged="OnLocalCarChanged"></GenericInput>
+}
+
+@code {
+    [Parameter]
+    public int? SelectedCarId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> OnCarSelected { get; set; }
+
+    private Guid _genericInputKey = Guid.NewGuid();
+
+    private int? LocalSelectedCarId { get; set; }
+
+    private Dictionary<int, string>? _carOptions;
+
+
+    protected override void OnParametersSet()
+    {
+        Logger.LogDebug("OnParametersSet called with SelectedCarId: {SelectedCarId}", SelectedCarId);
+        base.OnParametersSet();
+        if (LocalSelectedCarId != (SelectedCarId ?? 0))
+        {
+            Logger.LogDebug("Updating LocalSelectedCarId from parameter: {SelectedCarId}", SelectedCarId);
+            LocalSelectedCarId = SelectedCarId ?? 0;
+            _genericInputKey = Guid.NewGuid();
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var options = await HomeService.GetLoadPointCarOptions();
+        _carOptions = options;
+    }
+
+    private async Task OnLocalCarChanged(int? newCarId)
+    {
+        Logger.LogTrace("{method}({newCarId})", nameof(OnLocalCarChanged), newCarId);
+        LocalSelectedCarId = newCarId ?? 0;
+        var carIdToInvoke = newCarId == 0 ? null : newCarId;
+        await OnCarSelected.InvokeAsync(carIdToInvoke);
+    }
+
+}

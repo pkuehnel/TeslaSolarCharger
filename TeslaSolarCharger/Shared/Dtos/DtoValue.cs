@@ -2,14 +2,18 @@
 
 public class DtoValue<T>
 {
-    public DtoValue()
+    private T? _value;
+    public virtual T? Value
     {
+        get => _value;
+        set => _value = value;
     }
+
+    // Base ctor no longer uses the virtual setter
+    protected DtoValue() { }
 
     public DtoValue(T? value)
     {
-        Value = value;
+        _value = value;   // direct field assignment
     }
-
-    public T? Value { get; set; }
 }

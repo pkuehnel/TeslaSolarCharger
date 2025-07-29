@@ -1,0 +1,67 @@
+﻿@using TeslaSolarCharger.Client.Contracts
+@using TeslaSolarCharger.Client.Helper.Contracts
+@inject IIsStartupCompleteChecker IsStartupCompleteChecker
+@inject IJSRuntime JsRuntime
+
+@if (_isStartupCompleted != false)
+{
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Shared.MainLayout)"/>
+            <FocusOnNavigate RouteData="routeData" Selector="h1"/>
+        </Found>
+    </Router>
+}
+else
+{
+    <div class="m-2">
+        <div class="alert alert-warning" role="alert">
+            <div>Application starting up</div>
+            <hr />
+            <div>TeslaSolarCharger is starting up. Depending on your device and the size of your database, this can take up to 15 minutes after an update. Do not restart the container as this might damage the database. For further information, check the logs. After the startup is finished, the page will reload automatically.</div>
+        </div>
+    </div>
+}
+
+<script>
+    function hideElementById(id) {
+        var element = document.getElementById(id);
+        element.style.display = "none";
+    }
+</script>
+
+@code
+{
+    private bool? _isStartupCompleted;
+    protected override async Task OnInitializedAsync()
+    {
+        AutoRefreshPageUntilStartupCompleted();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            await JsRuntime.InvokeAsync<object>("hideElementById", "loading-message");
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task AutoRefreshPageUntilStartupCompleted()
+    {
+        await RefreshIsStartupCompleted();
+        if (_isStartupCompleted != true)
+        {
+            StateHasChanged();
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            await AutoRefreshPageUntilStartupCompleted();
+        }
+        StateHasChanged();
+    }
+
+    private async Task RefreshIsStartupCompleted()
+    {
+        _isStartupCompleted = await IsStartupCompleteChecker.IsStartupCompleteAsync();
+    }
+}

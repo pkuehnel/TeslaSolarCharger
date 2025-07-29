@@ -1,0 +1,245 @@
+﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared.Attributes
+@using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.SignalRClients
+
+@inject IHomeService HomeService
+@inject ISnackbar Snackbar
+@inject ILogger<ChargingConnectorDetailsComponent> Logger
+@inject ISignalRStateService SignalRStateService
+@inject IJavaScriptWrapper JavaScriptWrapper
+
+@if (ChargingConnectorSettings == default || ChargingConnectorState == default)
+{
+    <PlaceholderComponent Count="6"></PlaceholderComponent>
+}
+else
+{
+    <div>
+        <MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" />
+        @ChargingConnectorSettings.Name
+        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)" TooltipText="connected via OCPP"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)" TooltipText="charging"></CustomIcon>
+
+        @if (CarId != default)
+        {
+            <CarSelectorComponent SelectedCarId="SelectedCarId"
+                                  OnCarSelected="OnCarSelected"></CarSelectorComponent>
+        }
+        else
+        {
+            @if (ChargingConnectorState.IsPluggedIn)
+            {
+                <CarSelectorComponent SelectedCarId="SelectedCarId" OnCarSelected="OnCarSelected" />
+            }
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <GenericInput T="ChargeModeV2"
+                                  For="() => ChargingConnectorSettings.ChargeMode"
+                                  OnValueChanged="ChargeModeUpdated" />
+                </div>
+                <div class="me-2 flex-grow-0">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Info"
+                                   Color="Color.Primary"
+                                   OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab("https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#charge-modes"))" />
+                </div>
+            </div>
+            
+            @if (ChargingConnectorSettings.ChargeMode == ChargeModeV2.Manual)
+            {
+                <GenericInput For="() => CurrentToSet"></GenericInput>
+                <GenericInput For="() => Phases"></GenericInput>
+                <div class="d-flex flex-wrap gap-2">
+                    <RightAlignedButtonComponent ButtonText="Start Charging"
+                                                 IsLoading="@_isCommandLoading"
+                                                 OnButtonClicked="@(StartCharging)"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Stop Charging"
+                                                 IsLoading="@_isCommandLoading"
+                                                 OnButtonClicked="@(StopCharging)"></RightAlignedButtonComponent>
+                    <RightAlignedButtonComponent ButtonText="Set Current and Phases"
+                                                 IsLoading="@_isCommandLoading"
+                                                 OnButtonClicked="@(SetCurrentAndPhases)"></RightAlignedButtonComponent>
+                </div>
+            }
+        }
+
+    </div>
+    <ChargeSummaryComponent ChargingConnectorId="ChargingConnectorId"></ChargeSummaryComponent>
+}
+
+@code {
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
+
+    [Parameter]
+    public int? CarId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> OnCarSelected { get; set; }
+
+    private int? SelectedCarId { get; set; }
+
+    private DtoChargingConnectorOverviewSettings? ChargingConnectorSettings { get; set; }
+
+    private DtoChargingConnectorOverviewState? ChargingConnectorState { get; set; }
+
+    private ChargeModeV2? _lastKnownChargeMode;
+
+    [Postfix("A")]
+    private int? CurrentToSet { get; set; }
+    [HelperText("If your Charging station supports phase switching, you can set the number of phases here.")]
+    private int? Phases { get; set; }
+
+    private bool _isCommandLoading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Logger.LogTrace("{method}()", nameof(OnParametersSetAsync));
+        await base.OnParametersSetAsync();
+        SelectedCarId = CarId;
+        await RefreshData();
+
+        if (ChargingConnectorId == default)
+        {
+            return;
+        }
+
+        await SignalRStateService.Subscribe<DtoChargingConnectorOverviewState>(
+            DataTypeConstants.ChargingConnectorOverviewState,
+            async void (state) =>
+            {
+                try
+                {
+                    ChargingConnectorState = state;
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "Failed to update car state for CarId: {CarId}", CarId);
+                }
+            },
+            ChargingConnectorId.Value.ToString());
+
+        ChargingConnectorState = await SignalRStateService.GetStateAsync<DtoChargingConnectorOverviewState>(
+            DataTypeConstants.ChargingConnectorOverviewState,
+            ChargingConnectorId.Value.ToString());
+    }
+
+    private async Task RefreshData()
+    {
+        Logger.LogTrace("{method}()", nameof(RefreshData));
+        if (ChargingConnectorId == default)
+        {
+            ChargingConnectorSettings = default;
+            return;
+        }
+        ChargingConnectorSettings = await HomeService.GetChargingConnectorOverview(ChargingConnectorId.Value);
+        if (ChargingConnectorSettings != default)
+        {
+            _lastKnownChargeMode = ChargingConnectorSettings.ChargeMode;
+        }
+    }
+
+    private async Task ChargeModeUpdated(ChargeModeV2 arg)
+    {
+        if (ChargingConnectorSettings == default || ChargingConnectorId == default)
+        {
+            Snackbar.Add("Charging Connector is not set.", Severity.Error);
+            return;
+        }
+
+        var result = await HomeService.UpdateChargingConnectorChargeMode(ChargingConnectorId.Value, arg);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Failed to update Charge Mode: {result.ErrorMessage}", Severity.Error);
+            if (_lastKnownChargeMode != default)
+            {
+                ChargingConnectorSettings.ChargeMode = _lastKnownChargeMode.Value;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        else
+        {
+            _lastKnownChargeMode = arg;
+            Snackbar.Add("Charge Mode updated successfully.", Severity.Success);
+        }
+    }
+
+    private async Task StartCharging()
+    {
+        if (ChargingConnectorId == default)
+        {
+            Snackbar.Add("ChargingConnectorId not set", Severity.Error);
+            return;
+        }
+
+        if (CurrentToSet == default)
+        {
+            Snackbar.Add("Current required", Severity.Error);
+            return;
+        }
+
+        _isCommandLoading = true;
+        var result = await HomeService.StartChargingConnectorCharging(ChargingConnectorId.Value, CurrentToSet.Value, Phases);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("Command successfully sent", Severity.Success);
+        }
+        _isCommandLoading = false;
+    }
+
+    private async Task SetCurrentAndPhases()
+    {
+        if (ChargingConnectorId == default)
+        {
+            Snackbar.Add("ChargingConnectorId not set", Severity.Error);
+            return;
+        }
+
+        if (CurrentToSet == default)
+        {
+            Snackbar.Add("Current required.", Severity.Error);
+            return;
+        }
+
+        _isCommandLoading = true;
+        var result = await HomeService.SetChargingConnectorCurrent(ChargingConnectorId.Value, CurrentToSet.Value, Phases);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("Command successfully sent", Severity.Success);
+        }
+        _isCommandLoading = false;
+    }
+
+    private async Task StopCharging()
+    {
+        if (ChargingConnectorId == default)
+        {
+            Snackbar.Add("ChargingConnectorId not set", Severity.Error);
+            return;
+        }
+
+        _isCommandLoading = true;
+        var result = await HomeService.StopChargingConnectorCharging(ChargingConnectorId.Value);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("Command successfully sent", Severity.Success);
+        }
+        _isCommandLoading = false;
+    }
+}

@@ -30,4 +30,5 @@ public interface IIssueKeys
     string FleetApiNotLicensed { get; }
     string FleetTelemetryNotConnected { get; }
     string FleetTelemetryConfigurationError { get; }
+    string MultipleCarsMatchChargingConnector { get; }
 }

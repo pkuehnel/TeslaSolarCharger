@@ -1,9 +1,10 @@
-﻿@page "/HandledCharges/{carId:int}"
+﻿@page "/HandledCharges"
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @inject HttpClient HttpClient
 @inject IStringHelper StringHelper
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
 <h1>Handled Charges</h1>
 
@@ -15,7 +16,7 @@ else
 {
     <MudDataGrid Items="_handledCharges" Groupable="true" Filterable="true"
                  Hover="true" Dense="true" Striped="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
-                 Height="@datagridHeight" Breakpoint="Breakpoint.None">
+                 Height="@_datagridHeight" Breakpoint="Breakpoint.None">
         <Columns>
             <PropertyColumn Property="x => x.StartTime"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))">
@@ -52,12 +53,15 @@ else
 
 @code {
     [Parameter]
-    public int CarId { get; set; }
+    public int? CarId { get; set; }
+
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
 
     public int ViewportWidth { get; set; }
     public int ViewportHeight { get; set; }
 
-    private string datagridHeight = "calc(100vh - 10rem);";
+    private string _datagridHeight = "calc(100vh - 10rem);";
 
     private List<DtoHandledCharge>? _handledCharges;
     private AggregateDefinition<DtoHandledCharge> _calculatedPriceAggregation = new AggregateDefinition<DtoHandledCharge>()
@@ -85,14 +89,37 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (Microsoft.AspNetCore.WebUtilities
+            .QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue("carId", out var c)
+            && int.TryParse(c, out var parsedCarId))
+        {
+            CarId = parsedCarId;
+        }
+        else
+        {
+            CarId = default;
+        }
+        if (Microsoft.AspNetCore.WebUtilities
+            .QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue("chargingConnectorId", out var cc)
+            && int.TryParse(cc, out var parsedChargingConnectorId))
+        {
+            ChargingConnectorId = parsedChargingConnectorId;
+        }
+        else
+        {
+            ChargingConnectorId = default;
+        }
+        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
     }
 
     [JSInvokable]
     public void OnResize(int width, int height)
     {
         if(ViewportWidth == width && ViewportHeight == height) return;
-        datagridHeight = height < 430 ? "300px" : "calc(100vh - 10rem);";
+        _datagridHeight = height < 430 ? "300px" : "calc(100vh - 10rem);";
         StateHasChanged();
     }
 

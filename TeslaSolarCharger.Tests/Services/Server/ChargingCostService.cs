@@ -185,31 +185,31 @@ public class ChargingCostService : TestBase
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 17, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 18, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.11),
+                GridPrice = new decimal(0.11),
             },
             new Price()
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 18, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 19, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.10),
+                GridPrice = new decimal(0.10),
             },
             new Price()
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 19, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 20, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.30),
+                GridPrice = new decimal(0.30),
             },
             new Price()
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 20, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 21, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.11),
+                GridPrice = new decimal(0.11),
             },
             new Price()
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 21, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 22, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.11),
+                GridPrice = new decimal(0.11),
             },
         };
 
@@ -256,13 +256,13 @@ public class ChargingCostService : TestBase
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 17, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 18, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.11),
+                GridPrice = new decimal(0.11),
             },
             new Price()
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 18, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 19, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.10),
+                GridPrice = new decimal(0.10),
             },
             //new Price()
             //{
@@ -274,13 +274,13 @@ public class ChargingCostService : TestBase
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 20, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 21, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.11),
+                GridPrice = new decimal(0.11),
             },
             new Price()
             {
                 ValidFrom  = new DateTimeOffset(2023, 1, 22, 21, 0, 0, TimeSpan.Zero),
                 ValidTo  = new DateTimeOffset(2023, 1, 22, 22, 0, 0, TimeSpan.Zero),
-                Value = new decimal(0.11),
+                GridPrice = new decimal(0.11),
             },
         };
 

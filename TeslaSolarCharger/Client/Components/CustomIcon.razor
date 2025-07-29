@@ -1,0 +1,48 @@
+﻿@if (!string.IsNullOrWhiteSpace(TooltipText))
+{
+    <MudTooltip Text="@(IsCrossedOut ? $"{IsCrossedOutTooltipPrefix}{TooltipText}" : TooltipText)"
+                Placement="Placement.Top"
+                Arrow="true">
+        @if (IsCrossedOut)
+        {
+            <span class="@Class" style="position: relative; display: inline-block;">
+                <MudIcon Icon="@IconName" />
+                <span class="cross-line"></span>
+            </span>
+        }
+        else
+        {
+            <MudIcon Icon="@IconName" />
+        }
+    </MudTooltip>
+}
+else
+{
+    @if (IsCrossedOut)
+    {
+        <span class="@Class" style="position: relative; display: inline-block;">
+            <MudIcon Icon="@IconName" />
+            <span class="cross-line"></span>
+        </span>
+    }
+    else
+    {
+        <MudIcon Icon="@IconName" />
+    }
+}
+
+@code {
+    [Parameter]
+    public string IconName { get; set; } = Icons.Material.Filled.BorderClear;
+
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsCrossedOut { get; set; }
+
+    [Parameter]
+    public string? TooltipText { get; set; }
+
+    [Parameter] public string IsCrossedOutTooltipPrefix { get; set; } = "Not ";
+}

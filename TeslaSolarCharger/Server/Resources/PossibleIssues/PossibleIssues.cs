@@ -251,6 +251,15 @@ public class PossibleIssues(IIssueKeys issueKeys) : IPossibleIssues
                 HideOccurrenceCount = false,
             }
         },
+        { issueKeys.MultipleCarsMatchChargingConnector, new DtoIssue
+            {
+                IssueSeverity = IssueSeverity.Error,
+                IsTelegramEnabled = true,
+                ShowErrorAfterOccurrences = 1,
+                HasPlaceHolderIssueKey = false,
+                HideOccurrenceCount = true,
+            }
+        },
     };
 
     public DtoIssue GetIssueByKey(string key)

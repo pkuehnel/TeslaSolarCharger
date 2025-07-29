@@ -53,11 +53,61 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
         await AddOrRemoveErrors(activeErrors, issueKeys.SolarValuesNotAvailable, "Solar values are not available",
             $"Solar values are {pvValueUpdateAge} old. It looks like there is something wrong when trying to get the solar values.", solarValuesTooOld).ConfigureAwait(false);
 
-        await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, "Base App not licensed",
-            "Can not send commands to car as app is not licensed", !await backendApiService.IsBaseAppLicensed(true));
+        var backendTokenState = await tokenHelper.GetBackendTokenState(true);
+        var backendTokenUpToDate = backendTokenState == TokenState.UpToDate;
+        var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
+        await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "Backend API Token not up to date",
+            "You are currently not connected to the backend. Open the <a href=\"/cloudconnection\">Cloud Connection</a> login with your <a href=\"https://solar4car.com/\">solar4car.com</a> account.",
+                !backendTokenUpToDate).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
+            "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            fleetApiTokenState == TokenState.Unauthorized).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.NoFleetApiToken, "No Fleet API Token available.",
+            "Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
+            fleetApiTokenState == TokenState.NotAvailable).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Fleet API token is expired",
+            "Either you recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
+            fleetApiTokenState == TokenState.Expired).ConfigureAwait(false);
+        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
+            "Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
+            fleetApiTokenState == TokenState.MissingScopes).ConfigureAwait(false);
 
-        //ToDo: if last check there was no token related issue, only detect token related issues every x minutes as creates high load in backend
-        await DetectTokenStateIssues(activeErrors);
+        //Remove all fleet api related issue keys on token error because very likely it is because of the underlaying token issue.
+        if (fleetApiTokenState != TokenState.UpToDate)
+        {
+            foreach (var activeError in activeErrors.Where(activeError => activeError.IssueKey.StartsWith(issueKeys.GetVehicleData)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.CarStateUnknown)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.FleetApiNonSuccessStatusCode)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.FleetApiNonSuccessResult)
+                                                                          || activeError.IssueKey.StartsWith(issueKeys.UnsignedCommand)))
+            {
+                activeError.EndTimeStamp = dateTimeProvider.UtcNow();
+            }
+            await context.SaveChangesAsync();
+        }
+
+        var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
+        var isBaseAppLicensedHeadline = string.Empty;
+        if (isBaseAppLicensed.Data == default)
+        {
+            isBaseAppLicensedHeadline = "Could not check if app is licensed";
+        }
+        else if (isBaseAppLicensed.Data == false)
+        {
+            isBaseAppLicensedHeadline = "Base App not licensed";
+        }
+        var isBaseAppLicensedErrorMessage = string.Empty;
+        if (!string.IsNullOrEmpty(isBaseAppLicensed.ErrorMessage))
+        {
+            isBaseAppLicensedErrorMessage = isBaseAppLicensed.ErrorMessage;
+        }
+        //Only show error message if backend token is up to date.
+        var baseAppLicensedTokenShouldBeActive = backendTokenUpToDate && (isBaseAppLicensed.Data != true);
+        await AddOrRemoveErrors(activeErrors, issueKeys.BaseAppNotLicensed, isBaseAppLicensedHeadline,
+            isBaseAppLicensedErrorMessage, (baseAppLicensedTokenShouldBeActive));
+
+        
+
         foreach (var car in settings.CarsToManage)
         {
             if ((car.LastNonSuccessBleCall != default)
@@ -133,38 +183,6 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
     private async Task DetectTokenStateIssues(List<LoggedError> activeErrors)
     {
         logger.LogTrace("{method}()", nameof(DetectTokenStateIssues));
-        var backendTokenState = await tokenHelper.GetBackendTokenState(true);
-        var fleetApiTokenState = await tokenHelper.GetFleetApiTokenState(true);
-        await AddOrRemoveErrors(activeErrors, issueKeys.NoBackendApiToken, "Backend API Token not up to date",
-            "You are currently not connected to the backend. Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
-            backendTokenState != TokenState.UpToDate).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenUnauthorized, "Fleet API token is unauthorized",
-            "You recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
-            fleetApiTokenState == TokenState.Unauthorized).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.NoFleetApiToken, "No Fleet API Token available.",
-            "Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token.",
-            fleetApiTokenState == TokenState.NotAvailable).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenExpired, "Fleet API token is expired",
-            "Either you recently changed your Tesla password or did not enable mobile access in your car. Enable mobile access in your car and open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Important: You need to allow access to all selectable scopes.",
-            fleetApiTokenState == TokenState.Expired).ConfigureAwait(false);
-        await AddOrRemoveErrors(activeErrors, issueKeys.FleetApiTokenMissingScopes, "Your Tesla token has missing scopes.",
-            "Open the <a href=\"/cloudconnection\">Cloud Connection</a> and request a new token. Note: You need to allow all selectable scopes as otherwise TSC won't work properly.",
-            fleetApiTokenState == TokenState.MissingScopes).ConfigureAwait(false);
-
-        //Remove all fleet api related issue keys on token error because very likely it is because of the underlaying token issue.
-        if (fleetApiTokenState != TokenState.UpToDate)
-        {
-            foreach (var activeError in activeErrors.Where(activeError => activeError.IssueKey.StartsWith(issueKeys.GetVehicleData)
-                                                                          || activeError.IssueKey.StartsWith(issueKeys.CarStateUnknown)
-                                                                          || activeError.IssueKey.StartsWith(issueKeys.FleetApiNonSuccessStatusCode)
-                                                                          || activeError.IssueKey.StartsWith(issueKeys.FleetApiNonSuccessResult)
-                                                                          || activeError.IssueKey.StartsWith(issueKeys.UnsignedCommand)))
-            {
-                activeError.EndTimeStamp = dateTimeProvider.UtcNow();
-            }
-
-            await context.SaveChangesAsync();
-        }
     }
 
     private async Task AddOrRemoveErrors(List<LoggedError> activeErrors, string issueKey, string headline, string message, bool shouldBeActive)

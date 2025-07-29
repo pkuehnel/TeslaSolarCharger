@@ -77,18 +77,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                     {
                         context.AddFailure("You need a valid Fleet API token to use Fleet Telemetry. Go to BaseConfiguration to Generate a new Fleet API Token.");
                     }
-                    var isCarFleetTelemetryHardwareIncompatible = await dbContext.Cars
-                        .Where(c => c.Vin == context.InstanceToValidate.Vin && c.IsFleetTelemetryHardwareIncompatible)
-                        .Select(c => c.IsFleetTelemetryHardwareIncompatible)
-                        .FirstOrDefaultAsync();
-                    if (isCarFleetTelemetryHardwareIncompatible)
-                    {
-                        if (fleetTelemetryEnabled)
-                        {
-                            context.AddFailure("The selected car is not compatible with Fleet Telemetry. Please disable Fleet Telemetry.");
-                        }
-                    }
-                    else if (fleetTelemetryEnabled != true)
+                    if (fleetTelemetryEnabled != true)
                     {
                         context.AddFailure("Enabling Fleet Telemetry is required and will be autodisabled if your car does not support it");
                     }

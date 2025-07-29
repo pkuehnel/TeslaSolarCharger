@@ -1,10 +1,7 @@
 ﻿@inherits LayoutComponentBase
-@using TeslaSolarCharger.Client.Helper
-@implements IDisposable
+@using TeslaSolarCharger.Shared.Resources.Contracts
 
-@inject IJSRuntime JsRuntime
-@inject ISnackbar Snackbar
-@inject HttpClient HttpClient
+@inject IConstants Constants
 
 <MudThemeProvider @ref="@_mudThemeProvider" Theme="_tscTheme" />
 <MudPopoverProvider />
@@ -28,55 +25,28 @@
     </main>
 </div>
 
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
 @code
 {
     private MudThemeProvider? _mudThemeProvider;
 
-    private string? _version;
-    PeriodicTaskHelper? _periodicTaskHelper;
-
-    readonly MudTheme _tscTheme = new MudTheme()
-        {
-            PaletteLight = new PaletteLight()
-            {
-                Primary = "#1b6ec2",
-                Secondary = "#6c757d",
-                AppbarBackground = "#1b6ec2",
-            },
-        };
-
+    private MudTheme? _tscTheme;
 
     protected override void OnInitialized()
     {
-        _periodicTaskHelper = new();
-        _periodicTaskHelper.Start(CheckVersion, TimeSpan.FromSeconds(30));
-    }
-
-    private async Task CheckVersion()
-    {
-        try
+        _tscTheme = new MudTheme
         {
-            var version = await HttpClient.GetStringAsync("api/Hello/ProductVersion");
-            if (!string.IsNullOrEmpty(_version) && version != _version)
+            PaletteLight = new PaletteLight
             {
-                var reloadTimeout = TimeSpan.FromSeconds(10);
-                Snackbar.Add($"New backend version detected. Page will autoreload in {reloadTimeout.TotalSeconds} seconds", Severity.Warning, config => { config.VisibleStateDuration = (int)reloadTimeout.TotalMilliseconds; });
-                await Task.Delay(reloadTimeout);
-                await JsRuntime.InvokeVoidAsync("location.reload");
-            }
-
-            _version = version;
-        }
-        catch (Exception ex)
-        {
-            return;
-        }
-
-        
-    }
-
-    public void Dispose()
-    {
-        _periodicTaskHelper?.Dispose();
+                Primary = Constants.PrimaryColor,
+                Secondary = Constants.SecondaryColor,
+                AppbarBackground = Constants.PrimaryColor, // or a const you define
+            },
+        };
     }
 }

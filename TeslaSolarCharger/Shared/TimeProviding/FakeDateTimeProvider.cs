@@ -8,7 +8,7 @@ public class FakeDateTimeProvider : IDateTimeProvider
 
     public FakeDateTimeProvider(DateTime dateTime)
     {
-        _dateTime = dateTime;
+        _dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Local);
     }
 
     public DateTime Now()
@@ -18,7 +18,7 @@ public class FakeDateTimeProvider : IDateTimeProvider
 
     public DateTime UtcNow()
     {
-        return _dateTime;
+        return _dateTime.ToUniversalTime();
     }
 
     public DateTimeOffset DateTimeOffSetNow()
@@ -34,6 +34,6 @@ public class FakeDateTimeProvider : IDateTimeProvider
 
     public DateTimeOffset DateTimeOffSetUtcNow()
     {
-        return new DateTimeOffset(_dateTime);
+        return new DateTimeOffset(_dateTime).ToUniversalTime();
     }
 }

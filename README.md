@@ -47,6 +47,9 @@ Depending on your system, you have to install Docker first. To do this on a Rasp
     sudo usermod -aG docker pi
     ```
 1. Reboot your Raspberry Pi
+    ```
+    sudo reboot
+    ```
 1. Test the Docker installation
     ```
     docker run hello-world
@@ -62,6 +65,7 @@ To set up TeslaSolarCharger, you must create a `docker-compose.yml` (name is imp
 #### docker-compose.yml content
 
 The required content of your `docker-compose.yml` depends on your inverter. By default, TeslaSolarCharger can consume JSON/XML REST APIs, MQTT messages or Modbus TCP. To get the software running on [SMA](https://www.sma.de/), [SolarEdge](https://www.solaredge.com/) or Solax based inverters, you can use specific plugins which create the required JSON API.
+To edit files with Linux, you can either use your normal Linux desktop environment, or when accessing via SSH, you can use the [nano editor](https://linuxize.com/post/how-to-use-nano-text-editor/), or when accessing from a Windows PC, you can use [WinSCP](https://winscp.net/eng/download.php).
 
 ##### Content without using a plugin
 
@@ -400,7 +404,7 @@ If you only want to charge based on Spot Price, you are done now.
 To let the TeslaSolarCharger know how much power there is to charge the car, you need to set TSC up to gather the solar values
 
 ###### REST values including vendor specific plugins
-To set up a REST API click on `Add new REST source` and fill out the fields.
+To set up a REST API click on `Add new REST source` on the `Base Configuration` page and fill out the fields.
 
 If you are using a plugin, you need to use the following values:
 - SMA Plugin:
@@ -408,6 +412,7 @@ If you are using a plugin, you need to use the following values:
   - Node Pattern Type: JSON
   - Add a result with the configuration seen in the screenshot
 ![SMA plugin](https://github.com/user-attachments/assets/2785c050-e51e-404c-8c61-898f72177374)
+  If you do not get values from your Home Manager, you probably need to add the IP address of your Raspberry Pi to your sunnyportal configuration. You can do that like described [here](https://tff-forum.de/t/teslasolarcharger-pv-ueberschussladen-mit-beliebiger-wallbox-teil-1/170369/2001?u=mane123). 
 
 - SolarEdge Plugin:
   - Url: `http://solaredgeplugin/api/CurrentValues/GetCurrentPvValues`
@@ -429,8 +434,7 @@ If you are using a plugin, you need to use the following values:
 
 
 ###### Modbus values
-
-Fill out the values according to the documentation of your inverter:
+To set up Modbus values, click on `Add new Modbus source` on the `Base Configuration` page and fill out the fields according to the documentation of your inverter:
 
 - `unitIdentifier`: Internal ID of your inverter (in most cases, 3 or 1)
 - `Host`: IP Address or hostname of your inverter
@@ -683,11 +687,10 @@ After setting everything up, you can use the software via `http://your-ip-addres
 
 Currently, there are four different charge modes available:
 
-1. **PV only**: Only solar energy is used to charge. You can set a SOC level that should be reached at the specified date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). If solar power is insufficient to reach the set soc level in time, the car starts charging at full speed. Note: To let this work, specify `usable kWh` in the car settings section.
-1. **Maximum Power**: The car charges with the maximum available power
-1. **Min SoC + PV**: If plugged in, the car starts charging with maximum power until the set Min SoC is reached. Thereafter, only PV Power is used to charge the car.
-1. **Spot Price + PV**: You can set a Min Soc, which should be reached at a specific date and time (if charge every day is enabled, the car charges to that SoC every day, not only once). The charge times are then planned to charge at the cheapest possible time. This is especially useful if you have hourly electricity prices, like with [Tibber](https://tibber.com/) or [aWATTar](https://www.awattar.de/). Note: The car will still charge based on Solar energy if available, and you need to enable `Use Spot Price` in the Charge Prices settings for correct charge price calculation.
-1. **TSC Disabled**: TSC leaves this car as is and does not update the charging speed etc.
+1. **Off**: The car does not charge at all. This is useful if you need your solar power for other devices and do not want to charge the car at all.
+1. **Manual**: You can set the charging speed manually.
+1. **Auto**: TSC automatically sets the charging speed based on the available solar power. If a charging target is set, TSC automatically sets the charging speed to reach the target in time based on predicted solar energy and energy prices.
+1. **Max Power**: The car charges with maximum power. This is useful if you want to charge the car as fast as possible, e.g., if you are going on a trip and need the car charged quickly.
 
 ## Generate logfiles
 
@@ -710,12 +713,6 @@ For the **SolaredgePlugin**:
 
 ```bash
 docker logs teslasolarcharger_solaredgeplugin > teslasolarcharger_solaredgeplugin.log
-```
-
-For the **ModbusPlugin**:
-
-```bash
-docker logs teslasolarcharger_modbusplugin > teslasolarcharger_modbusplugin.log
 ```
 
 If you get an error like `Error: No such container:` you can look up the containernames with

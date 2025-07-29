@@ -93,9 +93,9 @@ public class TeslaFleetApiService(
         TeslaApiRequestType = TeslaApiRequestType.VehicleData,
     };
 
-    public async Task StartCharging(int carId, int startAmp, CarStateEnum? carState)
+    public async Task StartCharging(int carId, int startAmp)
     {
-        logger.LogTrace("{method}({carId}, {startAmp}, {carState})", nameof(StartCharging), carId, startAmp, carState);
+        logger.LogTrace("{method}({carId}, {startAmp})", nameof(StartCharging), carId, startAmp);
         var car = settings.Cars.First(c => c.Id == carId);
         if (car.ChargeStartCalls.OrderDescending().FirstOrDefault() > (dateTimeProvider.UtcNow() + TimeSpan.FromMinutes(1)))
         {
@@ -105,6 +105,12 @@ public class TeslaFleetApiService(
         if (startAmp == 0)
         {
             logger.LogDebug("Should start charging with 0 amp. Skipping charge start.");
+            return;
+        }
+
+        if (car.SoC > (car.SocLimit - constants.MinimumSocDifference))
+        {
+            logger.LogWarning("Triggered start charging but cannot start charging as SoC is too high compared to Soc Limit - {minDifference}", constants.MinimumSocDifference);
             return;
         }
         await WakeUpCarIfNeeded(carId).ConfigureAwait(false);
@@ -155,7 +161,18 @@ public class TeslaFleetApiService(
         var vin = GetVinByCarId(carId);
         var commandData = $"{{\"charging_amps\":{amps}}}";
         var result = await SendCommandToTeslaApi<DtoVehicleCommandResult>(vin, SetChargingAmpsRequest, amps).ConfigureAwait(false);
-        car.LastSetAmp = amps;
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        car.LastSetAmp.Update(currentDate, amps);
+    }
+
+    public async Task<TeslaCarFleetApiState?> GetFleetApiState(int carId)
+    {
+        logger.LogTrace("{method}({carId})", nameof(GetFleetApiState), carId);
+        var fleetApiState = await teslaSolarChargerContext.Cars
+            .Where(c => c.Id == carId)
+            .Select(c => c.TeslaFleetApiState)
+            .FirstOrDefaultAsync();
+        return fleetApiState;
     }
 
     public async Task<DtoValue<bool>> TestFleetApiAccess(int carId)
@@ -301,7 +318,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargerActualCurrent,
                     });
-                    car.PluggedIn = vehicleDataResult.ChargeState.ChargingState != "Disconnected";
+                    car.UpdatePluggedIn(new(timeStamp, TimeSpan.Zero), vehicleDataResult.ChargeState.ChargingState != "Disconnected");
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -844,19 +861,14 @@ public class TeslaFleetApiService(
         }
         if (await tokenHelper.GetBackendTokenState(true) != TokenState.UpToDate)
         {
-            //Do not show base api not licensed error if not connected to backend
-            await errorHandlingService.HandleErrorResolved(issueKeys.BaseAppNotLicensed, null);
             return null;
         }
-        if (!await backendApiService.IsBaseAppLicensed(true))
+        var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
+        if (isBaseAppLicensed.Data != true)
         {
             logger.LogError("Can not send request to car as base app is not licensed");
-            await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(SendCommandToTeslaApi), "Base App not licensed",
-                "Can not send commands to car as app is not licensed. Buy a subscription on <a href=\"https://solar4car.com/subscriptions\">Solar4Car Subscriptions</a> to use TSC",
-                issueKeys.BaseAppNotLicensed, null, null).ConfigureAwait(false);
             return null;
         }
-        await errorHandlingService.HandleErrorResolved(issueKeys.BaseAppNotLicensed, null);
 
         var car = settings.Cars.First(c => c.Vin == vin);
         if (!isFleetApiTest && fleetApiRequest.BleCompatible)

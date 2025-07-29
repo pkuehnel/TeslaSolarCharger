@@ -51,7 +51,8 @@ public class FleetTelemetryWebSocketService(
                         && (c.IsFleetTelemetryHardwareIncompatible == false))
             .Select(c => new { c.Vin, IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields, })
             .ToListAsync();
-        if (cars.Any() && (!await backendApiService.IsBaseAppLicensed(true)))
+        var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
+        if (cars.Any() && (isBaseAppLicensed.Data != true))
         {
             logger.LogWarning("Base App is not licensed, do not connect to Fleet Telemetry");
             return;
@@ -118,7 +119,7 @@ public class FleetTelemetryWebSocketService(
         var currentDate = dateTimeProvider.UtcNow();
         var url = configurationWrapper.FleetTelemetryApiUrl() + $"vin={vin}";
         var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
-        if(authToken == default)
+        if (authToken == default)
         {
             logger.LogError("Can not connect to WebSocket: No token found for car {vin}", vin);
             return;
@@ -225,7 +226,7 @@ public class FleetTelemetryWebSocketService(
                         logger.LogDebug("Save location message for car {carId}", carId);
                     }
 
-                    
+
                     var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
                     var carValueLog = new CarValueLog
                     {
@@ -266,7 +267,14 @@ public class FleetTelemetryWebSocketService(
                                 propertyName = nameof(DtoCar.ChargerRequestedCurrent);
                                 break;
                             case CarValueType.IsPluggedIn:
-                                propertyName = nameof(DtoCar.PluggedIn);
+                                //Do not use reflection here as this sets the PluggedIn value on the dto without using the update method and therefore last plugged in is not filled correctly
+                                settingsCar.UpdatePluggedIn(new(carValueLog.Timestamp, TimeSpan.Zero), carValueLog.BooleanValue == true);
+                                break;
+                            case CarValueType.ModuleTempMin:
+                                settingsCar.MinBatteryTemperature.Update(message.TimeStamp, carValueLog.DoubleValue);
+                                break;
+                            case CarValueType.ModuleTempMax:
+                                settingsCar.MaxBatteryTemperature.Update(message.TimeStamp, carValueLog.DoubleValue);
                                 break;
                             case CarValueType.IsCharging:
                                 if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
@@ -351,6 +359,18 @@ public class FleetTelemetryWebSocketService(
                         {
                             UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
                         }
+                        var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await loadPointManagementService.CarStateChanged(settingsCar.Id);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
+                            }
+                        });
                     }
 
                 }
@@ -366,7 +386,7 @@ public class FleetTelemetryWebSocketService(
     {
         logger.LogTrace("{method}({jsonMessage}", nameof(HandleErrorMessage), jsonMessage);
         var message = JsonConvert.DeserializeObject<DtoFleetTelemetryErrorMessage>(jsonMessage);
-        if(message == default)
+        if (message == default)
         {
             return false;
         }

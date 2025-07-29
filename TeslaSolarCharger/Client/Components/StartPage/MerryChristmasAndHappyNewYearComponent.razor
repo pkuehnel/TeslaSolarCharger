@@ -1,0 +1,17 @@
+﻿@using TeslaSolarCharger.Shared.Contracts
+
+@inject IDateTimeProvider DateTimeProvider
+
+@if (DateTimeProvider.Now() is { Day: 24, Month: 12, Hour: > 15 } or { Day: 25, Month: 12 })
+{
+    <div class="alert alert-info" role="alert">
+        Merry Christmas! &#127876; &#127877; &#127873;
+    </div>
+}
+
+@if (DateTimeProvider.Now() is { Day: 31, Month: 12, Hour: > 15 } or { Day: 1, Month: 1 })
+{
+    <div class="alert alert-info" role="alert">
+        Happy New Year! &#127878; &#127881; &#127882;
+    </div>
+}
