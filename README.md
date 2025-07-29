@@ -62,6 +62,7 @@ To set up TeslaSolarCharger, you must create a `docker-compose.yml` (name is imp
 #### docker-compose.yml content
 
 The required content of your `docker-compose.yml` depends on your inverter. By default, TeslaSolarCharger can consume JSON/XML REST APIs, MQTT messages or Modbus TCP. To get the software running on [SMA](https://www.sma.de/), [SolarEdge](https://www.solaredge.com/) or Solax based inverters, you can use specific plugins which create the required JSON API.
+To edit files with Linux, you can either use your normal Linux desktop environment, or when accessing via SSH, you can use the [nano editor](https://linuxize.com/post/how-to-use-nano-text-editor/), or when accessing from a Windows PC, you can use [WinSCP](https://winscp.net/eng/download.php).
 
 ##### Content without using a plugin
 
