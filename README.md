@@ -47,6 +47,9 @@ Depending on your system, you have to install Docker first. To do this on a Rasp
     sudo usermod -aG docker pi
     ```
 1. Reboot your Raspberry Pi
+    ```
+    sudo reboot
+    ```
 1. Test the Docker installation
     ```
     docker run hello-world
