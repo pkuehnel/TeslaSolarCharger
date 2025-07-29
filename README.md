@@ -404,7 +404,7 @@ If you only want to charge based on Spot Price, you are done now.
 To let the TeslaSolarCharger know how much power there is to charge the car, you need to set TSC up to gather the solar values
 
 ###### REST values including vendor specific plugins
-To set up a REST API click on `Add new REST source` and fill out the fields.
+To set up a REST API click on `Add new REST source` on the `Base Configuration` page and fill out the fields.
 
 If you are using a plugin, you need to use the following values:
 - SMA Plugin:
@@ -433,8 +433,7 @@ If you are using a plugin, you need to use the following values:
 
 
 ###### Modbus values
-
-Fill out the values according to the documentation of your inverter:
+To set up Modbus values, click on `Add new Modbus source` on the `Base Configuration` page and fill out the fields according to the documentation of your inverter:
 
 - `unitIdentifier`: Internal ID of your inverter (in most cases, 3 or 1)
 - `Host`: IP Address or hostname of your inverter
@@ -713,12 +712,6 @@ For the **SolaredgePlugin**:
 
 ```bash
 docker logs teslasolarcharger_solaredgeplugin > teslasolarcharger_solaredgeplugin.log
-```
-
-For the **ModbusPlugin**:
-
-```bash
-docker logs teslasolarcharger_modbusplugin > teslasolarcharger_modbusplugin.log
 ```
 
 If you get an error like `Error: No such container:` you can look up the containernames with
