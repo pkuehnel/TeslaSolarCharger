@@ -39,7 +39,7 @@ else
     <RightAlignedButtonComponent OnButtonClicked="FakeLogout"
     ButtonText="ChangeUser" />
 }
-else
+else if(BackendTokenState != default)
 {
     <GenericInput For="() => _backendLogin.EMail"></GenericInput>
     <GenericInput For="() => _backendLogin.Password"
