@@ -68,8 +68,10 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         }
         var overage = averagedOverage - buffer;
         _logger.LogDebug("Calculated overage {overage} after subtracting power buffer ({buffer})", overage, buffer);
-
-        overage = AddHomeBatteryStateToPowerCalculation(overage, notChargingWithExpectedPowerReasonHelper);
+        if (availablePowerSources.HomeBatteryPowerAvailable)
+        {
+            overage = AddHomeBatteryStateToPowerCalculation(overage, notChargingWithExpectedPowerReasonHelper);
+        }
         return overage + currentChargingPower;
     }
 
