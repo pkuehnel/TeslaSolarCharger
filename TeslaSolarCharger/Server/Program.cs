@@ -68,7 +68,7 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 builder.Services.Configure<FormOptions>(options =>
 {
     options.ValueLengthLimit = int.MaxValue;
-    options.MultipartBodyLengthLimit = maxFileSize; // or 1073741824 for 1GB
+    options.MultipartBodyLengthLimit = maxFileSize;
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
 
