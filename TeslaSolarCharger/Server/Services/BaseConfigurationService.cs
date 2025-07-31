@@ -115,35 +115,91 @@ public class BaseConfigurationService(
     public async Task RestoreBackup(IFormFile file)
     {
         logger.LogTrace("{method}({file})", nameof(RestoreBackup), file.FileName);
-        var jobsWereRunning = await jobManager.StopJobs().ConfigureAwait(false);
+
+        try
+        {
+            // Save file to pending restore directory
+            var pendingRestoreDirectory = configurationWrapper.PendingRestoreDirectory();
+            CreateDirectory(pendingRestoreDirectory);
+
+            var pendingRestoreFileName = $"pending-restore-{dateTimeProvider.DateTimeOffSetUtcNow().ToLocalTime():yyyy-MM-dd-HH-mm-ss}.zip";
+            var pendingRestoreFilePath = Path.Combine(pendingRestoreDirectory, pendingRestoreFileName);
+
+            await using FileStream fs = new(pendingRestoreFilePath, FileMode.Create);
+            await file.CopyToAsync(fs).ConfigureAwait(false);
+            fs.Close();
+
+            settings.RestartNeeded = true;
+
+            logger.LogInformation("Backup file saved for restore after container restart: {filePath}", pendingRestoreFilePath);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Couldn't save backup file for restore");
+            throw;
+        }
+    }
+
+    public void ProcessPendingRestore()
+    {
+        logger.LogTrace("{method}()", nameof(ProcessPendingRestore));
+        var pendingRestorePath = configurationWrapper.PendingRestoreDirectory();
+        if (!Directory.Exists(pendingRestorePath))
+        {
+            logger.LogInformation("No pending restore found at: {pendingRestorePath}", pendingRestorePath);
+            return;
+        }
+        var files = Directory.GetFiles(pendingRestorePath, "*.zip");
+        if (files.Length == 0)
+        {
+            logger.LogInformation("No pending restore files found in: {pendingRestorePath}", pendingRestorePath);
+            return;
+        }
+
+        if (files.Length > 1)
+        {
+            logger.LogWarning("Multiple pending restore files found in: {pendingRestorePath}. Delete all files", pendingRestorePath);
+            foreach (var file in files)
+            {
+                File.Delete(file);
+            }
+            return;
+        }
+
+        var fileToRestore = files.Single();
+        logger.LogInformation("Processing pending restore from: {filePath}", fileToRestore);
+
         try
         {
             var restoreTempDirectory = configurationWrapper.RestoreTempDirectory();
             CreateDirectory(restoreTempDirectory);
-            var restoreFileName = "TSC-Restore.zip";
-            var path = Path.Combine(restoreTempDirectory, restoreFileName);
-            await using FileStream fs = new(path, FileMode.Create);
-            await file.CopyToAsync(fs).ConfigureAwait(false);
-            fs.Close();
+
             var extractedFilesDirectory = Path.Combine(restoreTempDirectory, "RestoredFiles");
             CreateDirectory(extractedFilesDirectory);
-            ZipFile.ExtractToDirectory(path, extractedFilesDirectory);
+
+            // Extract the pending restore file
+            ZipFile.ExtractToDirectory(fileToRestore, extractedFilesDirectory);
+
+            // Delete existing config files
             var configFileDirectoryPath = configurationWrapper.ConfigFileDirectory();
             var directoryInfo = new DirectoryInfo(configFileDirectoryPath);
             foreach (var fileInfo in directoryInfo.GetFiles())
             {
                 fileInfo.Delete();
             }
+
+            // Copy restored files
             CopyFiles(extractedFilesDirectory, configFileDirectoryPath);
+
+            // Clean up pending restore file
+            File.Delete(fileToRestore);
+
+            logger.LogInformation("Pending restore completed successfully");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Couldn't restore backup");
+            logger.LogError(ex, "Failed to process pending restore");
             throw;
-        }
-        finally
-        {
-            settings.RestartNeeded = true;
         }
     }
 

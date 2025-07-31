@@ -178,7 +178,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     var settings = webApplication.Services.GetRequiredService<ISettings>();
     try
     {
-        //Do nothing before these lines as database is created here.
+        //Do nothing before these lines as database is restored or created here.
+        var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
+        baseConfigurationService.ProcessPendingRestore();
         var teslaSolarChargerContext = webApplication.Services.GetRequiredService<ITeslaSolarChargerContext>();
         await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
@@ -191,7 +193,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var shouldRetry = false;
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
-        var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
+        
         var teslaMateContextWrapper = webApplication.Services.GetRequiredService<ITeslaMateDbContextWrapper>();
         var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
         if (teslaMateContext != default)

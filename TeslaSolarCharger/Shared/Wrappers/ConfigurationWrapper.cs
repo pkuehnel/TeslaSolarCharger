@@ -67,6 +67,15 @@ public class ConfigurationWrapper(
         return Path.Combine(configFileDirectory, value);
     }
 
+    public string PendingRestoreDirectory()
+    {
+        var configFileDirectory = ConfigFileDirectory();
+        var environmentVariableName = "PendingRestoreDirectory";
+        var value = GetNotNullableConfigurationValue<string>(environmentVariableName);
+        logger.LogTrace("Config value extracted: [{key}]: {value}", environmentVariableName, value);
+        return Path.Combine(configFileDirectory, value);
+    }
+
     public string SqliteFileFullName()
     {
         var configFileDirectory = ConfigFileDirectory();

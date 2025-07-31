@@ -14,4 +14,5 @@ public interface IBaseConfigurationService
     List<DtoBackupFileInformation> GetAutoBackupFileInformations();
     Task<byte[]> DownloadAutoBackup(string fileName);
     Task<(Stream stream, string fileName)> DownloadBackupStream(string? backupZipDestinationDirectory);
+    void ProcessPendingRestore();
 }
