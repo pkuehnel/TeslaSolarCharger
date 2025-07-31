@@ -119,4 +119,5 @@ public interface IConfigurationWrapper
     bool UsePredictedSolarPowerGenerationForChargingSchedules();
     TimeSpan SkipPowerChangesOnLastAdjustmentNewerThan();
     string LogFilesDirectory();
+    string PendingRestoreDirectory();
 }
