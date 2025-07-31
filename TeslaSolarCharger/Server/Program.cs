@@ -1,4 +1,6 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using PkSoftwareService.Custom.Backend;
@@ -56,6 +58,19 @@ builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>(
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
+
+var maxFileSize = (long)1024 * 1024 * 1024 * 2; // 2GB
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = maxFileSize;
+});
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = maxFileSize; // or 1073741824 for 1GB
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
 
 builder.Host.UseSerilog();
 const string outputTemplate = "[{Timestamp:dd-MMM-yyyy HH:mm:ss.fff} {Level:u3} {SourceContext}] {Message:lj}{NewLine}{Exception}";

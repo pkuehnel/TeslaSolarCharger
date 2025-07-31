@@ -5,6 +5,7 @@
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
 @inject HttpClient HttpClient
+@inject ILogger<BackupComponent> Logger
 
 <h1>Backup and Restore</h1>
 <div>During the backup or restore process all TSC actions will be stopped and started again after the Backup</div>
@@ -141,17 +142,26 @@
             return;
         }
 
-        // ReSharper disable once UseConfigureAwaitFalse
-        var response = await HttpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
-        if (response.IsSuccessStatusCode)
+        // ReSharper disable once UseConfigureAwaitFalset
+        try
         {
-            Snackbar.Add("Restore complete", Severity.Success);
+            var response = await HttpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Restore complete", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
+            }
         }
-        else
+        catch (Exception e)
         {
-            Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
+            Snackbar.Add($"Fatal Error while restoring backup: {e.Message}", Severity.Error);
+            Logger.LogError(e, "Error while restoring backup");
+            _processingRestore = false;
+            return;
         }
-
         _processingRestore = false;
     }
 
