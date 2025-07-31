@@ -59,7 +59,7 @@ builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>(
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
 
-var maxFileSize = (long)1024 * 1024 * 1024 * 2; // 2GB
+var maxFileSize = (long)1024 * 1024 * 1024 * 50; // 50GB
 builder.Services.Configure<KestrelServerOptions>(options =>
 {
     options.Limits.MaxRequestBodySize = maxFileSize;
