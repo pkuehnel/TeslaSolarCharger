@@ -133,14 +133,14 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charging stopped because of not enough max combined current."));
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
         }
+        if (constraintValues.ChargeMode == ChargeModeV2.Manual)
+        {
+            return null;
+        }
         if ((constraintValues.ChargeMode == ChargeModeV2.Off)
             || (constraintValues.Soc > constraintValues.MaxSoc))
         {
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
-        }
-        if (constraintValues.ChargeMode == ChargeModeV2.Manual)
-        {
-            return null;
         }
         if (constraintValues.IsCarFullyCharged == true)
         {
