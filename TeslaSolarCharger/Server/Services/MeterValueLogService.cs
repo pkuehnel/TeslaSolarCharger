@@ -66,7 +66,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             {
                 Timestamp = pvValues.LastUpdated.Value,
                 MeterValueKind = pvValues.HomeBatteryPower < 0 ? MeterValueKind.HomeBatteryDischarging : MeterValueKind.HomeBatteryCharging,
-                MeasuredPower = pvValues.HomeBatteryPower,
+                MeasuredPower = Math.Abs(pvValues.HomeBatteryPower.Value),
                 MeasuredEnergyWs = null,
             };
             meterValueBufferService.Add(meterValue);
