@@ -40,9 +40,19 @@ namespace TeslaSolarCharger.Server.Controllers
             service.UpdatePowerBuffer(powerBuffer);
 
         [HttpGet]
-        public async Task<IActionResult> DownloadBackup()
+        public async Task<IActionResult> DownloadBackup([FromQuery] string? cookieName = null)
         {
             var (stream, fileName) = await service.DownloadBackupStream(null).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(cookieName))
+            {
+                Response.Cookies.Append(cookieName, "true", new CookieOptions
+                {
+                    Path = "/",
+                    HttpOnly = false, // Important: must be false so JavaScript can read it
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddMinutes(1) // Auto-cleanup after 1 minute
+                });
+            }
             return File(stream, "application/zip", fileName);
         }
 
