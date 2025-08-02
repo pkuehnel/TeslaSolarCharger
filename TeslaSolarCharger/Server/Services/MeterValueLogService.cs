@@ -22,7 +22,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     {
         logger.LogTrace("{method}()", nameof(AddPvValuesToBuffer));
         var pvValues = await indexService.GetPvValues().ConfigureAwait(false);
-        if(pvValues.LastUpdated == default)
+        if (pvValues.LastUpdated == default)
         {
             logger.LogWarning("Unknown last updated of PV values, do not log pv meter values");
             return;
@@ -62,14 +62,23 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         }
         if (pvValues.HomeBatteryPower != default)
         {
-            var meterValue = new MeterValue
+            var isDischarging = pvValues.HomeBatteryPower < 0;
+            var chargingValue = new MeterValue
             {
                 Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = pvValues.HomeBatteryPower < 0 ? MeterValueKind.HomeBatteryDischarging : MeterValueKind.HomeBatteryCharging,
-                MeasuredPower = Math.Abs(pvValues.HomeBatteryPower.Value),
+                MeterValueKind = MeterValueKind.HomeBatteryCharging,
+                MeasuredPower = isDischarging ? 0 : pvValues.HomeBatteryPower.Value,
                 MeasuredEnergyWs = null,
             };
-            meterValueBufferService.Add(meterValue);
+            meterValueBufferService.Add(chargingValue);
+            var dischargingValue = new MeterValue
+            {
+                Timestamp = pvValues.LastUpdated.Value,
+                MeterValueKind = MeterValueKind.HomeBatteryDischarging,
+                MeasuredPower = isDischarging ? (-pvValues.HomeBatteryPower.Value) : 0,
+                MeasuredEnergyWs = null,
+            };
+            meterValueBufferService.Add(dischargingValue);
         }
 
         if (pvValues.HomeBatterySoc != default
