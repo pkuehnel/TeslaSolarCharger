@@ -6,4 +6,6 @@ public enum MeterValueKind
     HouseConsumption,
     HomeBatteryCharging,
     HomeBatteryDischarging,
+    PowerToGrid,
+    PowerFromGrid,
 }
