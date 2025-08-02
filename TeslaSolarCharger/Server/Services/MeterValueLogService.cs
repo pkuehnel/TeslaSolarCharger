@@ -4,6 +4,8 @@ using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -13,13 +15,14 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     IMeterValueBufferService meterValueBufferService,
-    IMeterValueEstimationService meterValueEstimationService) : IMeterValueLogService
+    IMeterValueEstimationService meterValueEstimationService,
+    ISettings settings) : IMeterValueLogService
 {
     public async Task AddPvValuesToBuffer()
     {
         logger.LogTrace("{method}()", nameof(AddPvValuesToBuffer));
         var pvValues = await indexService.GetPvValues().ConfigureAwait(false);
-        if(pvValues.LastUpdated == default)
+        if (pvValues.LastUpdated == default)
         {
             logger.LogWarning("Unknown last updated of PV values, do not log pv meter values");
             return;
@@ -32,35 +35,65 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             logger.LogWarning("Pv Values are too old, do not log");
             return;
         }
-        if (pvValues.InverterPower == default)
+        if (pvValues.InverterPower != default)
         {
-            logger.LogInformation("Unknown inverter power, do not log pv meter values");
-            return;
+            var meterValue = new MeterValue
+            {
+                Timestamp = pvValues.LastUpdated.Value,
+                MeterValueKind = MeterValueKind.SolarGeneration,
+                MeasuredPower = pvValues.InverterPower,
+                MeasuredEnergyWs = null,
+            };
+            meterValueBufferService.Add(meterValue);
         }
-        var solarMeterValue = new MeterValue
-        {
-            Timestamp = pvValues.LastUpdated.Value,
-            MeterValueKind = MeterValueKind.SolarGeneration,
-            MeasuredPower = pvValues.InverterPower,
-            MeasuredEnergyWs = null,
-        };
-        meterValueBufferService.Add(solarMeterValue);
         var homeBatteryPower = pvValues.HomeBatteryPower ?? 0;
         var chargingPower = pvValues.CarCombinedChargingPowerAtHome ?? 0;
         var homePower = pvValues.InverterPower - pvValues.GridPower - homeBatteryPower - chargingPower;
-        if (homePower == default)
+        if (homePower != default)
         {
-            logger.LogInformation("Unknown home power, do not log pv meter values");
-            return;
+            var meterValue = new MeterValue
+            {
+                Timestamp = pvValues.LastUpdated.Value,
+                MeterValueKind = MeterValueKind.HouseConsumption,
+                MeasuredPower = homePower,
+                MeasuredEnergyWs = null,
+            };
+            meterValueBufferService.Add(meterValue);
         }
-        var houseMeterValue = new MeterValue
+        if (pvValues.HomeBatteryPower != default)
         {
-            Timestamp = pvValues.LastUpdated.Value,
-            MeterValueKind = MeterValueKind.HouseConsumption,
-            MeasuredPower = homePower,
-            MeasuredEnergyWs = null,
-        };
-        meterValueBufferService.Add(houseMeterValue);
+            var isDischarging = pvValues.HomeBatteryPower < 0;
+            var chargingValue = new MeterValue
+            {
+                Timestamp = pvValues.LastUpdated.Value,
+                MeterValueKind = MeterValueKind.HomeBatteryCharging,
+                MeasuredPower = isDischarging ? 0 : pvValues.HomeBatteryPower.Value,
+                MeasuredEnergyWs = null,
+            };
+            meterValueBufferService.Add(chargingValue);
+            var dischargingValue = new MeterValue
+            {
+                Timestamp = pvValues.LastUpdated.Value,
+                MeterValueKind = MeterValueKind.HomeBatteryDischarging,
+                MeasuredPower = isDischarging ? (-pvValues.HomeBatteryPower.Value) : 0,
+                MeasuredEnergyWs = null,
+            };
+            meterValueBufferService.Add(dischargingValue);
+        }
+
+        if (pvValues.HomeBatterySoc != default
+            && pvValues.HomeBatterySoc != settings.LastLoggedHomeBatterySoc)
+        {
+            var pvValueLog = new PvValueLog()
+            {
+                Timestamp = pvValues.LastUpdated.Value,
+                Type = PvValueType.HomeBatterySoc,
+                IntValue = pvValues.HomeBatterySoc.Value,
+            };
+            context.PvValueLogs.Add(pvValueLog);
+            await context.SaveChangesAsync().ConfigureAwait(false);
+            settings.LastLoggedHomeBatterySoc = pvValueLog.IntValue;
+        }
     }
 
     public async Task SaveBufferedMeterValuesToDatabase()

@@ -4,4 +4,6 @@ public enum MeterValueKind
 {
     SolarGeneration,
     HouseConsumption,
+    HomeBatteryCharging,
+    HomeBatteryDischarging,
 }
