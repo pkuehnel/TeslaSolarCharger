@@ -1,11 +1,12 @@
 ﻿@page "/backupAndRestore"
 @using System.Net.Http.Headers
 @using TeslaSolarCharger.Shared.Dtos
-
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
 @inject HttpClient HttpClient
 @inject ILogger<BackupComponent> Logger
+
+@implements IDisposable
 
 <h1>Backup and Restore</h1>
 <div>During the backup or restore process all TSC actions will be stopped and started again after the Backup</div>
@@ -15,11 +16,18 @@
     Note: The backup contains private information like password for your database, possibly access codes to your solar system, latest known location of your car(s),... Do not share the backup in public.
 </div>
 
+@if (_processingBackup)
+{
+    <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+        <MudAlert Severity="Severity.Info">
+            Backup creation might take a few minutes, please wait...
+        </MudAlert>
+    </MudPaper>
+}
 <RightAlignedButtonComponent IsDisabled="@(_processingBackup || _processingRestore)"
                              OnButtonClicked="StartBackup"
                              IsLoading="_processingBackup"
                              ButtonText="Start Backup"></RightAlignedButtonComponent>
-
 <hr />
 <h2>Restore</h2>
 <div class="alert alert-warning" role="alert">
@@ -37,20 +45,17 @@
         </ActivatorContent>
     </MudFileUpload>
 </div>
-
 @if (_file != default)
 {
     <div class="mb-2">
         @_file.Name <code>@((_file.Size * 0.000001).ToString("0.00")) MB</code>
     </div>
 }
-
 <RightAlignedButtonComponent IsDisabled="@(_processingBackup || _processingRestore || _file == default)"
                              DisabledToolTipText=""
                              OnButtonClicked="StartRestore"
                              IsLoading="_processingRestore"
                              ButtonText="Start restore"></RightAlignedButtonComponent>
-
 <MudExpansionPanels>
     <MudExpansionPanel Text="Automatically created backups before each update" ExpandedChanged="RefreshBackups">
         <MudDataGrid Items="_backupFiles">
@@ -71,33 +76,53 @@
     </MudExpansionPanel>
 </MudExpansionPanels>
 
-
 @code {
     private bool _processingBackup;
     private bool _processingRestore;
     private readonly long _maxFileSize = 1024 * 1024 * 1024; // 1024 MB
-
     private List<DtoBackupFileInformation> _backupFiles = new List<DtoBackupFileInformation>();
-
-
     private IBrowserFile? _file;
+    private DotNetObjectReference<BackupComponent>? _objRef;
+
+    protected override void OnInitialized()
+    {
+        _objRef = DotNetObjectReference.Create(this);
+    }
 
     private async Task StartBackup()
     {
         _processingBackup = true;
         await InvokeAsync(StateHasChanged);
-        await Task.Yield();
+    
         var fileName = "TSCBackup.zip";
-        var url = "api/BaseConfiguration/DownloadBackup";
-        await JsRuntime.InvokeVoidAsync("triggerFileDownload", fileName, url).ConfigureAwait(false);
-        await Task.Delay(5000);
+        var cookieName = $"download_{Guid.NewGuid():N}";
+        var url = $"api/BaseConfiguration/DownloadBackup?cookieName={cookieName}";
+    
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("triggerFileDownloadWithCallback", 
+                fileName, url, cookieName, _objRef, nameof(OnDownloadStarted));
+        
+            // The button will remain in processing state until the callback is triggered
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error triggering download");
+            _processingBackup = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnDownloadStarted()
+    {
         _processingBackup = false;
         await InvokeAsync(StateHasChanged);
     }
 
     private void SelectFile(IBrowserFile? file)
     {
-        if(file == default)
+        if (file == default)
         {
             return;
         }
@@ -135,13 +160,11 @@
             _processingRestore = false;
             return;
         }
-
         if (!upload)
         {
             _processingRestore = false;
             return;
         }
-
         try
         {
             var response = await HttpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
@@ -192,8 +215,12 @@
     private async Task DownloadFile(string itemFileName)
     {
         var url = $"api/BaseConfiguration/DownloadAutoBackup?fileName={Uri.EscapeDataString(itemFileName)}";
-        // ReSharper disable once UseConfigureAwaitFalse
+        // Use simple download for auto backups (no need for monitoring)
         await JsRuntime.InvokeVoidAsync("triggerFileDownload", itemFileName, url);
     }
 
+    public void Dispose()
+    {
+        _objRef?.Dispose();
+    }
 }
