@@ -45,7 +45,7 @@ window.triggerFileDownloadWithCallback = (fileName, url, cookieName, dotNetRef, 
     anchorElement.remove();
 
     // Timeout and cleanup on page unload
-    const timeout = setTimeout(invokeCallback, 60000);
+    const timeout = setTimeout(invokeCallback, 6000000);
 
     const cleanup = () => {
         clearTimeout(timeout);
