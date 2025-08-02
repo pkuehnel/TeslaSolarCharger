@@ -102,8 +102,6 @@
         {
             await JsRuntime.InvokeVoidAsync("triggerFileDownloadWithCallback", 
                 fileName, url, cookieName, _objRef, nameof(OnDownloadStarted));
-        
-            // The button will remain in processing state until the callback is triggered
         }
         catch (Exception ex)
         {
@@ -137,7 +135,7 @@
     private async Task StartRestore()
     {
         _processingRestore = true;
-        var upload = false;
+        bool upload;
         if (_file == default)
         {
             Snackbar.Add("No file selected", Severity.Error);
@@ -215,7 +213,6 @@
     private async Task DownloadFile(string itemFileName)
     {
         var url = $"api/BaseConfiguration/DownloadAutoBackup?fileName={Uri.EscapeDataString(itemFileName)}";
-        // Use simple download for auto backups (no need for monitoring)
         await JsRuntime.InvokeVoidAsync("triggerFileDownload", itemFileName, url);
     }
 
