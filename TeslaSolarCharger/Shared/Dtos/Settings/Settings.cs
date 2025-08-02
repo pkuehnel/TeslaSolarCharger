@@ -10,6 +10,7 @@ public class Settings : ISettings
     public int? Overage { get; set; }
     public List<DtoCar> CarsToManage => Cars.Where(c => c.ShouldBeManaged == true).OrderBy(c => c.ChargingPriority).ToList();
     public int? HomeBatterySoc { get; set; }
+    public int? LastLoggedHomeBatterySoc { get; set; }
     public int? HomeBatteryPower { get; set; }
     public bool ControlledACarAtLastCycle { get; set; }
     public DateTimeOffset LastPvValueUpdate { get; set; }
