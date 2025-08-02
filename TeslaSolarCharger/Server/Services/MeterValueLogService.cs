@@ -81,6 +81,27 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             meterValueBufferService.Add(dischargingValue);
         }
 
+        if (pvValues.GridPower != default)
+        {
+            var isPowerComingFromGrid = pvValues.GridPower < 0;
+            var powerToGrid = new MeterValue()
+            {
+                Timestamp = pvValues.LastUpdated.Value,
+                MeterValueKind = MeterValueKind.PowerToGrid,
+                MeasuredPower = isPowerComingFromGrid ? 0 : pvValues.GridPower.Value,
+                MeasuredEnergyWs = null,
+            };
+            meterValueBufferService.Add(powerToGrid);
+            var powerFromGrid = new MeterValue()
+            {
+                Timestamp = pvValues.LastUpdated.Value,
+                MeterValueKind = MeterValueKind.PowerFromGrid,
+                MeasuredPower = isPowerComingFromGrid ? (-pvValues.GridPower.Value) : 0,
+                MeasuredEnergyWs = null,
+            };
+            meterValueBufferService.Add(powerFromGrid);
+        }
+
         if (pvValues.HomeBatterySoc != default
             && pvValues.HomeBatterySoc != settings.LastLoggedHomeBatterySoc)
         {
