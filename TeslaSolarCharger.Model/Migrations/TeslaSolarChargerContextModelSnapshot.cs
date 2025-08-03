@@ -54,7 +54,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BackendNotifications");
+                    b.ToTable("BackendNotifications", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.BackendToken", b =>
@@ -76,7 +76,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BackendTokens");
+                    b.ToTable("BackendTokens", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CachedCarState", b =>
@@ -100,7 +100,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CachedCarStates");
+                    b.ToTable("CachedCarStates", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", b =>
@@ -255,7 +255,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.HasIndex("Vin")
                         .IsUnique();
 
-                    b.ToTable("Cars");
+                    b.ToTable("Cars", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarChargingTarget", b =>
@@ -307,7 +307,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("CarId");
 
-                    b.ToTable("CarChargingTargets");
+                    b.ToTable("CarChargingTargets", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog", b =>
@@ -350,7 +350,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("CarId");
 
-                    b.ToTable("CarValueLogs");
+                    b.ToTable("CarValueLogs", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargePrice", b =>
@@ -384,7 +384,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ChargePrices");
+                    b.ToTable("ChargePrices", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingDetail", b =>
@@ -415,7 +415,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("ChargingProcessId");
 
-                    b.ToTable("ChargingDetails");
+                    b.ToTable("ChargingDetails", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingProcess", b =>
@@ -457,7 +457,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("OcppChargingStationConnectorId");
 
-                    b.ToTable("ChargingProcesses");
+                    b.ToTable("ChargingProcesses", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.HandledCharge", b =>
@@ -486,7 +486,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("HandledCharges");
+                    b.ToTable("HandledCharges", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.LoggedError", b =>
@@ -542,7 +542,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("LoggedErrors");
+                    b.ToTable("LoggedErrors", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MeterValue", b =>
@@ -571,7 +571,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MeterValues");
+                    b.ToTable("MeterValues", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusConfiguration", b =>
@@ -601,7 +601,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ModbusConfigurations");
+                    b.ToTable("ModbusConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", b =>
@@ -646,7 +646,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("ModbusConfigurationId");
 
-                    b.ToTable("ModbusResultConfigurations");
+                    b.ToTable("ModbusResultConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttConfiguration", b =>
@@ -670,7 +670,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MqttConfigurations");
+                    b.ToTable("MqttConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MqttResultConfiguration", b =>
@@ -714,7 +714,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("MqttConfigurationId");
 
-                    b.ToTable("MqttResultConfigurations");
+                    b.ToTable("MqttResultConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStation", b =>
@@ -732,7 +732,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("OcppChargingStations");
+                    b.ToTable("OcppChargingStations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnector", b =>
@@ -787,7 +787,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("OcppChargingStationId");
 
-                    b.ToTable("OcppChargingStationConnectors");
+                    b.ToTable("OcppChargingStationConnectors", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnectorValueLog", b =>
@@ -812,7 +812,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("OcppChargingStationConnectorId");
 
-                    b.ToTable("OcppChargingStationConnectorValueLogs");
+                    b.ToTable("OcppChargingStationConnectorValueLogs", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppTransaction", b =>
@@ -834,7 +834,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("ChargingStationConnectorId");
 
-                    b.ToTable("OcppTransactions");
+                    b.ToTable("OcppTransactions", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.PowerDistribution", b =>
@@ -865,7 +865,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("HandledChargeId");
 
-                    b.ToTable("PowerDistributions");
+                    b.ToTable("PowerDistributions", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.PvValueLog", b =>
@@ -885,7 +885,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PvValueLogs");
+                    b.ToTable("PvValueLogs", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfiguration", b =>
@@ -906,7 +906,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("RestValueConfigurations");
+                    b.ToTable("RestValueConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueConfigurationHeader", b =>
@@ -931,7 +931,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.HasIndex("RestValueConfigurationId", "Key")
                         .IsUnique();
 
-                    b.ToTable("RestValueConfigurationHeaders");
+                    b.ToTable("RestValueConfigurationHeaders", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.RestValueResultConfiguration", b =>
@@ -968,7 +968,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasIndex("RestValueConfigurationId");
 
-                    b.ToTable("RestValueResultConfigurations");
+                    b.ToTable("RestValueResultConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.SolarRadiation", b =>
@@ -991,7 +991,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SolarRadiations");
+                    b.ToTable("SolarRadiations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.SpotPrice", b =>
@@ -1011,7 +1011,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SpotPrices");
+                    b.ToTable("SpotPrices", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.TscConfiguration", b =>
@@ -1032,7 +1032,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.HasIndex("Key")
                         .IsUnique();
 
-                    b.ToTable("TscConfigurations");
+                    b.ToTable("TscConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarChargingTarget", b =>

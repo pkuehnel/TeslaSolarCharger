@@ -58,4 +58,5 @@ public interface IConstants
     string SunriseIcon { get; }
     string SunsetIcon { get; }
     string UnknownCarName { get; }
+    int ChargingDetailDatabaseSaveIntervalMinutes { get; }
 }

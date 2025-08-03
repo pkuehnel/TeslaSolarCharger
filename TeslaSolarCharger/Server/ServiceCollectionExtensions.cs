@@ -153,7 +153,7 @@ public static class ServiceCollectionExtensions
             .AddScoped<IStateSnapshotService, StateSnapshotService>()
             .AddSingleton<IAppStateNotifier, AppStateNotifier>()
             .AddScoped<ErrorHandlingMiddleware>()
-            .AddHostedService<MeterValueFlushService>()
+            .AddHostedService<ValueFlushService>()
             .AddSharedBackendDependencies();
         return services;
     }
