@@ -15,7 +15,7 @@ public class DatabaseValueBufferService : IDatabaseValueBufferService
     }
 
     /// <summary>
-    /// Retrieves and removes items of type T that match the predicate.
+    /// Retrieves and removes all items of type T from the buffer.
     /// </summary>
     public List<T> DrainAll<T>()
     {
