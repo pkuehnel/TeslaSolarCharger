@@ -147,7 +147,7 @@ public static class ServiceCollectionExtensions
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
             .AddSingleton<ITimeSeriesDataService, TimeSeriesDataService>()
-            .AddSingleton<IMeterValueBufferService, MeterValueBufferService>()
+            .AddSingleton<IDatabaseValueBufferService, DatabaseValueBufferService>()
             .AddSingleton<IOcppWebSocketConnectionHandlingService, OcppWebSocketConnectionHandlingService>()
             .AddSingleton<IChangeTrackingService, ChangeTrackingService>()
             .AddScoped<IStateSnapshotService, StateSnapshotService>()

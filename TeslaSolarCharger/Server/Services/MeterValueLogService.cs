@@ -14,7 +14,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     IIndexService indexService,
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
-    IMeterValueBufferService meterValueBufferService,
+    IDatabaseValueBufferService databaseValueBufferService,
     IMeterValueEstimationService meterValueEstimationService,
     ISettings settings) : IMeterValueLogService
 {
@@ -44,7 +44,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                 MeasuredPower = pvValues.InverterPower,
                 MeasuredEnergyWs = null,
             };
-            meterValueBufferService.Add(meterValue);
+            databaseValueBufferService.Add(meterValue);
         }
         var homeBatteryPower = pvValues.HomeBatteryPower ?? 0;
         var chargingPower = pvValues.CarCombinedChargingPowerAtHome ?? 0;
@@ -58,7 +58,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                 MeasuredPower = homePower,
                 MeasuredEnergyWs = null,
             };
-            meterValueBufferService.Add(meterValue);
+            databaseValueBufferService.Add(meterValue);
         }
         if (pvValues.HomeBatteryPower != default)
         {
@@ -70,7 +70,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                 MeasuredPower = isDischarging ? 0 : pvValues.HomeBatteryPower.Value,
                 MeasuredEnergyWs = null,
             };
-            meterValueBufferService.Add(chargingValue);
+            databaseValueBufferService.Add(chargingValue);
             var dischargingValue = new MeterValue
             {
                 Timestamp = pvValues.LastUpdated.Value,
@@ -78,7 +78,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                 MeasuredPower = isDischarging ? (-pvValues.HomeBatteryPower.Value) : 0,
                 MeasuredEnergyWs = null,
             };
-            meterValueBufferService.Add(dischargingValue);
+            databaseValueBufferService.Add(dischargingValue);
         }
 
         if (pvValues.GridPower != default)
@@ -91,7 +91,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                 MeasuredPower = isPowerComingFromGrid ? 0 : pvValues.GridPower.Value,
                 MeasuredEnergyWs = null,
             };
-            meterValueBufferService.Add(powerToGrid);
+            databaseValueBufferService.Add(powerToGrid);
             var powerFromGrid = new MeterValue()
             {
                 Timestamp = pvValues.LastUpdated.Value,
@@ -99,7 +99,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                 MeasuredPower = isPowerComingFromGrid ? (-pvValues.GridPower.Value) : 0,
                 MeasuredEnergyWs = null,
             };
-            meterValueBufferService.Add(powerFromGrid);
+            databaseValueBufferService.Add(powerFromGrid);
         }
 
         if (pvValues.HomeBatterySoc != default
@@ -120,7 +120,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     public async Task SaveBufferedMeterValuesToDatabase()
     {
         logger.LogTrace("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
-        var meterValues = meterValueBufferService.DrainAll();
+        var meterValues = databaseValueBufferService.DrainAll<MeterValue>();
         var meterValueGroups = meterValues.GroupBy(m => m.MeterValueKind);
         foreach (var meterValueGroup in meterValueGroups)
         {
