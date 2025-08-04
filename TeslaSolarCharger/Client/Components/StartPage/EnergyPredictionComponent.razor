@@ -469,7 +469,7 @@
                 }
 
                 // For production chart - show where solar production goes (as positive values)
-                if (PowerToGridData.Any())
+                if (gridToData.Any())
                 {
                     PowerToGridData.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridTo));
                 }
