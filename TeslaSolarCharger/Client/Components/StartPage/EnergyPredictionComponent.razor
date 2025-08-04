@@ -298,21 +298,31 @@
         await InvokeAsync(() => StateHasChanged());
 
         // Configure consumption chart options
-        _consumptionOptions = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal>>();
-        _consumptionOptions.Chart.Stacked = true;
-        _consumptionOptions.Chart.StackType = StackType.Normal;
-        _consumptionOptions.Chart.Height = ChartHeightValue;
-        _consumptionOptions.Fill = new Fill
+        _consumptionOptions = GetChartOptions();
+
+        // Configure production chart options
+        _productionOptions = GetChartOptions();
+
+        await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+    }
+
+    private ApexChartOptions<DtoChartValue<int, decimal>> GetChartOptions()
+    {
+        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal>>();
+        options.Chart.Stacked = true;
+        options.Chart.StackType = StackType.Normal;
+        options.Chart.Height = ChartHeightValue;
+        options.Fill = new Fill
         {
             Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, },
             Opacity = new List<double> { 0.2, 0.2, 0.7, 0.7, 0.7, }, // Line has low opacity, areas have higher
         };
-        _consumptionOptions.Stroke = new Stroke
+        options.Stroke = new Stroke
         {
             Width = new List<double> { 3, 1, 0, 0, 0 }, // Only line has stroke
             Curve = Curve.Smooth,
         };
-        _consumptionOptions.Yaxis = new List<YAxis>
+        options.Yaxis = new List<YAxis>
         {
             new YAxis
             {
@@ -332,43 +342,7 @@
                 },
             },
         };
-
-        // Configure production chart options
-        _productionOptions = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal>>();
-        _productionOptions.Chart.Stacked = true;
-        _productionOptions.Chart.StackType = StackType.Normal;
-        _productionOptions.Chart.Height = ChartHeightValue;
-        _productionOptions.Fill = new Fill
-        {
-            Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, },
-            Opacity = new List<double> { 0.2, 0.2, 0.7, 0.7, 0.7 }, // Line has low opacity, areas have higher
-        };
-        _productionOptions.Stroke = new Stroke
-        {
-            Width = new List<double> { 3, 1, 0, 0, 0 }, // Only line has stroke
-            Curve = Curve.Smooth,
-        };
-        _productionOptions.Yaxis = new List<YAxis>
-        {
-            new YAxis
-            {
-                Min = 0,
-                Title = new AxisTitle { Text = "kWh" },
-            },
-            new YAxis
-            {
-                Opposite = true,
-                Min = 0,
-                Max = 100,
-                Title = new AxisTitle { Text = "%" },
-                SeriesName = new SeriesName()
-                {
-                    "Home Battery SoC %",
-                },
-            },
-        };
-
-        await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+        return options;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
