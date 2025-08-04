@@ -125,9 +125,9 @@
                  || HouseActualData == default
                         || DirectConsumptionData == default
                         || BatteryDischargingData == default
-                        || GridConsumptionData == default
-                        || BatteryChargingDataPositive == default
-                        || GridFeedInDataPositive == default
+                        || PowerFromGridData == default
+                        || BatteryChargingData == default
+                        || PowerToGridData == default
                  || (SolarPredictionData == default && _isSolarPredictionEnabled)
                  || !_dataLoaded)
             {
@@ -179,8 +179,8 @@
                                          Color="@Constants.BatteryColor" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="GridConsumptionData"
-                                         Name="@($"Grid Import ({(GridConsumptionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Items="PowerFromGridData"
+                                         Name="@($"Grid Import ({(PowerFromGridData.Sum(v => v.Value)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
@@ -222,16 +222,16 @@
                                          Color="@Constants.FeedInColor" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="BatteryChargingDataPositive"
-                                         Name="@($"Battery Charging ({(BatteryChargingDataPositive.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Items="BatteryChargingData"
+                                         Name="@($"Battery Charging ({(BatteryChargingData.Sum(v => v.Value)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.BatteryColor" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="GridFeedInDataPositive"
-                                         Name="@($"Grid Export ({(GridFeedInDataPositive.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Items="PowerToGridData"
+                                         Name="@($"Grid Export ({(PowerToGridData.Sum(v => v.Value)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
@@ -252,9 +252,9 @@
     // Data for stacked areas
     private List<DtoChartValue<int, decimal>>? DirectConsumptionData { get; set; }
     private List<DtoChartValue<int, decimal>>? BatteryDischargingData { get; set; }
-    private List<DtoChartValue<int, decimal>>? GridConsumptionData { get; set; }
-    private List<DtoChartValue<int, decimal>>? GridFeedInDataPositive { get; set; }
-    private List<DtoChartValue<int, decimal>>? BatteryChargingDataPositive { get; set; }
+    private List<DtoChartValue<int, decimal>>? PowerFromGridData { get; set; }
+    private List<DtoChartValue<int, decimal>>? PowerToGridData { get; set; }
+    private List<DtoChartValue<int, decimal>>? BatteryChargingData { get; set; }
 
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(7);
@@ -353,9 +353,9 @@
         SolarActualData = default;
         DirectConsumptionData = default;
         BatteryDischargingData = default;
-        GridConsumptionData = default;
-        GridFeedInDataPositive = default;
-        BatteryChargingDataPositive = default;
+        PowerFromGridData = default;
+        PowerToGridData = default;
+        BatteryChargingData = default;
 
         try
         {
@@ -410,9 +410,9 @@
 
             DirectConsumptionData = new List<DtoChartValue<int, decimal>>();
             BatteryDischargingData = new List<DtoChartValue<int, decimal>>();
-            GridConsumptionData = new List<DtoChartValue<int, decimal>>();
-            GridFeedInDataPositive = new List<DtoChartValue<int, decimal>>();
-            BatteryChargingDataPositive = new List<DtoChartValue<int, decimal>>();
+            PowerFromGridData = new List<DtoChartValue<int, decimal>>();
+            PowerToGridData = new List<DtoChartValue<int, decimal>>();
+            BatteryChargingData = new List<DtoChartValue<int, decimal>>();
 
             foreach (var hour in hours)
             {
@@ -423,17 +423,31 @@
                 var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : 0;
                 var batteryDischarging = batteryDischargingDataRaw.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : 0;
 
-                // Calculate direct consumption (solar power directly consumed by house)
                 var directConsumption = Math.Min(solarProduction, Math.Max(0, houseConsumption - batteryDischarging - gridFrom));
 
-                // For consumption chart - stack consumption sources
-                DirectConsumptionData.Add(new DtoChartValue<int, decimal>(hour, (decimal)directConsumption));
-                BatteryDischargingData.Add(new DtoChartValue<int, decimal>(hour, (decimal)batteryDischarging));
-                GridConsumptionData.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridFrom));
+                // Fill up all values if any value is available as if any value is missing (which would be the case for the current day for future hours), the hover values of these uncomplete serieses are not displayed at all
+                if (houseActualData.Any() && solarActualData.Any())
+                {
+                    DirectConsumptionData.Add(new DtoChartValue<int, decimal>(hour, (decimal)directConsumption));
+                }
+                if (batteryChargingDataRaw.Any())
+                {
+                    BatteryDischargingData.Add(new DtoChartValue<int, decimal>(hour, (decimal)batteryDischarging));
+                }
+                if(gridFromData.Any())
+                {
+                    PowerFromGridData.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridFrom));
+                }
 
                 // For production chart - show where solar production goes (as positive values)
-                GridFeedInDataPositive.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridTo));
-                BatteryChargingDataPositive.Add(new DtoChartValue<int, decimal>(hour, (decimal)batteryCharging));
+                if (PowerToGridData.Any())
+                {
+                    PowerToGridData.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridTo));
+                }
+                if (batteryChargingDataRaw.Any())
+                {
+                    BatteryChargingData.Add(new DtoChartValue<int, decimal>(hour, (decimal)batteryCharging));
+                }
             }
 
             _dataLoaded = true;
