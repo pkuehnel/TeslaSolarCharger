@@ -255,6 +255,7 @@
     private List<DtoChartValue<int, decimal>>? PowerFromGridData { get; set; }
     private List<DtoChartValue<int, decimal>>? PowerToGridData { get; set; }
     private List<DtoChartValue<int, decimal>>? BatteryChargingData { get; set; }
+    private List<DtoChartValue<int, decimal>>? BatterySoc { get; set; }
 
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(7);
@@ -367,6 +368,7 @@
             var gridToTask = EnergyDataService.GetActualPowerToGridByLocalHour(date, token);
             var batteryChargingTask = EnergyDataService.GetActualHomeBatteryChargingPowerByLocalHour(date, token);
             var batteryDischargingTask = EnergyDataService.GetActualHomeBatteryDischargingPowerByLocalHour(date, token);
+            var batterySocTask = EnergyDataService.GetActualHomeBatterySocByLocalHour(date, token);
 
             if (_isSolarPredictionEnabled)
             {
@@ -393,6 +395,8 @@
             token.ThrowIfCancellationRequested();
             var batteryDischargingDataRaw = await batteryDischargingTask;
             token.ThrowIfCancellationRequested();
+            var batterySocData = await batterySocTask;
+            token.ThrowIfCancellationRequested();
 
             // Convert prediction data
             HousePredictionData = housePredictionData
@@ -413,6 +417,7 @@
             PowerFromGridData = new List<DtoChartValue<int, decimal>>();
             PowerToGridData = new List<DtoChartValue<int, decimal>>();
             BatteryChargingData = new List<DtoChartValue<int, decimal>>();
+            BatterySoc = new List<DtoChartValue<int, decimal>>();
 
             foreach (var hour in hours)
             {
@@ -422,6 +427,7 @@
                 var gridTo = gridToData.ContainsKey(hour) ? gridToData[hour] / 1000.0 : 0;
                 var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : 0;
                 var batteryDischarging = batteryDischargingDataRaw.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : 0;
+                var batterySoc = batterySocData.ContainsKey(hour) ? batterySocData[hour] : 0;
 
                 var directConsumption = Math.Min(solarProduction, Math.Max(0, houseConsumption - batteryDischarging - gridFrom));
 
@@ -437,6 +443,10 @@
                 if(gridFromData.Any())
                 {
                     PowerFromGridData.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridFrom));
+                }
+                if (batterySocData.Any())
+                {
+                    BatterySoc.Add(new DtoChartValue<int, decimal>(hour, (decimal)batterySoc));
                 }
 
                 // For production chart - show where solar production goes (as positive values)

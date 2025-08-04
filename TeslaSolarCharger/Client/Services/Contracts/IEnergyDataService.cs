@@ -20,4 +20,7 @@ public interface IEnergyDataService
 
     Task<Dictionary<int, int>> GetActualPowerFromGridByLocalHour(
         DateOnly date, CancellationToken token);
+
+    Task<Dictionary<int, int>> GetActualHomeBatterySocByLocalHour(
+        DateOnly date, CancellationToken token);
 }

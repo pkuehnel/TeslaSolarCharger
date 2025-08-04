@@ -6,6 +6,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -109,6 +110,29 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             }
         }
         return predictedHouseConsumption;
+    }
+
+    public async Task<Dictionary<DateTimeOffset, int>> GetActualHomeBatterySocByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
+    {
+        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetActualDataByLocalHour), startDate, endDate, sliceLength);
+        var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        var result = new Dictionary<DateTimeOffset, int>();
+        foreach (var timeStamp in resultTimeStamps)
+        {
+            var dbData = await context.PvValueLogs
+                .Where(l => l.Timestamp <= timeStamp
+                            && l.Type == PvValueType.HomeBatterySoc)
+                .Select(l => new
+                {
+                    l.IntValue,
+                })
+                .FirstOrDefaultAsync(cancellationToken: httpContextRequestAborted);
+            if (dbData != null)
+            {
+                result.Add(timeStamp, dbData.IntValue);
+            }
+        }
+        return result;
     }
 
     public async Task<Dictionary<DateTimeOffset, int>> GetActualDataByLocalHour(MeterValueKind meterValueKind, DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)

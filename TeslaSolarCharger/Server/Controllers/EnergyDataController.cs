@@ -62,4 +62,11 @@ public class EnergyDataController(IEnergyDataService energyDataService) : ApiBas
         var result = await energyDataService.GetActualDataByLocalHour(MeterValueKind.PowerFromGrid, startDate, endDate, sliceLength, HttpContext.RequestAborted);
         return Ok(result);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetHomeBatterySocActual(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
+    {
+        var result = await energyDataService.GetActualHomeBatterySocByLocalHour(startDate, endDate, sliceLength, HttpContext.RequestAborted);
+        return Ok(result);
+    }
 }
