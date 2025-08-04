@@ -128,6 +128,7 @@
                         || PowerFromGridData == default
                         || BatteryChargingData == default
                         || PowerToGridData == default
+                        || BatterySoc == default
                  || (SolarPredictionData == default && _isSolarPredictionEnabled)
                  || !_dataLoaded)
             {
@@ -143,7 +144,7 @@
                 <!-- Consumption Chart -->
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <ApexChart TItem="DtoChartValue<int, decimal>"
-                               Title="Consumption (kWh)"
+                               Title="Consumption"
                                Options="_consumptionOptions"
                                Width="@ChartWidthCalculator.ChartWidth"
                                Height="@ChartHeight"
@@ -160,6 +161,14 @@
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.HomeConsumptionColor" />
+
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                                         Items="BatterySoc"
+                                         Name="@("Home Battery SoC %")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => (decimal?)e.Value)"
+                                         Color="@Constants.BatteryColor" />
 
                         <!-- Consumption Sources (Stacked Areas) -->
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
@@ -185,13 +194,14 @@
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.GridColor" />
+
                     </ApexChart>
                 </div>
 
                 <!-- Production Chart -->
                 <div class="d-flex align-items-center justify-content-center mb-3">
                     <ApexChart TItem="DtoChartValue<int, decimal>"
-                               Title="Production (kWh)"
+                               Title="Production"
                                Options="_productionOptions"
                                Width="@ChartWidthCalculator.ChartWidth"
                                Height="@ChartHeight"
@@ -286,11 +296,11 @@
         _consumptionOptions.Fill = new Fill
         {
             Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid },
-            Opacity = new List<double> { 0.2, 0.7, 0.7, 0.7, }, // Line has low opacity, areas have higher
+            Opacity = new List<double> { 0.2, 0.2, 0.7, 0.7, 0.7, }, // Line has low opacity, areas have higher
         };
         _consumptionOptions.Stroke = new Stroke
         {
-            Width = new List<double> { 3, 0, 0, 0 }, // Only line has stroke
+            Width = new List<double> { 3, 1, 0, 0, 0 }, // Only line has stroke
             Curve = Curve.Smooth,
         };
         _consumptionOptions.Yaxis = new List<YAxis>
@@ -298,8 +308,16 @@
             new YAxis
             {
                 Min = 0,
-                Title = new AxisTitle { Text = "kWh" }
-            }
+                Title = new AxisTitle { Text = "kWh" },
+            },
+            new YAxis
+            {
+                Opposite = true,
+                Min = 0,
+                Max = 100,
+                Title = new AxisTitle { Text = "%" },
+                DecimalsInFloat = 0,
+            },
         };
 
         // Configure production chart options
@@ -310,20 +328,27 @@
         _productionOptions.Fill = new Fill
         {
             Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid },
-            Opacity = new List<double> { 0.2, 0.7, 0.7, 0.7 } // Line has low opacity, areas have higher
+            Opacity = new List<double> { 0.2, 0.7, 0.7, 0.7 }, // Line has low opacity, areas have higher
         };
         _productionOptions.Stroke = new Stroke
         {
             Width = new List<double> { 3, 0, 0, 0 }, // Only line has stroke
-            Curve = Curve.Smooth
+            Curve = Curve.Smooth,
         };
         _productionOptions.Yaxis = new List<YAxis>
         {
             new YAxis
             {
                 Min = 0,
-                Title = new AxisTitle { Text = "kWh" }
-            }
+                Title = new AxisTitle { Text = "kWh" },
+            },
+            new YAxis
+            {
+                Opposite = true,
+                Min = 0,
+                Max = 100,
+                Title = new AxisTitle { Text = "%" },
+            },
         };
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));

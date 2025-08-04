@@ -122,6 +122,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             var dbData = await context.PvValueLogs
                 .Where(l => l.Timestamp <= timeStamp
                             && l.Type == PvValueType.HomeBatterySoc)
+                .OrderByDescending(m => m.Id)
                 .Select(l => new
                 {
                     l.IntValue,
