@@ -58,4 +58,11 @@ public interface IConstants
     string SunriseIcon { get; }
     string SunsetIcon { get; }
     string UnknownCarName { get; }
+    string SolarPowerColor { get; }
+    string ConsumptionColor { get; }
+    string FeedInColor { get; }
+    string GridColor { get; }
+    string BatteryColor { get; }
+    string EvChargingColor { get; }
+    string HomeConsumptionColor { get; }
 }
