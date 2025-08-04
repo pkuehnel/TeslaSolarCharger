@@ -285,7 +285,7 @@
     private ApexChart<DtoChartValue<int, decimal>>? _consumptionChart;
     private ApexChart<DtoChartValue<int, decimal>>? _productionChart;
 
-    private int ChartHeightValue { get; set; } = 300;
+    private int ChartHeightValue { get; set; } = 400;
     private string ChartHeight => $"{ChartHeightValue}px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
@@ -469,7 +469,10 @@
                 var gridTo = gridToData.ContainsKey(hour) ? gridToData[hour] / 1000.0 : 0;
                 var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : 0;
                 var batteryDischarging = batteryDischargingDataRaw.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : 0;
-                var batterySoc = batterySocData.ContainsKey(hour) ? batterySocData[hour] : 0;
+                
+                var dateTime = new DateTime(date.Year, date.Month, date.Day, hour, 0, 0);
+                var currentDate = DateTimeProvider.Now();
+                var batterySoc = (batterySocData.ContainsKey(hour) && (currentDate > dateTime)) ? batterySocData[hour] : 0;
 
                 var directConsumption = Math.Min(solarProduction, Math.Max(0, houseConsumption - batteryDischarging - gridFrom));
 
@@ -488,10 +491,7 @@
                 }
                 if (batterySocData.Any())
                 {
-                    var dateTime = new DateTime(date.Year, date.Month, date.Day, hour, 0, 0);
-                    var currentDate = DateTimeProvider.Now();
-                    batterySoc = currentDate > dateTime ? batterySocData[hour] : 0;
-                    BatterySoc.Add(new DtoChartValue<int, decimal>(hour, (decimal)batterySoc));
+                    BatterySoc.Add(new DtoChartValue<int, decimal>(hour, batterySoc));
                 }
 
                 // For production chart - show where solar production goes (as positive values)
