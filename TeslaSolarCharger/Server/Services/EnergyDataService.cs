@@ -33,21 +33,28 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         for (var i = 0; i <= constants.WeatherPredictionInFutureDays; i++)
         {
             var startDate = currentUtcDay.AddDays(i);
-            await GetPredictedSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
-            await GetPredictedHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
-            await GetActualSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
-            await GetActualHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+            await CacheAllDataForDay(startDate, contextCancellationToken).ConfigureAwait(false);
         }
         for (var i = -cacheInPastDays; i < 0; i++)
         {
             var startDate = currentUtcDay.AddDays(i);
-            await GetPredictedSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
-            await GetPredictedHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
-            await GetActualSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
-            await GetActualHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+            await CacheAllDataForDay(startDate, contextCancellationToken).ConfigureAwait(false);
         }
         stopWatch.Stop();
         logger.LogInformation("Cache refresh took {elapsed}", stopWatch.Elapsed);
+    }
+
+    private async Task CacheAllDataForDay(DateTimeOffset startDate, CancellationToken contextCancellationToken)
+    {
+        logger.LogTrace("{method}({startDate})", nameof(CacheAllDataForDay), startDate);
+        await GetPredictedSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+        await GetPredictedHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+        await GetActualDataByLocalHour(MeterValueKind.SolarGeneration, startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+        await GetActualDataByLocalHour(MeterValueKind.HouseConsumption, startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+        await GetActualDataByLocalHour(MeterValueKind.HomeBatteryCharging, startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+        await GetActualDataByLocalHour(MeterValueKind.HomeBatteryDischarging, startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+        await GetActualDataByLocalHour(MeterValueKind.PowerToGrid, startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+        await GetActualDataByLocalHour(MeterValueKind.PowerFromGrid, startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Dictionary<DateTimeOffset, int>> GetPredictedSolarProductionByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken cancellationToken)
@@ -104,24 +111,14 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return predictedHouseConsumption;
     }
 
-    public async Task<Dictionary<DateTimeOffset, int>> GetActualSolarProductionByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
+    public async Task<Dictionary<DateTimeOffset, int>> GetActualDataByLocalHour(MeterValueKind meterValueKind, DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
     {
-        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetActualSolarProductionByLocalHour), startDate, endDate, sliceLength);
+        logger.LogTrace("{method}({meterValueKind}, {startDate}, {endDate}, {sliceLength})", nameof(GetActualDataByLocalHour), meterValueKind, startDate, endDate, sliceLength);
         if (configurationWrapper.UseFakeEnergyHistory())
         {
             return GenerateFakeResult(startDate, endDate, sliceLength);
         }
-        return await GetActualValues(MeterValueKind.SolarGeneration, startDate, endDate, sliceLength, httpContextRequestAborted);
-    }
-
-    public async Task<Dictionary<DateTimeOffset, int>> GetActualHouseConsumptionByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
-    {
-        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetActualHouseConsumptionByLocalHour), startDate, endDate, sliceLength);
-        if (configurationWrapper.UseFakeEnergyHistory())
-        {
-            return GenerateFakeResult(startDate, endDate, sliceLength);
-        }
-        return await GetActualValues(MeterValueKind.HouseConsumption, startDate, endDate, sliceLength, httpContextRequestAborted);
+        return await GetActualValues(meterValueKind, startDate, endDate, sliceLength, httpContextRequestAborted);
     }
 
     public async Task<Dictionary<DateTimeOffset, int>> GetPredictedSurplusPerSlice(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken cancellationToken)
@@ -197,6 +194,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
     private async Task<Dictionary<DateTimeOffset, int>> GetActualValues(MeterValueKind meterValueKind, DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken cancellationToken)
     {
+        logger.LogTrace("{method}({meterValueKind}, {startDate}, {endDate}, {sliceLength})", nameof(GetActualValues), meterValueKind, startDate, endDate, sliceLength);
         var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
         var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(resultTimeStamps, sliceLength, meterValueKind, cancellationToken);
         return dateTimeOffsetDictionaryFromDatabase;
