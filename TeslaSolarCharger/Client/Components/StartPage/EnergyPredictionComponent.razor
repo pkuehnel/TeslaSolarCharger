@@ -443,7 +443,7 @@
                 var gridTo = gridToData.ContainsKey(hour) ? gridToData[hour] / 1000.0 : 0;
                 var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : 0;
                 var batteryDischarging = batteryDischargingDataRaw.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : 0;
-                
+
                 var dateTime = new DateTime(date.Year, date.Month, date.Day, hour, 0, 0);
                 var currentDate = DateTimeProvider.Now();
                 var batterySoc = (batterySocData.ContainsKey(hour) && (currentDate > dateTime)) ? batterySocData[hour] : 0;
@@ -561,6 +561,10 @@
 
     private async ValueTask OnChartWidthChangedAsync()
     {
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(50);
+
         if (_consumptionChart != default)
         {
             await _consumptionChart.UpdateOptionsAsync(false, false, false);
@@ -570,8 +574,6 @@
         {
             await _productionChart.UpdateOptionsAsync(false, false, false);
         }
-
-        await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
