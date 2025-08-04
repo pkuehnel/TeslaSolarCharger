@@ -122,16 +122,16 @@
         </TitleContent>
         <ChildContent>
             @if (HousePredictionData == default
-                 || SolarActualData == default
-                 || HouseActualData == default
+                        || SolarActualData == default
+                        || HouseActualData == default
                         || DirectConsumptionData == default
                         || BatteryDischargingData == default
                         || PowerFromGridData == default
                         || BatteryChargingData == default
                         || PowerToGridData == default
                         || BatterySoc == default
-                 || (SolarPredictionData == default && _isSolarPredictionEnabled)
-                 || !_dataLoaded)
+                        || (SolarPredictionData == default && _isSolarPredictionEnabled)
+                        || !_dataLoaded)
             {
                 <div class="align-items-center justify-content-center mb-3">
                     <PlaceholderComponent Height="@($"{ChartHeightValue + 20}px")"></PlaceholderComponent>
@@ -178,7 +178,8 @@
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
-                                         Color="@Constants.FeedInColor" />
+                                         Color="@Constants.FeedInColor"
+                                         Group="consumption-stack" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="BatteryDischargingData"
@@ -186,7 +187,8 @@
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
-                                         Color="@Constants.BatteryColor" />
+                                         Color="@Constants.BatteryColor"
+                                         Group="consumption-stack" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="PowerFromGridData"
@@ -194,7 +196,8 @@
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
-                                         Color="@Constants.GridColor" />
+                                         Color="@Constants.GridColor"
+                                         Group="consumption-stack" />
 
                     </ApexChart>
                 </div>
@@ -238,7 +241,8 @@
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
-                                         Color="@Constants.FeedInColor" />
+                                         Color="@Constants.FeedInColor"
+                                         Group="production-stack"/>
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="BatteryChargingData"
@@ -246,7 +250,8 @@
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
-                                         Color="@Constants.BatteryColor" />
+                                         Color="@Constants.BatteryColor"
+                                         Group="production-stack" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="PowerToGridData"
@@ -254,7 +259,8 @@
                                          SeriesType="SeriesType.Area"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
-                                         Color="@Constants.GridColor" />
+                                         Color="@Constants.GridColor"
+                                         Group="production-stack" />
                     </ApexChart>
                 </div>
             }
@@ -289,6 +295,12 @@
     private string ChartHeight => $"{ChartHeightValue}px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
+    private enum ChartType
+    {
+        Consumption,
+        Production,
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var currentTime = TimeProvider.GetLocalNow();
@@ -298,38 +310,20 @@
         await InvokeAsync(() => StateHasChanged());
 
         // Configure consumption chart options
-        _consumptionOptions = GetChartOptions();
+        _consumptionOptions = GetChartOptions(ChartType.Consumption);
 
         // Configure production chart options
-        _productionOptions = GetChartOptions();
+        _productionOptions = GetChartOptions(ChartType.Production);
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
     }
 
-    private ApexChartOptions<DtoChartValue<int, decimal>> GetChartOptions()
+    private ApexChartOptions<DtoChartValue<int, decimal>> GetChartOptions(ChartType chartType)
     {
         var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal>>();
         options.Chart.Stacked = true;
         options.Chart.StackType = StackType.Normal;
         options.Chart.Height = ChartHeightValue;
-        options.Markers = new Markers
-        {
-            Size = new List<double> { 2, 2, 0, 0, 0 }, // No markers for areas
-            Hover = new ()
-            {
-                SizeOffset = 5,
-            },
-        };
-        options.Fill = new Fill
-        {
-            Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, },
-            Opacity = new List<double> { 0.2, 0.2, 0.7, 0.7, 0.7, }, // Line has low opacity, areas have higher
-        };
-        options.Stroke = new Stroke
-        {
-            Width = new List<double> { 3, 1, 0, 0, 0 }, // Only line has stroke
-            Curve = Curve.Smooth,
-        };
         options.Yaxis = new List<YAxis>
         {
             new YAxis
@@ -350,6 +344,59 @@
                 },
             },
         };
+        var markerSizes = new List<double>();
+        var fillTypes = new List<FillType>();
+        var opacities = new List<double>();
+        var strokeWidths = new List<double>();
+
+        var numberOfLineCharts = 0;
+        if (chartType == ChartType.Consumption)
+        {
+            numberOfLineCharts += 2;
+        }
+        else if (chartType == ChartType.Production)
+        {
+            if (_isSolarPredictionEnabled)
+            {
+                numberOfLineCharts++;
+            }
+            numberOfLineCharts++;
+        }
+
+        for (var i = 0; i < numberOfLineCharts; i++)
+        {
+            markerSizes.Add(2);
+            fillTypes.Add(FillType.Solid);
+            opacities.Add(0.2);
+            strokeWidths.Add(1);
+        }
+
+        for (var i = 0; i < 3; i++)
+        {
+            markerSizes.Add(0); // No markers for areas
+            fillTypes.Add(FillType.Solid);
+            opacities.Add(0.7); // Higher opacity for areas
+            strokeWidths.Add(0); // No stroke for areas
+        }
+        options.Markers = new Markers
+        {
+            Size = markerSizes,
+            Hover = new()
+            {
+                SizeOffset = 5,
+            },
+        };
+        options.Fill = new Fill
+        {
+            Type = fillTypes,
+            Opacity = opacities,
+        };
+        options.Stroke = new Stroke
+        {
+            Width = strokeWidths, // Only line has stroke
+            Curve = Curve.Smooth,
+        };
+
         return options;
     }
 
@@ -467,7 +514,7 @@
                 {
                     BatteryDischargingData.Add(new DtoChartValue<int, decimal>(hour, (decimal)batteryDischarging));
                 }
-                if(gridFromData.Any())
+                if (gridFromData.Any())
                 {
                     PowerFromGridData.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridFrom));
                 }
