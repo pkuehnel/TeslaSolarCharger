@@ -114,7 +114,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
     public async Task<Dictionary<DateTimeOffset, int>> GetActualHomeBatterySocByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
     {
-        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetActualDataByLocalHour), startDate, endDate, sliceLength);
+        logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetActualHomeBatterySocByLocalHour), startDate, endDate, sliceLength);
         var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
         var result = new Dictionary<DateTimeOffset, int>();
         foreach (var timeStamp in resultTimeStamps)
