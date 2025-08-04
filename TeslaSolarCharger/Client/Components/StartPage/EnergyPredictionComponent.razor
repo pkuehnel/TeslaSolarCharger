@@ -312,6 +312,14 @@
         options.Chart.Stacked = true;
         options.Chart.StackType = StackType.Normal;
         options.Chart.Height = ChartHeightValue;
+        options.Markers = new Markers
+        {
+            Size = new List<double> { 2, 2, 0, 0, 0 }, // No markers for areas
+            Hover = new ()
+            {
+                SizeOffset = 5,
+            },
+        };
         options.Fill = new Fill
         {
             Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, },
