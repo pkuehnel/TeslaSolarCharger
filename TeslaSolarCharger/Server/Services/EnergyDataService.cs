@@ -29,7 +29,16 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var currentUtcDay = new DateTimeOffset(currentDate, TimeSpan.Zero);
         var stopWatch = new Stopwatch();
         stopWatch.Start();
-        for (var i = -cacheInPastDays; i <= constants.WeatherPredictionInFutureDays; i++)
+        //Start with current future predictions as is more important than past
+        for (var i = 0; i <= constants.WeatherPredictionInFutureDays; i++)
+        {
+            var startDate = currentUtcDay.AddDays(i);
+            await GetPredictedSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+            await GetPredictedHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+            await GetActualSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+            await GetActualHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
+        }
+        for (var i = -cacheInPastDays; i < 0; i++)
         {
             var startDate = currentUtcDay.AddDays(i);
             await GetPredictedSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
