@@ -222,6 +222,14 @@
                                              Color="@Constants.SolarPowerColor" />
                         }
 
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                                         Items="BatterySoc"
+                                         Name="@("Home Battery SoC %")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => (decimal?)e.Value)"
+                                         Color="@Constants.BatteryColor" />
+
                         <!-- Production Distribution (Stacked Areas) -->
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="DirectConsumptionData"
@@ -295,7 +303,7 @@
         _consumptionOptions.Chart.Height = ChartHeightValue;
         _consumptionOptions.Fill = new Fill
         {
-            Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid },
+            Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, },
             Opacity = new List<double> { 0.2, 0.2, 0.7, 0.7, 0.7, }, // Line has low opacity, areas have higher
         };
         _consumptionOptions.Stroke = new Stroke
@@ -327,12 +335,12 @@
         _productionOptions.Chart.Height = ChartHeightValue;
         _productionOptions.Fill = new Fill
         {
-            Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid },
-            Opacity = new List<double> { 0.2, 0.7, 0.7, 0.7 }, // Line has low opacity, areas have higher
+            Type = new List<FillType> { FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, FillType.Solid, },
+            Opacity = new List<double> { 0.2, 0.2, 0.7, 0.7, 0.7 }, // Line has low opacity, areas have higher
         };
         _productionOptions.Stroke = new Stroke
         {
-            Width = new List<double> { 3, 0, 0, 0 }, // Only line has stroke
+            Width = new List<double> { 3, 1, 0, 0, 0 }, // Only line has stroke
             Curve = Curve.Smooth,
         };
         _productionOptions.Yaxis = new List<YAxis>
