@@ -4,6 +4,7 @@
 @using ApexCharts
 @using TeslaSolarCharger.Client.Dtos
 @using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 @using Color = MudBlazor.Color
 @using Size = MudBlazor.Size
@@ -11,10 +12,10 @@
 @inject IEnergyDataService EnergyDataService
 @inject TimeProvider TimeProvider
 @inject ISnackbar Snackbar
-@inject IBrowserViewportService BrowserViewportService
 @inject IChartWidthCalculator ChartWidthCalculator
 @inject IApexChartHelper ApexChartHelper
 @inject IConstants Constants
+@inject IDateTimeProvider DateTimeProvider
 
 @implements IDisposable
 
@@ -479,6 +480,9 @@
                 }
                 if (batterySocData.Any())
                 {
+                    var dateTime = new DateTime(date.Year, date.Month, date.Day, hour, 0, 0);
+                    var currentDate = DateTimeProvider.Now();
+                    batterySoc = currentDate > dateTime ? batterySocData[hour] : 0;
                     BatterySoc.Add(new DtoChartValue<int, decimal>(hour, (decimal)batterySoc));
                 }
 
