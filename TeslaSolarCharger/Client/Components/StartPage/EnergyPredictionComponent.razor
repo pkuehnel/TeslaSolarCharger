@@ -124,7 +124,6 @@
             @if (HousePredictionData == default
                         || SolarActualData == default
                         || HouseActualData == default
-                        || DirectConsumptionData == default
                         || BatteryDischargingData == default
                         || PowerFromGridData == default
                         || BatteryChargingData == default
@@ -171,14 +170,13 @@
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.BatteryColor" />
 
-                        <!-- Consumption Sources (Stacked Areas) -->
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="DirectConsumptionData"
-                                         Name="@($"Direct Solar ({(DirectConsumptionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Items="HouseActualData"
+                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
-                                         Color="@Constants.FeedInColor"
+                                         Color="@Constants.HomeConsumptionColor"
                                          Group="consumption-stack" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
@@ -234,14 +232,13 @@
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.BatteryColor" />
 
-                        <!-- Production Distribution (Stacked Areas) -->
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="DirectConsumptionData"
-                                         Name="@($"Direct Consumption ({(DirectConsumptionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Items="SolarActualData"
+                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
-                                         Color="@Constants.FeedInColor"
+                                         Color="@Constants.SolarPowerColor"
                                          Group="production-stack"/>
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
@@ -275,7 +272,6 @@
     private List<DtoChartValue<int, decimal>>? HouseActualData { get; set; }
 
     // Data for stacked areas
-    private List<DtoChartValue<int, decimal>>? DirectConsumptionData { get; set; }
     private List<DtoChartValue<int, decimal>>? BatteryDischargingData { get; set; }
     private List<DtoChartValue<int, decimal>>? PowerFromGridData { get; set; }
     private List<DtoChartValue<int, decimal>>? PowerToGridData { get; set; }
@@ -349,10 +345,10 @@
         var opacities = new List<double>();
         var strokeWidths = new List<double>();
 
-        var numberOfLineCharts = 0;
+        var numberOfLineCharts = 4;
         if (chartType == ChartType.Consumption)
         {
-            numberOfLineCharts += 2;
+            numberOfLineCharts++;
         }
         else if (chartType == ChartType.Production)
         {
@@ -360,7 +356,6 @@
             {
                 numberOfLineCharts++;
             }
-            numberOfLineCharts++;
         }
 
         for (var i = 0; i < numberOfLineCharts; i++)
@@ -371,13 +366,6 @@
             strokeWidths.Add(1);
         }
 
-        for (var i = 0; i < 3; i++)
-        {
-            markerSizes.Add(2); // No markers for areas
-            fillTypes.Add(FillType.Solid);
-            opacities.Add(0.2); // Higher opacity for areas
-            strokeWidths.Add(1); // No stroke for areas
-        }
         options.Markers = new Markers
         {
             Size = markerSizes,
@@ -395,6 +383,10 @@
         {
             Width = strokeWidths, // Only line has stroke
             Curve = Curve.Smooth,
+        };
+        options.Tooltip = new Tooltip
+        {
+            Shared = true,
         };
 
         return options;
@@ -423,7 +415,6 @@
         SolarPredictionData = default;
         HouseActualData = default;
         SolarActualData = default;
-        DirectConsumptionData = default;
         BatteryDischargingData = default;
         PowerFromGridData = default;
         PowerToGridData = default;
@@ -483,7 +474,6 @@
             // Calculate stacked area data
             var hours = Enumerable.Range(0, 24).ToList();
 
-            DirectConsumptionData = new List<DtoChartValue<int, decimal>>();
             BatteryDischargingData = new List<DtoChartValue<int, decimal>>();
             PowerFromGridData = new List<DtoChartValue<int, decimal>>();
             PowerToGridData = new List<DtoChartValue<int, decimal>>();
@@ -492,8 +482,6 @@
 
             foreach (var hour in hours)
             {
-                var solarProduction = solarActualData.ContainsKey(hour) ? solarActualData[hour] / 1000.0 : 0;
-                var houseConsumption = houseActualData.ContainsKey(hour) ? houseActualData[hour] / 1000.0 : 0;
                 var gridFrom = gridFromData.ContainsKey(hour) ? gridFromData[hour] / 1000.0 : 0;
                 var gridTo = gridToData.ContainsKey(hour) ? gridToData[hour] / 1000.0 : 0;
                 var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : 0;
@@ -503,13 +491,6 @@
                 var currentDate = DateTimeProvider.Now();
                 var batterySoc = (batterySocData.ContainsKey(hour) && (currentDate > dateTime)) ? batterySocData[hour] : 0;
 
-                var directConsumption = Math.Min(solarProduction, Math.Max(0, houseConsumption - batteryDischarging - gridFrom));
-
-                // Fill up all values if any value is available as if any value is missing (which would be the case for the current day for future hours), the hover values of these uncomplete serieses are not displayed at all
-                if (houseActualData.Any() && solarActualData.Any())
-                {
-                    DirectConsumptionData.Add(new DtoChartValue<int, decimal>(hour, (decimal)directConsumption));
-                }
                 if (batteryChargingDataRaw.Any())
                 {
                     BatteryDischargingData.Add(new DtoChartValue<int, decimal>(hour, (decimal)batteryDischarging));
