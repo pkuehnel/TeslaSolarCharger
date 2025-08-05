@@ -57,14 +57,17 @@ public class ChartWidthCalculator : IBrowserViewportObserver, IAsyncDisposable, 
         _logger.LogTrace("GetChartWidth({BrowserWidth})", browserWidth);
 
         var isMenuVisible = browserWidth > 640;
+        var minWidth = 300;
+        var width = browserWidth - 50;
         if (isMenuVisible)
         {
-            return $"{browserWidth - 450}px";
+            width = browserWidth - 370;
         }
-        else
+        if (width < minWidth)
         {
-            return $"{browserWidth - 50}px";
+            width = minWidth;
         }
+        return $"{width}px";
     }
 
     public async ValueTask DisposeAsync()

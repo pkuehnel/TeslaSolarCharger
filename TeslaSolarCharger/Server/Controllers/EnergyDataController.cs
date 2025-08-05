@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -23,14 +24,49 @@ public class EnergyDataController(IEnergyDataService energyDataService) : ApiBas
     [HttpGet]
     public async Task<IActionResult> GetSolarActual(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
     {
-        var result = await energyDataService.GetActualSolarProductionByLocalHour(startDate, endDate, sliceLength, HttpContext.RequestAborted);
+        var result = await energyDataService.GetActualDataByLocalHour(MeterValueKind.SolarGeneration, startDate, endDate, sliceLength, HttpContext.RequestAborted);
         return Ok(result);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetHouseActual(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
     {
-        var result = await energyDataService.GetActualHouseConsumptionByLocalHour(startDate, endDate, sliceLength, HttpContext.RequestAborted);
+        var result = await energyDataService.GetActualDataByLocalHour(MeterValueKind.HouseConsumption, startDate, endDate, sliceLength, HttpContext.RequestAborted);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetHomeBatteryChargingActual(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
+    {
+        var result = await energyDataService.GetActualDataByLocalHour(MeterValueKind.HomeBatteryCharging, startDate, endDate, sliceLength, HttpContext.RequestAborted);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetHomeBatteryDischargingActual(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
+    {
+        var result = await energyDataService.GetActualDataByLocalHour(MeterValueKind.HomeBatteryDischarging, startDate, endDate, sliceLength, HttpContext.RequestAborted);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetPowerToGridActual(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
+    {
+        var result = await energyDataService.GetActualDataByLocalHour(MeterValueKind.PowerToGrid, startDate, endDate, sliceLength, HttpContext.RequestAborted);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetPowerFromGridActual(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
+    {
+        var result = await energyDataService.GetActualDataByLocalHour(MeterValueKind.PowerFromGrid, startDate, endDate, sliceLength, HttpContext.RequestAborted);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetHomeBatterySocActual(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
+    {
+        var result = await energyDataService.GetActualHomeBatterySocByLocalHour(startDate, endDate, sliceLength, HttpContext.RequestAborted);
         return Ok(result);
     }
 }

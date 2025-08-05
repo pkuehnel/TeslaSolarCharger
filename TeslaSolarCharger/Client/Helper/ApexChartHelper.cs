@@ -37,7 +37,9 @@ public class ApexChartHelper : IApexChartHelper
             Legend = new Legend
             {
                 Position = LegendPosition.Bottom,
-                HorizontalAlign = ApexCharts.Align.Center,
+                HorizontalAlign = Align.Center,
+                ShowForNullSeries = false,
+                ClusterGroupedSeries = false,
                 Floating = false,
             },
         };
