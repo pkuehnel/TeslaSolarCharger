@@ -35,13 +35,13 @@
                     rightLabel = "Produced today:";
 
                     leftValue = SolarPredictionData != null
-                    ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Where(v => v.Key > TimeProvider.GetLocalNow().Hour).Sum(v => v.Value):F1} kWh")</span>
+                    ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Where(v => v.Key > TimeProvider.GetLocalNow().Hour).Sum(v => v.Value ?? 0):F1} kWh")</span>
                         : @<div class="d-flex justify-content-start w-100">
                         <MudSkeleton Width="100px" Height="24px" />
                     </div>;
 
                     rightValue = SolarActualData != null
-                    ? @<span class="d-block text-md-end">@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
+                    ? @<span class="d-block text-md-end">@($"{SolarActualData.Sum(v => v.Value ?? 0):F1} kWh")</span>
                         : @<div class="d-flex justify-content-end w-100">
                         <MudSkeleton Width="100px" Height="24px" />
                     </div>;
@@ -52,13 +52,13 @@
                     rightLabel = "Actual Production:";
 
                     leftValue = SolarPredictionData != null
-                    ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Sum(v => v.Value ?? 0):F1} kWh")</span>
                         : @<div class="d-flex justify-content-start w-100">
                         <MudSkeleton Width="100px" Height="24px" />
                     </div>;
 
                     rightValue = SolarActualData != null
-                    ? @<span class="d-block text-md-end">@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
+                    ? @<span class="d-block text-md-end">@($"{SolarActualData.Sum(v => v.Value ?? 0):F1} kWh")</span>
                         : @<div class="d-flex justify-content-end w-100">
                         <MudSkeleton Width="100px" Height="24px" />
                     </div>;
@@ -69,13 +69,13 @@
                     rightLabel = "House Prediction:";
 
                     leftValue = SolarPredictionData != null
-                    ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Sum(v => v.Value ?? 0):F1} kWh")</span>
                         : @<div class="d-flex justify-content-start w-100">
                         <MudSkeleton Width="100px" Height="24px" />
                     </div>;
 
                     rightValue = HousePredictionData != null
-                    ? @<span class="d-block text-md-end">@($"{HousePredictionData.Sum(v => v.Value):F1} kWh")</span>
+                    ? @<span class="d-block text-md-end">@($"{HousePredictionData.Sum(v => v.Value ?? 0):F1} kWh")</span>
                         : @<div class="d-flex justify-content-end w-100">
                         <MudSkeleton Width="100px" Height="24px" />
                     </div>;
@@ -143,7 +143,7 @@
             {
                 <!-- Consumption Chart -->
                 <div class="d-flex align-items-center justify-content-center mb-2">
-                    <ApexChart TItem="DtoChartValue<int, decimal>"
+                    <ApexChart TItem="DtoChartValue<int, decimal?>"
                                Title="Consumption"
                                Options="_consumptionOptions"
                                Width="@ChartWidthCalculator.ChartWidth"
@@ -154,46 +154,46 @@
                                @ref="_consumptionChart">
 
                         <!-- House Prediction Line -->
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="HousePredictionData"
-                                         Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.HomeConsumptionColor" />
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatterySoc"
                                          Name="@("Home Battery SoC %")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.BatteryColor" />
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="HouseActualData"
-                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.HomeConsumptionColor"
                                          Group="consumption-stack" />
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryDischargingData"
-                                         Name="@($"Battery Discharge ({(BatteryDischargingData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Name="@($"Battery Discharge ({(BatteryDischargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.BatteryColor"
                                          Group="consumption-stack" />
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="PowerFromGridData"
-                                         Name="@($"Grid Import ({(PowerFromGridData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Name="@($"Grid Import ({(PowerFromGridData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.GridColor"
                                          Group="consumption-stack" />
 
@@ -202,7 +202,7 @@
 
                 <!-- Production Chart -->
                 <div class="d-flex align-items-center justify-content-center mb-3">
-                    <ApexChart TItem="DtoChartValue<int, decimal>"
+                    <ApexChart TItem="DtoChartValue<int, decimal?>"
                                Title="Production"
                                Options="_productionOptions"
                                Width="@ChartWidthCalculator.ChartWidth"
@@ -215,47 +215,47 @@
                         <!-- Solar Prediction Line -->
                         @if (SolarPredictionData != default)
                         {
-                            <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                            <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                              Items="SolarPredictionData"
-                                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                              SeriesType="SeriesType.Line"
                                              XValue="@(e => e.Key)"
-                                             YValue="@(e => (decimal?)e.Value)"
+                                             YValue="@(e => e.Value)"
                                              Color="@Constants.SolarPowerColor" />
                         }
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatterySoc"
                                          Name="@("Home Battery SoC %")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.BatteryColor" />
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="SolarActualData"
-                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.SolarPowerColor"
                                          Group="production-stack"/>
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatteryChargingData"
-                                         Name="@($"Battery Charging ({(BatteryChargingData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Name="@($"Battery Charging ({(BatteryChargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.BatteryColor"
                                          Group="production-stack" />
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="PowerToGridData"
-                                         Name="@($"Grid Export ({(PowerToGridData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Name="@($"Grid Export ({(PowerToGridData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
+                                         YValue="@(e => e.Value)"
                                          Color="@Constants.GridColor"
                                          Group="production-stack" />
                     </ApexChart>
@@ -266,26 +266,25 @@
 </MudExpansionPanels>
 
 @code {
-    private List<DtoChartValue<int, decimal>>? SolarPredictionData { get; set; }
-    private List<DtoChartValue<int, decimal>>? HousePredictionData { get; set; }
-    private List<DtoChartValue<int, decimal>>? SolarActualData { get; set; }
-    private List<DtoChartValue<int, decimal>>? HouseActualData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? SolarPredictionData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? HousePredictionData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? SolarActualData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? HouseActualData { get; set; }
 
-    // Data for stacked areas
-    private List<DtoChartValue<int, decimal>>? BatteryDischargingData { get; set; }
-    private List<DtoChartValue<int, decimal>>? PowerFromGridData { get; set; }
-    private List<DtoChartValue<int, decimal>>? PowerToGridData { get; set; }
-    private List<DtoChartValue<int, decimal>>? BatteryChargingData { get; set; }
-    private List<DtoChartValue<int, decimal>>? BatterySoc { get; set; }
+    private List<DtoChartValue<int, decimal?>>? BatteryDischargingData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? PowerFromGridData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? PowerToGridData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? BatteryChargingData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? BatterySoc { get; set; }
 
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(7);
-    private ApexChartOptions<DtoChartValue<int, decimal>>? _consumptionOptions;
-    private ApexChartOptions<DtoChartValue<int, decimal>>? _productionOptions;
+    private ApexChartOptions<DtoChartValue<int, decimal?>>? _consumptionOptions;
+    private ApexChartOptions<DtoChartValue<int, decimal?>>? _productionOptions;
     private bool _isSolarPredictionEnabled;
-    private bool _dataLoaded = false;
-    private ApexChart<DtoChartValue<int, decimal>>? _consumptionChart;
-    private ApexChart<DtoChartValue<int, decimal>>? _productionChart;
+    private bool _dataLoaded;
+    private ApexChart<DtoChartValue<int, decimal?>>? _consumptionChart;
+    private ApexChart<DtoChartValue<int, decimal?>>? _productionChart;
 
     private int ChartHeightValue { get; set; } = 400;
     private string ChartHeight => $"{ChartHeightValue}px";
@@ -314,9 +313,9 @@
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
     }
 
-    private ApexChartOptions<DtoChartValue<int, decimal>> GetChartOptions(ChartType chartType)
+    private ApexChartOptions<DtoChartValue<int, decimal?>> GetChartOptions(ChartType chartType)
     {
-        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal>>();
+        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal?>>();
         options.Chart.Stacked = false;
         // options.Chart.StackType = StackType.Normal;
         options.Chart.Height = ChartHeightValue;
@@ -438,7 +437,7 @@
                 var solarPredictionData = await solarPredictionTask;
                 token.ThrowIfCancellationRequested();
                 SolarPredictionData = solarPredictionData
-                    .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
+                    .Select(e => new DtoChartValue<int, decimal?>(e.Key, new(e.Value / 1000.0)))
                     .ToList();
             }
 
@@ -462,56 +461,63 @@
 
             // Convert prediction data
             HousePredictionData = housePredictionData
-                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
-                .ToList();
-            SolarActualData = solarActualData
-                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
-                .ToList();
-            HouseActualData = houseActualData
-                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
+                .Select(e => new DtoChartValue<int, decimal?>(e.Key, new(e.Value / 1000.0)))
                 .ToList();
 
             // Calculate stacked area data
             var hours = Enumerable.Range(0, 24).ToList();
 
-            BatteryDischargingData = new List<DtoChartValue<int, decimal>>();
-            PowerFromGridData = new List<DtoChartValue<int, decimal>>();
-            PowerToGridData = new List<DtoChartValue<int, decimal>>();
-            BatteryChargingData = new List<DtoChartValue<int, decimal>>();
-            BatterySoc = new List<DtoChartValue<int, decimal>>();
+            BatteryDischargingData = new();
+            PowerFromGridData = new();
+            PowerToGridData = new ();
+            BatteryChargingData = new ();
+            BatterySoc = new();
+            SolarActualData = new();
+            HouseActualData = new();
 
             foreach (var hour in hours)
             {
-                var gridFrom = gridFromData.ContainsKey(hour) ? gridFromData[hour] / 1000.0 : 0;
-                var gridTo = gridToData.ContainsKey(hour) ? gridToData[hour] / 1000.0 : 0;
-                var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : 0;
-                var batteryDischarging = batteryDischargingDataRaw.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : 0;
+                var gridFrom = gridFromData.ContainsKey(hour) ? gridFromData[hour] / 1000.0 : (double?)null;
+                var gridTo = gridToData.ContainsKey(hour) ? gridToData[hour] / 1000.0 : (double?)null;
+                var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : (double?)null;
+                var batteryDischarging = batteryDischargingDataRaw.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : (double?)null;
+                var solarActual = solarActualData.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : (double?)null;
+                var houseActual = houseActualData.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : (double?)null;
 
                 var dateTime = new DateTime(date.Year, date.Month, date.Day, hour, 0, 0);
                 var currentDate = DateTimeProvider.Now();
-                var batterySoc = (batterySocData.ContainsKey(hour) && (currentDate > dateTime)) ? batterySocData[hour] : 0;
+                var batterySoc = (batterySocData.ContainsKey(hour) && (currentDate > dateTime)) ? batterySocData[hour] : (decimal?)null;
 
+                
+                if (solarActualData.Any())
+                {
+                    SolarActualData.Add(new(hour, (decimal?)solarActual));
+                }
+                if (houseActualData.Any())
+                {
+                    HouseActualData.Add(new(hour, (decimal?)houseActual));
+                }
                 if (batteryChargingDataRaw.Any())
                 {
-                    BatteryDischargingData.Add(new DtoChartValue<int, decimal>(hour, (decimal)batteryDischarging));
+                    BatteryDischargingData.Add(new(hour, (decimal?)batteryDischarging));
                 }
                 if (gridFromData.Any())
                 {
-                    PowerFromGridData.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridFrom));
+                    PowerFromGridData.Add(new(hour, (decimal?)gridFrom));
                 }
                 if (batterySocData.Any())
                 {
-                    BatterySoc.Add(new DtoChartValue<int, decimal>(hour, batterySoc));
+                    BatterySoc.Add(new(hour, batterySoc));
                 }
 
                 // For production chart - show where solar production goes (as positive values)
                 if (gridToData.Any())
                 {
-                    PowerToGridData.Add(new DtoChartValue<int, decimal>(hour, (decimal)gridTo));
+                    PowerToGridData.Add(new(hour, (decimal?)gridTo));
                 }
                 if (batteryChargingDataRaw.Any())
                 {
-                    BatteryChargingData.Add(new DtoChartValue<int, decimal>(hour, (decimal)batteryCharging));
+                    BatteryChargingData.Add(new(hour, (decimal?)batteryCharging));
                 }
             }
 
@@ -574,8 +580,6 @@
         SelectedDate = newDate;
         await RefreshData(DateOnly.FromDateTime(newDate.Value));
     }
-
-    private CancellationTokenSource? _debounceTokenSource;
 
     private async Task ExpandedChanged(bool isExpanded)
     {
