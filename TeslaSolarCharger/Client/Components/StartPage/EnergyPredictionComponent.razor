@@ -135,17 +135,13 @@
                 <div class="align-items-center justify-content-center mb-3">
                     <PlaceholderComponent Height="@($"{ChartHeightValue + 20}px")"></PlaceholderComponent>
                 </div>
-                <div class="align-items-center justify-content-center mb-3">
-                    <PlaceholderComponent Height="@($"{ChartHeightValue + 20}px")"></PlaceholderComponent>
-                </div>
             }
             else
             {
                 <!-- Consumption Chart -->
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <ApexChart TItem="DtoChartValue<int, decimal?>"
-                               Title="Consumption"
-                               Options="_consumptionOptions"
+                               Options="_chartOptions"
                                Width="@ChartWidthCalculator.ChartWidth"
                                Height="@ChartHeight"
                                XAxisType="XAxisType.Numeric"
@@ -196,23 +192,7 @@
                                          YValue="@(e => e.Value)"
                                          Color="@Constants.GridColor"
                                          Group="consumption-stack" />
-
-                    </ApexChart>
-                </div>
-
-                <!-- Production Chart -->
-                <div class="d-flex align-items-center justify-content-center mb-3">
-                    <ApexChart TItem="DtoChartValue<int, decimal?>"
-                               Title="Production"
-                               Options="_productionOptions"
-                               Width="@ChartWidthCalculator.ChartWidth"
-                               Height="@ChartHeight"
-                               XAxisType="XAxisType.Numeric"
-                               FormatXAxisLabel="@(arg => arg.ToString("N0"))"
-                               FormatYAxisLabel="@(arg => arg.ToString("F1"))"
-                               @ref="_productionChart">
-
-                        <!-- Solar Prediction Line -->
+                        
                         @if (SolarPredictionData != default)
                         {
                             <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -223,15 +203,7 @@
                                              YValue="@(e => e.Value)"
                                              Color="@Constants.SolarPowerPredictionColor" />
                         }
-
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
-                                         Items="BatterySoc"
-                                         Name="@("Home Battery SoC %")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => e.Value)"
-                                         Color="@Constants.BatterySocColor" />
-
+                        
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="SolarActualData"
                                          Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
@@ -258,6 +230,8 @@
                                          YValue="@(e => e.Value)"
                                          Color="@Constants.GridColor"
                                          Group="production-stack" />
+
+
                     </ApexChart>
                 </div>
             }
@@ -279,22 +253,14 @@
 
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(7);
-    private ApexChartOptions<DtoChartValue<int, decimal?>>? _consumptionOptions;
-    private ApexChartOptions<DtoChartValue<int, decimal?>>? _productionOptions;
+    private ApexChartOptions<DtoChartValue<int, decimal?>>? _chartOptions;
     private bool _isSolarPredictionEnabled;
     private bool _dataLoaded;
     private ApexChart<DtoChartValue<int, decimal?>>? _consumptionChart;
-    private ApexChart<DtoChartValue<int, decimal?>>? _productionChart;
 
-    private int ChartHeightValue { get; set; } = 400;
+    private int ChartHeightValue { get; set; } = 430;
     private string ChartHeight => $"{ChartHeightValue}px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
-
-    private enum ChartType
-    {
-        Consumption,
-        Production,
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -305,15 +271,12 @@
         await InvokeAsync(() => StateHasChanged());
 
         // Configure consumption chart options
-        _consumptionOptions = GetChartOptions(ChartType.Consumption);
-
-        // Configure production chart options
-        _productionOptions = GetChartOptions(ChartType.Production);
+        _chartOptions = GetChartOptions();
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
     }
 
-    private ApexChartOptions<DtoChartValue<int, decimal?>> GetChartOptions(ChartType chartType)
+    private ApexChartOptions<DtoChartValue<int, decimal?>> GetChartOptions()
     {
         var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal?>>();
         options.Chart.Stacked = false;
@@ -344,17 +307,10 @@
         var opacities = new List<double>();
         var strokeWidths = new List<double>();
 
-        var numberOfLineCharts = 4;
-        if (chartType == ChartType.Consumption)
+        var numberOfLineCharts = 8;
+        if (_isSolarPredictionEnabled)
         {
             numberOfLineCharts++;
-        }
-        else if (chartType == ChartType.Production)
-        {
-            if (_isSolarPredictionEnabled)
-            {
-                numberOfLineCharts++;
-            }
         }
 
         for (var i = 0; i < numberOfLineCharts; i++)
@@ -489,36 +445,15 @@
                 var batterySoc = (batterySocData.ContainsKey(hour) && (currentDate > dateTime)) ? batterySocData[hour] : (decimal?)null;
 
                 
-                if (solarActualData.Any())
-                {
-                    SolarActualData.Add(new(hour, (decimal?)solarActual));
-                }
-                if (houseActualData.Any())
-                {
-                    HouseActualData.Add(new(hour, (decimal?)houseActual));
-                }
-                if (batteryChargingDataRaw.Any())
-                {
-                    BatteryDischargingData.Add(new(hour, (decimal?)batteryDischarging));
-                }
-                if (gridFromData.Any())
-                {
-                    PowerFromGridData.Add(new(hour, (decimal?)gridFrom));
-                }
-                if (batterySocData.Any())
-                {
-                    BatterySoc.Add(new(hour, batterySoc));
-                }
+                SolarActualData.Add(new(hour, (decimal?)solarActual));
+                HouseActualData.Add(new(hour, (decimal?)houseActual));
+                BatteryDischargingData.Add(new(hour, (decimal?)batteryDischarging));
+                PowerFromGridData.Add(new(hour, (decimal?)gridFrom));
+                BatterySoc.Add(new(hour, batterySoc));
 
                 // For production chart - show where solar production goes (as positive values)
-                if (gridToData.Any())
-                {
-                    PowerToGridData.Add(new(hour, (decimal?)gridTo));
-                }
-                if (batteryChargingDataRaw.Any())
-                {
-                    BatteryChargingData.Add(new(hour, (decimal?)batteryCharging));
-                }
+                PowerToGridData.Add(new(hour, (decimal?)gridTo));
+                BatteryChargingData.Add(new(hour, (decimal?)batteryCharging));
             }
 
             _dataLoaded = true;
@@ -526,11 +461,6 @@
             if (_consumptionChart != null)
             {
                 await _consumptionChart.UpdateSeriesAsync();
-            }
-
-            if (_productionChart != null)
-            {
-                await _productionChart.UpdateSeriesAsync();
             }
 
             StateHasChanged();
@@ -592,11 +522,6 @@
         {
             await _consumptionChart.UpdateOptionsAsync(false, false, false);
         }
-
-        if (_productionChart != default)
-        {
-            await _productionChart.UpdateOptionsAsync(false, false, false);
-        }
     }
 
     private async ValueTask OnChartWidthChangedAsync()
@@ -609,17 +534,11 @@
         {
             await _consumptionChart.UpdateOptionsAsync(false, false, false);
         }
-
-        if (_productionChart != default)
-        {
-            await _productionChart.UpdateOptionsAsync(false, false, false);
-        }
     }
 
     public void Dispose()
     {
         ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
         _consumptionChart?.Dispose();
-        _productionChart?.Dispose();
     }
 }
