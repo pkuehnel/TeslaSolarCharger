@@ -175,7 +175,7 @@
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="DirectConsumptionData"
                                          Name="@($"Direct Solar ({(DirectConsumptionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Area"
+                                         SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.FeedInColor"
@@ -184,7 +184,7 @@
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="BatteryDischargingData"
                                          Name="@($"Battery Discharge ({(BatteryDischargingData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Area"
+                                         SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.BatteryColor"
@@ -193,7 +193,7 @@
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="PowerFromGridData"
                                          Name="@($"Grid Import ({(PowerFromGridData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Area"
+                                         SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.GridColor"
@@ -238,7 +238,7 @@
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="DirectConsumptionData"
                                          Name="@($"Direct Consumption ({(DirectConsumptionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Area"
+                                         SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.FeedInColor"
@@ -247,7 +247,7 @@
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="BatteryChargingData"
                                          Name="@($"Battery Charging ({(BatteryChargingData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Area"
+                                         SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.BatteryColor"
@@ -256,7 +256,7 @@
                         <ApexPointSeries TItem="DtoChartValue<int, decimal>"
                                          Items="PowerToGridData"
                                          Name="@($"Grid Export ({(PowerToGridData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Area"
+                                         SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => (decimal?)e.Value)"
                                          Color="@Constants.GridColor"
@@ -321,8 +321,8 @@
     private ApexChartOptions<DtoChartValue<int, decimal>> GetChartOptions(ChartType chartType)
     {
         var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal>>();
-        options.Chart.Stacked = true;
-        options.Chart.StackType = StackType.Normal;
+        options.Chart.Stacked = false;
+        // options.Chart.StackType = StackType.Normal;
         options.Chart.Height = ChartHeightValue;
         options.Yaxis = new List<YAxis>
         {
@@ -373,10 +373,10 @@
 
         for (var i = 0; i < 3; i++)
         {
-            markerSizes.Add(0); // No markers for areas
+            markerSizes.Add(2); // No markers for areas
             fillTypes.Add(FillType.Solid);
-            opacities.Add(0.7); // Higher opacity for areas
-            strokeWidths.Add(0); // No stroke for areas
+            opacities.Add(0.2); // Higher opacity for areas
+            strokeWidths.Add(1); // No stroke for areas
         }
         options.Markers = new Markers
         {
