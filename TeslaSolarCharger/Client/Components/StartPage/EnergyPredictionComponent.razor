@@ -160,7 +160,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.HomeConsumptionColor" />
+                                         Color="@Constants.HomeConsumptionPredictionColor" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="BatterySoc"
@@ -168,7 +168,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryColor" />
+                                         Color="@Constants.BatterySocColor" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="HouseActualData"
@@ -176,7 +176,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.HomeConsumptionColor"
+                                         Color="@Constants.HomeConsumptionChartColor"
                                          Group="consumption-stack" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -221,7 +221,7 @@
                                              SeriesType="SeriesType.Line"
                                              XValue="@(e => e.Key)"
                                              YValue="@(e => e.Value)"
-                                             Color="@Constants.SolarPowerColor" />
+                                             Color="@Constants.SolarPowerPredictionColor" />
                         }
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -230,7 +230,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryColor" />
+                                         Color="@Constants.BatterySocColor" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="SolarActualData"
