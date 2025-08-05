@@ -359,10 +359,10 @@
 
         for (var i = 0; i < numberOfLineCharts; i++)
         {
-            markerSizes.Add(2);
+            markerSizes.Add(4);
             fillTypes.Add(FillType.Solid);
             opacities.Add(0.2);
-            strokeWidths.Add(1);
+            strokeWidths.Add(3);
         }
 
         options.Markers = new Markers
@@ -481,8 +481,8 @@
                 var gridTo = gridToData.ContainsKey(hour) ? gridToData[hour] / 1000.0 : (double?)null;
                 var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : (double?)null;
                 var batteryDischarging = batteryDischargingDataRaw.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : (double?)null;
-                var solarActual = solarActualData.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : (double?)null;
-                var houseActual = houseActualData.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : (double?)null;
+                var solarActual = solarActualData.ContainsKey(hour) ? solarActualData[hour] / 1000.0 : (double?)null;
+                var houseActual = houseActualData.ContainsKey(hour) ? houseActualData[hour] / 1000.0 : (double?)null;
 
                 var dateTime = new DateTime(date.Year, date.Month, date.Day, hour, 0, 0);
                 var currentDate = DateTimeProvider.Now();
