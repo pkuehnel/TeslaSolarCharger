@@ -34,13 +34,4 @@ public class FleetApiController(
 
     [HttpGet]
     public Task<DtoValue<bool>> TestFleetApiAccess(int carId) => fleetApiService.TestFleetApiAccess(carId);
-    [HttpGet]
-    public Task<DtoValue<bool>> IsFleetApiProxyEnabled(string vin) => fleetApiService.IsFleetApiProxyEnabled(vin);
-
-    [HttpGet]
-    public async Task<IActionResult> GetNewCarsInAccount()
-    {
-        var result = await fleetApiService.GetNewCarsInAccount().ConfigureAwait(false);
-        return result.ToOk();
-    }
 }

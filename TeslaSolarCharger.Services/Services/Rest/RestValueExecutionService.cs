@@ -36,7 +36,7 @@ public class RestValueExecutionService(
 
         if (configurationWrapper.ShouldIgnoreSslErrors())
         {
-            logger.LogWarning("PV Value SSL errors are ignored.");
+            logger.LogDebug("PV Value SSL errors are ignored.");
             httpClientHandler.ServerCertificateCustomValidationCallback = MyRemoteCertificateValidationCallback;
         }
         using var client = new HttpClient(httpClientHandler);

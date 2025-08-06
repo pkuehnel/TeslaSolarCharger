@@ -42,6 +42,26 @@ namespace TeslaSolarCharger.Client.Services
             DateOnly date, CancellationToken token) =>
             GetHourlyDictionary(date, "GetHouseActual", token);
 
+        public Task<Dictionary<int, int>> GetActualHomeBatteryChargingPowerByLocalHour(
+            DateOnly date, CancellationToken token) =>
+            GetHourlyDictionary(date, "GetHomeBatteryChargingActual", token);
+
+        public Task<Dictionary<int, int>> GetActualHomeBatteryDischargingPowerByLocalHour(
+            DateOnly date, CancellationToken token) =>
+            GetHourlyDictionary(date, "GetHomeBatteryDischargingActual", token);
+
+        public Task<Dictionary<int, int>> GetActualPowerToGridByLocalHour(
+            DateOnly date, CancellationToken token) =>
+            GetHourlyDictionary(date, "GetPowerToGridActual", token);
+
+        public Task<Dictionary<int, int>> GetActualPowerFromGridByLocalHour(
+            DateOnly date, CancellationToken token) =>
+            GetHourlyDictionary(date, "GetPowerFromGridActual", token);
+
+        public Task<Dictionary<int, int>> GetActualHomeBatterySocByLocalHour(
+            DateOnly date, CancellationToken token) =>
+            GetHourlyDictionary(date, "GetHomeBatterySocActual", token);
+
         public Task<bool> SolarPowerPredictionEnabled() =>
             GetBooleanFlag("IsPredictSolarPowerGenerationEnabled");
 

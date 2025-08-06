@@ -25,7 +25,8 @@ public class ConfigJsonService(
     IConstants constants,
     ITeslaMateDbContextWrapper teslaMateDbContextWrapper,
     IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
-    ITscConfigurationService tscConfigurationService)
+    ITscConfigurationService tscConfigurationService,
+    ILoadPointManagementService loadPointManagementService)
     : IConfigJsonService
 {
     private bool CarConfigurationFileExists()
@@ -183,6 +184,10 @@ public class ConfigJsonService(
     public async Task AddCarsToSettings()
     {
         settings.Cars = await GetCars().ConfigureAwait(false);
+        foreach (var dtoCar in settings.CarsToManage)
+        {
+            await loadPointManagementService.CarStateChanged(dtoCar.Id);
+        }
     }
 
     public async Task AddBleBaseUrlToAllCars()

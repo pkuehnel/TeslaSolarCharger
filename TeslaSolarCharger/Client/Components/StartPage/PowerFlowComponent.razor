@@ -91,36 +91,36 @@ else
             @if (GridLocation != default)
             {
                 <circle cx="@GridLocation.X" cy="@GridLocation.Y" r="40"
-                        fill="@(_pvValues.GridPower == 0 ? "white" : (_pvValues.GridPower > 0 ? "lightgreen" : "#ff3030"))"
-                        stroke="lightblue" stroke-width="4" />
+                        fill="@(_pvValues.GridPower == 0 ? "white" : (_pvValues.GridPower > 0 ? Constants.FeedInColor : Constants.ConsumptionColor))"
+                        stroke="@Constants.GridColor" stroke-width="4" />
             }
             <!-- Solar -->
             @if (InverterLocation != default)
             {
                 <circle cx="@InverterLocation.X" cy="@InverterLocation.Y" r="40"
-                        fill="@(_pvValues.InverterPower == 0 ? "white" : "orange")"
-                        stroke="orange" stroke-width="4" />
+                        fill="@(_pvValues.InverterPower == 0 ? "white" : Constants.SolarPowerColor)"
+                        stroke="@Constants.SolarPowerColor" stroke-width="4" />
             }
             <!-- Home Battery -->
             @if (BatteryLocation != default)
             {
                 <circle cx="@BatteryLocation.X" cy="@BatteryLocation.Y" r="40"
-                        fill="@(_pvValues.HomeBatteryPower == 0 ? "white" : (_pvValues.HomeBatteryPower > 0 ? "lightgreen" : "#ff3030"))"
-                        stroke="lightsalmon" stroke-width="4" />
+                        fill="@(_pvValues.HomeBatteryPower == 0 ? "white" : (_pvValues.HomeBatteryPower > 0 ? Constants.FeedInColor : Constants.ConsumptionColor))"
+                        stroke="@Constants.BatteryColor" stroke-width="4" />
             }
             <!-- House -->
             @if (HomeLocation != default)
             {
                 <circle cx="@HomeLocation.X" cy="@HomeLocation.Y" r="40"
-                        fill="@(CalculateHomePower() == 0 ? "white" : "pink")"
-                        stroke="pink" stroke-width="4" />
+                        fill="@(CalculateHomePower() == 0 ? "white" : Constants.HomeConsumptionColor)"
+                        stroke="@Constants.HomeConsumptionColor" stroke-width="4" />
             }
             <!-- EVCharger -->
             @if (EvChargerLocation != default)
             {
                 <circle cx="@EvChargerLocation.X" cy="@EvChargerLocation.Y" r="40"
-                        fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "white" : "lightgrey")"
-                        stroke="lightgrey" stroke-width="4" />
+                        fill="@(_pvValues.CarCombinedChargingPowerAtHome == 0 ? "white" : Constants.EvChargingColor)"
+                        stroke="@Constants.EvChargingColor" stroke-width="4" />
             }
 
             <!-- Text -->
@@ -229,7 +229,7 @@ else
                             StartY = InverterLocation.Y,
                             EndX = GridLocation.X,
                             EndY = GridLocation.Y,
-                            Color = "orange",
+                        Color = Constants.SolarPowerColor,
                             Duration = CalculateDuration(InverterLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -241,7 +241,7 @@ else
                             StartY = InverterLocation.Y,
                             EndX = HomeLocation.X,
                             EndY = HomeLocation.Y,
-                            Color = "orange",
+                        Color = Constants.SolarPowerColor,
                             Duration = CalculateDuration(InverterLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -253,7 +253,7 @@ else
                             StartY = InverterLocation.Y,
                             EndX = BatteryLocation.X,
                             EndY = BatteryLocation.Y,
-                            Color = "orange",
+                        Color = Constants.SolarPowerColor,
                             Duration = CalculateDuration(InverterLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -273,7 +273,7 @@ else
                             StartY = GridLocation.Y,
                             EndX = HomeLocation.X,
                             EndY = HomeLocation.Y,
-                            Color = "lightblue",
+                            Color = Constants.GridColor,
                             Duration = CalculateDuration(GridLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -286,7 +286,7 @@ else
                             StartY = GridLocation.Y,
                             EndX = BatteryLocation.X,
                             EndY = BatteryLocation.Y,
-                            Color = "lightblue",
+                        Color = Constants.GridColor,
                             Duration = CalculateDuration(GridLocation, BatteryLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -306,7 +306,7 @@ else
                             StartY = BatteryLocation.Y,
                             EndX = HomeLocation.X,
                             EndY = HomeLocation.Y,
-                            Color = "lightsalmon",
+                            Color = Constants.BatteryColor,
                             Duration = CalculateDuration(BatteryLocation, HomeLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -318,7 +318,7 @@ else
                             StartY = BatteryLocation.Y,
                             EndX = GridLocation.X,
                             EndY = GridLocation.Y,
-                            Color = "lightsalmon",
+                            Color = Constants.BatteryColor,
                             Duration = CalculateDuration(BatteryLocation, GridLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                         });
                 }
@@ -337,7 +337,7 @@ else
                         StartY = homeLocation.Y,
                         EndX = EvChargerLocation.X,
                         EndY = EvChargerLocation.Y,
-                        Color = "pink",
+                        Color = Constants.HomeConsumptionColor,
                         Duration = CalculateDuration(homeLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
             }
@@ -351,7 +351,7 @@ else
                         StartY = InverterLocation.Y,
                             EndX = EvChargerLocation.X,
                             EndY = EvChargerLocation.Y,
-                        Color = "orange",
+                        Color = Constants.SolarPowerColor,
                             Duration = CalculateDuration(InverterLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
                 }
@@ -364,7 +364,7 @@ else
                         StartY = GridLocation.Y,
                             EndX = EvChargerLocation.X,
                             EndY = EvChargerLocation.Y,
-                        Color = "lightblue",
+                        Color = Constants.GridColor,
                             Duration = CalculateDuration(GridLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
                 }
@@ -377,7 +377,7 @@ else
                         StartY = BatteryLocation.Y,
                             EndX = EvChargerLocation.X,
                             EndY = EvChargerLocation.Y,
-                        Color = "lightsalmon",
+                        Color = Constants.BatteryColor,
                             Duration = CalculateDuration(BatteryLocation, EvChargerLocation).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s",
                     });
                 }

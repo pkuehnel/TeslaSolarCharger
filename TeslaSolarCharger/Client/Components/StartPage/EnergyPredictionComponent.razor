@@ -4,169 +4,227 @@
 @using ApexCharts
 @using TeslaSolarCharger.Client.Dtos
 @using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Contracts
+@using TeslaSolarCharger.Shared.Resources.Contracts
 @using Color = MudBlazor.Color
 @using Size = MudBlazor.Size
 
 @inject IEnergyDataService EnergyDataService
 @inject TimeProvider TimeProvider
 @inject ISnackbar Snackbar
-@inject IBrowserViewportService BrowserViewportService
 @inject IChartWidthCalculator ChartWidthCalculator
 @inject IApexChartHelper ApexChartHelper
+@inject IConstants Constants
+@inject IDateTimeProvider DateTimeProvider
 
 @implements IDisposable
 
 <MudExpansionPanels>
     <MudExpansionPanel ExpandedChanged="isExpanded => ExpandedChanged(isExpanded)">
         <TitleContent>
-            @{
-                // Set labels and values based on the SelectedDate.
-                string leftLabel;
-                string rightLabel;
-                RenderFragment leftValue;
-                RenderFragment rightValue;
-
-                if (SelectedDate == TimeProvider.GetLocalNow().Date)
+            <div class="d-flex flex-wrap align-items-center justify-content-start gap-3">
+                @if (_dataLoaded)
                 {
-                    leftLabel = "Prediction from now:";
-                    rightLabel = "Produced today:";
+                    <!-- Solar Values -->
+                    @if (_isSolarPredictionEnabled && SolarPredictionData != null)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: @Constants.SolarPowerPredictionColor; border-radius: 2px;"></div>
+                            <span class="text-nowrap">@(GetRelevantSolarPredictionText()) @($"{GetRelevantSolarPrediction():F1}") kWh</span>
+                        </div>
+                    }
+                    @if (SolarActualData != null)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: @Constants.SolarPowerColor; border-radius: 2px;"></div>
+                            <span class="text-nowrap">Solar: @($"{SolarActualData.Sum(v => v.Value ?? 0):F1}") kWh</span>
+                        </div>
+                    }
 
-                    leftValue = SolarPredictionData != null
-                        ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Where(v => v.Key > TimeProvider.GetLocalNow().Hour).Sum(v => v.Value):F1} kWh")</span>
-                    : @<div class="d-flex justify-content-start w-100">
-                    <MudSkeleton Width="100px" Height="24px" />
-                </div>;
+                    <!-- House Values -->
+                    @if (HousePredictionData != null)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: @Constants.HomeConsumptionPredictionColor; border-radius: 2px;"></div>
+                            <span class="text-nowrap">House Pred: @($"{HousePredictionData.Sum(v => v.Value ?? 0):F1}") kWh</span>
+                        </div>
+                    }
+                    @if (HouseActualData != null)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: @Constants.HomeConsumptionChartColor; border-radius: 2px;"></div>
+                            <span class="text-nowrap">House: @($"{HouseActualData.Sum(v => v.Value ?? 0):F1}") kWh</span>
+                        </div>
+                    }
 
-                    rightValue = SolarActualData != null
-                        ? @<span class="d-block text-md-end">@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<div class="d-flex justify-content-end w-100">
-                    <MudSkeleton Width="100px" Height="24px" />
-                </div>;
-                }
-                else if (SelectedDate < TimeProvider.GetLocalNow().Date)
-                {
-                    leftLabel = "Estimated Production:";
-                    rightLabel = "Actual Production:";
+                    <!-- Battery Values -->
+                    @if (BatteryChargingData != null && BatteryChargingData.Sum(v => v.Value ?? 0) > 0)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: @Constants.BatteryColor; border-radius: 2px;"></div>
+                            <span class="text-nowrap">Battery Charged: @($"{BatteryChargingData.Sum(v => v.Value ?? 0):F1}") kWh</span>
+                        </div>
+                    }
+                    @if (BatteryDischargingData != null && BatteryDischargingData.Sum(v => v.Value ?? 0) > 0)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: @Constants.BatteryColor; border-radius: 2px;"></div>
+                            <span class="text-nowrap">Battery Discharged: @($"{BatteryDischargingData.Sum(v => v.Value ?? 0):F1}") kWh</span>
+                        </div>
+                    }
 
-                    leftValue = SolarPredictionData != null
-                        ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<div class="d-flex justify-content-start w-100">
-                    <MudSkeleton Width="100px" Height="24px" />
-                </div>;
-
-                    rightValue = SolarActualData != null
-                        ? @<span class="d-block text-md-end">@($"{SolarActualData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<div class="d-flex justify-content-end w-100">
-                    <MudSkeleton Width="100px" Height="24px" />
-                </div>;
+                    <!-- Grid Values -->
+                    @if (PowerFromGridData != null && PowerFromGridData.Sum(v => v.Value ?? 0) > 0)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: @Constants.GridColor; border-radius: 2px;"></div>
+                            <span class="text-nowrap">From Grid: @($"{PowerFromGridData.Sum(v => v.Value ?? 0):F1}") kWh</span>
+                        </div>
+                    }
+                    @if (PowerToGridData != null && PowerToGridData.Sum(v => v.Value ?? 0) > 0)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: @Constants.GridColor; border-radius: 2px;"></div>
+                            <span class="text-nowrap">To Grid: @($"{PowerToGridData.Sum(v => v.Value ?? 0):F1}") kWh</span>
+                        </div>
+                    }
                 }
                 else
                 {
-                    leftLabel = "Solar Prediction:";
-                    rightLabel = "House Prediction:";
-
-                    leftValue = SolarPredictionData != null
-                        ? @<span class="d-block text-md-start">@($"{SolarPredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<div class="d-flex justify-content-start w-100">
-                    <MudSkeleton Width="100px" Height="24px" />
-                </div>;
-
-                    rightValue = HousePredictionData != null
-                        ? @<span class="d-block text-md-end">@($"{HousePredictionData.Sum(v => v.Value):F1} kWh")</span>
-                    : @<div class="d-flex justify-content-end w-100">
-                    <MudSkeleton Width="100px" Height="24px" />
-                </div>;
+                    <MudSkeleton Width="100%" Height="24px" />
                 }
-            }
-            <!-- Outer container that stacks on small screens and arranges items in a row on md+ screens -->
-            <div class="d-flex flex-column flex-md-row align-items-center justify-content-between">
-                <!-- Left Section -->
-                @if (_isSolarPredictionEnabled)
-                {
-                    <div class="flex-fill text-md-start text-center mb-3 mb-md-0">
-                        <span class="fw-bold">@leftLabel</span>
-                        <div>@leftValue</div>
-                    </div>
-                }
-
-
-                <!-- Center Section: Date input with navigation buttons -->
-                <div class="flex-fill text-center mb-3 mb-md-0">
-                    <div class="d-flex justify-content-center align-items-center">
-                        <MudFab StartIcon="@Icons.Material.Filled.ArrowLeft"
-                                Color="Color.Primary"
-                                Size="Size.Small"
-                                OnClick="PreviousDay"
-                                Disabled="IsPreviousDisabled" />
-                        <GenericInput T="DateTime?"
-                                      For="() => SelectedDate"
-                                      LabelName="Date"
-                                      OnValueChanged="newDate => SelectedDateChanged(newDate)" />
-                        <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
-                                Color="Color.Primary"
-                                Size="Size.Small"
-                                OnClick="NextDay"
-                                Disabled="IsNextDisabled" />
-                    </div>
-                </div>
-
-                <!-- Right Section -->
-                <div class="flex-fill text-md-end text-center">
-                    <span class="fw-bold">@rightLabel</span>
-                    <div>@rightValue</div>
-                </div>
             </div>
         </TitleContent>
         <ChildContent>
-            @if (HousePredictionData == default || SolarActualData == default || HouseActualData == default || (SolarPredictionData == default && _isSolarPredictionEnabled))
+            <!-- Date Selection (only visible when expanded) -->
+            <div class="d-flex justify-content-center align-items-center mb-3">
+                <MudFab StartIcon="@Icons.Material.Filled.ArrowLeft"
+                        Color="Color.Primary"
+                        Size="Size.Small"
+                        OnClick="PreviousDay"
+                        Disabled="IsPreviousDisabled" />
+                <GenericInput T="DateTime?"
+                              For="() => SelectedDate"
+                              LabelName="Date"
+                              OnValueChanged="newDate => SelectedDateChanged(newDate)" />
+                <MudFab StartIcon="@Icons.Material.Filled.ArrowRight"
+                        Color="Color.Primary"
+                        Size="Size.Small"
+                        OnClick="NextDay"
+                        Disabled="IsNextDisabled" />
+            </div>
+
+            @if (HousePredictionData == default
+                        || SolarActualData == default
+                        || HouseActualData == default
+                        || BatteryDischargingData == default
+                        || PowerFromGridData == default
+                        || BatteryChargingData == default
+                        || PowerToGridData == default
+                        || BatterySoc == default
+                        || (SolarPredictionData == default && _isSolarPredictionEnabled)
+                        || (!_dataLoaded))
             {
                 <div class="align-items-center justify-content-center mb-3">
-                    <PlaceholderComponent Height="@ChartHeight"></PlaceholderComponent>
+                    <PlaceholderComponent Height="@($"{ChartHeightValue + 20}px")"></PlaceholderComponent>
                 </div>
             }
             else
             {
-                <div class="d-flex align-items-center justify-content-center mb-3">
-                    <ApexChart TItem="DtoChartValue<int, decimal>"
-                               Title="kWh"
-                               Options="_options"
+                <!-- Consumption Chart -->
+                <div class="d-flex align-items-center justify-content-center mb-2">
+                    <ApexChart TItem="DtoChartValue<int, decimal?>"
+                               Options="_chartOptions"
                                Width="@ChartWidthCalculator.ChartWidth"
-                               Height="ChartHeight"
+                               Height="@ChartHeight"
                                XAxisType="XAxisType.Numeric"
                                FormatXAxisLabel="@(arg => arg.ToString("N0"))"
                                FormatYAxisLabel="@(arg => arg.ToString("F1"))"
-                               @ref="_chart">
+                               @ref="_consumptionChart">
+
+                        <!-- House Prediction Line -->
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="HousePredictionData"
+                                         Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.HomeConsumptionPredictionColor" />
+
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="BatterySoc"
+                                         Name="@("Home Battery SoC %")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.BatterySocColor" />
+
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="HouseActualData"
+                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.HomeConsumptionChartColor"
+                                         Group="consumption-stack" />
+
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="BatteryDischargingData"
+                                         Name="@($"Battery Discharge ({(BatteryDischargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.BatteryColor"
+                                         Group="consumption-stack" />
+
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="PowerFromGridData"
+                                         Name="@($"Grid Import ({(PowerFromGridData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.GridColor"
+                                         Group="consumption-stack" />
+
                         @if (SolarPredictionData != default)
                         {
-                            <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+                            <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                              Items="SolarPredictionData"
-                                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                             Name="@($"Solar Prediction ({(SolarPredictionData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                              SeriesType="SeriesType.Line"
                                              XValue="@(e => e.Key)"
-                                             YValue="@(e => (decimal?)e.Value)"
-                                             Color="#FFD580" />
+                                             YValue="@(e => e.Value)"
+                                             Color="@Constants.SolarPowerPredictionColor" />
                         }
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="HousePredictionData"
-                                         Name="@($"House Prediction ({(HousePredictionData.Sum(v => v.Value)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
-                                         Color="lightpink" />
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
+
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="SolarActualData"
-                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         Name="@($"Solar Actual ({(SolarActualData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
-                                         Color="orange" />
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal>"
-                                         Items="HouseActualData"
-                                         Name="@($"House Actual ({(HouseActualData.Sum(v => v.Value)).ToString("F1")} kWh)")"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.SolarPowerColor"
+                                         Group="production-stack" />
+
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="BatteryChargingData"
+                                         Name="@($"Battery Charging ({(BatteryChargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
-                                         YValue="@(e => (decimal?)e.Value)"
-                                         Color="deeppink" />
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.BatteryColor"
+                                         Group="production-stack" />
+
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="PowerToGridData"
+                                         Name="@($"Grid Export ({(PowerToGridData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.GridColor"
+                                         Group="production-stack" />
+
+
                     </ApexChart>
                 </div>
             }
@@ -175,19 +233,30 @@
 </MudExpansionPanels>
 
 @code {
-    private List<DtoChartValue<int, decimal>>? SolarPredictionData { get; set; }
-    private List<DtoChartValue<int, decimal>>? HousePredictionData { get; set; }
-    private List<DtoChartValue<int, decimal>>? SolarActualData { get; set; }
-    private List<DtoChartValue<int, decimal>>? HouseActualData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? SolarPredictionData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? HousePredictionData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? SolarActualData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? HouseActualData { get; set; }
+
+    private List<DtoChartValue<int, decimal?>>? BatteryDischargingData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? PowerFromGridData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? PowerToGridData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? BatteryChargingData { get; set; }
+    private List<DtoChartValue<int, decimal?>>? BatterySoc { get; set; }
+
     private DateTime? SelectedDate { get; set; }
     private DateTime MaxAllowedDate => TimeProvider.GetLocalNow().Date.AddDays(7);
-    private ApexChartOptions<DtoChartValue<int, decimal>>? _options;
+    private ApexChartOptions<DtoChartValue<int, decimal?>>? _chartOptions;
     private bool _isSolarPredictionEnabled;
-    private ApexChart<DtoChartValue<int, decimal>>? _chart;
+    private bool _dataLoaded;
+    private ApexChart<DtoChartValue<int, decimal?>>? _consumptionChart;
 
-
-    private string ChartHeight { get; set; } = "400px";
+    private int ChartHeightValue { get; set; } = 400;
+    private string ChartHeight => $"{ChartHeightValue}px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
+
+    //This values was determined by testing. Is used to not get an error when setting series values to null and to redraw the chart after a browser width change.
+    private const int RedrawDelayMilliseconds = 50;
 
     protected override async Task OnInitializedAsync()
     {
@@ -196,9 +265,82 @@
         await base.OnInitializedAsync();
         _isSolarPredictionEnabled = await EnergyDataService.SolarPowerPredictionEnabled();
         await InvokeAsync(() => StateHasChanged());
-        _options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal>>();
+
+        // Configure consumption chart options
+        _chartOptions = GetChartOptions();
 
         await RefreshData(DateOnly.FromDateTime(SelectedDate.Value));
+    }
+
+    private ApexChartOptions<DtoChartValue<int, decimal?>> GetChartOptions()
+    {
+        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<int, decimal?>>(false);
+        options.Chart.Stacked = false;
+        // options.Chart.StackType = StackType.Normal;
+        options.Chart.Height = ChartHeightValue;
+        options.Yaxis = new List<YAxis>
+        {
+            new YAxis
+            {
+                Min = 0,
+                Title = new AxisTitle { Text = "kWh" },
+            },
+            new YAxis
+            {
+                Opposite = true,
+                Min = 0,
+                Max = 100,
+                Title = new AxisTitle { Text = "%" },
+                DecimalsInFloat = 0,
+                SeriesName = new SeriesName()
+                {
+                    "Home Battery SoC %",
+                },
+            },
+        };
+        var markerSizes = new List<double>();
+        var fillTypes = new List<FillType>();
+        var opacities = new List<double>();
+        var strokeWidths = new List<double>();
+
+        var numberOfLineCharts = 8;
+        if (_isSolarPredictionEnabled)
+        {
+            numberOfLineCharts++;
+        }
+
+        for (var i = 0; i < numberOfLineCharts; i++)
+        {
+            markerSizes.Add(4);
+            fillTypes.Add(FillType.Solid);
+            opacities.Add(0.2);
+            strokeWidths.Add(3);
+        }
+
+        options.Markers = new Markers
+        {
+            Size = markerSizes,
+            Hover = new()
+            {
+                SizeOffset = 5,
+            },
+        };
+        options.Fill = new Fill
+        {
+            Type = fillTypes,
+            Opacity = opacities,
+        };
+        options.Stroke = new Stroke
+        {
+            Width = strokeWidths, // Only line has stroke
+            Curve = Curve.Smooth,
+        };
+        options.Tooltip = new Tooltip
+        {
+            Shared = true,
+        };
+
+        return options;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -219,16 +361,30 @@
         _refreshCancellationTokenSource = new CancellationTokenSource();
         CancellationToken token = _refreshCancellationTokenSource.Token;
 
+        _dataLoaded = false;
+        await Task.Delay(RedrawDelayMilliseconds);
+        await InvokeAsync(StateHasChanged);
+
         HousePredictionData = default;
         SolarPredictionData = default;
         HouseActualData = default;
         SolarActualData = default;
+        BatteryDischargingData = default;
+        PowerFromGridData = default;
+        PowerToGridData = default;
+        BatteryChargingData = default;
+
         try
         {
-            // Start tasks with the cancellation token.
+            // Start all tasks
             var housePredictionTask = EnergyDataService.GetPredictedHouseConsumptionByLocalHour(date, token);
             var solarActualTask = EnergyDataService.GetActualSolarProductionByLocalHour(date, token);
             var houseActualTask = EnergyDataService.GetActualHouseConsumptionByLocalHour(date, token);
+            var gridFromTask = EnergyDataService.GetActualPowerFromGridByLocalHour(date, token);
+            var gridToTask = EnergyDataService.GetActualPowerToGridByLocalHour(date, token);
+            var batteryChargingTask = EnergyDataService.GetActualHomeBatteryChargingPowerByLocalHour(date, token);
+            var batteryDischargingTask = EnergyDataService.GetActualHomeBatteryDischargingPowerByLocalHour(date, token);
+            var batterySocTask = EnergyDataService.GetActualHomeBatterySocByLocalHour(date, token);
 
             if (_isSolarPredictionEnabled)
             {
@@ -236,30 +392,74 @@
                 var solarPredictionData = await solarPredictionTask;
                 token.ThrowIfCancellationRequested();
                 SolarPredictionData = solarPredictionData
-                    .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
+                    .Select(e => new DtoChartValue<int, decimal?>(e.Key, new(e.Value / 1000.0)))
                     .ToList();
             }
 
+            // Wait for all tasks
             var housePredictionData = await housePredictionTask;
             token.ThrowIfCancellationRequested();
             var solarActualData = await solarActualTask;
             token.ThrowIfCancellationRequested();
             var houseActualData = await houseActualTask;
             token.ThrowIfCancellationRequested();
+            var gridFromData = await gridFromTask;
+            token.ThrowIfCancellationRequested();
+            var gridToData = await gridToTask;
+            token.ThrowIfCancellationRequested();
+            var batteryChargingDataRaw = await batteryChargingTask;
+            token.ThrowIfCancellationRequested();
+            var batteryDischargingDataRaw = await batteryDischargingTask;
+            token.ThrowIfCancellationRequested();
+            var batterySocData = await batterySocTask;
+            token.ThrowIfCancellationRequested();
 
+            // Convert prediction data
             HousePredictionData = housePredictionData
-                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
-                .ToList();
-            SolarActualData = solarActualData
-                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
-                .ToList();
-            HouseActualData = houseActualData
-                .Select(e => new DtoChartValue<int, decimal>(e.Key, new(e.Value / 1000.0)))
+                .Select(e => new DtoChartValue<int, decimal?>(e.Key, new(e.Value / 1000.0)))
                 .ToList();
 
-            if (_chart != null)
+            // Calculate stacked area data
+            var hours = Enumerable.Range(0, 24).ToList();
+
+            BatteryDischargingData = new();
+            PowerFromGridData = new();
+            PowerToGridData = new();
+            BatteryChargingData = new();
+            BatterySoc = new();
+            SolarActualData = new();
+            HouseActualData = new();
+
+            foreach (var hour in hours)
             {
-                await _chart.UpdateSeriesAsync();
+                var gridFrom = gridFromData.ContainsKey(hour) ? gridFromData[hour] / 1000.0 : (double?)null;
+                var gridTo = gridToData.ContainsKey(hour) ? gridToData[hour] / 1000.0 : (double?)null;
+                var batteryCharging = batteryChargingDataRaw.ContainsKey(hour) ? batteryChargingDataRaw[hour] / 1000.0 : (double?)null;
+                var batteryDischarging = batteryDischargingDataRaw.ContainsKey(hour) ? batteryDischargingDataRaw[hour] / 1000.0 : (double?)null;
+                var solarActual = solarActualData.ContainsKey(hour) ? solarActualData[hour] / 1000.0 : (double?)null;
+                var houseActual = houseActualData.ContainsKey(hour) ? houseActualData[hour] / 1000.0 : (double?)null;
+
+                var dateTime = DateTime.SpecifyKind(new DateTime(date.Year, date.Month, date.Day, hour, 0, 0), DateTimeKind.Local);
+                var currentDate = DateTimeProvider.Now();
+                var batterySoc = (batterySocData.ContainsKey(hour) && (currentDate > dateTime)) ? batterySocData[hour] : (decimal?)null;
+
+
+                SolarActualData.Add(new(hour, (decimal?)solarActual));
+                HouseActualData.Add(new(hour, (decimal?)houseActual));
+                BatteryDischargingData.Add(new(hour, (decimal?)batteryDischarging));
+                PowerFromGridData.Add(new(hour, (decimal?)gridFrom));
+                BatterySoc.Add(new(hour, batterySoc));
+
+                // For production chart - show where solar production goes (as positive values)
+                PowerToGridData.Add(new(hour, (decimal?)gridTo));
+                BatteryChargingData.Add(new(hour, (decimal?)batteryCharging));
+            }
+
+            _dataLoaded = true;
+
+            if (_consumptionChart != null)
+            {
+                await _consumptionChart.UpdateSeriesAsync();
             }
 
             StateHasChanged();
@@ -268,6 +468,31 @@
         {
             // The refresh was canceled. Optionally log or handle the cancellation.
         }
+    }
+
+    private decimal GetRelevantSolarPrediction()
+    {
+        if (SolarPredictionData == null) return 0;
+
+        // If it's today and we're partway through the day, show prediction from now
+        if (SelectedDate == TimeProvider.GetLocalNow().Date)
+        {
+            return SolarPredictionData.Where(v => v.Key > TimeProvider.GetLocalNow().Hour).Sum(v => v.Value ?? 0);
+        }
+
+        // Otherwise show total prediction
+        return SolarPredictionData.Sum(v => v.Value ?? 0);
+    }
+
+    private string GetRelevantSolarPredictionText()
+    {
+        var text = "Solar Pred.";
+        if (SelectedDate == TimeProvider.GetLocalNow().Date)
+        {
+            text += " f. now";
+        }
+        text += ":";
+        return text;
     }
 
     private void PreviousDay()
@@ -301,39 +526,52 @@
             return;
         }
 
-        if (SelectedDate > MaxAllowedDate)
+        if (newDate > MaxAllowedDate)
         {
-            Snackbar.Add("Cannot select a date more than one day in the future", Severity.Error);
+            var currentDate = TimeProvider.GetLocalNow().Date;
+            var allowedDays = (MaxAllowedDate - currentDate).Days;
+            Snackbar.Add($"Cannot select a date more than {allowedDays} day{(allowedDays == 1 ? "" : "s")} in the future", Severity.Error);
             return;
         }
         SelectedDate = newDate;
         await RefreshData(DateOnly.FromDateTime(newDate.Value));
     }
 
-    private CancellationTokenSource? _debounceTokenSource;
-
     private async Task ExpandedChanged(bool isExpanded)
     {
-        if ((_chart == default) || (!isExpanded))
+        if (!isExpanded)
         {
+            // When collapsed, reset to current day
+            var currentDate = TimeProvider.GetLocalNow().Date;
+            if (SelectedDate != currentDate)
+            {
+                SelectedDate = currentDate;
+                await RefreshData(DateOnly.FromDateTime(currentDate));
+            }
             return;
         }
-        await _chart.UpdateOptionsAsync(false, false, false);
+
+        if (_consumptionChart != default)
+        {
+            await _consumptionChart.UpdateOptionsAsync(false, false, false);
+        }
     }
 
     private async ValueTask OnChartWidthChangedAsync()
     {
-        if (_chart != default)
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(RedrawDelayMilliseconds);
+
+        if (_consumptionChart != default)
         {
-            await _chart.UpdateOptionsAsync(false, false, false);
-            await InvokeAsync(StateHasChanged);
+            await _consumptionChart.UpdateOptionsAsync(false, false, false);
         }
     }
 
     public void Dispose()
     {
         ChartWidthCalculator.ChartWidthChanged -= OnChartWidthChangedAsync;
-        _chart?.Dispose();
+        _consumptionChart?.Dispose();
     }
-
 }

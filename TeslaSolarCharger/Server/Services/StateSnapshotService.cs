@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
@@ -24,17 +26,17 @@ public class StateSnapshotService : IStateSnapshotService
         _entityKeyGenerationHelper = entityKeyGenerationHelper;
     }
 
-    public async Task<Dictionary<string, string>> GetAllCurrentStatesAsync()
+    public async Task<Dictionary<string, object?>> GetAllCurrentStatesAsync()
     {
-        var states = new Dictionary<string, string>();
+        var states = new Dictionary<string, object?>();
 
         try
         {
             // Get PV Values
-            var pvValuesJson = await GetPvValuesJsonAsync();
-            if (!string.IsNullOrEmpty(pvValuesJson))
+            var pvValues = await GetPvValuesAsync();
+            if (pvValues != null)
             {
-                states[DataTypeConstants.PvValues] = pvValuesJson;
+                states[DataTypeConstants.PvValues] = pvValues;
             }
             var loadPointStates = await GetLoadPointOverviewValuesAsync();
             foreach (var kvp in loadPointStates)
@@ -50,29 +52,29 @@ public class StateSnapshotService : IStateSnapshotService
         return states;
     }
 
-    public async Task<string> GetCurrentStateAsync(string dataType, string entityId)
+    public async Task<object?> GetCurrentStateAsync(string dataType, string entityId)
     {
         try
         {
             return dataType switch
             {
-                DataTypeConstants.PvValues => await GetPvValuesJsonAsync(),
-                DataTypeConstants.LoadPointOverviewValues => GetLoadPointOverviewValueJson(entityId),
-                DataTypeConstants.CarOverviewState => GetCarOverviewValueJson(entityId),
-                DataTypeConstants.ChargingConnectorOverviewState => GetChargingConnectorOverviewValueJson(entityId),
-                _ => string.Empty,
+                DataTypeConstants.PvValues => await GetPvValuesAsync(),
+                DataTypeConstants.LoadPointOverviewValues => GetLoadPointOverviewValue(entityId),
+                DataTypeConstants.CarOverviewState => GetCarOverviewValue(entityId),
+                DataTypeConstants.ChargingConnectorOverviewState => GetChargingConnectorOverviewValue(entityId),
+                _ => null,
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting current state for {DataType}", dataType);
-            return string.Empty;
+            return null;
         }
     }
 
-    private async Task<Dictionary<string, string>> GetLoadPointOverviewValuesAsync()
+    private async Task<Dictionary<string, DtoLoadPointWithCurrentChargingValues>> GetLoadPointOverviewValuesAsync()
     {
-        var result = new Dictionary<string, string>();
+        var result = new Dictionary<string, DtoLoadPointWithCurrentChargingValues>();
         try
         {
             var matches = await _loadPointManagementService.GetCombinationsToManage().ConfigureAwait(false);
@@ -81,7 +83,7 @@ public class StateSnapshotService : IStateSnapshotService
                 var loadPoint = _loadPointManagementService.GetLoadPointWithChargingValues(match);
                 var entityKey = _entityKeyGenerationHelper.GetLoadPointEntityKey(loadPoint.CarId, loadPoint.ChargingConnectorId);
                 var key = $"{DataTypeConstants.LoadPointOverviewValues}:{entityKey}";
-                result[key] = JsonSerializer.Serialize(loadPoint);
+                result[key] = loadPoint;
             }
         }
         catch (Exception ex)
@@ -91,68 +93,68 @@ public class StateSnapshotService : IStateSnapshotService
         return result;
     }
 
-    private string GetLoadPointOverviewValueJson(string entityId)
+    private DtoLoadPointWithCurrentChargingValues? GetLoadPointOverviewValue(string entityId)
     {
         try
         {
             var match = _entityKeyGenerationHelper.GetCombinationByKey(entityId);
             var loadPoint = _loadPointManagementService.GetLoadPointWithChargingValues(match);
-            return JsonSerializer.Serialize(loadPoint);
+            return loadPoint;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting load point overview value for entity {EntityId}", entityId);
         }
-        return string.Empty;
+        return null;
     }
 
-    private string GetCarOverviewValueJson(string entityId)
+    private DtoCarOverviewState? GetCarOverviewValue(string entityId)
     {
         try
         {
             if (int.TryParse(entityId, out var parsedCarId))
             {
                 var loadPoint = _loadPointManagementService.GetCarOverviewState(parsedCarId);
-                return JsonSerializer.Serialize(loadPoint);
+                return loadPoint;
             }
-            return string.Empty;
+            return null;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting car overview value for entity {EntityId}", entityId);
         }
-        return string.Empty;
+        return null;
     }
 
-    private string GetChargingConnectorOverviewValueJson(string entityId)
+    private DtoChargingConnectorOverviewState? GetChargingConnectorOverviewValue(string entityId)
     {
         try
         {
             if (int.TryParse(entityId, out var parsedCarId))
             {
                 var loadPoint = _loadPointManagementService.GetChargingConnectorOverviewState(parsedCarId);
-                return JsonSerializer.Serialize(loadPoint);
+                return loadPoint;
             }
-            return string.Empty;
+            return null;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting charging connector overview value for entity {EntityId}", entityId);
         }
-        return string.Empty;
+        return null;
     }
 
-    private async Task<string> GetPvValuesJsonAsync()
+    private async Task<DtoPvValues?> GetPvValuesAsync()
     {
         try
         {
             var pvValues = await _indexService.GetPvValues();
-            return JsonSerializer.Serialize(pvValues);
+            return pvValues;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error serializing PV values");
-            return string.Empty;
+            return null;
         }
     }
 }
