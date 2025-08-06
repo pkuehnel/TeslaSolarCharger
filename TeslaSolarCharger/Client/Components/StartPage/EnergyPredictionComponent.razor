@@ -527,7 +527,9 @@
 
         if (newDate > MaxAllowedDate)
         {
-            Snackbar.Add("Cannot select a date more than 7 days in the future", Severity.Error);
+            var currentDate = TimeProvider.GetLocalNow().Date;
+            var allowedDays = (MaxAllowedDate - currentDate).Days;
+            Snackbar.Add($"Cannot select a date more than {allowedDays} day{(allowedDays == 1 ? "" : "s")} in the future", Severity.Error);
             return;
         }
         SelectedDate = newDate;
