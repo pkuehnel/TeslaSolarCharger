@@ -255,6 +255,8 @@
     private string ChartHeight => $"{ChartHeightValue}px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
+    private const int RedrawDelayMilliseconds = 50;
+
     protected override async Task OnInitializedAsync()
     {
         var currentTime = TimeProvider.GetLocalNow();
@@ -359,7 +361,7 @@
         CancellationToken token = _refreshCancellationTokenSource.Token;
 
         _dataLoaded = false;
-        await Task.Delay(50);
+        await Task.Delay(RedrawDelayMilliseconds);
         await InvokeAsync(StateHasChanged);
 
         HousePredictionData = default;
@@ -556,7 +558,7 @@
     {
         await InvokeAsync(StateHasChanged);
 
-        await Task.Delay(50);
+        await Task.Delay(RedrawDelayMilliseconds);
 
         if (_consumptionChart != default)
         {
