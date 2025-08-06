@@ -6,17 +6,17 @@ namespace TeslaSolarCharger.Server.Controllers;
 
 public class LiveDataController : ApiBaseController
 {
-    private readonly IChangeTrackingService _changeTrackingService;
+    private readonly IStateSnapshotService _stateSnapshotService;
 
-    public LiveDataController(IChangeTrackingService changeTrackingService)
+    public LiveDataController(IStateSnapshotService stateSnapshotService)
     {
-        _changeTrackingService = changeTrackingService;
+        _stateSnapshotService = stateSnapshotService;
     }
 
     [HttpGet]
-    public IActionResult GetLatestState()
+    public async Task<IActionResult> GetLatestState()
     {
-        var result = _changeTrackingService.GetLatestStates();
+        var result = await _stateSnapshotService.GetAllCurrentStatesAsync();
         return Ok(result);
     }
 }
