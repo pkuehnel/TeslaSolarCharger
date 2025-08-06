@@ -18,6 +18,16 @@ public class ChangeTrackingService : IChangeTrackingService
         _dateTimeProvider = dateTimeProvider;
     }
 
+    public Dictionary<string, object> GetLatestStates()
+    {
+        _logger.LogTrace("{method}()", nameof(GetLatestStates));
+        var states = _previousStates.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value
+        );
+        return states;
+    }
+
     public StateUpdateDto? DetectChanges<T>(string dataType, string? entityId, T currentState)
         where T : class
     {
