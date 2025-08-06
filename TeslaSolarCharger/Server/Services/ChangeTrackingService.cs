@@ -83,7 +83,7 @@ public class ChangeTrackingService : IChangeTrackingService
 
     private string GetKey(string dataType, string? entityId)
     {
-        if(string.IsNullOrEmpty(entityId))
+        if (string.IsNullOrEmpty(entityId))
         {
             return dataType;
         }

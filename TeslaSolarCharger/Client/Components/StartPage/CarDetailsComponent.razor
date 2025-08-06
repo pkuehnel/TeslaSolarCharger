@@ -24,13 +24,27 @@ else
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText="charging"></CustomIcon>
     </div>
-    <FleetApiTestComponent CarId="CarId"/>
+    <FleetApiTestComponent CarId="CarId" />
+    @if (CarState.Soc != default)
+    {
+        <ProgressWithLabelComponent Color="@(CarState.Soc.Value < 7 ? Color.Error : CarState.Soc.Value <= 20 ? Color.Warning : Color.Primary)"
+                                    Striped="CarState.IsCharging"
+                                    Size="Size.Large"
+                                    Value="(double)CarState.Soc"
+                                    Buffer="@(CarState.CarSideSocLimit != default)"
+                                    BufferValue="@(CarState.CarSideSocLimit == default ? 0 : (double)CarState.CarSideSocLimit.Value)"
+                                    ValueLabelPrefix="SoC: "
+                                    ValueLabelSuffix="%"
+                                    BufferLabelPrefix="Car Limit: "
+                                    BufferLabelSuffix="%">
+        </ProgressWithLabelComponent>
+    }
     <div>
         <div class="d-flex align-items-center">
             <div class="flex-grow-1">
                 <GenericInput T="ChargeModeV2"
                               For="() => CarSettings.ChargeMode"
-                              OnValueChanged="ChargeModeUpdated"/>
+                              OnValueChanged="ChargeModeUpdated" />
             </div>
             <div class="me-2 flex-grow-0">
                 <MudIconButton Icon="@Icons.Material.Outlined.Info"
@@ -38,7 +52,7 @@ else
                                OnClick="@(_ => JavaScriptWrapper.OpenUrlInNewTab("https://github.com/pkuehnel/TeslaSolarCharger?tab=readme-ov-file#charge-modes"))" />
             </div>
         </div>
-        
+
         @if (CarSettings.ChargeMode == ChargeModeV2.Auto)
         {
             <div class="row">
@@ -46,14 +60,14 @@ else
                     <GenericInput T="int?"
                                   For="() => CarSettings.MinSoc"
                                   OnValueChanged="OnMinSocChanged"
-                                  ImmediateValueUpdate="true"/>
+                                  ImmediateValueUpdate="true" />
 
                 </div>
                 <div class="col-12 col-md-6">
                     <GenericInput T="int?"
                                   For="() => CarSettings.MaxSoc"
                                   OnValueChanged="OnMaxSocChanged"
-                                  ImmediateValueUpdate="true"/>
+                                  ImmediateValueUpdate="true" />
                 </div>
             </div>
         }
@@ -67,33 +81,15 @@ else
                                          IsLoading="@_isCommandLoading"
                                          OnButtonClicked="@(SetCurrent)"></RightAlignedButtonComponent>
         }
-        @if (CarState.Soc != default)
-        {
-            <div class="mb-7">
-                <ProgressWithLabelComponent Color="@(CarState.Soc.Value < 7 ? Color.Error : CarState.Soc.Value <= 20 ? Color.Warning : Color.Primary)"
-                                            Striped="CarState.IsCharging"
-                                            Size="Size.Large"
-                                            Value="(double)CarState.Soc"
-                                            Buffer="@(CarState.CarSideSocLimit != default)"
-                                            BufferValue="@(CarState.CarSideSocLimit == default ? 0 : (double)CarState.CarSideSocLimit.Value)"
-                                            ValueLabelPrefix="SoC: "
-                                            ValueLabelSuffix="%"
-                                            BufferLabelPrefix="Car Limit: "
-                                            BufferLabelSuffix="%">
-                </ProgressWithLabelComponent>
-            </div>
-        }
-
-
     </div>
-    
-        @if (CarId != default)
-        {
+
+    @if (CarId != default)
+    {
         <div class="mb-7">
             <ChargingTargetConfigurationComponent CarId="CarId.Value"></ChargingTargetConfigurationComponent>
         </div>
-        }
-    
+    }
+
     <ChargeSummaryComponent CarId="CarId"></ChargeSummaryComponent>
 }
 
@@ -273,7 +269,7 @@ else
         {
             return;
         }
-        if(CurrentToSet == default || CurrentToSet < 0)
+        if (CurrentToSet == default || CurrentToSet < 0)
         {
             Snackbar.Add("Please set a valid current.", Severity.Error);
             return;
