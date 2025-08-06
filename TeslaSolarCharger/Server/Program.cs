@@ -92,7 +92,7 @@ var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Verbose()// overall minimum
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
     .MinimumLevel.Override("System", LogEventLevel.Error)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .MinimumLevel.Override("TeslaSolarCharger.Shared.Wrappers.ConfigurationWrapper", LogEventLevel.Information)
