@@ -20,7 +20,7 @@ public class LiveDataController : ApiBaseController
     /// </summary>
     /// <returns>List of all objects that are transferred via SignalR to the client.</returns>
     [HttpGet]
-    public async Task<IActionResult> GetLatestState()
+    public async Task<IActionResult> GetAllLatestStates()
     {
         var result = await _stateSnapshotService.GetAllCurrentStatesAsync();
         var changeTrackingResults = _changeTrackingService.GetLatestStates();
