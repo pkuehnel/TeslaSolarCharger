@@ -255,6 +255,7 @@
     private string ChartHeight => $"{ChartHeightValue}px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 
+    //This values was determined by testing. Is used to not get an error when setting series values to null and to redraw the chart after a browser width change.
     private const int RedrawDelayMilliseconds = 50;
 
     protected override async Task OnInitializedAsync()
@@ -438,7 +439,7 @@
                 var solarActual = solarActualData.ContainsKey(hour) ? solarActualData[hour] / 1000.0 : (double?)null;
                 var houseActual = houseActualData.ContainsKey(hour) ? houseActualData[hour] / 1000.0 : (double?)null;
 
-                var dateTime = new DateTime(date.Year, date.Month, date.Day, hour, 0, 0);
+                var dateTime = DateTime.SpecifyKind(new DateTime(date.Year, date.Month, date.Day, hour, 0, 0), DateTimeKind.Local);
                 var currentDate = DateTimeProvider.Now();
                 var batterySoc = (batterySocData.ContainsKey(hour) && (currentDate > dateTime)) ? batterySocData[hour] : (decimal?)null;
 
