@@ -47,105 +47,11 @@
                 <div class="d-flex flex-wrap align-items-center justify-content-start gap-3">
                     @if (_dataLoaded)
                     {
-                        <!-- Solar Values -->
-                        @if (_isSolarPredictionEnabled && SolarPredictionData != null)
+                        @foreach (var item in GetLegendItems())
                         {
-                            <MudTooltip Text="@(GetRelevantSolarPredictionText())"
-                                        RootClass="@(string.Empty)"
-                                        Placement="Placement.Left"
-                                        Arrow="true">
-                                <div class="d-flex align-items-center gap-1">
-                                    <div style="width: 12px; height: 12px; background-color: @Constants.SolarPowerPredictionColor; border-radius: 2px;"></div>
-                                    <span class="text-nowrap">@($"{GetRelevantSolarPrediction():F1}") kWh</span>
-                                </div>
-                            </MudTooltip>
-                        }
-                        @if (SolarActualData != null)
-                        {
-                            <MudTooltip Text="Solar Actual"
-                                        RootClass="@(string.Empty)"
-                                        Placement="Placement.Left"
-                                        Arrow="true">
-                                <div class="d-flex align-items-center gap-1">
-                                    <div style="width: 12px; height: 12px; background-color: @Constants.SolarPowerColor; border-radius: 2px;"></div>
-                                    <span class="text-nowrap">@($"{SolarActualData.Sum(v => v.Value ?? 0):F1}") kWh</span>
-                                </div>
-                            </MudTooltip>
-                        }
-                        <!-- House Values -->
-                        @if (HousePredictionData != null)
-                        {
-                            <MudTooltip Text="House Prediction"
-                                        RootClass="@(string.Empty)"
-                                        Placement="Placement.Left"
-                                        Arrow="true">
-                                <div class="d-flex align-items-center gap-1">
-                                    <div style="width: 12px; height: 12px; background-color: @Constants.HomeConsumptionPredictionColor; border-radius: 2px;"></div>
-                                    <span class="text-nowrap">@($"{HousePredictionData.Sum(v => v.Value ?? 0):F1}") kWh</span>
-                                </div>
-                            </MudTooltip>
-                        }
-                        @if (HouseActualData != null)
-                        {
-                            <MudTooltip Text="House Actual"
-                                        RootClass="@(string.Empty)"
-                                        Placement="Placement.Left"
-                                        Arrow="true">
-                                <div class="d-flex align-items-center gap-1">
-                                    <div style="width: 12px; height: 12px; background-color: @Constants.HomeConsumptionChartColor; border-radius: 2px;"></div>
-                                    <span class="text-nowrap">@($"{HouseActualData.Sum(v => v.Value ?? 0):F1}") kWh</span>
-                                </div>
-                            </MudTooltip>
-                        }
-                        <!-- Battery Values -->
-                        @if (BatteryChargingData != null && BatteryChargingData.Sum(v => v.Value ?? 0) > 0)
-                        {
-                            <MudTooltip Text="Battery Charged"
-                                        RootClass="@(string.Empty)"
-                                        Placement="Placement.Left"
-                                        Arrow="true">
-                                <div class="d-flex align-items-center gap-1">
-                                    <div style="width: 12px; height: 12px; background-color: @Constants.BatteryColor; border-radius: 2px;"></div>
-                                    <span class="text-nowrap">@($"{BatteryChargingData.Sum(v => v.Value ?? 0):F1}") kWh</span>
-                                </div>
-                            </MudTooltip>
-                        }
-                        @if (BatteryDischargingData != null && BatteryDischargingData.Sum(v => v.Value ?? 0) > 0)
-                        {
-                            <MudTooltip Text="Battery Discharged"
-                                        RootClass="@(string.Empty)"
-                                        Placement="Placement.Left"
-                                        Arrow="true">
-                                <div class="d-flex align-items-center gap-1">
-                                    <div style="width: 12px; height: 12px; background-color: @Constants.BatteryColor; border-radius: 2px;"></div>
-                                    <span class="text-nowrap">@($"{BatteryDischargingData.Sum(v => v.Value ?? 0):F1}") kWh</span>
-                                </div>
-                            </MudTooltip>
-                        }
-                        <!-- Grid Values -->
-                        @if (PowerFromGridData != null && PowerFromGridData.Sum(v => v.Value ?? 0) > 0)
-                        {
-                            <MudTooltip Text="From Grid"
-                                        RootClass="@(string.Empty)"
-                                        Placement="Placement.Left"
-                                        Arrow="true">
-                                <div class="d-flex align-items-center gap-1">
-                                    <div style="width: 12px; height: 12px; background-color: @Constants.GridColor; border-radius: 2px;"></div>
-                                    <span class="text-nowrap">@($"{PowerFromGridData.Sum(v => v.Value ?? 0):F1}") kWh</span>
-                                </div>
-                            </MudTooltip>
-                        }
-                        @if (PowerToGridData != null && PowerToGridData.Sum(v => v.Value ?? 0) > 0)
-                        {
-                            <MudTooltip Text="To Grid"
-                                        RootClass="@(string.Empty)"
-                                        Placement="Placement.Left"
-                                        Arrow="true">
-                                <div class="d-flex align-items-center gap-1">
-                                    <div style="width: 12px; height: 12px; background-color: @Constants.GridColor; border-radius: 2px;"></div>
-                                    <span class="text-nowrap">@($"{PowerToGridData.Sum(v => v.Value ?? 0):F1}") kWh</span>
-                                </div>
-                            </MudTooltip>
+                            <LegendItemComponent TooltipText="@item.TooltipText"
+                                                 Color="@item.Color"
+                                                 Value="@item.Value" />
                         }
                     }
                     else
@@ -395,6 +301,120 @@
             await ChartWidthCalculator.InitAsync();
         }
         await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private class LegendItemData
+    {
+        public string TooltipText { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+        public decimal Value { get; set; }
+    }
+
+    private List<LegendItemData> GetLegendItems()
+    {
+        var items = new List<LegendItemData>();
+
+        // Solar Values
+        if (_isSolarPredictionEnabled && SolarPredictionData != null)
+        {
+            items.Add(new LegendItemData
+            {
+                TooltipText = GetRelevantSolarPredictionText(),
+                Color = Constants.SolarPowerPredictionColor,
+                Value = GetRelevantSolarPrediction(),
+            });
+        }
+
+        if (SolarActualData != null)
+        {
+            items.Add(new LegendItemData
+            {
+                TooltipText = "Solar Actual",
+                Color = Constants.SolarPowerColor,
+                Value = SolarActualData.Sum(v => v.Value ?? 0),
+            });
+        }
+
+        // House Values
+        if (HousePredictionData != null)
+        {
+            items.Add(new LegendItemData
+            {
+                TooltipText = "House Prediction",
+                Color = Constants.HomeConsumptionPredictionColor,
+                Value = HousePredictionData.Sum(v => v.Value ?? 0),
+            });
+        }
+
+        if (HouseActualData != null)
+        {
+            items.Add(new LegendItemData
+            {
+                TooltipText = "House Actual",
+                Color = Constants.HomeConsumptionChartColor,
+                Value = HouseActualData.Sum(v => v.Value ?? 0),
+            });
+        }
+
+        // Battery Values
+        if (BatteryChargingData != null)
+        {
+            var chargingValue = BatteryChargingData.Sum(v => v.Value ?? 0);
+            if (chargingValue > 0)
+            {
+                items.Add(new LegendItemData
+                {
+                    TooltipText = "Battery Charged",
+                    Color = Constants.BatteryColor,
+                    Value = chargingValue,
+                });
+            }
+        }
+
+        if (BatteryDischargingData != null)
+        {
+            var dischargingValue = BatteryDischargingData.Sum(v => v.Value ?? 0);
+            if (dischargingValue > 0)
+            {
+                items.Add(new LegendItemData
+                {
+                    TooltipText = "Battery Discharged",
+                    Color = Constants.BatteryColor,
+                    Value = dischargingValue,
+                });
+            }
+        }
+
+        // Grid Values
+        if (PowerFromGridData != null)
+        {
+            var fromGridValue = PowerFromGridData.Sum(v => v.Value ?? 0);
+            if (fromGridValue > 0)
+            {
+                items.Add(new LegendItemData
+                {
+                    TooltipText = "From Grid",
+                    Color = Constants.GridColor,
+                    Value = fromGridValue,
+                });
+            }
+        }
+
+        if (PowerToGridData != null)
+        {
+            var toGridValue = PowerToGridData.Sum(v => v.Value ?? 0);
+            if (toGridValue > 0)
+            {
+                items.Add(new LegendItemData
+                {
+                    TooltipText = "To Grid",
+                    Color = Constants.GridColor,
+                    Value = toGridValue,
+                });
+            }
+        }
+
+        return items;
     }
 
     private async Task RefreshData(DateOnly date)
