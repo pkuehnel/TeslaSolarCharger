@@ -5,9 +5,9 @@ namespace TeslaSolarCharger.Client.Helper;
 
 public class ApexChartHelper : IApexChartHelper
 {
-    public ApexChartOptions<T> GetDefaultChartOptions<T>() where T : class
+    public ApexChartOptions<T> GetDefaultChartOptions<T>(bool showLegend) where T : class
     {
-        return new ApexChartOptions<T>
+        var options = new ApexChartOptions<T>
         {
             Chart = new Chart
             {
@@ -34,14 +34,25 @@ public class ApexChartHelper : IApexChartHelper
                 Size = 5,
             },
             Stroke = new Stroke { Curve = Curve.Smooth },
-            Legend = new Legend
+        };
+        if (showLegend)
+        {
+            options.Legend = new Legend
             {
                 Position = LegendPosition.Bottom,
                 HorizontalAlign = Align.Center,
                 ShowForNullSeries = false,
                 ClusterGroupedSeries = false,
                 Floating = false,
-            },
-        };
+            };
+        }
+        else
+        {
+            options.Legend = new Legend
+            {
+                Show = false,
+            };
+        }
+        return options;
     }
 }

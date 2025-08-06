@@ -58,7 +58,7 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<string, decimal>>();
+        var options = ApexChartHelper.GetDefaultChartOptions<DtoChartValue<string, decimal>>(true);
         options.Yaxis =
         [
             new YAxis()
