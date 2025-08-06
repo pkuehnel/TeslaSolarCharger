@@ -32,7 +32,7 @@ public class ChangeTrackingService : IChangeTrackingService
         where T : class
     {
         _logger.LogTrace("{method}<{type}>({dataType}, {entityId}, {@currentState})", nameof(DetectChanges), typeof(T), dataType, entityId, currentState);
-        var key = $"{dataType}:{entityId ?? string.Empty}";
+        var key = GetKey(dataType, entityId);
         var changedProperties = new Dictionary<string, object?>();
 
         if (_previousStates.TryGetValue(key, out var previousState) && previousState is T typedPreviousState)
@@ -81,9 +81,12 @@ public class ChangeTrackingService : IChangeTrackingService
         return null;
     }
 
-    public void ClearState(string dataType, string entityId)
+    private string GetKey(string dataType, string? entityId)
     {
-        var key = $"{dataType}:{entityId}";
-        _previousStates.Remove(key, out _);
+        if(string.IsNullOrEmpty(entityId))
+        {
+            return dataType;
+        }
+        return $"{dataType}:{entityId}";
     }
 }

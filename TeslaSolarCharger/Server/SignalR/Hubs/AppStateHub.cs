@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Newtonsoft.Json;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace TeslaSolarCharger.Server.SignalR.Hubs;
 
@@ -33,10 +35,11 @@ public class AppStateHub : Hub<IAppStateClient>
     {
         // Send current state for this specific data type
         var currentState = await _stateSnapshotService.GetCurrentStateAsync(dataType, entityId);
-        if (!string.IsNullOrEmpty(currentState))
+        var currentStateJson = JsonSerializer.Serialize(currentState);
+        if (!string.IsNullOrEmpty(currentStateJson))
         {
             var key = _entityKeyGenerationHelper.GetDataKey(dataType, entityId);
-            await Clients.Caller.ReceiveInitialState(key, currentState);
+            await Clients.Caller.ReceiveInitialState(key, currentStateJson);
         }
     }
 

@@ -2,6 +2,6 @@
 
 public interface IStateSnapshotService
 {
-    Task<Dictionary<string, string>> GetAllCurrentStatesAsync();
-    Task<string> GetCurrentStateAsync(string dataType, string entityId);
+    Task<Dictionary<string, object?>> GetAllCurrentStatesAsync();
+    Task<object?> GetCurrentStateAsync(string dataType, string entityId);
 }
