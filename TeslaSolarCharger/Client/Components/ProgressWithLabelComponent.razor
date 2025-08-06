@@ -38,10 +38,10 @@
 
     private string GetWrappingDivStyle()
     {
-        var value = $"position: relative; margin-top: calc({LabelOffset} + 1em);";
+        var value = $"position: relative; margin-top: calc({LabelOffset} + 1.5em);";
         if (Buffer)
         {
-            value += $" margin-bottom: calc({BufferLabelOffset} + 1em);";
+            value += $" margin-bottom: calc({BufferLabelOffset} + 1.5em);";
         }
         return value;
     }
