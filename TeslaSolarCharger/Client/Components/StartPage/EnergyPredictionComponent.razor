@@ -62,7 +62,7 @@
                         }
                         @if (SolarActualData != null)
                         {
-                            <MudTooltip Text="Solar"
+                            <MudTooltip Text="Solar Actual"
                                         RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
@@ -75,7 +75,7 @@
                         <!-- House Values -->
                         @if (HousePredictionData != null)
                         {
-                            <MudTooltip Text="House Pred"
+                            <MudTooltip Text="House Prediction"
                                         RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
@@ -87,7 +87,7 @@
                         }
                         @if (HouseActualData != null)
                         {
-                            <MudTooltip Text="House"
+                            <MudTooltip Text="House Actual"
                                         RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
@@ -530,10 +530,10 @@
 
     private string GetRelevantSolarPredictionText()
     {
-        var text = "Solar Pred.";
+        var text = "Solar Prediction";
         if (SelectedDate == TimeProvider.GetLocalNow().Date)
         {
-            text += " f. now";
+            text += " from now";
         }
         text += ":";
         return text;
