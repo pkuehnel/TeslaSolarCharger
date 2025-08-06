@@ -51,7 +51,7 @@
                         @if (_isSolarPredictionEnabled && SolarPredictionData != null)
                         {
                             <MudTooltip Text="@(GetRelevantSolarPredictionText())"
-                                        RootClass="mt-1 ml-1"
+                                        RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
                                 <div class="d-flex align-items-center gap-1">
@@ -63,7 +63,7 @@
                         @if (SolarActualData != null)
                         {
                             <MudTooltip Text="Solar"
-                                        RootClass="mt-1 ml-1"
+                                        RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
                                 <div class="d-flex align-items-center gap-1">
@@ -76,7 +76,7 @@
                         @if (HousePredictionData != null)
                         {
                             <MudTooltip Text="House Pred"
-                                        RootClass="mt-1 ml-1"
+                                        RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
                                 <div class="d-flex align-items-center gap-1">
@@ -88,7 +88,7 @@
                         @if (HouseActualData != null)
                         {
                             <MudTooltip Text="House"
-                                        RootClass="mt-1 ml-1"
+                                        RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
                                 <div class="d-flex align-items-center gap-1">
@@ -101,7 +101,7 @@
                         @if (BatteryChargingData != null && BatteryChargingData.Sum(v => v.Value ?? 0) > 0)
                         {
                             <MudTooltip Text="Battery Charged"
-                                        RootClass="mt-1 ml-1"
+                                        RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
                                 <div class="d-flex align-items-center gap-1">
@@ -113,7 +113,7 @@
                         @if (BatteryDischargingData != null && BatteryDischargingData.Sum(v => v.Value ?? 0) > 0)
                         {
                             <MudTooltip Text="Battery Discharged"
-                                        RootClass="mt-1 ml-1"
+                                        RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
                                 <div class="d-flex align-items-center gap-1">
@@ -126,7 +126,7 @@
                         @if (PowerFromGridData != null && PowerFromGridData.Sum(v => v.Value ?? 0) > 0)
                         {
                             <MudTooltip Text="From Grid"
-                                        RootClass="mt-1 ml-1"
+                                        RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
                                 <div class="d-flex align-items-center gap-1">
@@ -138,7 +138,7 @@
                         @if (PowerToGridData != null && PowerToGridData.Sum(v => v.Value ?? 0) > 0)
                         {
                             <MudTooltip Text="To Grid"
-                                        RootClass="mt-1 ml-1"
+                                        RootClass="@(string.Empty)"
                                         Placement="Placement.Left"
                                         Arrow="true">
                                 <div class="d-flex align-items-center gap-1">
