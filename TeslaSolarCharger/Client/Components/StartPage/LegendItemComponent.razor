@@ -2,14 +2,14 @@
             RootClass="@(string.Empty)"
             Placement="Placement.Left"
             Arrow="true">
-    <div class="d-flex align-items-center gap-1" @onclick:stopPropagation="true" @ontouchstart:stopPropagation="true">
-        <div style="width: 12px; height: 12px; background-color: @Color; border-radius: 2px;"></div>
+    <div class="d-flex align-items-center" @onclick:stopPropagation="true" @ontouchstart:stopPropagation="true">
+        <MudIcon Icon="@Icon" Style="@($"color: {Color};")" />
         <span class="text-nowrap">@($"{Value:F1}") kWh</span>
     </div>
 </MudTooltip>
-
 @code {
     [Parameter] public string TooltipText { get; set; } = string.Empty;
     [Parameter] public string Color { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = string.Empty;
     [Parameter] public decimal Value { get; set; }
 }
