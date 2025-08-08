@@ -125,7 +125,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryColor"
+                                         Color="@Constants.BatteryDischargingColor"
                                          Group="consumption-stack" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -134,7 +134,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.GridColor"
+                                         Color="@Constants.GridImportColor"
                                          Group="consumption-stack" />
 
                         @if (SolarPredictionData != default)
@@ -163,7 +163,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryColor"
+                                         Color="@Constants.BatteryChargingColor"
                                          Group="production-stack" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -172,7 +172,7 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.GridColor"
+                                         Color="@Constants.GridExportColor"
                                          Group="production-stack" />
 
 
@@ -556,7 +556,6 @@
         {
             text += " from now";
         }
-        text += ":";
         return text;
     }
 
