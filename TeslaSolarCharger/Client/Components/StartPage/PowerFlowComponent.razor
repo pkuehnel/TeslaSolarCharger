@@ -137,7 +137,7 @@ else
             {
                 <foreignObject x="@(InverterLocation.X - CircleContentLocationDifference)" y="@(InverterLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                     <div style="text-align: center;">
-                        <MudIcon Icon="@Icons.Material.Filled.WbSunny" Size="Size.Large" />
+                        <MudIcon Icon="@Constants.SolarPowerIcon" Size="Size.Large" />
                         <div>@(_pvValues.InverterPower?.ToString("N0")) W</div>
                     </div>
                 </foreignObject>
@@ -155,7 +155,7 @@ else
             {
                 <foreignObject x="@(HomeLocation.X - CircleContentLocationDifference)" y="@(HomeLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                     <div style="text-align: center;">
-                        <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Large" />
+                        <MudIcon Icon="@Constants.HomePowerIcon" Size="Size.Large" />
                         <div>@CalculateHomePower()?.ToString("N0") W</div>
                     </div>
                 </foreignObject>
@@ -164,7 +164,7 @@ else
             {
                 <foreignObject x="@(EvChargerLocation.X - CircleContentLocationDifference)" y="@(EvChargerLocation.Y - CircleContentLocationDifference)" width="70" height="80">
                     <div style="text-align: center;">
-                        <MudIcon Icon="@Icons.Material.Filled.EvStation" Size="Size.Large" />
+                        <MudIcon Icon="@Constants.EvPowerIcon" Size="Size.Large" />
                         <div>@_pvValues.CarCombinedChargingPowerAtHome?.ToString("N0") W</div>
                     </div>
                 </foreignObject>
