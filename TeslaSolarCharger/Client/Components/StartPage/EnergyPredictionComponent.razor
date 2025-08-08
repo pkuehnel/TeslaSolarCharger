@@ -93,6 +93,32 @@
                                FormatYAxisLabel="@(arg => arg.ToString("F1"))"
                                @ref="_consumptionChart">
 
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="BatteryChargingData"
+                                         Name="@($"Battery Charging ({(BatteryChargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.BatteryChargingColor"
+                                         Group="production-stack" />
+                        
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="BatterySoc"
+                                         Name="@("Home Battery SoC %")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.BatterySocColor"/>
+                        
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="BatteryDischargingData"
+                                         Name="@($"Battery Discharge ({(BatteryDischargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.BatteryDischargingColor"
+                                         Group="consumption-stack"/>
+
                         <!-- House Prediction Line -->
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="HousePredictionData"
@@ -100,15 +126,8 @@
                                          SeriesType="SeriesType.Line"
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
-                                         Color="@Constants.HomeConsumptionPredictionColor" />
+                                         Color="@Constants.HomeConsumptionPredictionColor"/>
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
-                                         Items="BatterySoc"
-                                         Name="@("Home Battery SoC %")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => e.Value)"
-                                         Color="@Constants.BatterySocColor" />
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="HouseActualData"
@@ -117,25 +136,8 @@
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
                                          Color="@Constants.HomeConsumptionChartColor"
-                                         Group="consumption-stack" />
+                                         Group="consumption-stack"/>
 
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
-                                         Items="BatteryDischargingData"
-                                         Name="@($"Battery Discharge ({(BatteryDischargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryDischargingColor"
-                                         Group="consumption-stack" />
-
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
-                                         Items="PowerFromGridData"
-                                         Name="@($"Grid Import ({(PowerFromGridData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => e.Value)"
-                                         Color="@Constants.GridImportColor"
-                                         Group="consumption-stack" />
 
                         @if (SolarPredictionData != default)
                         {
@@ -145,7 +147,7 @@
                                              SeriesType="SeriesType.Line"
                                              XValue="@(e => e.Key)"
                                              YValue="@(e => e.Value)"
-                                             Color="@Constants.SolarPowerPredictionColor" />
+                                             Color="@Constants.SolarPowerPredictionColor"/>
                         }
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
@@ -155,16 +157,7 @@
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
                                          Color="@Constants.SolarPowerColor"
-                                         Group="production-stack" />
-
-                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
-                                         Items="BatteryChargingData"
-                                         Name="@($"Battery Charging ({(BatteryChargingData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
-                                         SeriesType="SeriesType.Line"
-                                         XValue="@(e => e.Key)"
-                                         YValue="@(e => e.Value)"
-                                         Color="@Constants.BatteryChargingColor"
-                                         Group="production-stack" />
+                                         Group="production-stack"/>
 
                         <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
                                          Items="PowerToGridData"
@@ -173,7 +166,16 @@
                                          XValue="@(e => e.Key)"
                                          YValue="@(e => e.Value)"
                                          Color="@Constants.GridExportColor"
-                                         Group="production-stack" />
+                                         Group="production-stack"/>
+                        
+                        <ApexPointSeries TItem="DtoChartValue<int, decimal?>"
+                                         Items="PowerFromGridData"
+                                         Name="@($"Grid Import ({(PowerFromGridData.Sum(v => v.Value ?? 0)).ToString("F1")} kWh)")"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Key)"
+                                         YValue="@(e => e.Value)"
+                                         Color="@Constants.GridImportColor"
+                                         Group="consumption-stack"/>
 
 
                     </ApexChart>
@@ -386,21 +388,7 @@
                 });
             }
         }
-        // Grid Values
-        if (PowerFromGridData != null)
-        {
-            var fromGridValue = PowerFromGridData.Sum(v => v.Value ?? 0);
-            if (fromGridValue > 0)
-            {
-                items.Add(new LegendItemData
-                {
-                    TooltipText = "From Grid",
-                    Color = Constants.GridImportColor,
-                    Icon = Constants.GridPoleIcon,
-                    Value = fromGridValue,
-                });
-            }
-        }
+
         if (PowerToGridData != null)
         {
             var toGridValue = PowerToGridData.Sum(v => v.Value ?? 0);
@@ -412,6 +400,21 @@
                     Color = Constants.GridExportColor,
                     Icon = Constants.GridPoleIcon,
                     Value = toGridValue,
+                });
+            }
+        }
+
+        if (PowerFromGridData != null)
+        {
+            var fromGridValue = PowerFromGridData.Sum(v => v.Value ?? 0);
+            if (fromGridValue > 0)
+            {
+                items.Add(new LegendItemData
+                {
+                    TooltipText = "From Grid",
+                    Color = Constants.GridImportColor,
+                    Icon = Constants.GridPoleIcon,
+                    Value = fromGridValue,
                 });
             }
         }
