@@ -69,4 +69,12 @@ public interface IConstants
     string HomeConsumptionPredictionColor { get; }
     string BatterySocColor { get; }
     string HomeConsumptionChartColor { get; }
+    string GridExportColor { get; }
+    string GridImportColor { get; }
+    string BatteryChargingColor { get; }
+    string BatteryDischargingColor { get; }
+    string SolarPowerIcon { get; }
+    string HomeBatteryIcon { get; }
+    string HomePowerIcon { get; }
+    string EvPowerIcon { get; }
 }

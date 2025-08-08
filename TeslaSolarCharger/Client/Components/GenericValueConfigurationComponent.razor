@@ -64,7 +64,7 @@
                                     @switch (restValueResult.UsedFor)
                                     {
                                         case ValueUsage.InverterPower:
-                                            <MudIcon Icon="@Icons.Material.Filled.SolarPower"></MudIcon>
+                                            <MudIcon Icon="@Constants.SolarPowerIcon"></MudIcon>
                                             suffixString = "W";
                                             break;
                                         case ValueUsage.GridPower:
@@ -72,7 +72,7 @@
                                             suffixString = "W";
                                             break;
                                         case ValueUsage.HomeBatteryPower:
-                                            <MudIcon Icon="@Icons.Material.Filled.BatteryChargingFull"></MudIcon>
+                                            <MudIcon Icon="@Constants.HomeBatteryIcon"></MudIcon>
                                             suffixString = "W";
                                             break;
                                         case ValueUsage.HomeBatterySoc:
