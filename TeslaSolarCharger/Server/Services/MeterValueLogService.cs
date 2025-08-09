@@ -128,7 +128,6 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         }
     }
 
-    //ToDo: write unit tests for this method
     internal void AddHomeBatteryAndGridPowers(DtoPvValues pvValues, MeterValue? fromGridValue, MeterValue? toGridValue,
         MeterValue? homeBatteryDischargingValue, MeterValue? homeBatteryChargingValue, MeterValue? houseConsumptionValue)
     {

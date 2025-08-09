@@ -102,12 +102,25 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
                 $"The timestamp of the meter value {meterValue.Id} is not newer than the last meterValue {latestKnownValue.Id}");
         }
 
-        var power = meterValue.MeasuredPower;
-        var energySinceLastValue = (int)(power * elapsedSeconds);
-        meterValue.EstimatedEnergyWs = latestKnownValue.EstimatedEnergyWs + energySinceLastValue;
+        meterValue.EstimatedEnergyWs =
+            CalculateEstimatedEnergy(latestKnownValue.EstimatedEnergyWs, meterValue.MeasuredPower, elapsedSeconds);
+        meterValue.EstimatedGridEnergyWs =
+            CalculateEstimatedEnergy(latestKnownValue.EstimatedGridEnergyWs, meterValue.MeasuredGridPower, elapsedSeconds);
+        meterValue.EstimatedHomeBatteryEnergyWs =
+            CalculateEstimatedEnergy(latestKnownValue.EstimatedHomeBatteryEnergyWs, meterValue.MeasuredHomeBatteryPower, elapsedSeconds);
 
         latestKnownValue = meterValue;
 
         return latestKnownValue;
+    }
+
+    private long? CalculateEstimatedEnergy(long? lastKnownEstimatedEnergy, int measuredPower, double elapsedSeconds)
+    {
+        if (lastKnownEstimatedEnergy == default)
+        {
+            return default;
+        }
+        var energySinceLastValue = (int)(measuredPower * elapsedSeconds);
+        return lastKnownEstimatedEnergy.Value + energySinceLastValue;
     }
 }
