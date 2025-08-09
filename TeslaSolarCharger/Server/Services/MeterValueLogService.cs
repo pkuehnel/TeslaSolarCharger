@@ -35,71 +35,78 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             logger.LogWarning("Pv Values are too old, do not log");
             return;
         }
+        MeterValue? inverterValue = null;
+        MeterValue? toGridValue = null;
+        MeterValue? fromGridValue = null;
+        MeterValue? homeBatteryChargingValue = null;
+        MeterValue? homeBatteryDischargingValue = null;
+        MeterValue? houseConsumptionValue = null;
         if (pvValues.InverterPower != default)
         {
-            var meterValue = new MeterValue
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.SolarGeneration,
-                MeasuredPower = pvValues.InverterPower,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(meterValue);
+            inverterValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.SolarGeneration,
+                    pvValues.InverterPower.Value);
         }
         var homeBatteryPower = pvValues.HomeBatteryPower ?? 0;
         var chargingPower = pvValues.CarCombinedChargingPowerAtHome ?? 0;
         var homePower = pvValues.InverterPower - pvValues.GridPower - homeBatteryPower - chargingPower;
         if (homePower != default)
         {
-            var meterValue = new MeterValue
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.HouseConsumption,
-                MeasuredPower = homePower,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(meterValue);
+            houseConsumptionValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.HouseConsumption,
+                    homePower.Value);
         }
         if (pvValues.HomeBatteryPower != default)
         {
             var isDischarging = pvValues.HomeBatteryPower < 0;
-            var chargingValue = new MeterValue
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.HomeBatteryCharging,
-                MeasuredPower = isDischarging ? 0 : pvValues.HomeBatteryPower.Value,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(chargingValue);
-            var dischargingValue = new MeterValue
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.HomeBatteryDischarging,
-                MeasuredPower = isDischarging ? (-pvValues.HomeBatteryPower.Value) : 0,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(dischargingValue);
+            homeBatteryChargingValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.HomeBatteryCharging,
+                    isDischarging ? 0 : pvValues.HomeBatteryPower.Value);
+            homeBatteryDischargingValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.HomeBatteryDischarging,
+                    isDischarging ? (-pvValues.HomeBatteryPower.Value) : 0);
         }
 
         if (pvValues.GridPower != default)
         {
             var isPowerComingFromGrid = pvValues.GridPower < 0;
-            var powerToGrid = new MeterValue()
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.PowerToGrid,
-                MeasuredPower = isPowerComingFromGrid ? 0 : pvValues.GridPower.Value,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(powerToGrid);
-            var powerFromGrid = new MeterValue()
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.PowerFromGrid,
-                MeasuredPower = isPowerComingFromGrid ? (-pvValues.GridPower.Value) : 0,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(powerFromGrid);
+            toGridValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.PowerToGrid,
+                    isPowerComingFromGrid ? 0 : pvValues.GridPower.Value);
+            fromGridValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.PowerFromGrid,
+                    isPowerComingFromGrid ? (-pvValues.GridPower.Value) : 0);
+        }
+
+        if (inverterValue != null)
+        {
+            databaseValueBufferService.Add(inverterValue);
+        }
+        if (toGridValue != null)
+        {
+            databaseValueBufferService.Add(toGridValue);
+        }
+        if (fromGridValue != null)
+        {
+            databaseValueBufferService.Add(fromGridValue);
+        }
+        if (homeBatteryChargingValue != null)
+        {
+            databaseValueBufferService.Add(homeBatteryChargingValue);
+        }
+        if (homeBatteryDischargingValue != null)
+        {
+            databaseValueBufferService.Add(homeBatteryDischargingValue);
+        }
+        if (houseConsumptionValue != null)
+        {
+            databaseValueBufferService.Add(houseConsumptionValue);
         }
 
         if (pvValues.HomeBatterySoc != default
