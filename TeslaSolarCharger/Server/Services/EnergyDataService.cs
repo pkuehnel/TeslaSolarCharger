@@ -334,54 +334,44 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var lastSlicedTimeStamp = slicedTimeStamps.Last();
         timeStampsToGetMeterValuesFrom.Add(lastSlicedTimeStamp + sliceLength);
 
-        var queryTasks = timeStampsToGetMeterValuesFrom.Select(async dateTimeOffset =>
+        var orderedResults = new Dictionary<DateTimeOffset, MeterValue?>();
+
+        foreach (var dateTimeOffset in timeStampsToGetMeterValuesFrom)
         {
-            // wait our turn
-            await throttler.WaitAsync(cancellationToken);
-            try
+            using var scope = serviceProvider.CreateScope();
+            var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+            var minimumAge = dateTimeOffset - sliceLength;
+            var (cached, meterValue) = GetCachedMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength);
+
+            if (!cached && currentDate > dateTimeOffset)
             {
-                using var scope = serviceProvider.CreateScope();
-                var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
-                var minimumAge = dateTimeOffset - sliceLength;
+                logger.LogTrace("No cached value found for {meterValueKind} at {dateTimeOffset}, querying database.", meterValueKind, dateTimeOffset);
+                meterValue = await scopedContext.MeterValues
+                    .Where(m => m.MeterValueKind == meterValueKind
+                                && m.CarId == carId
+                                && m.Timestamp <= dateTimeOffset
+                                && m.Timestamp > minimumAge)
+                    .OrderByDescending(m => m.Id)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                var (cached, meterValue) = GetCachedMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength);
-                if (!cached && currentDate > dateTimeOffset)
+                // Cache the result regardless of whether it's null or not
+                if (meterValue != null && dateTimeOffset < GetMaxCacheDate(sliceLength))
                 {
-                    logger.LogTrace("No cached value found for {meterValueKind} at {dateTimeOffset}, querying database.", meterValueKind, dateTimeOffset);
-                    meterValue = await scopedContext.MeterValues
-                        .Where(m => m.MeterValueKind == meterValueKind
-                                    && m.CarId == carId
-                                    && m.Timestamp <= dateTimeOffset
-                                    && m.Timestamp > minimumAge)
-                        .OrderByDescending(m => m.Id)
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(cancellationToken);
-
-                    // Cache the result regardless of whether it's null or not
-                    if (meterValue != null && dateTimeOffset < GetMaxCacheDate(sliceLength))
-                    {
-                        CacheMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength, meterValue);
-                    }
-                    else if (dateTimeOffset < GetMaxCacheDate(sliceLength))
-                    {
-                        // Cache null to indicate confirmed absence (no value in DB)
-                        CacheMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength, null);
-                    }
-
-                    // Small delay to not slam the DB in bursts
-                    await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
+                    CacheMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength, meterValue);
+                }
+                else if (dateTimeOffset < GetMaxCacheDate(sliceLength))
+                {
+                    // Cache null to indicate confirmed absence (no value in DB)
+                    CacheMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength, null);
                 }
 
-                return new { Timestamp = dateTimeOffset, MeterValue = meterValue };
+                // Small delay to not slam the DB in bursts
+                await Task.Delay(TimeSpan.FromMilliseconds(5), cancellationToken);
             }
-            finally
-            {
-                throttler.Release();
-            }
-        });
 
-        var results = await Task.WhenAll(queryTasks);
-        var orderedResults = results.ToDictionary(result => result.Timestamp, result => result.MeterValue);
+            orderedResults[dateTimeOffset] = meterValue;
+        }
 
         foreach (var slicedTimeStamp in slicedTimeStamps)
         {
