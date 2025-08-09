@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250809103129_AddCarIdToMeterValues")]
+    partial class AddCarIdToMeterValues
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
@@ -557,19 +560,13 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<long?>("EstimatedEnergyWs")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long?>("EstimatedGridEnergyWs")
+                    b.Property<int?>("EstimatedPower")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long?>("EstimatedHomeBatteryEnergyWs")
+                    b.Property<long?>("MeasuredEnergyWs")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("MeasuredGridPower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MeasuredHomeBatteryPower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MeasuredPower")
+                    b.Property<int?>("MeasuredPower")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("MeterValueKind")
