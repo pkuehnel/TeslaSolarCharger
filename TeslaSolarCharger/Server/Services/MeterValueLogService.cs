@@ -5,6 +5,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -84,6 +85,9 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                     isPowerComingFromGrid ? (-pvValues.GridPower.Value) : 0);
         }
 
+        AddHomeBatteryAndGridPowers(fromGridValue, pvValues, homeBatteryDischargingValue, homeBatteryChargingValue, toGridValue, houseConsumptionValue);
+
+
         if (inverterValue != null)
         {
             databaseValueBufferService.Add(inverterValue);
@@ -121,6 +125,37 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             context.PvValueLogs.Add(pvValueLog);
             await context.SaveChangesAsync().ConfigureAwait(false);
             settings.LastLoggedHomeBatterySoc = pvValueLog.IntValue;
+        }
+    }
+
+    //ToDo: write unit tests for this method
+    private void AddHomeBatteryAndGridPowers(MeterValue? fromGridValue, DtoPvValues pvValues,
+        MeterValue? homeBatteryDischargingValue, MeterValue? homeBatteryChargingValue, MeterValue? toGridValue,
+        MeterValue? houseConsumptionValue)
+    {
+        var powerFromGrid = fromGridValue?.MeasuredGridPower ?? 0;
+        var carsChargingPower = (pvValues.CarCombinedChargingPowerAtHome ?? 0);
+        var relevantPowerFromGrid = Math.Max(0, powerFromGrid - carsChargingPower);
+        carsChargingPower = Math.Max(0, carsChargingPower - relevantPowerFromGrid);
+        var homeBatteryDischargingPower = homeBatteryDischargingValue?.MeasuredPower ?? 0;
+        var relevantHomeBatteryDischargingPower = Math.Max(0, homeBatteryDischargingPower - carsChargingPower);
+        if (relevantPowerFromGrid > 0 && (homeBatteryChargingValue?.MeasuredPower > 0))
+        {
+            homeBatteryChargingValue.MeasuredGridPower = Math.Min(homeBatteryChargingValue.MeasuredPower, relevantPowerFromGrid);
+            relevantPowerFromGrid -= homeBatteryChargingValue.MeasuredGridPower;
+        }
+        if (relevantHomeBatteryDischargingPower > 0 && (toGridValue?.MeasuredPower > 0))
+        {
+            toGridValue.MeasuredHomeBatteryPower = Math.Min(toGridValue.MeasuredPower, relevantHomeBatteryDischargingPower);
+            relevantHomeBatteryDischargingPower -= toGridValue.MeasuredHomeBatteryPower;
+        }
+        if (relevantPowerFromGrid > 0 && houseConsumptionValue != default)
+        {
+            houseConsumptionValue.MeasuredGridPower = relevantPowerFromGrid;
+        }
+        if (relevantHomeBatteryDischargingPower > 0 && houseConsumptionValue != default)
+        {
+            houseConsumptionValue.MeasuredHomeBatteryPower = relevantHomeBatteryDischargingPower;
         }
     }
 
