@@ -81,6 +81,9 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
                     EstimatedHomeBatteryEnergyWs = 0,
                     EstimatedGridEnergyWs = 0,
                 };
+
+            latestKnownValue.EstimatedGridEnergyWs ??= 0;
+            latestKnownValue.EstimatedHomeBatteryEnergyWs ??= 0;
         }
         else
         {
