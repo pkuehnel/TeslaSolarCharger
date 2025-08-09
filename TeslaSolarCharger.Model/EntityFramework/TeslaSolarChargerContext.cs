@@ -142,6 +142,8 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         var carEnumValue = (int)MeterValueKind.Car;
         modelBuilder.Entity<MeterValue>(entity =>
         {
+            entity.HasIndex(m => new { m.CarId, m.MeterValueKind, m.Timestamp });
+
             entity.Property(m => m.Timestamp)
                 .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 

@@ -174,6 +174,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     var settings = webApplication.Services.GetRequiredService<ISettings>();
     try
     {
+        //Wait five seconds to let endpoints come up, so startup page is displayed immediatly
+        await Task.Delay(5000);
         //Do nothing before these lines as database is restored or created here.
         var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
         baseConfigurationService.ProcessPendingRestore();

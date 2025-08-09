@@ -351,7 +351,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                                 && m.CarId == carId
                                 && m.Timestamp <= dateTimeOffset
                                 && m.Timestamp > minimumAge)
-                    .OrderByDescending(m => m.Id)
+                    .OrderByDescending(m => m.Timestamp)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(cancellationToken);
 
