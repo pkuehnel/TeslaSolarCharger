@@ -85,7 +85,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                     isPowerComingFromGrid ? (-pvValues.GridPower.Value) : 0);
         }
 
-        AddHomeBatteryAndGridPowers(fromGridValue, pvValues, homeBatteryDischargingValue, homeBatteryChargingValue, toGridValue, houseConsumptionValue);
+        AddHomeBatteryAndGridPowers(pvValues, fromGridValue, toGridValue, homeBatteryDischargingValue, homeBatteryChargingValue, houseConsumptionValue);
 
 
         if (inverterValue != null)
@@ -129,11 +129,10 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     }
 
     //ToDo: write unit tests for this method
-    private void AddHomeBatteryAndGridPowers(MeterValue? fromGridValue, DtoPvValues pvValues,
-        MeterValue? homeBatteryDischargingValue, MeterValue? homeBatteryChargingValue, MeterValue? toGridValue,
-        MeterValue? houseConsumptionValue)
+    internal void AddHomeBatteryAndGridPowers(DtoPvValues pvValues, MeterValue? fromGridValue, MeterValue? toGridValue,
+        MeterValue? homeBatteryDischargingValue, MeterValue? homeBatteryChargingValue, MeterValue? houseConsumptionValue)
     {
-        var powerFromGrid = fromGridValue?.MeasuredGridPower ?? 0;
+        var powerFromGrid = fromGridValue?.MeasuredPower ?? 0;
         var carsChargingPower = (pvValues.CarCombinedChargingPowerAtHome ?? 0);
         var relevantPowerFromGrid = Math.Max(0, powerFromGrid - carsChargingPower);
         carsChargingPower = Math.Max(0, carsChargingPower - relevantPowerFromGrid);

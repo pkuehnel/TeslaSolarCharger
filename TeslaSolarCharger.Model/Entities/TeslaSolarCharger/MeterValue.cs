@@ -4,9 +4,9 @@ namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 
 public class MeterValue
 {
-    public MeterValue(DateTimeOffset timeStamp, MeterValueKind meterValueKind, int measuredPower)
+    public MeterValue(DateTimeOffset timestamp, MeterValueKind meterValueKind, int measuredPower)
     {
-        Timestamp = timeStamp;
+        Timestamp = timestamp;
         MeterValueKind = meterValueKind;
         MeasuredPower = measuredPower;
     }
