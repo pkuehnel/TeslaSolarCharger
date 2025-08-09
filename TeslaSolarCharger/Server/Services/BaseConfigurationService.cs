@@ -55,16 +55,19 @@ public class BaseConfigurationService(
 
     public async Task<(Stream stream, string fileName)> DownloadBackupStream(string? backupZipDestinationDirectory)
     {
+        logger.LogTrace("{method}({backupZipDestinationDirectory})", nameof(DownloadBackupStream), backupZipDestinationDirectory);
         var destinationArchiveFileName = await CreateLocalBackupZipFile(string.Empty, backupZipDestinationDirectory, true).ConfigureAwait(false);
 
         var stream = new FileStream(destinationArchiveFileName, FileMode.Open, FileAccess.Read, FileShare.Read,
             bufferSize: 4096, useAsync: true);
-
+        logger.LogTrace("Starting filestream");
         return (stream, $"TSCBackup_{dateTimeProvider.DateTimeOffSetUtcNow().ToLocalTime().ToString("yy-MM-dd-HH-mm-ss")}.zip");
     }
 
     public async Task<string> CreateLocalBackupZipFile(string backupFileNamePrefix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup)
     {
+        logger.LogTrace("{method}({backupFileNamePrefix}, {backupZipDestinationDirectory}, {clearBackupDirectoryBeforeBackup})",
+            nameof(CreateLocalBackupZipFile), backupFileNamePrefix, backupZipDestinationDirectory, clearBackupDirectoryBeforeBackup);
         var restartNeeded = false;
         try
         {
@@ -72,6 +75,7 @@ public class BaseConfigurationService(
             var backupCopyDestinationDirectory = configurationWrapper.BackupCopyDestinationDirectory();
             CreateDirectory(backupCopyDestinationDirectory);
 
+            logger.LogTrace("Starting SQLite backup.");
             //Backup Sqlite database
             using (var source = new SqliteConnection(dbConnectionStringHelper.GetTeslaSolarChargerDbPath()))
             using (var destination = new SqliteConnection(string.Format($"Data Source={Path.Combine(backupCopyDestinationDirectory, configurationWrapper.GetSqliteFileNameWithoutPath())};Pooling=False")))
@@ -80,11 +84,11 @@ public class BaseConfigurationService(
                 destination.Open();
                 source.BackupDatabase(destination, "main", "main");
             }
-
+            logger.LogTrace("SQLite backup completed successfully.");
             //Backup config files
             var baseConfigFileFullName = configurationWrapper.BaseConfigFileFullName();
             File.Copy(baseConfigFileFullName, Path.Combine(backupCopyDestinationDirectory, Path.GetFileName(baseConfigFileFullName)), true);
-
+            logger.LogTrace("Base configuration file copied to backup directory: {fileName}", baseConfigFileFullName);
 
             var backupFileName = backupFileNamePrefix + constants.BackupZipBaseFileName ;
             var backupZipDirectory = backupZipDestinationDirectory ?? configurationWrapper.BackupZipDirectory();
@@ -94,7 +98,9 @@ public class BaseConfigurationService(
             }
             Directory.CreateDirectory(backupZipDirectory);
             var destinationArchiveFileName = Path.Combine(backupZipDirectory, backupFileName);
+            logger.LogTrace("Creating backup zip file: {destinationArchiveFileName}", destinationArchiveFileName);
             ZipFile.CreateFromDirectory(backupCopyDestinationDirectory, destinationArchiveFileName);
+            logger.LogTrace("Backup zip file created successfully: {destinationArchiveFileName}", destinationArchiveFileName);
             return destinationArchiveFileName;
         }
         catch (Exception ex)
