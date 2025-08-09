@@ -120,8 +120,9 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
     public async Task SaveBufferedMeterValuesToDatabase()
     {
         logger.LogTrace("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         var meterValues = databaseValueBufferService.DrainAll<MeterValue>();
-        var meterValueGroups = meterValues.GroupBy(m => m.MeterValueKind);
+        var meterValueGroups = meterValues.GroupBy(m => new {m.MeterValueKind, m.CarId,});
         foreach (var meterValueGroup in meterValueGroups)
         {
             var elements = meterValueGroup.OrderBy(m => m.Timestamp).ToList();
@@ -134,5 +135,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
 
         }
         await context.SaveChangesAsync().ConfigureAwait(false);
+        stopWatch.Stop();
+        logger.LogInformation("Saved {count} meter values to database in {elapsedMilliseconds} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
     }
 }

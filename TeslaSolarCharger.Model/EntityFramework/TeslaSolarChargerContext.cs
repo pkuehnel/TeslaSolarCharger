@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Model.EntityFramework;
@@ -138,9 +139,20 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             v => v == default ? default : DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeMilliseconds(v.Value).Date)
         );
 
-        modelBuilder.Entity<MeterValue>()
-            .Property(m => m.Timestamp)
-            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+        var carEnumValue = (int)MeterValueKind.Car;
+        modelBuilder.Entity<MeterValue>(entity =>
+        {
+            entity.Property(m => m.Timestamp)
+                .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_MeterValue_CarId_Conditional",
+                    $"(MeterValueKind = {carEnumValue} AND CarId IS NOT NULL) OR (MeterValueKind != {carEnumValue} AND CarId IS NULL)"
+                );
+            });
+        });
 
         modelBuilder.Entity<PvValueLog>()
             .Property(m => m.Timestamp)

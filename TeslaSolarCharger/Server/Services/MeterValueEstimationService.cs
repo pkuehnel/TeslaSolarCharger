@@ -67,7 +67,9 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
         if (latestKnownValue == default)
         {
             latestKnownValue = await context.MeterValues
-                .Where(v => v.MeterValueKind == meterValue.MeterValueKind && v.EstimatedEnergyWs != null)
+                .Where(v => v.MeterValueKind == meterValue.MeterValueKind
+                            && v.CarId == meterValue.CarId
+                            && v.EstimatedEnergyWs != null)
                 .OrderByDescending(v => v.Id)
                 .AsNoTracking()
                 .FirstOrDefaultAsync() ?? new MeterValue()
