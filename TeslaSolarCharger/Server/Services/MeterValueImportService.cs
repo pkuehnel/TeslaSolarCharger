@@ -42,25 +42,8 @@ public class MeterValueImportService : IMeterValueImportService
             .AsNoTracking()
             .ToListAsync();
 
-        var carIds = chargingProcesses
-            .Where(c => c.CarId != default)
-            .Select(c => c.CarId!.Value)
-            .ToHashSet();
-        var chargingConnectorIds = chargingProcesses
-            .Where(c => c.OcppChargingStationConnectorId != default)
-            .Select(c => c.OcppChargingStationConnectorId!.Value)
-            .ToHashSet();
         var latestCarMeterValues = new Dictionary<int, MeterValue>();
-        foreach (var carId in carIds)
-        {
-            latestCarMeterValues[carId] = GenerateDefaultMeterValue(carId, null);
-        }
         var latestChargingStationMeterValues = new Dictionary<int, MeterValue>();
-        foreach (var chargingConnectorId in chargingConnectorIds)
-        {
-            latestChargingStationMeterValues[chargingConnectorId] = GenerateDefaultMeterValue(null, chargingConnectorId);
-        }
-
         foreach (var chargingProcess in chargingProcesses)
         {
             using var scope = _serviceProvider.CreateScope();
@@ -77,39 +60,61 @@ public class MeterValueImportService : IMeterValueImportService
             chargingDetails = chargingDetails.OrderBy(cd => cd.TimeStamp).ToList();
             var carMeterValuesToSave = new List<MeterValue>();
             var chargingStationMeterValuesToSave = new List<MeterValue>();
+            var index = 0;
             foreach (var chargingDetail in chargingDetails)
             {
                 if (chargingProcess.CarId != default)
                 {
                     var meterValue = GenerateMeterValueFromChargingDetail(chargingDetail, MeterValueKind.Car);
+                    if (index == 0)
+                    {
+                        var dummyMeterValue = GenerateDefaultMeterValue(chargingProcess.CarId, null, meterValue.Timestamp);
+                        carMeterValuesToSave.Add(dummyMeterValue);
+                        meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(1);
+                    }
                     meterValue.CarId = chargingProcess.CarId;
                     carMeterValuesToSave.Add(meterValue);
+
+                    if ((index != 0) && (index == chargingDetails.Count - 1))
+                    {
+                        var dummyMeterValue = GenerateDefaultMeterValue(chargingProcess.CarId, null, meterValue.Timestamp);
+                        carMeterValuesToSave.Add(dummyMeterValue);
+                        meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(-1);
+                    }
+                    
                 }
                 if (chargingProcess.OcppChargingStationConnectorId != default)
                 {
                     var meterValue = GenerateMeterValueFromChargingDetail(chargingDetail, MeterValueKind.ChargingConnector);
+                    if (index == 0)
+                    {
+                        var dummyMeterValue = GenerateDefaultMeterValue(null, chargingProcess.OcppChargingStationConnectorId, meterValue.Timestamp);
+                        chargingStationMeterValuesToSave.Add(dummyMeterValue);
+                        meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(1);
+                    }
                     meterValue.ChargingConnectorId = chargingProcess.OcppChargingStationConnectorId;
                     chargingStationMeterValuesToSave.Add(meterValue);
-                }
-            }
 
-            if (chargingProcess.CarId != default)
-            {
-                latestCarMeterValues[chargingProcess.CarId!.Value].Timestamp = new DateTimeOffset(chargingDetails.First().TimeStamp, TimeSpan.Zero);
-            }
-            if (chargingProcess.OcppChargingStationConnectorId != default)
-            {
-                latestChargingStationMeterValues[chargingProcess.OcppChargingStationConnectorId!.Value].Timestamp = new DateTimeOffset(chargingDetails.First().TimeStamp, TimeSpan.Zero);
+                    if ((index != 0) && (index == chargingDetails.Count - 1))
+                    {
+                        var dummyMeterValue = GenerateDefaultMeterValue(null, chargingProcess.OcppChargingStationConnectorId, meterValue.Timestamp);
+                        chargingStationMeterValuesToSave.Add(dummyMeterValue);
+                        meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(-1);
+                    }
+                    
+                }
+
+                index++;
             }
             foreach (var meterValue in carMeterValuesToSave)
             {
                 latestCarMeterValues[chargingProcess.CarId!.Value] =
-                    await meterValueEstimationService.UpdateMeterValueEstimation(meterValue, latestCarMeterValues[chargingProcess.CarId!.Value]);
+                    await meterValueEstimationService.UpdateMeterValueEstimation(meterValue, latestCarMeterValues.GetValueOrDefault(chargingProcess.CarId!.Value));
             }
             foreach (var meterValue in chargingStationMeterValuesToSave)
             {
                 latestChargingStationMeterValues[chargingProcess.OcppChargingStationConnectorId!.Value] =
-                    await meterValueEstimationService.UpdateMeterValueEstimation(meterValue, latestChargingStationMeterValues[chargingProcess.OcppChargingStationConnectorId!.Value]);
+                    await meterValueEstimationService.UpdateMeterValueEstimation(meterValue, latestChargingStationMeterValues.GetValueOrDefault(chargingProcess.OcppChargingStationConnectorId!.Value));
             }
             context.MeterValues.AddRange(carMeterValuesToSave);
             context.MeterValues.AddRange(chargingStationMeterValuesToSave);
@@ -118,13 +123,14 @@ public class MeterValueImportService : IMeterValueImportService
         await _tscConfigurationService.SetConfigurationValueByKey(CarMeterValuesImportedKey, alreadyUpdatedValue).ConfigureAwait(false);
     }
 
-    private MeterValue GenerateDefaultMeterValue(int? carId, int? chargingConnectorId)
+
+    private MeterValue GenerateDefaultMeterValue(int? carId, int? chargingConnectorId, DateTimeOffset timestamp)
     {
         if (carId == default && chargingConnectorId == default)
         {
             throw new ArgumentException("Either carId or chargingConnectorId must be provided.");
         }
-        return new MeterValue(new DateTimeOffset(2025, 8, 10, 0, 0, 0, TimeSpan.Zero),
+        return new MeterValue(timestamp,
             carId != default ? MeterValueKind.Car : MeterValueKind.ChargingConnector,
             0)
         {
@@ -135,6 +141,7 @@ public class MeterValueImportService : IMeterValueImportService
             ChargingConnectorId = chargingConnectorId,
         };
     }
+
 
     private MeterValue GenerateMeterValueFromChargingDetail(ChargingDetail chargingDetail, MeterValueKind meterValueKind)
     {
