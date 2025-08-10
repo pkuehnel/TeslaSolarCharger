@@ -164,12 +164,15 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         logger.LogInformation("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         var meterValues = databaseValueBufferService.DrainAll<MeterValue>();
+        logger.LogInformation("Drained {count} buffered meter values after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
         //Order to improce performance of the database insert
         meterValues = meterValues.OrderBy(m => m.CarId)
             .ThenBy(m => m.MeterValueKind)
             .ThenBy(m => m.Timestamp)
             .ToList();
-        var meterValueGroups = meterValues.GroupBy(m => new {m.MeterValueKind, m.CarId,});
+        logger.LogInformation("Grouping {count} meter values by car and kind after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
+        var meterValueGroups = meterValues.GroupBy(m => new { m.CarId, m.MeterValueKind, });
+        logger.LogInformation("Update MeterValueEstimations after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
         foreach (var meterValueGroup in meterValueGroups)
         {
             var elements = meterValueGroup.OrderBy(m => m.Timestamp).ToList();
@@ -179,8 +182,9 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
                 latestKnownElement = await meterValueEstimationService.UpdateMeterValueEstimation(element, latestKnownElement).ConfigureAwait(false);
                 context.MeterValues.Add(element);
             }
-
         }
+        logger.LogInformation("Add meter values to context after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
+        context.MeterValues.AddRange(meterValues);
         logger.LogInformation("Saving {count} meter values to database after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
         await context.SaveChangesAsync().ConfigureAwait(false);
         stopWatch.Stop();
