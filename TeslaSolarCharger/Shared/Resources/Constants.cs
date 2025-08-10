@@ -49,7 +49,7 @@ public class Constants : IConstants
     public int FleetTelemetryReconfigurationBufferHours => 3;
     public int WeatherDateRefreshIntervallHours => 3;
     public string MeterValueEstimatesCreated => "MeterValueEstimatesCreated";
-    public int MeterValueDatabaseSaveIntervalMinutes => 6;
+    public int MeterValueDatabaseSaveIntervalMinutes => 13;
     public int HomeBatteryMinSocRefreshIntervalMinutes => 8;
     public int WeatherPredictionInFutureDays => 7;
     public string OcppChargePointConnectorIdDelimiter => "_";
