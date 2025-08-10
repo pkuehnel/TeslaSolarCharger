@@ -71,7 +71,7 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
                 .Where(v => v.MeterValueKind == meterValue.MeterValueKind
                             && v.CarId == meterValue.CarId
                             && v.EstimatedEnergyWs != null)
-                .OrderByDescending(v => v.Id)
+                .OrderByDescending(v => v.Timestamp)
                 .AsNoTracking()
                 .FirstOrDefaultAsync() ?? new MeterValue(meterValue.Timestamp, meterValue.MeterValueKind, 0)
                 {
@@ -120,6 +120,7 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
 
     private long? CalculateEstimatedEnergy(long? lastKnownEstimatedEnergy, int measuredPower, double elapsedSeconds)
     {
+        logger.LogTrace("{method}({lastKnownEstimatedEnergy}, {measuredPower}, {elapsedSeconds})", nameof(CalculateEstimatedEnergy), lastKnownEstimatedEnergy, measuredPower, elapsedSeconds);
         if (lastKnownEstimatedEnergy == default)
         {
             return default;
