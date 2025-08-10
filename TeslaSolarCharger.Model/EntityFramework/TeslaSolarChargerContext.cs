@@ -7,6 +7,7 @@ using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Model.EntityFramework;
 
@@ -142,7 +143,9 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         var carEnumValue = (int)MeterValueKind.Car;
         modelBuilder.Entity<MeterValue>(entity =>
         {
-            entity.HasIndex(m => new { m.CarId, m.MeterValueKind, m.Timestamp });
+            //When changing thiss, also change the index in MeterValueDatabaseSaveJob
+            entity.HasIndex(m => new { m.CarId, m.MeterValueKind, m.Timestamp })
+                .HasDatabaseName(StaticConstants.MeterValueIndexName);
 
             entity.Property(m => m.Timestamp)
                 .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);

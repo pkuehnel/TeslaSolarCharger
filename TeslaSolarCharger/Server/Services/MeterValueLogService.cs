@@ -1,4 +1,5 @@
-﻿using TeslaSolarCharger.Model.Contracts;
+﻿using Microsoft.EntityFrameworkCore;
+using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -7,6 +8,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -157,9 +159,9 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         }
     }
 
-    public async Task SaveBufferedMeterValuesToDatabase()
+    public async Task SaveBufferedMeterValuesToDatabase(bool shutsdownAfterSave)
     {
-        logger.LogTrace("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
+        logger.LogInformation("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         var meterValues = databaseValueBufferService.DrainAll<MeterValue>();
         //Order to improce performance of the database insert
@@ -179,7 +181,19 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             }
 
         }
+        if (meterValues.Count > 100)
+        {
+            logger.LogInformation("Remove index from database to improve insert performance after {elapesdMs} ms", stopWatch.ElapsedMilliseconds);
+            await context.Database.ExecuteSqlRawAsync($"DROP INDEX IF EXISTS {StaticConstants.MeterValueIndexName}");
+        }
+        logger.LogInformation("Saving {count} meter values to database after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
         await context.SaveChangesAsync().ConfigureAwait(false);
+        if (!shutsdownAfterSave)
+        {
+            logger.LogInformation("Recreate index on meter values to improve query performance after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
+            await context.Database.ExecuteSqlRawAsync(
+                $"CREATE INDEX {StaticConstants.MeterValueIndexName} ON MeterValues({nameof(MeterValue.CarId)}, {nameof(MeterValue.MeterValueKind)}, {nameof(MeterValue.Timestamp)})");
+        }
         stopWatch.Stop();
         logger.LogInformation("Saved {count} meter values to database in {elapsedMilliseconds} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
     }

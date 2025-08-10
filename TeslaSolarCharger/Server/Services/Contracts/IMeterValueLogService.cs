@@ -3,5 +3,5 @@
 public interface IMeterValueLogService
 {
     Task AddPvValuesToBuffer();
-    Task SaveBufferedMeterValuesToDatabase();
+    Task SaveBufferedMeterValuesToDatabase(bool shutsdownAfterSave);
 }
