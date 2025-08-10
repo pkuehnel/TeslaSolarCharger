@@ -162,6 +162,11 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         logger.LogTrace("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         var meterValues = databaseValueBufferService.DrainAll<MeterValue>();
+        //Order to improce performance of the database insert
+        meterValues = meterValues.OrderBy(m => m.CarId)
+            .ThenBy(m => m.MeterValueKind)
+            .ThenBy(m => m.Timestamp)
+            .ToList();
         var meterValueGroups = meterValues.GroupBy(m => new {m.MeterValueKind, m.CarId,});
         foreach (var meterValueGroup in meterValueGroups)
         {
