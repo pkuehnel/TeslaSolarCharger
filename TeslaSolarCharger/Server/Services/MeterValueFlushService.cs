@@ -14,7 +14,7 @@ public class MeterValueFlushService(ILogger<MeterValueFlushService> logger, IMet
         logger.LogInformation("Application is stopping. Flushing buffered meter values to the database.");
         try
         {
-            await meterValueLogService.SaveBufferedMeterValuesToDatabase(true).ConfigureAwait(false);
+            await meterValueLogService.SaveBufferedMeterValuesToDatabase().ConfigureAwait(false);
             logger.LogInformation("Flushed buffered meter values to the database.");
         }
         catch (Exception ex)

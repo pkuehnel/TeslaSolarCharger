@@ -159,7 +159,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         }
     }
 
-    public async Task SaveBufferedMeterValuesToDatabase(bool shutsdownAfterSave)
+    public async Task SaveBufferedMeterValuesToDatabase()
     {
         logger.LogInformation("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
         var stopWatch = System.Diagnostics.Stopwatch.StartNew();
@@ -183,12 +183,6 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         }
         logger.LogInformation("Saving {count} meter values to database after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
         await context.SaveChangesAsync().ConfigureAwait(false);
-        if (!shutsdownAfterSave)
-        {
-            logger.LogInformation("Recreate index on meter values to improve query performance after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
-            await context.Database.ExecuteSqlRawAsync(
-                $"CREATE INDEX IF NOT EXISTS {StaticConstants.MeterValueIndexName} ON MeterValues({nameof(MeterValue.CarId)}, {nameof(MeterValue.MeterValueKind)}, {nameof(MeterValue.Timestamp)})");
-        }
         stopWatch.Stop();
         logger.LogInformation("Saved {count} meter values to database in {elapsedMilliseconds} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
     }
