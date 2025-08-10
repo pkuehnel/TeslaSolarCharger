@@ -181,11 +181,6 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             }
 
         }
-        if (meterValues.Count > 100)
-        {
-            logger.LogInformation("Remove index from database to improve insert performance after {elapesdMs} ms", stopWatch.ElapsedMilliseconds);
-            await context.Database.ExecuteSqlRawAsync($"DROP INDEX IF EXISTS {StaticConstants.MeterValueIndexName}");
-        }
         logger.LogInformation("Saving {count} meter values to database after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
         await context.SaveChangesAsync().ConfigureAwait(false);
         if (!shutsdownAfterSave)
