@@ -68,7 +68,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         }
         //ToDo: do not get historic values for all days but only the timespans between startDate and endDate (e.g. if start is10:00 and end is 12:00, only get historic values between 10 and 12 on each day)
         var historicValueTimeStamps = GenerateSlicedTimeStamps(startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart), startDate, sliceLength);
-        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.SolarGeneration, null, cancellationToken);
+        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.SolarGeneration, null, null, cancellationToken);
 
         var historicPredictionsSearchStart = startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart);
         var latestRadiations = await GetSlicedSolarRadiationValues(historicPredictionsSearchStart, startDate, sliceLength, cancellationToken);
@@ -93,7 +93,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         }
         //ToDo: do not get historic values for all days but only the timespans between startDate and endDate (e.g. if start is10:00 and end is 12:00, only get historic values between 10 and 12 on each day)
         var historicValueTimeStamps = GenerateSlicedTimeStamps(startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart), startDate, sliceLength);
-        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.HouseConsumption, null, httpContextRequestAborted);
+        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.HouseConsumption, null, null, httpContextRequestAborted);
         var averageChangeAtTimeSpan = ComputeWeightedMeterValueChanges(historicValueTimeStamps, energyMeterDifferences);
 
         var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
@@ -221,7 +221,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     {
         logger.LogTrace("{method}({meterValueKind}, {startDate}, {endDate}, {sliceLength})", nameof(GetActualValues), meterValueKind, startDate, endDate, sliceLength);
         var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
-        var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(resultTimeStamps, sliceLength, meterValueKind, null, cancellationToken);
+        var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(resultTimeStamps, sliceLength, meterValueKind, null, null, cancellationToken);
         return dateTimeOffsetDictionaryFromDatabase;
     }
 
@@ -322,7 +322,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
     private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> slicedTimeStamps,
         TimeSpan sliceLength,
-        MeterValueKind meterValueKind, int? carId, CancellationToken cancellationToken)
+        MeterValueKind meterValueKind, int? carId, int? chargingConnectorId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({slicedTimeStamps}, {sliceLength}, {meterValueKind})", nameof(GetMeterEnergyDifferencesAsync), slicedTimeStamps.Count, sliceLength, meterValueKind);
         var createdWh = new Dictionary<DateTimeOffset, int>();
@@ -349,6 +349,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
                 meterValue = await scopedContext.MeterValues
                     .Where(m => m.MeterValueKind == meterValueKind
                                 && m.CarId == carId
+                                && m.ChargingConnectorId == chargingConnectorId
                                 && m.Timestamp <= dateTimeOffset
                                 && m.Timestamp > minimumAge)
                     .OrderByDescending(m => m.Timestamp)

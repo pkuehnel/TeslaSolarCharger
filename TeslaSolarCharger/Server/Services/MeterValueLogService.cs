@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using TeslaSolarCharger.Model.Contracts;
+﻿using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
@@ -8,7 +7,6 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Enums;
-using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -167,11 +165,12 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         logger.LogTrace("Drained {count} buffered meter values after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
         //Order to improce performance of the database insert
         meterValues = meterValues.OrderBy(m => m.CarId)
+            .ThenBy(m => m.ChargingConnectorId)
             .ThenBy(m => m.MeterValueKind)
             .ThenBy(m => m.Timestamp)
             .ToList();
         logger.LogTrace("Grouping {count} meter values by car and kind after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
-        var meterValueGroups = meterValues.GroupBy(m => new { m.CarId, m.MeterValueKind, });
+        var meterValueGroups = meterValues.GroupBy(m => new { m.CarId, m.ChargingConnectorId, m.MeterValueKind, });
         logger.LogTrace("Update MeterValueEstimations after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
         foreach (var meterValueGroup in meterValueGroups)
         {

@@ -144,7 +144,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<MeterValue>(entity =>
         {
             //When changing thiss, also change the index in MeterValueDatabaseSaveJob
-            entity.HasIndex(m => new { m.CarId, m.MeterValueKind, m.Timestamp })
+            entity.HasIndex(m => new { m.CarId, m.ChargingConnectorId, m.MeterValueKind, m.Timestamp })
                 .HasDatabaseName(StaticConstants.MeterValueIndexName);
 
             entity.Property(m => m.Timestamp)

@@ -21,6 +21,8 @@ public class MeterValue
     public long? EstimatedGridEnergyWs { get; set; }
 
     public int? CarId { get; set; }
+    public int? ChargingConnectorId { get; set; }
 
     public Car? Car { get; set; }
+    public OcppChargingStationConnector? ChargingConnector { get; set; }
 }

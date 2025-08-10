@@ -29,4 +29,5 @@ public class OcppChargingStationConnector
 
     public List<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; } = new();
     public List<ChargingProcess> ChargingProcesses { get; set; } = new();
+    public List<MeterValue> MeterValues { get; set; } = new();
 }

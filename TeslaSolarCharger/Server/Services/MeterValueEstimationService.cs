@@ -70,6 +70,7 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
             latestKnownValue = await context.MeterValues
                 .Where(v => v.MeterValueKind == meterValue.MeterValueKind
                             && v.CarId == meterValue.CarId
+                            && v.ChargingConnectorId == meterValue.ChargingConnectorId
                             && v.EstimatedEnergyWs != null)
                 .OrderByDescending(v => v.Timestamp)
                 .AsNoTracking()

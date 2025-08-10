@@ -265,6 +265,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
 
+        var meterValueImportService = webApplication.Services.GetRequiredService<IMeterValueImportService>();
+        await meterValueImportService.ImportMeterValuesFromChargingDetailsAsync().ConfigureAwait(false);
+
         await backendApiService.RefreshBackendTokenIfNeeded().ConfigureAwait(false);
         var fleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
         await fleetApiService.RefreshFleetApiTokenIfNeeded().ConfigureAwait(false);
