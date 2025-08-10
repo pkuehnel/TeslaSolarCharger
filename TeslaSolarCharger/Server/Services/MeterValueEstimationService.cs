@@ -66,6 +66,7 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
         logger.LogTrace("{method}({meterValue}, {latestKnownValue})", nameof(UpdateMeterValueEstimation), meterValue, latestKnownValue);
         if (latestKnownValue == default)
         {
+            logger.LogTrace("No latest known value provided, fetching from database for {@meterValue}", meterValue);
             latestKnownValue = await context.MeterValues
                 .Where(v => v.MeterValueKind == meterValue.MeterValueKind
                             && v.CarId == meterValue.CarId

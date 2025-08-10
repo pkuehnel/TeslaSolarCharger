@@ -180,7 +180,6 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             foreach (var element in elements)
             {
                 latestKnownElement = await meterValueEstimationService.UpdateMeterValueEstimation(element, latestKnownElement).ConfigureAwait(false);
-                context.MeterValues.Add(element);
             }
         }
         logger.LogInformation("Add meter values to context after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
@@ -188,6 +187,6 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         logger.LogInformation("Saving {count} meter values to database after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
         await context.SaveChangesAsync().ConfigureAwait(false);
         stopWatch.Stop();
-        logger.LogInformation("Saved {count} meter values to database in {elapsedMilliseconds} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
+        logger.LogInformation("Saved {count} meter values to database after {elapsedMilliseconds} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
     }
 }
