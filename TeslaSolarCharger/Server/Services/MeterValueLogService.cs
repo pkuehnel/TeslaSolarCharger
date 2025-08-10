@@ -192,7 +192,7 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         {
             logger.LogInformation("Recreate index on meter values to improve query performance after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
             await context.Database.ExecuteSqlRawAsync(
-                $"CREATE INDEX {StaticConstants.MeterValueIndexName} ON MeterValues({nameof(MeterValue.CarId)}, {nameof(MeterValue.MeterValueKind)}, {nameof(MeterValue.Timestamp)})");
+                $"CREATE INDEX IF NOT EXISTS {StaticConstants.MeterValueIndexName} ON MeterValues({nameof(MeterValue.CarId)}, {nameof(MeterValue.MeterValueKind)}, {nameof(MeterValue.Timestamp)})");
         }
         stopWatch.Stop();
         logger.LogInformation("Saved {count} meter values to database in {elapsedMilliseconds} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
