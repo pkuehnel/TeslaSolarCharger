@@ -24,7 +24,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
     public async Task RefreshCachedValues(CancellationToken contextCancellationToken)
     {
-        logger.LogInformation("{method}()", nameof(RefreshCachedValues));
+        logger.LogTrace("{method}()", nameof(RefreshCachedValues));
         var cacheInPastDays = 10;
         var currentDate = dateTimeProvider.DateTimeOffSetUtcNow().Date;
         var currentUtcDay = new DateTimeOffset(currentDate, TimeSpan.Zero);
@@ -47,7 +47,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
     private async Task CacheAllDataForDay(DateTimeOffset startDate, CancellationToken contextCancellationToken)
     {
-        logger.LogInformation("{method}({startDate})", nameof(CacheAllDataForDay), startDate);
+        logger.LogTrace("{method}({startDate})", nameof(CacheAllDataForDay), startDate);
         await GetPredictedSolarProductionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
         await GetPredictedHouseConsumptionByLocalHour(startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
         await GetActualDataByLocalHour(MeterValueKind.SolarGeneration, startDate, startDate.AddDays(1), TimeSpan.FromHours(1), contextCancellationToken).ConfigureAwait(false);
