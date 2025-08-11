@@ -8,7 +8,8 @@ using TeslaSolarCharger.SharedBackend.Abstracts;
 
 namespace TeslaSolarCharger.Server.Controllers;
 
-public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
+public class DebugController(
+    IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     IDebugService debugService,
     ITeslaFleetApiService teslaFleetApiService,
     IOcppChargePointConfigurationService ocppChargePointConfigurationService) : ApiBaseController
@@ -16,11 +17,7 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
 
     private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
     {
-        Formatting = Formatting.Indented,
-        Converters = new List<JsonConverter>
-        {
-            new StringEnumConverter(),
-        },
+        Formatting = Formatting.Indented, Converters = new List<JsonConverter> { new StringEnumConverter(), },
     };
 
     [HttpGet]
@@ -137,7 +134,7 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     [HttpPost]
     public async Task<IActionResult> StopCharging(string chargepointId, int connectorId)
     {
-        var result = await debugService.StopCharging(chargepointId, connectorId,HttpContext.RequestAborted);
+        var result = await debugService.StopCharging(chargepointId, connectorId, HttpContext.RequestAborted);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }
@@ -145,7 +142,8 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     [HttpPost]
     public async Task<IActionResult> SetCurrentAndPhases(string chargepointId, int connectorId, decimal currentToSet, int? numberOfPhases)
     {
-        var result = await debugService.SetCurrentAndPhases(chargepointId, connectorId, currentToSet, numberOfPhases, HttpContext.RequestAborted);
+        var result = await debugService.SetCurrentAndPhases(chargepointId, connectorId, currentToSet, numberOfPhases,
+            HttpContext.RequestAborted);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }
@@ -161,7 +159,8 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     [HttpPost]
     public async Task<IActionResult> SetMeterValuesSampledDataConfiguration(string chargepointId)
     {
-        var result = await ocppChargePointConfigurationService.SetMeterValuesSampledDataConfiguration(chargepointId, HttpContext.RequestAborted);
+        var result = await ocppChargePointConfigurationService.SetMeterValuesSampledDataConfiguration(chargepointId,
+            HttpContext.RequestAborted);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }
@@ -169,7 +168,8 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
     [HttpPost]
     public async Task<IActionResult> SetMeterValuesSampleIntervalConfiguration(string chargepointId)
     {
-        var result = await ocppChargePointConfigurationService.SetMeterValuesSampleIntervalConfiguration(chargepointId, HttpContext.RequestAborted);
+        var result = await ocppChargePointConfigurationService.SetMeterValuesSampleIntervalConfiguration(chargepointId,
+            HttpContext.RequestAborted);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }
@@ -227,4 +227,13 @@ public class DebugController(IFleetTelemetryConfigurationService fleetTelemetryC
         var products = await teslaFleetApiService.GetEnergyLiveStatus(energySiteId);
         return Ok(products.JsonResponse);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetLastestMeterValues()
+    {
+        var result = await debugService.GetLatestMeterValues();
+        var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
+        return Ok(new DtoValue<string>(resultString));
+    }
+
 }
