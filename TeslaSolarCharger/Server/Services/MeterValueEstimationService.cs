@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -67,14 +68,7 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
         if (latestKnownValue == default)
         {
             logger.LogTrace("No latest known value provided, fetching from database for {@meterValue}", meterValue);
-            latestKnownValue = await context.MeterValues
-                .Where(v => v.MeterValueKind == meterValue.MeterValueKind
-                            && v.CarId == meterValue.CarId
-                            && v.ChargingConnectorId == meterValue.ChargingConnectorId
-                            && v.EstimatedEnergyWs != null)
-                .OrderByDescending(v => v.Timestamp)
-                .AsNoTracking()
-                .FirstOrDefaultAsync() ?? new MeterValue(meterValue.Timestamp, meterValue.MeterValueKind, 0)
+            latestKnownValue = await GetLatestMeterValueFromDatabase(meterValue.MeterValueKind, meterValue.CarId, meterValue.ChargingConnectorId, true).ConfigureAwait(false) ?? new MeterValue(meterValue.Timestamp, meterValue.MeterValueKind, 0)
                 {
                     Id = 0,
                     MeasuredHomeBatteryPower = 0,
@@ -117,6 +111,22 @@ public class MeterValueEstimationService(ILogger<MeterValueEstimationService> lo
         latestKnownValue = meterValue;
 
         return latestKnownValue;
+    }
+
+    public async Task<MeterValue?> GetLatestMeterValueFromDatabase(MeterValueKind meterValueKind, int? carId, int? chargingConnectorId, bool requireEstimatedEnergyToBeNotNull)
+    {
+        var query = context.MeterValues
+            .Where(v => v.MeterValueKind == meterValueKind
+                        && v.CarId == carId
+                        && v.ChargingConnectorId == chargingConnectorId).AsQueryable();
+        if (requireEstimatedEnergyToBeNotNull)
+        {
+            query = query.Where(v => v.EstimatedEnergyWs != null);
+        }
+
+        return await query.OrderByDescending(v => v.Timestamp)
+            .AsNoTracking()
+            .FirstOrDefaultAsync();
     }
 
     private long? CalculateEstimatedEnergy(long? lastKnownEstimatedEnergy, int measuredPower, double elapsedSeconds)

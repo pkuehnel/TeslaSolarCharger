@@ -20,6 +20,7 @@ using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.ServerValidators;
 using TeslaSolarCharger.Server.Services;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Hubs;
 using TeslaSolarCharger.Services;
@@ -174,8 +175,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     var settings = webApplication.Services.GetRequiredService<ISettings>();
     try
     {
-        //Wait five seconds to let endpoints come up, so startup page is displayed immediatly
-        await Task.Delay(5000);
+        //Wait ten seconds to let endpoints come up, so startup page is displayed immediatly
+        await Task.Delay(10000);
         //Do nothing before these lines as database is restored or created here.
         var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
         baseConfigurationService.ProcessPendingRestore();
@@ -264,6 +265,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.FixConvertedChargingDetailSolarPower().ConfigureAwait(false);
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
+
+        var tscOnlyChargingCostService = webApplication.Services.GetRequiredService<ITscOnlyChargingCostService>();
+        await tscOnlyChargingCostService.AddNonZeroMeterValuesCarsAndChargingStationsToSettings().ConfigureAwait(false);
+
 
         var meterValueImportService = webApplication.Services.GetRequiredService<IMeterValueImportService>();
         await meterValueImportService.ImportMeterValuesFromChargingDetailsAsync().ConfigureAwait(false);

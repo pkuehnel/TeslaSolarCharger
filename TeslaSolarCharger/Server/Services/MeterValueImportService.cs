@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
+using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -49,6 +50,7 @@ public class MeterValueImportService : IMeterValueImportService
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
             var meterValueEstimationService = scope.ServiceProvider.GetRequiredService<IMeterValueEstimationService>();
+            var tscOnlyChargingCostService = scope.ServiceProvider.GetRequiredService<ITscOnlyChargingCostService>();
             var chargingDetails = await context.ChargingDetails
                 .Where(cd => cd.ChargingProcessId == chargingProcess.Id)
                 .AsNoTracking()
@@ -68,7 +70,7 @@ public class MeterValueImportService : IMeterValueImportService
                     var meterValue = GenerateMeterValueFromChargingDetail(chargingDetail, MeterValueKind.Car);
                     if (index == 0)
                     {
-                        var dummyMeterValue = GenerateDefaultMeterValue(chargingProcess.CarId, null, meterValue.Timestamp);
+                        var dummyMeterValue = tscOnlyChargingCostService.GenerateDefaultMeterValue(chargingProcess.CarId, null, meterValue.Timestamp);
                         carMeterValuesToSave.Add(dummyMeterValue);
                         meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(1);
                     }
@@ -77,7 +79,7 @@ public class MeterValueImportService : IMeterValueImportService
 
                     if ((index != 0) && (index == chargingDetails.Count - 1))
                     {
-                        var dummyMeterValue = GenerateDefaultMeterValue(chargingProcess.CarId, null, meterValue.Timestamp);
+                        var dummyMeterValue = tscOnlyChargingCostService.GenerateDefaultMeterValue(chargingProcess.CarId, null, meterValue.Timestamp);
                         carMeterValuesToSave.Add(dummyMeterValue);
                         meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(-1);
                     }
@@ -88,7 +90,7 @@ public class MeterValueImportService : IMeterValueImportService
                     var meterValue = GenerateMeterValueFromChargingDetail(chargingDetail, MeterValueKind.ChargingConnector);
                     if (index == 0)
                     {
-                        var dummyMeterValue = GenerateDefaultMeterValue(null, chargingProcess.OcppChargingStationConnectorId, meterValue.Timestamp);
+                        var dummyMeterValue = tscOnlyChargingCostService.GenerateDefaultMeterValue(null, chargingProcess.OcppChargingStationConnectorId, meterValue.Timestamp);
                         chargingStationMeterValuesToSave.Add(dummyMeterValue);
                         meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(1);
                     }
@@ -97,7 +99,7 @@ public class MeterValueImportService : IMeterValueImportService
 
                     if ((index != 0) && (index == chargingDetails.Count - 1))
                     {
-                        var dummyMeterValue = GenerateDefaultMeterValue(null, chargingProcess.OcppChargingStationConnectorId, meterValue.Timestamp);
+                        var dummyMeterValue = tscOnlyChargingCostService.GenerateDefaultMeterValue(null, chargingProcess.OcppChargingStationConnectorId, meterValue.Timestamp);
                         chargingStationMeterValuesToSave.Add(dummyMeterValue);
                         meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(-1);
                     }
@@ -121,25 +123,6 @@ public class MeterValueImportService : IMeterValueImportService
             await context.SaveChangesAsync().ConfigureAwait(false);
         }
         await _tscConfigurationService.SetConfigurationValueByKey(CarMeterValuesImportedKey, alreadyUpdatedValue).ConfigureAwait(false);
-    }
-
-
-    private MeterValue GenerateDefaultMeterValue(int? carId, int? chargingConnectorId, DateTimeOffset timestamp)
-    {
-        if (carId == default && chargingConnectorId == default)
-        {
-            throw new ArgumentException("Either carId or chargingConnectorId must be provided.");
-        }
-        return new MeterValue(timestamp,
-            carId != default ? MeterValueKind.Car : MeterValueKind.ChargingConnector,
-            0)
-        {
-            EstimatedEnergyWs = 0,
-            EstimatedGridEnergyWs = 0,
-            EstimatedHomeBatteryEnergyWs = 0,
-            CarId = carId,
-            ChargingConnectorId = chargingConnectorId,
-        };
     }
 
 
