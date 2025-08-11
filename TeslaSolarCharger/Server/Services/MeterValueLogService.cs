@@ -5,6 +5,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.IndexRazor.PvValues;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -35,71 +36,81 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             logger.LogWarning("Pv Values are too old, do not log");
             return;
         }
+        MeterValue? inverterValue = null;
+        MeterValue? toGridValue = null;
+        MeterValue? fromGridValue = null;
+        MeterValue? homeBatteryChargingValue = null;
+        MeterValue? homeBatteryDischargingValue = null;
+        MeterValue? houseConsumptionValue = null;
         if (pvValues.InverterPower != default)
         {
-            var meterValue = new MeterValue
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.SolarGeneration,
-                MeasuredPower = pvValues.InverterPower,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(meterValue);
+            inverterValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.SolarGeneration,
+                    pvValues.InverterPower.Value);
         }
         var homeBatteryPower = pvValues.HomeBatteryPower ?? 0;
         var chargingPower = pvValues.CarCombinedChargingPowerAtHome ?? 0;
         var homePower = pvValues.InverterPower - pvValues.GridPower - homeBatteryPower - chargingPower;
         if (homePower != default)
         {
-            var meterValue = new MeterValue
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.HouseConsumption,
-                MeasuredPower = homePower,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(meterValue);
+            houseConsumptionValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.HouseConsumption,
+                    homePower.Value);
         }
         if (pvValues.HomeBatteryPower != default)
         {
             var isDischarging = pvValues.HomeBatteryPower < 0;
-            var chargingValue = new MeterValue
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.HomeBatteryCharging,
-                MeasuredPower = isDischarging ? 0 : pvValues.HomeBatteryPower.Value,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(chargingValue);
-            var dischargingValue = new MeterValue
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.HomeBatteryDischarging,
-                MeasuredPower = isDischarging ? (-pvValues.HomeBatteryPower.Value) : 0,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(dischargingValue);
+            homeBatteryChargingValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.HomeBatteryCharging,
+                    isDischarging ? 0 : pvValues.HomeBatteryPower.Value);
+            homeBatteryDischargingValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.HomeBatteryDischarging,
+                    isDischarging ? (-pvValues.HomeBatteryPower.Value) : 0);
         }
 
         if (pvValues.GridPower != default)
         {
             var isPowerComingFromGrid = pvValues.GridPower < 0;
-            var powerToGrid = new MeterValue()
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.PowerToGrid,
-                MeasuredPower = isPowerComingFromGrid ? 0 : pvValues.GridPower.Value,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(powerToGrid);
-            var powerFromGrid = new MeterValue()
-            {
-                Timestamp = pvValues.LastUpdated.Value,
-                MeterValueKind = MeterValueKind.PowerFromGrid,
-                MeasuredPower = isPowerComingFromGrid ? (-pvValues.GridPower.Value) : 0,
-                MeasuredEnergyWs = null,
-            };
-            databaseValueBufferService.Add(powerFromGrid);
+            toGridValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.PowerToGrid,
+                    isPowerComingFromGrid ? 0 : pvValues.GridPower.Value);
+            fromGridValue =
+                new MeterValue(pvValues.LastUpdated.Value,
+                    MeterValueKind.PowerFromGrid,
+                    isPowerComingFromGrid ? (-pvValues.GridPower.Value) : 0);
+        }
+
+        AddHomeBatteryAndGridPowers(pvValues, fromGridValue, toGridValue, homeBatteryDischargingValue, homeBatteryChargingValue, houseConsumptionValue);
+
+
+        if (inverterValue != null)
+        {
+            databaseValueBufferService.Add(inverterValue);
+        }
+        if (toGridValue != null)
+        {
+            databaseValueBufferService.Add(toGridValue);
+        }
+        if (fromGridValue != null)
+        {
+            databaseValueBufferService.Add(fromGridValue);
+        }
+        if (homeBatteryChargingValue != null)
+        {
+            databaseValueBufferService.Add(homeBatteryChargingValue);
+        }
+        if (homeBatteryDischargingValue != null)
+        {
+            databaseValueBufferService.Add(homeBatteryDischargingValue);
+        }
+        if (houseConsumptionValue != null)
+        {
+            databaseValueBufferService.Add(houseConsumptionValue);
         }
 
         if (pvValues.HomeBatterySoc != default
@@ -117,11 +128,50 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
         }
     }
 
+    internal void AddHomeBatteryAndGridPowers(DtoPvValues pvValues, MeterValue? fromGridValue, MeterValue? toGridValue,
+        MeterValue? homeBatteryDischargingValue, MeterValue? homeBatteryChargingValue, MeterValue? houseConsumptionValue)
+    {
+        var powerFromGrid = fromGridValue?.MeasuredPower ?? 0;
+        var carsChargingPower = (pvValues.CarCombinedChargingPowerAtHome ?? 0);
+        var relevantPowerFromGrid = Math.Max(0, powerFromGrid - carsChargingPower);
+        carsChargingPower = Math.Max(0, carsChargingPower - relevantPowerFromGrid);
+        var homeBatteryDischargingPower = homeBatteryDischargingValue?.MeasuredPower ?? 0;
+        var relevantHomeBatteryDischargingPower = Math.Max(0, homeBatteryDischargingPower - carsChargingPower);
+        if (relevantPowerFromGrid > 0 && (homeBatteryChargingValue?.MeasuredPower > 0))
+        {
+            homeBatteryChargingValue.MeasuredGridPower = Math.Min(homeBatteryChargingValue.MeasuredPower, relevantPowerFromGrid);
+            relevantPowerFromGrid -= homeBatteryChargingValue.MeasuredGridPower;
+        }
+        if (relevantHomeBatteryDischargingPower > 0 && (toGridValue?.MeasuredPower > 0))
+        {
+            toGridValue.MeasuredHomeBatteryPower = Math.Min(toGridValue.MeasuredPower, relevantHomeBatteryDischargingPower);
+            relevantHomeBatteryDischargingPower -= toGridValue.MeasuredHomeBatteryPower;
+        }
+        if (relevantPowerFromGrid > 0 && houseConsumptionValue != default)
+        {
+            houseConsumptionValue.MeasuredGridPower = relevantPowerFromGrid;
+        }
+        if (relevantHomeBatteryDischargingPower > 0 && houseConsumptionValue != default)
+        {
+            houseConsumptionValue.MeasuredHomeBatteryPower = relevantHomeBatteryDischargingPower;
+        }
+    }
+
     public async Task SaveBufferedMeterValuesToDatabase()
     {
-        logger.LogTrace("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
+        logger.LogInformation("{method}()", nameof(SaveBufferedMeterValuesToDatabase));
+        var stopWatch = System.Diagnostics.Stopwatch.StartNew();
         var meterValues = databaseValueBufferService.DrainAll<MeterValue>();
-        var meterValueGroups = meterValues.GroupBy(m => m.MeterValueKind);
+        logger.LogTrace("Drained {count} buffered meter values after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
+        //Order to improce performance of the database insert
+        meterValues = meterValues.OrderBy(m => m.CarId)
+            .ThenBy(m => m.ChargingConnectorId)
+            .ThenBy(m => m.MeterValueKind)
+            .ThenBy(m => m.Timestamp)
+            .ToList();
+        logger.LogTrace("Grouping {count} meter values by car and kind after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
+        var meterValueGroups = meterValues.GroupBy(m => new { m.CarId, m.ChargingConnectorId, m.MeterValueKind, });
+        logger.LogTrace("Update MeterValueEstimations after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
         foreach (var meterValueGroup in meterValueGroups)
         {
             var elements = meterValueGroup.OrderBy(m => m.Timestamp).ToList();
@@ -129,10 +179,13 @@ public class MeterValueLogService(ILogger<MeterValueLogService> logger,
             foreach (var element in elements)
             {
                 latestKnownElement = await meterValueEstimationService.UpdateMeterValueEstimation(element, latestKnownElement).ConfigureAwait(false);
-                context.MeterValues.Add(element);
             }
-
         }
+        logger.LogTrace("Add meter values to context after {elapsedMs} ms", stopWatch.ElapsedMilliseconds);
+        context.MeterValues.AddRange(meterValues);
+        logger.LogTrace("Saving {count} meter values to database after {elapsedMs} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
         await context.SaveChangesAsync().ConfigureAwait(false);
+        stopWatch.Stop();
+        logger.LogInformation("Saved {count} meter values to database after {elapsedMilliseconds} ms", meterValues.Count, stopWatch.ElapsedMilliseconds);
     }
 }

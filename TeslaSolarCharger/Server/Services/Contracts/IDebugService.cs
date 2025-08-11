@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Dtos.Support;
+using MeterValue = TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MeterValue;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
@@ -28,4 +29,5 @@ public interface IDebugService
     string GetFileLogLevel();
     Task WriteFileLogsToStream(Stream outputStream);
     Task StreamLogsToAsync(Stream stream);
+    Task<List<MeterValue>> GetLatestMeterValues();
 }

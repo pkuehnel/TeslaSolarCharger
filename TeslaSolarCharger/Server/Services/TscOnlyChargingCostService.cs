@@ -1,8 +1,7 @@
-﻿using AutoMapper.QueryableExtensions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.EntityFramework;
+using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
@@ -22,7 +21,9 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     IConfigurationWrapper configurationWrapper,
     IServiceProvider serviceProvider,
     IConstants constants,
-    ILoadPointManagementService loadPointManagementService) : ITscOnlyChargingCostService
+    ILoadPointManagementService loadPointManagementService,
+    IDatabaseValueBufferService databaseValueBufferService,
+    IMeterValueEstimationService meterValueEstimationService) : ITscOnlyChargingCostService
 {
     public async Task FinalizeFinishedChargingProcesses()
     {
@@ -30,20 +31,32 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var openChargingProcesses = await context.ChargingProcesses
             .Where(cp => cp.EndDate == null)
             .ToListAsync().ConfigureAwait(false);
-        var timeSpanToHandleChargingProcessAsCompleted = TimeSpan.FromMinutes(2);
+        var timeSpanToHandleChargingProcessAsCompleted = TimeSpan.FromMinutes(constants.MeterValueDatabaseSaveIntervalMinutes) * 2;
         foreach (var chargingProcess in openChargingProcesses)
         {
-            var latestChargingDetail = await context.ChargingDetails
-                .Where(cd => cd.ChargingProcessId == chargingProcess.Id)
-                .OrderByDescending(cd => cd.Id)
-                .FirstOrDefaultAsync().ConfigureAwait(false);
-            if (latestChargingDetail == default)
+            var latestMeterValueQuery = context.MeterValues.AsQueryable();
+            if (chargingProcess.OcppChargingStationConnectorId != default)
             {
-                logger.LogWarning("No charging detail found for charging process with ID {chargingProcessId}.", chargingProcess.Id);
+                latestMeterValueQuery = latestMeterValueQuery.Where(m => m.CarId == null
+                                                                         && m.ChargingConnectorId == chargingProcess.OcppChargingStationConnectorId
+                                                                         && m.MeterValueKind == MeterValueKind.ChargingConnector);
+            }
+            else
+            {
+                latestMeterValueQuery = latestMeterValueQuery.Where(m => m.CarId == chargingProcess.CarId
+                                                                         && m.ChargingConnectorId == null
+                                                                         && m.MeterValueKind == MeterValueKind.Car);
+            }
+            var latestMeterValue = await latestMeterValueQuery
+                .OrderByDescending(cd => cd.Timestamp)
+                .FirstOrDefaultAsync().ConfigureAwait(false);
+            if (latestMeterValue == default)
+            {
+                logger.LogWarning("No meter value found for charging process with ID {chargingProcessId}.", chargingProcess.Id);
                 continue;
             }
 
-            if (latestChargingDetail.TimeStamp.Add(timeSpanToHandleChargingProcessAsCompleted) < dateTimeProvider.UtcNow())
+            if (latestMeterValue.Timestamp.Add(timeSpanToHandleChargingProcessAsCompleted) < dateTimeProvider.DateTimeOffSetUtcNow())
             {
                 try
                 {
@@ -136,7 +149,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .Select(h => new DtoHandledCharge()
             {
                 StartTime = h.StartDate.ToLocalTime(),
-                EndTime = h.EndDate.HasValue ? h.EndDate.Value.ToLocalTime() : (DateTime?)null,
+                EndTime = h.EndDate.HasValue ? h.EndDate.Value.ToLocalTime() : null,
                 CalculatedPrice = h.Cost == null ? 0m : Math.Round(h.Cost.Value, 2),
                 UsedGridEnergy = h.UsedGridEnergyKwh == null ? 0m : Math.Round(h.UsedGridEnergyKwh.Value, 2),
                 UsedHomeBatteryEnergy = h.UsedHomeBatteryEnergyKwh == null ? 0m : Math.Round(h.UsedHomeBatteryEnergyKwh.Value, 2),
@@ -170,34 +183,53 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     {
         logger.LogTrace("{method}({chargingProcessId})", nameof(FinalizeChargingProcess), chargingProcess.Id);
 
-        var chargingDetails = await context.ChargingDetails
-            .Where(cd => cd.ChargingProcessId == chargingProcess.Id)
-            .OrderBy(cd => cd.TimeStamp)
+        var endDate = chargingProcess.EndDate == default
+            ? dateTimeProvider.DateTimeOffSetUtcNow()
+            : new(chargingProcess.EndDate.Value, TimeSpan.Zero);
+        var startDate = new DateTimeOffset(chargingProcess.StartDate, TimeSpan.Zero);
+        var latestMeterValueQuery = context.MeterValues
+            .Where(m => m.Timestamp >= startDate
+            && m.Timestamp <= endDate).AsQueryable();
+        if (chargingProcess.OcppChargingStationConnectorId != default)
+        {
+            latestMeterValueQuery = latestMeterValueQuery.Where(m => m.CarId == null
+                                                                     && m.ChargingConnectorId == chargingProcess.OcppChargingStationConnectorId
+                                                                     && m.MeterValueKind == MeterValueKind.ChargingConnector);
+        }
+        else
+        {
+            latestMeterValueQuery = latestMeterValueQuery.Where(m => m.CarId == chargingProcess.CarId
+                                                                     && m.ChargingConnectorId == null
+                                                                     && m.MeterValueKind == MeterValueKind.Car);
+        }
+        var meterValues = await latestMeterValueQuery
+            .OrderBy(cd => cd.Timestamp)
+            .AsNoTracking()
             .ToListAsync().ConfigureAwait(false);
         decimal usedSolarEnergyWh = 0;
         decimal usedHomeBatteryEnergyWh = 0;
         decimal usedGridEnergyWh = 0;
         decimal cost = 0;
-        chargingProcess.EndDate = chargingDetails.Last().TimeStamp;
-        var prices = await GetGridPricesInTimeSpan(chargingDetails.First().TimeStamp, chargingProcess.EndDate.Value);        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
+        chargingProcess.EndDate = meterValues.Last().Timestamp.UtcDateTime;
+        var prices = await GetGridPricesInTimeSpan(meterValues.First().Timestamp.UtcDateTime, chargingProcess.EndDate.Value);        //When a charging process is stopped and resumed later, the last charging detail is too old and should not be used because it would use the last value dring the whole time althoug the car was not charging
         var maxChargingDetailsDuration = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds).Add(TimeSpan.FromSeconds(10));
-        for (var index = 1; index < chargingDetails.Count; index++)
+        for (var index = 1; index < meterValues.Count; index++)
         {
-            var price = GetPriceByTimeStamp(prices, chargingDetails[index].TimeStamp);
-            logger.LogTrace("Price for timestamp {timeStamp}: {@price}", chargingDetails[index].TimeStamp, price);
-            var chargingDetail = chargingDetails[index];
-            var timeSpanSinceLastDetail = chargingDetail.TimeStamp - chargingDetails[index - 1].TimeStamp;
+            var price = GetPriceByTimeStamp(prices, meterValues[index].Timestamp.UtcDateTime);
+            logger.LogTrace("Price for timestamp {timeStamp}: {@price}", meterValues[index].Timestamp, price);
+            var meterValue = meterValues[index];
+            var timeSpanSinceLastDetail = meterValue.Timestamp - meterValues[index - 1].Timestamp;
 
             if (timeSpanSinceLastDetail > maxChargingDetailsDuration)
             {
                 logger.LogWarning("Do not use charging detail as last charging detail ist too old");
                 continue;
             }
-            var usedSolarWhSinceLastChargingDetail = (decimal)(chargingDetail.SolarPower * timeSpanSinceLastDetail.TotalHours);
+            var usedSolarWhSinceLastChargingDetail = (decimal)((meterValue.MeasuredPower - meterValue.MeasuredHomeBatteryPower - meterValue.MeasuredGridPower) * timeSpanSinceLastDetail.TotalHours);
             usedSolarEnergyWh += usedSolarWhSinceLastChargingDetail;
-            var usedHomeBatteryWhSinceLastChargingDetail = (decimal)(chargingDetail.HomeBatteryPower * timeSpanSinceLastDetail.TotalHours);
+            var usedHomeBatteryWhSinceLastChargingDetail = (decimal)(meterValue.MeasuredHomeBatteryPower * timeSpanSinceLastDetail.TotalHours);
             usedHomeBatteryEnergyWh += usedHomeBatteryWhSinceLastChargingDetail;
-            var usedGridPowerSinceLastChargingDetail = (decimal)(chargingDetail.GridPower * timeSpanSinceLastDetail.TotalHours);
+            var usedGridPowerSinceLastChargingDetail = (decimal)(meterValue.MeasuredGridPower * timeSpanSinceLastDetail.TotalHours);
             usedGridEnergyWh += usedGridPowerSinceLastChargingDetail;
             cost += usedGridPowerSinceLastChargingDetail * price.GridPrice;
             cost += usedSolarWhSinceLastChargingDetail * price.SolarPrice;
@@ -330,14 +362,9 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         logger.LogTrace("HomeBatteryDischargingPower: {homeBatteryDischargingPower}", homeBatteryDischargingPower);
         var loadPoints = await loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
         var combinedChargingPowerAtHome = loadPoints.Select(l => l.ChargingPower).Sum();
-        var usedGridPower = 0;
+        int usedGridPower;
         var usedHomeBatteryPower = 0;
         var usedSolarPower = 0;
-        if (combinedChargingPowerAtHome == 0)
-        {
-            logger.LogTrace("No car is charging at home so no charging detail to create.");
-            return;
-        }
         logger.LogTrace("Combined charging power at home: {combinedChargingPowerAtHome}", combinedChargingPowerAtHome);
         if (overage == default)
         {
@@ -368,6 +395,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 logger.LogTrace("Using {usedSolarPower} W from solar", usedSolarPower);
             }
         }
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         //ToDo: order loadpoints by chargingPriority, so the most important car gets the least amount of Grid Power in its calculation
         foreach (var loadPoint in loadPoints)
         {
@@ -376,40 +404,163 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             {
                 continue;
             }
-            var chargingDetail = await GetAttachedChargingDetail(loadPoint.CarId, loadPoint.ChargingConnectorId);
-            chargingDetail.ChargerVoltage = loadPoint.ChargingVoltage;
+            await AddNewChargingProcessIfRequired(loadPoint.CarId, loadPoint.ChargingConnectorId, currentDate);
+            //ToDo: Log charging voltage somewhere
+            var dtoChargingValue = new DtoChargingValue();
             if (chargingPowerAtHome < usedGridPower)
             {
-                chargingDetail.GridPower = chargingPowerAtHome;
+                dtoChargingValue.GridPower = chargingPowerAtHome;
                 usedGridPower -= chargingPowerAtHome;
             }
             else
             {
-                chargingDetail.GridPower = usedGridPower;
+                dtoChargingValue.GridPower = usedGridPower;
                 usedGridPower = 0;
-                chargingPowerAtHome -= chargingDetail.GridPower;
+                chargingPowerAtHome -= dtoChargingValue.GridPower;
                 if (chargingPowerAtHome < usedHomeBatteryPower)
                 {
-                    chargingDetail.HomeBatteryPower = chargingPowerAtHome;
+                    dtoChargingValue.HomeBatteryPower = chargingPowerAtHome;
                     usedHomeBatteryPower -= chargingPowerAtHome;
                 }
                 else
                 {
-                    chargingDetail.HomeBatteryPower = usedHomeBatteryPower;
+                    dtoChargingValue.HomeBatteryPower = usedHomeBatteryPower;
                     usedHomeBatteryPower = 0;
-                    chargingPowerAtHome -= chargingDetail.HomeBatteryPower;
-                    chargingDetail.SolarPower = chargingPowerAtHome;
+                    chargingPowerAtHome -= dtoChargingValue.HomeBatteryPower;
+                    dtoChargingValue.SolarPower = chargingPowerAtHome;
                 }
             }
             logger.LogTrace("Solar power after charging detail: {solarPower}", usedSolarPower);
             logger.LogTrace("Home battery power after charging detail: {homeBatteryDischargingPower}", usedHomeBatteryPower);
             logger.LogTrace("Grid power after charging detail: {gridPower}", usedGridPower);
-            logger.LogTrace("Created charging detail: {@chargingDetail}", chargingDetail);
+            logger.LogTrace("Created charging detail: {@chargingDetail}", dtoChargingValue);
+            if (loadPoint.CarId != default)
+            {
+                var meterValue = new MeterValue(currentDate,
+                    MeterValueKind.Car,
+                    dtoChargingValue.SolarPower + dtoChargingValue.HomeBatteryPower + dtoChargingValue.GridPower)
+                {
+                    CarId = loadPoint.CarId,
+                    MeasuredHomeBatteryPower = dtoChargingValue.HomeBatteryPower,
+                    MeasuredGridPower = dtoChargingValue.GridPower,
+                };
+                if (!settings.CarsWithNonZeroMeterValueAddedLastCycle.ContainsKey(loadPoint.CarId.Value))
+                {
+                    logger.LogTrace("Adding default meter value for car {carId} at {timestamp}", loadPoint.CarId, meterValue.Timestamp);
+                    meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(1);
+                    databaseValueBufferService.Add(GenerateDefaultMeterValue(loadPoint.CarId, null, meterValue.Timestamp));
+                }
+                settings.CarsWithNonZeroMeterValueAddedLastCycle[loadPoint.CarId.Value] = currentDate;
+                databaseValueBufferService.Add(meterValue);
+            }
+            if (loadPoint.ChargingConnectorId != default)
+            {
+                var meterValue = new MeterValue(currentDate,
+                    MeterValueKind.ChargingConnector,
+                    dtoChargingValue.SolarPower + dtoChargingValue.HomeBatteryPower + dtoChargingValue.GridPower)
+                {
+                    ChargingConnectorId = loadPoint.ChargingConnectorId,
+                    MeasuredHomeBatteryPower = dtoChargingValue.HomeBatteryPower,
+                    MeasuredGridPower = dtoChargingValue.GridPower,
+                };
+                if (!settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle.ContainsKey(loadPoint.ChargingConnectorId.Value))
+                {
+                    logger.LogTrace("Adding default meter value for charging connector {chargingConnectorId} at {timestamp}", loadPoint.ChargingConnectorId, meterValue.Timestamp);
+                    meterValue.Timestamp = meterValue.Timestamp.AddMilliseconds(1);
+                    databaseValueBufferService.Add(GenerateDefaultMeterValue(null, loadPoint.ChargingConnectorId, meterValue.Timestamp));
+                }
+                settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle[loadPoint.ChargingConnectorId.Value] = currentDate;
+                databaseValueBufferService.Add(meterValue);
+            }
         }
-        await context.SaveChangesAsync().ConfigureAwait(false);
+        var maxLatestNonZeroAge = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds) * 2;
+        var minDate = currentDate - maxLatestNonZeroAge;
+        var nonZeroCarsCopy = settings.CarsWithNonZeroMeterValueAddedLastCycle.ToDictionary();
+        foreach (var carLastNonZeroMeterValue in nonZeroCarsCopy)
+        {
+            if (carLastNonZeroMeterValue.Value < minDate)
+            {
+                logger.LogTrace("Adding ending meter value for car {carId} with last non zero meter value at {lastNonZeroMeterValue}", carLastNonZeroMeterValue.Key, carLastNonZeroMeterValue.Value);
+                var endingMeterValue = GenerateDefaultMeterValue(carLastNonZeroMeterValue.Key, null, carLastNonZeroMeterValue.Value.AddMilliseconds(1));
+                databaseValueBufferService.Add(endingMeterValue);
+                settings.CarsWithNonZeroMeterValueAddedLastCycle.Remove(carLastNonZeroMeterValue.Key, out _);
+            }
+        }
+        var nonZeroChargingConnectorsCopy = settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle.ToDictionary();
+        foreach (var chargingConnectorLastNonZeroMeterValue in nonZeroChargingConnectorsCopy)
+        {
+            if (chargingConnectorLastNonZeroMeterValue.Value < minDate)
+            {
+                logger.LogTrace("Adding ending meter value for charging connector {chargingConnectorId} with last non zero meter value at {lastNonZeroMeterValue}", chargingConnectorLastNonZeroMeterValue.Key, chargingConnectorLastNonZeroMeterValue.Value);
+                var endingMeterValue = GenerateDefaultMeterValue(null, chargingConnectorLastNonZeroMeterValue.Key, chargingConnectorLastNonZeroMeterValue.Value.AddMilliseconds(1));
+                databaseValueBufferService.Add(endingMeterValue);
+                settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle.Remove(chargingConnectorLastNonZeroMeterValue.Key, out _);
+            }
+        }
     }
 
-    private async Task<ChargingDetail> GetAttachedChargingDetail(int? carId, int? chargingConnectorId)
+    public MeterValue GenerateDefaultMeterValue(int? carId, int? chargingConnectorId, DateTimeOffset timestamp)
+    {
+        logger.LogTrace("{method}({carId}, {chargingConnectorId}, {timestamp})", nameof(GenerateDefaultMeterValue), carId, chargingConnectorId, timestamp);
+        if (carId == default && chargingConnectorId == default)
+        {
+            throw new ArgumentException("Either carId or chargingConnectorId must be provided.");
+        }
+        var meterValue = new MeterValue(timestamp,
+            carId != default ? MeterValueKind.Car : MeterValueKind.ChargingConnector,
+            0)
+        {
+            CarId = carId,
+            ChargingConnectorId = chargingConnectorId,
+        };
+        return meterValue;
+    }
+
+    public async Task AddNonZeroMeterValuesCarsAndChargingStationsToSettings()
+    {
+        logger.LogTrace("{method}()", nameof(AddNonZeroMeterValuesCarsAndChargingStationsToSettings));
+        var carIds = await context.Cars
+            .Where(c => c.ShouldBeManaged == true)
+            .Select(c => c.Id)
+            .ToHashSetAsync().ConfigureAwait(false);
+        
+        foreach (var carId in carIds)
+        {
+            var latestMeterValue =
+                await meterValueEstimationService.GetLatestMeterValueFromDatabase(MeterValueKind.Car, carId, null, false).ConfigureAwait(false);
+            logger.LogTrace("Latest meter value for car {carId}: {@meterValue}", carId, latestMeterValue);
+            if (latestMeterValue != default && latestMeterValue.MeasuredPower != 0)
+            {
+                settings.CarsWithNonZeroMeterValueAddedLastCycle[carId] = latestMeterValue.Timestamp;
+            }
+        }
+
+        var chargingStationConnectorIds = await context.OcppChargingStationConnectors
+            .Where(c => c.ShouldBeManaged == true)
+            .Select(c => c.Id)
+            .ToHashSetAsync().ConfigureAwait(false);
+
+        foreach (var chargingStationConnectorId in chargingStationConnectorIds)
+        {
+            var latestMeterValue =
+                await meterValueEstimationService.GetLatestMeterValueFromDatabase(MeterValueKind.ChargingConnector, null, chargingStationConnectorId, false).ConfigureAwait(false);
+            logger.LogTrace("Latest meter value for chargingConnector {chargingConnectorId}: {@meterValue}", chargingStationConnectorId, latestMeterValue);
+            if (latestMeterValue != default && latestMeterValue.MeasuredPower != 0)
+            {
+                settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle[chargingStationConnectorId] = latestMeterValue.Timestamp;
+            }
+        }
+
+    }
+
+    private class DtoChargingValue
+    {
+        public int GridPower { get; set; }
+        public int HomeBatteryPower { get; set; }
+        public int SolarPower { get; set; }
+    }
+
+    private async Task AddNewChargingProcessIfRequired(int? carId, int? chargingConnectorId, DateTimeOffset currentDate)
     {
         var latestOpenChargingProcessId = await context.ChargingProcesses
             .Where(cp => cp.CarId == carId
@@ -418,26 +569,16 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .OrderByDescending(cp => cp.StartDate)
             .Select(cp => cp.Id)
             .FirstOrDefaultAsync().ConfigureAwait(false);
-        var chargingDetail = new ChargingDetail
-        {
-            TimeStamp = dateTimeProvider.UtcNow(),
-        };
         if (latestOpenChargingProcessId == default)
         {
             var chargingProcess = new ChargingProcess
             {
-                StartDate = chargingDetail.TimeStamp,
+                StartDate = currentDate.UtcDateTime,
                 CarId = carId,
                 OcppChargingStationConnectorId = chargingConnectorId,
             };
             context.ChargingProcesses.Add(chargingProcess);
-            chargingProcess.ChargingDetails.Add(chargingDetail);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
-        else
-        {
-            chargingDetail.ChargingProcessId = latestOpenChargingProcessId;
-            context.ChargingDetails.Add(chargingDetail);
-        }
-        return chargingDetail;
     }
 }

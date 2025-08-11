@@ -2,6 +2,7 @@
 using PkSoftwareService.Custom.Backend;
 using Serilog.Events;
 using System.IO.Compression;
+using System.Linq.Expressions;
 using System.Text;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Dtos;
@@ -14,6 +15,7 @@ using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Dtos.Support;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using MeterValue = TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MeterValue;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -25,7 +27,8 @@ public class DebugService(ILogger<DebugService> logger,
     IOcppChargePointActionService ocppChargePointActionService,
     IConstants constants,
     ISettings settings,
-    IConfigurationWrapper configurationWrapper) : IDebugService
+    IConfigurationWrapper configurationWrapper,
+    IServiceProvider serviceProvider) : IDebugService
 {
     public async Task<Dictionary<int, DtoDebugChargingConnector>> GetChargingConnectors()
     {
@@ -124,6 +127,18 @@ public class DebugService(ILogger<DebugService> logger,
             await inMemorySink.StreamLogsAsync(writer);
             await writer.FlushAsync(); // Ensure all data is written
         }
+    }
+
+    public async Task<List<MeterValue>> GetLatestMeterValues()
+    {
+        using var scope = serviceProvider.CreateScope();
+        var localContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        localContext.Database.SetCommandTimeout(600);
+        var meterValues = await localContext.MeterValues
+            .GroupBy(m => new { m.CarId, m.ChargingConnectorId, m.MeterValueKind })
+            .Select(g => g.OrderByDescending(m => m.Timestamp).First())
+            .ToListAsync().ConfigureAwait(false);
+        return meterValues;
     }
 
     public string GetInMemoryLogLevel()

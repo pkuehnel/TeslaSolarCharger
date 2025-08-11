@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250809121631_AddSolarValuesToMeterValues")]
+    partial class AddSolarValuesToMeterValues
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
@@ -554,9 +557,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<int?>("CarId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("ChargingConnectorId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<long?>("EstimatedEnergyWs")
                         .HasColumnType("INTEGER");
 
@@ -583,10 +583,7 @@ namespace TeslaSolarCharger.Model.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ChargingConnectorId");
-
-                    b.HasIndex("CarId", "ChargingConnectorId", "MeterValueKind", "Timestamp")
-                        .HasDatabaseName("IX_MeterValues_CarId_MeterValueKind_Timestamp");
+                    b.HasIndex("CarId");
 
                     b.ToTable("MeterValues", t =>
                         {
@@ -1109,13 +1106,7 @@ namespace TeslaSolarCharger.Model.Migrations
                         .WithMany()
                         .HasForeignKey("CarId");
 
-                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnector", "ChargingConnector")
-                        .WithMany("MeterValues")
-                        .HasForeignKey("ChargingConnectorId");
-
                     b.Navigation("Car");
-
-                    b.Navigation("ChargingConnector");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ModbusResultConfiguration", b =>
@@ -1249,8 +1240,6 @@ namespace TeslaSolarCharger.Model.Migrations
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnector", b =>
                 {
                     b.Navigation("ChargingProcesses");
-
-                    b.Navigation("MeterValues");
 
                     b.Navigation("OcppChargingStationConnectorValueLogs");
                 });
