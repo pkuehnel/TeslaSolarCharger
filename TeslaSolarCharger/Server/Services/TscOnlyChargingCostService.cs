@@ -399,6 +399,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         //ToDo: order loadpoints by chargingPriority, so the most important car gets the least amount of Grid Power in its calculation
         foreach (var loadPoint in loadPoints)
         {
+            logger.LogTrace("Adding meter values for loadpoint {@loadpoint}", loadPoint);
             var chargingPowerAtHome = loadPoint.ChargingPower;
             if (chargingPowerAtHome < 1)
             {
@@ -562,6 +563,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
 
     private async Task AddNewChargingProcessIfRequired(int? carId, int? chargingConnectorId, DateTimeOffset currentDate)
     {
+        logger.LogTrace("{method}({carId}, {chargingConnectorId}, {currentDate})", nameof(AddNewChargingProcessIfRequired), carId, chargingConnectorId, currentDate);
         var latestOpenChargingProcessId = await context.ChargingProcesses
             .Where(cp => cp.CarId == carId
                          && cp.OcppChargingStationConnectorId == chargingConnectorId
@@ -571,6 +573,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .FirstOrDefaultAsync().ConfigureAwait(false);
         if (latestOpenChargingProcessId == default)
         {
+            logger.LogTrace("No open charging process found for car {carId} and charging connector {chargingConnectorId}, creating new one.", carId, chargingConnectorId);
             var chargingProcess = new ChargingProcess
             {
                 StartDate = currentDate.UtcDateTime,
