@@ -26,36 +26,20 @@ namespace TeslaSolarCharger.Server.Middlewares
             var path = context.Request.Path.Value?.ToLower() ?? "";
 
             // Allow API calls that check startup status
-            if (path.Contains("/api/hello/isstartupcompleted"))
+            if (path.Contains("/api/hello/isstartupcompleted") || path.EndsWith(".css"))
             {
                 await _next(context);
                 return;
             }
 
-            // Block WebAssembly files and main app requests
-            if (path == "/" ||
-                path == "/index.html" ||
-                path.EndsWith(".dll") ||
-                path.EndsWith(".wasm") ||
-                path.Contains("_framework") ||
-                path.EndsWith(".blat") ||
-                path.EndsWith(".dat") ||
-                path.EndsWith(".gz") ||
-                path.EndsWith(".br"))
-            {
-                _logger.LogDebug("Blocking request to {Path} - startup not complete", path);
+            _logger.LogDebug("Blocking request to {Path} - startup not complete", path);
 
-                // Return a simple HTML page with startup message
-                context.Response.StatusCode = 200;
-                context.Response.ContentType = "text/html; charset=utf-8";
+            // Return a simple HTML page with startup message
+            context.Response.StatusCode = 200;
+            context.Response.ContentType = "text/html; charset=utf-8";
 
-                var html = GetStartupHtml();
-                await context.Response.WriteAsync(html);
-                return;
-            }
-
-            // Allow other resources (CSS, images, etc.)
-            await _next(context);
+            var html = GetStartupHtml();
+            await context.Response.WriteAsync(html);
         }
 
         private string GetStartupHtml()
