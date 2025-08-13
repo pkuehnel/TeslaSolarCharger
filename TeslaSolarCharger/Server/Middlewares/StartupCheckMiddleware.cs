@@ -76,7 +76,7 @@ namespace TeslaSolarCharger.Server.Middlewares
 <body>
     <div class=""m-2"">
         <div class=""alert alert-warning"" role=""alert"">
-            <div>Application starting up - Read to the end!!</div>
+            <div>Application starting up - Please read the complete message.</div>
             <hr />
             <div>TeslaSolarCharger is starting up. Depending on your device and the size of your database, this can take up to 30 minutes after an update. Do NOT stop or restart the container, as this might damage the database. For further information, check the logs. After the startup is finished, the page will reload automatically. Note: The duration this takes is not the same in each update; just because it took just a few seconds the last few months does not mean it is not normal if it takes 30 minutes this time.</div>
         </div>
