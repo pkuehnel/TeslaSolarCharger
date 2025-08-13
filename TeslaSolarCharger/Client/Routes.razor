@@ -1,27 +1,11 @@
-﻿@using TeslaSolarCharger.Client.Contracts
-@using TeslaSolarCharger.Client.Helper.Contracts
-@inject IIsStartupCompleteChecker IsStartupCompleteChecker
-@inject IJSRuntime JsRuntime
+﻿@inject IJSRuntime JsRuntime
 
-@if (_isStartupCompleted != false)
-{
-    <Router AppAssembly="typeof(Program).Assembly">
-        <Found Context="routeData">
-            <RouteView RouteData="routeData" DefaultLayout="typeof(Shared.MainLayout)"/>
-            <FocusOnNavigate RouteData="routeData" Selector="h1"/>
-        </Found>
-    </Router>
-}
-else
-{
-    <div class="m-2">
-        <div class="alert alert-warning" role="alert">
-            <div>Application starting up - Read to the end!!</div>
-            <hr />
-            <div>TeslaSolarCharger is starting up. Depending on your device and the size of your database, this can take up to 30 minutes after an update. Do NOT stop or restart the container, as this might damage the database. For further information, check the logs. After the startup is finished, the page will reload automatically. Note: The duration this takes is not the same in each update; just because it took just a few seconds the last few months does not mean it is not normal if it takes 30 minutes this time.</div>
-        </div>
-    </div>
-}
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>
 
 <script>
     function hideElementById(id) {
@@ -32,12 +16,6 @@ else
 
 @code
 {
-    private bool? _isStartupCompleted;
-    protected override async Task OnInitializedAsync()
-    {
-        AutoRefreshPageUntilStartupCompleted();
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if(firstRender)
@@ -46,22 +24,5 @@ else
         }
 
         await base.OnAfterRenderAsync(firstRender);
-    }
-
-    private async Task AutoRefreshPageUntilStartupCompleted()
-    {
-        await RefreshIsStartupCompleted();
-        if (_isStartupCompleted != true)
-        {
-            StateHasChanged();
-            await Task.Delay(TimeSpan.FromSeconds(2));
-            await AutoRefreshPageUntilStartupCompleted();
-        }
-        StateHasChanged();
-    }
-
-    private async Task RefreshIsStartupCompleted()
-    {
-        _isStartupCompleted = await IsStartupCompleteChecker.IsStartupCompleteAsync();
     }
 }

@@ -139,6 +139,8 @@ if (configurationWrapper.AllowCors())
 
 app.UseAntiforgery();
 
+app.UseMiddleware<StartupCheckMiddleware>();
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
@@ -172,28 +174,29 @@ app.Run();
 
 async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger1, IConfigurationWrapper configurationWrapper1)
 {
-    var settings = webApplication.Services.GetRequiredService<ISettings>();
+    using var startupScope = webApplication.Services.CreateScope();
+    var settings = startupScope.ServiceProvider.GetRequiredService<ISettings>();
     try
     {
         //Wait ten seconds to let endpoints come up, so startup page is displayed immediatly
         await Task.Delay(10000);
         //Do nothing before these lines as database is restored or created here.
-        var baseConfigurationService = webApplication.Services.GetRequiredService<IBaseConfigurationService>();
+        var baseConfigurationService = startupScope.ServiceProvider.GetRequiredService<IBaseConfigurationService>();
         baseConfigurationService.ProcessPendingRestore();
-        var teslaSolarChargerContext = webApplication.Services.GetRequiredService<ITeslaSolarChargerContext>();
+        var teslaSolarChargerContext = startupScope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
 
-        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
+        var errorHandlingService = startupScope.ServiceProvider.GetRequiredService<IErrorHandlingService>();
         await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
 
 
-        var teslaFleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
+        var teslaFleetApiService = startupScope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
         await teslaFleetApiService.RefreshFleetApiRequestsAreAllowed();
 
         var shouldRetry = false;
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
         
-        var teslaMateContextWrapper = webApplication.Services.GetRequiredService<ITeslaMateDbContextWrapper>();
+        var teslaMateContextWrapper = startupScope.ServiceProvider.GetRequiredService<ITeslaMateDbContextWrapper>();
         var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
         if (teslaMateContext != default)
         {
@@ -224,9 +227,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             }
         }
 
-        var tscConfigurationService = webApplication.Services.GetRequiredService<ITscConfigurationService>();
+        var tscConfigurationService = startupScope.ServiceProvider.GetRequiredService<ITscConfigurationService>();
         var installationId = await tscConfigurationService.GetInstallationId().ConfigureAwait(false);
-        var backendApiService = webApplication.Services.GetRequiredService<IBackendApiService>();
+        var backendApiService = startupScope.ServiceProvider.GetRequiredService<IBackendApiService>();
         var version = await backendApiService.GetCurrentVersion().ConfigureAwait(false);
         if (version != default && version.Contains('-'))
         {
@@ -237,26 +240,26 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         await backendApiService.PostInstallationInformation("Startup").ConfigureAwait(false);
 
-        var coreService = webApplication.Services.GetRequiredService<ICoreService>();
+        var coreService = startupScope.ServiceProvider.GetRequiredService<ICoreService>();
         await coreService.BackupDatabaseIfNeeded().ConfigureAwait(false);
 
-        var life = webApplication.Services.GetRequiredService<IHostApplicationLifetime>();
+        var life = startupScope.ServiceProvider.GetRequiredService<IHostApplicationLifetime>();
         life.ApplicationStopped.Register(() =>
         {
             coreService.KillAllServices().GetAwaiter().GetResult();
         });
 
-        var chargingCostService = webApplication.Services.GetRequiredService<IChargingCostService>();
+        var chargingCostService = startupScope.ServiceProvider.GetRequiredService<IChargingCostService>();
         await chargingCostService.DeleteDuplicatedHandleCharges().ConfigureAwait(false);
 
 
 
         await configurationWrapper1.TryAutoFillUrls().ConfigureAwait(false);
 
-        var telegramService = webApplication.Services.GetRequiredService<ITelegramService>();
+        var telegramService = startupScope.ServiceProvider.GetRequiredService<ITelegramService>();
         await telegramService.SendMessage("Error messages via Telegram enabled. Note: Error and error resolved messages are only sent every five minutes.").ConfigureAwait(false);
 
-        var configJsonService = webApplication.Services.GetRequiredService<IConfigJsonService>();
+        var configJsonService = startupScope.ServiceProvider.GetRequiredService<IConfigJsonService>();
         await configJsonService.ConvertOldCarsToNewCar().ConfigureAwait(false);
         await configJsonService.SetCorrectHomeDetectionVia().ConfigureAwait(false);
         await configJsonService.AddBleBaseUrlToAllCars().ConfigureAwait(false);
@@ -266,18 +269,18 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await chargingCostService.AddFirstChargePrice().ConfigureAwait(false);
         await chargingCostService.UpdateChargingProcessesAfterChargingDetailsFix().ConfigureAwait(false);
 
-        var tscOnlyChargingCostService = webApplication.Services.GetRequiredService<ITscOnlyChargingCostService>();
+        var tscOnlyChargingCostService = startupScope.ServiceProvider.GetRequiredService<ITscOnlyChargingCostService>();
         await tscOnlyChargingCostService.AddNonZeroMeterValuesCarsAndChargingStationsToSettings().ConfigureAwait(false);
 
 
-        var meterValueImportService = webApplication.Services.GetRequiredService<IMeterValueImportService>();
+        var meterValueImportService = startupScope.ServiceProvider.GetRequiredService<IMeterValueImportService>();
         await meterValueImportService.ImportMeterValuesFromChargingDetailsAsync().ConfigureAwait(false);
 
         await backendApiService.RefreshBackendTokenIfNeeded().ConfigureAwait(false);
-        var fleetApiService = webApplication.Services.GetRequiredService<ITeslaFleetApiService>();
+        var fleetApiService = startupScope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
         await fleetApiService.RefreshFleetApiTokenIfNeeded().ConfigureAwait(false);
 
-        var carConfigurationService = webApplication.Services.GetRequiredService<ICarConfigurationService>();
+        var carConfigurationService = startupScope.ServiceProvider.GetRequiredService<ICarConfigurationService>();
         if (!configurationWrapper.ShouldUseFakeSolarValues())
         {
             await configJsonService.UpdateAverageGridVoltage().ConfigureAwait(false);
@@ -293,10 +296,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         await configJsonService.AddCarsToSettings().ConfigureAwait(false);
 
 
-        var pvValueService = webApplication.Services.GetRequiredService<IPvValueService>();
+        var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();
         await pvValueService.ConvertToNewConfiguration().ConfigureAwait(false);
 
-        var spotPriceService = webApplication.Services.GetRequiredService<ISpotPriceService>();
+        var spotPriceService = startupScope.ServiceProvider.GetRequiredService<ISpotPriceService>();
         await spotPriceService.GetSpotPricesSinceFirstChargeDetail().ConfigureAwait(false);
 
         var homeGeofenceName = configurationWrapper.GeoFence();
@@ -313,16 +316,16 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         }
         await baseConfigurationService.UpdateBaseConfigurationAsync(baseConfiguration);
 
-        var meterValueEstimationService = webApplication.Services.GetRequiredService<IMeterValueEstimationService>();
+        var meterValueEstimationService = startupScope.ServiceProvider.GetRequiredService<IMeterValueEstimationService>();
         await meterValueEstimationService.FillMissingEstimatedMeterValuesInDatabase().ConfigureAwait(false);
 
-        var jobManager = webApplication.Services.GetRequiredService<JobManager>();
+        var jobManager = startupScope.ServiceProvider.GetRequiredService<JobManager>();
         //if (!Debugger.IsAttached)
         {
             await jobManager.StartJobs().ConfigureAwait(false);
         }
 
-        var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
+        var issueKeys = startupScope.ServiceProvider.GetRequiredService<IIssueKeys>();
         await errorHandlingService.HandleErrorResolved(issueKeys.CrashedOnStartup, null)
             .ConfigureAwait(false);
     }
@@ -331,8 +334,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         logger1.LogCritical(ex, "Crashed on startup");
         settings.CrashedOnStartup = true;
         settings.StartupCrashMessage = ex.Message;
-        var errorHandlingService = webApplication.Services.GetRequiredService<IErrorHandlingService>();
-        var issueKeys = webApplication.Services.GetRequiredService<IIssueKeys>();
+        var errorHandlingService = startupScope.ServiceProvider.GetRequiredService<IErrorHandlingService>();
+        var issueKeys = startupScope.ServiceProvider.GetRequiredService<IIssueKeys>();
         await errorHandlingService.HandleError(nameof(Program), "Startup", "TSC crashed on startup",
                 $"Exception Message: {ex.Message}", issueKeys.CrashedOnStartup, null, ex.StackTrace)
             .ConfigureAwait(false);
@@ -340,7 +343,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     finally
     {
         settings.IsStartupCompleted = true;
-        var dateTimeProvider = webApplication.Services.GetRequiredService<IDateTimeProvider>();
+        var dateTimeProvider = startupScope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         settings.StartupTime = dateTimeProvider.UtcNow();
     }
 }
