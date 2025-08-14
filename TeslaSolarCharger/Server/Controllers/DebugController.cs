@@ -20,6 +20,17 @@ public class DebugController(
         Formatting = Formatting.Indented, Converters = new List<JsonConverter> { new StringEnumConverter(), },
     };
 
+    /// <summary>
+    /// Gets the current startup logs
+    /// </summary>
+    /// <returns>List of log entries</returns>
+    [HttpGet]
+    public ActionResult<List<string>> GetLogs(int tail)
+    {
+        var logs = debugService.GetLogs(tail);
+        return Ok(logs);
+    }
+
     [HttpGet]
     public async Task<IActionResult> DownloadInMemoryLogs()
     {

@@ -61,14 +61,26 @@ public class InMemorySink : ILogEventSink, IInMemorySink
         }
     }
 
-    /// <summary>
-    /// Returns a snapshot of the current log messages.
-    /// </summary>
-    public List<string> GetLogs()
+    public List<string> GetLogs(int? tail = null)
     {
         lock (_syncRoot)
         {
-            return _logMessages.Select(x => x.Trim()).ToList();
+            if (tail == null || tail >= _logMessages.Count)
+            {
+                // Return all logs if tail is null or larger than available logs
+                return _logMessages.Select(x => x.Trim()).ToList();
+            }
+
+            if (tail <= 0)
+            {
+                return new List<string>();
+            }
+
+            // Get last 'tail' elements efficiently
+            return _logMessages
+                .Skip(_logMessages.Count - tail.Value)
+                .Select(x => x.Trim())
+                .ToList();
         }
     }
 

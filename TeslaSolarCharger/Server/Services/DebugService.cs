@@ -141,6 +141,11 @@ public class DebugService(ILogger<DebugService> logger,
         return meterValues;
     }
 
+    public List<string> GetLogs(int? tail)
+    {
+        return inMemorySink.GetLogs(tail);
+    }
+
     public string GetInMemoryLogLevel()
     {
         logger.LogTrace("{method}", nameof(GetInMemoryLogLevel));
