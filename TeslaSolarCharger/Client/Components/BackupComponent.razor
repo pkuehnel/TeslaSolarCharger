@@ -37,6 +37,7 @@
     <MudFileUpload T="IBrowserFile" FilesChanged="SelectFile" Accept=".zip" MaximumFileCount="1">
         <ActivatorContent>
             <MudButton HtmlTag="label"
+                       Disabled="@(_processingBackup || _processingRestore)"
                        Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.AttachFile">
