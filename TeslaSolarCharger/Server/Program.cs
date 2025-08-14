@@ -207,6 +207,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         {
             // Restore original logger
             Log.Logger = originalLogger;
+            migrationLogger.Dispose();
         }
         var errorHandlingService = startupScope.ServiceProvider.GetRequiredService<IErrorHandlingService>();
         await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
