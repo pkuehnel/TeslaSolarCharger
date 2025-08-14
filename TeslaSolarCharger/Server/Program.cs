@@ -185,32 +185,28 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         baseConfigurationService.ProcessPendingRestore();
         var teslaSolarChargerContext = startupScope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         // Before migration, temporarily enable detailed EF Core logging
-        using (LogContext.PushProperty("DetailedEFLogging", true))
+        var migrationLogger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Debug) // More detailed EF logs
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Information) // SQL commands
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Infrastructure", LogEventLevel.Debug) // Infrastructure logs
+            .WriteTo.Sink(inMemorySink)
+            .CreateLogger();
+
+        // Temporarily replace the logger
+        var originalLogger = Log.Logger;
+        Log.Logger = migrationLogger;
+
+        try
         {
-            // Create a temporary logger configuration for the migration
-            var migrationLogger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Debug) // More detailed EF logs
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Information) // SQL commands
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Infrastructure", LogEventLevel.Debug) // Infrastructure logs
-                .WriteTo.Sink(inMemorySink)
-                .CreateLogger();
-
-            // Temporarily replace the logger
-            var originalLogger = Log.Logger;
-            Log.Logger = migrationLogger;
-
-            try
-            {
-                logger.LogInformation("Starting database migration with detailed logging...");
-                await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
-                logger.LogInformation("Database migration completed");
-            }
-            finally
-            {
-                // Restore original logger
-                Log.Logger = originalLogger;
-            }
+            logger.LogInformation("Starting database migration with detailed logging...");
+            await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+            logger.LogInformation("Database migration completed");
+        }
+        finally
+        {
+            // Restore original logger
+            Log.Logger = originalLogger;
         }
         var errorHandlingService = startupScope.ServiceProvider.GetRequiredService<IErrorHandlingService>();
         await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);

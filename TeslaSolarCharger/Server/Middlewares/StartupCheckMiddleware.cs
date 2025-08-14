@@ -116,7 +116,6 @@ namespace TeslaSolarCharger.Server.Middlewares
                         }}
                     }}, 2000);
                     
-                    // Update logs every second
                     setInterval(updateLogs, 10000);
                     
                     // Initial log update
