@@ -178,6 +178,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     var settings = startupScope.ServiceProvider.GetRequiredService<ISettings>();
     try
     {
+        logger1.LogInformation("Starting application startup tasks...");
+        await Task.Delay(10000).ConfigureAwait(false); // Wait 10seconds to allow kestrel to start properly
         //Do nothing before these lines as database is restored or created here.
         var baseConfigurationService = startupScope.ServiceProvider.GetRequiredService<IBaseConfigurationService>();
         baseConfigurationService.ProcessPendingRestore();
