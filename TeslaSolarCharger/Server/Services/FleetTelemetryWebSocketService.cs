@@ -35,6 +35,21 @@ public class FleetTelemetryWebSocketService(
         return Clients.Any(c => c.Vin == vin && c.WebSocketClient.State == WebSocketState.Open);
     }
 
+    public DateTimeOffset? ClientConnectedSince(string vin)
+    {
+        logger.LogTrace("{method}({vin})", nameof(ClientConnectedSince), vin);
+        var client = Clients.FirstOrDefault(c => c.Vin == vin);
+        if (client == default)
+        {
+            return default;
+        }
+        if (client.WebSocketClient.State != WebSocketState.Open)
+        {
+            return default;
+        }
+        return client.ConnectedSince;
+    }
+
     public async Task ReconnectWebSocketsForEnabledCars()
     {
         logger.LogTrace("{method}", nameof(ReconnectWebSocketsForEnabledCars));
@@ -73,7 +88,7 @@ public class FleetTelemetryWebSocketService(
             var existingClient = Clients.FirstOrDefault(c => c.Vin == car.Vin);
             if (existingClient != default)
             {
-                var currentTime = dateTimeProvider.UtcNow();
+                var currentTime = dateTimeProvider.DateTimeOffSetUtcNow();
                 //When intervall is changed, change it also in the server WebSocketConnectionHandlingService.SendHeartbeatsTask
                 var serverSideHeartbeatIntervall = TimeSpan.FromSeconds(54);
                 var additionalIntervallbuffer = TimeSpan.FromSeconds(30);
@@ -116,7 +131,7 @@ public class FleetTelemetryWebSocketService(
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
         var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
         var context = scope.ServiceProvider.GetRequiredService<TeslaSolarChargerContext>();
-        var currentDate = dateTimeProvider.UtcNow();
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
         var url = configurationWrapper.FleetTelemetryApiUrl() + $"vin={vin}";
         var authToken = await context.BackendTokens.AsNoTracking().SingleOrDefaultAsync();
         if (authToken == default)
@@ -137,12 +152,15 @@ public class FleetTelemetryWebSocketService(
                 WebSocketClient = client,
                 CancellationToken = cancellation.Token,
                 LastReceivedHeartbeat = currentDate,
+                ConnectedSince = currentDate,
             };
             Clients.Add(dtoClient);
             var carId = await context.Cars
                 .Where(c => c.Vin == vin)
                 .Select(c => c.Id)
                 .FirstOrDefaultAsync().ConfigureAwait(false);
+            var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
+            await loadPointManagementService.CarStateChanged(carId).ConfigureAwait(false);
             try
             {
                 await ReceiveMessages(dtoClient, dtoClient.Vin, carId).ConfigureAwait(false);
@@ -195,7 +213,7 @@ public class FleetTelemetryWebSocketService(
                     if (jsonMessage == "Heartbeat")
                     {
                         logger.LogTrace("Received heartbeat: {message}", jsonMessage);
-                        client.LastReceivedHeartbeat = dateTimeProvider.UtcNow();
+                        client.LastReceivedHeartbeat = dateTimeProvider.DateTimeOffSetUtcNow();
                         continue;
                     }
                     logger.LogTrace("Received non heartbeat message.");

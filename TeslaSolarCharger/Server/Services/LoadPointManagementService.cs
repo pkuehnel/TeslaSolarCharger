@@ -20,6 +20,7 @@ public class LoadPointManagementService : ILoadPointManagementService
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IChangeTrackingService _changeTrackingService;
     private readonly IEntityKeyGenerationHelper _entityKeyGenerationHelper;
+    private readonly IFleetTelemetryWebSocketService _fleetTelemetryWebSocketService;
     private readonly ITeslaSolarChargerContext _context;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IErrorHandlingService _errorHandlingService;
@@ -35,7 +36,8 @@ public class LoadPointManagementService : ILoadPointManagementService
     IAppStateNotifier appStateNotifier,
     IDateTimeProvider dateTimeProvider,
     IChangeTrackingService changeTrackingService,
-    IEntityKeyGenerationHelper entityKeyGenerationHelper)
+    IEntityKeyGenerationHelper entityKeyGenerationHelper,
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -47,6 +49,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         _dateTimeProvider = dateTimeProvider;
         _changeTrackingService = changeTrackingService;
         _entityKeyGenerationHelper = entityKeyGenerationHelper;
+        _fleetTelemetryWebSocketService = fleetTelemetryWebSocketService;
     }
 
     public async Task OcppStateChanged(int chargingConnectorId)
@@ -89,6 +92,11 @@ public class LoadPointManagementService : ILoadPointManagementService
             IsPluggedIn = car.PluggedIn == true,
             Soc = car.SoC,
         };
+        var webSocketConnectedSince = _fleetTelemetryWebSocketService.ClientConnectedSince(car.Vin);
+        if(webSocketConnectedSince != default)
+        {
+            carState.FleetTelemetryConnectedSinceAtLeastTenMinutes = webSocketConnectedSince.Value.AddMinutes(10) < _dateTimeProvider.DateTimeOffSetUtcNow();
+        }
         return carState;
     }
 

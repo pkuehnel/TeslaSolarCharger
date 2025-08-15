@@ -27,4 +27,5 @@ public class DtoCarOverviewState
     public bool IsCharging { get; set; }
     public bool IsHome { get; set; }
     public bool IsPluggedIn { get; set; }
+    public bool? FleetTelemetryConnectedSinceAtLeastTenMinutes { get; set; }
 }
