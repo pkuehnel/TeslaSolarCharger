@@ -30,4 +30,5 @@ public interface IDebugService
     Task WriteFileLogsToStream(Stream outputStream);
     Task StreamLogsToAsync(Stream stream);
     Task<List<MeterValue>> GetLatestMeterValues();
+    List<string> GetLogs(int? tail);
 }

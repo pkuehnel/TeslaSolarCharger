@@ -5,7 +5,7 @@ public interface IInMemorySink
     /// <summary>
     /// Returns a snapshot of the current log messages.
     /// </summary>
-    List<string> GetLogs();
+    List<string> GetLogs(int? tail = null);
 
     int GetCapacity();
     void UpdateCapacity(int newCapacity);

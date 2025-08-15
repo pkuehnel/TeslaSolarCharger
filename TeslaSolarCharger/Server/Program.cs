@@ -178,14 +178,37 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     var settings = startupScope.ServiceProvider.GetRequiredService<ISettings>();
     try
     {
-        //Wait ten seconds to let endpoints come up, so startup page is displayed immediatly
-        await Task.Delay(10000);
+        logger1.LogInformation("Starting application startup tasks...");
+        await Task.Delay(10000).ConfigureAwait(false); // Wait 10seconds to allow kestrel to start properly
         //Do nothing before these lines as database is restored or created here.
         var baseConfigurationService = startupScope.ServiceProvider.GetRequiredService<IBaseConfigurationService>();
         baseConfigurationService.ProcessPendingRestore();
         var teslaSolarChargerContext = startupScope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
-        await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+        // Before migration, temporarily enable detailed EF Core logging
+        var migrationLogger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Debug) // More detailed EF logs
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Information) // SQL commands
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Infrastructure", LogEventLevel.Debug) // Infrastructure logs
+            .WriteTo.Sink(inMemorySink)
+            .CreateLogger();
 
+        // Temporarily replace the logger
+        var originalLogger = Log.Logger;
+        Log.Logger = migrationLogger;
+
+        try
+        {
+            logger.LogInformation("Starting database migration with detailed logging...");
+            await teslaSolarChargerContext.Database.MigrateAsync().ConfigureAwait(false);
+            logger.LogInformation("Database migration completed");
+        }
+        finally
+        {
+            // Restore original logger
+            Log.Logger = originalLogger;
+            migrationLogger.Dispose();
+        }
         var errorHandlingService = startupScope.ServiceProvider.GetRequiredService<IErrorHandlingService>();
         await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
 
