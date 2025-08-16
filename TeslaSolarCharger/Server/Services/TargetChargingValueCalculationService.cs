@@ -378,7 +378,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                                                      && IsTimeStampedValueRelevant(car.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff,
                                                          out chargeStopAllowedAt);
                 constraintValues.ChargeStopAllowedAt = chargeStopAllowedAt;
-                constraintValues.IsCharging = car.State == CarStateEnum.Charging;
+                constraintValues.IsCharging = car.IsCharging.Value == true;
             }
         }
 

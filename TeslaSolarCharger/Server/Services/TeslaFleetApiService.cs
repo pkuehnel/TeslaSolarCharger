@@ -230,9 +230,9 @@ public class TeslaFleetApiService(
             {
                 await RefreshVehicleOnlineState(car).ConfigureAwait(false);
 
-                if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
+                if (car.IsOnline.Value == false)
                 {
-                    logger.LogDebug("Do not call current vehicle data as car is {state}", car.State);
+                    logger.LogDebug("Do not call current vehicle data as car not online");
                     continue;
                 }
             }
@@ -251,8 +251,7 @@ public class TeslaFleetApiService(
                 var vehicleDataResult = vehicleData?.Response;
                 if (vehicleData?.Error?.Contains("offline") == true)
                 {
-                    car.State = CarStateEnum.Offline;
-                    car.ChargerActualCurrent = 0;
+                    car.IsOnline.Update(dateTimeProvider.DateTimeOffSetUtcNow(), false);
                 }
                 if (vehicleDataResult == default)
                 {
@@ -265,6 +264,7 @@ public class TeslaFleetApiService(
                 if (configurationWrapper.GetVehicleDataFromTesla())
                 {
                     var timeStamp = dateTimeProvider.UtcNow();
+                    var dateTimeOffsetTimeStamp = new DateTimeOffset(timeStamp, TimeSpan.Zero);
                     car.Name = vehicleDataResult.VehicleState.VehicleName;
                     car.SoC = vehicleDataResult.ChargeState.BatteryLevel;
                     teslaSolarChargerContext.CarValueLogs.Add(new()
@@ -318,7 +318,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargerActualCurrent,
                     });
-                    car.UpdatePluggedIn(new(timeStamp, TimeSpan.Zero), vehicleDataResult.ChargeState.ChargingState != "Disconnected");
+                    car.PluggedIn.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargingState != "Disconnected");
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -329,10 +329,9 @@ public class TeslaFleetApiService(
                     });
                     car.TimeUntilFullCharge = TimeSpan.FromHours(vehicleDataResult.ChargeState.TimeToFullCharge);
                     var teslaCarStateString = vehicleDataResult.State;
-                    var teslaCarShiftState = vehicleDataResult.DriveState.ShiftState;
-                    var teslaCarSoftwareUpdateState = vehicleDataResult.VehicleState.SoftwareUpdate.Status;
                     var chargingState = vehicleDataResult.ChargeState.ChargingState;
-                    car.State = DetermineCarState(teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
+                    car.IsOnline.Update(dateTimeOffsetTimeStamp, teslaCarStateString == "online");
+                    car.IsCharging.Update(dateTimeOffsetTimeStamp, chargingState == "Charging");
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -341,15 +340,6 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         BooleanValue = vehicleDataResult.ChargeState.ChargingState != "Charging",
                     });
-                    if (car.State == CarStateEnum.Unknown)
-                    {
-                        await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error determining car state for car {car.Vin}",
-                            $"Could not determine car state. TeslaCarStateString: {teslaCarStateString}, TeslaCarShiftState: {teslaCarShiftState}, TeslaCarSoftwareUpdateState: {teslaCarSoftwareUpdateState}, ChargingState: {chargingState}", issueKeys.CarStateUnknown, car.Vin, null).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await errorHandlingService.HandleErrorResolved(issueKeys.CarStateUnknown, car.Vin);
-                    }
                     car.Healthy = true;
                     car.ChargerRequestedCurrent = vehicleDataResult.ChargeState.ChargeCurrentRequest;
                     teslaSolarChargerContext.CarValueLogs.Add(new()
@@ -427,21 +417,16 @@ public class TeslaFleetApiService(
             if (vehicleState == "asleep")
             {
                 carStateLog.BooleanValue = true;
-                car.State = CarStateEnum.Asleep;
             }
             else if (vehicleState == "offline")
             {
                 carStateLog.BooleanValue = true;
-                car.State = CarStateEnum.Offline;
             }
             else
             {
                 carStateLog.BooleanValue = false;
-                if (car.State == CarStateEnum.Asleep || car.State == CarStateEnum.Offline)
-                {
-                    car.State = CarStateEnum.Online;
-                }
             }
+            car.IsOnline.Update(new(carStateLog.Timestamp, TimeSpan.Zero), carStateLog.BooleanValue == false);
             teslaSolarChargerContext.CarValueLogs.Add(carStateLog);
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
@@ -697,39 +682,6 @@ public class TeslaFleetApiService(
         return lastBeforeStartTimeValue;
     }
 
-
-    private CarStateEnum? DetermineCarState(string teslaCarStateString, string? teslaCarShiftState, string teslaCarSoftwareUpdateState, string chargingState)
-    {
-        logger.LogTrace("{method}({teslaCarStateString}, {teslaCarShiftState}, {teslaCarSoftwareUpdateState}, {chargingState})", nameof(DetermineCarState), teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
-        if (teslaCarStateString == "asleep")
-        {
-            return CarStateEnum.Asleep;
-        }
-
-        if (teslaCarStateString == "offline")
-        {
-            return CarStateEnum.Offline;
-        }
-        if (teslaCarShiftState is "R" or "D")
-        {
-            return CarStateEnum.Driving;
-        }
-        if (chargingState == "Charging")
-        {
-            return CarStateEnum.Charging;
-        }
-        if (teslaCarSoftwareUpdateState == "installing")
-        {
-            return CarStateEnum.Updating;
-        }
-        if (teslaCarStateString == "online")
-        {
-            return CarStateEnum.Online;
-        }
-        logger.LogWarning("Could not determine car state. TeslaCarStateString: {teslaCarStateString}, TeslaCarShiftState: {teslaCarShiftState}, TeslaCarSoftwareUpdateState: {teslaCarSoftwareUpdateState}, ChargingState: {chargingState}", teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
-        return CarStateEnum.Unknown;
-    }
-
     private string GetVinByCarId(int carId)
     {
         var vin = settings.Cars.First(c => c.Id == carId).Vin;
@@ -822,26 +774,11 @@ public class TeslaFleetApiService(
         logger.LogTrace("{method}({carId})", nameof(WakeUpCarIfNeeded), carId);
         var car = settings.Cars.First(c => c.Id == carId);
         await RefreshVehicleOnlineState(car);
-        if (car.State is not (CarStateEnum.Asleep or CarStateEnum.Offline or CarStateEnum.Suspended))
+        if (car.IsOnline.Value == true)
         {
             return;
         }
-        switch (car.State)
-        {
-            case CarStateEnum.Offline or CarStateEnum.Asleep:
-                logger.LogInformation("Wakeup car.");
-                await WakeUpCar(carId, isFleetApiTest).ConfigureAwait(false);
-                break;
-            case CarStateEnum.Suspended:
-                logger.LogInformation("Resume logging as is suspended");
-                if (car.TeslaMateCarId != default)
-                {
-                    //ToDo: fix with https://github.com/pkuehnel/TeslaSolarCharger/issues/1511
-                    //await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
-                }
-
-                break;
-        }
+        await WakeUpCar(carId, isFleetApiTest).ConfigureAwait(false);
     }
 
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null, bool isFleetApiTest = false) where T : class

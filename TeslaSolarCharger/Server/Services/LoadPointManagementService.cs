@@ -6,7 +6,6 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
-using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
@@ -87,9 +86,9 @@ public class LoadPointManagementService : ILoadPointManagementService
         var carState = new DtoCarOverviewState()
         {
             CarSideSocLimit = car.SocLimit,
-            IsCharging = car.State == CarStateEnum.Charging,
-            IsHome = car.IsHomeGeofence == true,
-            IsPluggedIn = car.PluggedIn == true,
+            IsCharging = car.IsCharging.Value == true,
+            IsHome = car.IsHomeGeofence.Value == true,
+            IsPluggedIn = car.PluggedIn.Value == true,
             Soc = car.SoC,
         };
         var webSocketConnectedSince = _fleetTelemetryWebSocketService.ClientConnectedSince(car.Vin);
@@ -212,7 +211,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             var car = _settings.Cars.First(c => c.Id == match.CarId.Value);
             loadPoint.ChargingPower = car.ChargingPowerAtHome ?? 0;
             loadPoint.ChargingVoltage = car.ChargerVoltage ?? _settings.AverageHomeGridVoltage ?? 230;
-            loadPoint.ChargingCurrent = car.IsHomeGeofence == true ? (car.ChargerActualCurrent ?? 0) : 0;
+            loadPoint.ChargingCurrent = car.IsHomeGeofence.Value == true ? (car.ChargerActualCurrent ?? 0) : 0;
             loadPoint.ChargingPhases = car.ActualPhases;
         }
         if (match.ChargingConnectorId != default)
@@ -273,8 +272,8 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.MaxPhases = dtoCar.ActualPhases;
                 loadPoint.ChargingPower = dtoCar.ChargingPowerAtHome;
                 loadPoint.ChargingPriority = dtoCar.ChargingPriority;
-                loadPoint.IsHome = dtoCar.IsHomeGeofence;
-                loadPoint.IsPluggedIn = dtoCar.PluggedIn == true;
+                loadPoint.IsHome = dtoCar.IsHomeGeofence.Value;
+                loadPoint.IsPluggedIn = dtoCar.PluggedIn.Value == true;
                 loadPoint.EstimatedVoltageWhileCharging = CalculateEstimatedChargerVoltageWhileCharging(dtoCar.ChargerVoltage);
                 //Currently always true as all cars are Teslas
                 loadPoint.ManageChargingPowerByCar = true;
@@ -329,7 +328,6 @@ public class LoadPointManagementService : ILoadPointManagementService
             c => new
             {
                 c.Id,
-                c.LastPluggedIn,
                 c.PluggedIn,
                 c.IsHomeGeofence,
             }).ToList();
@@ -356,13 +354,13 @@ public class LoadPointManagementService : ILoadPointManagementService
                 {
                     _logger.LogTrace("Found car {carId} for connector {connectorId} in manual set combinations", carId, connectorId);
                     var car = _settings.Cars.First(c => c.Id == carId.Value);
-                    if (car.PluggedIn != true)
+                    if (car.PluggedIn.Value != true)
                     {
                         _logger.LogDebug("Car {carId} is not plugged in, therefore it can not be set as car for charging connector {connectorId}.", carId, connectorId);
                         matchValid = false;
                     }
 
-                    if (car.LastPluggedIn > value.combinationTimeStamp)
+                    if (car.PluggedIn.LastChanged > value.combinationTimeStamp)
                     {
                         _logger.LogDebug("Car {carId} changed plugged in state since setup of manual car combination", carId);
                         matchValid = false;
@@ -393,9 +391,10 @@ public class LoadPointManagementService : ILoadPointManagementService
                 connectorId, matchWindowStart, matchWindowEnd);
 
             var matchingCars = plugInRelevantCarData
-                .Where(car => car.LastPluggedIn >= matchWindowStart
-                              && car.LastPluggedIn <= matchWindowEnd
-                              && car.IsHomeGeofence == true)
+                .Where(car => car.PluggedIn.Timestamp >= matchWindowStart
+                              && car.PluggedIn.Timestamp <= matchWindowEnd
+                              && car.IsHomeGeofence.Value == true
+                              && car.PluggedIn.Value == true)
                 .ToList();
 
             if (matchingCars.Count == 1)
@@ -473,7 +472,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         if (carId != default)
         {
             var car = _settings.Cars.First(c => c.Id == carId.Value);
-            if (car.PluggedIn != true)
+            if (car.PluggedIn.Value != true)
             {
                 throw new InvalidOperationException("Car is not plugged in, therefore it can not be set as car for charging connector.");
             }

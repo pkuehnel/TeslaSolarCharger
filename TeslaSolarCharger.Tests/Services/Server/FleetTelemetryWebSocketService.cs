@@ -116,7 +116,7 @@ public class FleetTelemetryWebSocketService : TestBase
         var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
         var car = new DtoCar();
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.PluggedIn));
-        Assert.True(car.PluggedIn);
+        Assert.True(car.PluggedIn.Value);
     }
 
     [Fact]

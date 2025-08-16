@@ -154,18 +154,18 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNotLicensed, car.Vin);
             }
 
-            if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
+            if (car.IsOnline.Value == false)
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.GetVehicleData, car.Vin);
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessStatusCode + constants.VehicleDataRequestUrl, car.Vin);
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.VehicleDataRequestUrl, car.Vin);
             }
 
-            if (car.State != CarStateEnum.Asleep && car.State != CarStateEnum.Offline && car.State != CarStateEnum.Unknown)
+            if (car.IsOnline.Value == true)
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessResult + constants.WakeUpRequestUrl, car.Vin);
             }
-            if (car.State is CarStateEnum.Charging)
+            if (car.IsCharging.Value == true)
             {
                 await errorHandlingService.HandleErrorResolved(issueKeys.BleCommandNoSuccess + constants.ChargeStartRequestUrl, car.Vin);
                 await errorHandlingService.HandleErrorResolved(issueKeys.FleetApiNonSuccessStatusCode + constants.ChargeStartRequestUrl, car.Vin);

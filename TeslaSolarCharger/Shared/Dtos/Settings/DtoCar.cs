@@ -35,14 +35,10 @@ public class DtoCar
     public string? Name { get; set; }
     public DtoTimeStampedValue<bool?> ShouldStartCharging { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<bool?> ShouldStopCharging { get; set; } = new(DateTimeOffset.MinValue, null);
-    public DateTime? ShouldStartChargingSince { get; set; }
-    public DateTime? EarliestSwitchOn { get; set; }
-    public DateTime? ShouldStopChargingSince { get; set; }
-    public DateTime? EarliestSwitchOff { get; set; }
     public DateTimeOffset? ScheduledChargingStartTime { get; set; }
     public int? SoC { get; set; }
     public int? SocLimit { get; set; }
-    public bool? IsHomeGeofence { get; set; }
+    public DtoTimeStampedValue<bool?> IsHomeGeofence { get; set; } = new(DateTimeOffset.MinValue, null);
     public TimeSpan? TimeUntilFullCharge { get; set; }
     public DateTime? ReachingMinSocAtFullSpeedCharge { get; set; }
     public bool AutoFullSpeedCharge { get; set; }
@@ -71,21 +67,9 @@ public class DtoCar
     public DtoTimeStampedValue<double?> MinBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<double?> MaxBatteryTemperature { get; set; } = new(DateTimeOffset.MinValue, null);
 
-    public bool? PluggedIn { get; private set; }
-    public DateTimeOffset? LastPluggedIn { get; set; }
-
-    public void UpdatePluggedIn(DateTimeOffset timestamp, bool pluggedIn)
-    {
-        if (pluggedIn && ((PluggedIn == false) || (LastPluggedIn == null)))
-        {
-            LastPluggedIn = timestamp;
-        }
-        if (!pluggedIn)
-        {
-            LastPluggedIn = default;
-        }
-        PluggedIn = pluggedIn;
-    }
+    public DtoTimeStampedValue<bool?> PluggedIn { get; set; } = new(DateTimeOffset.MinValue, null);
+    public DtoTimeStampedValue<bool?> IsCharging { get; set; } = new(DateTimeOffset.MinValue, null);
+    public DtoTimeStampedValue<bool?> IsOnline { get; set; } = new(DateTimeOffset.MinValue, null);
 
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
@@ -95,7 +79,7 @@ public class DtoCar
     {
         get
         {
-            if (IsHomeGeofence == true)
+            if (IsHomeGeofence.Value == true)
             {
                 return ChargingPower;
             }
@@ -122,7 +106,6 @@ public class DtoCar
         set => _chargingPower = value;
     }
 
-    public CarStateEnum? State { get; set; }
     public bool? Healthy { get; set; }
     public bool ReducedChargeSpeedWarning { get; set; }
     public bool UseBle { get; set; }

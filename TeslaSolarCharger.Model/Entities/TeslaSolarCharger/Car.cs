@@ -40,7 +40,6 @@ public class Car
     public bool? PluggedIn { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
-    public CarStateEnum? State { get; set; }
 
     public bool VehicleCommandProtocolRequired { get; set; }
     public bool UseBle { get; set; }

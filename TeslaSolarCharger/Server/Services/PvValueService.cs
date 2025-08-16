@@ -8,7 +8,6 @@ using System.Web;
 using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
@@ -731,14 +730,14 @@ public class PvValueService(
                 {
                     foreach (var dtoCar in settings.CarsToManage)
                     {
-                        dtoCar.IsHomeGeofence = true;
+                        dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), true);
                     }
                 }
                 else
                 {
                     foreach (var dtoCar in settings.CarsToManage)
                     {
-                        dtoCar.IsHomeGeofence = false;
+                        dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), false);
                     }
                 }
                 switch ((settings.LastPvDemoCase++ % 16))
