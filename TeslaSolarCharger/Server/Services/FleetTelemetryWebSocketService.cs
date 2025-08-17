@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -14,9 +13,7 @@ using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
-using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
-using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -63,7 +60,7 @@ public class FleetTelemetryWebSocketService(
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.OpenedLinkButNotTested)
                         && (c.TeslaFleetApiState != TeslaCarFleetApiState.NotConfigured)
                         && (c.IsFleetTelemetryHardwareIncompatible == false))
-            .Select(c => new { c.Vin, IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields, })
+            .Select(c => new { c.Vin, c.IncludeTrackingRelevantFields, })
             .ToListAsync();
         var isBaseAppLicensed = await backendApiService.IsBaseAppLicensed(true).ConfigureAwait(false);
         if (cars.Any() && (isBaseAppLicensed.Data != true))
@@ -119,7 +116,7 @@ public class FleetTelemetryWebSocketService(
                 Clients.Remove(existingClient);
             }
 
-            ConnectToFleetTelemetryApi(car.Vin);
+            _ = ConnectToFleetTelemetryApi(car.Vin);
         }
     }
 
@@ -192,7 +189,7 @@ public class FleetTelemetryWebSocketService(
         {
             try
             {
-                using var scope = serviceProvider.CreateScope();
+                var scope = serviceProvider.CreateScope();
                 var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
                 var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
                 logger.LogTrace("Waiting for new fleet telemetry message for car {vin}", vin);
@@ -349,7 +346,7 @@ public class FleetTelemetryWebSocketService(
                             carPropertyUpdateHelper.UpdateDtoCarProperty(settingsCar, carValueLog);
                         }
                         var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
-                        Task.Run(async () =>
+                        _ = Task.Run(async () =>
                         {
                             try
                             {
@@ -358,6 +355,10 @@ public class FleetTelemetryWebSocketService(
                             catch (Exception ex)
                             {
                                 logger.LogError(ex, "Error occurred while processing CarStateChanged for car ID {carId}", settingsCar.Id);
+                            }
+                            finally
+                            {
+                                scope.Dispose();
                             }
                         });
                     }
