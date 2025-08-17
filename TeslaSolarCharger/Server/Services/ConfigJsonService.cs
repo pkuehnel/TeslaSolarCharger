@@ -277,7 +277,15 @@ public class ConfigJsonService(
                 var valueBeforeLatestValue = await teslaSolarChargerContext.CarValueLogs
                     .Where(c => c.CarId == dtoCar.Id
                                 && c.Type == latestValue.Type
-                                && c.Timestamp < latestValue.Timestamp)
+                                && c.Timestamp < latestValue.Timestamp
+                                && c.DoubleValue != null
+                                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                                && (c.DoubleValue != latestValue.DoubleValue
+                                    || c.IntValue != latestValue.IntValue
+                                    || c.StringValue != latestValue.StringValue
+                                    || c.UnknownValue != latestValue.UnknownValue
+                                    || c.BooleanValue != latestValue.BooleanValue
+                                    || c.InvalidValue != latestValue.InvalidValue))
                     .OrderByDescending(c => c.Timestamp)
                     .FirstOrDefaultAsync();
                 if (valueBeforeLatestValue != default)
