@@ -202,7 +202,7 @@ public class CarPropertyUpdateHelper : ICarPropertyUpdateHelper
                     if (convertedValue != null || targetType.IsClass || Nullable.GetUnderlyingType(innerType) != null)
                     {
                         // Get the Update method
-                        var updateMethod = dtoPropertyType.GetMethod("Update");
+                        var updateMethod = dtoPropertyType.GetMethod(nameof(DtoTimeStampedValue<object>.Update));
                         if (updateMethod != null)
                         {
                             // Convert DateTime to DateTimeOffset
