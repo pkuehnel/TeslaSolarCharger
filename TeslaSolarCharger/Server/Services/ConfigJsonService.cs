@@ -358,6 +358,11 @@ public class ConfigJsonService(
                 }
             }
         }
+
+        if (logValue.Type == CarValueType.AsleepOrOffline)
+        {
+            dtoCar.IsOnline.Update(new DateTimeOffset(logValue.Timestamp, TimeSpan.Zero), logValue.BooleanValue == false);
+        }
         carPropertyUpdateHelper.UpdateDtoCarProperty(dtoCar, logValue);
     }
 
