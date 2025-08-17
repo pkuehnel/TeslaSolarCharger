@@ -1,9 +1,7 @@
-﻿using LanguageExt;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Net;
 using System.Web;
 using TeslaSolarCharger.Server.Dtos.Ble;
-using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -85,7 +83,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
     {
         logger.LogTrace("{method}({vin}, {amps})", nameof(SetAmp), vin, amps);
         var car = settings.Cars.First(c => c.Vin == vin);
-        var initialRequestedCurrent = car.ChargerRequestedCurrent;
+        var initialRequestedCurrent = car.ChargerRequestedCurrent.Value;
         var request = new DtoBleRequest
         {
             Vin = vin,
@@ -313,7 +311,7 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
                 logger.LogError("Failed to send command to BLE. StatusCode: {statusCode} {responseContent}", response.StatusCode, responseContent);
                 throw new InvalidOperationException();
             }
-            var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}"); ;
+            var commandResult = JsonConvert.DeserializeObject<DtoBleCommandResult>(responseContent) ?? throw new InvalidDataException($"Could not parse {responseContent} to {nameof(DtoBleCommandResult)}");
             return commandResult;
         }
         catch (Exception ex)
@@ -350,11 +348,5 @@ public class TeslaBleService(ILogger<TeslaBleService> logger,
             bleApiBaseUrl += "api/";
         }
         return bleApiBaseUrl;
-    }
-
-    private string GetVinByCarId(int carId)
-    {
-        var vin = settings.Cars.First(c => c.Id == carId).Vin;
-        return vin;
     }
 }

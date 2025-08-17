@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System;
-using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations;
+﻿using System;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit.Abstractions;
@@ -26,14 +24,14 @@ public class FleetTelemetryWebSocketService : TestBase
         var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
         var car = new DtoCar();
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
-        Assert.Equal(10, car.SoC);
+        Assert.Equal(10, car.SoC.Value);
         var olderValue = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
             Timestamp = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             IntValue = 12,
         };
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, olderValue, nameof(DtoCar.SoC));
-        Assert.Equal(10, car.SoC);
+        Assert.Equal(10, car.SoC.Value);
 
         var newerValue = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
@@ -41,7 +39,7 @@ public class FleetTelemetryWebSocketService : TestBase
             IntValue = 12,
         };
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, newerValue, nameof(DtoCar.SoC));
-        Assert.Equal(12, car.SoC);
+        Assert.Equal(12, car.SoC.Value);
     }
 
     [Fact]
@@ -74,7 +72,7 @@ public class FleetTelemetryWebSocketService : TestBase
         var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
         var car = new DtoCar();
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
-        Assert.Equal(10, car.SoC);
+        Assert.Equal(10, car.SoC.Value);
     }
 
     [Fact]
@@ -87,7 +85,7 @@ public class FleetTelemetryWebSocketService : TestBase
         var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
         var car = new DtoCar();
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
-        Assert.Equal(10, car.SoC);
+        Assert.Equal(10, car.SoC.Value);
     }
 
     [Fact]
@@ -100,7 +98,7 @@ public class FleetTelemetryWebSocketService : TestBase
         var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
         var car = new DtoCar();
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
-        Assert.Equal(10, car.SoC);
+        Assert.Equal(10, car.SoC.Value);
     }
 
     [Theory]
@@ -129,7 +127,7 @@ public class FleetTelemetryWebSocketService : TestBase
         var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
         var car = new DtoCar();
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.Latitude));
-        Assert.Equal(10.45848, car.Latitude);
+        Assert.Equal(10.45848, car.Latitude.Value);
     }
 
     [Fact]
@@ -142,7 +140,7 @@ public class FleetTelemetryWebSocketService : TestBase
         var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
         var car = new DtoCar();
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.Latitude));
-        Assert.Equal(10, car.Latitude);
+        Assert.Equal(10, car.Latitude.Value);
     }
 
     [Fact]
@@ -155,6 +153,6 @@ public class FleetTelemetryWebSocketService : TestBase
         var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
         var car = new DtoCar();
         fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.Latitude));
-        Assert.Equal(10.45848, car.Latitude);
+        Assert.Equal(10.45848, car.Latitude.Value);
     }
 }

@@ -722,9 +722,9 @@ public class PvValueService(
             {
                 foreach (var car in settings.CarsToManage)
                 {
-                    car.ChargerActualCurrent = 1;
-                    car.ChargerVoltage = 1;
-                    car.ChargerPhases = 1;
+                    car.ChargerActualCurrent.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
+                    car.ChargerVoltage.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
+                    car.ChargerPhases.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
                 }
                 if (((settings.LastPvDemoCase / 16) % 2) == 0)
                 {

@@ -85,11 +85,11 @@ public class LoadPointManagementService : ILoadPointManagementService
         var car = _settings.Cars.First(c => c.Id == carId);
         var carState = new DtoCarOverviewState()
         {
-            CarSideSocLimit = car.SocLimit,
+            CarSideSocLimit = car.SocLimit.Value,
             IsCharging = car.IsCharging.Value == true,
             IsHome = car.IsHomeGeofence.Value == true,
             IsPluggedIn = car.PluggedIn.Value == true,
-            Soc = car.SoC,
+            Soc = car.SoC.Value,
         };
         var webSocketConnectedSince = _fleetTelemetryWebSocketService.ClientConnectedSince(car.Vin);
         if(webSocketConnectedSince != default)
@@ -210,8 +210,10 @@ public class LoadPointManagementService : ILoadPointManagementService
         {
             var car = _settings.Cars.First(c => c.Id == match.CarId.Value);
             loadPoint.ChargingPower = car.ChargingPowerAtHome ?? 0;
-            loadPoint.ChargingVoltage = car.ChargerVoltage ?? _settings.AverageHomeGridVoltage ?? 230;
-            loadPoint.ChargingCurrent = car.IsHomeGeofence.Value == true ? (car.ChargerActualCurrent ?? 0) : 0;
+            loadPoint.ChargingVoltage = car.ChargerVoltage.Value ?? _settings.AverageHomeGridVoltage ?? 230;
+            //As Tesla has a bug for low currents, we use the requested current if it is lower than the actual current.
+            var actualCurrent = car.ChargerActualCurrent.Value > car.ChargerRequestedCurrent.Value ? car.ChargerRequestedCurrent.Value.Value : (car.ChargerActualCurrent.Value ?? 0);
+            loadPoint.ChargingCurrent = car.IsHomeGeofence.Value == true ? actualCurrent : 0;
             loadPoint.ChargingPhases = car.ActualPhases;
         }
         if (match.ChargingConnectorId != default)
@@ -267,14 +269,15 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.MinCurrent = databaseCar.MinCurrent;
 
                 var dtoCar = _settings.Cars.First(c => c.Id == pair.CarId.Value);
-                loadPoint.ActualCurrent = dtoCar.ChargerActualCurrent;
+                var actualCurrent = dtoCar.ChargerActualCurrent.Value > dtoCar.ChargerRequestedCurrent.Value ? dtoCar.ChargerRequestedCurrent.Value.Value : dtoCar.ChargerActualCurrent.Value;
+                loadPoint.ActualCurrent = actualCurrent;
                 loadPoint.ActualPhases = dtoCar.ActualPhases;
                 loadPoint.MaxPhases = dtoCar.ActualPhases;
                 loadPoint.ChargingPower = dtoCar.ChargingPowerAtHome;
                 loadPoint.ChargingPriority = dtoCar.ChargingPriority;
                 loadPoint.IsHome = dtoCar.IsHomeGeofence.Value;
                 loadPoint.IsPluggedIn = dtoCar.PluggedIn.Value == true;
-                loadPoint.EstimatedVoltageWhileCharging = CalculateEstimatedChargerVoltageWhileCharging(dtoCar.ChargerVoltage);
+                loadPoint.EstimatedVoltageWhileCharging = CalculateEstimatedChargerVoltageWhileCharging(dtoCar.ChargerVoltage.Value);
                 //Currently always true as all cars are Teslas
                 loadPoint.ManageChargingPowerByCar = true;
             }

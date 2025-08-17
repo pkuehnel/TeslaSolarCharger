@@ -364,8 +364,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             constraintValues.MaxPhases = car.ActualPhases;
             constraintValues.MaxSoc = carConfigValues.MaximumSoc;
             constraintValues.MinSoc = carConfigValues.MinimumSoc;
-            constraintValues.CarSocLimit = car.SocLimit;
-            constraintValues.Soc = car.SoC;
+            constraintValues.CarSocLimit = car.SocLimit.Value;
+            constraintValues.Soc = car.SoC.Value;
             if (useCarToManageChargingSpeed)
             {
                 DateTimeOffset? chargeStartAllowedAt = null;
@@ -437,16 +437,16 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             constraintValues.LastIsChargingChange = ocppValues?.IsCharging.LastChanged;
             if ((ocppValues?.IsCarFullyCharged.Value == true) && (!useCarToManageChargingSpeed))
             {
-                _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged}", carId, connectorId, ocppValues?.IsCarFullyCharged);
+                _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged}", carId, connectorId, ocppValues.IsCarFullyCharged);
                 //Only set to max current if is fully charged is longer than 2 minutes ago as some cars switch this value on and off very quickly on charge start
-                if (ocppValues?.IsCarFullyCharged.LastChanged < currentDate.AddMinutes(-2))
+                if (ocppValues.IsCarFullyCharged.LastChanged < currentDate.AddMinutes(-2))
                 {
                     constraintValues.IsCarFullyCharged = true;
                     _logger.LogTrace("Set {propertyName} to {propertyValue} on Loadpoint (CarId: {carId}, ConnectorId {connectorId}) as is fully charged for more than two minutes", nameof(constraintValues.IsCarFullyCharged), constraintValues.IsCarFullyCharged, carId, connectorId);
                 }
                 else
                 {
-                    _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged} but last changed is less than 2 minutes ago, so not setting RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet", carId, connectorId, ocppValues?.IsCarFullyCharged);
+                    _logger.LogTrace("Car for loadpoint (CarId: {carId}, ConnectorId: {connectorId}) is detected as fully charged {@isCarFullyCharged} but last changed is less than 2 minutes ago, so not setting RequiresChargeStartDueToCarFullyChargedSinceLastCurrentSet", carId, connectorId, ocppValues.IsCarFullyCharged);
                 }
             }
             if ((ocppValues != default) && (!useCarToManageChargingSpeed))
@@ -465,7 +465,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 if (chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled)
                 {
                     _logger.LogTrace("Set auto phase switching timers.");
-                    DateTimeOffset? phaseReductionAllowedBasedOnThreePhaseHandling = null;
+                    DateTimeOffset? phaseReductionAllowedBasedOnThreePhaseHandling;
                     _logger.LogTrace("Starting phase reduction check for connector {connectorId}", connectorId);
                     _logger.LogTrace("Initial values - currentDate: {currentDate}, timeSpanUntilSwitchOff: {timeSpanUntilSwitchOff}", currentDate, timeSpanUntilSwitchOff);
                     _logger.LogTrace("CanHandlePowerOnOnePhase: {@canHandlePowerOnOnePhase}", ocppValues.CanHandlePowerOnOnePhase);
@@ -506,7 +506,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     }
 
                     // Phase Increase Logic
-                    DateTimeOffset? phaseIncreaseAllowedBasedOnThreePhaseHandling = null;
+                    DateTimeOffset? phaseIncreaseAllowedBasedOnThreePhaseHandling;
                     _logger.LogTrace("Starting phase increase check for connector {connectorId}", connectorId);
 
                     var phaseIncreaseOnePhaseResult = IsTimeStampedValueRelevantAndFullFilled(ocppValues.CanHandlePowerOnOnePhase, currentDate, timeSpanUntilSwitchOn, false,

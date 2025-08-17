@@ -198,7 +198,7 @@ public class HomeService : IHomeService
         };
         foreach (var managedCar in _settings.CarsToManage.OrderBy(car => car.ChargingPriority))
         {
-            result[managedCar.Id] = managedCar.Name ?? managedCar.Vin;
+            result[managedCar.Id] = managedCar.Name.Value ?? managedCar.Vin;
         }
         return result;
     }
