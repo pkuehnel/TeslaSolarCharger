@@ -294,7 +294,7 @@ public class ConfigJsonService(
                 }
                 UpdateCarPropertyValue(dtoCar, latestValue, fleetTelemetryConfiguration);
             }
-            await loadPointManagementService.CarStateChanged(dtoCar.Id).ConfigureAwait(false);
+            //Do not trigger car state changed here as app will crash when finding cars in settings
         }
         var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
         if (configurationWrapper.UseTeslaMateIntegration() && (teslaMateContext != default))
