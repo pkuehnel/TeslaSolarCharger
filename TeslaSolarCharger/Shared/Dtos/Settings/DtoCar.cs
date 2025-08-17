@@ -25,7 +25,7 @@ public class DtoCar
 
     public int ChargingPriority { get; set; }
 
-    public DtoTimeStampedValue<string?> Name { get; set; } = new DtoTimeStampedValue<string?>(DateTimeOffset.MinValue, null);
+    public string? Name { get; set; }
     public DtoTimeStampedValue<bool?> ShouldStartCharging { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<bool?> ShouldStopCharging { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<int?> SoC { get; set; } = new(DateTimeOffset.MinValue, null);

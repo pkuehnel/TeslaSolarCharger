@@ -225,7 +225,7 @@ public class TeslaMateMqttService(
             case TopicDisplayName:
                 if (!string.IsNullOrWhiteSpace(value.Value))
                 {
-                    car.Name.Update(dateTimeOffset, value.Value);
+                    car.Name = value.Value;
                 }
                 break;
             case TopicSoc:

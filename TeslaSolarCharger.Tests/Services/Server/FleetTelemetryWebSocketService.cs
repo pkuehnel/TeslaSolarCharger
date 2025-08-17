@@ -1,4 +1,5 @@
 ﻿using System;
+using TeslaSolarCharger.Server.Helper;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 using Xunit.Abstractions;
@@ -19,26 +20,29 @@ public class FleetTelemetryWebSocketService : TestBase
         var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
             Timestamp = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            Type = CarValueType.StateOfCharge,
             IntValue = 10,
         };
-        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var fleetTelemetryWebSocketService = Mock.Create<CarPropertyUpdateHelper>();
         var car = new DtoCar();
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog);
         Assert.Equal(10, car.SoC.Value);
         var olderValue = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
             Timestamp = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            Type = CarValueType.StateOfCharge,
             IntValue = 12,
         };
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, olderValue, nameof(DtoCar.SoC));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, olderValue);
         Assert.Equal(10, car.SoC.Value);
 
         var newerValue = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
             Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            Type = CarValueType.StateOfCharge,
             IntValue = 12,
         };
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, newerValue, nameof(DtoCar.SoC));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, newerValue);
         Assert.Equal(12, car.SoC.Value);
     }
 
@@ -67,11 +71,13 @@ public class FleetTelemetryWebSocketService : TestBase
     {
         var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
+            Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             IntValue = 10,
+            Type = CarValueType.StateOfCharge,
         };
-        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var fleetTelemetryWebSocketService = Mock.Create<CarPropertyUpdateHelper>();
         var car = new DtoCar();
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog);
         Assert.Equal(10, car.SoC.Value);
     }
 
@@ -80,11 +86,13 @@ public class FleetTelemetryWebSocketService : TestBase
     {
         var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
+            Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             DoubleValue = 10.45848,
+            Type = CarValueType.StateOfCharge,
         };
-        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var fleetTelemetryWebSocketService = Mock.Create<CarPropertyUpdateHelper>();
         var car = new DtoCar();
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog);
         Assert.Equal(10, car.SoC.Value);
     }
 
@@ -93,11 +101,13 @@ public class FleetTelemetryWebSocketService : TestBase
     {
         var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
+            Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             StringValue = "10.45848",
+            Type = CarValueType.StateOfCharge,
         };
-        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var fleetTelemetryWebSocketService = Mock.Create<CarPropertyUpdateHelper>();
         var car = new DtoCar();
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.SoC));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog);
         Assert.Equal(10, car.SoC.Value);
     }
 
@@ -109,11 +119,13 @@ public class FleetTelemetryWebSocketService : TestBase
     {
         var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
+            Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             StringValue = boolValue,
+            Type = CarValueType.IsPluggedIn,
         };
-        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var fleetTelemetryWebSocketService = Mock.Create<CarPropertyUpdateHelper>();
         var car = new DtoCar();
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.PluggedIn));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog);
         Assert.True(car.PluggedIn.Value);
     }
 
@@ -122,11 +134,13 @@ public class FleetTelemetryWebSocketService : TestBase
     {
         var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
+            Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             DoubleValue = 10.45848,
+            Type = CarValueType.Latitude,
         };
-        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var fleetTelemetryWebSocketService = Mock.Create<CarPropertyUpdateHelper>();
         var car = new DtoCar();
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.Latitude));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog);
         Assert.Equal(10.45848, car.Latitude.Value);
     }
 
@@ -135,12 +149,13 @@ public class FleetTelemetryWebSocketService : TestBase
     {
         var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
+            Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             IntValue = 10,
+            Type = CarValueType.Latitude,
         };
-        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var fleetTelemetryWebSocketService = Mock.Create<CarPropertyUpdateHelper>();
         var car = new DtoCar();
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.Latitude));
-        Assert.Equal(10, car.Latitude.Value);
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog);
     }
 
     [Fact]
@@ -148,11 +163,13 @@ public class FleetTelemetryWebSocketService : TestBase
     {
         var carValueLog = new TeslaSolarCharger.Model.Entities.TeslaSolarCharger.CarValueLog
         {
+            Timestamp = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             StringValue = "10.45848",
+            Type = CarValueType.Latitude,
         };
-        var fleetTelemetryWebSocketService = Mock.Create<TeslaSolarCharger.Server.Services.FleetTelemetryWebSocketService>();
+        var fleetTelemetryWebSocketService = Mock.Create<CarPropertyUpdateHelper>();
         var car = new DtoCar();
-        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog, nameof(DtoCar.Latitude));
+        fleetTelemetryWebSocketService.UpdateDtoCarProperty(car, carValueLog);
         Assert.Equal(10.45848, car.Latitude.Value);
     }
 }

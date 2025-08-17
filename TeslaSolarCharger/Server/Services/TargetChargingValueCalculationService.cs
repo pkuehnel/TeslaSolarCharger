@@ -41,7 +41,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl,
         CancellationToken cancellationToken)
     {
-        _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate})", nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate);
+        _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate}, {powerToControl})",
+            nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate, powerToControl);
         var maxCombinedCurrent = (decimal)_configurationWrapper.MaxCombinedCurrent();
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OccpChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))

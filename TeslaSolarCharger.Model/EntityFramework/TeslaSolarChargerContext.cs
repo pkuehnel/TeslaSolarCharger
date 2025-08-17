@@ -14,7 +14,6 @@ namespace TeslaSolarCharger.Model.EntityFramework;
 public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 {
     public DbSet<ChargePrice> ChargePrices { get; set; } = null!;
-    public DbSet<CachedCarState> CachedCarStates { get; set; } = null!;
     public DbSet<HandledCharge> HandledCharges { get; set; } = null!;
     public DbSet<PowerDistribution> PowerDistributions { get; set; } = null!;
     public DbSet<SpotPrice> SpotPrices { get; set; } = null!;
@@ -65,11 +64,6 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         {
             foreach (var property in entityType.GetProperties())
             {
-
-                if (entityType.ClrType == typeof(Car) && property.Name == nameof(Car.LatestTimeToReachSoC))
-                {
-                    continue;
-                }
                 if (property.ClrType == typeof(DateTime))
                 {
                     property.SetValueConverter(dateTimeConverter);
@@ -80,12 +74,6 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
                 }
             }
         }
-
-        var localDateTimeConverter = new LocalDateTimeConverter();
-
-        modelBuilder.Entity<Car>()
-            .Property(c => c.LatestTimeToReachSoC)
-            .HasConversion(localDateTimeConverter);
 
         modelBuilder.Entity<Car>()
             .Property(c => c.ChargeMode)
@@ -158,6 +146,9 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
                 );
             });
         });
+
+        modelBuilder.Entity<CarValueLog>()
+            .HasIndex(m => new { m.CarId, m.Type, m.Timestamp });
 
         modelBuilder.Entity<PvValueLog>()
             .Property(m => m.Timestamp)

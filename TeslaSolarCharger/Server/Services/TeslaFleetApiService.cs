@@ -265,7 +265,7 @@ public class TeslaFleetApiService(
                 {
                     var timeStamp = dateTimeProvider.UtcNow();
                     var dateTimeOffsetTimeStamp = new DateTimeOffset(timeStamp, TimeSpan.Zero);
-                    car.Name.Update(dateTimeOffsetTimeStamp, vehicleDataResult.VehicleState.VehicleName);
+                    car.Name = vehicleDataResult.VehicleState.VehicleName;
                     car.SoC.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.BatteryLevel);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {

@@ -10,6 +10,7 @@ using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.FleetTelemetry;
 using TeslaSolarCharger.Server.Enums;
 using TeslaSolarCharger.Server.Helper;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -24,8 +25,6 @@ public class FleetTelemetryWebSocketService(
     IServiceProvider serviceProvider) : IFleetTelemetryWebSocketService
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
-
-    private readonly Dictionary<(int CarId, CarValueType carValueType), DateTime> _propertyUpdateTimestamps = new();
 
     private List<DtoFleetTelemetryWebSocketClients> Clients { get; set; } = new();
 
@@ -193,8 +192,7 @@ public class FleetTelemetryWebSocketService(
         {
             try
             {
-                // Receive message from the WebSocket server
-                var scope = serviceProvider.CreateScope();
+                using var scope = serviceProvider.CreateScope();
                 var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
                 var configurationWrapper = scope.ServiceProvider.GetRequiredService<IConfigurationWrapper>();
                 logger.LogTrace("Waiting for new fleet telemetry message for car {vin}", vin);
@@ -265,7 +263,7 @@ public class FleetTelemetryWebSocketService(
                     {
                         var settings = scope.ServiceProvider.GetRequiredService<ISettings>();
                         var settingsCar = settings.Cars.First(c => c.Vin == vin);
-                        string? propertyName = null;
+                        var shouldUpdateProperty = false;
                         HomeDetectionVia? homeDetectionVia = null;
                         if (message.Type == CarValueType.LocatedAtHome
                             || message.Type == CarValueType.LocatedAtWork
@@ -279,103 +277,76 @@ public class FleetTelemetryWebSocketService(
                         switch (message.Type)
                         {
                             case CarValueType.ChargeAmps:
-                                propertyName = nameof(DtoCar.ChargerActualCurrent);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.ChargeCurrentRequest:
-                                propertyName = nameof(DtoCar.ChargerRequestedCurrent);
+                                shouldUpdateProperty = true;
+
                                 break;
                             case CarValueType.IsPluggedIn:
-                                //Do not use reflection here as this sets the PluggedIn value on the dto without using the update method and therefore last plugged in is not filled correctly
-                                settingsCar.UpdatePluggedIn(new(carValueLog.Timestamp, TimeSpan.Zero), carValueLog.BooleanValue == true);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.ModuleTempMin:
-                                settingsCar.MinBatteryTemperature.Update(message.TimeStamp, carValueLog.DoubleValue);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.ModuleTempMax:
-                                settingsCar.MaxBatteryTemperature.Update(message.TimeStamp, carValueLog.DoubleValue);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.IsCharging:
-                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
-                                {
-                                    if (carValueLog.BooleanValue == true && settingsCar.State != CarStateEnum.Charging)
-                                    {
-                                        logger.LogDebug("Set car state for car {carId} to charging", carId);
-                                        settingsCar.State = CarStateEnum.Charging;
-                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
-                                    }
-                                    else if (carValueLog.BooleanValue == false && settingsCar.State == CarStateEnum.Charging)
-                                    {
-                                        logger.LogDebug("Set car state for car {carId} to online", carId);
-                                        settingsCar.State = CarStateEnum.Online;
-                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
-                                    }
-                                }
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.ChargerPilotCurrent:
-                                propertyName = nameof(DtoCar.ChargerPilotCurrent);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.Longitude:
-                                propertyName = nameof(DtoCar.Longitude);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.Latitude:
-                                propertyName = nameof(DtoCar.Latitude);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.StateOfCharge:
-                                propertyName = nameof(DtoCar.SoC);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.StateOfChargeLimit:
-                                propertyName = nameof(DtoCar.SocLimit);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.ChargerPhases:
-                                propertyName = nameof(DtoCar.ChargerPhases);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.ChargerVoltage:
-                                propertyName = nameof(DtoCar.ChargerVoltage);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.VehicleName:
-                                propertyName = nameof(DtoCar.Name);
+                                shouldUpdateProperty = true;
                                 break;
                             case CarValueType.AsleepOrOffline:
-                                if (!IsCarValueLogTooOld(settingsCar, carValueLog, message.Type))
-                                {
-                                    if (carValueLog.BooleanValue == true
-                                        //Do only overwrite these states as otherwise Charging or Driving might be overwritten
-                                        && settingsCar.State is CarStateEnum.Unknown or CarStateEnum.Suspended)
-                                    {
-                                        settingsCar.State = CarStateEnum.Offline;
-                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
-                                    }
-                                    else if (carValueLog.BooleanValue == false
-                                             && (settingsCar.State == CarStateEnum.Asleep || settingsCar.State == CarStateEnum.Offline))
-                                    {
-                                        settingsCar.State = CarStateEnum.Online;
-                                        _propertyUpdateTimestamps[(settingsCar.Id, message.Type)] = carValueLog.Timestamp;
-                                    }
-                                }
+                                settingsCar.IsOnline.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
+                                    carValueLog.BooleanValue == false);
                                 break;
                             case CarValueType.LocatedAtHome:
                                 if (homeDetectionVia == HomeDetectionVia.LocatedAtHome)
                                 {
-                                    propertyName = nameof(DtoCar.IsHomeGeofence);
+                                    shouldUpdateProperty = true;
                                 }
                                 break;
                             case CarValueType.LocatedAtWork:
                                 if (homeDetectionVia == HomeDetectionVia.LocatedAtWork)
                                 {
-                                    propertyName = nameof(DtoCar.IsHomeGeofence);
+                                    shouldUpdateProperty = true;
                                 }
                                 break;
                             case CarValueType.LocatedAtFavorite:
                                 if (homeDetectionVia == HomeDetectionVia.LocatedAtFavorite)
                                 {
-                                    propertyName = nameof(DtoCar.IsHomeGeofence);
+                                    shouldUpdateProperty = true;
                                 }
                                 break;
                         }
 
-                        if (propertyName != default)
+                        if (shouldUpdateProperty)
                         {
-                            UpdateDtoCarProperty(settingsCar, carValueLog, propertyName);
+                            var carPropertyUpdateHelper = scope.ServiceProvider.GetRequiredService<ICarPropertyUpdateHelper>();
+                            carPropertyUpdateHelper.UpdateDtoCarProperty(settingsCar, carValueLog);
                         }
                         var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
                         Task.Run(async () =>
@@ -480,209 +451,5 @@ public class FleetTelemetryWebSocketService(
         };
         var message = JsonConvert.DeserializeObject<DtoTscFleetTelemetryMessage>(jsonMessage, settings);
         return message;
-    }
-
-    internal void UpdateDtoCarProperty(DtoCar car, CarValueLog carValueLog, string propertyName)
-    {
-        logger.LogTrace("{method}({carId}, ***secret***, {propertyName})", nameof(UpdateDtoCarProperty), car.Id, propertyName);
-
-        if (IsCarValueLogTooOld(car, carValueLog, carValueLog.Type))
-        {
-            logger.LogDebug("Do not update DtoCar property as value is to old");
-            return;
-        }
-
-        // List of relevant property names
-        var relevantPropertyNames = new List<string>
-        {
-            nameof(CarValueLog.DoubleValue),
-            nameof(CarValueLog.IntValue),
-            nameof(CarValueLog.StringValue),
-            nameof(CarValueLog.UnknownValue),
-            nameof(CarValueLog.BooleanValue),
-        };
-
-        // Filter properties to only the relevant ones
-        var carValueProperties = typeof(CarValueLog)
-            .GetProperties()
-            .Where(p => relevantPropertyNames.Contains(p.Name));
-
-        object valueToConvert = null;
-
-        // Find the first non-null property in CarValueLog among the relevant ones
-        foreach (var prop in carValueProperties)
-        {
-            var value = prop.GetValue(carValueLog);
-            if (value != null)
-            {
-                valueToConvert = value;
-                break;
-            }
-        }
-
-        if (valueToConvert != null)
-        {
-            var dtoProperty = typeof(DtoCar).GetProperty(propertyName);
-            if (dtoProperty != null)
-            {
-                var dtoPropertyType = dtoProperty.PropertyType;
-
-                // Handle nullable types
-                var targetType = Nullable.GetUnderlyingType(dtoPropertyType) ?? dtoPropertyType;
-                object? convertedValue = null;
-
-                try
-                {
-                    // Directly handle numeric conversions without converting to string
-                    if (targetType == typeof(int))
-                    {
-                        if (valueToConvert is int intValue)
-                        {
-                            convertedValue = intValue;
-                        }
-                        else if (valueToConvert is double doubleValue)
-                        {
-                            // Decide how to handle the fractional part
-                            intValue = (int)Math.Round(doubleValue); // Or Math.Floor(doubleValue), Math.Ceiling(doubleValue)
-                            convertedValue = intValue;
-                        }
-                        else if (valueToConvert is string valueString)
-                        {
-                            // Use InvariantCulture when parsing the string
-                            if (int.TryParse(valueString, NumberStyles.Integer, CultureInfo.InvariantCulture, out intValue))
-                            {
-                                convertedValue = intValue;
-                            }
-                            else if (double.TryParse(valueString, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out doubleValue))
-                            {
-                                intValue = (int)Math.Round(doubleValue);
-                                convertedValue = intValue;
-                            }
-                        }
-                        else if (valueToConvert is IConvertible)
-                        {
-                            convertedValue = Convert.ToInt32(valueToConvert);
-                        }
-                    }
-                    else if (targetType == typeof(double))
-                    {
-                        if (valueToConvert is double doubleValue)
-                        {
-                            convertedValue = doubleValue;
-                        }
-                        else if (valueToConvert is int intValue)
-                        {
-                            convertedValue = (double)intValue;
-                        }
-                        else if (valueToConvert is string valueString)
-                        {
-                            if (double.TryParse(valueString, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out doubleValue))
-                            {
-                                convertedValue = doubleValue;
-                            }
-                        }
-                        else if (valueToConvert is IConvertible)
-                        {
-                            convertedValue = Convert.ToDouble(valueToConvert, CultureInfo.InvariantCulture);
-                        }
-                    }
-                    else if (targetType == typeof(decimal))
-                    {
-                        if (valueToConvert is decimal decimalValue)
-                        {
-                            convertedValue = decimalValue;
-                        }
-                        else if (valueToConvert is double doubleValue)
-                        {
-                            convertedValue = (decimal)doubleValue;
-                        }
-                        else if (valueToConvert is int intValue)
-                        {
-                            convertedValue = (decimal)intValue;
-                        }
-                        else if (valueToConvert is string valueString)
-                        {
-                            if (decimal.TryParse(valueString, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimalValue))
-                            {
-                                convertedValue = decimalValue;
-                            }
-                        }
-                        else if (valueToConvert is IConvertible)
-                        {
-                            convertedValue = Convert.ToDecimal(valueToConvert, CultureInfo.InvariantCulture);
-                        }
-                    }
-                    else if (targetType == typeof(bool))
-                    {
-                        if (valueToConvert is bool boolValue)
-                        {
-                            convertedValue = boolValue;
-                        }
-                        else if (valueToConvert is string valueString)
-                        {
-                            if (bool.TryParse(valueString, out boolValue))
-                            {
-                                convertedValue = boolValue;
-                            }
-                        }
-                        else if (valueToConvert is IConvertible)
-                        {
-                            convertedValue = Convert.ToBoolean(valueToConvert, CultureInfo.InvariantCulture);
-                        }
-                    }
-                    else if (targetType == typeof(string))
-                    {
-                        // Use InvariantCulture to ensure consistent formatting
-                        convertedValue = Convert.ToString(valueToConvert, CultureInfo.InvariantCulture);
-                    }
-                    else
-                    {
-                        // For other types, attempt to convert using ChangeType
-                        if (valueToConvert is IConvertible)
-                        {
-                            convertedValue = Convert.ChangeType(valueToConvert, targetType, CultureInfo.InvariantCulture);
-                        }
-                        else if (targetType.IsAssignableFrom(valueToConvert.GetType()))
-                        {
-                            convertedValue = valueToConvert;
-                        }
-                    }
-
-                    // Update the property if conversion was successful
-                    if (convertedValue != null)
-                    {
-                        dtoProperty.SetValue(car, convertedValue);
-                        _propertyUpdateTimestamps[(car.Id, carValueLog.Type)] = carValueLog.Timestamp;
-                    }
-                    else
-                    {
-                        logger.LogInformation("Do not update {propertyName} on car {carId} as converted value is null", propertyName, car.Id);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error converting {propertyName} on car {carId}", propertyName, car.Id);
-                }
-            }
-        }
-    }
-
-    private bool IsCarValueLogTooOld(DtoCar car, CarValueLog carValueLog, CarValueType carValueType)
-    {
-        if (_propertyUpdateTimestamps.TryGetValue((car.Id, carValueType), out var lastUpdate))
-        {
-            // If our stored timestamp is newer or equal, skip
-            if (carValueLog.Timestamp <= lastUpdate)
-            {
-                logger.LogInformation(
-                    "Skipping update for {carValueType} on CarId {carId} " +
-                    "because timestamp {timestamp} is not newer than {lastUpdate}",
-                    carValueType, car.Id, carValueLog.Timestamp, lastUpdate);
-
-                return true;
-            }
-        }
-
-        return false;
     }
 }
