@@ -245,20 +245,21 @@ public class ConfigJsonService(
             var latestValues = await teslaSolarChargerContext.CarValueLogs
                 .Where(c => c.CarId == dtoCar.Id
                             && (c.Type == CarValueType.IsPluggedIn
-                                    || c.Type == CarValueType.StateOfCharge
-                                    || c.Type == CarValueType.StateOfChargeLimit
-                                    || c.Type == CarValueType.ChargerPhases
-                                    || c.Type == CarValueType.ChargeAmps
-                                    || c.Type == CarValueType.ChargerPilotCurrent
-                                    || c.Type == CarValueType.ChargeCurrentRequest
-                                    || c.Type == CarValueType.ModuleTempMin
-                                    || c.Type == CarValueType.ModuleTempMax
-                                    || c.Type == CarValueType.IsCharging
-                                    || c.Type == CarValueType.AsleepOrOffline
-                                    || c.Type == CarValueType.Latitude
-                                    || c.Type == CarValueType.Longitude
-                                    ))
-                .OrderByDescending(c => c.Timestamp)
+                                || c.Type == CarValueType.StateOfCharge
+                                || c.Type == CarValueType.StateOfChargeLimit
+                                || c.Type == CarValueType.ChargerPhases
+                                || c.Type == CarValueType.ChargeAmps
+                                || c.Type == CarValueType.ChargerPilotCurrent
+                                || c.Type == CarValueType.ChargeCurrentRequest
+                                || c.Type == CarValueType.ModuleTempMin
+                                || c.Type == CarValueType.ModuleTempMax
+                                || c.Type == CarValueType.IsCharging
+                                || c.Type == CarValueType.AsleepOrOffline
+                                || c.Type == CarValueType.Latitude
+                                || c.Type == CarValueType.Longitude
+                            ))
+                .GroupBy(c => c.Type)
+                .Select(g => g.OrderByDescending(c => c.Timestamp).First())
                 .AsNoTracking()
                 .ToListAsync();
             var fleetTelemetryConfiguration = await teslaSolarChargerContext.Cars
