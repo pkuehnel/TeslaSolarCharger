@@ -90,6 +90,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             IsHome = car.IsHomeGeofence.Value == true,
             IsPluggedIn = car.PluggedIn.Value == true,
             Soc = car.SoC.Value,
+            IsOnline = car.IsOnline.Value,
         };
         var webSocketConnectedSince = _fleetTelemetryWebSocketService.ClientConnectedSince(car.Vin);
         if(webSocketConnectedSince != default)

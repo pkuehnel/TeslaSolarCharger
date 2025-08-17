@@ -20,6 +20,10 @@ else
     <div>
         <CustomIcon IconName="@Icons.Material.Outlined.DirectionsCar" Class="me-1" />
         <span class="me-1">@CarSettings.Name</span>
+        @if (CarState.IsOnline != default)
+        {
+            <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(CarState.IsOnline == false)" TooltipText="connected via OCPP"></CustomIcon>
+        }
         <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText="at home"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText="charging"></CustomIcon>
