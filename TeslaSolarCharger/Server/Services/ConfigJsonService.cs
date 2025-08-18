@@ -257,6 +257,9 @@ public class ConfigJsonService(
                                 || c.Type == CarValueType.AsleepOrOffline
                                 || c.Type == CarValueType.Latitude
                                 || c.Type == CarValueType.Longitude
+                                || c.Type == CarValueType.LocatedAtHome
+                                || c.Type == CarValueType.LocatedAtWork
+                                || c.Type == CarValueType.LocatedAtFavorite
                             ))
                 .GroupBy(c => c.Type)
                 .Select(g => g.OrderByDescending(c => c.Timestamp).First())
