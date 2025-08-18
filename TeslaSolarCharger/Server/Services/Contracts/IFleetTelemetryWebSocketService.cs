@@ -4,4 +4,5 @@ public interface IFleetTelemetryWebSocketService
 {
     Task ReconnectWebSocketsForEnabledCars();
     bool IsClientConnected(string vin);
+    DateTimeOffset? ClientConnectedSince(string vin);
 }

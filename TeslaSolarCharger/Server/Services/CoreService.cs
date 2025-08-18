@@ -1,19 +1,13 @@
 ﻿using LanguageExt;
-using LanguageExt.Common;
-using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
 using System.Diagnostics;
-using System.Net.Http.Headers;
 using System.Reflection;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos.TeslaFleetApi;
 using TeslaSolarCharger.Server.Scheduling;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
-using TeslaSolarCharger.Shared.Dtos.Car;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 
@@ -22,7 +16,6 @@ namespace TeslaSolarCharger.Server.Services;
 public class CoreService : ICoreService
 {
     private readonly ILogger<CoreService> _logger;
-    private readonly IChargingService _chargingService;
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConfigJsonService _configJsonService;
@@ -34,15 +27,18 @@ public class CoreService : ICoreService
     private readonly IBaseConfigurationService _baseConfigurationService;
     private readonly IConstants _constants;
     private readonly ITelegramService _telegramService;
+    private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly IPowerToControlCalculationService _powerToControlCalculationService;
 
-    public CoreService(ILogger<CoreService> logger, IChargingService chargingService, IConfigurationWrapper configurationWrapper,
+    public CoreService(ILogger<CoreService> logger, IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider, IConfigJsonService configJsonService, JobManager jobManager,
         ITeslaMateMqttService teslaMateMqttService, ISettings settings,
         IFixedPriceService fixedPriceService, ITscConfigurationService tscConfigurationService, IBaseConfigurationService baseConfigurationService,
-        IConstants constants, ITelegramService telegramService)
+        IConstants constants, ITelegramService telegramService,
+        ILoadPointManagementService loadPointManagementService,
+        IPowerToControlCalculationService powerToControlCalculationService)
     {
         _logger = logger;
-        _chargingService = chargingService;
         _configurationWrapper = configurationWrapper;
         _dateTimeProvider = dateTimeProvider;
         _configJsonService = configJsonService;
@@ -54,6 +50,8 @@ public class CoreService : ICoreService
         _baseConfigurationService = baseConfigurationService;
         _constants = constants;
         _telegramService = telegramService;
+        _loadPointManagementService = loadPointManagementService;
+        _powerToControlCalculationService = powerToControlCalculationService;
     }
 
     public Task<string?> GetCurrentVersion()
@@ -65,16 +63,18 @@ public class CoreService : ICoreService
         return Task.FromResult(productVersion);
     }
 
-    public DtoValue<int> NumberOfRelevantCars()
+    public async Task<DtoValue<int>> NumberOfRelevantLoadPoints()
     {
-        _logger.LogTrace("{method}()", nameof(NumberOfRelevantCars));
-        return new DtoValue<int>(_chargingService.GetRelevantCarIds().Count);
+        _logger.LogTrace("{method}()", nameof(NumberOfRelevantLoadPoints));
+        var loadpointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
+        var pluggedInLoadpointsCount = loadpointsToManage.Count(l => l.IsPluggedIn == true);
+        return new DtoValue<int>(pluggedInLoadpointsCount);
     }
 
     public DtoValue<int> HomeBatteryTargetChargingPower()
     {
         _logger.LogTrace("{method}()", nameof(HomeBatteryTargetChargingPower));
-        return new DtoValue<int>(_chargingService.GetBatteryTargetChargingPower());
+        return new DtoValue<int>(_powerToControlCalculationService.GetBatteryTargetChargingPower());
     }
 
     public DtoValue<bool> IsSolarEdgeInstallation()

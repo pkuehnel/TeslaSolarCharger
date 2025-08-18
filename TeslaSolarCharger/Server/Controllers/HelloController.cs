@@ -34,7 +34,7 @@ namespace TeslaSolarCharger.Server.Controllers
         public Task<DtoValue<bool>> IsSolarEdgeInstallation() => Task.FromResult(coreService.IsSolarEdgeInstallation());
 
         [HttpGet]
-        public Task<DtoValue<int>> NumberOfRelevantCars() => Task.FromResult(coreService.NumberOfRelevantCars());
+        public async Task<DtoValue<int>> NumberOfRelevantCars() => await (coreService.NumberOfRelevantLoadPoints());
 
         [HttpGet]
         public Task<DtoValue<int>> HomeBatteryTargetChargingPower() => Task.FromResult(coreService.HomeBatteryTargetChargingPower());

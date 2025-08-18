@@ -1,11 +1,10 @@
 ﻿using Quartz;
-using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 
 namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 
 [DisallowConcurrentExecution]
-public class ChargingValueJob(ILogger<ChargingValueJob> logger, IChargingService chargingService, IChargingServiceV2 chargingServiceV2) : IJob
+public class ChargingValueJob(ILogger<ChargingValueJob> logger, IChargingServiceV2 chargingServiceV2) : IJob
 {
     public async Task Execute(IJobExecutionContext context)
     {

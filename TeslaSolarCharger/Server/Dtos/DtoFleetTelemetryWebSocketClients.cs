@@ -6,6 +6,7 @@ public class DtoFleetTelemetryWebSocketClients
 {
     public string Vin { get; set; }
     public ClientWebSocket WebSocketClient { get; set; }
-    public DateTime LastReceivedHeartbeat { get; set; }
+    public DateTimeOffset LastReceivedHeartbeat { get; set; }
+    public DateTimeOffset ConnectedSince { get; set; }
     public CancellationToken CancellationToken { get; set; }
 }

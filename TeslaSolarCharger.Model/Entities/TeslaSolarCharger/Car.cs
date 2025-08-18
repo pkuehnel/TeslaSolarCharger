@@ -13,10 +13,6 @@ public class Car
     public ChargeModeV2 ChargeMode { get; set; }
     public int MinimumSoc { get; set; }
     public int MaximumSoc { get; set; }
-    public DateTime LatestTimeToReachSoC { get; set; }
-
-    public bool IgnoreLatestTimeToReachSocDate { get; set; }
-    public bool IgnoreLatestTimeToReachSocDateOnWeekend { get; set; }
 
     public int MaximumAmpere { get; set; }
 
@@ -29,18 +25,6 @@ public class Car
     public bool? ShouldBeManaged { get; set; }
 
     public int ChargingPriority { get; set; }
-
-    public int? SoC { get; set; }
-    public int? SocLimit { get; set; }
-    public int? ChargerPhases { get; set; }
-    public int? ChargerVoltage { get; set; } //NotAvailabel in Fleet Telemetry
-    public int? ChargerActualCurrent { get; set; }
-    public int? ChargerPilotCurrent { get; set; }
-    public int? ChargerRequestedCurrent { get; set; }
-    public bool? PluggedIn { get; set; }
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
-    public CarStateEnum? State { get; set; }
 
     public bool VehicleCommandProtocolRequired { get; set; }
     public bool UseBle { get; set; }

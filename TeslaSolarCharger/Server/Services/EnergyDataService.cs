@@ -251,11 +251,9 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     private (bool Cached, MeterValue? Value) GetCachedMeterValue(MeterValueKind meterValueKind, int? carId, DateTimeOffset hourlyTimeStamp,
         TimeSpan sliceLength)
     {
-        logger.LogTrace("{method}({meterValueKind}, {hourlyTimeStamp})", nameof(GetCachedMeterValue), meterValueKind, hourlyTimeStamp);
         var key = GetMeterValueCacheKey(meterValueKind, carId, hourlyTimeStamp, sliceLength);
         if (memoryCache.TryGetValue(key, out MeterValue? value))
         {
-            logger.LogTrace("Found cached value for {key}", key);
             return (true, value);
         }
         return (false, default);
