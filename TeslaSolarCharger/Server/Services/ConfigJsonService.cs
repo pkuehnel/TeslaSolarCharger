@@ -250,6 +250,7 @@ public class ConfigJsonService(
                                 || c.Type == CarValueType.ChargerPhases
                                 || c.Type == CarValueType.ChargeAmps
                                 || c.Type == CarValueType.ChargerPilotCurrent
+                                || c.Type == CarValueType.ChargerVoltage
                                 || c.Type == CarValueType.ChargeCurrentRequest
                                 || c.Type == CarValueType.ModuleTempMin
                                 || c.Type == CarValueType.ModuleTempMax
