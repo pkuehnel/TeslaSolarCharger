@@ -95,15 +95,19 @@ public class LoadPointManagementService : ILoadPointManagementService
         var webSocketConnectedSince = _fleetTelemetryWebSocketService.ClientConnectedSince(car.Vin);
         if (webSocketConnectedSince != default)
         {
-            if (((webSocketConnectedSince.Value.AddMinutes(10) > _dateTimeProvider.DateTimeOffSetUtcNow()) && (car.IsOnline.Value == true))
-                || ((car.IsOnline.Value == false) && (car.IsOnline.LastChanged < webSocketConnectedSince.Value.AddMinutes(10))
-                                                  && (car.IsOnline.LastChanged > webSocketConnectedSince.Value)))
+            if (((webSocketConnectedSince.Value.AddMinutes(10) > _dateTimeProvider.DateTimeOffSetUtcNow()) && (car.IsOnline.Value == true)))
             {
-                carState.ShowFleetTelemetryDataNotUpToDate = true;
+                carState.FleetTelemetryDataState = FleetTelemetryDataState.NotEnoughTimeSinceReconnect;
+            }
+            else if ((car.IsOnline.Value == false) && (car.IsOnline.LastChanged < webSocketConnectedSince.Value.AddMinutes(10))
+                                                   && (car.IsOnline.LastChanged > webSocketConnectedSince.Value))
+
+            {
+                carState.FleetTelemetryDataState = FleetTelemetryDataState.CarNotConnectedAfterEnoughTimeAfterReconnect;
             }
             else
             {
-                carState.ShowFleetTelemetryDataNotUpToDate = false;
+                carState.FleetTelemetryDataState = FleetTelemetryDataState.UpToDate;
             }
         }
         return carState;

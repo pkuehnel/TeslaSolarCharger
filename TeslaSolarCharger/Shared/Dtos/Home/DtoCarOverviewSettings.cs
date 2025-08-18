@@ -28,5 +28,13 @@ public class DtoCarOverviewState
     public bool IsCharging { get; set; }
     public bool IsHome { get; set; }
     public bool IsPluggedIn { get; set; }
-    public bool? ShowFleetTelemetryDataNotUpToDate { get; set; }
+    public FleetTelemetryDataState FleetTelemetryDataState { get; set; }
+}
+
+public enum FleetTelemetryDataState
+{
+    Unknown,
+    UpToDate,
+    NotEnoughTimeSinceReconnect,
+    CarNotConnectedAfterEnoughTimeAfterReconnect,
 }
