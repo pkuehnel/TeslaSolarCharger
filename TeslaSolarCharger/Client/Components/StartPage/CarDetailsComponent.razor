@@ -32,7 +32,7 @@ else
     @if (CarState.FleetTelemetryDataState == FleetTelemetryDataState.NotEnoughTimeSinceReconnect)
     {
         <MudAlert Severity="Severity.Warning" Class="mb-3">
-            Your TSC is connected to the server for less than 10 minutes. As Fleet Telemetry only sends states every 10 minutes the data shown here might not be up-to-date. Note: This is a normal bahavior after a restart of the TSC. If all car data is displayed correctly, you can ignore this message.
+            Your TSC is connected to the server for less than 10 minutes. As Fleet Telemetry only sends states every 10 minutes the data shown here might not be up-to-date. If any data here is not correct, just wait for 10 minutes without restarting TSC. Note: This is a normal bahavior after a restart of the TSC. If all car data is displayed correctly, you can ignore this message.
         </MudAlert>
     }
     else if (CarState.FleetTelemetryDataState == FleetTelemetryDataState.CarNotConnectedAfterEnoughTimeAfterReconnect)
