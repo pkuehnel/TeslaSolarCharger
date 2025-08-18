@@ -339,24 +339,30 @@ public class ConfigJsonService(
 
             if (logValue.Type == CarValueType.LocatedAtHome)
             {
-                if (fleetTelemetryConfiguration.HomeDetectionVia != HomeDetectionVia.LocatedAtHome)
+                if (fleetTelemetryConfiguration.HomeDetectionVia == HomeDetectionVia.LocatedAtHome)
                 {
-                    return;
+                    dtoCar.IsHomeGeofence.Update(new DateTimeOffset(logValue.Timestamp, TimeSpan.Zero),
+                        logValue.BooleanValue == true);
                 }
+                return;
             }
             if (logValue.Type == CarValueType.LocatedAtFavorite)
             {
-                if (fleetTelemetryConfiguration.HomeDetectionVia != HomeDetectionVia.LocatedAtFavorite)
+                if (fleetTelemetryConfiguration.HomeDetectionVia == HomeDetectionVia.LocatedAtFavorite)
                 {
-                    return;
+                    dtoCar.IsHomeGeofence.Update(new DateTimeOffset(logValue.Timestamp, TimeSpan.Zero),
+                        logValue.BooleanValue == true);
                 }
+                return;
             }
             if (logValue.Type == CarValueType.LocatedAtWork)
             {
-                if (fleetTelemetryConfiguration.HomeDetectionVia != HomeDetectionVia.LocatedAtWork)
+                if (fleetTelemetryConfiguration.HomeDetectionVia == HomeDetectionVia.LocatedAtWork)
                 {
-                    return;
+                    dtoCar.IsHomeGeofence.Update(new DateTimeOffset(logValue.Timestamp, TimeSpan.Zero),
+                        logValue.BooleanValue == true);
                 }
+                return;
             }
         }
 

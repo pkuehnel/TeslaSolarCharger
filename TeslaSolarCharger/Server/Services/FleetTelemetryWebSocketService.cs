@@ -323,19 +323,22 @@ public class FleetTelemetryWebSocketService(
                             case CarValueType.LocatedAtHome:
                                 if (homeDetectionVia == HomeDetectionVia.LocatedAtHome)
                                 {
-                                    shouldUpdateProperty = true;
+                                    settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
+                                        carValueLog.BooleanValue == true);
                                 }
                                 break;
                             case CarValueType.LocatedAtWork:
                                 if (homeDetectionVia == HomeDetectionVia.LocatedAtWork)
                                 {
-                                    shouldUpdateProperty = true;
+                                    settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
+                                        carValueLog.BooleanValue == true);
                                 }
                                 break;
                             case CarValueType.LocatedAtFavorite:
                                 if (homeDetectionVia == HomeDetectionVia.LocatedAtFavorite)
                                 {
-                                    shouldUpdateProperty = true;
+                                    settingsCar.IsHomeGeofence.Update(new DateTimeOffset(carValueLog.Timestamp, TimeSpan.Zero),
+                                        carValueLog.BooleanValue == true);
                                 }
                                 break;
                         }
