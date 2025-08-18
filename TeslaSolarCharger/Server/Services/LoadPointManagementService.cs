@@ -93,7 +93,6 @@ public class LoadPointManagementService : ILoadPointManagementService
             IsOnline = car.IsOnline.Value,
         };
         var webSocketConnectedSince = _fleetTelemetryWebSocketService.ClientConnectedSince(car.Vin);
-        _logger.LogTrace("{method}({carId}) - WebSocket connected since: {webSocketConnectedSince}", nameof(GetCarOverviewState), carId, webSocketConnectedSince);
         if (webSocketConnectedSince != default)
         {
             if (((webSocketConnectedSince.Value.AddMinutes(10) > _dateTimeProvider.DateTimeOffSetUtcNow()) && (car.IsOnline.Value == true))
