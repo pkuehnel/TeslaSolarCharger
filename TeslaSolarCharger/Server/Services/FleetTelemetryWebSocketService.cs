@@ -19,7 +19,8 @@ namespace TeslaSolarCharger.Server.Services;
 
 public class FleetTelemetryWebSocketService(
     ILogger<FleetTelemetryWebSocketService> logger,
-    IServiceProvider serviceProvider) : IFleetTelemetryWebSocketService
+    IServiceProvider serviceProvider,
+    ISettings settings) : IFleetTelemetryWebSocketService
 {
     private readonly TimeSpan _heartbeatsendTimeout = TimeSpan.FromSeconds(5);
 
@@ -154,7 +155,13 @@ public class FleetTelemetryWebSocketService(
             var carId = await context.Cars
                 .Where(c => c.Vin == vin)
                 .Select(c => c.Id)
-                .FirstOrDefaultAsync().ConfigureAwait(false);
+                .FirstOrDefaultAsync(cancellationToken: cancellation.Token).ConfigureAwait(false);
+            var teslaFleetApiService = scope.ServiceProvider.GetRequiredService<ITeslaFleetApiService>();
+            var car = settings.Cars.FirstOrDefault(c => c.Vin == vin);
+            if (car != default)
+            {
+                await teslaFleetApiService.RefreshVehicleOnlineState(car);
+            }
             var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
             await loadPointManagementService.CarStateChanged(carId).ConfigureAwait(false);
             try

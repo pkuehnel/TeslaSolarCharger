@@ -388,7 +388,7 @@ public class TeslaFleetApiService(
         }
     }
 
-    private async Task RefreshVehicleOnlineState(DtoCar car)
+    public async Task RefreshVehicleOnlineState(DtoCar car)
     {
         logger.LogTrace("{method}({carId})", nameof(RefreshVehicleOnlineState), car.Id);
         var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest).ConfigureAwait(false);
