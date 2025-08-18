@@ -4,10 +4,8 @@ namespace TeslaSolarCharger.Shared.Dtos.Settings;
 
 public class DtoCar
 {
-    private int? _chargingPower;
-    private int? _chargerActualCurrent;
     public int Id { get; set; }
-    public string Vin { get; set; }
+    public string Vin { get; set; } = null!;
     public int? TeslaMateCarId { get; set; }
 
     public ChargeMode ChargeMode { get; set; }
@@ -69,23 +67,18 @@ public class DtoCar
     {
         get
         {
-            if (_chargingPower == default)
+            var actualCurrent = ChargerActualCurrent.Value;
+            if (actualCurrent > ChargerRequestedCurrent.Value)
             {
-                var actualCurrent = ChargerActualCurrent.Value;
-                if (actualCurrent > ChargerRequestedCurrent.Value)
-                {
-                    actualCurrent = ChargerRequestedCurrent.Value;
-                }
-                return actualCurrent * ChargerVoltage.Value * ActualPhases;
+                actualCurrent = ChargerRequestedCurrent.Value;
             }
-            return _chargingPower;
+            return actualCurrent * ChargerVoltage.Value * ActualPhases;
         }
     }
 
     public bool UseBle { get; set; }
     public string? BleApiBaseUrl { get; set; }
     public DtoTimeStampedValue<DateTime?> EarliestHomeArrival { get; set; } = new(DateTimeOffset.MinValue, null);
-    public List<DtoChargingSlot> PlannedChargingSlots { get; set; } = new List<DtoChargingSlot>();
     public List<DateTime> WakeUpCalls { get; set; } = new List<DateTime>();
     public List<DateTime> VehicleDataCalls { get; set; } = new List<DateTime>();
     public List<DateTime> VehicleCalls { get; set; } = new List<DateTime>();
