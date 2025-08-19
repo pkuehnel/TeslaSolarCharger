@@ -453,6 +453,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         && (c.PluggedIn.Value == true)
                         && (c.ChargerRequestedCurrent.Value != c.MaximumAmpere)
                         && (c.ChargerPilotCurrent.Value > c.ChargerRequestedCurrent.Value)
+                        && (c.IsCharging.Value == false)
                         && (c.ChargeModeV2 == ChargeModeV2.Auto))
             .ToList();
 
