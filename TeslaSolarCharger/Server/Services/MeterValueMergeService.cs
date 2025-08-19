@@ -43,6 +43,7 @@ public class MeterValueMergeService(
         logger.LogTrace("{method}({meterValueKind}, {cutoffDate})", nameof(MergeMeterValueKindAsync), meterValueKind, cutoffDate);
 
         // Get all meter values for this kind that are older than the cutoff date
+        // Additional safety check to ensure we don't touch car or charging connector related values
         var oldMeterValues = await context.MeterValues
             .Where(mv => mv.MeterValueKind == meterValueKind 
                 && mv.Timestamp < cutoffDate
