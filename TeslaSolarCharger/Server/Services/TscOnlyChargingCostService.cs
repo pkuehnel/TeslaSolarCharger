@@ -187,22 +187,22 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             ? dateTimeProvider.DateTimeOffSetUtcNow()
             : new(chargingProcess.EndDate.Value, TimeSpan.Zero);
         var startDate = new DateTimeOffset(chargingProcess.StartDate, TimeSpan.Zero);
-        var latestMeterValueQuery = context.MeterValues
+        var latestMeterValuesQuery = context.MeterValues
             .Where(m => m.Timestamp >= startDate
             && m.Timestamp <= endDate).AsQueryable();
         if (chargingProcess.OcppChargingStationConnectorId != default)
         {
-            latestMeterValueQuery = latestMeterValueQuery.Where(m => m.CarId == null
+            latestMeterValuesQuery = latestMeterValuesQuery.Where(m => m.CarId == null
                                                                      && m.ChargingConnectorId == chargingProcess.OcppChargingStationConnectorId
                                                                      && m.MeterValueKind == MeterValueKind.ChargingConnector);
         }
         else
         {
-            latestMeterValueQuery = latestMeterValueQuery.Where(m => m.CarId == chargingProcess.CarId
+            latestMeterValuesQuery = latestMeterValuesQuery.Where(m => m.CarId == chargingProcess.CarId
                                                                      && m.ChargingConnectorId == null
                                                                      && m.MeterValueKind == MeterValueKind.Car);
         }
-        var meterValues = await latestMeterValueQuery
+        var meterValues = await latestMeterValuesQuery
             .OrderBy(cd => cd.Timestamp)
             .AsNoTracking()
             .ToListAsync().ConfigureAwait(false);
