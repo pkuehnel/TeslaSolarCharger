@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Contracts;
 using TeslaSolarCharger.Server.Services.GridPrice.Dtos;
+using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingCost;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -77,20 +78,20 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         var finalizedChargingProcesses = await context.ChargingProcesses
             .Where(cp => cp.EndDate != null)
             .ToListAsync().ConfigureAwait(false);
-        foreach (var chargingProcess in finalizedChargingProcesses)
+        settings.ChargePricesUpdateProgress = new() { Value = 0, MaxValue = finalizedChargingProcesses.Count, };
+        try
         {
-            settings.ChargePricesUpdateText = $"Updating charging processes {finalizedChargingProcesses.IndexOf(chargingProcess)}/{finalizedChargingProcesses.Count}";
-            try
+            foreach (var chargingProcess in finalizedChargingProcesses)
             {
+                logger.LogTrace("Finalizing charging process with ID {chargingProcessId}", chargingProcess.Id);
+                settings.ChargePricesUpdateProgress.Value = finalizedChargingProcesses.IndexOf(chargingProcess);
                 await FinalizeChargingProcess(chargingProcess);
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error while updating charge prices of charging process with ID {chargingProcessId}.", chargingProcess.Id);
-            }
         }
-
-        settings.ChargePricesUpdateText = null;
+        finally
+        {
+            settings.ChargePricesUpdateProgress = null;
+        }
     }
 
     public async Task<Dictionary<int, DtoChargeSummary>> GetChargeSummaries()

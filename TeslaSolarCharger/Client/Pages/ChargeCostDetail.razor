@@ -5,11 +5,14 @@
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
 @using TeslaSolarCharger.Shared.Enums
 @using Newtonsoft.Json
+@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Dtos
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
 @inject IDateTimeProvider DateTimeProvider
 @inject ISnackbar Snackbar
+@inject IChargePriceService ChargePriceService
 
 <button class="btn btn-primary" @onclick="NavigateToList">All Charge costs</button>
 <h1>ChargePriceDetail</h1>
@@ -128,28 +131,29 @@ else
         }
         
         <br/>
-        @if(ChargePricesUpdateText != null)
+        @if(ChargePriceUpdateProgress != default && ChargePriceUpdateProgress.Value != null && ChargePriceUpdateProgress.MaxValue != null)
         {
-            <div class="alert alert-warning" role="alert">
-                @ChargePricesUpdateText
+            <div class="mb-3">
+                <MudProgressLinear Value="ChargePriceUpdateProgress.Value.Value"
+                                   Max="ChargePriceUpdateProgress.MaxValue.Value"
+                                   Size="Size.Large"
+                                   Striped="true"
+                                   Color="Color.Primary"/>
             </div>
+            
         }
-        <button type="submit" class="btn btn-primary" disabled="@(ChargePricesUpdateText != null)">
-            @if (SubmitIsLoading)
-            {
-                <span>
-                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    Loading...
-                </span>
-            }
-            else
-            {
-                <span>Save</span>
-            }
-        </button>
-        <div>
-            <small class="form-text text-muted">Note: updating charge prices can take a significant ammount of time as the price of all previous charges is updated</small>
-        </div>
+        else
+        {
+            <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+                <MudAlert Severity="Severity.Info">
+                    Updating charge prices can take a significant ammount of time as the prices of all previous charges are updated
+                </MudAlert>
+            </MudPaper>
+        }
+        
+        <RightAlignedButtonComponent ButtonType="ButtonType.Submit"
+                                     IsLoading="@(SubmitIsLoading || ChargePriceUpdateProgress != default)"
+                                     ButtonText="Save"/>
     </EditForm>
 }
 
@@ -164,14 +168,14 @@ else
 
     private List<FixedPrice>? FixedPrices { get; set; }
 
-    public string? ChargePricesUpdateText { get; set; }
+    private DtoProgress? ChargePriceUpdateProgress { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        ChargePricesUpdateText = (await HttpClient.GetFromJsonAsync<DtoValue<string?>>($"api/ChargingCost/GetChargePricesUpdateText").ConfigureAwait(false))?.Value;
+        await RefreshChargePriceProgress();
         if (ChargeCostId != null)
         {
-            ChargePrice = await HttpClient.GetFromJsonAsync<DtoChargePrice>($"api/ChargingCost/GetChargePriceById?id={ChargeCostId}").ConfigureAwait(false);
+            ChargePrice = await ChargePriceService.GetDtoChargePrice(ChargeCostId.Value);
             if(ChargePrice is { EnergyProviderConfiguration: not null, EnergyProvider: EnergyProvider.FixedPrice })
             {
                 FixedPrices = JsonConvert.DeserializeObject<List<FixedPrice>>(ChargePrice.EnergyProviderConfiguration);
@@ -194,24 +198,56 @@ else
         NavigationManager.NavigateTo("/ChargePrices");
     }
 
+    private async Task RefreshChargePriceProgress()
+    {
+        ChargePriceUpdateProgress = await ChargePriceService.GetChargePriceUpdateProgress();
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task SaveChargePrice()
     {
-        SubmitIsLoading = true;
         if(ChargePrice == null)
         {
             Snackbar.Add("Charge price is null and can not be saved. Try reloading the page.", Severity.Error);
             return;
         }
-        if(ChargePrice.EnergyProvider == EnergyProvider.FixedPrice)
+        SubmitIsLoading = true;
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        _ = RefreshChargePriceUpdateProgressForever(cancellationToken);
+        try
         {
-            ChargePrice.EnergyProviderConfiguration = JsonConvert.SerializeObject(FixedPrices);
+            if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice)
+            {
+                ChargePrice.EnergyProviderConfiguration = JsonConvert.SerializeObject(FixedPrices);
+            }
+            else
+            {
+                ChargePrice.EnergyProviderConfiguration = null;
+            }
+
+            await ChargePriceService.UpdateChargePrice(ChargePrice);
         }
-        else
+        finally
         {
-            ChargePrice.EnergyProviderConfiguration = null;
+            SubmitIsLoading = false;
+            await cancellationTokenSource.CancelAsync();
         }
-        HttpClient.PostAsJsonAsync("api/ChargingCost/UpdateChargePrice", ChargePrice).ConfigureAwait(false);
+
+        // ReSharper disable once MethodSupportsCancellation
+        await Task.Delay(1500);
         NavigateToList();
+    }
+
+    private async Task RefreshChargePriceUpdateProgressForever(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            await RefreshChargePriceProgress();
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+        }
+        ChargePriceUpdateProgress = null;
     }
 
     private void EnergyProviderChanged(EnergyProvider energyProvider)
