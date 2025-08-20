@@ -20,6 +20,18 @@ using TeslaSolarCharger.Shared.TimeProviding;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
+builder.Services.AddHttpClient("longTimeout", client =>
+{
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+    // Add other configurations like timeout, default headers, etc.
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
+
+builder.Services.AddHttpClient("normalTimeout", client =>
+{
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+});
+
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 //builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri("http://192.168.1.50:7189/") });
 builder.Services.AddScoped<INodePatternTypeHelper, NodePatternTypeHelper>();

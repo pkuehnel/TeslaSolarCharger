@@ -166,8 +166,7 @@
         }
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient(Guid.NewGuid().ToString());
-            httpClient.Timeout = TimeSpan.FromMinutes(10);
+            using var httpClient = HttpClientFactory.CreateClient("longTimeout");
             var response = await httpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
             if (response.IsSuccessStatusCode)
             {
@@ -198,7 +197,7 @@
         }
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient(Guid.NewGuid().ToString());
+            using var httpClient = HttpClientFactory.CreateClient("normalTimeout");
             var backupFiles = await httpClient.GetFromJsonAsync<List<DtoBackupFileInformation>>("api/BaseConfiguration/GetAutoBackupFileInformations");
             if (backupFiles != null)
             {
