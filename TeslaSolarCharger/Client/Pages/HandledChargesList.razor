@@ -1,4 +1,5 @@
 ﻿@page "/HandledCharges"
+@using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @inject HttpClient HttpClient
@@ -14,6 +15,20 @@
 }
 else
 {
+    <div class="narrow-inputs">
+        @if (CarId == default)
+        {
+            <GenericInput T="bool"
+                          For="() => HideChargingProcessesWhithKnownCars"
+                          OnValueChanged="RefreshList"/>
+        }
+        <GenericInput T="int"
+                      For="() => MinConsumedEnergy"
+                      OnValueChanged="RefreshList"/>
+    </div>
+
+
+
     <MudDataGrid Items="_handledCharges" Groupable="true" Filterable="true"
                  Hover="true" Dense="true" Striped="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
                  Height="@_datagridHeight" Breakpoint="Breakpoint.None">
@@ -74,6 +89,13 @@ else
     public int ViewportWidth { get; set; }
     public int ViewportHeight { get; set; }
 
+    [HelperText("Hide charging process where the car is known")]
+    private bool HideChargingProcessesWhithKnownCars { get; set; }
+
+    [HelperText("Hide charging processes where less energy is consumed")]
+    [Postfix("Wh")]
+    private int MinConsumedEnergy { get; set; } = 100;
+
     private string _datagridHeight = "calc(100vh - 10rem);";
 
     private List<DtoHandledCharge>? _handledCharges;
@@ -100,12 +122,18 @@ else
         DisplayFormat = "\u2211: {value}",
     };
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
+        await RefreshList();
+    }
+
+    private async Task RefreshList()
+    {
+        _handledCharges = null;
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
         if (Microsoft.AspNetCore.WebUtilities
-            .QueryHelpers.ParseQuery(uri.Query)
-            .TryGetValue("carId", out var c)
+                .QueryHelpers.ParseQuery(uri.Query)
+                .TryGetValue("carId", out var c)
             && int.TryParse(c, out var parsedCarId))
         {
             CarId = parsedCarId;
@@ -115,8 +143,8 @@ else
             CarId = default;
         }
         if (Microsoft.AspNetCore.WebUtilities
-            .QueryHelpers.ParseQuery(uri.Query)
-            .TryGetValue("chargingConnectorId", out var cc)
+                .QueryHelpers.ParseQuery(uri.Query)
+                .TryGetValue("chargingConnectorId", out var cc)
             && int.TryParse(cc, out var parsedChargingConnectorId))
         {
             ChargingConnectorId = parsedChargingConnectorId;
@@ -125,7 +153,7 @@ else
         {
             ChargingConnectorId = default;
         }
-        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
+        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}&hideKnownCars={HideChargingProcessesWhithKnownCars}&minConsumedEnergyWh={MinConsumedEnergy}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
     }
 
     [JSInvokable]

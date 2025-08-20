@@ -131,12 +131,12 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         return chargeSummary;
     }
 
-    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int? carId, int? chargingConnectorId)
+    public async Task<List<DtoHandledCharge>> GetFinalizedChargingProcesses(int? carId, int? chargingConnectorId, bool hideKnownCars, int minConsumedEnergyWh)
     {
         logger.LogTrace("{method}({carId}, {chargingConnectorId})", nameof(GetFinalizedChargingProcesses), carId, chargingConnectorId);
         var handledChargesQuery = context.ChargingProcesses
             .Where(h => h.Cost != null).AsQueryable();
-        if (carId != default)
+        if (carId != default || hideKnownCars)
         {
             handledChargesQuery = handledChargesQuery.Where(h => h.CarId == carId);
         }
@@ -158,7 +158,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             })
             .ToListAsync().ConfigureAwait(false);
 
-        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy + c.UsedHomeBatteryEnergy) < 0.1m);
+        handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy + c.UsedHomeBatteryEnergy) < (minConsumedEnergyWh / 1000m));
         foreach (var dtoHandledCharge in handledCharges)
         {
             dtoHandledCharge.PricePerKwh = Math.Round(dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy + dtoHandledCharge.UsedHomeBatteryEnergy), 3);

@@ -9,6 +9,7 @@ using Serilog.Context;
 using Serilog.Core;
 using Serilog.Events;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using System.Diagnostics;
 using System.Reflection;
 using TeslaSolarCharger.Client.Contracts;
 using TeslaSolarCharger.Model.Contracts;
@@ -179,7 +180,10 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     try
     {
         logger1.LogInformation("Starting application startup tasks...");
-        await Task.Delay(10000).ConfigureAwait(false); // Wait 10seconds to allow kestrel to start properly
+        if (!Debugger.IsAttached)//Do not wait on debugging to improve startup time, while debugging UI behaviour is not important
+        {
+            await Task.Delay(10000).ConfigureAwait(false); // Wait 10seconds to allow kestrel to start properly
+        }
         //Do nothing before these lines as database is restored or created here.
         var baseConfigurationService = startupScope.ServiceProvider.GetRequiredService<IBaseConfigurationService>();
         baseConfigurationService.ProcessPendingRestore();
@@ -218,7 +222,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
 
         var shouldRetry = false;
         var baseConfiguration = await configurationWrapper.GetBaseConfigurationAsync();
-        
+
         var teslaMateContextWrapper = startupScope.ServiceProvider.GetRequiredService<ITeslaMateDbContextWrapper>();
         var teslaMateContext = teslaMateContextWrapper.GetTeslaMateContextIfAvailable();
         if (teslaMateContext != default)
