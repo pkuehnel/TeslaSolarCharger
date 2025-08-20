@@ -23,7 +23,8 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     IConstants constants,
     ILoadPointManagementService loadPointManagementService,
     IDatabaseValueBufferService databaseValueBufferService,
-    IMeterValueEstimationService meterValueEstimationService) : ITscOnlyChargingCostService
+    IMeterValueEstimationService meterValueEstimationService,
+    IMeterValueLogService meterValueLogService) : ITscOnlyChargingCostService
 {
     public async Task FinalizeFinishedChargingProcesses()
     {
@@ -182,7 +183,6 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
     private async Task FinalizeChargingProcess(ChargingProcess chargingProcess)
     {
         logger.LogTrace("{method}({chargingProcessId})", nameof(FinalizeChargingProcess), chargingProcess.Id);
-
         var endDate = chargingProcess.EndDate == default
             ? dateTimeProvider.DateTimeOffSetUtcNow()
             : new(chargingProcess.EndDate.Value, TimeSpan.Zero);
@@ -206,6 +206,15 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .OrderBy(cd => cd.Timestamp)
             .AsNoTracking()
             .ToListAsync().ConfigureAwait(false);
+        var lastMeterValue = meterValues.LastOrDefault();
+        if (lastMeterValue != default && lastMeterValue.MeasuredPower != 0)
+        {
+            var fakeMeterValueTimestamp = lastMeterValue.Timestamp.AddMilliseconds(1);
+            var fakeMeterValue = GenerateDefaultMeterValue(chargingProcess.CarId, chargingProcess.OcppChargingStationConnectorId,
+                fakeMeterValueTimestamp);
+            context.MeterValues.Add(fakeMeterValue);
+            meterValues.Add(fakeMeterValue);
+        }
         decimal usedSolarEnergyWh = 0;
         decimal usedHomeBatteryEnergyWh = 0;
         decimal usedGridEnergyWh = 0;
@@ -524,7 +533,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .Where(c => c.ShouldBeManaged == true)
             .Select(c => c.Id)
             .ToHashSetAsync().ConfigureAwait(false);
-        
+
         foreach (var carId in carIds)
         {
             var latestMeterValue =
@@ -573,6 +582,35 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .FirstOrDefaultAsync().ConfigureAwait(false);
         if (latestOpenChargingProcessId == default)
         {
+            logger.LogTrace("No open charging process found for car {carId} and charging connector {chargingConnectorId}, creating new one.", carId, chargingConnectorId);
+            if (carId != default)
+            {
+                logger.LogTrace("Checking for open charging process for car {carId}", carId);
+                var openCarChargingProcess = await context.ChargingProcesses
+                    .Where(cp => cp.CarId == carId && cp.EndDate == null)
+                    .OrderByDescending(cp => cp.StartDate)
+                    .FirstOrDefaultAsync().ConfigureAwait(false);
+                if (openCarChargingProcess != default)
+                {
+                    logger.LogTrace("Found open charging process for car {carId}, finalizing it.", carId);
+                    await meterValueLogService.SaveBufferedMeterValuesToDatabase().ConfigureAwait(false);
+                    await FinalizeChargingProcess(openCarChargingProcess).ConfigureAwait(false);
+                }
+            }
+            if (chargingConnectorId != default)
+            {
+                logger.LogTrace("Checking for open charging process for charging connector {chargingConnectorId}", chargingConnectorId);
+                var openChargingConnectorProcess = await context.ChargingProcesses
+                    .Where(cp => cp.OcppChargingStationConnectorId == chargingConnectorId && cp.EndDate == null)
+                    .OrderByDescending(cp => cp.StartDate)
+                    .FirstOrDefaultAsync().ConfigureAwait(false);
+                if (openChargingConnectorProcess != default)
+                {
+                    logger.LogTrace("Found open charging process for charging connector {chargingConnectorId}, finalizing it.", chargingConnectorId);
+                    await meterValueLogService.SaveBufferedMeterValuesToDatabase().ConfigureAwait(false);
+                    await FinalizeChargingProcess(openChargingConnectorProcess).ConfigureAwait(false);
+                }
+            }
             logger.LogTrace("No open charging process found for car {carId} and charging connector {chargingConnectorId}, creating new one.", carId, chargingConnectorId);
             var chargingProcess = new ChargingProcess
             {

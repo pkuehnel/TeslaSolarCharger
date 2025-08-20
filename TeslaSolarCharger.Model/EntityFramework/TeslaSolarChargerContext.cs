@@ -46,8 +46,50 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
         //Workaround for https://github.com/dotnet/efcore/issues/29514
+        await ValidateChargingProcessOverlapsAsync();
         await Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000;", cancellationToken: cancellationToken);
         return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ValidateChargingProcessOverlapsAsync()
+    {
+        var modifiedChargingProcesses = ChangeTracker.Entries<ChargingProcess>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+            .Select(e => e.Entity)
+            .ToList();
+
+        foreach (var chargingProcess in modifiedChargingProcesses)
+        {
+            // Check car overlaps
+            if (chargingProcess.CarId.HasValue)
+            {
+                var hasCarOverlap = await ChargingProcesses
+                    .Where(cp => cp.Id != chargingProcess.Id)
+                    .Where(cp => cp.CarId == chargingProcess.CarId)
+                    .Where(cp =>
+                        chargingProcess.StartDate < (cp.EndDate ?? DateTime.MaxValue) &&
+                        cp.StartDate < (chargingProcess.EndDate ?? DateTime.MaxValue))
+                    .AnyAsync();
+
+                if (hasCarOverlap)
+                    throw new InvalidOperationException($"Overlapping charging process detected for car {chargingProcess.CarId}");
+            }
+
+            // Check connector overlaps
+            if (chargingProcess.OcppChargingStationConnectorId.HasValue)
+            {
+                var hasConnectorOverlap = await ChargingProcesses
+                    .Where(cp => cp.Id != chargingProcess.Id)
+                    .Where(cp => cp.OcppChargingStationConnectorId == chargingProcess.OcppChargingStationConnectorId)
+                    .Where(cp =>
+                        chargingProcess.StartDate < (cp.EndDate ?? DateTime.MaxValue) &&
+                        cp.StartDate < (chargingProcess.EndDate ?? DateTime.MaxValue))
+                    .AnyAsync();
+
+                if (hasConnectorOverlap)
+                    throw new InvalidOperationException($"Overlapping charging process detected for connector {chargingProcess.OcppChargingStationConnectorId}");
+            }
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
