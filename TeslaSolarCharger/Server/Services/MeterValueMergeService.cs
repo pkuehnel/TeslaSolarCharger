@@ -42,21 +42,67 @@ public class MeterValueMergeService(
     {
         logger.LogTrace("{method}({meterValueKind}, {cutoffDate})", nameof(MergeMeterValueKindAsync), meterValueKind, cutoffDate);
 
-        // Get all meter values for this kind that are older than the cutoff date
-        // Additional safety check to ensure we don't touch car or charging connector related values
-        var oldMeterValues = await context.MeterValues
+        // Get the date range for processing to avoid loading all data into memory at once
+        var dateQuery = await context.MeterValues
             .Where(mv => mv.MeterValueKind == meterValueKind 
-                && mv.Timestamp < cutoffDate)
-            .OrderBy(mv => mv.Timestamp)
-            .ToListAsync(cancellationToken);
+                && mv.Timestamp < cutoffDate
+                && mv.CarId == null 
+                && mv.ChargingConnectorId == null)
+            .Select(mv => mv.Timestamp.Date)
+            .OrderBy(d => d)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (oldMeterValues.Count == 0)
+        if (dateQuery == default)
         {
             logger.LogDebug("No meter values found for {meterValueKind} older than {cutoffDate}", meterValueKind, cutoffDate);
             return;
         }
 
-        logger.LogInformation("Processing {count} meter values for {meterValueKind}", oldMeterValues.Count, meterValueKind);
+        var earliestDate = dateQuery;
+
+        var latestDate = cutoffDate.Date;
+        var totalDays = (latestDate - earliestDate).Days + 1;
+        var processedDays = 0;
+        
+        logger.LogInformation("Processing {meterValueKind} data from {earliestDate} to {latestDate} ({totalDays} days)", 
+            meterValueKind, earliestDate, latestDate, totalDays);
+
+        // Process data day by day to avoid loading millions of records into memory
+        for (var currentDate = earliestDate; currentDate <= latestDate; currentDate = currentDate.AddDays(1))
+        {
+            await MergeMeterValueKindForDateAsync(meterValueKind, currentDate, cutoffDate, cancellationToken);
+            processedDays++;
+            
+            if (processedDays % 10 == 0 || processedDays == totalDays)
+            {
+                logger.LogInformation("Processed {processedDays}/{totalDays} days for {meterValueKind}", 
+                    processedDays, totalDays, meterValueKind);
+            }
+        }
+
+        logger.LogInformation("Completed processing {meterValueKind} data for {totalDays} days", meterValueKind, totalDays);
+    }
+
+    private async Task MergeMeterValueKindForDateAsync(MeterValueKind meterValueKind, DateTime date, DateTimeOffset cutoffDate, CancellationToken cancellationToken)
+    {
+        // Load meter values for a single day only to keep memory usage manageable
+        var dayStart = new DateTimeOffset(date, TimeSpan.Zero);
+        var dayEnd = dayStart.AddDays(1);
+
+        var dayMeterValues = await context.MeterValues
+            .Where(mv => mv.MeterValueKind == meterValueKind 
+                && mv.Timestamp >= dayStart 
+                && mv.Timestamp < dayEnd
+                && mv.Timestamp < cutoffDate
+                && mv.CarId == null 
+                && mv.ChargingConnectorId == null)
+            .OrderBy(mv => mv.Timestamp)
+            .ToListAsync(cancellationToken);
+
+        if (dayMeterValues.Count == 0)
+        {
+            return;
+        }
 
         // Group values into 5-minute windows
         var mergedValues = new List<MeterValue>();
@@ -65,7 +111,7 @@ public class MeterValueMergeService(
         var currentWindow = DateTimeOffset.MinValue;
         var windowValues = new List<MeterValue>();
 
-        foreach (var meterValue in oldMeterValues)
+        foreach (var meterValue in dayMeterValues)
         {
             var meterValueWindow = GetFiveMinuteWindow(meterValue.Timestamp);
 
@@ -104,8 +150,8 @@ public class MeterValueMergeService(
         // Apply changes to database
         if (valuesToRemove.Count > 0 || mergedValues.Count > 0)
         {
-            logger.LogInformation("Merging {originalCount} values into {mergedCount} for {meterValueKind}, removing {removeCount} duplicates", 
-                oldMeterValues.Count, mergedValues.Count, meterValueKind, valuesToRemove.Count);
+            logger.LogDebug("Day {date}: Merging {originalCount} values into {mergedCount} for {meterValueKind}, removing {removeCount} duplicates", 
+                date, dayMeterValues.Count, mergedValues.Count, meterValueKind, valuesToRemove.Count);
 
             // Remove duplicate values (keep one representative per window)
             context.MeterValues.RemoveRange(valuesToRemove);
