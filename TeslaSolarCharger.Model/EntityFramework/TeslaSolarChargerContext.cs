@@ -45,8 +45,8 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
-        //Workaround for https://github.com/dotnet/efcore/issues/29514
         await ValidateChargingProcessOverlapsAsync();
+        //Workaround for https://github.com/dotnet/efcore/issues/29514
         await Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000;", cancellationToken: cancellationToken);
         return await base.SaveChangesAsync(cancellationToken);
     }
