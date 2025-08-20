@@ -192,7 +192,9 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             ? dateTimeProvider.DateTimeOffSetUtcNow()
             : new(chargingProcess.EndDate.Value, TimeSpan.Zero);
         var startDate = new DateTimeOffset(chargingProcess.StartDate, TimeSpan.Zero);
-        var latestMeterValuesQuery = context.MeterValues
+        using var scope = serviceProvider.CreateScope();
+        var localContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var latestMeterValuesQuery = localContext.MeterValues
             .Where(m => m.Timestamp >= startDate
             && m.Timestamp <= endDate).AsQueryable();
         if (chargingProcess.OcppChargingStationConnectorId != default)
