@@ -1,6 +1,7 @@
 ﻿@page "/backupAndRestore"
 @using System.Net.Http.Headers
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Resources
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
 @inject IHttpClientFactory HttpClientFactory
@@ -166,7 +167,7 @@
         }
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient("longTimeout");
+            using var httpClient = HttpClientFactory.CreateClient(StaticConstants.LongTimeOutHttpClientName);
             var response = await httpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
             if (response.IsSuccessStatusCode)
             {
@@ -197,7 +198,7 @@
         }
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient("normalTimeout");
+            using var httpClient = HttpClientFactory.CreateClient(StaticConstants.NormalTimeOutHttpClientName);
             var backupFiles = await httpClient.GetFromJsonAsync<List<DtoBackupFileInformation>>("api/BaseConfiguration/GetAutoBackupFileInformations");
             if (backupFiles != null)
             {
