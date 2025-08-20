@@ -31,6 +31,9 @@ else
                     }
                 </CellTemplate>
             </PropertyColumn>
+            <PropertyColumn Property="x => x.EndTime"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.EndTime))">
+            </PropertyColumn>
             <PropertyColumn Property="x => x.CalculatedPrice"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.CalculatedPrice))"
                             AggregateDefinition="_calculatedPriceAggregation">
