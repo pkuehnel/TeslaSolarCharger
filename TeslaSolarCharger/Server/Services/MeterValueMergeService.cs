@@ -27,7 +27,7 @@ public class MeterValueMergeService(
             MeterValueKind.HomeBatteryCharging,
             MeterValueKind.HomeBatteryDischarging,
             MeterValueKind.PowerToGrid,
-            MeterValueKind.PowerFromGrid
+            MeterValueKind.PowerFromGrid,
         };
 
         foreach (var meterValueKind in meterValueKindsToMerge)
@@ -46,9 +46,7 @@ public class MeterValueMergeService(
         // Additional safety check to ensure we don't touch car or charging connector related values
         var oldMeterValues = await context.MeterValues
             .Where(mv => mv.MeterValueKind == meterValueKind 
-                && mv.Timestamp < cutoffDate
-                && mv.CarId == null 
-                && mv.ChargingConnectorId == null)
+                && mv.Timestamp < cutoffDate)
             .OrderBy(mv => mv.Timestamp)
             .ToListAsync(cancellationToken);
 
