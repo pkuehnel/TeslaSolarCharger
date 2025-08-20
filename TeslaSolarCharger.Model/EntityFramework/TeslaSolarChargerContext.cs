@@ -72,7 +72,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
                     .AnyAsync();
 
                 if (hasCarOverlap)
-                    throw new InvalidOperationException($"Overlapping charging process detected for car {chargingProcess.CarId}");
+                    throw new InvalidOperationException(
+                        $"Overlapping charging process detected for car {chargingProcess.CarId}. " +
+                        $"ChargingProcessId: {chargingProcess.Id}, " +
+                        $"Time range: {chargingProcess.StartDate:u} - {(chargingProcess.EndDate?.ToString("u") ?? "null")}");
             }
 
             // Check connector overlaps
@@ -87,7 +90,11 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
                     .AnyAsync();
 
                 if (hasConnectorOverlap)
-                    throw new InvalidOperationException($"Overlapping charging process detected for connector {chargingProcess.OcppChargingStationConnectorId}");
+                    throw new InvalidOperationException(
+                        $"Overlapping charging process detected for connector {chargingProcess.OcppChargingStationConnectorId}. " +
+                        $"Process ID: {chargingProcess.Id}, " +
+                        $"Time range: {chargingProcess.StartDate:u} - {(chargingProcess.EndDate?.ToString("u") ?? "null")}"
+                    );
             }
         }
     }

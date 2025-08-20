@@ -611,7 +611,6 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                     await FinalizeChargingProcess(openChargingConnectorProcess).ConfigureAwait(false);
                 }
             }
-            logger.LogTrace("No open charging process found for car {carId} and charging connector {chargingConnectorId}, creating new one.", carId, chargingConnectorId);
             var chargingProcess = new ChargingProcess
             {
                 StartDate = currentDate.UtcDateTime,
