@@ -21,18 +21,28 @@ else
             <PropertyColumn Property="x => x.StartTime"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))">
                 <CellTemplate>
-                    @if(context.Item.EndTime.HasValue && false)
+                    @if (context.Item.EndTime.HasValue && false)
                     {
                         <MudLink Href="@($"/TimeSeries/{CarId}/{((DateTimeOffset)context.Item.StartTime.ToUniversalTime()).ToUnixTimeSeconds()}/{((DateTimeOffset)context.Item.EndTime.Value.ToUniversalTime()).ToUnixTimeSeconds()}")">@context.Item.StartTime</MudLink>
                     }
                     else
                     {
-                        @context.Item.StartTime
+                        @context.Item.StartTime.ToString("g")
                     }
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.EndTime"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.EndTime))">
+                <CellTemplate>
+                    @if (context.Item.EndTime.HasValue)
+                    {
+                        @context.Item.EndTime.Value.ToString("t");
+                    }
+                    else
+                    {
+                        <div></div>
+                    }
+                </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.CalculatedPrice"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.CalculatedPrice))"
@@ -70,24 +80,24 @@ else
     private AggregateDefinition<DtoHandledCharge> _calculatedPriceAggregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-            DisplayFormat = "\u2211: {value}",
+        DisplayFormat = "\u2211: {value}",
     };
 
     private AggregateDefinition<DtoHandledCharge> _pricePerKwhAggregation = new AggregateDefinition<DtoHandledCharge>()
+    {
+        Type = AggregateType.Custom,
+        CustomAggregate = x =>
         {
-            Type = AggregateType.Custom,
-            CustomAggregate = x =>
-            {
-                var averagePricePerKwh = x.Average(z => z.PricePerKwh);
-                var resultString = $"\u2300: {averagePricePerKwh:F3}";
-                return resultString;
-            },
-        };
+            var averagePricePerKwh = x.Average(z => z.PricePerKwh);
+            var resultString = $"\u2300: {averagePricePerKwh:F3}";
+            return resultString;
+        },
+    };
 
     private AggregateDefinition<DtoHandledCharge> _usedEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-            DisplayFormat = "\u2211: {value}",
+        DisplayFormat = "\u2211: {value}",
     };
 
     protected override async Task OnInitializedAsync()
@@ -121,7 +131,7 @@ else
     [JSInvokable]
     public void OnResize(int width, int height)
     {
-        if(ViewportWidth == width && ViewportHeight == height) return;
+        if (ViewportWidth == width && ViewportHeight == height) return;
         _datagridHeight = height < 430 ? "300px" : "calc(100vh - 10rem);";
         StateHasChanged();
     }
