@@ -161,7 +161,11 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         handledCharges.RemoveAll(c => (c.UsedGridEnergy + c.UsedSolarEnergy + c.UsedHomeBatteryEnergy) < (minConsumedEnergyWh / 1000m));
         foreach (var dtoHandledCharge in handledCharges)
         {
-            dtoHandledCharge.PricePerKwh = Math.Round(dtoHandledCharge.CalculatedPrice / (dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy + dtoHandledCharge.UsedHomeBatteryEnergy), 3);
+            var usedEnergy = dtoHandledCharge.UsedGridEnergy + dtoHandledCharge.UsedSolarEnergy + dtoHandledCharge.UsedHomeBatteryEnergy;
+            if (usedEnergy > 0)
+            {
+                dtoHandledCharge.PricePerKwh = Math.Round(dtoHandledCharge.CalculatedPrice / usedEnergy, 3);
+            }
         }
         return handledCharges;
     }
