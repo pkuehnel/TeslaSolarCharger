@@ -20,6 +20,18 @@ using TeslaSolarCharger.Shared.TimeProviding;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
+builder.Services.AddHttpClient(StaticConstants.LongTimeOutHttpClientName, client =>
+{
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+    // Add other configurations like timeout, default headers, etc.
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
+
+builder.Services.AddHttpClient(StaticConstants.NormalTimeOutHttpClientName, client =>
+{
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+});
+
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 //builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri("http://192.168.1.50:7189/") });
 builder.Services.AddScoped<INodePatternTypeHelper, NodePatternTypeHelper>();
@@ -31,6 +43,7 @@ builder.Services.AddScoped<ICloudConnectionCheckService, CloudConnectionCheckSer
 builder.Services.AddScoped<IEnergyDataService, EnergyDataService>();
 builder.Services.AddScoped<IChargingStationsService, ChargingStationsService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
+builder.Services.AddScoped<IChargePriceService, ChargePriceService>();
 builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>();
 builder.Services.AddSingleton<IEntityKeyGenerationHelper, EntityKeyGenerationHelper>();
 builder.Services.AddTransient<IChartWidthCalculator, ChartWidthCalculator>();

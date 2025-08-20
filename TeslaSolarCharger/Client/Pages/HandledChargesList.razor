@@ -1,9 +1,10 @@
 ﻿@page "/HandledCharges"
+@using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @inject HttpClient HttpClient
 @inject IStringHelper StringHelper
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JsRuntime
 @inject NavigationManager NavigationManager
 
 <h1>Handled Charges</h1>
@@ -14,6 +15,20 @@
 }
 else
 {
+    <div class="narrow-inputs">
+        @if (CarId == default)
+        {
+            <GenericInput T="bool"
+                          For="() => HideChargingProcessesWithKnownCars"
+                          OnValueChanged="RefreshList"/>
+        }
+        <GenericInput T="int"
+                      For="() => MinConsumedEnergy"
+                      OnValueChanged="RefreshList"/>
+    </div>
+
+
+
     <MudDataGrid Items="_handledCharges" Groupable="true" Filterable="true"
                  Hover="true" Dense="true" Striped="true" Virtualize="true" FixedHeader="true" FixedFooter="true"
                  Height="@_datagridHeight" Breakpoint="Breakpoint.None">
@@ -21,13 +36,26 @@ else
             <PropertyColumn Property="x => x.StartTime"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))">
                 <CellTemplate>
-                    @if(context.Item.EndTime.HasValue)
+                    @if (context.Item.EndTime.HasValue && false)
                     {
                         <MudLink Href="@($"/TimeSeries/{CarId}/{((DateTimeOffset)context.Item.StartTime.ToUniversalTime()).ToUnixTimeSeconds()}/{((DateTimeOffset)context.Item.EndTime.Value.ToUniversalTime()).ToUnixTimeSeconds()}")">@context.Item.StartTime</MudLink>
                     }
                     else
                     {
-                        @context.Item.StartTime
+                        @context.Item.StartTime.ToString("g")
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.EndTime"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.EndTime))">
+                <CellTemplate>
+                    @if (context.Item.EndTime.HasValue)
+                    {
+                        @context.Item.EndTime.Value.ToString("t");
+                    }
+                    else
+                    {
+                        <div></div>
                     }
                 </CellTemplate>
             </PropertyColumn>
@@ -61,38 +89,51 @@ else
     public int ViewportWidth { get; set; }
     public int ViewportHeight { get; set; }
 
+    [HelperText("Hide charging process where the car is known")]
+    private bool HideChargingProcessesWithKnownCars { get; set; }
+
+    [HelperText("Hide charging processes where less energy is consumed")]
+    [Postfix("Wh")]
+    private int MinConsumedEnergy { get; set; } = 100;
+
     private string _datagridHeight = "calc(100vh - 10rem);";
 
     private List<DtoHandledCharge>? _handledCharges;
     private AggregateDefinition<DtoHandledCharge> _calculatedPriceAggregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-            DisplayFormat = "\u2211: {value}",
+        DisplayFormat = "\u2211: {value}",
     };
 
     private AggregateDefinition<DtoHandledCharge> _pricePerKwhAggregation = new AggregateDefinition<DtoHandledCharge>()
+    {
+        Type = AggregateType.Custom,
+        CustomAggregate = x =>
         {
-            Type = AggregateType.Custom,
-            CustomAggregate = x =>
-            {
-                var averagePricePerKwh = x.Average(z => z.PricePerKwh);
-                var resultString = $"\u2300: {averagePricePerKwh:F3}";
-                return resultString;
-            }
-        };
+            var averagePricePerKwh = x.Average(z => z.PricePerKwh);
+            var resultString = $"\u2300: {averagePricePerKwh:F3}";
+            return resultString;
+        },
+    };
 
     private AggregateDefinition<DtoHandledCharge> _usedEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
     {
         Type = AggregateType.Sum,
-            DisplayFormat = "\u2211: {value}",
+        DisplayFormat = "\u2211: {value}",
     };
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
+        await RefreshList();
+    }
+
+    private async Task RefreshList()
+    {
+        _handledCharges = null;
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
         if (Microsoft.AspNetCore.WebUtilities
-            .QueryHelpers.ParseQuery(uri.Query)
-            .TryGetValue("carId", out var c)
+                .QueryHelpers.ParseQuery(uri.Query)
+                .TryGetValue("carId", out var c)
             && int.TryParse(c, out var parsedCarId))
         {
             CarId = parsedCarId;
@@ -102,8 +143,8 @@ else
             CarId = default;
         }
         if (Microsoft.AspNetCore.WebUtilities
-            .QueryHelpers.ParseQuery(uri.Query)
-            .TryGetValue("chargingConnectorId", out var cc)
+                .QueryHelpers.ParseQuery(uri.Query)
+                .TryGetValue("chargingConnectorId", out var cc)
             && int.TryParse(cc, out var parsedChargingConnectorId))
         {
             ChargingConnectorId = parsedChargingConnectorId;
@@ -112,13 +153,13 @@ else
         {
             ChargingConnectorId = default;
         }
-        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
+        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}&hideKnownCars={HideChargingProcessesWithKnownCars}&minConsumedEnergyWh={MinConsumedEnergy}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
     }
 
     [JSInvokable]
     public void OnResize(int width, int height)
     {
-        if(ViewportWidth == width && ViewportHeight == height) return;
+        if (ViewportWidth == width && ViewportHeight == height) return;
         _datagridHeight = height < 430 ? "300px" : "calc(100vh - 10rem);";
         StateHasChanged();
     }
@@ -127,7 +168,7 @@ else
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("window.registerViewportChangeCallback", DotNetObjectReference.Create(this));
+            await JsRuntime.InvokeVoidAsync("window.registerViewportChangeCallback", DotNetObjectReference.Create(this));
         }
     }
 }

@@ -46,7 +46,7 @@ public class Settings : ISettings
 
     public DateTime StartupTime { get; set; }
 
-    public string? ChargePricesUpdateText { get; set; }
+    public DtoProgress? ChargePricesUpdateProgress { get; set; }
     public int LastPvDemoCase { get; set; }
 
     public bool IsPreRelease { get; set; }

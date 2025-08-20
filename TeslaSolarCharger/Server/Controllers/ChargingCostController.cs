@@ -23,9 +23,9 @@ namespace TeslaSolarCharger.Server.Controllers
         }
 
         [HttpGet]
-        public Task<List<DtoHandledCharge>> GetHandledCharges(int? carId, int? chargingConnectorId)
+        public Task<List<DtoHandledCharge>> GetHandledCharges(int? carId, int? chargingConnectorId, bool hideKnownCars, int minConsumedEnergyWh)
         {
-            return tscOnlyChargingCostService.GetFinalizedChargingProcesses(carId, chargingConnectorId);
+            return tscOnlyChargingCostService.GetFinalizedChargingProcesses(carId, chargingConnectorId, hideKnownCars, minConsumedEnergyWh);
         }
 
         [HttpGet]
@@ -47,15 +47,16 @@ namespace TeslaSolarCharger.Server.Controllers
         }
 
         [HttpPost]
-        public Task UpdateChargePrice([FromBody] DtoChargePrice chargePrice)
+        public async Task<IActionResult> UpdateChargePrice([FromBody] DtoChargePrice chargePrice)
         {
-            return chargingCostService.UpdateChargePrice(chargePrice);
+            await chargingCostService.UpdateChargePrice(chargePrice);
+            return Ok();
         }
 
         [HttpGet]
-        public DtoValue<string?> GetChargePricesUpdateText()
+        public IActionResult GetChargePriceUpdateProgress()
         {
-            return new DtoValue<string?>(settings.ChargePricesUpdateText);
+            return Ok(settings.ChargePricesUpdateProgress);
         }
     }
 }

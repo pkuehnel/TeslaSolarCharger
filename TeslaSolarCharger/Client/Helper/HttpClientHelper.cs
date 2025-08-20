@@ -131,6 +131,12 @@ public class HttpClientHelper(ILogger<HttpClientHelper> logger, HttpClient httpC
 
             if (response.IsSuccessStatusCode)
             {
+                // Handle 204 No Content specifically
+                if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+                {
+                    return new Result<T>(default, null, null);
+                }
+
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 if (typeof(T) != typeof(object))
                 {

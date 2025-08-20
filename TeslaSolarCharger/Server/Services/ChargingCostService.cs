@@ -115,10 +115,11 @@ public class ChargingCostService(
     {
         logger.LogTrace("{method}({@dtoChargePrice})",
             nameof(UpdateChargePrice), dtoChargePrice);
-        if (!string.IsNullOrEmpty(settings.ChargePricesUpdateText))
+        if (settings.ChargePricesUpdateProgress != default)
         {
-            logger.LogWarning("Can not update charge price as currently updating due to previous change");
-            return;
+            var errorMessage = "Can not update charge price as currently updating due to previous change";
+            logger.LogError(errorMessage);
+            throw new InvalidOperationException(errorMessage);
         }
         ChargePrice chargePrice;
         if (dtoChargePrice.Id == null)
