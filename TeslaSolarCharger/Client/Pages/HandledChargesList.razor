@@ -3,7 +3,7 @@
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @inject HttpClient HttpClient
 @inject IStringHelper StringHelper
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JsRuntime
 @inject NavigationManager NavigationManager
 
 <h1>Handled Charges</h1>
@@ -21,7 +21,7 @@ else
             <PropertyColumn Property="x => x.StartTime"
                             Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))">
                 <CellTemplate>
-                    @if(context.Item.EndTime.HasValue)
+                    @if(context.Item.EndTime.HasValue && false)
                     {
                         <MudLink Href="@($"/TimeSeries/{CarId}/{((DateTimeOffset)context.Item.StartTime.ToUniversalTime()).ToUnixTimeSeconds()}/{((DateTimeOffset)context.Item.EndTime.Value.ToUniversalTime()).ToUnixTimeSeconds()}")">@context.Item.StartTime</MudLink>
                     }
@@ -78,7 +78,7 @@ else
                 var averagePricePerKwh = x.Average(z => z.PricePerKwh);
                 var resultString = $"\u2300: {averagePricePerKwh:F3}";
                 return resultString;
-            }
+            },
         };
 
     private AggregateDefinition<DtoHandledCharge> _usedEnergyAggrregation = new AggregateDefinition<DtoHandledCharge>()
@@ -127,7 +127,7 @@ else
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("window.registerViewportChangeCallback", DotNetObjectReference.Create(this));
+            await JsRuntime.InvokeVoidAsync("window.registerViewportChangeCallback", DotNetObjectReference.Create(this));
         }
     }
 }
