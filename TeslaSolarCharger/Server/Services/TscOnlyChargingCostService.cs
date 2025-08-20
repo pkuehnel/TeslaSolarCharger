@@ -211,6 +211,16 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
             .OrderBy(cd => cd.Timestamp)
             .AsNoTracking()
             .ToListAsync().ConfigureAwait(false);
+        if (meterValues.Count == 0)
+        {
+            logger.LogWarning("No meter values found for charging process with ID {chargingProcessId}. Setting default values.", chargingProcess.Id);
+            chargingProcess.UsedSolarEnergyKwh = 0;
+            chargingProcess.UsedHomeBatteryEnergyKwh = 0;
+            chargingProcess.UsedGridEnergyKwh = 0;
+            chargingProcess.Cost = 0;
+            await context.SaveChangesAsync().ConfigureAwait(false);
+            return;
+        }
         var lastMeterValue = meterValues.LastOrDefault();
         if (lastMeterValue != default && lastMeterValue.MeasuredPower != 0)
         {
