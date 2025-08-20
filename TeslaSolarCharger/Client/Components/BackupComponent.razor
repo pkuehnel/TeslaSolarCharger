@@ -3,7 +3,7 @@
 @using TeslaSolarCharger.Shared.Dtos
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
-@inject HttpClient HttpClient
+@inject IHttpClientFactory HttpClientFactory
 @inject ILogger<BackupComponent> Logger
 
 @implements IDisposable
@@ -166,24 +166,17 @@
         }
         try
         {
-            var oldTimeOut = HttpClient.Timeout;
-            try
+            using var httpClient = HttpClientFactory.CreateClient(Guid.NewGuid().ToString());
+            httpClient.Timeout = TimeSpan.FromMinutes(10);
+            var response = await httpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
+            if (response.IsSuccessStatusCode)
             {
-                HttpClient.Timeout = TimeSpan.FromMinutes(10);
-                var response = await HttpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
-                if (response.IsSuccessStatusCode)
-                {
-                    Snackbar.Add("Backup file saved. Container restart required to complete restore. Please restart the TSC container now.", Severity.Success);
-                    _file = null; // Clear the selected file
-                }
-                else
-                {
-                    Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
-                }
+                Snackbar.Add("Backup file saved. Container restart required to complete restore. Please restart the TSC container now.", Severity.Success);
+                _file = null; // Clear the selected file
             }
-            finally
+            else
             {
-                HttpClient.Timeout = oldTimeOut;
+                Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
             }
             
         }
@@ -205,7 +198,8 @@
         }
         try
         {
-            var backupFiles = await HttpClient.GetFromJsonAsync<List<DtoBackupFileInformation>>("api/BaseConfiguration/GetAutoBackupFileInformations");
+            using var httpClient = HttpClientFactory.CreateClient(Guid.NewGuid().ToString());
+            var backupFiles = await httpClient.GetFromJsonAsync<List<DtoBackupFileInformation>>("api/BaseConfiguration/GetAutoBackupFileInformations");
             if (backupFiles != null)
             {
                 _backupFiles = backupFiles;
