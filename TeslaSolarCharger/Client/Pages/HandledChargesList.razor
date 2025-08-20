@@ -19,7 +19,7 @@ else
         @if (CarId == default)
         {
             <GenericInput T="bool"
-                          For="() => HideChargingProcessesWhithKnownCars"
+                          For="() => HideChargingProcessesWithKnownCars"
                           OnValueChanged="RefreshList"/>
         }
         <GenericInput T="int"
@@ -90,7 +90,7 @@ else
     public int ViewportHeight { get; set; }
 
     [HelperText("Hide charging process where the car is known")]
-    private bool HideChargingProcessesWhithKnownCars { get; set; }
+    private bool HideChargingProcessesWithKnownCars { get; set; }
 
     [HelperText("Hide charging processes where less energy is consumed")]
     [Postfix("Wh")]
@@ -153,7 +153,7 @@ else
         {
             ChargingConnectorId = default;
         }
-        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}&hideKnownCars={HideChargingProcessesWhithKnownCars}&minConsumedEnergyWh={MinConsumedEnergy}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
+        _handledCharges = await HttpClient.GetFromJsonAsync<List<DtoHandledCharge>>($"api/ChargingCost/GetHandledCharges?carId={CarId}&chargingConnectorId={ChargingConnectorId}&hideKnownCars={HideChargingProcessesWithKnownCars}&minConsumedEnergyWh={MinConsumedEnergy}").ConfigureAwait(false) ?? new List<DtoHandledCharge>();
     }
 
     [JSInvokable]
