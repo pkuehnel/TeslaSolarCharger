@@ -90,39 +90,87 @@ public class MeterValueMergeService : IMeterValueMergeService
     private async Task MergeMeterValuesForDayAsync(MeterValueKind meterValueKind, DateTimeOffset dayToMergeValues, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({meterValueKind}, {dayToMergeValues})", nameof(MergeMeterValuesForDayAsync), meterValueKind, dayToMergeValues);
+
         var nextDay = dayToMergeValues.AddDays(1);
-        var slices = _timestampHelper.GenerateSlicedTimeStamps(dayToMergeValues, nextDay, NormalizeInterval);
+        var slices = _timestampHelper.GenerateSlicedTimeStamps(dayToMergeValues, nextDay, NormalizeInterval).ToList();
+
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+
+        // Load all meter values for the entire day into memory at once
+        var allDayMeterValues = await context.MeterValues
+            .Where(mv => mv.MeterValueKind == meterValueKind
+                      && mv.Timestamp >= dayToMergeValues
+                      && mv.Timestamp <= nextDay)
+            .OrderBy(mv => mv.Timestamp)
+            .ToListAsync(cancellationToken);
+
+        // Group values by slice for efficient lookup
+        var valuesBySlice = allDayMeterValues
+            .GroupBy(mv => slices.FirstOrDefault(s => mv.Timestamp >= s && mv.Timestamp < s.Add(NormalizeInterval)))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var valuesToAdd = new List<MeterValue>();
+        var valuesToUpdate = new List<MeterValue>();
+        var valuesToDelete = new List<MeterValue>();
+
         foreach (var slice in slices)
         {
-            using var scope = _serviceProvider.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
             var nextSlice = slice.Add(NormalizeInterval);
-            var lastMeterValueInSlice = await context.MeterValues
-                .Where(mv => mv.MeterValueKind == meterValueKind && mv.Timestamp >= slice && mv.Timestamp <= nextSlice)
+
+            // Get values for this slice from in-memory collection
+            var sliceValues = valuesBySlice.TryGetValue(slice, out var values)
+                ? values
+                : new List<MeterValue>();
+
+            var lastMeterValueInSlice = sliceValues
+                .Where(mv => mv.Timestamp <= nextSlice)
                 .OrderByDescending(mv => mv.Timestamp)
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefault();
+
             if (lastMeterValueInSlice?.Timestamp < nextSlice)
             {
+                // Create new meter value for next slice start
                 var nextSliceStartMeterValue = new MeterValue(nextSlice, meterValueKind, lastMeterValueInSlice.MeasuredPower)
                 {
                     MeasuredHomeBatteryPower = lastMeterValueInSlice.MeasuredHomeBatteryPower,
                     MeasuredGridPower = lastMeterValueInSlice.MeasuredGridPower,
                     NormalizeInterval = NormalizeInterval,
                 };
-                nextSliceStartMeterValue = await _meterValueEstimationService.UpdateMeterValueEstimation(nextSliceStartMeterValue, lastMeterValueInSlice);
-                context.MeterValues.Add(nextSliceStartMeterValue);
-                await context.SaveChangesAsync(cancellationToken);
+
+                nextSliceStartMeterValue = await _meterValueEstimationService.UpdateMeterValueEstimation(
+                    nextSliceStartMeterValue, lastMeterValueInSlice);
+
+                valuesToAdd.Add(nextSliceStartMeterValue);
             }
             else if (lastMeterValueInSlice != default && lastMeterValueInSlice.NormalizeInterval == default)
             {
                 lastMeterValueInSlice.NormalizeInterval = NormalizeInterval;
-                await context.SaveChangesAsync(cancellationToken);
+                valuesToUpdate.Add(lastMeterValueInSlice);
             }
-            await context.MeterValues
-                .Where(mv => mv.MeterValueKind == meterValueKind
-                        && mv.Timestamp > slice
-                        && mv.Timestamp < nextSlice)
-                .ExecuteDeleteAsync(cancellationToken);
+
+            // Collect values to delete (all except the last one in the slice)
+            valuesToDelete.AddRange(sliceValues
+                .Where(mv => mv.Timestamp > slice && mv.Timestamp < nextSlice));
         }
+
+        // Perform all database operations in batches
+        if (valuesToDelete.Any())
+        {
+            context.MeterValues.RemoveRange(valuesToDelete);
+        }
+
+        if (valuesToAdd.Any())
+        {
+            context.MeterValues.AddRange(valuesToAdd);
+        }
+
+        if (valuesToUpdate.Any())
+        {
+            context.MeterValues.UpdateRange(valuesToUpdate);
+        }
+
+        // Single save operation for all changes
+        await context.SaveChangesAsync(cancellationToken);
     }
 }
