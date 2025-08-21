@@ -213,22 +213,20 @@ public class MeterValueMergeService(
             representativeValue.MeasuredGridPower = (int)validGridPowerValues.Average(v => v.MeasuredGridPower);
         }
 
-        // Get the window boundary timestamp and latest energy value
+        // Get the window boundary timestamp
         var windowBoundary = GetFiveMinuteWindow(representativeValue.Timestamp);
-        var latestEnergyValue = windowValues.OrderByDescending(v => v.Timestamp).First();
         
-        // Calculate time difference between window boundary and latest timestamp
-        var timeDifferenceSeconds = (latestEnergyValue.Timestamp - windowBoundary).TotalSeconds;
+        // Calculate energy values based on raw meter values, like a real electricity meter
+        // Sort values by timestamp to calculate energy consumption between consecutive readings
+        var sortedValues = windowValues.OrderBy(v => v.Timestamp).ToList();
         
-        // For energy values, adjust them to represent values at the window boundary
-        // Energy values are cumulative, so we need to subtract the energy consumed
-        // between the window boundary and the latest timestamp
-        representativeValue.EstimatedEnergyWs = CalculateEnergyAtWindowBoundary(
-            latestEnergyValue.EstimatedEnergyWs, representativeValue.MeasuredPower, timeDifferenceSeconds);
-        representativeValue.EstimatedHomeBatteryEnergyWs = CalculateEnergyAtWindowBoundary(
-            latestEnergyValue.EstimatedHomeBatteryEnergyWs, representativeValue.MeasuredHomeBatteryPower, timeDifferenceSeconds);
-        representativeValue.EstimatedGridEnergyWs = CalculateEnergyAtWindowBoundary(
-            latestEnergyValue.EstimatedGridEnergyWs, representativeValue.MeasuredGridPower, timeDifferenceSeconds);
+        // Calculate energy consumption for each time interval and accumulate
+        representativeValue.EstimatedEnergyWs = CalculateEnergyFromRawMeterValues(
+            sortedValues, windowBoundary, v => v.MeasuredPower, v => v.EstimatedEnergyWs);
+        representativeValue.EstimatedHomeBatteryEnergyWs = CalculateEnergyFromRawMeterValues(
+            sortedValues, windowBoundary, v => v.MeasuredHomeBatteryPower, v => v.EstimatedHomeBatteryEnergyWs);
+        representativeValue.EstimatedGridEnergyWs = CalculateEnergyFromRawMeterValues(
+            sortedValues, windowBoundary, v => v.MeasuredGridPower, v => v.EstimatedGridEnergyWs);
 
         // Update timestamp to the window boundary
         representativeValue.Timestamp = windowBoundary;
@@ -236,18 +234,60 @@ public class MeterValueMergeService(
         return (representativeValue, toRemove);
     }
 
-    private long? CalculateEnergyAtWindowBoundary(long? latestEnergyValue, int averagePower, double timeDifferenceSeconds)
+    private long? CalculateEnergyFromRawMeterValues(
+        List<MeterValue> sortedValues, 
+        DateTimeOffset windowBoundary, 
+        Func<MeterValue, int> powerSelector,
+        Func<MeterValue, long?> energySelector)
     {
-        if (latestEnergyValue == null || timeDifferenceSeconds <= 0)
+        if (sortedValues.Count == 0)
         {
-            return latestEnergyValue;
+            return null;
         }
 
-        // Calculate energy consumed between window boundary and latest timestamp
-        // Energy = Power * Time (in watt-seconds)
-        var energyConsumedSinceWindowBoundary = (long)(averagePower * timeDifferenceSeconds);
+        // Get the latest energy value as our reference point
+        var latestValue = sortedValues.Last();
+        var latestEnergyValue = energySelector(latestValue);
         
-        // Subtract this energy to get the value that would have been at the window boundary
-        return latestEnergyValue.Value - energyConsumedSinceWindowBoundary;
+        if (latestEnergyValue == null)
+        {
+            return null;
+        }
+
+        // Calculate energy consumption based on actual power readings and time intervals
+        // Work backwards from the latest reading to the window boundary
+        long totalEnergyConsumedSinceWindowBoundary = 0;
+        
+        // Calculate energy consumption between consecutive readings
+        for (int i = sortedValues.Count - 1; i > 0; i--)
+        {
+            var currentValue = sortedValues[i];
+            var previousValue = sortedValues[i - 1];
+            
+            // Calculate time interval between consecutive readings
+            var timeIntervalSeconds = (currentValue.Timestamp - previousValue.Timestamp).TotalSeconds;
+            
+            // Use the previous reading's power for this time interval (like a real meter)
+            var power = powerSelector(previousValue);
+            
+            // Calculate energy consumed during this interval (Power × Time)
+            var energyConsumedInInterval = (long)(power * timeIntervalSeconds);
+            totalEnergyConsumedSinceWindowBoundary += energyConsumedInInterval;
+        }
+        
+        // Calculate energy consumption from window boundary to first reading
+        var firstValue = sortedValues.First();
+        var timeFromWindowBoundaryToFirst = (firstValue.Timestamp - windowBoundary).TotalSeconds;
+        if (timeFromWindowBoundaryToFirst > 0)
+        {
+            // For the period before the first reading, we need to estimate power
+            // Use the first reading's power as an estimate
+            var estimatedPower = powerSelector(firstValue);
+            var energyConsumedBeforeFirstReading = (long)(estimatedPower * timeFromWindowBoundaryToFirst);
+            totalEnergyConsumedSinceWindowBoundary += energyConsumedBeforeFirstReading;
+        }
+        
+        // The energy at window boundary = latest energy - energy consumed since window boundary
+        return latestEnergyValue.Value - totalEnergyConsumedSinceWindowBoundary;
     }
 }

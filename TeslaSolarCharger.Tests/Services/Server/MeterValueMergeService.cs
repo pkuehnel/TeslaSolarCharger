@@ -230,19 +230,21 @@ public class MeterValueMergeService : TestBase
         // Average power should be (1000 + 1200 + 1100) / 3 = 1100
         Assert.Equal(1100, mergedValue.MeasuredPower);
         
-        // Energy values should be adjusted for the time difference
-        // Latest values were at window+4min, so 4*60 = 240 seconds difference
-        // With average power of 1100W, energy consumed in 240s = 1100 * 240 = 264,000 Ws
+        // Energy values should be adjusted based on actual power readings between timestamps
+        // From 12:03 to 12:04: 1200W for 60s = 72,000 Ws
+        // From 12:01 to 12:03: 1000W for 120s = 120,000 Ws  
+        // From 12:00 to 12:01: 1000W for 60s = 60,000 Ws
+        // Total energy consumed: 252,000 Ws
         
-        // Expected energy at window boundary = latest - consumed
-        // 700,000 - 264,000 = 436,000
-        Assert.Equal(436000, mergedValue.EstimatedEnergyWs);
+        // Expected energy at window boundary = latest - consumed based on raw meter values
+        // 700,000 - 252,000 = 448,000
+        Assert.Equal(448000, mergedValue.EstimatedEnergyWs);
         
-        // Similar calculation for battery: 300,000 - 264,000 = 36,000
-        Assert.Equal(36000, mergedValue.EstimatedHomeBatteryEnergyWs);
+        // Similar calculation for battery: 300,000 - 252,000 = 48,000
+        Assert.Equal(48000, mergedValue.EstimatedHomeBatteryEnergyWs);
         
-        // Similar calculation for grid: 150,000 - 264,000 = -114,000
-        Assert.Equal(-114000, mergedValue.EstimatedGridEnergyWs);
+        // Similar calculation for grid: 150,000 - 252,000 = -102,000
+        Assert.Equal(-102000, mergedValue.EstimatedGridEnergyWs);
     }
 
     private TeslaSolarCharger.Server.Services.MeterValueMergeService CreateMeterValueMergeService()
