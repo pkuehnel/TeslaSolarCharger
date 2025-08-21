@@ -156,7 +156,7 @@ public class JobManager(
         var minute = random.Next(0, 59);
 
         var triggerAtNight = TriggerBuilder.Create().WithIdentity("triggerAtNight")
-            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour, minute).InTimeZone(TimeZoneInfo.Utc))// Run every day at 0:00 UTC
+            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour, minute).InTimeZone(TimeZoneInfo.Local))// Run every day at 0:00 UTC
             .StartNow()
             .Build();
 
@@ -165,7 +165,7 @@ public class JobManager(
         var mergeMinute = random.Next(0, 59);
         var meterValueMergeTrigger = TriggerBuilder.Create()
             .WithIdentity("meterValueMergeTrigger")
-            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(mergeHour, mergeMinute).InTimeZone(TimeZoneInfo.Utc))
+            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(mergeHour, mergeMinute).InTimeZone(TimeZoneInfo.Local))
             .StartNow()
             .Build();
 

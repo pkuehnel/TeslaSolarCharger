@@ -214,9 +214,6 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
             migrationLogger.Dispose();
         }
 
-        var meterValueMergeService = startupScope.ServiceProvider.GetRequiredService<IMeterValueMergeService>();
-        await meterValueMergeService.MergeOldMeterValuesAsync();
-
         var errorHandlingService = startupScope.ServiceProvider.GetRequiredService<IErrorHandlingService>();
         await errorHandlingService.RemoveInvalidLoggedErrorsAsync().ConfigureAwait(false);
 
