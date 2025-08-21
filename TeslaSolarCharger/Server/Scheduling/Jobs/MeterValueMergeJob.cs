@@ -15,8 +15,6 @@ public class MeterValueMergeJob(
         // Use the same constant as EnergyDataService for consistency
         const int historicPredictionsSearchDaysBeforePredictionStart = 21;
         
-        await meterValueMergeService.MergeOldMeterValuesAsync(
-            historicPredictionsSearchDaysBeforePredictionStart, 
-            context.CancellationToken).ConfigureAwait(false);
+        await meterValueMergeService.MergeOldMeterValuesAsync(context.CancellationToken).ConfigureAwait(false);
     }
 }

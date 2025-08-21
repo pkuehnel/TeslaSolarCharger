@@ -19,6 +19,7 @@ public class MeterValue
     public int MeasuredGridPower { get; set; }
     public long? EstimatedHomeBatteryEnergyWs { get; set; }
     public long? EstimatedGridEnergyWs { get; set; }
+    public TimeSpan? NormalizeInterval { get; set; }
 
     public int? CarId { get; set; }
     public int? ChargingConnectorId { get; set; }

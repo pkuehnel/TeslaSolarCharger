@@ -168,6 +168,11 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             v => v == default ? default : DateTimeOffset.FromUnixTimeMilliseconds(v.Value)
             );
 
+        var timeSpanToTicksConverter = new ValueConverter<TimeSpan?, long?>(
+            v => v == default ? default : v.Value.Ticks,
+            v => v == default ? default : TimeSpan.FromTicks(v.Value)
+        );
+
         var timeOnlyToMillisecondsOfDayConverter = new ValueConverter<TimeOnly?, long?>(
             v => v == default ? default : (long)v.Value.ToTimeSpan().TotalMilliseconds,
             v => v == default ? default : TimeOnly.FromTimeSpan(TimeSpan.FromMilliseconds(v.Value, 0)));
@@ -186,6 +191,9 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
             entity.Property(m => m.Timestamp)
                 .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+            entity.Property(m => m.NormalizeInterval)
+                .HasConversion(timeSpanToTicksConverter);
 
             entity.ToTable(t =>
             {
