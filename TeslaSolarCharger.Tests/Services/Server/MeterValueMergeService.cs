@@ -177,6 +177,74 @@ public class MeterValueMergeService : TestBase
         Assert.Equal(chargingConnectorValues.Length, connectorCount);
     }
 
+    [Fact]
+    public async Task MergeOldMeterValuesAsync_ShouldCorrectlyAdjustEnergyValuesWhenTimestampChanges()
+    {
+        // Arrange
+        var service = CreateMeterValueMergeService();
+        var olderThanDays = 21;
+        var cutoffDate = DateTimeOffset.UtcNow.AddDays(-olderThanDays);
+        
+        // Create a base time that will be rounded down to a 5-minute boundary
+        var baseTime = cutoffDate.AddHours(-1);
+        var windowBoundary = new DateTimeOffset(baseTime.Year, baseTime.Month, baseTime.Day, 
+            baseTime.Hour, (baseTime.Minute / 5) * 5, 0, baseTime.Offset);
+        
+        // Create meter values within the same 5-minute window with energy values
+        var valuesInSameWindow = new[]
+        {
+            new MeterValue(windowBoundary.AddMinutes(1), MeterValueKind.SolarGeneration, 1000) 
+            { 
+                EstimatedEnergyWs = 500000,         // 500,000 Ws at window+1min
+                EstimatedHomeBatteryEnergyWs = 200000,
+                EstimatedGridEnergyWs = 100000
+            },
+            new MeterValue(windowBoundary.AddMinutes(3), MeterValueKind.SolarGeneration, 1200) 
+            { 
+                EstimatedEnergyWs = 620000,         // 620,000 Ws at window+3min
+                EstimatedHomeBatteryEnergyWs = 260000,
+                EstimatedGridEnergyWs = 130000
+            },
+            new MeterValue(windowBoundary.AddMinutes(4), MeterValueKind.SolarGeneration, 1100) 
+            { 
+                EstimatedEnergyWs = 700000,         // 700,000 Ws at window+4min (latest)
+                EstimatedHomeBatteryEnergyWs = 300000,
+                EstimatedGridEnergyWs = 150000
+            },
+        };
+
+        await Context.MeterValues.AddRangeAsync(valuesInSameWindow);
+        await Context.SaveChangesAsync();
+
+        // Act
+        await service.MergeOldMeterValuesAsync(olderThanDays);
+
+        // Assert
+        var mergedValue = await Context.MeterValues
+            .Where(mv => mv.MeterValueKind == MeterValueKind.SolarGeneration)
+            .FirstAsync();
+
+        // Verify timestamp is set to window boundary
+        Assert.Equal(windowBoundary, mergedValue.Timestamp);
+        
+        // Average power should be (1000 + 1200 + 1100) / 3 = 1100
+        Assert.Equal(1100, mergedValue.MeasuredPower);
+        
+        // Energy values should be adjusted for the time difference
+        // Latest values were at window+4min, so 4*60 = 240 seconds difference
+        // With average power of 1100W, energy consumed in 240s = 1100 * 240 = 264,000 Ws
+        
+        // Expected energy at window boundary = latest - consumed
+        // 700,000 - 264,000 = 436,000
+        Assert.Equal(436000, mergedValue.EstimatedEnergyWs);
+        
+        // Similar calculation for battery: 300,000 - 264,000 = 36,000
+        Assert.Equal(36000, mergedValue.EstimatedHomeBatteryEnergyWs);
+        
+        // Similar calculation for grid: 150,000 - 264,000 = -114,000
+        Assert.Equal(-114000, mergedValue.EstimatedGridEnergyWs);
+    }
+
     private TeslaSolarCharger.Server.Services.MeterValueMergeService CreateMeterValueMergeService()
     {
         var dateTimeProvider = Mock.Mock<IDateTimeProvider>();

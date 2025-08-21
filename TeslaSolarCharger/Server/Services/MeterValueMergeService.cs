@@ -213,15 +213,41 @@ public class MeterValueMergeService(
             representativeValue.MeasuredGridPower = (int)validGridPowerValues.Average(v => v.MeasuredGridPower);
         }
 
-        // For energy values, use the latest (cumulative nature)
+        // Get the window boundary timestamp and latest energy value
+        var windowBoundary = GetFiveMinuteWindow(representativeValue.Timestamp);
         var latestEnergyValue = windowValues.OrderByDescending(v => v.Timestamp).First();
-        representativeValue.EstimatedEnergyWs = latestEnergyValue.EstimatedEnergyWs;
-        representativeValue.EstimatedHomeBatteryEnergyWs = latestEnergyValue.EstimatedHomeBatteryEnergyWs;
-        representativeValue.EstimatedGridEnergyWs = latestEnergyValue.EstimatedGridEnergyWs;
+        
+        // Calculate time difference between window boundary and latest timestamp
+        var timeDifferenceSeconds = (latestEnergyValue.Timestamp - windowBoundary).TotalSeconds;
+        
+        // For energy values, adjust them to represent values at the window boundary
+        // Energy values are cumulative, so we need to subtract the energy consumed
+        // between the window boundary and the latest timestamp
+        representativeValue.EstimatedEnergyWs = CalculateEnergyAtWindowBoundary(
+            latestEnergyValue.EstimatedEnergyWs, representativeValue.MeasuredPower, timeDifferenceSeconds);
+        representativeValue.EstimatedHomeBatteryEnergyWs = CalculateEnergyAtWindowBoundary(
+            latestEnergyValue.EstimatedHomeBatteryEnergyWs, representativeValue.MeasuredHomeBatteryPower, timeDifferenceSeconds);
+        representativeValue.EstimatedGridEnergyWs = CalculateEnergyAtWindowBoundary(
+            latestEnergyValue.EstimatedGridEnergyWs, representativeValue.MeasuredGridPower, timeDifferenceSeconds);
 
         // Update timestamp to the window boundary
-        representativeValue.Timestamp = GetFiveMinuteWindow(representativeValue.Timestamp);
+        representativeValue.Timestamp = windowBoundary;
 
         return (representativeValue, toRemove);
+    }
+
+    private long? CalculateEnergyAtWindowBoundary(long? latestEnergyValue, int averagePower, double timeDifferenceSeconds)
+    {
+        if (latestEnergyValue == null || timeDifferenceSeconds <= 0)
+        {
+            return latestEnergyValue;
+        }
+
+        // Calculate energy consumed between window boundary and latest timestamp
+        // Energy = Power * Time (in watt-seconds)
+        var energyConsumedSinceWindowBoundary = (long)(averagePower * timeDifferenceSeconds);
+        
+        // Subtract this energy to get the value that would have been at the window boundary
+        return latestEnergyValue.Value - energyConsumedSinceWindowBoundary;
     }
 }
