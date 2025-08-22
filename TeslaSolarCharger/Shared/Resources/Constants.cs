@@ -29,7 +29,7 @@ public class Constants : IConstants
     public TimeSpan MaxTokenRequestWaitTime => TimeSpan.FromMinutes(5);
     public TimeSpan MinTokenRestLifetime => TimeSpan.FromMinutes(2);
     public int MaxTokenUnauthorizedCount => 5;
-    public int ChargingDetailsAddTriggerEveryXSeconds => 59;
+    public int ChargingDetailsAddTriggerEveryXSeconds => 11;
     public string ChargeStartRequestUrl => "FleetApiRequests/ChargeStart";
     public string ChargeStopRequestUrl => "FleetApiRequests/ChargeStop";
     public string SetChargingAmpsRequestUrl => "FleetApiRequests/SetChargingAmps";
