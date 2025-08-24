@@ -384,7 +384,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private void OptimizeChargingSwitchTimes(List<DtoChargingSchedule> chargingSchedules,
         List<DtoLoadPointOverview> loadPointsToManage, DateTimeOffset currentDate)
     {
-        _logger.LogTrace("{method}({chargingSchedules}, {loadpointsToManage})", nameof(OptimizeChargingSwitchTimes), chargingSchedules, loadPointsToManage);
+        _logger.LogTrace("{method}({@chargingSchedules}, {loadpointsToManage})", nameof(OptimizeChargingSwitchTimes), chargingSchedules, loadPointsToManage);
         var timespanToCombineCharges = TimeSpan.FromMinutes(20);
         foreach (var dtoLoadPointOverview in loadPointsToManage)
         {
