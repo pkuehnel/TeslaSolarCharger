@@ -497,10 +497,10 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 }
                 settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle[loadPoint.ChargingConnectorId.Value] = currentDate;
                 databaseValueBufferService.Add(meterValue);
-                databaseValueBufferService.Add(new ChargerValueLog()
+                databaseValueBufferService.Add(new OcppChargingStationConnectorValueLog()
                 {
                     Timestamp = currentDate,
-                    Type = ChargerValueType.ChargerVoltage,
+                    Type = OcppChargingStationConnectorValueType.ChargerVoltage,
                     IntValue = loadPoint.ChargingVoltage,
                     OcppChargingStationConnectorId = loadPoint.ChargingConnectorId.Value,
                 });

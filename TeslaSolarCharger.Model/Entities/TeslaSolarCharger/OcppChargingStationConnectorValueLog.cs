@@ -7,7 +7,8 @@ public class OcppChargingStationConnectorValueLog
     public int Id { get; set; }
     public DateTimeOffset Timestamp { get; set; }
     public OcppChargingStationConnectorValueType Type { get; set; }
-    public bool BooleanValue { get; set; }
+    public bool? BooleanValue { get; set; }
+    public int? IntValue { get; set; }
 
     public int OcppChargingStationConnectorId { get; set; }
 

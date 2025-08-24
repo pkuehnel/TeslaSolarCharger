@@ -411,18 +411,49 @@ public class ConfigJsonService(
         const int lowestGridVoltageToSearchFor = lowestWorldWideGridVoltage - voltageBuffer;
         try
         {
-            var chargerVoltages = await teslaSolarChargerContext.ChargingDetails
+            var chargingConnectorVoltages = await teslaSolarChargerContext.OcppChargingStationConnectorValueLogs
+                .Where(c => (c.Type == OcppChargingStationConnectorValueType.ChargerVoltage)
+                            && (c.IntValue > lowestGridVoltageToSearchFor))
+                .OrderByDescending(c => c.Id)
+                .Select(c => c.IntValue)
+                .Take(1000)
+                .ToListAsync().ConfigureAwait(false);
+            if (chargingConnectorVoltages.Count > 10)
+            {
+                var averageValue = Convert.ToInt32(chargingConnectorVoltages.Average(c => c!.Value));
+                logger.LogDebug("Use {averageVoltage}V for charge speed calculation (provided by charging connector voltages)", averageValue);
+                settings.AverageHomeGridVoltage = averageValue;
+                return;
+            }
+
+            var carVoltages = await teslaSolarChargerContext.CarValueLogs
+                .Where(c => (c.Type == CarValueType.ChargerVoltage)
+                            && (c.IntValue > lowestGridVoltageToSearchFor))
+                .OrderByDescending(c => c.Id)
+                .Select(c => c.IntValue)
+                .Take(1000)
+                .ToListAsync().ConfigureAwait(false);
+            if (carVoltages.Count > 10)
+            {
+                var averageValue = Convert.ToInt32(carVoltages.Average(c => c!.Value));
+                logger.LogDebug("Use {averageVoltage}V for charge speed calculation (provided by car voltages)", averageValue);
+                settings.AverageHomeGridVoltage = averageValue;
+                return;
+            }
+
+            var chargingDetailsChargerVoltages = await teslaSolarChargerContext.ChargingDetails
                 .Where(c => (c.ChargerVoltage != null)
                             && (c.ChargerVoltage > lowestGridVoltageToSearchFor))
                 .OrderByDescending(c => c.Id)
                 .Select(c => c.ChargerVoltage)
                 .Take(1000)
                 .ToListAsync().ConfigureAwait(false);
-            if (chargerVoltages.Count > 10)
+            if (chargingDetailsChargerVoltages.Count > 10)
             {
-                var averageValue = Convert.ToInt32(chargerVoltages.Average(c => c!.Value));
-                logger.LogDebug("Use {averageVoltage}V for charge speed calculation", averageValue);
+                var averageValue = Convert.ToInt32(chargingDetailsChargerVoltages.Average(c => c!.Value));
+                logger.LogDebug("Use {averageVoltage}V for charge speed calculation (provided by charging details)", averageValue);
                 settings.AverageHomeGridVoltage = averageValue;
+                return;
             }
 
         }

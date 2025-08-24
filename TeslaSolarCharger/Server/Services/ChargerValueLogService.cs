@@ -22,9 +22,9 @@ public class ChargerValueLogService : IChargerValueLogService
     public async Task SaveBufferedChargerValuesToDatabase()
     {
         _logger.LogTrace("{method}()", nameof(SaveBufferedChargerValuesToDatabase));
-        var values = _databaseValueBufferService.DrainAll<ChargerValueLog>();
+        var values = _databaseValueBufferService.DrainAll<OcppChargingStationConnectorValueLog>();
         _logger.LogTrace("Drained {count} buffered charger log values", values.Count);
-        _context.ChargerValueLog.AddRange(values);
+        _context.OcppChargingStationConnectorValueLogs.AddRange(values);
         await _context.SaveChangesAsync().ConfigureAwait(false);
     }
 }
