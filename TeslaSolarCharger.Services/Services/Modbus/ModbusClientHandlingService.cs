@@ -7,7 +7,7 @@ using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 
-public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService, IAsyncDisposable
+public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, ModbusClientElement> _modbusClients = new();
 
@@ -36,11 +36,14 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
     }
 
     public async Task<byte[]> GetByteArray(byte unitIdentifier, string host, int port, ModbusEndianess endianess, TimeSpan connectDelay, TimeSpan readTimeout,
-        ModbusRegisterType registerType, ushort address, ushort length)
+        ModbusRegisterType registerType, ushort address, ushort length, bool ignoreBackoff)
     {
-        logger.LogTrace("{method}({unitIdentifier}, {host}, {port}, {endianess}, {connectDelay}, {readTimeout}, {registerType}, {address}, {length})",
-                       nameof(GetByteArray), unitIdentifier, host, port, endianess, connectDelay, readTimeout, registerType, address, length);
-        EnsureNoBackoffRequired(host, port);
+        logger.LogTrace("{method}({unitIdentifier}, {host}, {port}, {endianess}, {connectDelay}, {readTimeout}, {registerType}, {address}, {length}, {ignoreBackoff})",
+                       nameof(GetByteArray), unitIdentifier, host, port, endianess, connectDelay, readTimeout, registerType, address, length, ignoreBackoff);
+        if (!ignoreBackoff)
+        {
+            EnsureNoBackoffRequired(host, port);
+        }
         IModbusTcpClient client;
         try
         {
@@ -222,7 +225,7 @@ public class ModbusClientHandlingService (ILogger<ModbusClientHandlingService> l
         {
             throw new InvalidOperationException($"Looks like a modbus client with key {key} has been added in the meantime.");
         }
-        
+
         await semaphoreSlim.WaitAsync().ConfigureAwait(false);
         try
         {

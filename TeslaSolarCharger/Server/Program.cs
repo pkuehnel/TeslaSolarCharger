@@ -180,7 +180,7 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
     try
     {
         logger1.LogInformation("Starting application startup tasks...");
-        //if (!Debugger.IsAttached)//Do not wait on debugging to improve startup time, while debugging UI behaviour is not important
+        if (!Debugger.IsAttached)//Do not wait on debugging to improve startup time, while debugging UI behaviour is not important
         {
             await Task.Delay(10000).ConfigureAwait(false); // Wait 10seconds to allow kestrel to start properly
         }
