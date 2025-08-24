@@ -45,7 +45,7 @@
                         <CardHeaderActions>
                             <MudTooltip>
                                 <ChildContent>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="_ => OnRefreshClicked.InvokeAsync(restConfigurationOverview.Id)" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="_ => RefreshClicked(restConfigurationOverview.Id)" />
                                 </ChildContent>
                                 <TooltipContent>
                                     <div>
@@ -135,4 +135,13 @@
 
     [Parameter]
     public EventCallback<int> OnDeleteClicked { get; set; }
+
+    public async Task RefreshClicked(int configurationOverviewId)
+    {
+        ConfigurationOverviews = null;
+        await Task.Delay(100);
+        await InvokeAsync(() => StateHasChanged());
+        await Task.Delay(100);
+        await OnRefreshClicked.InvokeAsync(configurationOverviewId);
+    }
 }
