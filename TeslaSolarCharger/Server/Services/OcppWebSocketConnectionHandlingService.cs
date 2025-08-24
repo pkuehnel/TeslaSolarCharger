@@ -434,7 +434,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
             //Only add value if with this timestamp it was updated
             if (timestamp == ocppConnectorState.IsPluggedIn.Timestamp)
             {
-                scopedContext.OcppChargingStationConnectorValueLogs.Add(new()
+                var databaseValueBufferService = scope.ServiceProvider.GetRequiredService<IDatabaseValueBufferService>();
+                databaseValueBufferService.Add(new OcppChargingStationConnectorValueLog()
                 {
                     Timestamp = ocppConnectorState.IsPluggedIn.Timestamp,
                     Type = OcppChargingStationConnectorValueType.IsPluggedIn,
@@ -444,7 +445,6 @@ public sealed class OcppWebSocketConnectionHandlingService(
             }
 
         }
-        await scopedContext.SaveChangesAsync(cancellationToken);
 
         // b) Build the response payload
         var respPayload = new StatusNotificationResponse()
