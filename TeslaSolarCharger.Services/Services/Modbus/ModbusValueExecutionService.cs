@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Collections;
-using System.IO.Pipes;
 using System.Text;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Services.Services.Contracts;
@@ -16,13 +14,13 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
     IModbusClientHandlingService modbusClientHandlingService,
     IResultValueCalculationService resultValueCalculationService) : IModbusValueExecutionService
 {
-    public async Task<byte[]> GetResult(DtoModbusConfiguration modbusConfig, DtoModbusValueResultConfiguration resultConfiguration)
+    public async Task<byte[]> GetResult(DtoModbusConfiguration modbusConfig, DtoModbusValueResultConfiguration resultConfiguration, bool ignoreBackoff)
     {
-        logger.LogTrace("{method}({modbusConfig})", nameof(GetResult), modbusConfig);
+        logger.LogTrace("{method}({modbusConfig}, {resultConfiguration}, {ignoreBackoff})", nameof(GetResult), modbusConfig, resultConfiguration, ignoreBackoff);
         var byteArray = await modbusClientHandlingService.GetByteArray((byte)modbusConfig.UnitIdentifier!, modbusConfig.Host,
             modbusConfig.Port, modbusConfig.Endianess, TimeSpan.FromMilliseconds(modbusConfig.ConnectDelayMilliseconds),
             TimeSpan.FromMilliseconds(modbusConfig.ReadTimeoutMilliseconds), resultConfiguration.RegisterType,
-            (ushort)resultConfiguration.Address, (ushort)resultConfiguration.Length);
+            (ushort)resultConfiguration.Address, (ushort)resultConfiguration.Length, ignoreBackoff);
         return byteArray;
     }
 
@@ -68,13 +66,13 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
                 throw new ArgumentOutOfRangeException();
         }
 
-        rawValue = await InvertValueOnExistingInversionRegister(rawValue, resultConfig.InvertedByModbusResultConfigurationId);
+        rawValue = await InvertValueOnExistingInversionRegister(rawValue, resultConfig.InvertedByModbusResultConfigurationId, false);
         return resultValueCalculationService.MakeCalculationsOnRawValue(resultConfig.CorrectionFactor, resultConfig.Operator, rawValue);
     }
 
-    private async Task<decimal> InvertValueOnExistingInversionRegister(decimal rawValue, int? resultConfigInvertedByModbusResultConfigurationId)
+    private async Task<decimal> InvertValueOnExistingInversionRegister(decimal rawValue, int? resultConfigInvertedByModbusResultConfigurationId, bool ignoreBackoff)
     {
-        logger.LogTrace("{method}({rawValue}, {resultConfigInvertedByModbusResultConfigurationId})", nameof(InvertValueOnExistingInversionRegister), rawValue, resultConfigInvertedByModbusResultConfigurationId);;
+        logger.LogTrace("{method}({rawValue}, {resultConfigInvertedByModbusResultConfigurationId}, {ignoreBackoff})", nameof(InvertValueOnExistingInversionRegister), rawValue, resultConfigInvertedByModbusResultConfigurationId, ignoreBackoff);
         if (resultConfigInvertedByModbusResultConfigurationId == default)
         {
             return rawValue;
@@ -87,7 +85,7 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
         var valueConfigurations = await modbusValueConfigurationService.GetModbusConfigurationByPredicate(c =>
             c.ModbusResultConfigurations.Any(r => r.Id == resultConfigInvertedByModbusResultConfigurationId.Value));
         var valueConfiguration = valueConfigurations.Single();
-        var byteArray = await GetResult(valueConfiguration, resultConfiguration);
+        var byteArray = await GetResult(valueConfiguration, resultConfiguration, ignoreBackoff);
         logger.LogDebug("Inversion bits: {byteArray}", GetBinaryString(byteArray));
         var inversionValue = await GetValue(byteArray, resultConfiguration);
         logger.LogDebug("Inversion value: {inversionValue}", inversionValue);
@@ -124,7 +122,7 @@ public class ModbusValueExecutionService(ILogger<ModbusValueExecutionService> lo
                 var dtoValueResult = new DtoOverviewValueResult() { Id = resultConfiguration.Id, UsedFor = resultConfiguration.UsedFor, };
                 try
                 {
-                    dtoValueResult.CalculatedValue = await GetValue(await GetResult(modbusConfiguration, resultConfiguration), resultConfiguration);
+                    dtoValueResult.CalculatedValue = await GetValue(await GetResult(modbusConfiguration, resultConfiguration, true), resultConfiguration);
                 }
                 catch (Exception ex)
                 {

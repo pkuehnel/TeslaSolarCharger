@@ -928,7 +928,7 @@ public class PvValueService(
             {
                 logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
                     modbusConfiguration.Port, resultConfiguration.Address);
-                var byteArry = await modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration);
+                var byteArry = await modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration, false);
                 logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
                                        modbusConfiguration.Port, resultConfiguration.Address, modbusValueExecutionService.GetBinaryString(byteArry));
                 var value = await modbusValueExecutionService.GetValue(byteArry, resultConfiguration);
