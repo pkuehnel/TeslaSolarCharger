@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250824160433_AddChargerValueLog")]
+    partial class AddChargerValueLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
@@ -319,6 +322,31 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ChargePrices");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargerValueLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("IntValue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("OcppChargingStationConnectorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("Timestamp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OcppChargingStationConnectorId");
+
+                    b.ToTable("ChargerValueLog");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingDetail", b =>
@@ -753,10 +781,7 @@ namespace TeslaSolarCharger.Model.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool?>("BooleanValue")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("IntValue")
+                    b.Property<bool>("BooleanValue")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("OcppChargingStationConnectorId")
@@ -1015,6 +1040,17 @@ namespace TeslaSolarCharger.Model.Migrations
                         .IsRequired();
 
                     b.Navigation("Car");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargerValueLog", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnector", "OcppChargingStationConnector")
+                        .WithMany()
+                        .HasForeignKey("OcppChargingStationConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OcppChargingStationConnector");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingDetail", b =>

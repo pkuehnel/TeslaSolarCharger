@@ -432,7 +432,6 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 continue;
             }
             await AddNewChargingProcessIfRequired(loadPoint.CarId, loadPoint.ChargingConnectorId, currentDate);
-            //ToDo: Log charging voltage somewhere
             var dtoChargingValue = new DtoChargingValue();
             if (chargingPowerAtHome < usedGridPower)
             {
@@ -498,6 +497,13 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
                 }
                 settings.ChargingConnectorsWithNonZeroMeterValueAddedLastCycle[loadPoint.ChargingConnectorId.Value] = currentDate;
                 databaseValueBufferService.Add(meterValue);
+                databaseValueBufferService.Add(new OcppChargingStationConnectorValueLog()
+                {
+                    Timestamp = currentDate,
+                    Type = OcppChargingStationConnectorValueType.ChargerVoltage,
+                    IntValue = loadPoint.ChargingVoltage,
+                    OcppChargingStationConnectorId = loadPoint.ChargingConnectorId.Value,
+                });
             }
         }
         var maxLatestNonZeroAge = TimeSpan.FromSeconds(constants.ChargingDetailsAddTriggerEveryXSeconds) * 2;
