@@ -37,4 +37,5 @@ public interface ITeslaSolarChargerContext
     DbSet<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; }
     DbSet<CarChargingTarget> CarChargingTargets { get; set; }
     DbSet<PvValueLog> PvValueLogs { get; set; }
+    DbSet<ChargerValueLog> ChargerValueLog { get; set; }
 }

@@ -40,6 +40,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; } = null!;
     public DbSet<CarChargingTarget> CarChargingTargets { get; set; } = null!;
     public DbSet<PvValueLog> PvValueLogs { get; set; } = null!;
+    public DbSet<ChargerValueLog> ChargerValueLog { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -208,6 +209,10 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .HasIndex(m => new { m.CarId, m.Type, m.Timestamp });
 
         modelBuilder.Entity<PvValueLog>()
+            .Property(m => m.Timestamp)
+            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+        modelBuilder.Entity<ChargerValueLog>()
             .Property(m => m.Timestamp)
             .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
 

@@ -55,7 +55,7 @@ public class JobManager(
         var fleetTelemetryReconnectionJob = JobBuilder.Create<FleetTelemetryReconnectionJob>().WithIdentity(nameof(FleetTelemetryReconnectionJob)).Build();
         var fleetTelemetryReconfigurationJob = JobBuilder.Create<FleetTelemetryReconfigurationJob>().WithIdentity(nameof(FleetTelemetryReconfigurationJob)).Build();
         var weatherDataRefreshJob = JobBuilder.Create<WeatherDataRefreshJob>().WithIdentity(nameof(WeatherDataRefreshJob)).Build();
-        var meterValueDatabaseSaveJob = JobBuilder.Create<MeterValueDatabaseSaveJob>().WithIdentity(nameof(MeterValueDatabaseSaveJob)).Build();
+        var databaseBufferedValuesSaveJob = JobBuilder.Create<DatabaseBufferedValuesSaveJob>().WithIdentity(nameof(DatabaseBufferedValuesSaveJob)).Build();
         var meterValueMergeJob = JobBuilder.Create<MeterValueMergeJob>().WithIdentity(nameof(MeterValueMergeJob)).Build();
         var homeBatteryMinSocRefreshJob = JobBuilder.Create<HomeBatteryMinSocRefreshJob>().WithIdentity(nameof(HomeBatteryMinSocRefreshJob)).Build();
 
@@ -143,7 +143,7 @@ public class JobManager(
             .StartAt(currentDate.AddSeconds(30))
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.WeatherDateRefreshIntervallHours)).Build();
 
-        var meterValueDatabaseSaveTrigger = TriggerBuilder.Create().WithIdentity("meterValueDatabaseSaveTrigger")
+        var databaseBufferedValuesSaveTrigger = TriggerBuilder.Create().WithIdentity("databaseBufferedValuesSaveTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.MeterValueDatabaseSaveIntervalMinutes)).Build();
 
         var homeBatteryMinSocRefreshTrigger = TriggerBuilder.Create().WithIdentity("homeBatteryMinSocRefreshTrigger")
@@ -186,7 +186,7 @@ public class JobManager(
             {fleetTelemetryReconnectionJob, new HashSet<ITrigger> {fleetTelemetryReconnectionTrigger}},
             {fleetTelemetryReconfigurationJob, new HashSet<ITrigger> {fleetTelemetryReconfigurationTrigger}},
             {weatherDataRefreshJob, new HashSet<ITrigger> {weatherDataRefreshTrigger}},
-            {meterValueDatabaseSaveJob, new HashSet<ITrigger> {meterValueDatabaseSaveTrigger}},
+            {databaseBufferedValuesSaveJob, new HashSet<ITrigger> {databaseBufferedValuesSaveTrigger}},
             {meterValueMergeJob, new HashSet<ITrigger> {meterValueMergeTrigger}},
             {homeBatteryMinSocRefreshJob, new HashSet<ITrigger> {homeBatteryMinSocRefreshTrigger}},
         };

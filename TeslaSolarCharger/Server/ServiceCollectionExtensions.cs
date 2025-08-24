@@ -63,7 +63,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<FleetTelemetryReconnectionJob>()
             .AddTransient<FleetTelemetryReconfigurationJob>()
             .AddTransient<WeatherDataRefreshJob>()
-            .AddTransient<MeterValueDatabaseSaveJob>()
+            .AddTransient<DatabaseBufferedValuesSaveJob>()
             .AddTransient<MeterValueMergeJob>()
             .AddTransient<HomeBatteryMinSocRefreshJob>()
             .AddTransient<JobFactory>()
@@ -145,6 +145,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ICarPropertyUpdateHelper, CarPropertyUpdateHelper>()
             .AddTransient<IMeterValueImportService, MeterValueImportService>()
             .AddTransient<ITimestampHelper, TimestampHelper>()
+            .AddTransient<IChargerValueLogService, ChargerValueLogService>()
             .AddScoped<INotChargingWithExpectedPowerReasonHelper, NotChargingWithExpectedPowerReasonHelper>()
             //Needs to be Singleton due to WebSocketConnections and property updated dictionary
             .AddSingleton<IFleetTelemetryWebSocketService, FleetTelemetryWebSocketService>()
@@ -155,7 +156,7 @@ public static class ServiceCollectionExtensions
             .AddScoped<IStateSnapshotService, StateSnapshotService>()
             .AddSingleton<IAppStateNotifier, AppStateNotifier>()
             .AddScoped<ErrorHandlingMiddleware>()
-            .AddHostedService<MeterValueFlushService>()
+            .AddHostedService<DatabaseValueBufferFlushService>()
             .AddSharedBackendDependencies();
         return services;
     }
