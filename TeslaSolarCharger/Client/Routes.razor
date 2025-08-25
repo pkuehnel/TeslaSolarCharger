@@ -1,4 +1,5 @@
-﻿@inject IJSRuntime JsRuntime
+﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@inject IJSRuntime JsRuntime
 
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
@@ -6,6 +7,8 @@
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>
+
+<AutoReloadOnVersionChangeComponent />
 
 <script>
     function hideElementById(id) {

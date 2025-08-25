@@ -335,7 +335,7 @@ public class ConfigurationWrapper(
 
     public TimeSpan ChargingValueJobUpdateIntervall()
     {
-        var minimum = TimeSpan.FromSeconds(20);
+        var minimum = TimeSpan.FromSeconds(1);
         var pvValueUpdateIntervalSeconds = GetBaseConfiguration().PvValueUpdateIntervalSeconds ?? 1;
         if (minimum.TotalSeconds < pvValueUpdateIntervalSeconds)
         {
@@ -344,6 +344,12 @@ public class ConfigurationWrapper(
         var updateIntervalSeconds = GetBaseConfiguration().UpdateIntervalSeconds;
         var value = GetValueIfGreaterThanMinimum(TimeSpan.FromSeconds(updateIntervalSeconds), minimum);
         return value;
+    }
+
+    public TimeSpan MaxModbusErrorBackoffDuration()
+    {
+        var maxBackoffDuration = GetBaseConfiguration().MaxModbusErrorBackoffDuration;
+        return TimeSpan.FromSeconds(maxBackoffDuration);
     }
 
     public TimeSpan PvValueJobUpdateIntervall()

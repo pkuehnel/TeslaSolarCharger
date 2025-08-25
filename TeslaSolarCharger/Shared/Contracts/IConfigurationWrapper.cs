@@ -120,4 +120,5 @@ public interface IConfigurationWrapper
     TimeSpan SkipPowerChangesOnLastAdjustmentNewerThan();
     string LogFilesDirectory();
     string PendingRestoreDirectory();
+    TimeSpan MaxModbusErrorBackoffDuration();
 }

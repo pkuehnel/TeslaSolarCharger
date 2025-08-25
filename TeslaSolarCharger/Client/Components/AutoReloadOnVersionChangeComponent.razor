@@ -1,0 +1,49 @@
+﻿@using TeslaSolarCharger.Client.Helper
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Shared.Dtos
+@inject IJavaScriptWrapper JavaScriptWrapper
+@inject IHttpClientHelper HttpClientHelper
+@inject ILogger<AutoReloadOnVersionChangeComponent> Logger
+@inject ISnackbar Snackbar
+
+@code {
+    PeriodicTaskHelper? _periodicTaskHelper;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _periodicTaskHelper = new();
+        _periodicTaskHelper.Start(CheckForNewVersion, TimeSpan.FromMinutes(1));
+    }
+
+    private async Task CheckForNewVersion()
+    {
+        Logger.LogInformation("Checking for new version...");
+        try
+        {
+            var serverVersionResult = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>("api/Hello/ProductVersion");
+            if(serverVersionResult.HasError)
+            {
+                Logger.LogWarning("Could not check for new version: {errorMessage}", serverVersionResult.ErrorMessage);
+                return;
+            }
+            var serverVersionKey = "serverVersion";
+            var lastVersion = await JavaScriptWrapper.ReadFromLocalStorage(serverVersionKey);
+            var serverVersion = serverVersionResult.Data?.Value ?? string.Empty;
+            if (!string.IsNullOrEmpty(serverVersion))
+            {
+                if (!string.Equals(lastVersion, serverVersion))
+                {
+                    Snackbar.Add("A new version of the application is available. The application will now reload to update to the latest version.", Severity.Info);
+                    await Task.Delay(3000);
+                    await JavaScriptWrapper.SaveToLocalStorage(serverVersionKey, serverVersion);
+                    await JavaScriptWrapper.ReloadPage();
+                }
+            }
+        }
+        catch
+        {
+            Logger.LogWarning("Could not check for new version.");
+        }
+    }
+}
