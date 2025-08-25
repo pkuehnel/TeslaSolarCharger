@@ -11,9 +11,13 @@
 
   <ItemGroup>
     <Compile Remove="Components\Dialogs\**" />
+    <Compile Remove="wwwroot\**" />
     <Content Remove="Components\Dialogs\**" />
+    <Content Remove="wwwroot\**" />
     <EmbeddedResource Remove="Components\Dialogs\**" />
+    <EmbeddedResource Remove="wwwroot\**" />
     <None Remove="Components\Dialogs\**" />
+    <None Remove="wwwroot\**" />
   </ItemGroup>
 
   <ItemGroup>
