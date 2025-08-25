@@ -59,6 +59,11 @@ public class BaseConfigurationValidator : AbstractValidator<DtoBaseConfiguration
             .Must((model, value) => value >= (model.PvValueUpdateIntervalSeconds * 2))
             .WithMessage("Update interval needs to be at least twice as high as PV Value Refresh Interval.");
 
+        RuleFor(x => x.MaxModbusErrorBackoffDuration)
+            .NotEmpty()
+            .Must((model, value) => value >= (model.PvValueUpdateIntervalSeconds * 2))
+            .WithMessage("Modbus error Backoff Time needs to be at least twice as high as PV Value Refresh Interval.");
+
         RuleFor(x => x.UpdateIntervalSeconds)
             .GreaterThanOrEqualTo(1);
 
