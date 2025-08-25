@@ -153,9 +153,9 @@ public class HomeController : ApiBaseController
     }
 
     [HttpPost]
-    public IActionResult UpdateCarForLoadpoint(int chargingConnectorId, int? carId)
+    public async Task<IActionResult> UpdateCarForLoadpoint(int chargingConnectorId, int? carId)
     {
-        _loadPointManagementService.UpdateChargingConnectorCar(chargingConnectorId, carId);
+        await _loadPointManagementService.UpdateChargingConnectorCar(chargingConnectorId, carId);
         return Ok();
     }
 

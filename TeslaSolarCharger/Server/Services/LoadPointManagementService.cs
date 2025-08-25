@@ -480,7 +480,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         return matches;
     }
 
-    public void UpdateChargingConnectorCar(int chargingConnectorId, int? carId)
+    public async Task UpdateChargingConnectorCar(int chargingConnectorId, int? carId)
     {
         _logger.LogTrace("{method}({chargingConnectorId}, {carId})", nameof(UpdateChargingConnectorCar), chargingConnectorId, carId);
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
@@ -504,6 +504,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
         }
         _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
+        await GetLoadPointsToManage().ConfigureAwait(false);
     }
 
     private int CalculateEstimatedChargerVoltageWhileCharging(int? actualVoltage)
