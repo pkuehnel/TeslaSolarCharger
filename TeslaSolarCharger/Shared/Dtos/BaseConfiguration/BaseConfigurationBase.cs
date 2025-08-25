@@ -45,6 +45,10 @@ public class BaseConfigurationBase
     [DisplayName("Solar power refresh interval")]
     [Postfix("s")]
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
+    [Required]
+    [Range(1, int.MaxValue)]
+    [Postfix("s")]
+    public int MaxModbusErrorBackoffDuration { get; set; } = 18000;
     [Required] 
     public string GeoFence { get; set; } = "Home";
     [Required]

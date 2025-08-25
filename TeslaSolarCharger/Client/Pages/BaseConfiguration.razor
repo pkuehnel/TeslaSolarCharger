@@ -115,6 +115,7 @@ else
                               For="() => _dtoBaseConfiguration.Item.SkipPowerChangesOnLastAdjustmentNewerThanSeconds"
                               OnValueChanged="StateHasChanged"/>
                 <GenericInput For="() => _dtoBaseConfiguration.Item.PvValueUpdateIntervalSeconds" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.MaxModbusErrorBackoffDuration" />
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MinutesUntilSwitchOn" />
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MinutesUntilSwitchOff" />
                 <hr/>

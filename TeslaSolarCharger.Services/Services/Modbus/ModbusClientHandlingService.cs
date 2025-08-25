@@ -3,16 +3,18 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net;
 using TeslaSolarCharger.Services.Services.Modbus.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Services.Services.Modbus;
 
-public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> logger, IServiceProvider serviceProvider) : IModbusClientHandlingService, IAsyncDisposable
+public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> logger,
+    IServiceProvider serviceProvider,
+    IConfigurationWrapper configurationWrapper) : IModbusClientHandlingService, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, ModbusClientElement> _modbusClients = new();
 
     private readonly TimeSpan _initialBackoff = TimeSpan.FromSeconds(16);
-    private readonly TimeSpan _maxBackoffDuration = TimeSpan.FromHours(5);
 
 
     private class RetryInfo
@@ -151,7 +153,7 @@ public class ModbusClientHandlingService(ILogger<ModbusClientHandlingService> lo
         // Calculate next backoff delay with exponential increase
         var nextDelaySeconds = Math.Min(
             _initialBackoff.TotalSeconds * Math.Pow(2, element.retryInfo.RetryCount - 1),
-            _maxBackoffDuration.TotalSeconds
+            configurationWrapper.MaxModbusErrorBackoffDuration().TotalSeconds
         );
         element.retryInfo.NextBackoffDelay = TimeSpan.FromSeconds(nextDelaySeconds);
 
