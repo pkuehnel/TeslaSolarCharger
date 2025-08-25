@@ -202,30 +202,33 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         Log.Logger = migrationLogger;
 
         logger.LogInformation("Checking for existing migration locks...");
-
-        // Check if the lock table exists and clear it
-        var sql = @"
-        DELETE FROM __EFMigrationsLock 
-        WHERE EXISTS (
-            SELECT 1 FROM sqlite_master 
-            WHERE type='table' AND name='__EFMigrationsLock'
-        )";
-
-        try
+        var providerName = teslaSolarChargerContext.Database.ProviderName;
+        if (providerName == "Microsoft.EntityFrameworkCore.Sqlite")
         {
-            var rowsAffected = await teslaSolarChargerContext.Database.ExecuteSqlRawAsync(sql).ConfigureAwait(false);
-            if (rowsAffected > 0)
+            // Check if the lock table exists and clear it
+            var sql = @"
+                DELETE FROM __EFMigrationsLock 
+                WHERE EXISTS (
+                    SELECT 1 FROM sqlite_master 
+                    WHERE type='table' AND name='__EFMigrationsLock'
+                )";
+
+            try
             {
-                logger.LogInformation("Cleared {RowCount} migration lock(s)", rowsAffected);
+                var rowsAffected = await teslaSolarChargerContext.Database.ExecuteSqlRawAsync(sql).ConfigureAwait(false);
+                if (rowsAffected > 0)
+                {
+                    logger.LogInformation("Cleared {RowCount} migration lock(s)", rowsAffected);
+                }
+                else
+                {
+                    logger.LogDebug("No migration locks to clear");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                logger.LogDebug("No migration locks to clear");
+                logger.LogError("Failed to clear migratoin locks: {Message}", ex.Message);
             }
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug("Migration lock table handling: {Message}", ex.Message);
         }
 
         try
