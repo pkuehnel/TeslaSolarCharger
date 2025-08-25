@@ -87,4 +87,40 @@ public class JavaScriptWrapper(IJSRuntime jsRuntime, ISnackbar snackbar) : IJava
             snackbar.Add("Failed to reload the page.", Severity.Error);
         }
     }
+
+    /// <summary>
+    /// Saves a string value to browser local storage
+    /// </summary>
+    /// <param name="key">The key to store the value under</param>
+    /// <param name="value">The string value to store</param>
+    public async Task SaveToLocalStorage(string key, string value)
+    {
+        try
+        {
+            await jsRuntime.InvokeVoidAsync("saveToLocalStorage", key, value);
+        }
+        catch (Exception e)
+        {
+            snackbar.Add($"Failed to save to local storage: {e.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Reads a string value from browser local storage
+    /// </summary>
+    /// <param name="key">The key to retrieve the value for</param>
+    /// <returns>The stored string value, or null if not found</returns>
+    public async Task<string?> ReadFromLocalStorage(string key)
+    {
+        try
+        {
+            var result = await jsRuntime.InvokeAsync<string?>("readFromLocalStorage", key);
+            return result;
+        }
+        catch (Exception e)
+        {
+            snackbar.Add($"Failed to read from local storage: {e.Message}", Severity.Error);
+            return null;
+        }
+    }
 }

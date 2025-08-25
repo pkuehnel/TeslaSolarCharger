@@ -11,9 +11,13 @@
 
   <ItemGroup>
     <Compile Remove="Components\Dialogs\**" />
+    <Compile Remove="wwwroot\**" />
     <Content Remove="Components\Dialogs\**" />
+    <Content Remove="wwwroot\**" />
     <EmbeddedResource Remove="Components\Dialogs\**" />
+    <EmbeddedResource Remove="wwwroot\**" />
     <None Remove="Components\Dialogs\**" />
+    <None Remove="wwwroot\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,7 +40,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\" />
     <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="9.0.8" />
     <PackageReference Include="Microsoft.NET.Sdk.WebAssembly.Pack" Version="9.0.8" />
     <Folder Include="Enums\" />

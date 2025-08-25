@@ -53,3 +53,22 @@ async function forceHardReload() {
     // Force reload
     location.reload(true);
 }
+
+function saveToLocalStorage(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        console.error('Error saving to localStorage:', e);
+        return false;
+    }
+}
+
+function readFromLocalStorage(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (e) {
+        console.error('Error reading from localStorage:', e);
+        return null;
+    }
+}
