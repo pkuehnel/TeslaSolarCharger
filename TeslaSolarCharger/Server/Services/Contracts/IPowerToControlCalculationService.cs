@@ -6,4 +6,6 @@ public interface IPowerToControlCalculationService
 {
     Task<int> CalculatePowerToControl(int currentChargingPower,
         INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper, CancellationToken cancellationToken);
+
+    int GetBatteryTargetChargingPower();
 }

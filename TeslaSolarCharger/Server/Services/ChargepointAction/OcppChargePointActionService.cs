@@ -329,7 +329,6 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
             ChargingSchedule = new ChargingSchedule()
             {
                 ChargingRateUnit = ChargingRateUnitType.A,
-                StartSchedule = startDate,
                 ChargingSchedulePeriod =
                 {
                     new ChargingSchedulePeriod()
@@ -349,6 +348,8 @@ public class OcppChargePointActionService(ILogger<OcppChargePointActionService> 
         {
             chargingProfile.ChargingProfileKind = ChargingProfileKindType.Absolute;
             chargingProfile.ValidFrom = startDate;
+            chargingProfile.ChargingSchedule.StartSchedule = startDate;
+
         }
         return chargingProfile;
     }

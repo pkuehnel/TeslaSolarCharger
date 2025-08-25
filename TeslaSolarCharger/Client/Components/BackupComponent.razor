@@ -1,9 +1,10 @@
 ﻿@page "/backupAndRestore"
 @using System.Net.Http.Headers
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Resources
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
-@inject HttpClient HttpClient
+@inject IHttpClientFactory HttpClientFactory
 @inject ILogger<BackupComponent> Logger
 
 @implements IDisposable
@@ -37,6 +38,7 @@
     <MudFileUpload T="IBrowserFile" FilesChanged="SelectFile" Accept=".zip" MaximumFileCount="1">
         <ActivatorContent>
             <MudButton HtmlTag="label"
+                       Disabled="@(_processingBackup || _processingRestore)"
                        Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.AttachFile">
@@ -165,7 +167,8 @@
         }
         try
         {
-            var response = await HttpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
+            using var httpClient = HttpClientFactory.CreateClient(StaticConstants.LongTimeOutHttpClientName);
+            var response = await httpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
             if (response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Backup file saved. Container restart required to complete restore. Please restart the TSC container now.", Severity.Success);
@@ -175,6 +178,7 @@
             {
                 Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
             }
+            
         }
         catch (Exception e)
         {
@@ -194,7 +198,8 @@
         }
         try
         {
-            var backupFiles = await HttpClient.GetFromJsonAsync<List<DtoBackupFileInformation>>("api/BaseConfiguration/GetAutoBackupFileInformations");
+            using var httpClient = HttpClientFactory.CreateClient(StaticConstants.NormalTimeOutHttpClientName);
+            var backupFiles = await httpClient.GetFromJsonAsync<List<DtoBackupFileInformation>>("api/BaseConfiguration/GetAutoBackupFileInformations");
             if (backupFiles != null)
             {
                 _backupFiles = backupFiles;

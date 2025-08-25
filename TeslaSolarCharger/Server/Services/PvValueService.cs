@@ -8,7 +8,6 @@ using System.Web;
 using System.Xml;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
-using TeslaSolarCharger.Model.EntityFramework;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
@@ -723,22 +722,22 @@ public class PvValueService(
             {
                 foreach (var car in settings.CarsToManage)
                 {
-                    car.ChargerActualCurrent = 1;
-                    car.ChargerVoltage = 1;
-                    car.ChargerPhases = 1;
+                    car.ChargerActualCurrent.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
+                    car.ChargerVoltage.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
+                    car.ChargerPhases.Update(dateTimeProvider.DateTimeOffSetUtcNow(), 1);
                 }
                 if (((settings.LastPvDemoCase / 16) % 2) == 0)
                 {
                     foreach (var dtoCar in settings.CarsToManage)
                     {
-                        dtoCar.IsHomeGeofence = true;
+                        dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), true);
                     }
                 }
                 else
                 {
                     foreach (var dtoCar in settings.CarsToManage)
                     {
-                        dtoCar.IsHomeGeofence = false;
+                        dtoCar.IsHomeGeofence.Update(dateTimeProvider.DateTimeOffSetUtcNow().AddMinutes(-10), false);
                     }
                 }
                 switch ((settings.LastPvDemoCase++ % 16))
@@ -929,7 +928,7 @@ public class PvValueService(
             {
                 logger.LogDebug("Get Modbus result for modbus Configuration {host}:{port}: Register: {register}", modbusConfiguration.Host,
                     modbusConfiguration.Port, resultConfiguration.Address);
-                var byteArry = await modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration);
+                var byteArry = await modbusValueExecutionService.GetResult(modbusConfiguration, resultConfiguration, false);
                 logger.LogDebug("Got Modbus result for modbus Configuration {host}:{port}: Register: {register}, Result: {bitResult}", modbusConfiguration.Host,
                                        modbusConfiguration.Port, resultConfiguration.Address, modbusValueExecutionService.GetBinaryString(byteArry));
                 var value = await modbusValueExecutionService.GetValue(byteArry, resultConfiguration);

@@ -22,7 +22,7 @@ public interface ISettings
     Dictionary<int, string> RawRestValues { get; set; }
     Dictionary<int, decimal?> CalculatedRestValues { get; set; }
     bool IsStartupCompleted { get; set; }
-    string? ChargePricesUpdateText { get; set; }
+    DtoProgress? ChargePricesUpdateProgress { get; set; }
     DateTime StartupTime { get; set; }
     int LastPvDemoCase { get; set; }
     bool IsPreRelease { get; set; }
@@ -38,4 +38,6 @@ public interface ISettings
     ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; }
     HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; }
     int? LastLoggedHomeBatterySoc { get; set; }
+    ConcurrentDictionary<int, DateTimeOffset> CarsWithNonZeroMeterValueAddedLastCycle { get; set; }
+    ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; }
 }

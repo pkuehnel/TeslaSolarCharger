@@ -44,7 +44,7 @@
             }
             else
             {
-                <div class="d-flex flex-wrap align-items-center justify-content-start gap-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-center gap-2">
                     @if (_dataLoaded)
                     {
                         @foreach (var item in GetLegendItems())
@@ -205,7 +205,7 @@
     private bool _isExpanded;
     private ApexChart<DtoChartValue<int, decimal?>>? _consumptionChart;
 
-    private int ChartHeightValue { get; set; } = 400;
+    private int ChartHeightValue { get; set; } = 470;
     private string ChartHeight => $"{ChartHeightValue}px";
     private CancellationTokenSource _refreshCancellationTokenSource = new CancellationTokenSource();
 

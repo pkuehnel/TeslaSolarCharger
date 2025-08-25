@@ -106,6 +106,23 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         return overage;
     }
 
+    public int GetBatteryTargetChargingPower()
+    {
+        _logger.LogTrace("{method}()", nameof(GetBatteryTargetChargingPower));
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        if (homeBatteryMinSoc == default)
+        {
+            return 0;
+        }
+        var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+        if (homeBatteryMaxChargingPower == default)
+        {
+            return 0;
+        }
+        var actualHomeBatterySoc = _settings.HomeBatterySoc;
+        return actualHomeBatterySoc < homeBatteryMinSoc ? homeBatteryMaxChargingPower.Value : 0;
+    }
+
     private int GetBatteryTargetChargingPower(int? minSoc,
         INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
     {

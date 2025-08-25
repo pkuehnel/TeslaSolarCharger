@@ -126,7 +126,7 @@ else
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
                                              DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
                                              OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Key))"></RightAlignedButtonComponent>
-                <RightAlignedButtonComponent ButtonText="Get Dto Car"
+                <RightAlignedButtonComponent ButtonText="Get Car State"
                                              IsLoading="@_isFleetTelemetryLoading"
                                              IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
                                              DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
@@ -220,11 +220,30 @@ else
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
+
+    <h3>MeterValues</h3>
+
+    @if (_loadingMeterValues)
+    {
+        <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
+            <MudAlert Severity="Severity.Info">
+                Depending on your database size and hardware this might take a few minutes, please wait...
+            </MudAlert>
+        </MudPaper>
+    }
+
+    <RightAlignedButtonComponent ButtonText="Get latest Meter values"
+                                 IsLoading="@_loadingMeterValues"
+                                 OnButtonClicked="GetMeterValues"></RightAlignedButtonComponent>
+    @if (_meterValueDetails != default)
+    {
+        <pre>@_meterValueDetails</pre>
+    }
+
+
     <HiddenErrorsComponent></HiddenErrorsComponent>
     <InstallationInformation></InstallationInformation>
 }
-
-
 
 @code {
     private readonly Dictionary<int, string> _fleetTelemetryGetConfigs = new();
@@ -248,6 +267,9 @@ else
     private string? _inMemoryLogCapacitySetErrorMessage;
     private DtoValue<string>? _fileLogLevel;
     private string? _fileLogLevelSetErrorMessage;
+
+    private bool _loadingMeterValues;
+    private string? _meterValueDetails;
 
 
     private Dictionary<string, string> LogLevelOptions => new()
@@ -516,6 +538,21 @@ else
     {
         var stringToCopy = string.Join(Environment.NewLine, _uiLogMessages);
         JavaScriptWrapper.CopyStringToClipboard(stringToCopy);
+    }
+
+    private async Task GetMeterValues()
+    {
+        _loadingMeterValues = true;
+        var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>("api/Debug/GetLastestMeterValues");
+        if (result.HasError)
+        {
+            _meterValueDetails = result.ErrorMessage ?? "No error message";
+        }
+        else
+        {
+            _meterValueDetails = result.Data?.Value ?? "No data";
+        }
+        _loadingMeterValues = false;
     }
 
 }

@@ -108,7 +108,7 @@ public class TeslaFleetApiService(
             return;
         }
 
-        if (car.SoC > (car.SocLimit - constants.MinimumSocDifference))
+        if (car.SoC.Value > (car.SocLimit.Value - constants.MinimumSocDifference))
         {
             logger.LogWarning("Triggered start charging but cannot start charging as SoC is too high compared to Soc Limit - {minDifference}", constants.MinimumSocDifference);
             return;
@@ -153,7 +153,7 @@ public class TeslaFleetApiService(
     {
         logger.LogTrace("{method}({carId}, {amps})", nameof(SetAmp), carId, amps);
         var car = settings.Cars.First(c => c.Id == carId);
-        if (car.ChargerRequestedCurrent == amps)
+        if (car.ChargerRequestedCurrent.Value == amps)
         {
             logger.LogDebug("Correct charging amp already set.");
             return;
@@ -230,9 +230,9 @@ public class TeslaFleetApiService(
             {
                 await RefreshVehicleOnlineState(car).ConfigureAwait(false);
 
-                if (car.State is CarStateEnum.Asleep or CarStateEnum.Offline)
+                if (car.IsOnline.Value == false)
                 {
-                    logger.LogDebug("Do not call current vehicle data as car is {state}", car.State);
+                    logger.LogDebug("Do not call current vehicle data as car not online");
                     continue;
                 }
             }
@@ -251,8 +251,7 @@ public class TeslaFleetApiService(
                 var vehicleDataResult = vehicleData?.Response;
                 if (vehicleData?.Error?.Contains("offline") == true)
                 {
-                    car.State = CarStateEnum.Offline;
-                    car.ChargerActualCurrent = 0;
+                    car.IsOnline.Update(dateTimeProvider.DateTimeOffSetUtcNow(), false);
                 }
                 if (vehicleDataResult == default)
                 {
@@ -265,8 +264,9 @@ public class TeslaFleetApiService(
                 if (configurationWrapper.GetVehicleDataFromTesla())
                 {
                     var timeStamp = dateTimeProvider.UtcNow();
+                    var dateTimeOffsetTimeStamp = new DateTimeOffset(timeStamp, TimeSpan.Zero);
                     car.Name = vehicleDataResult.VehicleState.VehicleName;
-                    car.SoC = vehicleDataResult.ChargeState.BatteryLevel;
+                    car.SoC.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.BatteryLevel);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -275,7 +275,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.BatteryLevel,
                     });
-                    car.SocLimit = vehicleDataResult.ChargeState.ChargeLimitSoc;
+                    car.SocLimit.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargeLimitSoc);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -285,13 +285,14 @@ public class TeslaFleetApiService(
                         IntValue = vehicleDataResult.ChargeState.ChargeLimitSoc,
                     });
                     var minimumSettableSocLimit = vehicleDataResult.ChargeState.ChargeLimitSocMin;
-                    if (car.MinimumSoC > car.SocLimit && car.SocLimit > minimumSettableSocLimit)
+                    if (car.MinimumSoC > car.SocLimit.Value && car.SocLimit.Value > minimumSettableSocLimit)
                     {
                         logger.LogWarning("Reduce Minimum SoC {minimumSoC} as charge limit {chargeLimit} is lower.", car.MinimumSoC, car.SocLimit);
-                        car.MinimumSoC = (int)car.SocLimit;
+                        car.MinimumSoC = (int)car.SocLimit.Value;
                         logger.LogError("Can not handle lower Soc than minimumSoc");
                     }
-                    car.ChargerPhases = vehicleDataResult.ChargeState.ChargerPhases;
+
+                    car.ChargerPhases.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargerPhases);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -300,7 +301,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargerPhases is null or > 1 ? 3 : 1,
                     });
-                    car.ChargerVoltage = vehicleDataResult.ChargeState.ChargerVoltage;
+                    car.ChargerVoltage.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargerVoltage);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -309,7 +310,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargerVoltage,
                     });
-                    car.ChargerActualCurrent = vehicleDataResult.ChargeState.ChargerActualCurrent;
+                    car.ChargerActualCurrent.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargerActualCurrent);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -318,7 +319,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargerActualCurrent,
                     });
-                    car.UpdatePluggedIn(new(timeStamp, TimeSpan.Zero), vehicleDataResult.ChargeState.ChargingState != "Disconnected");
+                    car.PluggedIn.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargingState != "Disconnected");
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -327,12 +328,10 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         BooleanValue = vehicleDataResult.ChargeState.ChargingState != "Disconnected",
                     });
-                    car.TimeUntilFullCharge = TimeSpan.FromHours(vehicleDataResult.ChargeState.TimeToFullCharge);
                     var teslaCarStateString = vehicleDataResult.State;
-                    var teslaCarShiftState = vehicleDataResult.DriveState.ShiftState;
-                    var teslaCarSoftwareUpdateState = vehicleDataResult.VehicleState.SoftwareUpdate.Status;
                     var chargingState = vehicleDataResult.ChargeState.ChargingState;
-                    car.State = DetermineCarState(teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
+                    car.IsOnline.Update(dateTimeOffsetTimeStamp, teslaCarStateString == "online");
+                    car.IsCharging.Update(dateTimeOffsetTimeStamp, chargingState == "Charging");
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -341,17 +340,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         BooleanValue = vehicleDataResult.ChargeState.ChargingState != "Charging",
                     });
-                    if (car.State == CarStateEnum.Unknown)
-                    {
-                        await errorHandlingService.HandleError(nameof(TeslaFleetApiService), nameof(RefreshCarData), $"Error determining car state for car {car.Vin}",
-                            $"Could not determine car state. TeslaCarStateString: {teslaCarStateString}, TeslaCarShiftState: {teslaCarShiftState}, TeslaCarSoftwareUpdateState: {teslaCarSoftwareUpdateState}, ChargingState: {chargingState}", issueKeys.CarStateUnknown, car.Vin, null).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await errorHandlingService.HandleErrorResolved(issueKeys.CarStateUnknown, car.Vin);
-                    }
-                    car.Healthy = true;
-                    car.ChargerRequestedCurrent = vehicleDataResult.ChargeState.ChargeCurrentRequest;
+                    car.ChargerRequestedCurrent.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargeCurrentRequest);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -360,7 +349,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargeCurrentRequest,
                     });
-                    car.ChargerPilotCurrent = vehicleDataResult.ChargeState.ChargerPilotCurrent;
+                    car.ChargerPilotCurrent.Update(dateTimeOffsetTimeStamp, vehicleDataResult.ChargeState.ChargerPilotCurrent);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -369,8 +358,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         IntValue = vehicleDataResult.ChargeState.ChargerPilotCurrent,
                     });
-                    car.ScheduledChargingStartTime = vehicleDataResult.ChargeState.ScheduledChargingStartTime == null ? (DateTimeOffset?)null : DateTimeOffset.FromUnixTimeSeconds(vehicleDataResult.ChargeState.ScheduledChargingStartTime.Value);
-                    car.Longitude = vehicleDataResult.DriveState.Longitude;
+                    car.Longitude.Update(dateTimeOffsetTimeStamp, vehicleDataResult.DriveState.Longitude);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -379,7 +367,7 @@ public class TeslaFleetApiService(
                         Source = CarValueSource.FleetApi,
                         DoubleValue = vehicleDataResult.DriveState.Longitude,
                     });
-                    car.Latitude = vehicleDataResult.DriveState.Latitude;
+                    car.Latitude.Update(dateTimeOffsetTimeStamp, vehicleDataResult.DriveState.Latitude);
                     teslaSolarChargerContext.CarValueLogs.Add(new()
                     {
                         CarId = car.Id,
@@ -400,7 +388,7 @@ public class TeslaFleetApiService(
         }
     }
 
-    private async Task RefreshVehicleOnlineState(DtoCar car)
+    public async Task RefreshVehicleOnlineState(DtoCar car)
     {
         logger.LogTrace("{method}({carId})", nameof(RefreshVehicleOnlineState), car.Id);
         var vehicle = await SendCommandToTeslaApi<DtoVehicleResult>(car.Vin, VehicleRequest).ConfigureAwait(false);
@@ -427,21 +415,16 @@ public class TeslaFleetApiService(
             if (vehicleState == "asleep")
             {
                 carStateLog.BooleanValue = true;
-                car.State = CarStateEnum.Asleep;
             }
             else if (vehicleState == "offline")
             {
                 carStateLog.BooleanValue = true;
-                car.State = CarStateEnum.Offline;
             }
             else
             {
                 carStateLog.BooleanValue = false;
-                if (car.State == CarStateEnum.Asleep || car.State == CarStateEnum.Offline)
-                {
-                    car.State = CarStateEnum.Online;
-                }
             }
+            car.IsOnline.Update(new(carStateLog.Timestamp, TimeSpan.Zero), carStateLog.BooleanValue == false);
             teslaSolarChargerContext.CarValueLogs.Add(carStateLog);
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
@@ -570,12 +553,12 @@ public class TeslaFleetApiService(
         else
         {
             logger.LogTrace("Fleet Telemetry Client not connected, request Fleet API after commands.");
-            var homeGeofenceDistance = car.DistanceToHomeGeofence;
+            var homeGeofenceDistance = car.DistanceToHomeGeofence.Value;
             var earliestHomeArrival =
                 // ReSharper disable once PossibleLossOfFraction
                 latestRefresh.AddSeconds((homeGeofenceDistance ?? 0) / configurationWrapper.MaxTravelSpeedMetersPerSecond());
             logger.LogDebug("Earliest Home arrival: {earliestHomeArrival}", earliestHomeArrival);
-            car.EarliestHomeArrival = earliestHomeArrival;
+            car.EarliestHomeArrival.Update(new DateTimeOffset(currentUtcDate, TimeSpan.Zero), earliestHomeArrival);
             if (earliestHomeArrival > currentUtcDate)
             {
                 logger.LogDebug("Do not refresh data for car {vin} as ealiest calculated home arrival is {ealiestHomeArrival}", car.Vin, earliestHomeArrival);
@@ -697,124 +680,10 @@ public class TeslaFleetApiService(
         return lastBeforeStartTimeValue;
     }
 
-
-    private CarStateEnum? DetermineCarState(string teslaCarStateString, string? teslaCarShiftState, string teslaCarSoftwareUpdateState, string chargingState)
-    {
-        logger.LogTrace("{method}({teslaCarStateString}, {teslaCarShiftState}, {teslaCarSoftwareUpdateState}, {chargingState})", nameof(DetermineCarState), teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
-        if (teslaCarStateString == "asleep")
-        {
-            return CarStateEnum.Asleep;
-        }
-
-        if (teslaCarStateString == "offline")
-        {
-            return CarStateEnum.Offline;
-        }
-        if (teslaCarShiftState is "R" or "D")
-        {
-            return CarStateEnum.Driving;
-        }
-        if (chargingState == "Charging")
-        {
-            return CarStateEnum.Charging;
-        }
-        if (teslaCarSoftwareUpdateState == "installing")
-        {
-            return CarStateEnum.Updating;
-        }
-        if (teslaCarStateString == "online")
-        {
-            return CarStateEnum.Online;
-        }
-        logger.LogWarning("Could not determine car state. TeslaCarStateString: {teslaCarStateString}, TeslaCarShiftState: {teslaCarShiftState}, TeslaCarSoftwareUpdateState: {teslaCarSoftwareUpdateState}, ChargingState: {chargingState}", teslaCarStateString, teslaCarShiftState, teslaCarSoftwareUpdateState, chargingState);
-        return CarStateEnum.Unknown;
-    }
-
     private string GetVinByCarId(int carId)
     {
         var vin = settings.Cars.First(c => c.Id == carId).Vin;
         return vin;
-    }
-
-    internal bool IsChargingScheduleChangeNeeded(DateTimeOffset? chargingStartTime, DateTimeOffset currentDate, DtoCar dtoCar, out Dictionary<string, string> parameters)
-    {
-        logger.LogTrace("{method}({startTime}, {currentDate}, {carId}, {parameters})", nameof(IsChargingScheduleChangeNeeded), chargingStartTime, currentDate, dtoCar.Id, nameof(parameters));
-        parameters = new Dictionary<string, string>();
-        if (chargingStartTime != null)
-        {
-            logger.LogTrace("{chargingStartTime} is not null", nameof(chargingStartTime));
-            chargingStartTime = RoundToNextQuarterHour(chargingStartTime.Value);
-        }
-        if (dtoCar.ScheduledChargingStartTime == chargingStartTime)
-        {
-            logger.LogDebug("Correct charging start time already set.");
-            return false;
-        }
-
-        if (chargingStartTime == null)
-        {
-            logger.LogDebug("Set chargingStartTime to null.");
-            parameters = new Dictionary<string, string>()
-            {
-                { "enable", "false" },
-                { "time", 0.ToString() },
-            };
-            return true;
-        }
-
-        var localStartTime = chargingStartTime.Value.ToLocalTime().TimeOfDay;
-        var minutesFromMidNight = (int)localStartTime.TotalMinutes;
-        var timeUntilChargeStart = chargingStartTime.Value - currentDate;
-        var scheduledChargeShouldBeSet = true;
-
-        if (dtoCar.ScheduledChargingStartTime == chargingStartTime)
-        {
-            logger.LogDebug("Correct charging start time already set.");
-            return true;
-        }
-
-        //ToDo: maybe disable scheduled charge in this case.
-        if (timeUntilChargeStart <= TimeSpan.Zero || timeUntilChargeStart.TotalHours > 24)
-        {
-            logger.LogDebug("Charge schedule should not be changed, as time until charge start is higher than 24 hours or lower than zero.");
-            return false;
-        }
-
-        if (dtoCar.ScheduledChargingStartTime == null && !scheduledChargeShouldBeSet)
-        {
-            logger.LogDebug("No charge schedule set and no charge schedule should be set.");
-            return true;
-        }
-        logger.LogDebug("Normal parameter set.");
-        parameters = new Dictionary<string, string>()
-        {
-            { "enable", scheduledChargeShouldBeSet ? "true" : "false" },
-            { "time", minutesFromMidNight.ToString() },
-        };
-        logger.LogTrace("{@parameters}", parameters);
-        return true;
-    }
-
-    internal DateTimeOffset RoundToNextQuarterHour(DateTimeOffset chargingStartTime)
-    {
-        var maximumTeslaChargeStartAccuracyMinutes = 15;
-        var minutes = chargingStartTime.Minute; // Aktuelle Minute des DateTimeOffset-Objekts
-
-        // Runden auf die nächste viertel Stunde
-        var roundedMinutes = (int)Math.Ceiling((double)minutes / maximumTeslaChargeStartAccuracyMinutes) *
-                             maximumTeslaChargeStartAccuracyMinutes;
-        var additionalHours = 0;
-        if (roundedMinutes == 60)
-        {
-            roundedMinutes = 0;
-            additionalHours = 1;
-        }
-
-        var newNotRoundedDateTime = chargingStartTime.AddHours(additionalHours);
-        chargingStartTime = new DateTimeOffset(newNotRoundedDateTime.Year, newNotRoundedDateTime.Month,
-            newNotRoundedDateTime.Day, newNotRoundedDateTime.Hour, roundedMinutes, 0, newNotRoundedDateTime.Offset);
-        logger.LogDebug("Rounded charging Start time: {chargingStartTime}", chargingStartTime);
-        return chargingStartTime;
     }
 
     private async Task WakeUpCarIfNeeded(int carId, bool isFleetApiTest = false)
@@ -822,26 +691,11 @@ public class TeslaFleetApiService(
         logger.LogTrace("{method}({carId})", nameof(WakeUpCarIfNeeded), carId);
         var car = settings.Cars.First(c => c.Id == carId);
         await RefreshVehicleOnlineState(car);
-        if (car.State is not (CarStateEnum.Asleep or CarStateEnum.Offline or CarStateEnum.Suspended))
+        if (car.IsOnline.Value == true)
         {
             return;
         }
-        switch (car.State)
-        {
-            case CarStateEnum.Offline or CarStateEnum.Asleep:
-                logger.LogInformation("Wakeup car.");
-                await WakeUpCar(carId, isFleetApiTest).ConfigureAwait(false);
-                break;
-            case CarStateEnum.Suspended:
-                logger.LogInformation("Resume logging as is suspended");
-                if (car.TeslaMateCarId != default)
-                {
-                    //ToDo: fix with https://github.com/pkuehnel/TeslaSolarCharger/issues/1511
-                    //await teslamateApiService.ResumeLogging(car.TeslaMateCarId.Value).ConfigureAwait(false);
-                }
-
-                break;
-        }
+        await WakeUpCar(carId, isFleetApiTest).ConfigureAwait(false);
     }
 
     private async Task<DtoGenericTeslaResponse<T>?> SendCommandToTeslaApi<T>(string vin, DtoFleetApiRequest fleetApiRequest, int? intParam = null, bool isFleetApiTest = false) where T : class

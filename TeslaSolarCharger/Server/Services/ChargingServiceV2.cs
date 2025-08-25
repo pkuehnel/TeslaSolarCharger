@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
-using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
@@ -86,10 +85,10 @@ public class ChargingServiceV2 : IChargingServiceV2
             _logger.LogError("Can not set new charging values as base app is not licensed");
             return;
         }
-        await CalculateGeofences();
+        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        await CalculateGeofences(currentDate);
         await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
-        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
@@ -99,7 +98,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             return;
         }
         
-        AddNotChargingReasons(loadPointsToManage);
+        AddNotChargingReasons();
 
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
         OptimizeChargingSwitchTimes(chargingSchedules, loadPointsToManage, currentDate);
@@ -275,8 +274,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                     return true;
                 }
 
-                var lastPlugIn = car.LastPluggedIn;
-                if ((car.PluggedIn == true) && (lastPlugIn > earliestPlugin) && (car.ChargerRequestedCurrent > car.ChargerActualCurrent))
+                var lastPlugIn = car.PluggedIn.LastChanged;
+                if ((car.PluggedIn.Value == true) && (lastPlugIn > earliestPlugin) && (car.ChargerRequestedCurrent.Value > car.ChargerActualCurrent.Value))
                 {
                     _logger.LogWarning("Skipping amp changes as Car {carId} was plugged in after {earliestPlugIn}.", chargingLoadPoint.CarId, earliestPlugin);
                     return true;
@@ -325,16 +324,16 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
     }
 
-    private void AddNotChargingReasons(List<DtoLoadPointOverview> loadPointsToManage)
+    private void AddNotChargingReasons()
     {
         foreach (var dtoCar in _settings.CarsToManage)
         {
-            if (dtoCar.IsHomeGeofence != true)
+            if (dtoCar.IsHomeGeofence.Value != true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, new("Car is not at home"));
             }
 
-            if (dtoCar.PluggedIn != true)
+            if (dtoCar.PluggedIn.Value != true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, new("Car is not plugged in"));
             }
@@ -359,8 +358,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         foreach (var chargingTarget in chargingTargets)
         {
             var car = _settings.Cars.First(c => c.Id == chargingTarget.CarId);
-            var actualTargetSoc = GetActualTargetSoc(car.SocLimit, chargingTarget.TargetSoc, car.State == CarStateEnum.Charging);
-            if (car.SoC >= actualTargetSoc || car.PluggedIn != true || car.IsHomeGeofence != true)
+            var actualTargetSoc = GetActualTargetSoc(car.SocLimit.Value, chargingTarget.TargetSoc, car.IsCharging.Value == true);
+            if (car.SoC.Value >= actualTargetSoc || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
             {
                 chargingTarget.LastFulFilled = currentDate;
             }
@@ -385,7 +384,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private void OptimizeChargingSwitchTimes(List<DtoChargingSchedule> chargingSchedules,
         List<DtoLoadPointOverview> loadPointsToManage, DateTimeOffset currentDate)
     {
-        _logger.LogTrace("{method}({chargingSchedules}, {loadpointsToManage})", nameof(OptimizeChargingSwitchTimes), chargingSchedules, loadPointsToManage);
+        _logger.LogTrace("{method}({@chargingSchedules}, {loadpointsToManage})", nameof(OptimizeChargingSwitchTimes), chargingSchedules, loadPointsToManage);
         var timespanToCombineCharges = TimeSpan.FromMinutes(20);
         foreach (var dtoLoadPointOverview in loadPointsToManage)
         {
@@ -449,11 +448,12 @@ public class ChargingServiceV2 : IChargingServiceV2
     {
         _logger.LogTrace("{method}()", nameof(SetCurrentOfNonChargingTeslasToMax));
         var carsToSetToMaxCurrent = _settings.CarsToManage
-            .Where(c => (c.State == CarStateEnum.Online)
-                        && (c.IsHomeGeofence == true)
-                        && (c.PluggedIn == true)
-                        && (c.ChargerRequestedCurrent != c.MaximumAmpere)
-                        && (c.ChargerPilotCurrent > c.ChargerRequestedCurrent)
+            .Where(c => (c.IsOnline.Value == true)
+                        && (c.IsHomeGeofence.Value == true)
+                        && (c.PluggedIn.Value == true)
+                        && (c.ChargerRequestedCurrent.Value != c.MaximumAmpere)
+                        && (c.ChargerPilotCurrent.Value > c.ChargerRequestedCurrent.Value)
+                        && (c.IsCharging.Value == false)
                         && (c.ChargeModeV2 == ChargeModeV2.Auto))
             .ToList();
 
@@ -489,10 +489,10 @@ public class ChargingServiceV2 : IChargingServiceV2
                 var nextTarget = await GetRelevantTarget(car.Id, currentDate, cancellationToken).ConfigureAwait(false);
                 if (nextTarget != default)
                 {
-                    var actualTargetSoc = GetActualTargetSoc(car.SocLimit, nextTarget.TargetSoc, car.State == CarStateEnum.Charging);
+                    var actualTargetSoc = GetActualTargetSoc(car.SocLimit.Value, nextTarget.TargetSoc, car.IsCharging.Value == true);
                     var energyToCharge = CalculateEnergyToCharge(
                         actualTargetSoc,
-                        car.SoC ?? 0,
+                        car.SoC.Value ?? 0,
                         carUsableEnergy.Value);
                     var maxPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, maxCurrent.Value, loadpoint.EstimatedVoltageWhileCharging);
                     if (nextTarget.NextExecutionTime < currentDate)
@@ -620,15 +620,15 @@ public class ChargingServiceV2 : IChargingServiceV2
         return chargingSchedules;
     }
 
-    private async Task CalculateGeofences()
+    private async Task CalculateGeofences(DateTimeOffset currentDate)
     {
         _logger.LogTrace("{method}()", nameof(CalculateGeofences));
         foreach (var car in _settings.CarsToManage)
         {
-            if (car.Longitude == null || car.Latitude == null)
+            if (car.Longitude.Value == null || car.Latitude.Value == null)
             {
                 _logger.LogDebug("No location data for car {carId}. Do not calculate geofence", car.Id);
-                car.DistanceToHomeGeofence = null;
+                car.DistanceToHomeGeofence.Update(currentDate, null);
                 continue;
             }
 
@@ -640,21 +640,21 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (homeDetectionVia != HomeDetectionVia.GpsLocation)
             {
                 _logger.LogDebug("Car {carId} uses fleet telemetry but does not include tracking relevant fields. Do not calculate geofence", car.Id);
-                car.DistanceToHomeGeofence = null;
+                car.DistanceToHomeGeofence.Update(currentDate, null);
                 continue;
             }
 
-            var distance = GetDistance(car.Longitude.Value, car.Latitude.Value,
+            var distance = GetDistance(car.Longitude.Value.Value, car.Latitude.Value.Value,
                 _configurationWrapper.HomeGeofenceLongitude(), _configurationWrapper.HomeGeofenceLatitude());
             _logger.LogDebug("Calculated distance to home geofence for car {carId}: {calculatedDistance}", car.Id, distance);
             var radius = _configurationWrapper.HomeGeofenceRadius();
             var wasAtHomeBefore = car.IsHomeGeofence;
-            car.IsHomeGeofence = distance < radius;
+            car.IsHomeGeofence.Update(currentDate, distance < radius);
             if (wasAtHomeBefore != car.IsHomeGeofence)
             {
                 await _loadPointManagementService.CarStateChanged(car.Id);
             }
-            car.DistanceToHomeGeofence = (int)distance - radius;
+            car.DistanceToHomeGeofence.Update(currentDate, (int)distance - radius);
         }
     }
 
@@ -691,7 +691,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             return null;
         }
         DtoTimeZonedChargingTarget? nextTarget = null;
-        var lastPluggedIn = car.PluggedIn == true ? (car.LastPluggedIn ?? currentDate) : currentDate;
+        var lastPluggedIn = car.PluggedIn.Value == true ? (car.PluggedIn.LastChanged ?? currentDate) : currentDate;
         foreach (var carChargingTarget in unfulFilledChargingTargets)
         {
             var nextTargetUtc = GetNextTargetUtc(carChargingTarget, lastPluggedIn);
@@ -750,7 +750,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             : null;
 
         var carSetting = _settings.Cars.FirstOrDefault(c => c.Id == carId);
-        var carSoC = carSetting?.SoC;
+        var carSoC = carSetting?.SoC.Value;
         var carPhases = carSetting?.ActualPhases;
 
         var maxPhases = CalculateMaxValue(connectorData?.ConnectedPhasesCount, carPhases);

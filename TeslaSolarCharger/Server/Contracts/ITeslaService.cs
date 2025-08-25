@@ -1,4 +1,4 @@
-﻿using TeslaSolarCharger.Shared.Enums;
+﻿using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Server.Contracts;
 

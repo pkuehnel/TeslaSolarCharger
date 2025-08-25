@@ -2,6 +2,7 @@
 using TeslaSolarCharger.Server.Dtos.Solar4CarBackend;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Car;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
@@ -22,4 +23,5 @@ public interface ITeslaFleetApiService
     Task<DtoBackendApiTeslaResponse> GetEnergyLiveStatus(string energySiteId);
 
     Task<TeslaCarFleetApiState?> GetFleetApiState(int carId);
+    Task RefreshVehicleOnlineState(DtoCar car);
 }

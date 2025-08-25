@@ -8,7 +8,7 @@ public interface ICoreService
 {
     Task<string?> GetCurrentVersion();
     void LogVersion();
-    DtoValue<int> NumberOfRelevantCars();
+    Task<DtoValue<int>> NumberOfRelevantLoadPoints();
     DtoValue<int> HomeBatteryTargetChargingPower();
     DtoValue<bool> IsSolarEdgeInstallation();
     DateTime GetCurrentServerTime();

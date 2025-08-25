@@ -5,14 +5,15 @@ using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources;
 
 namespace TeslaSolarCharger.Model.EntityFramework;
 
 public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 {
     public DbSet<ChargePrice> ChargePrices { get; set; } = null!;
-    public DbSet<CachedCarState> CachedCarStates { get; set; } = null!;
     public DbSet<HandledCharge> HandledCharges { get; set; } = null!;
     public DbSet<PowerDistribution> PowerDistributions { get; set; } = null!;
     public DbSet<SpotPrice> SpotPrices { get; set; } = null!;
@@ -44,9 +45,58 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
+        await ValidateChargingProcessOverlapsAsync();
         //Workaround for https://github.com/dotnet/efcore/issues/29514
         await Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000;", cancellationToken: cancellationToken);
         return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ValidateChargingProcessOverlapsAsync()
+    {
+        var modifiedChargingProcesses = ChangeTracker.Entries<ChargingProcess>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+            .Select(e => e.Entity)
+            .ToList();
+
+        foreach (var chargingProcess in modifiedChargingProcesses)
+        {
+            // Check car overlaps
+            if (chargingProcess.CarId.HasValue)
+            {
+                var hasCarOverlap = await ChargingProcesses
+                    .Where(cp => cp.Id != chargingProcess.Id)
+                    .Where(cp => cp.CarId == chargingProcess.CarId)
+                    .Where(cp =>
+                        chargingProcess.StartDate < (cp.EndDate ?? DateTime.MaxValue) &&
+                        cp.StartDate < (chargingProcess.EndDate ?? DateTime.MaxValue))
+                    .AnyAsync();
+
+                if (hasCarOverlap)
+                    throw new InvalidOperationException(
+                        $"Overlapping charging process detected for car {chargingProcess.CarId}. " +
+                        $"ChargingProcessId: {chargingProcess.Id}, " +
+                        $"Time range: {chargingProcess.StartDate:u} - {(chargingProcess.EndDate?.ToString("u") ?? "null")}");
+            }
+
+            // Check connector overlaps
+            if (chargingProcess.OcppChargingStationConnectorId.HasValue)
+            {
+                var hasConnectorOverlap = await ChargingProcesses
+                    .Where(cp => cp.Id != chargingProcess.Id)
+                    .Where(cp => cp.OcppChargingStationConnectorId == chargingProcess.OcppChargingStationConnectorId)
+                    .Where(cp =>
+                        chargingProcess.StartDate < (cp.EndDate ?? DateTime.MaxValue) &&
+                        cp.StartDate < (chargingProcess.EndDate ?? DateTime.MaxValue))
+                    .AnyAsync();
+
+                if (hasConnectorOverlap)
+                    throw new InvalidOperationException(
+                        $"Overlapping charging process detected for connector {chargingProcess.OcppChargingStationConnectorId}. " +
+                        $"Process ID: {chargingProcess.Id}, " +
+                        $"Time range: {chargingProcess.StartDate:u} - {(chargingProcess.EndDate?.ToString("u") ?? "null")}"
+                    );
+            }
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -63,11 +113,6 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         {
             foreach (var property in entityType.GetProperties())
             {
-
-                if (entityType.ClrType == typeof(Car) && property.Name == nameof(Car.LatestTimeToReachSoC))
-                {
-                    continue;
-                }
                 if (property.ClrType == typeof(DateTime))
                 {
                     property.SetValueConverter(dateTimeConverter);
@@ -78,12 +123,6 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
                 }
             }
         }
-
-        var localDateTimeConverter = new LocalDateTimeConverter();
-
-        modelBuilder.Entity<Car>()
-            .Property(c => c.LatestTimeToReachSoC)
-            .HasConversion(localDateTimeConverter);
 
         modelBuilder.Entity<Car>()
             .Property(c => c.ChargeMode)
@@ -129,6 +168,11 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             v => v == default ? default : DateTimeOffset.FromUnixTimeMilliseconds(v.Value)
             );
 
+        var timeSpanToTicksConverter = new ValueConverter<TimeSpan?, long?>(
+            v => v == default ? default : v.Value.Ticks,
+            v => v == default ? default : TimeSpan.FromTicks(v.Value)
+        );
+
         var timeOnlyToMillisecondsOfDayConverter = new ValueConverter<TimeOnly?, long?>(
             v => v == default ? default : (long)v.Value.ToTimeSpan().TotalMilliseconds,
             v => v == default ? default : TimeOnly.FromTimeSpan(TimeSpan.FromMilliseconds(v.Value, 0)));
@@ -138,9 +182,30 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             v => v == default ? default : DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeMilliseconds(v.Value).Date)
         );
 
-        modelBuilder.Entity<MeterValue>()
-            .Property(m => m.Timestamp)
-            .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+        var carEnumValue = (int)MeterValueKind.Car;
+        modelBuilder.Entity<MeterValue>(entity =>
+        {
+            //When changing thiss, also change the index in MeterValueDatabaseSaveJob
+            entity.HasIndex(m => new { m.CarId, m.ChargingConnectorId, m.MeterValueKind, m.Timestamp })
+                .HasDatabaseName(StaticConstants.MeterValueIndexName);
+
+            entity.Property(m => m.Timestamp)
+                .HasConversion(dateTimeOffsetToEpochMilliSecondsConverter);
+
+            entity.Property(m => m.NormalizeInterval)
+                .HasConversion(timeSpanToTicksConverter);
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_MeterValue_CarId_Conditional",
+                    $"(MeterValueKind = {carEnumValue} AND CarId IS NOT NULL) OR (MeterValueKind != {carEnumValue} AND CarId IS NULL)"
+                );
+            });
+        });
+
+        modelBuilder.Entity<CarValueLog>()
+            .HasIndex(m => new { m.CarId, m.Type, m.Timestamp });
 
         modelBuilder.Entity<PvValueLog>()
             .Property(m => m.Timestamp)

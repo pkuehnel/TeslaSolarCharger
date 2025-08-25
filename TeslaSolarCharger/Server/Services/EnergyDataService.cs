@@ -4,6 +4,7 @@ using System.Diagnostics;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Enums;
@@ -17,7 +18,8 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     IConstants constants,
     IDateTimeProvider dateTimeProvider,
     IServiceProvider serviceProvider,
-    IConfigurationWrapper configurationWrapper) : IEnergyDataService
+    IConfigurationWrapper configurationWrapper,
+    ITimestampHelper timestampHelper) : IEnergyDataService
 {
 
     private const int HistoricPredictionsSearchDaysBeforePredictionStart = 21; // three weeks
@@ -67,14 +69,14 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             return fakedResult;
         }
         //ToDo: do not get historic values for all days but only the timespans between startDate and endDate (e.g. if start is10:00 and end is 12:00, only get historic values between 10 and 12 on each day)
-        var historicValueTimeStamps = GenerateSlicedTimeStamps(startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart), startDate, sliceLength);
-        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.SolarGeneration, cancellationToken);
+        var historicValueTimeStamps = timestampHelper.GenerateSlicedTimeStamps(startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart), startDate, sliceLength);
+        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.SolarGeneration, null, null, cancellationToken);
 
         var historicPredictionsSearchStart = startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart);
         var latestRadiations = await GetSlicedSolarRadiationValues(historicPredictionsSearchStart, startDate, sliceLength, cancellationToken);
         var avgHourlyWeightedFactors = ComputeWeightedAverageFactors(historicValueTimeStamps, energyMeterDifferences, latestRadiations);
         var forecastSolarRadiations = await GetSlicedSolarRadiationValues(startDate, endDate, sliceLength, cancellationToken);
-        var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        var resultTimeStamps = timestampHelper.GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
 
         var predictedProduction = ComputePredictedProduction(forecastSolarRadiations, avgHourlyWeightedFactors, resultTimeStamps);
 
@@ -92,11 +94,11 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
             return fakedResult;
         }
         //ToDo: do not get historic values for all days but only the timespans between startDate and endDate (e.g. if start is10:00 and end is 12:00, only get historic values between 10 and 12 on each day)
-        var historicValueTimeStamps = GenerateSlicedTimeStamps(startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart), startDate, sliceLength);
-        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.HouseConsumption, httpContextRequestAborted);
+        var historicValueTimeStamps = timestampHelper.GenerateSlicedTimeStamps(startDate.AddDays(-HistoricPredictionsSearchDaysBeforePredictionStart), startDate, sliceLength);
+        var energyMeterDifferences = await GetMeterEnergyDifferencesAsync(historicValueTimeStamps, sliceLength, MeterValueKind.HouseConsumption, null, null, httpContextRequestAborted);
         var averageChangeAtTimeSpan = ComputeWeightedMeterValueChanges(historicValueTimeStamps, energyMeterDifferences);
 
-        var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        var resultTimeStamps = timestampHelper.GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
         var predictedHouseConsumption = new Dictionary<DateTimeOffset, int>();
         foreach (var timeStamp in resultTimeStamps)
         {
@@ -115,7 +117,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     public async Task<Dictionary<DateTimeOffset, int>> GetActualHomeBatterySocByLocalHour(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken httpContextRequestAborted)
     {
         logger.LogTrace("{method}({startDate}, {endDate}, {sliceLength})", nameof(GetActualHomeBatterySocByLocalHour), startDate, endDate, sliceLength);
-        var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        var resultTimeStamps = timestampHelper.GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
         var result = new Dictionary<DateTimeOffset, int>();
         foreach (var timeStamp in resultTimeStamps)
         {
@@ -170,7 +172,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
     private Dictionary<DateTimeOffset, int> GenerateFakeResult(DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength)
     {
         var fakedResult = new Dictionary<DateTimeOffset, int>();
-        var slicedTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        var slicedTimeStamps = timestampHelper.GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
         foreach (var slicedTimeStamp in slicedTimeStamps)
         {
             fakedResult[slicedTimeStamp] = 1000; // Fake value of 1000 Wh for each slice
@@ -178,50 +180,11 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         return fakedResult;
     }
 
-    private List<DateTimeOffset> GenerateSlicedTimeStamps(
-        DateTimeOffset startDate,
-        DateTimeOffset endDate,
-        TimeSpan sliceLength)
-    {
-        if (sliceLength <= TimeSpan.Zero)
-            throw new ArgumentException("Slice length must be greater than zero.", nameof(sliceLength));
-
-        // 1 day
-        var oneDay = TimeSpan.FromHours(24);
-
-        // sliceLength cannot exceed 24h
-        if (sliceLength > oneDay)
-            throw new ArgumentException("Slice length cannot exceed 24 hours.", nameof(sliceLength));
-
-        // 24h must be an exact multiple of sliceLength
-        if (oneDay.Ticks % sliceLength.Ticks != 0)
-            throw new ArgumentException(
-                "24 hours must be an exact multiple of sliceLength.", nameof(sliceLength));
-
-        if (startDate > endDate)
-            throw new ArgumentOutOfRangeException(
-                nameof(startDate), "Start date must be on or before end date.");
-
-        var totalSpan = endDate - startDate;
-        
-        // Ensure the total span is an exact multiple of sliceLength
-        if (totalSpan.Ticks % sliceLength.Ticks != 0)
-            throw new ArgumentException(
-                "The time span between startDate and endDate must be an exact multiple of sliceLength.");
-
-        var slicedTimeStamps = new List<DateTimeOffset>();
-        for (var current = startDate; current < endDate; current = current.Add(sliceLength))
-        {
-            slicedTimeStamps.Add(current);
-        }
-        return slicedTimeStamps;
-    }
-
     private async Task<Dictionary<DateTimeOffset, int>> GetActualValues(MeterValueKind meterValueKind, DateTimeOffset startDate, DateTimeOffset endDate, TimeSpan sliceLength, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({meterValueKind}, {startDate}, {endDate}, {sliceLength})", nameof(GetActualValues), meterValueKind, startDate, endDate, sliceLength);
-        var resultTimeStamps = GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
-        var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(resultTimeStamps, sliceLength, meterValueKind, cancellationToken);
+        var resultTimeStamps = timestampHelper.GenerateSlicedTimeStamps(startDate, endDate, sliceLength);
+        var dateTimeOffsetDictionaryFromDatabase = await GetMeterEnergyDifferencesAsync(resultTimeStamps, sliceLength, meterValueKind, null, null, cancellationToken);
         return dateTimeOffsetDictionaryFromDatabase;
     }
 
@@ -248,29 +211,29 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         memoryCache.Set(key, value, options);
     }
 
-    private (bool Cached, MeterValue? Value) GetCachedMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength)
+    private (bool Cached, MeterValue? Value) GetCachedMeterValue(MeterValueKind meterValueKind, int? carId, DateTimeOffset hourlyTimeStamp,
+        TimeSpan sliceLength)
     {
-        logger.LogTrace("{method}({meterValueKind}, {hourlyTimeStamp})", nameof(GetCachedMeterValue), meterValueKind, hourlyTimeStamp);
-        var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp, sliceLength);
+        var key = GetMeterValueCacheKey(meterValueKind, carId, hourlyTimeStamp, sliceLength);
         if (memoryCache.TryGetValue(key, out MeterValue? value))
         {
-            logger.LogTrace("Found cached value for {key}", key);
             return (true, value);
         }
         return (false, default);
     }
 
-    private void CacheMeterValue(MeterValueKind meterValueKind, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength, MeterValue? value)
+    private void CacheMeterValue(MeterValueKind meterValueKind, int? carId, DateTimeOffset hourlyTimeStamp, TimeSpan sliceLength,
+        MeterValue? value)
     {
         logger.LogTrace("{method}({meterValueKind}, {hourlyTimeStamp}, {value})",
             nameof(CacheMeterValue), meterValueKind, hourlyTimeStamp, value);
-        var key = GetMeterValueCacheKey(meterValueKind, hourlyTimeStamp, sliceLength);
+        var key = GetMeterValueCacheKey(meterValueKind, carId, hourlyTimeStamp, sliceLength);
         SetCacheValue(false, value, key);
     }
 
-    private string GetMeterValueCacheKey(MeterValueKind meterValueKind, DateTimeOffset dateTimeOffset, TimeSpan sliceLength)
+    private string GetMeterValueCacheKey(MeterValueKind meterValueKind, int? carId, DateTimeOffset dateTimeOffset, TimeSpan sliceLength)
     {
-        var key = $"{meterValueKind}_{dateTimeOffset}_{sliceLength}";
+        var key = $"{meterValueKind}_{carId}_{dateTimeOffset}_{sliceLength}";
         return key;
     }
 
@@ -320,7 +283,7 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
 
     private async Task<Dictionary<DateTimeOffset, int>> GetMeterEnergyDifferencesAsync(List<DateTimeOffset> slicedTimeStamps,
         TimeSpan sliceLength,
-        MeterValueKind meterValueKind, CancellationToken cancellationToken)
+        MeterValueKind meterValueKind, int? carId, int? chargingConnectorId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({slicedTimeStamps}, {sliceLength}, {meterValueKind})", nameof(GetMeterEnergyDifferencesAsync), slicedTimeStamps.Count, sliceLength, meterValueKind);
         var createdWh = new Dictionary<DateTimeOffset, int>();
@@ -332,53 +295,45 @@ public class EnergyDataService(ILogger<EnergyDataService> logger,
         var lastSlicedTimeStamp = slicedTimeStamps.Last();
         timeStampsToGetMeterValuesFrom.Add(lastSlicedTimeStamp + sliceLength);
 
-        var queryTasks = timeStampsToGetMeterValuesFrom.Select(async dateTimeOffset =>
+        var orderedResults = new Dictionary<DateTimeOffset, MeterValue?>();
+
+        foreach (var dateTimeOffset in timeStampsToGetMeterValuesFrom)
         {
-            // wait our turn
-            await throttler.WaitAsync(cancellationToken);
-            try
+            using var scope = serviceProvider.CreateScope();
+            var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+            var minimumAge = dateTimeOffset - sliceLength;
+            var (cached, meterValue) = GetCachedMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength);
+
+            if (!cached && currentDate > dateTimeOffset)
             {
-                using var scope = serviceProvider.CreateScope();
-                var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
-                var minimumAge = dateTimeOffset - sliceLength;
+                logger.LogTrace("No cached value found for {meterValueKind} at {dateTimeOffset}, querying database.", meterValueKind, dateTimeOffset);
+                meterValue = await scopedContext.MeterValues
+                    .Where(m => m.MeterValueKind == meterValueKind
+                                && m.CarId == carId
+                                && m.ChargingConnectorId == chargingConnectorId
+                                && m.Timestamp <= dateTimeOffset
+                                && m.Timestamp > minimumAge)
+                    .OrderByDescending(m => m.Timestamp)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                var (cached, meterValue) = GetCachedMeterValue(meterValueKind, dateTimeOffset, sliceLength);
-                if (!cached && currentDate > dateTimeOffset)
+                // Cache the result regardless of whether it's null or not
+                if (meterValue != null && dateTimeOffset < GetMaxCacheDate(sliceLength))
                 {
-                    logger.LogTrace("No cached value found for {meterValueKind} at {dateTimeOffset}, querying database.", meterValueKind, dateTimeOffset);
-                    meterValue = await scopedContext.MeterValues
-                        .Where(m => m.MeterValueKind == meterValueKind
-                                    && m.Timestamp <= dateTimeOffset
-                                    && m.Timestamp > minimumAge)
-                        .OrderByDescending(m => m.Id)
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(cancellationToken);
-
-                    // Cache the result regardless of whether it's null or not
-                    if (meterValue != null && dateTimeOffset < GetMaxCacheDate(sliceLength))
-                    {
-                        CacheMeterValue(meterValueKind, dateTimeOffset, sliceLength, meterValue);
-                    }
-                    else if (dateTimeOffset < GetMaxCacheDate(sliceLength))
-                    {
-                        // Cache null to indicate confirmed absence (no value in DB)
-                        CacheMeterValue(meterValueKind, dateTimeOffset, sliceLength, null);
-                    }
-
-                    // Small delay to not slam the DB in bursts
-                    await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
+                    CacheMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength, meterValue);
+                }
+                else if (dateTimeOffset < GetMaxCacheDate(sliceLength))
+                {
+                    // Cache null to indicate confirmed absence (no value in DB)
+                    CacheMeterValue(meterValueKind, carId, dateTimeOffset, sliceLength, null);
                 }
 
-                return new { Timestamp = dateTimeOffset, MeterValue = meterValue };
+                // Small delay to not slam the DB in bursts
+                await Task.Delay(TimeSpan.FromMilliseconds(5), cancellationToken);
             }
-            finally
-            {
-                throttler.Release();
-            }
-        });
 
-        var results = await Task.WhenAll(queryTasks);
-        var orderedResults = results.ToDictionary(result => result.Timestamp, result => result.MeterValue);
+            orderedResults[dateTimeOffset] = meterValue;
+        }
 
         foreach (var slicedTimeStamp in slicedTimeStamps)
         {

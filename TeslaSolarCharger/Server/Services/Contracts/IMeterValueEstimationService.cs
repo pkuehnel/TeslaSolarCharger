@@ -1,4 +1,5 @@
 ﻿using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
+using TeslaSolarCharger.Model.Enums;
 
 namespace TeslaSolarCharger.Server.Services.Contracts;
 
@@ -14,4 +15,6 @@ public interface IMeterValueEstimationService
     /// <returns>New latest known value that can be used for future method calls as baseline</returns>
     /// <exception cref="InvalidDataException">Thrown when latest known value and meter value do not have the same kind.</exception>
     Task<MeterValue> UpdateMeterValueEstimation(MeterValue meterValue, MeterValue? latestKnownValue);
+
+    Task<MeterValue?> GetLatestMeterValueFromDatabase(MeterValueKind meterValueKind, int? carId, int? chargingConnectorId, bool requireEstimatedEnergyToBeNotNull);
 }

@@ -61,7 +61,7 @@ public sealed record ChargingSchedule
     public int? DurationSeconds { get; init; }
 
     [JsonPropertyName("startSchedule")]
-    public DateTime? StartSchedule { get; init; }
+    public DateTime? StartSchedule { get; set; }
 
     [JsonPropertyName("chargingRateUnit")]
     public ChargingRateUnitType ChargingRateUnit { get; init; }

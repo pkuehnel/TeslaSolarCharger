@@ -16,12 +16,18 @@ public class DtoTimeStampedValue<T> : DtoValue<T>
         base.Value = value;
     }
 
-    public void Update(DateTimeOffset newTimestamp, T? newValue)
+    public bool Update(DateTimeOffset newTimestamp, T? newValue)
     {
+        if(newTimestamp <= Timestamp)
+        {
+            return false; // No update if the new timestamp is not greater than the current one.
+        }
         Timestamp = newTimestamp;
         if (!EqualityComparer<T?>.Default.Equals(base.Value, newValue))
+        {
             LastChanged = newTimestamp;
-
+        }
         base.Value = newValue;
+        return true;
     }
 }

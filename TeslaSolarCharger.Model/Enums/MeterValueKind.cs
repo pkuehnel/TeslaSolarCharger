@@ -8,4 +8,6 @@ public enum MeterValueKind
     HomeBatteryDischarging,
     PowerToGrid,
     PowerFromGrid,
+    Car,
+    ChargingConnector,
 }

@@ -55,7 +55,8 @@ public class JobManager(
         var fleetTelemetryReconnectionJob = JobBuilder.Create<FleetTelemetryReconnectionJob>().WithIdentity(nameof(FleetTelemetryReconnectionJob)).Build();
         var fleetTelemetryReconfigurationJob = JobBuilder.Create<FleetTelemetryReconfigurationJob>().WithIdentity(nameof(FleetTelemetryReconfigurationJob)).Build();
         var weatherDataRefreshJob = JobBuilder.Create<WeatherDataRefreshJob>().WithIdentity(nameof(WeatherDataRefreshJob)).Build();
-        var meterValueDatabaseSaveJob = JobBuilder.Create<MeterValueDatabaseSaveJob>().WithIdentity(nameof(MeterValueDatabaseSaveJob)).Build();
+        var databaseBufferedValuesSaveJob = JobBuilder.Create<DatabaseBufferedValuesSaveJob>().WithIdentity(nameof(DatabaseBufferedValuesSaveJob)).Build();
+        var meterValueMergeJob = JobBuilder.Create<MeterValueMergeJob>().WithIdentity(nameof(MeterValueMergeJob)).Build();
         var homeBatteryMinSocRefreshJob = JobBuilder.Create<HomeBatteryMinSocRefreshJob>().WithIdentity(nameof(HomeBatteryMinSocRefreshJob)).Build();
 
         var currentDate = dateTimeProvider.DateTimeOffSetNow();
@@ -142,7 +143,7 @@ public class JobManager(
             .StartAt(currentDate.AddSeconds(30))
             .WithSchedule(SimpleScheduleBuilder.RepeatHourlyForever(constants.WeatherDateRefreshIntervallHours)).Build();
 
-        var meterValueDatabaseSaveTrigger = TriggerBuilder.Create().WithIdentity("meterValueDatabaseSaveTrigger")
+        var databaseBufferedValuesSaveTrigger = TriggerBuilder.Create().WithIdentity("databaseBufferedValuesSaveTrigger")
             .WithSchedule(SimpleScheduleBuilder.RepeatMinutelyForever(constants.MeterValueDatabaseSaveIntervalMinutes)).Build();
 
         var homeBatteryMinSocRefreshTrigger = TriggerBuilder.Create().WithIdentity("homeBatteryMinSocRefreshTrigger")
@@ -155,7 +156,16 @@ public class JobManager(
         var minute = random.Next(0, 59);
 
         var triggerAtNight = TriggerBuilder.Create().WithIdentity("triggerAtNight")
-            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour, minute).InTimeZone(TimeZoneInfo.Utc))// Run every day at 0:00 UTC
+            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour, minute).InTimeZone(TimeZoneInfo.Local))// Run every day at 0:00 UTC
+            .StartNow()
+            .Build();
+
+        // Create a separate daily trigger for meter value merge, at a different random time to spread load
+        var mergeHour = random.Next(1, 6); // Different range to avoid collision
+        var mergeMinute = random.Next(0, 59);
+        var meterValueMergeTrigger = TriggerBuilder.Create()
+            .WithIdentity("meterValueMergeTrigger")
+            .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(mergeHour, mergeMinute).InTimeZone(TimeZoneInfo.Local))
             .StartNow()
             .Build();
 
@@ -176,7 +186,8 @@ public class JobManager(
             {fleetTelemetryReconnectionJob, new HashSet<ITrigger> {fleetTelemetryReconnectionTrigger}},
             {fleetTelemetryReconfigurationJob, new HashSet<ITrigger> {fleetTelemetryReconfigurationTrigger}},
             {weatherDataRefreshJob, new HashSet<ITrigger> {weatherDataRefreshTrigger}},
-            {meterValueDatabaseSaveJob, new HashSet<ITrigger> {meterValueDatabaseSaveTrigger}},
+            {databaseBufferedValuesSaveJob, new HashSet<ITrigger> {databaseBufferedValuesSaveTrigger}},
+            {meterValueMergeJob, new HashSet<ITrigger> {meterValueMergeTrigger}},
             {homeBatteryMinSocRefreshJob, new HashSet<ITrigger> {homeBatteryMinSocRefreshTrigger}},
         };
 
