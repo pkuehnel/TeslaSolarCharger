@@ -72,4 +72,19 @@ public class JavaScriptWrapper(IJSRuntime jsRuntime, ISnackbar snackbar) : IJava
             snackbar.Add("Failed to copy to clipboard.", Severity.Error);
         }
     }
+
+    /// <summary>
+    /// Reloads the current page with a hard refresh, forcing all resources including WebAssembly files to be redownloaded.
+    /// </summary>
+    public async Task ReloadPage()
+    {
+        try
+        {
+            await jsRuntime.InvokeVoidAsync("forceHardReload");
+        }
+        catch (Exception e)
+        {
+            snackbar.Add("Failed to reload the page.", Severity.Error);
+        }
+    }
 }

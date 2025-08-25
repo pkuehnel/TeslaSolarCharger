@@ -32,3 +32,24 @@ function detectDevice() {
 function getTimeZone() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
+
+async function forceHardReload() {
+    // Clear all caches if service workers are being used
+    if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+            cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+    }
+
+    // Unregister service workers if any
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+            await registration.unregister();
+        }
+    }
+
+    // Force reload
+    location.reload(true);
+}
