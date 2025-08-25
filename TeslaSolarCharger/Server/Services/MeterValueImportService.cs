@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
@@ -78,6 +78,23 @@ public class MeterValueImportService : IMeterValueImportService
             var carMeterValuesToSave = new List<MeterValue>();
             var chargingStationMeterValuesToSave = new List<MeterValue>();
             var index = 0;
+            var firstDetail = chargingDetails.First();
+            var chargingDetailsWithSameTimeStampButOtherId = chargingDetails
+                .Where(c => c.TimeStamp == firstDetail.TimeStamp && c.Id != firstDetail.Id)
+                .ToList();
+            foreach (var chargingDetail in chargingDetailsWithSameTimeStampButOtherId)
+            {
+                chargingDetails.Remove(chargingDetail);
+            }
+            var lastDetail = chargingDetails.Last();
+            chargingDetailsWithSameTimeStampButOtherId = chargingDetails
+                .Where(c => c.TimeStamp == lastDetail.TimeStamp && c.Id != lastDetail.Id)
+                .ToList();
+            foreach (var chargingDetail in chargingDetailsWithSameTimeStampButOtherId)
+            {
+                chargingDetails.Remove(chargingDetail);
+            }
+
             foreach (var chargingDetail in chargingDetails)
             {
                 if (chargingProcess.CarId != default)
@@ -123,12 +140,12 @@ public class MeterValueImportService : IMeterValueImportService
 
                 index++;
             }
-            foreach (var meterValue in carMeterValuesToSave)
+            foreach (var meterValue in carMeterValuesToSave.OrderBy(m => m.Timestamp))
             {
                 latestCarMeterValues[chargingProcess.CarId!.Value] =
                     await meterValueEstimationService.UpdateMeterValueEstimation(meterValue, latestCarMeterValues.GetValueOrDefault(chargingProcess.CarId!.Value));
             }
-            foreach (var meterValue in chargingStationMeterValuesToSave)
+            foreach (var meterValue in chargingStationMeterValuesToSave.OrderBy(m => m.Timestamp))
             {
                 latestChargingStationMeterValues[chargingProcess.OcppChargingStationConnectorId!.Value] =
                     await meterValueEstimationService.UpdateMeterValueEstimation(meterValue, latestChargingStationMeterValues.GetValueOrDefault(chargingProcess.OcppChargingStationConnectorId!.Value));
@@ -339,6 +356,8 @@ public class MeterValueImportService : IMeterValueImportService
     {
         earlier.EndDate = cutPoint;
         later.StartDate = cutPoint;
+        outerContext.ChargingProcesses.Update(earlier);
+        outerContext.ChargingProcesses.Update(later);
         await outerContext.SaveChangesAsync();
     }
 
