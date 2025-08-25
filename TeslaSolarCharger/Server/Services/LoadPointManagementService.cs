@@ -362,6 +362,12 @@ public class LoadPointManagementService : ILoadPointManagementService
                 continue;
             }
 
+            if (connectorState.IsPluggedIn.Value != true)
+            {
+                matches.Add(new(null, connectorId));
+                continue;
+            }
+
             if (_settings.ManualSetLoadPointCarCombinations.TryGetValue(connectorId, out var value))
             {
                 _logger.LogDebug("Found match in {settings}.{manualSetCombinations} for connector {connectorId}", nameof(_settings), nameof(_settings.ManualSetLoadPointCarCombinations), connectorId);
