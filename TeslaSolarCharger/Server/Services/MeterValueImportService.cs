@@ -123,12 +123,12 @@ public class MeterValueImportService : IMeterValueImportService
 
                 index++;
             }
-            foreach (var meterValue in carMeterValuesToSave)
+            foreach (var meterValue in carMeterValuesToSave.OrderBy(m => m.Timestamp))
             {
                 latestCarMeterValues[chargingProcess.CarId!.Value] =
                     await meterValueEstimationService.UpdateMeterValueEstimation(meterValue, latestCarMeterValues.GetValueOrDefault(chargingProcess.CarId!.Value));
             }
-            foreach (var meterValue in chargingStationMeterValuesToSave)
+            foreach (var meterValue in chargingStationMeterValuesToSave.OrderBy(m => m.Timestamp))
             {
                 latestChargingStationMeterValues[chargingProcess.OcppChargingStationConnectorId!.Value] =
                     await meterValueEstimationService.UpdateMeterValueEstimation(meterValue, latestChargingStationMeterValues.GetValueOrDefault(chargingProcess.OcppChargingStationConnectorId!.Value));
