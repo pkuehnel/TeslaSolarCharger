@@ -78,6 +78,23 @@ public class MeterValueImportService : IMeterValueImportService
             var carMeterValuesToSave = new List<MeterValue>();
             var chargingStationMeterValuesToSave = new List<MeterValue>();
             var index = 0;
+            var firstDetail = chargingDetails.First();
+            var chargingDetailsWithSameTimeStampButOtherId = chargingDetails
+                .Where(c => c.TimeStamp == firstDetail.TimeStamp && c.Id != firstDetail.Id)
+                .ToList();
+            foreach (var chargingDetail in chargingDetailsWithSameTimeStampButOtherId)
+            {
+                chargingDetails.Remove(chargingDetail);
+            }
+            var lastDetail = chargingDetails.Last();
+            chargingDetailsWithSameTimeStampButOtherId = chargingDetails
+                .Where(c => c.TimeStamp == lastDetail.TimeStamp && c.Id != lastDetail.Id)
+                .ToList();
+            foreach (var chargingDetail in chargingDetailsWithSameTimeStampButOtherId)
+            {
+                chargingDetails.Remove(chargingDetail);
+            }
+
             foreach (var chargingDetail in chargingDetails)
             {
                 if (chargingProcess.CarId != default)
