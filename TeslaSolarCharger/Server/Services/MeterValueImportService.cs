@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
@@ -339,6 +339,8 @@ public class MeterValueImportService : IMeterValueImportService
     {
         earlier.EndDate = cutPoint;
         later.StartDate = cutPoint;
+        outerContext.ChargingProcesses.Update(earlier);
+        outerContext.ChargingProcesses.Update(later);
         await outerContext.SaveChangesAsync();
     }
 
