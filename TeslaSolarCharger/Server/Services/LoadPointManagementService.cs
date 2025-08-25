@@ -356,8 +356,17 @@ public class LoadPointManagementService : ILoadPointManagementService
 
         foreach (var connectorId in connectorIds)
         {
-            if(!_settings.OcppConnectorStates.TryGetValue(connectorId, out var connectorState))
+            _logger.LogTrace("Processing connector {connectorId}", connectorId);
+            if (!_settings.OcppConnectorStates.TryGetValue(connectorId, out var connectorState))
             {
+                _logger.LogDebug("No OCPP connector state found for connector {connectorId}", connectorId);
+                matches.Add(new(null, connectorId));
+                continue;
+            }
+
+            if (connectorState.IsPluggedIn.Value != true)
+            {
+                _logger.LogDebug("Connector {connectorId} is not plugged in, therefore no car can be set as car for charging connector.", connectorId);
                 matches.Add(new(null, connectorId));
                 continue;
             }
@@ -408,8 +417,8 @@ public class LoadPointManagementService : ILoadPointManagementService
                 connectorId, matchWindowStart, matchWindowEnd);
 
             var matchingCars = plugInRelevantCarData
-                .Where(car => car.PluggedIn.Timestamp >= matchWindowStart
-                              && car.PluggedIn.Timestamp <= matchWindowEnd
+                .Where(car => car.PluggedIn.LastChanged >= matchWindowStart
+                              && car.PluggedIn.LastChanged <= matchWindowEnd
                               && car.IsHomeGeofence.Value == true
                               && car.PluggedIn.Value == true)
                 .ToList();
@@ -471,7 +480,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         return matches;
     }
 
-    public void UpdateChargingConnectorCar(int chargingConnectorId, int? carId)
+    public async Task UpdateChargingConnectorCar(int chargingConnectorId, int? carId)
     {
         _logger.LogTrace("{method}({chargingConnectorId}, {carId})", nameof(UpdateChargingConnectorCar), chargingConnectorId, carId);
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
@@ -495,6 +504,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
         }
         _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
+        await GetLoadPointsToManage().ConfigureAwait(false);
     }
 
     private int CalculateEstimatedChargerVoltageWhileCharging(int? actualVoltage)
