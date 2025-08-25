@@ -201,6 +201,33 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
         var originalLogger = Log.Logger;
         Log.Logger = migrationLogger;
 
+        logger.LogInformation("Checking for existing migration locks...");
+
+        // Check if the lock table exists and clear it
+        var sql = @"
+        DELETE FROM __EFMigrationsLock 
+        WHERE EXISTS (
+            SELECT 1 FROM sqlite_master 
+            WHERE type='table' AND name='__EFMigrationsLock'
+        )";
+
+        try
+        {
+            var rowsAffected = await teslaSolarChargerContext.Database.ExecuteSqlRawAsync(sql).ConfigureAwait(false);
+            if (rowsAffected > 0)
+            {
+                logger.LogInformation("Cleared {RowCount} migration lock(s)", rowsAffected);
+            }
+            else
+            {
+                logger.LogDebug("No migration locks to clear");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug("Migration lock table handling: {Message}", ex.Message);
+        }
+
         try
         {
             logger.LogInformation("Starting database migration with detailed logging...");
