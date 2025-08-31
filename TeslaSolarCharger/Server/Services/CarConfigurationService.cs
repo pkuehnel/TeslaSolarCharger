@@ -51,19 +51,17 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
             teslaSolarChargerCar.TeslaMateCarId = null;
         }
         await teslaSolarChargerContext.SaveChangesAsync();
+        foreach (var teslaSolarChargerCar in teslaSolarChargerCars)
+        {
+            teslaSolarChargerCar.TeslaMateCarId = teslaMateCars
+                .FirstOrDefault(c => string.Equals(c.Vin, teslaSolarChargerCar.Vin, StringComparison.CurrentCultureIgnoreCase))?.Id;
+        }
+        await teslaSolarChargerContext.SaveChangesAsync();
         foreach (var teslaAccountCar in teslaAccountCars)
         {
             var teslaSolarChargerCar = teslaSolarChargerCars.FirstOrDefault(c => string.Equals(c.Vin, teslaAccountCar.Vin, StringComparison.CurrentCultureIgnoreCase));
             if (teslaSolarChargerCar != default)
             {
-                var teslaMateCarId = teslaMateCars
-                    .FirstOrDefault(c => string.Equals(c.Vin, teslaAccountCar.Vin, StringComparison.CurrentCultureIgnoreCase))?.Id;
-                if(teslaSolarChargerCar.TeslaMateCarId != teslaMateCarId)
-                {
-                    teslaSolarChargerCar.TeslaMateCarId = teslaMateCarId;
-                    await teslaSolarChargerContext.SaveChangesAsync();
-                }
-
                 if (!teslaSolarChargerCar.IsAvailableInTeslaAccount)
                 {
                     teslaSolarChargerCar.IsAvailableInTeslaAccount = true;
