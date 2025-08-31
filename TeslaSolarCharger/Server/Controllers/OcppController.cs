@@ -16,6 +16,11 @@ public class OcppController(ILogger<OcppController> logger, IOcppWebSocketConnec
         if (!HttpContext.WebSockets.IsWebSocketRequest)
             throw new ProtocolViolationException("WebSocket required");
 
+        HttpContext.RequestAborted.Register(() =>
+        {
+            logger.LogInformation("HTTP request aborted for chargePointId: {chargePointId}", chargePointId);
+        });
+
         using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
         var lifetime = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
