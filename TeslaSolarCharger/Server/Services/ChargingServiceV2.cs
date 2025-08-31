@@ -5,7 +5,6 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
 using TeslaSolarCharger.Server.Dtos.ChargingServiceV2;
 using TeslaSolarCharger.Server.Helper.Contracts;
-using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
@@ -33,8 +32,6 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IValidFromToSplitter _validFromToSplitter;
     private readonly IPowerToControlCalculationService _powerToControlCalculationService;
     private readonly IBackendApiService _backendApiService;
-    private readonly IErrorHandlingService _errorHandlingService;
-    private readonly IIssueKeys _issueKeys;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
     private readonly ITargetChargingValueCalculationService _targetChargingValueCalculationService;
 
@@ -52,8 +49,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         IValidFromToSplitter validFromToSplitter,
         IPowerToControlCalculationService powerToControlCalculationService,
         IBackendApiService backendApiService,
-        IErrorHandlingService errorHandlingService,
-        IIssueKeys issueKeys,
         INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
         ITargetChargingValueCalculationService targetChargingValueCalculationService)
     {
@@ -71,8 +66,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         _validFromToSplitter = validFromToSplitter;
         _powerToControlCalculationService = powerToControlCalculationService;
         _backendApiService = backendApiService;
-        _errorHandlingService = errorHandlingService;
-        _issueKeys = issueKeys;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
         _targetChargingValueCalculationService = targetChargingValueCalculationService;
     }
@@ -92,7 +85,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
-        var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints.Select(l => l.ChargingPower).Sum(), _notChargingWithExpectedPowerReasonHelper, cancellationToken).ConfigureAwait(false);
+        var powerToControl = await _powerToControlCalculationService.CalculatePowerToControl(chargingLoadPoints, _notChargingWithExpectedPowerReasonHelper, cancellationToken).ConfigureAwait(false);
         if (ShouldSkipPowerUpdatesDueToTooRecentAmpChanges(chargingLoadPoints, currentDate))
         {
             return;
@@ -264,44 +257,9 @@ public class ChargingServiceV2 : IChargingServiceV2
         var earliestPlugin = currentDate - (2 * skipValueChanges);
         foreach (var chargingLoadPoint in chargingLoadPoints)
         {
-            if (chargingLoadPoint.CarId != default)
+            if (_powerToControlCalculationService.HasTooLateChanges(chargingLoadPoint, earliestAmpChange, earliestPlugin))
             {
-                var car = _settings.Cars.First(c => c.Id == chargingLoadPoint.CarId.Value);
-                var lastAmpChange = car.LastSetAmp.LastChanged;
-                if (lastAmpChange > earliestAmpChange)
-                {
-                    _logger.LogWarning("Skipping amp changes as Car {carId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.CarId, car.LastSetAmp.LastChanged, earliestAmpChange);
-                    return true;
-                }
-
-                var lastPlugIn = car.PluggedIn.LastChanged;
-                if ((car.PluggedIn.Value == true) && (lastPlugIn > earliestPlugin) && (car.ChargerRequestedCurrent.Value > car.ChargerActualCurrent.Value))
-                {
-                    _logger.LogWarning("Skipping amp changes as Car {carId} was plugged in after {earliestPlugIn}.", chargingLoadPoint.CarId, earliestPlugin);
-                    return true;
-                }
-            }
-
-            if (chargingLoadPoint.ChargingConnectorId != default)
-            {
-                var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(chargingLoadPoint.ChargingConnectorId.Value);
-                if (connectorState != default)
-                {
-                    if (connectorState.LastSetCurrent.LastChanged > earliestAmpChange)
-                    {
-                        _logger.LogWarning("Skipping amp changes as Charging Connector {chargingConnectorId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.ChargingConnectorId, connectorState.LastSetCurrent.LastChanged, earliestAmpChange);
-                        return true;
-                    }
-
-                    if (connectorState.IsPluggedIn.Value
-                        && (connectorState.IsPluggedIn.LastChanged > earliestPlugin)
-                        && (connectorState.ChargingCurrent.Value > 0)
-                        && (connectorState.ChargingCurrent.Value < connectorState.LastSetCurrent.Value))
-                    {
-                        _logger.LogWarning("Skipping amp changes as Charging Connector {chargingConnectorId} was plugged in after {earliestPlugin}.", chargingLoadPoint.ChargingConnectorId, earliestPlugin);
-                        return true;
-                    }
-                }
+                return true;
             }
         }
 
