@@ -57,9 +57,13 @@ namespace TeslaSolarCharger.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RestoreBackup(IFormFile file)
+        public async Task<IActionResult> RestoreBackup(
+            IFormFile file,
+            [FromForm] string fileName,
+            [FromForm] int chunkNumber,
+            [FromForm] int totalChunks)
         {
-            await service.RestoreBackup(file).ConfigureAwait(false);
+            await service.RestoreBackup(file, fileName, chunkNumber, totalChunks).ConfigureAwait(false);
             return Ok();
         }
 
