@@ -136,7 +136,8 @@ public class BaseConfigurationService(
 
             var tempFilePath = Path.Combine(pendingRestoreDirectory, $"{fileName}.part");
 
-            await using (var fs = new FileStream(tempFilePath, FileMode.Append, FileAccess.Write))
+            var fs = new FileStream(tempFilePath, FileMode.Append, FileAccess.Write);
+            await using (fs.ConfigureAwait(false))
             {
                 await file.CopyToAsync(fs).ConfigureAwait(false);
             }

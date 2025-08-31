@@ -53,22 +53,24 @@
         @_file.Name <code>@((_file.Size * 0.000001).ToString("0.00")) MB</code>
     </div>
 }
-<RightAlignedButtonComponent IsDisabled="@(_processingBackup || _processingRestore || _file == default)"
-                             DisabledToolTipText=""
-                             OnButtonClicked="StartRestore"
-                             IsLoading="_processingRestore"
-                             ButtonText="Start restore"></RightAlignedButtonComponent>
-@if(UploadProgress != default && UploadProgress.Value != null && UploadProgress.MaxValue != null)
+
+@if (UploadProgress != default && UploadProgress.Value != null && UploadProgress.MaxValue != null)
 {
     <div class="mb-3">
         <MudProgressLinear Value="UploadProgress.Value.Value"
                            Max="UploadProgress.MaxValue.Value"
                            Size="Size.Large"
                            Striped="true"
-                           Color="Color.Primary"/>
+                           Color="Color.Primary" />
     </div>
-
 }
+
+<RightAlignedButtonComponent IsDisabled="@(_processingBackup || _processingRestore || _file == default)"
+                             DisabledToolTipText=""
+                             OnButtonClicked="StartRestore"
+                             IsLoading="_processingRestore"
+                             ButtonText="Start restore"></RightAlignedButtonComponent>
+
 <MudExpansionPanels>
     <MudExpansionPanel Text="Automatically created backups before each update" ExpandedChanged="RefreshBackups">
         <MudDataGrid Items="_backupFiles">
@@ -92,7 +94,7 @@
 @code {
     private bool _processingBackup;
     private bool _processingRestore;
-    private readonly long _maxFileSize = 1024 * 1024 * 1024; // 1024 MB
+    private const long MaxFileSize = 4294967296; // 4GB
     private List<DtoBackupFileInformation> _backupFiles = new List<DtoBackupFileInformation>();
     private IBrowserFile? _file;
     private DotNetObjectReference<BackupComponent>? _objRef;
@@ -138,9 +140,9 @@
         {
             return;
         }
-        if (file.Size > _maxFileSize)
+        if (file.Size > MaxFileSize)
         {
-            Snackbar.Add($"{file.Name} is greater than {_maxFileSize / 1024 / 1024} and won't be uploaded."
+            Snackbar.Add($"{file.Name} is greater than {MaxFileSize / 1024 / 1024} and won't be uploaded."
                 , Severity.Error);
         }
         _file = file;
@@ -164,7 +166,8 @@
             using var httpClient = HttpClientFactory.CreateClient(StaticConstants.LongTimeOutHttpClientName);
             var chunkSize = 10 * 1024 * 1024;
             var totalChunks = (int)Math.Ceiling((double)_file.Size / chunkSize);
-            await using var stream = _file.OpenReadStream(_maxFileSize);
+            var stream = _file.OpenReadStream(MaxFileSize);
+            await using var stream1 = stream.ConfigureAwait(true);
             var buffer = new byte[chunkSize];
             var chunkNumber = 0;
             int bytesRead;
