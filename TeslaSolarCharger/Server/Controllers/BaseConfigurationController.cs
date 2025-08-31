@@ -57,9 +57,10 @@ namespace TeslaSolarCharger.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RestoreBackup(IFormFile file)
+        [DisableRequestSizeLimit]
+        public async Task<IActionResult> RestoreBackup([FromQuery] string fileName)
         {
-            await service.RestoreBackup(file).ConfigureAwait(false);
+            await service.RestoreBackup(Request.Body, fileName).ConfigureAwait(false);
             return Ok();
         }
 

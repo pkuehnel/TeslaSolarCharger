@@ -137,38 +137,18 @@
     private async Task StartRestore()
     {
         _processingRestore = true;
-        bool upload;
         if (_file == default)
         {
             Snackbar.Add("No file selected", Severity.Error);
-            return;
-        }
-        using var content = new MultipartFormDataContent();
-        try
-        {
-            var fileContent = new StreamContent(_file.OpenReadStream(_maxFileSize));
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("multipart/form-data");
-            content.Add(
-                content: fileContent,
-                name: "\"file\"",
-                fileName: _file.Name);
-            upload = true;
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add($"Error while uploading file: {e.Message}", Severity.Error);
-            _processingRestore = false;
-            return;
-        }
-        if (!upload)
-        {
             _processingRestore = false;
             return;
         }
         try
         {
+            using var streamContent = new StreamContent(_file.OpenReadStream(_maxFileSize));
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             using var httpClient = HttpClientFactory.CreateClient(StaticConstants.LongTimeOutHttpClientName);
-            var response = await httpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
+            var response = await httpClient.PostAsync($"api/BaseConfiguration/RestoreBackup?fileName={Uri.EscapeDataString(_file.Name)}", streamContent);
             if (response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Backup file saved. Container restart required to complete restore. Please restart the TSC container now.", Severity.Success);
@@ -178,7 +158,6 @@
             {
                 Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
             }
-            
         }
         catch (Exception e)
         {

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.IO;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
@@ -9,7 +9,7 @@ public interface IBaseConfigurationService
     Task UpdateBaseConfigurationAsync(DtoBaseConfiguration baseConfiguration);
     Task UpdateMaxCombinedCurrent(int? maxCombinedCurrent);
     Task UpdatePowerBuffer(int powerBuffer);
-    Task RestoreBackup(IFormFile file);
+    Task RestoreBackup(Stream fileStream, string fileName);
     Task<string> CreateLocalBackupZipFile(string backupFileNamePrefix, string? backupZipDestinationDirectory, bool clearBackupDirectoryBeforeBackup);
     List<DtoBackupFileInformation> GetAutoBackupFileInformations();
     Task<byte[]> DownloadAutoBackup(string fileName);

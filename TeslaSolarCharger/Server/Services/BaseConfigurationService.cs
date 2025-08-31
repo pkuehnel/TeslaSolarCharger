@@ -118,9 +118,9 @@ public class BaseConfigurationService(
     }
 
 
-    public async Task RestoreBackup(IFormFile file)
+    public async Task RestoreBackup(Stream fileStream, string fileName)
     {
-        logger.LogTrace("{method}({file})", nameof(RestoreBackup), file.FileName);
+        logger.LogTrace("{method}({file})", nameof(RestoreBackup), fileName);
 
         try
         {
@@ -132,8 +132,7 @@ public class BaseConfigurationService(
             var pendingRestoreFilePath = Path.Combine(pendingRestoreDirectory, pendingRestoreFileName);
 
             await using FileStream fs = new(pendingRestoreFilePath, FileMode.Create);
-            await file.CopyToAsync(fs).ConfigureAwait(false);
-            fs.Close();
+            await fileStream.CopyToAsync(fs).ConfigureAwait(false);
 
             settings.RestartNeeded = true;
 
