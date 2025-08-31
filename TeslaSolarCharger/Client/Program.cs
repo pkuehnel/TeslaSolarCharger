@@ -1,5 +1,6 @@
 using ApexCharts;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using MudBlazor;
 using MudBlazor.Services;
 using MudExtensions.Services;
@@ -25,14 +26,26 @@ builder.Services.AddHttpClient(StaticConstants.LongTimeOutHttpClientName, client
     client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
     // Add other configurations like timeout, default headers, etc.
     client.Timeout = TimeSpan.FromMinutes(10);
+}).ConfigurePrimaryHttpMessageHandler(() => new WebAssemblyHttpMessageHandler
+{
+    EnableStreamingRequest = true,
+    EnableStreamingResponse = true
 });
 
 builder.Services.AddHttpClient(StaticConstants.NormalTimeOutHttpClientName, client =>
 {
     client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+}).ConfigurePrimaryHttpMessageHandler(() => new WebAssemblyHttpMessageHandler
+{
+    EnableStreamingRequest = true,
+    EnableStreamingResponse = true
 });
 
-builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped(_ => new HttpClient(new WebAssemblyHttpMessageHandler
+{
+    EnableStreamingRequest = true,
+    EnableStreamingResponse = true
+}) { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 //builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri("http://192.168.1.50:7189/") });
 builder.Services.AddScoped<INodePatternTypeHelper, NodePatternTypeHelper>();
 builder.Services.AddScoped<IDateTimeProvider, DateTimeProvider>();
