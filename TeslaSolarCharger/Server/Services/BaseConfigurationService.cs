@@ -175,6 +175,17 @@ public class BaseConfigurationService(
         if (files.Length == 0)
         {
             logger.LogInformation("No pending restore files found in: {pendingRestorePath}", pendingRestorePath);
+            try
+            {
+                foreach (var file in Directory.GetFiles(pendingRestorePath))
+                {
+                    File.Delete(file);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Couldn't clean up pending restore directory: {pendingRestorePath}", pendingRestorePath);
+            }
             return;
         }
 
