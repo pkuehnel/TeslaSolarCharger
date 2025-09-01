@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Net.WebSockets;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
@@ -24,10 +25,21 @@ public class OcppController(ILogger<OcppController> logger, IOcppWebSocketConnec
         using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
         var lifetime = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         logger.LogInformation("WebSocket connection opened for chargePointId: {chargePointId}", chargePointId);
-        await ocppWebSocketConnectionHandlingService.AddWebSocket(chargePointId, ws, lifetime, HttpContext.RequestAborted);
-
+        var errorOccured = false;
+        try
+        {
+            await ocppWebSocketConnectionHandlingService.AddWebSocket(chargePointId, ws, lifetime, HttpContext.RequestAborted);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in WebSocket connection for chargePointId: {chargePointId}", chargePointId);
+            errorOccured = true;
+        }
         // keep HTTP request open until the socket (or the client) drops
-        await lifetime.Task;
+        if (!errorOccured)
+        {
+            await lifetime.Task;
+        }
         logger.LogInformation("WebSocket connection closed for chargePointId: {chargePointId}", chargePointId);
     }
 }
