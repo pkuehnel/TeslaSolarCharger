@@ -5,7 +5,7 @@ namespace TeslaSolarCharger.Server.Services.Contracts;
 
 public interface IOcppChargePointConfigurationService
 {
-    Task<Result<GetConfigurationResponse>> GetOcppConfigurations(string chargepointId, CancellationToken cancellationToken);
+    Task<Result<GetConfigurationResponse>> GetOcppConfigurations(string chargepointId, string configurationKey, CancellationToken cancellationToken);
 
     Task<Result<ChangeConfigurationResponse>> SetMeterValuesSampledDataConfiguration(string chargePointId,
         CancellationToken cancellationToken);

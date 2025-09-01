@@ -190,13 +190,19 @@ else
                                                  OnButtonClicked="@(() => SetCurrentAndPhases(connector.Value.ChargePointId, connector.Value.ConnectorId, connector.Key))"></RightAlignedButtonComponent>
                 </div>
                 <hr/>
+                <div class="row">
+                    <div class="col">
+                        <GenericInput For="() => _configurationKeysToGet[connector.Key].Value"
+                                      LabelName="Configuration Key to get"></GenericInput>
+                    </div>
+                </div>
                 <div class="d-flex flex-wrap gap-2">
                     <RightAlignedButtonComponent ButtonText="Get ConnectorState"
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => GetConnectorState(connector.Key))"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Get Configuration Keys"
+                    <RightAlignedButtonComponent ButtonText="Get Configuration Key"
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
-                                                 OnButtonClicked="@(() => GetConfigurationKeys(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
+                                                 OnButtonClicked="@(() => GetConfigurationKey(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
                     <RightAlignedButtonComponent ButtonText="Set Meter data configuration"
                                                  IsLoading="@_loadingOcppCommands.Contains(connector.Key)"
                                                  OnButtonClicked="@(() => SetMeterDataConfiguration(connector.Value.ChargePointId, connector.Key))"></RightAlignedButtonComponent>
@@ -259,6 +265,7 @@ else
     private readonly HashSet<int> _loadingOcppCommands = new();
     private readonly Dictionary<int, DtoValue<decimal>> _chargingCurrentsToSet = new();
     private readonly Dictionary<int, DtoValue<int?>> _chargingPhasesToSet = new();
+    private readonly Dictionary<int, DtoValue<string>> _configurationKeysToGet = new();
     private readonly Dictionary<int, string> _commandResults = new();
     private List<string> _uiLogMessages = new();
 
@@ -304,11 +311,13 @@ else
         {
             _chargingCurrentsToSet.Clear();
             _chargingPhasesToSet.Clear();
+            _configurationKeysToGet.Clear();
             var defaultChargingCurrent = 6;
             foreach (var connector in connectors)
             {
                 _chargingCurrentsToSet.Add(connector.Key, new(defaultChargingCurrent));
                 _chargingPhasesToSet.Add(connector.Key, new(null));
+                _configurationKeysToGet.Add(connector.Key, new(string.Empty));
             }
             _debugChargingConnectors = connectors;
         }
@@ -474,11 +483,12 @@ else
         _loadingOcppCommands.Remove(connectorKey);
     }
 
-    private async Task GetConfigurationKeys(string chargePointId, int connectorKey)
+    private async Task GetConfigurationKey(string chargePointId, int connectorKey)
     {
         _loadingOcppCommands.Add(connectorKey);
+        var configurationKey = _configurationKeysToGet[connectorKey].Value;
         var result = await HttpClientHelper.SendGetRequestAsync<DtoValue<string>>(
-            $"api/Debug/GetChargePointConfigurationKeys?chargepointId={chargePointId}");
+            $"api/Debug/GetChargePointConfigurationKey?chargepointId={chargePointId}&configurationKey={configurationKey}");
         _commandResults[connectorKey] = result.Data?.Value ?? "No data";
         _loadingOcppCommands.Remove(connectorKey);
     }

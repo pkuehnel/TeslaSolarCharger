@@ -160,9 +160,9 @@ public class DebugController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetChargePointConfigurationKeys(string chargepointId)
+    public async Task<IActionResult> GetChargePointConfigurationKey(string chargepointId, string configurationKey)
     {
-        var result = await ocppChargePointConfigurationService.GetOcppConfigurations(chargepointId, HttpContext.RequestAborted);
+        var result = await ocppChargePointConfigurationService.GetOcppConfigurations(chargepointId, configurationKey, HttpContext.RequestAborted);
         var resultString = JsonConvert.SerializeObject(result, _serializerSettings);
         return Ok(new DtoValue<string>(resultString));
     }
