@@ -24,7 +24,7 @@ public class OcppController(ILogger<OcppController> logger, IOcppWebSocketConnec
         using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
         var lifetime = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         logger.LogInformation("WebSocket connection opened for chargePointId: {chargePointId}", chargePointId);
-        var errorOccured = false;
+        var errorOccurred = false;
         try
         {
             await ocppWebSocketConnectionHandlingService.AddWebSocket(chargePointId, ws, lifetime, HttpContext.RequestAborted);
@@ -32,10 +32,10 @@ public class OcppController(ILogger<OcppController> logger, IOcppWebSocketConnec
         catch (Exception ex)
         {
             logger.LogError(ex, "Error in WebSocket connection for chargePointId: {chargePointId}", chargePointId);
-            errorOccured = true;
+            errorOccurred = true;
         }
         // keep HTTP request open until the socket (or the client) drops
-        if (!errorOccured)
+        if (!errorOccurred)
         {
             await lifetime.Task;
         }
