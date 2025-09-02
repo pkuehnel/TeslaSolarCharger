@@ -8,4 +8,5 @@ public class DtoLoadPointWithCurrentChargingValues
     public int ChargingVoltage { get; set; }
     public decimal ChargingCurrent { get; set; }
     public int? ChargingPhases { get; set; }
+    public bool IsCharging { get; set; }
 }

@@ -426,11 +426,11 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         foreach (var loadPoint in loadPoints)
         {
             logger.LogTrace("Adding meter values for loadpoint {@loadpoint}", loadPoint);
-            var chargingPowerAtHome = loadPoint.ChargingPower;
-            if (chargingPowerAtHome < 1)
+            if (!loadPoint.IsCharging)
             {
                 continue;
             }
+            var chargingPowerAtHome = loadPoint.ChargingPower;
             await AddNewChargingProcessIfRequired(loadPoint.CarId, loadPoint.ChargingConnectorId, currentDate);
             var dtoChargingValue = new DtoChargingValue();
             if (chargingPowerAtHome < usedGridPower)

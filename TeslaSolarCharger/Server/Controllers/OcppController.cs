@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Net.WebSockets;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.SharedBackend.Abstracts;
 
