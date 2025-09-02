@@ -8,7 +8,7 @@ public interface IOcppWebSocketConnectionHandlingService
 
     Task AddWebSocket(string chargePointId,
         WebSocket webSocket,
-        TaskCompletionSource<object?> lifetimeTcs, CancellationToken httpContextRequestAborted);
+        TaskCompletionSource<object?> lifetimeTcs, CancellationToken cancellationToken);
 
     Task<TResp> SendRequestAsync<TResp>(string chargePointIdentifier,
         string action,

@@ -49,7 +49,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
     public async Task AddWebSocket(string chargePointId,
         WebSocket webSocket,
-        TaskCompletionSource<object?> lifetimeTcs, CancellationToken httpContextRequestAborted)
+        TaskCompletionSource<object?> lifetimeTcs, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargePointId})", nameof(AddWebSocket), chargePointId);
         await RemoveWebSocket(chargePointId); // clear any stale entry first
@@ -65,7 +65,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             using var scope = serviceProvider.CreateScope();
             var chargingStationConfigurationService = scope.ServiceProvider
                 .GetRequiredService<IOcppChargingStationConfigurationService>();
-            await chargingStationConfigurationService.AddChargingStationIfNotExisting(chargePointId, httpContextRequestAborted);
+            await chargingStationConfigurationService.AddChargingStationIfNotExisting(chargePointId, cancellationToken);
             var chargingConnectorIds = await GetChargingConnectorIds(chargePointId);
             foreach (var chargingConnectorId in chargingConnectorIds)
             {
@@ -85,8 +85,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
             }
             dto.FullyConfigured = true;
             var ocppChargePointConfigurationService = scope.ServiceProvider.GetRequiredService<IOcppChargePointConfigurationService>();
-            await ocppChargePointConfigurationService.TriggerStatusNotification(chargePointId, httpContextRequestAborted);
-            await ocppChargePointConfigurationService.TriggerMeterValues(chargePointId, httpContextRequestAborted);
+            await ocppChargePointConfigurationService.TriggerStatusNotification(chargePointId, cancellationToken);
+            await ocppChargePointConfigurationService.TriggerMeterValues(chargePointId, cancellationToken);
         }
         else
         {
@@ -109,6 +109,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
     private async Task ReceiveLoopAsync(DtoOcppWebSocket dto)
     {
+        logger.LogTrace("{method}({chargePointId})", nameof(ReceiveLoopAsync), dto.ChargePointId);
         var buffer = ArrayPool<byte>.Shared.Rent(4 * 1024);
 
         var watchdog = new CancellationTokenSource(_clientSideHeartbeatTimeout);
