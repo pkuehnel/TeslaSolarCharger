@@ -77,19 +77,19 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         await teslaSolarChargerContext.SaveChangesAsync();
     }
 
-    public async Task AddChargingStationIfNotExisting(string chargepointId, CancellationToken httpContextRequestAborted)
+    public async Task AddChargingStationIfNotExisting(string chargepointId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargepointId})", nameof(AddChargingStationIfNotExisting), chargepointId);
         var existingChargingStation = await teslaSolarChargerContext.OcppChargingStations
             .Include(c => c.Connectors)
-            .FirstOrDefaultAsync(x => x.ChargepointId == chargepointId, cancellationToken: httpContextRequestAborted);
+            .FirstOrDefaultAsync(x => x.ChargepointId == chargepointId, cancellationToken: cancellationToken);
 
         if (existingChargingStation == default)
         {
             existingChargingStation = new(chargepointId);
             teslaSolarChargerContext.OcppChargingStations.Add(existingChargingStation);
         }
-        var reconfigurationRequiredResult = await ocppChargePointConfigurationService.IsReconfigurationRequired(chargepointId, httpContextRequestAborted);
+        var reconfigurationRequiredResult = await ocppChargePointConfigurationService.IsReconfigurationRequired(chargepointId, cancellationToken);
         if (reconfigurationRequiredResult.HasError)
         {
             logger.LogError("Could not check if reconfiguration is required for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, reconfigurationRequiredResult.ErrorMessage);
@@ -99,7 +99,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         {
             var rebootIsRequired = false;
             logger.LogInformation("Reconfiguration is required for charge point {chargePointId}.", chargepointId);
-            var meterValueSampledDataResult = await ocppChargePointConfigurationService.SetMeterValuesSampledDataConfiguration(chargepointId, httpContextRequestAborted);
+            var meterValueSampledDataResult = await ocppChargePointConfigurationService.SetMeterValuesSampledDataConfiguration(chargepointId, cancellationToken);
             if (meterValueSampledDataResult.HasError)
             {
                 logger.LogError("Could not set MeterValuesSampledDataConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampledDataResult.ErrorMessage);
@@ -110,7 +110,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             {
                 rebootIsRequired = true;
             }
-            var meterValueSampleIntervallResult = await ocppChargePointConfigurationService.SetMeterValuesSampleIntervalConfiguration(chargepointId, httpContextRequestAborted);
+            var meterValueSampleIntervallResult = await ocppChargePointConfigurationService.SetMeterValuesSampleIntervalConfiguration(chargepointId, cancellationToken);
             if (meterValueSampleIntervallResult.HasError)
             {
                 logger.LogError("Could not set MeterValuesSampleIntervalConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampleIntervallResult.ErrorMessage);
@@ -121,7 +121,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             {
                 rebootIsRequired = true;
             }
-            var clockAlignedDataResult = await ocppChargePointConfigurationService.SetMeterValuesClockAligedDataConfiguration(chargepointId, httpContextRequestAborted);
+            var clockAlignedDataResult = await ocppChargePointConfigurationService.SetMeterValuesClockAligedDataConfiguration(chargepointId, cancellationToken);
             if (clockAlignedDataResult.HasError)
             {
                 logger.LogError("Could not set MeterValuesClockAligedDataConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampledDataResult.ErrorMessage);
@@ -132,7 +132,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             {
                 rebootIsRequired = true;
             }
-            var clockAlignedDataIntervalResult = await ocppChargePointConfigurationService.SetMeterValuesClockAlignedIntervalConfiguration(chargepointId, httpContextRequestAborted);
+            var clockAlignedDataIntervalResult = await ocppChargePointConfigurationService.SetMeterValuesClockAlignedIntervalConfiguration(chargepointId, cancellationToken);
             if (clockAlignedDataIntervalResult.HasError)
             {
                 logger.LogError("Could not set MeterValuesClockAlignedIntervalConfiguration for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, meterValueSampleIntervallResult.ErrorMessage);
@@ -145,7 +145,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
             }
             if (rebootIsRequired)
             {
-                var rebootResult = await ocppChargePointConfigurationService.RebootCharger(chargepointId, httpContextRequestAborted);
+                var rebootResult = await ocppChargePointConfigurationService.RebootCharger(chargepointId, cancellationToken);
                 if (rebootResult.HasError)
                 {
                     logger.LogError("Could not reboot charge point {chargePointId}. Error message: {errorMessage}", chargepointId, rebootResult.ErrorMessage);
@@ -157,7 +157,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         {
             logger.LogInformation("Reconfiguration is not required for charge point {chargePointId}.", chargepointId);
         }
-        var numberOfConnectors = await ocppChargePointConfigurationService.NumberOfConnectors(chargepointId, httpContextRequestAborted);
+        var numberOfConnectors = await ocppChargePointConfigurationService.NumberOfConnectors(chargepointId, cancellationToken);
         if (numberOfConnectors.HasError)
         {
             logger.LogError("Could not get number of connectors for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, numberOfConnectors.ErrorMessage);
@@ -178,13 +178,13 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         {
             ocppChargingStationConnector.ShouldBeManaged = true;
         }
-        var canSwitchPhases = await ocppChargePointConfigurationService.CanSwitchBetween1And3Phases(chargepointId, httpContextRequestAborted);
+        var canSwitchPhases = await ocppChargePointConfigurationService.CanSwitchBetween1And3Phases(chargepointId, cancellationToken);
         if (canSwitchPhases.HasError)
         {
             logger.LogError("Could not get can switch phases for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, numberOfConnectors.ErrorMessage);
             return;
         }
         existingChargingStation.CanSwitchBetween1And3Phases = canSwitchPhases.Data;
-        await teslaSolarChargerContext.SaveChangesAsync(httpContextRequestAborted);
+        await teslaSolarChargerContext.SaveChangesAsync(cancellationToken);
     }
 }

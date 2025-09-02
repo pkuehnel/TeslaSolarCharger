@@ -229,6 +229,7 @@ public class LoadPointManagementService : ILoadPointManagementService
             var actualCurrent = car.ChargerActualCurrent.Value > car.ChargerRequestedCurrent.Value ? car.ChargerRequestedCurrent.Value.Value : (car.ChargerActualCurrent.Value ?? 0);
             loadPoint.ChargingCurrent = car.IsHomeGeofence.Value == true ? actualCurrent : 0;
             loadPoint.ChargingPhases = car.ActualPhases;
+            loadPoint.IsChargingAtHome = (car.IsCharging.Value == true) && (car.IsHomeGeofence.Value == true);
         }
         if (match.ChargingConnectorId != default)
         {
@@ -238,6 +239,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.ChargingVoltage = (int)connector.ChargingVoltage.Value;
                 loadPoint.ChargingCurrent = connector.ChargingCurrent.Value;
                 loadPoint.ChargingPhases = connector.PhaseCount.Value;
+                loadPoint.IsChargingAtHome = connector.IsCharging.Value;
             }
         }
 

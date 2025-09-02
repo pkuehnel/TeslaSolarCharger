@@ -27,5 +27,28 @@ public enum CarValueType
     LocatedAtHome,//22
     LocatedAtWork,//23
     LocatedAtFavorite,//24
+    DcChargingPower,//25
+    FastChargerPresent,//26
+    ChargingCableType,//27
+    FastChargerType,//28
+    IdealBatteryRange,//29
+    RatedBatteryRange,//30
+    EstimatedBatteryRange,//31
+    NotEnoughPowerToHeat,//32
+    InsideTemperature,//33
+    OutsideTemperature,//34
+    UsableStateOfCharge,//35
+    BatteryVoltage,//36
+    BatteryCurrent,//37
+    Odometer,//38
+    HvacFanStatus,//39
+    HvacLeftTempRequest,//40
+    HvacRightTempRequest,//41
+    IsClimateOn,//42
+    IsRearDefrosterOn,//43
+    TpmsPressureFrontLeft,//44
+    TpmsPressureFrontRight,//45
+    TpmsPressureRearLeft,//46
+    TpmsPressureRearRight,//47
     Unknown = 9999,
 }

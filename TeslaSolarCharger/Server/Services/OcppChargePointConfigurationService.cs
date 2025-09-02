@@ -1,4 +1,4 @@
-﻿using TeslaSolarCharger.Server.Dtos;
+using TeslaSolarCharger.Server.Dtos;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
 
@@ -12,7 +12,6 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
     private const string MeterValuesClockAlignedDataKey = "MeterValuesAlignedData";
     private const string MeterValuesSampledDataKey = "MeterValuesSampledData";
     private const string NumberOfConnectorsKey = "NumberOfConnectors";
-    private const string UnlockConnectorOnEvSideDisconnectKey = "UnlockConnectorOnEVSideDisconnect";
     private const string ConnectorSwitch3To1PhaseSupportedKey = "ConnectorSwitch3to1PhaseSupported";
 
     private const int MeterValuesSampleIntervalDefaultValue = 5;
@@ -86,121 +85,102 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
     public async Task<Result<bool?>> CanSwitchBetween1And3Phases(string chargepointId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargepointId})", nameof(CanSwitchBetween1And3Phases), chargepointId);
-        var getConfigurationResponse = await GetOcppConfigurations(chargepointId, cancellationToken);
-        if (getConfigurationResponse.HasError)
+        var configValue = await GetConfigurationValue(chargepointId, ConnectorSwitch3To1PhaseSupportedKey, cancellationToken);
+        if (configValue.HasError)
         {
-            logger.LogError("Could not get configuration keys for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, getConfigurationResponse.ErrorMessage);
-            return new(null, getConfigurationResponse.ErrorMessage, null);
+            return new(null, configValue.ErrorMessage, null);
         }
-        var result = getConfigurationResponse.Data;
-        if (result?.ConfigurationKey == null)
-        {
-            logger.LogError("Could not get configuration keys for charge point {chargePointId}. Response was null", chargepointId);
-            return new(null, "Response was null", null);
-        }
-        var canSwitchBetweenPhases = result.ConfigurationKey.FirstOrDefault(x => x.Key == ConnectorSwitch3To1PhaseSupportedKey);
-        if (canSwitchBetweenPhases?.Value == null)
+
+        if (configValue.Data == null)
         {
             logger.LogError("Could not get can switch between phases for charge point {chargePointId}. Value was null", chargepointId);
             return new(null, "Value was null", null);
         }
-        if (bool.TryParse(canSwitchBetweenPhases.Value, out var boolCanSwitchBetweenPhasesValue))
+
+        if (bool.TryParse(configValue.Data, out var boolCanSwitchBetweenPhasesValue))
         {
             return new(boolCanSwitchBetweenPhasesValue, null, null);
         }
-        return new(null, $"Could not parse boolean of can switch phases: {canSwitchBetweenPhases.Value}", null);
+
+        return new(null, $"Could not parse boolean of can switch phases: {configValue.Data}", null);
     }
 
     public async Task<Result<int?>> NumberOfConnectors(string chargepointId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargepointId})", nameof(NumberOfConnectors), chargepointId);
-        var getConfigurationResponse = await GetOcppConfigurations(chargepointId, cancellationToken);
-        if (getConfigurationResponse.HasError)
+        var configValue = await GetConfigurationValue(chargepointId, NumberOfConnectorsKey, cancellationToken);
+        if (configValue.HasError)
         {
-            logger.LogError("Could not get configuration keys for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, getConfigurationResponse.ErrorMessage);
-            return new(null, getConfigurationResponse.ErrorMessage, null);
+            return new(null, configValue.ErrorMessage, null);
         }
-        var result = getConfigurationResponse.Data;
-        if (result?.ConfigurationKey == null)
-        {
-            logger.LogError("Could not get configuration keys for charge point {chargePointId}. Response was null", chargepointId);
-            return new(null, "Response was null", null);
-        }
-        var numberOfConnectors = result.ConfigurationKey.FirstOrDefault(x => x.Key == NumberOfConnectorsKey);
-        if (numberOfConnectors?.Value == null)
+
+        if (configValue.Data == null)
         {
             logger.LogError("Could not get number of connectors for charge point {chargePointId}. Value was null", chargepointId);
             return new(null, "Value was null", null);
         }
-        if(int.TryParse(numberOfConnectors.Value, out var integerNumberOfConnectors))
+
+        if (int.TryParse(configValue.Data, out var integerNumberOfConnectors))
         {
             return new(integerNumberOfConnectors, null, null);
         }
-        return new(null, $"Could not parse number of connectors: {numberOfConnectors.Value}", null);
+
+        return new(null, $"Could not parse number of connectors: {configValue.Data}", null);
     }
 
     public async Task<Result<bool?>> IsReconfigurationRequired(string chargepointId, CancellationToken cancellationToken)
     {
         logger.LogTrace("{method}({chargepointId})", nameof(IsReconfigurationRequired), chargepointId);
-        var getConfigurationResponse = await GetOcppConfigurations(chargepointId, cancellationToken);
-        if (getConfigurationResponse.HasError)
+
+        var meterValueSampleInterval = await GetConfigurationValue(chargepointId, MeterValueSampleIntervalKey, cancellationToken);
+        if (meterValueSampleInterval.HasError)
         {
-            logger.LogError("Could not get configuration keys for charge point {chargePointId}. Error message: {errorMessage}", chargepointId, getConfigurationResponse.ErrorMessage);
-            return new(null, getConfigurationResponse.ErrorMessage, null);
+            return new(null, meterValueSampleInterval.ErrorMessage, null);
         }
-        var result = getConfigurationResponse.Data;
-        if (result?.ConfigurationKey == null)
+        if (meterValueSampleInterval.Data != MeterValuesSampleIntervalDefaultValue.ToString())
         {
-            logger.LogError("Could not get configuration keys for charge point {chargePointId}. Response was null", chargepointId);
-            return new(null, "Response was null", null);
+            return new(true, null, null);
         }
-        var meterValueSampleInterval = result.ConfigurationKey.FirstOrDefault(x => x.Key == MeterValueSampleIntervalKey);
-        if (meterValueSampleInterval?.Value != MeterValuesSampleIntervalDefaultValue.ToString())
+
+        var meterValueClockAlignedInterval = await GetConfigurationValue(chargepointId, ClockAlignedDataIntervalKey, cancellationToken);
+        if (meterValueClockAlignedInterval.HasError)
         {
-            return new Result<bool?>(true, null, null);
+            return new(null, meterValueClockAlignedInterval.ErrorMessage, null);
         }
-        var meterValueClockAlignedInterval = result.ConfigurationKey.FirstOrDefault(x => x.Key == ClockAlignedDataIntervalKey);
-        if (meterValueClockAlignedInterval?.Value != ClockAlignedDataIntervalDefaultValue.ToString())
+        if (meterValueClockAlignedInterval.Data != ClockAlignedDataIntervalDefaultValue.ToString())
         {
-            return new Result<bool?>(true, null, null);
+            return new(true, null, null);
         }
-        var meterValuesSampledData = result.ConfigurationKey.FirstOrDefault(x => x.Key == MeterValuesSampledDataKey);
-        if (meterValuesSampledData?.Value != null)
+
+        var meterValuesSampledData = await GetConfigurationValue(chargepointId, MeterValuesSampledDataKey, cancellationToken);
+        if (meterValuesSampledData.HasError)
         {
-            var meterValuesSampledDataList = meterValuesSampledData.Value.Split(',').ToHashSet();
-            if (!meterValuesSampledDataList.SetEquals(_meterValuesDataDefaultValue))
-            {
-                return new Result<bool?>(true, null, null);
-            }
+            return new(null, meterValuesSampledData.ErrorMessage, null);
         }
-        var meterValuesClockAlignedDataData = result.ConfigurationKey.FirstOrDefault(x => x.Key == MeterValuesClockAlignedDataKey);
-        if (meterValuesClockAlignedDataData?.Value != null)
+        if (!IsMeterValuesSetToDefault(meterValuesSampledData.Data))
         {
-            var meterValuesClockAlignedData = meterValuesClockAlignedDataData.Value.Split(',').ToHashSet();
-            if (!meterValuesClockAlignedData.SetEquals(_meterValuesDataDefaultValue))
-            {
-                return new Result<bool?>(true, null, null);
-            }
+            return new(true, null, null);
         }
-        return new Result<bool?>(false, null, null);
+
+        var meterValuesClockAlignedData = await GetConfigurationValue(chargepointId, MeterValuesClockAlignedDataKey, cancellationToken);
+        if (meterValuesClockAlignedData.HasError)
+        {
+            return new(null, meterValuesClockAlignedData.ErrorMessage, null);
+        }
+        if (!IsMeterValuesSetToDefault(meterValuesClockAlignedData.Data))
+        {
+            return new(true, null, null);
+        }
+
+        return new(false, null, null);
     }
 
-    public async Task<Result<GetConfigurationResponse>> GetOcppConfigurations(string chargepointId, CancellationToken cancellationToken)
+    public async Task<Result<GetConfigurationResponse>> GetOcppConfigurations(string chargepointId, string configurationKey, CancellationToken cancellationToken)
     {
-        logger.LogTrace("{method}({chargepointId})", nameof(GetOcppConfigurations), chargepointId);
-
+        logger.LogTrace("{method}({chargepointId}, {configurationKey})", nameof(GetOcppConfigurations), chargepointId, configurationKey);
         var getConfigurationRequest = new GetConfigurationRequest()
         {
-            Key = new List<string>()
-            {
-                MeterValueSampleIntervalKey,
-                MeterValuesSampledDataKey,
-                NumberOfConnectorsKey,
-                UnlockConnectorOnEvSideDisconnectKey,
-                ConnectorSwitch3To1PhaseSupportedKey,
-                ClockAlignedDataIntervalKey,
-                MeterValuesClockAlignedDataKey,
-            },
+            Key = new List<string> { configurationKey },
         };
         try
         {
@@ -249,6 +229,28 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
         return response;
     }
 
+    private async Task<Result<string?>> GetConfigurationValue(string chargepointId, string configurationKey, CancellationToken cancellationToken)
+    {
+        var configurationResponse = await GetOcppConfigurations(chargepointId, configurationKey, cancellationToken);
+        if (configurationResponse.HasError)
+        {
+            logger.LogError("Could not get configuration key {configurationKey} for charge point {chargePointId}. Error message: {errorMessage}", configurationKey, chargepointId, configurationResponse.ErrorMessage);
+            return new(null, configurationResponse.ErrorMessage, null);
+        }
+
+        var value = configurationResponse.Data?.ConfigurationKey?.FirstOrDefault()?.Value;
+        return new(value, null, null);
+    }
+
+    private bool IsMeterValuesSetToDefault(string? value)
+    {
+        if (value == null)
+        {
+            return true;
+        }
+        var meterValuesSet = value.Split(',').ToHashSet();
+        return meterValuesSet.SetEquals(_meterValuesDataDefaultValue);
+    }
 
     private async Task<Result<ChangeConfigurationResponse>> SetOcppConfiguration(string chargepointId, string key, string value, CancellationToken cancellationToken)
     {
@@ -279,8 +281,6 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
         }
     }
 }
-
-
 
 /* Options to set for key "MeterValuesSampledData":
    Current.Export Instantaneous current flow from EV
@@ -319,3 +319,4 @@ public class OcppChargePointConfigurationService(ILogger<OcppChargePointConfigur
    Temperature Temperature reading inside Charge Point.
    Voltage Instantaneous AC RMS supply voltage
  */
+

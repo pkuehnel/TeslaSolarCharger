@@ -118,26 +118,42 @@ public class BaseConfigurationService(
     }
 
 
-    public async Task RestoreBackup(IFormFile file)
+    public async Task RestoreBackup(IFormFile file, string fileName, int chunkNumber, int totalChunks)
     {
-        logger.LogTrace("{method}({file})", nameof(RestoreBackup), file.FileName);
+        logger.LogTrace("{method}({file}, {chunkNumber}, {totalChunks})", nameof(RestoreBackup), file.FileName, chunkNumber, totalChunks);
 
         try
         {
-            // Save file to pending restore directory
             var pendingRestoreDirectory = configurationWrapper.PendingRestoreDirectory();
-            CreateDirectory(pendingRestoreDirectory);
+            if (chunkNumber == 1)
+            {
+                CreateDirectory(pendingRestoreDirectory);
+            }
+            else if (!Directory.Exists(pendingRestoreDirectory))
+            {
+                Directory.CreateDirectory(pendingRestoreDirectory);
+            }
 
-            var pendingRestoreFileName = $"pending-restore-{dateTimeProvider.DateTimeOffSetUtcNow().ToLocalTime():yyyy-MM-dd-HH-mm-ss}.zip";
-            var pendingRestoreFilePath = Path.Combine(pendingRestoreDirectory, pendingRestoreFileName);
+            var tempFilePath = Path.Combine(pendingRestoreDirectory, $"{fileName}.part");
 
-            await using FileStream fs = new(pendingRestoreFilePath, FileMode.Create);
-            await file.CopyToAsync(fs).ConfigureAwait(false);
-            fs.Close();
+            var fs = new FileStream(tempFilePath, FileMode.Append, FileAccess.Write);
+            await using (fs.ConfigureAwait(false))
+            {
+                await file.CopyToAsync(fs).ConfigureAwait(false);
+            }
 
-            settings.RestartNeeded = true;
-
-            logger.LogInformation("Backup file saved for restore after container restart: {filePath}", pendingRestoreFilePath);
+            if (chunkNumber == totalChunks)
+            {
+                var pendingRestoreFileName = $"pending-restore-{dateTimeProvider.DateTimeOffSetUtcNow().ToLocalTime():yyyy-MM-dd-HH-mm-ss}.zip";
+                var pendingRestoreFilePath = Path.Combine(pendingRestoreDirectory, pendingRestoreFileName);
+                if (File.Exists(pendingRestoreFilePath))
+                {
+                    File.Delete(pendingRestoreFilePath);
+                }
+                File.Move(tempFilePath, pendingRestoreFilePath);
+                settings.RestartNeeded = true;
+                logger.LogInformation("Backup file saved for restore after container restart: {filePath}", pendingRestoreFilePath);
+            }
         }
         catch (Exception ex)
         {
@@ -159,6 +175,17 @@ public class BaseConfigurationService(
         if (files.Length == 0)
         {
             logger.LogInformation("No pending restore files found in: {pendingRestorePath}", pendingRestorePath);
+            try
+            {
+                foreach (var file in Directory.GetFiles(pendingRestorePath))
+                {
+                    File.Delete(file);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Couldn't clean up pending restore directory: {pendingRestorePath}", pendingRestorePath);
+            }
             return;
         }
 

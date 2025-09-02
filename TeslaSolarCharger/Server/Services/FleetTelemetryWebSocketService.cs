@@ -285,7 +285,6 @@ public class FleetTelemetryWebSocketService(
                                 break;
                             case CarValueType.ChargeCurrentRequest:
                                 shouldUpdateProperty = true;
-
                                 break;
                             case CarValueType.IsPluggedIn:
                                 shouldUpdateProperty = true;
