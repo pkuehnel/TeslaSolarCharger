@@ -426,7 +426,7 @@ public class TscOnlyChargingCostService(ILogger<TscOnlyChargingCostService> logg
         foreach (var loadPoint in loadPoints)
         {
             logger.LogTrace("Adding meter values for loadpoint {@loadpoint}", loadPoint);
-            if (!loadPoint.IsCharging)
+            if (!loadPoint.IsChargingAtHome)
             {
                 continue;
             }
