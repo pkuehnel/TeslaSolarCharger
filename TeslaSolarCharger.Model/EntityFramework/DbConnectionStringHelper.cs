@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
