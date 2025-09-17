@@ -70,7 +70,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
-            var currentChargingPower = chargingLoadPoints.Select(l => l.ChargingPower).Sum();
+        var currentChargingPower = chargingLoadPoints.Select(l => l.ChargingPower).Sum();
         if (!availablePowerSources.GridPowerAvailable
             && availablePowerSources.InverterPowerAvailable)
         {
