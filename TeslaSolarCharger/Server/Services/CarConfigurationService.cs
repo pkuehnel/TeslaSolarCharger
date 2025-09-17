@@ -45,7 +45,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
             highestChargingPriority = teslaSolarChargerCars.Max(c => c.ChargingPriority);
         }
 
-        //Set all TeslaMateCarId to null, so we can reassign them correctly. Otherwise there might be duplicates TeslaMateCarIds on changes resulting in not beeing able to SaveChangesAsync().
+        //Set all TeslaMateCarId to null, so we can reassign them correctly. Otherwise there might be duplicates TeslaMateCarIds on changes resulting in not being able to SaveChangesAsync().
         foreach (var teslaSolarChargerCar in teslaSolarChargerCars)
         {
             teslaSolarChargerCar.TeslaMateCarId = null;
