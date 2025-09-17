@@ -526,6 +526,9 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                     var (splittedGridPrices, splittedChargingSchedules) =
                         _validFromToSplitter.SplitByBoundaries(electricityPrices, chargingSchedules, currentDate, nextTarget.NextExecutionTime);
+                    var relevantSplittedChargingSchedules = splittedChargingSchedules
+                        .Where(cs => cs.CarId == loadpoint.CarId && cs.OccpChargingConnectorId == loadpoint.ChargingConnectorId)
+                        .ToList();
                     var gridPriceOrderedElectricityPrices = splittedGridPrices
                         .OrderBy(p => p.GridPrice)
                         .ThenByDescending(p => p.ValidFrom)
@@ -537,7 +540,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                             break;
                         }
 
-                        var correspondingChargingSchedule = splittedChargingSchedules
+                        var correspondingChargingSchedule = relevantSplittedChargingSchedules
                             .FirstOrDefault(cs => cs.ValidFrom == gridPriceOrderedElectricityPrice.ValidFrom
                                                   && cs.ValidTo == gridPriceOrderedElectricityPrice.ValidTo);
                         if (correspondingChargingSchedule == default)
@@ -547,7 +550,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                                 ValidFrom = gridPriceOrderedElectricityPrice.ValidFrom,
                                 ValidTo = gridPriceOrderedElectricityPrice.ValidTo,
                             };
-                            chargingSchedules.Add(correspondingChargingSchedule);
+                            relevantSplittedChargingSchedules.Add(correspondingChargingSchedule);
                         }
 
                         var maxPowerIncrease = maxPower - correspondingChargingSchedule.ChargingPower;
@@ -561,9 +564,23 @@ public class ChargingServiceV2 : IChargingServiceV2
                         }
                     }
 
+                    if (relevantSplittedChargingSchedules.Any())
+                    {
+                        chargingSchedules.RemoveAll(cs =>
+                            cs.CarId == loadpoint.CarId &&
+                            cs.OccpChargingConnectorId == loadpoint.ChargingConnectorId &&
+                            cs.ValidFrom < nextTarget.NextExecutionTime &&
+                            cs.ValidTo > currentDate);
+
+                        chargingSchedules.AddRange(relevantSplittedChargingSchedules);
+                    }
+
                     if (remainingEnergyToCoverFromGrid > 0)
                     {
-                        var lastChargingSchedule = chargingSchedules.OrderByDescending(c => c.ValidTo).FirstOrDefault();
+                        var lastChargingSchedule = chargingSchedules
+                            .Where(c => c.CarId == loadpoint.CarId && c.OccpChargingConnectorId == loadpoint.ChargingConnectorId)
+                            .OrderByDescending(c => c.ValidTo)
+                            .FirstOrDefault();
                         if(lastChargingSchedule != default)
                         {
                             _logger.LogDebug("Last charging schedule {@lastChargingSchedule} is not enough to cover remaining energy {remainingEnergyToCoverFromGrid}. Extend it.", lastChargingSchedule, remainingEnergyToCoverFromGrid);
