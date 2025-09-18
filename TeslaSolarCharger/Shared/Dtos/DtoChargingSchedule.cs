@@ -2,10 +2,10 @@
 
 public class DtoChargingSchedule : ValidFromToBase
 {
-    public DtoChargingSchedule(int? carId, int? occpChargingConnectorId)
+    public DtoChargingSchedule(int? carId, int? ocppChargingConnectorId)
     {
         CarId = carId;
-        OccpChargingConnectorId = occpChargingConnectorId;
+        OcppChargingConnectorId = ocppChargingConnectorId;
     }
 
     //Required for ValidFromToSplitter
@@ -14,7 +14,7 @@ public class DtoChargingSchedule : ValidFromToBase
     }
 
     public int? CarId { get; set; }
-    public int? OccpChargingConnectorId { get; set; }
+    public int? OcppChargingConnectorId { get; set; }
     public int? OnlyChargeOnAtLeastSolarPower { get; set; }
     public int ChargingPower { get; set; }
 }

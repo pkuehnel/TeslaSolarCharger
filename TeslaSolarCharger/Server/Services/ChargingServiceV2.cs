@@ -354,7 +354,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             }
             var correspondingChargingSchedules = chargingSchedules
                 .Where(c => c.CarId == dtoLoadPointOverview.CarId
-                            && c.OccpChargingConnectorId == dtoLoadPointOverview.ChargingConnectorId)
+                            && c.OcppChargingConnectorId == dtoLoadPointOverview.ChargingConnectorId)
                 .OrderBy(c => c.ValidFrom)
                 .ToList();
             if (correspondingChargingSchedules.Count < 1)
@@ -527,7 +527,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     var (splittedGridPrices, splittedChargingSchedules) =
                         _validFromToSplitter.SplitByBoundaries(electricityPrices, chargingSchedules, currentDate, nextTarget.NextExecutionTime);
                     var relevantSplittedChargingSchedules = splittedChargingSchedules
-                        .Where(cs => cs.CarId == loadpoint.CarId && cs.OccpChargingConnectorId == loadpoint.ChargingConnectorId)
+                        .Where(cs => cs.CarId == loadpoint.CarId && cs.OcppChargingConnectorId == loadpoint.ChargingConnectorId)
                         .ToList();
                     var gridPriceOrderedElectricityPrices = splittedGridPrices
                         .OrderBy(p => p.GridPrice)
@@ -568,7 +568,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     {
                         chargingSchedules.RemoveAll(cs =>
                             cs.CarId == loadpoint.CarId &&
-                            cs.OccpChargingConnectorId == loadpoint.ChargingConnectorId &&
+                            cs.OcppChargingConnectorId == loadpoint.ChargingConnectorId &&
                             cs.ValidFrom < nextTarget.NextExecutionTime &&
                             cs.ValidTo > currentDate);
 
@@ -578,7 +578,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     if (remainingEnergyToCoverFromGrid > 0)
                     {
                         var lastChargingSchedule = chargingSchedules
-                            .Where(c => c.CarId == loadpoint.CarId && c.OccpChargingConnectorId == loadpoint.ChargingConnectorId)
+                            .Where(c => c.CarId == loadpoint.CarId && c.OcppChargingConnectorId == loadpoint.ChargingConnectorId)
                             .OrderByDescending(c => c.ValidTo)
                             .FirstOrDefault();
                         if(lastChargingSchedule != default)

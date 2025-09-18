@@ -108,7 +108,7 @@ public class HomeService : IHomeService
     {
         _logger.LogTrace("{method}({carId}, {chargingConnectorId})", nameof(GetChargingSchedules), carId, chargingConnectorId);
         var elements = _settings.ChargingSchedules
-            .Where(c => c.CarId == carId && c.OccpChargingConnectorId == chargingConnectorId)
+            .Where(c => c.CarId == carId && c.OcppChargingConnectorId == chargingConnectorId)
             .OrderBy(c => c.ValidFrom)
             .ToList();
         return elements;

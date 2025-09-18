@@ -45,10 +45,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate, powerToControl);
         var maxCombinedCurrent = (decimal)_configurationWrapper.MaxCombinedCurrent();
         foreach (var loadPoint in targetChargingValues
-                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OccpChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
+                     .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
         {
-            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OccpChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default);
+            var chargingSchedule = activeChargingSchedules.First(c => c.CarId == loadPoint.LoadPoint.CarId && c.OcppChargingConnectorId == loadPoint.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default);
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
