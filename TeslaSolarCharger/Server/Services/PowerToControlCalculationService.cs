@@ -5,6 +5,7 @@ using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -31,7 +32,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         _constants = constants;
     }
 
-    public async Task<int> CalculatePowerToControl(int currentChargingPower,
+    public async Task<int> CalculatePowerToControl(List<DtoLoadPointWithCurrentChargingValues> chargingLoadPoints,
         INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper, CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}()", nameof(CalculatePowerToControl));
@@ -44,6 +45,21 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
             GridPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.GridPower),
             HomeBatteryPowerAvailable = resultConfigurations.Any(c => c == ValueUsage.HomeBatteryPower),
         };
+        if (availablePowerSources.InverterPowerAvailable || availablePowerSources.GridPowerAvailable || availablePowerSources.HomeBatteryPowerAvailable)
+        {
+            var pvValuesAge = _settings.LastPvValueUpdate;
+            foreach (var chargingLoadPoint in chargingLoadPoints)
+            {
+                if (HasTooLateChanges(chargingLoadPoint, pvValuesAge, DateTimeOffset.MinValue))
+                {
+                    var dummyPower = 0;
+                    _logger.LogWarning("Use {dummyPower}W as power to control due to too old solar values {pvValuesAge}", dummyPower, pvValuesAge);
+                    notChargingWithExpectedPowerReasonHelper.AddGenericReason(new("Solar values are too old"));
+                    return dummyPower;
+                }
+            }
+        }
+        
 
         var buffer = _configurationWrapper.PowerBuffer();
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
@@ -54,6 +70,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
 
+        var currentChargingPower = chargingLoadPoints.Select(l => l.ChargingPower).Sum();
         if (!availablePowerSources.GridPowerAvailable
             && availablePowerSources.InverterPowerAvailable)
         {
@@ -73,6 +90,54 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
             overage = AddHomeBatteryStateToPowerCalculation(overage, notChargingWithExpectedPowerReasonHelper);
         }
         return overage + currentChargingPower;
+    }
+
+    public bool HasTooLateChanges(DtoLoadPointWithCurrentChargingValues chargingLoadPoint, DateTimeOffset earliestAmpChange,
+    DateTimeOffset earliestPlugin)
+    {
+        _logger.LogTrace("{method}(({carId}, {connectorId}), {earliestAmpChange}, {earliestPlugin})",
+            nameof(HasTooLateChanges), chargingLoadPoint.CarId, chargingLoadPoint.ChargingConnectorId, earliestAmpChange, earliestPlugin);
+        if (chargingLoadPoint.CarId != default)
+        {
+            var car = _settings.Cars.First(c => c.Id == chargingLoadPoint.CarId.Value);
+            var lastAmpChange = car.LastSetAmp.LastChanged;
+            if (lastAmpChange > earliestAmpChange)
+            {
+                _logger.LogTrace("Car {carId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.CarId, car.LastSetAmp.LastChanged, earliestAmpChange);
+                return true;
+            }
+
+            var lastPlugIn = car.PluggedIn.LastChanged;
+            if ((car.PluggedIn.Value == true) && (lastPlugIn > earliestPlugin) && (car.ChargerRequestedCurrent.Value > car.ChargerActualCurrent.Value))
+            {
+                _logger.LogTrace("Car {carId} was plugged in after {earliestPlugIn}.", chargingLoadPoint.CarId, earliestPlugin);
+                return true;
+            }
+        }
+
+        if (chargingLoadPoint.ChargingConnectorId != default)
+        {
+            var connectorState = _settings.OcppConnectorStates.GetValueOrDefault(chargingLoadPoint.ChargingConnectorId.Value);
+            if (connectorState != default)
+            {
+                if (connectorState.LastSetCurrent.LastChanged > earliestAmpChange)
+                {
+                    _logger.LogTrace("Charging Connector {chargingConnectorId}'s last amp change {lastAmpChange} is newer than {skipValueChanges}.", chargingLoadPoint.ChargingConnectorId, connectorState.LastSetCurrent.LastChanged, earliestAmpChange);
+                    return true;
+                }
+
+                if (connectorState.IsPluggedIn.Value
+                    && (connectorState.IsPluggedIn.LastChanged > earliestPlugin)
+                    && (connectorState.ChargingCurrent.Value > 0)
+                    && (connectorState.ChargingCurrent.Value < connectorState.LastSetCurrent.Value))
+                {
+                    _logger.LogTrace("Charging Connector {chargingConnectorId} was plugged in after {earliestPlugin}.", chargingLoadPoint.ChargingConnectorId, earliestPlugin);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private int AddHomeBatteryStateToPowerCalculation(int overage,
