@@ -50,9 +50,9 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
             var pvValuesAge = _settings.LastPvValueUpdate;
             foreach (var chargingLoadPoint in chargingLoadPoints)
             {
-                if (HasTooLateChanges(chargingLoadPoint, pvValuesAge, DateTimeOffset.MinValue))
+                if (HasTooLateChanges(chargingLoadPoint, pvValuesAge, pvValuesAge))
                 {
-                    var dummyPower = 0;
+                    var dummyPower = chargingLoadPoints.Sum(c => c.ChargingPower);
                     _logger.LogWarning("Use {dummyPower}W as power to control due to too old solar values {pvValuesAge}", dummyPower, pvValuesAge);
                     notChargingWithExpectedPowerReasonHelper.AddGenericReason(new("Solar values are too old"));
                     return dummyPower;
@@ -95,7 +95,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
     public bool HasTooLateChanges(DtoLoadPointWithCurrentChargingValues chargingLoadPoint, DateTimeOffset earliestAmpChange,
     DateTimeOffset earliestPlugin)
     {
-        _logger.LogTrace("{method}(({carId}, {connectorId}), {earliestAmpChange}, {earliestPlugin})",
+        _logger.LogTrace("{method}(({carId}, {connectorId}, {earliestAmpChange}, {earliestPlugin})",
             nameof(HasTooLateChanges), chargingLoadPoint.CarId, chargingLoadPoint.ChargingConnectorId, earliestAmpChange, earliestPlugin);
         if (chargingLoadPoint.CarId != default)
         {
