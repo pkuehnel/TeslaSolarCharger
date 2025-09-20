@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
@@ -256,6 +257,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                 c.Id,
                 MinCurrent = c.MinimumAmpere,
                 MaxCurrent = c.MaximumAmpere,
+                c.CarType,
             })
             .ToHashSetAsync();
         var connectorData = await _context.OcppChargingStationConnectors
@@ -296,6 +298,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.EstimatedVoltageWhileCharging = CalculateEstimatedChargerVoltageWhileCharging(dtoCar.ChargerVoltage.Value);
                 //Currently always true as all cars are Teslas
                 loadPoint.ManageChargingPowerByCar = true;
+                loadPoint.CarType = databaseCar.CarType;
             }
 
             if (pair.ChargingConnectorId != default)
@@ -332,8 +335,10 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
             result.Add(loadPoint);
         }
-
-        return result.OrderBy(l => l.ChargingPriority ?? 99).ToList();
+        return result
+            .OrderBy(lp => lp.ChargingConnectorId == null && lp.CarType != CarType.Tesla ? 1 : 0)
+            .ThenBy(lp => lp.ChargingPriority ?? 99)
+            .ToList();
     }
 
     public async Task<HashSet<DtoLoadpointCombination>> GetCarConnectorMatches(IEnumerable<int> carIds, IEnumerable<int> connectorIds, bool updateSettingsMatches)
