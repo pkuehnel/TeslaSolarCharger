@@ -53,85 +53,98 @@ else
                                OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
                                SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
                 <GenericInput For="() => carBasicConfiguration.Item.Name" />
-                <GenericInput For="() => carBasicConfiguration.Item.Vin" />
+                @if (carBasicConfiguration.Item.CarType == CarType.Tesla)
+                {
+                    <GenericInput For="() => carBasicConfiguration.Item.Vin" />
+                }
                 <GenericInput T="bool"
                               For="() => carBasicConfiguration.Item.ShouldBeManaged"
                               OnValueChanged="_ => InvokeAsync(() => StateHasChanged())" />
                 @if (carBasicConfiguration.Item.ShouldBeManaged)
                 {
-                    <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
-                    <GenericInput For="() => carBasicConfiguration.Item.SwitchOffAtCurrent"></GenericInput>
-                    <GenericInput For="() => carBasicConfiguration.Item.SwitchOnAtCurrent"></GenericInput>
+                    @if (carBasicConfiguration.Item.CarType == CarType.Tesla)
+                    {
+                        <GenericInput For="() => carBasicConfiguration.Item.MinimumAmpere" />
+                        <GenericInput For="() => carBasicConfiguration.Item.SwitchOffAtCurrent"></GenericInput>
+                        <GenericInput For="() => carBasicConfiguration.Item.SwitchOnAtCurrent"></GenericInput>
+                    }
                     <GenericInput For="() => carBasicConfiguration.Item.MaximumAmpere" />
+                    @if(carBasicConfiguration.Item.CarType != CarType.Tesla)
+                    {
+                        <GenericInput For="() => carBasicConfiguration.Item.MaximumPhases" />
+                    }
                     <GenericInput For="() => carBasicConfiguration.Item.UsableEnergy" />
                     <GenericInput For="() => carBasicConfiguration.Item.ChargingPriority" />
-                    <GenericInput T="bool"
-                                  For="() => carBasicConfiguration.Item.UseBle"
-                                  OnValueChanged="_ => carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.BleApiBaseUrl))" />
-                    @if (carBasicConfiguration.Item.UseBle)
-                    {
-                        <GenericInput For="() => carBasicConfiguration.Item.BleApiBaseUrl" />
-                    }
-                    @switch (carBasicConfiguration.Item.HomeDetectionVia)
-                    {
-                        case HomeDetectionVia.GpsLocation:
-                            <MudAlert Severity="Severity.Info"
-                                      NoIcon="true"
-                                      ContentAlignment="HorizontalAlignment.Left">
-                                <h5>GPS Location used for home detection</h5>
-                                TSC will manage charging if the car's GPS Location is within the configured Home Geofence set in <MudLink Href="/BaseConfiguration">Base Configuration</MudLink>.
-                            </MudAlert>
-                            break;
-                        case HomeDetectionVia.LocatedAtHome:
-                            <MudAlert Severity="Severity.Info"
-                                      NoIcon="true"
-                                      ContentAlignment="HorizontalAlignment.Left">
-                                <h5>Tesla navigation Home used for home detection</h5>
-                                TSC will manage charging if the car is at the home location set in the Tesla navigation system. Note: Different driver profiles with different home addresses might mess this up. Make sure that the last driver has the correct home address set in the Tesla navigation system.
-                            </MudAlert>
-                            break;
-                        case HomeDetectionVia.LocatedAtWork:
-                            <MudAlert Severity="Severity.Info"
-                                      NoIcon="true"
-                                      ContentAlignment="HorizontalAlignment.Left">
-                                <h5>Tesla navigation Work used for home detection</h5>
-                                TSC will manage charging if the car is at the work location set in the Tesla navigation system. Note: Different driver profiles with different work addresses might mess this up. Make sure that the last driver has the correct work address set in the Tesla navigation system.
-                            </MudAlert>
-                            break;
-                        case HomeDetectionVia.LocatedAtFavorite:
-                            <MudAlert Severity="Severity.Warning"
-                                      NoIcon="true"
-                                      ContentAlignment="HorizontalAlignment.Left">
-                                <h5>Tesla navigation Favorite used for home detection</h5>
-                                TSC will manage charging if the car is at any favorite location set in the Tesla navigation system. Note: TSC is unable to detect at which favorite location the car is, so if you charge at a public charger that is configured as favorite in the Tesla navigation system, TSC tries to manage charging based on your solar production at home and might stop charging if you don't have any solar production at home. Moreover, different driver profiles with different favorite addresses might mess this up. It is HIGHLY recommended to only have one favorite location if this setting is enabled.
-                            </MudAlert>
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-                    <div class="px-2 pt-2">
-                        <MudSelect T="HomeDetectionVia"
-                                   For="() => carBasicConfiguration.Item.HomeDetectionVia"
-                                   Class="@Constants.DefaultMargin"
-                                   Variant="Variant.Outlined"
-                                   Value="@carBasicConfiguration.Item.HomeDetectionVia"
-                                   ValueChanged="(newItem) => UpdateHomeDetectionVia(carBasicConfiguration.Item, newItem)"
-                                   Label="Home Detection via"
-                                   Margin="Constants.InputMargin">
-                            @foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
-                            {
-                                <MudSelectItem T="HomeDetectionVia" Value="@item">@(item.ToFriendlyName())</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </div>
-                    <GenericInput T="bool"
-                                  For="() => carBasicConfiguration.Item.UseFleetTelemetry"
-                                  OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields), nameof(carBasicConfiguration.Item.HomeDetectionVia));}" />
-                    @if (carBasicConfiguration.Item.UseFleetTelemetry)
+                    @if (carBasicConfiguration.Item.CarType == CarType.Tesla)
                     {
                         <GenericInput T="bool"
-                                      For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields"
-                                      OnValueChanged="_ => { carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.HomeDetectionVia)); Redraw(); }" />
+                                      For="() => carBasicConfiguration.Item.UseBle"
+                                      OnValueChanged="_ => carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.BleApiBaseUrl))" />
+                        @if (carBasicConfiguration.Item.UseBle)
+                        {
+                            <GenericInput For="() => carBasicConfiguration.Item.BleApiBaseUrl" />
+                        }
+                        @switch (carBasicConfiguration.Item.HomeDetectionVia)
+                        {
+                            case HomeDetectionVia.GpsLocation:
+                                <MudAlert Severity="Severity.Info"
+                                          NoIcon="true"
+                                          ContentAlignment="HorizontalAlignment.Left">
+                                    <h5>GPS Location used for home detection</h5>
+                                    TSC will manage charging if the car's GPS Location is within the configured Home Geofence set in <MudLink Href="/BaseConfiguration">Base Configuration</MudLink>.
+                                </MudAlert>
+                                break;
+                            case HomeDetectionVia.LocatedAtHome:
+                                <MudAlert Severity="Severity.Info"
+                                          NoIcon="true"
+                                          ContentAlignment="HorizontalAlignment.Left">
+                                    <h5>Tesla navigation Home used for home detection</h5>
+                                    TSC will manage charging if the car is at the home location set in the Tesla navigation system. Note: Different driver profiles with different home addresses might mess this up. Make sure that the last driver has the correct home address set in the Tesla navigation system.
+                                </MudAlert>
+                                break;
+                            case HomeDetectionVia.LocatedAtWork:
+                                <MudAlert Severity="Severity.Info"
+                                          NoIcon="true"
+                                          ContentAlignment="HorizontalAlignment.Left">
+                                    <h5>Tesla navigation Work used for home detection</h5>
+                                    TSC will manage charging if the car is at the work location set in the Tesla navigation system. Note: Different driver profiles with different work addresses might mess this up. Make sure that the last driver has the correct work address set in the Tesla navigation system.
+                                </MudAlert>
+                                break;
+                            case HomeDetectionVia.LocatedAtFavorite:
+                                <MudAlert Severity="Severity.Warning"
+                                          NoIcon="true"
+                                          ContentAlignment="HorizontalAlignment.Left">
+                                    <h5>Tesla navigation Favorite used for home detection</h5>
+                                    TSC will manage charging if the car is at any favorite location set in the Tesla navigation system. Note: TSC is unable to detect at which favorite location the car is, so if you charge at a public charger that is configured as favorite in the Tesla navigation system, TSC tries to manage charging based on your solar production at home and might stop charging if you don't have any solar production at home. Moreover, different driver profiles with different favorite addresses might mess this up. It is HIGHLY recommended to only have one favorite location if this setting is enabled.
+                                </MudAlert>
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                        <div class="px-2 pt-2">
+                            <MudSelect T="HomeDetectionVia"
+                                       For="() => carBasicConfiguration.Item.HomeDetectionVia"
+                                       Class="@Constants.DefaultMargin"
+                                       Variant="Variant.Outlined"
+                                       Value="@carBasicConfiguration.Item.HomeDetectionVia"
+                                       ValueChanged="(newItem) => UpdateHomeDetectionVia(carBasicConfiguration.Item, newItem)"
+                                       Label="Home Detection via"
+                                       Margin="Constants.InputMargin">
+                                @foreach (HomeDetectionVia item in Enum.GetValues(typeof(HomeDetectionVia)))
+                                {
+                                    <MudSelectItem T="HomeDetectionVia" Value="@item">@(item.ToFriendlyName())</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </div>
+                        <GenericInput T="bool"
+                                      For="() => carBasicConfiguration.Item.UseFleetTelemetry"
+                                      OnValueChanged="newValue => { UpdateGetlocationDataViaFleetTelemetry(carBasicConfiguration.Item, newValue); carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.IncludeTrackingRelevantFields), nameof(carBasicConfiguration.Item.HomeDetectionVia));}" />
+                        @if (carBasicConfiguration.Item.UseFleetTelemetry)
+                        {
+                            <GenericInput T="bool"
+                                          For="() => carBasicConfiguration.Item.IncludeTrackingRelevantFields"
+                                          OnValueChanged="_ => { carBasicConfiguration.ClearErrors(nameof(carBasicConfiguration.Item.HomeDetectionVia)); Redraw(); }" />
+                        }
                     }
                 }
 
@@ -213,7 +226,7 @@ else
         var carBasicConfigurations = await HttpClient.GetFromJsonAsync<List<CarBasicConfiguration>>("/api/Config/GetCarBasicConfigurations").ConfigureAwait(false);
         if (carBasicConfigurations != null)
         {
-            _vinsToShowBleTest = carBasicConfigurations.Where(c => c is { UseBle: true, ShouldBeManaged: true }).Select(c => c.Vin).ToHashSet();
+            _vinsToShowBleTest = carBasicConfigurations.Where(c => c is { UseBle: true, ShouldBeManaged: true, CarType: CarType.Tesla, }).Select(c => c.Vin).ToHashSet();
             _carBasicConfigurations = carBasicConfigurations.Select(c => new EditableItem<CarBasicConfiguration>(c)).ToList();
         }
     }

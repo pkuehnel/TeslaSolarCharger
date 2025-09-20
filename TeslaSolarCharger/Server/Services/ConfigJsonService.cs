@@ -94,6 +94,8 @@ public class ConfigJsonService(
                 UseFleetTelemetry = c.UseFleetTelemetry,
                 IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields,
                 HomeDetectionVia = c.HomeDetectionVia,
+                CarType = c.CarType,
+                MaximumPhases = c.MaximumPhases,
             })
             .ToListAsync().ConfigureAwait(false);
 

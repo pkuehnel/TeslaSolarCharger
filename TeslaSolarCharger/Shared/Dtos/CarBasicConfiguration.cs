@@ -52,6 +52,9 @@ public class CarBasicConfiguration
     [HelperText("When enabled, TSC collects data of additional fields that are not necessarily required for TSC to work, but logged data might be helpful for future visualizations. Note: For this a car license is required.")]
     public bool IncludeTrackingRelevantFields { get; set; }
     public HomeDetectionVia HomeDetectionVia { get; set; }
+    public CarType CarType { get; set; }
+    [HelperText("Maximum number of phases the car can charge with. Used to calculate the maximum charging power and detect which car is connected to a charging connector")]
+    public int MaximumPhases { get; set; }
 }
 
 
