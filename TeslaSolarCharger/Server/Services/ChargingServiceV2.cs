@@ -109,7 +109,8 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 continue;
             }
-            if ((state!.CarCapabilities.Value == default) || (state.CarCapabilities.Timestamp < state.IsPluggedIn.LastChanged))
+            if (((state!.CarCapabilities.Value == default) || (state.CarCapabilities.Timestamp < state.IsPluggedIn.LastChanged))
+                && state.IsCarFullyCharged.Value != true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Autodetecting connected cars charging speed."));
                 currentToReduce += loadpoint.MaxCurrent ?? 0;
