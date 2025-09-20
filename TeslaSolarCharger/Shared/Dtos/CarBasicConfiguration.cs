@@ -20,7 +20,6 @@ public class CarBasicConfiguration
     }
     public int Id { get; set; }
     public string? Name { get; set; }
-    [Disabled]
     public string Vin { get; set; }
     [Postfix("A")]
     [HelperText("TSC never sets a current below this value")]
@@ -64,9 +63,12 @@ public class CarBasicConfigurationValidator : AbstractValidator<CarBasicConfigur
     {
         When(x => x.ShouldBeManaged, () =>
         {
-            RuleFor(x => x.MinimumAmpere).GreaterThan(0);
+            RuleFor(x => x.MinimumAmpere).GreaterThanOrEqualTo(0);
             RuleFor(x => x.MaximumAmpere).GreaterThan(0);
             RuleFor(x => x.MaximumAmpere).LessThanOrEqualTo(64);
+            RuleFor(x => x.MaximumPhases).GreaterThan(0).LessThanOrEqualTo(3);
+            RuleFor(x => x.Name).NotEmpty();
+            RuleFor(x => x.Vin).NotEmpty();
             RuleFor(x => x)
                 .Must(config => config.MaximumAmpere >= config.MinimumAmpere)
                 .WithMessage("Maximum Ampere must be greater than or equal to Minimum Ampere.");

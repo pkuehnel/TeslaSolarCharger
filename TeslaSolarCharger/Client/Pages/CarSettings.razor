@@ -57,10 +57,8 @@ else
                                OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
                                SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
                 <GenericInput For="() => carBasicConfiguration.Item.Name" />
-                @if (carBasicConfiguration.Item.CarType == CarType.Tesla)
-                {
-                    <GenericInput For="() => carBasicConfiguration.Item.Vin" />
-                }
+                <GenericInput For="() => carBasicConfiguration.Item.Vin"
+                              IsDisabledParameter="@(carBasicConfiguration.Item.CarType == CarType.Tesla)"/>
                 <GenericInput T="bool"
                               For="() => carBasicConfiguration.Item.ShouldBeManaged"
                               OnValueChanged="_ => InvokeAsync(() => StateHasChanged())" />

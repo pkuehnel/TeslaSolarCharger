@@ -77,7 +77,7 @@ public class ConfigJsonService(
         logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
 
         var cars = await teslaSolarChargerContext.Cars
-            .Where(c => c.IsAvailableInTeslaAccount)
+            .Where(c => c.IsAvailableInTeslaAccount || (c.CarType != CarType.Tesla))
             .OrderBy(c => c.ChargingPriority)
             .Select(c => new CarBasicConfiguration(c.Id, c.Name)
             {
@@ -181,7 +181,7 @@ public class ConfigJsonService(
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         logger.LogTrace("{method}({carId}, {@carBasicConfiguration})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
-        var databaseCar = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carId);
+        var databaseCar = carId == default ? new() : await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carId);
         databaseCar.Name = carBasicConfiguration.Name;
         databaseCar.Vin = carBasicConfiguration.Vin;
         databaseCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
@@ -200,18 +200,20 @@ public class ConfigJsonService(
         }
         databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
         databaseCar.HomeDetectionVia = carBasicConfiguration.HomeDetectionVia;
+        databaseCar.MaximumPhases = carBasicConfiguration.MaximumPhases;
+        if(carId == default)
+        {
+            databaseCar.ChargeMode = ChargeModeV2.Auto;
+            databaseCar.MinimumSoc = 10;
+            databaseCar.MaximumSoc = 100;
+            teslaSolarChargerContext.Cars.Add(databaseCar);
+        }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var settingsCar = settings.Cars.First(c => c.Id == carId);
-        settingsCar.Name = carBasicConfiguration.Name;
-        settingsCar.Vin = carBasicConfiguration.Vin;
-        settingsCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
-        settingsCar.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
-        settingsCar.UsableEnergy = carBasicConfiguration.UsableEnergy;
-        settingsCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
-        settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
-        settingsCar.UseBle = carBasicConfiguration.UseBle;
-        settingsCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
-        await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(settingsCar.Vin, false);
+        await AddCarsToSettings();
+        if (databaseCar.CarType == CarType.Tesla)
+        {
+            await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
+        }
     }
 
     private async Task<List<DtoCar>> GetCars()
