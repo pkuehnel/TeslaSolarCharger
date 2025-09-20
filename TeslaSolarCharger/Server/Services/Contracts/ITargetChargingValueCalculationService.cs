@@ -7,5 +7,6 @@ public interface ITargetChargingValueCalculationService
 {
     Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
         List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl,
+        int reduceMaxCombinedCurrentBy,
         CancellationToken cancellationToken);
 }

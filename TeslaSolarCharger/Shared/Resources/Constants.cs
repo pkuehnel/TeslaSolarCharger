@@ -52,6 +52,7 @@ public class Constants : IConstants
     public int MeterValueDatabaseSaveIntervalMinutes => 6;
     public int HomeBatteryMinSocRefreshIntervalMinutes => 8;
     public int WeatherPredictionInFutureDays => 7;
+    public int CarCapabilityMaxCurrentAboveMeasuredCurrent => 2;
     public string OcppChargePointConnectorIdDelimiter => "_";
     public string DefaultIdTag => "Solar4Car";
     public string UnknownCarName => "Unknown car";

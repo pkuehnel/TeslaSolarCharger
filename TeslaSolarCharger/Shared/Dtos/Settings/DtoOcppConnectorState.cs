@@ -15,4 +15,6 @@ public class DtoOcppConnectorState
     public DtoTimeStampedValue<bool?> ShouldStopCharging { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<bool?> CanHandlePowerOnThreePhase { get; set; } = new(DateTimeOffset.MinValue, null);
     public DtoTimeStampedValue<bool?> CanHandlePowerOnOnePhase { get; set; } = new(DateTimeOffset.MinValue, null);
+
+    public DtoTimeStampedValue<DtoCarCapabilities> CarCapabilities { get; set; } = new(DateTimeOffset.MinValue, null);
 }

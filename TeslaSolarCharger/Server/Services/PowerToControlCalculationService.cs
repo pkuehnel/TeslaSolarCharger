@@ -95,7 +95,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
     public bool HasTooLateChanges(DtoLoadPointWithCurrentChargingValues chargingLoadPoint, DateTimeOffset earliestAmpChange,
     DateTimeOffset earliestPlugin)
     {
-        _logger.LogTrace("{method}(({carId}, {connectorId}, {earliestAmpChange}, {earliestPlugin})",
+        _logger.LogTrace("{method}(({carId}, {connectorId}), {earliestAmpChange}, {earliestPlugin})",
             nameof(HasTooLateChanges), chargingLoadPoint.CarId, chargingLoadPoint.ChargingConnectorId, earliestAmpChange, earliestPlugin);
         if (chargingLoadPoint.CarId != default)
         {
