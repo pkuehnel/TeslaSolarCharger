@@ -38,12 +38,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
     public async Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
-        List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl,
+        List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl, int reduceMaxCombinedCurrentBy,
         CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate}, {powerToControl})",
             nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate, powerToControl);
-        var maxCombinedCurrent = (decimal)_configurationWrapper.MaxCombinedCurrent();
+        var maxCombinedCurrent = (decimal)(_configurationWrapper.MaxCombinedCurrent() - reduceMaxCombinedCurrentBy);
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
