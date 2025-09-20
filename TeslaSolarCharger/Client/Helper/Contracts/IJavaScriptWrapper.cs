@@ -4,6 +4,7 @@ public interface IJavaScriptWrapper
 {
     Task<bool> SetFocusToElementById(string elementId);
     Task<bool> RemoveFocusFromElementById(string elementId);
+    Task<bool> ScrollToElementById(string elementId);
     Task OpenUrlInNewTab(string url);
     Task<bool> IsIosDevice();
     Task<string> GetTimeZoneId();
