@@ -14,6 +14,7 @@
 @inject ISnackbar Snackbar
 @inject IConstants Constants
 @inject IStringHelper StringHelper
+@inject IJavaScriptWrapper JavaScriptWrapper
 
 <PageTitle>Car Settings</PageTitle>
 <h1>Car Settings</h1>
@@ -52,7 +53,9 @@ else
 
     @foreach (var carBasicConfiguration in _carBasicConfigurations)
     {
-        <div class="shadow p-3 mb-5 bg-white rounded">
+        <div @key="carBasicConfiguration.Guid"
+             id="@GetCarCardElementId(carBasicConfiguration)"
+             class="shadow p-3 mb-5 bg-white rounded">
             <EditFormComponent T="CarBasicConfiguration" WrappedElement="@(carBasicConfiguration)"
                                OnAfterSuccessfullSubmit="item => UpdateShouldDisplayBleTest(item)"
                                SubmitUrl="@($"api/Config/UpdateCarBasicConfiguration?carId={carBasicConfiguration.Item.Id}")">
@@ -221,6 +224,19 @@ else
     private Dictionary<string, DtoBleCommandResult> _bleWakeUpTestResults = new();
 
     private HashSet<string> _loadingVins = new();
+    private string? _elementIdToScroll;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!string.IsNullOrWhiteSpace(_elementIdToScroll))
+        {
+            var elementId = _elementIdToScroll;
+            _elementIdToScroll = null;
+            await JavaScriptWrapper.ScrollToElementById(elementId);
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -325,9 +341,22 @@ else
         Redraw();
     }
 
-    private void AddNewCar()
+    private async Task AddNewCar()
     {
-        _carBasicConfigurations?.Add(new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration()));
+        if (_carBasicConfigurations == null)
+        {
+            return;
+        }
+
+        var newCar = new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration());
+        _carBasicConfigurations.Add(newCar);
+        _elementIdToScroll = GetCarCardElementId(newCar);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string GetCarCardElementId(EditableItem<CarBasicConfiguration> carBasicConfiguration)
+    {
+        return $"car-settings-{carBasicConfiguration.Guid}";
     }
 
 }
