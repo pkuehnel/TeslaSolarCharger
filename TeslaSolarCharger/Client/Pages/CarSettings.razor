@@ -46,6 +46,10 @@
 }
 else
 {
+    <RightAlignedButtonComponent ButtonText="Add car (non Tesla)"
+                                 StartIcon="@Icons.Material.Filled.Add"
+                                 OnButtonClicked="AddNewCar"></RightAlignedButtonComponent>
+
     @foreach (var carBasicConfiguration in _carBasicConfigurations)
     {
         <div class="shadow p-3 mb-5 bg-white rounded">
@@ -321,6 +325,11 @@ else
     {
         item.HomeDetectionVia = newItem;
         Redraw();
+    }
+
+    private void AddNewCar()
+    {
+        _carBasicConfigurations?.Add(new EditableItem<CarBasicConfiguration>(new CarBasicConfiguration()));
     }
 
 }
