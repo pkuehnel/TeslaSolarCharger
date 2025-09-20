@@ -20,7 +20,6 @@ public class CarBasicConfiguration
     }
     public int Id { get; set; }
     public string? Name { get; set; }
-    [Disabled]
     public string Vin { get; set; }
     [Postfix("A")]
     [HelperText("TSC never sets a current below this value")]
@@ -52,6 +51,9 @@ public class CarBasicConfiguration
     [HelperText("When enabled, TSC collects data of additional fields that are not necessarily required for TSC to work, but logged data might be helpful for future visualizations. Note: For this a car license is required.")]
     public bool IncludeTrackingRelevantFields { get; set; }
     public HomeDetectionVia HomeDetectionVia { get; set; }
+    public CarType CarType { get; set; }
+    [HelperText("Maximum number of phases the car can charge with. Used to calculate the maximum charging power and detect which car is connected to a charging connector")]
+    public int MaximumPhases { get; set; }
 }
 
 
@@ -61,9 +63,12 @@ public class CarBasicConfigurationValidator : AbstractValidator<CarBasicConfigur
     {
         When(x => x.ShouldBeManaged, () =>
         {
-            RuleFor(x => x.MinimumAmpere).GreaterThan(0);
+            RuleFor(x => x.MinimumAmpere).GreaterThanOrEqualTo(0);
             RuleFor(x => x.MaximumAmpere).GreaterThan(0);
             RuleFor(x => x.MaximumAmpere).LessThanOrEqualTo(64);
+            RuleFor(x => x.MaximumPhases).GreaterThan(0).LessThanOrEqualTo(3);
+            RuleFor(x => x.Name).NotEmpty();
+            RuleFor(x => x.Vin).NotEmpty();
             RuleFor(x => x)
                 .Must(config => config.MaximumAmpere >= config.MinimumAmpere)
                 .WithMessage("Maximum Ampere must be greater than or equal to Minimum Ampere.");

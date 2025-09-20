@@ -1,7 +1,4 @@
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
-using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Server.Services;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
@@ -17,11 +14,10 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
     public CarBasicConfigurationValidator(IConfigurationWrapper configurationWrapper,
         IBleService bleService,
         ITokenHelper tokenHelper,
-        ITeslaSolarChargerContext dbContext,
         IBackendApiService backendApiService)
     {
         _backendApiService = backendApiService;
-        When(x => x.ShouldBeManaged, () =>
+        When(x => x.ShouldBeManaged && x.CarType == CarType.Tesla, () =>
         {
             var isTeslaMateDataSource = configurationWrapper.UseTeslaMateIntegration() && !configurationWrapper.GetVehicleDataFromTesla();
             if (isTeslaMateDataSource)
@@ -30,7 +26,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
                     .WithMessage("As TeslaMate is selected as DataSource in BaseConfiguration you can not enable Fleet Telemetry");
             }
             RuleFor(x => x.UseBle)
-                .MustAsync(async (model, useBle, context, ct) =>
+                .MustAsync(async (_, useBle, context, _) =>
                 {
                     var hasFleetApiLicense = await GetFleetApiLicenseCachedAsync(context);
                     return hasFleetApiLicense || useBle;
@@ -52,7 +48,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
             When(x => x.UseFleetTelemetry, () =>
             {
                 RuleFor(x => x.IncludeTrackingRelevantFields)
-                    .MustAsync(async (model, includeTrackingRelevantFields, context, ct) =>
+                    .MustAsync(async (_, includeTrackingRelevantFields, context, _) =>
                     {
                         var hasFleetApiLicense = await GetFleetApiLicenseCachedAsync(context);
                         return !includeTrackingRelevantFields || hasFleetApiLicense;
@@ -70,7 +66,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
 
 
             RuleFor(x => x.UseFleetTelemetry)
-                .CustomAsync(async (fleetTelemetryEnabled, context, cancellationToken) =>
+                .CustomAsync(async (fleetTelemetryEnabled, context, _) =>
                 {
                     var tokenState = await tokenHelper.GetFleetApiTokenState(true);
                     if (tokenState != TokenState.UpToDate)
@@ -87,7 +83,7 @@ public class CarBasicConfigurationValidator : Shared.Dtos.CarBasicConfigurationV
             {
                 RuleFor(x => x.BleApiBaseUrl)
                     .NotEmpty()
-                    .CustomAsync(async (bleApiBaseUrl, context, cancellationToken) =>
+                    .CustomAsync(async (bleApiBaseUrl, context, _) =>
                     {
                         var errorMessage = await bleService.CheckBleApiVersionCompatibility(bleApiBaseUrl);
                         if (!string.IsNullOrEmpty(errorMessage))
