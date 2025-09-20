@@ -407,19 +407,15 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var chargingConnectorQuery = scopedContext.OcppChargingStationConnectors.AsQueryable()
             .Where(c => c.OcppChargingStation.ChargepointId == chargePointId);
+        chargingConnectorQuery = chargingConnectorQuery.Where(c => c.ConnectorId == req.ConnectorId);
 
-        //Connector ID 0 means it is not related to a specific charge point but to all of them, so limit to connector only if not 0
-        if (req.ConnectorId != 0)
-        {
-            chargingConnectorQuery = chargingConnectorQuery.Where(c => c.ConnectorId == req.ConnectorId);
-        }
         logger.LogTrace("Getting chargingConnectorIds");
         var chargingConnectorIds = await chargingConnectorQuery
             .Select(c => c.Id)
             .ToHashSetAsync(cancellationToken: cancellationToken);
 
         logger.LogTrace("Received chargingConnectorIds");
-        if (chargingConnectorIds.Count < 1)
+        if (chargingConnectorIds.Count < 1 && req.ConnectorId != 0)
         {
             throw new OcppCallErrorException(CallErrorCode.PropertyConstraintViolation,
                 "The connector ID does not exist for charging station.");

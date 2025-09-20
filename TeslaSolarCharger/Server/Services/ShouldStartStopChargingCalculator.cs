@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -14,18 +15,21 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
     private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly IConstants _constants;
 
     public ShouldStartStopChargingCalculator(ILogger<ShouldStartStopChargingCalculator> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
         IDateTimeProvider dateTimeProvider,
-        ILoadPointManagementService loadPointManagementService)
+        ILoadPointManagementService loadPointManagementService,
+        IConstants constants)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
         _dateTimeProvider = dateTimeProvider;
         _loadPointManagementService = loadPointManagementService;
+        _constants = constants;
     }
 
     public async Task UpdateShouldStartStopChargingTimes(int targetPower)
@@ -188,6 +192,7 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                 _logger.LogError("Connected phases unknown for connector {connectorId}", ocppConnectorState.Key);
                 continue;
             }
+
             if (ocppDatabaseData.MinCurrent == default)
             {
                 _logger.LogError("Min current unknown for connector {connectorId}", ocppConnectorState.Key);
@@ -215,8 +220,40 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
             }
             #endregion
 
+            
             var minPhases = ocppDatabaseData.AutoSwitchBetween1And3PhasesEnabled ? 1 : ocppDatabaseData.ConnectedPhasesCount.Value;
             var maxPhases = ocppDatabaseData.ConnectedPhasesCount.Value;
+            var maxCurrent = ocppDatabaseData.MaxCurrent.Value;
+            var minCurrent = ocppDatabaseData.MinCurrent.Value;
+
+
+            var areCarCapabilitiesRelevant = ocppConnectorState.Value.IsPluggedIn.Value
+                                             && (ocppConnectorState.Value.IsPluggedIn.LastChanged < ocppConnectorState.Value.CarCapabilities.Timestamp
+                                                 || ocppConnectorState.Value.IsPluggedIn.Timestamp < ocppConnectorState.Value.CarCapabilities.Timestamp);
+            if (areCarCapabilitiesRelevant)
+            {
+                var carCapability = ocppConnectorState.Value.CarCapabilities.Value;
+                if (carCapability != default)
+                {
+                    if (minPhases > carCapability.MaxPhases)
+                    {
+                        minPhases = carCapability.MaxPhases;
+                    }
+                    if (maxPhases > carCapability.MaxPhases)
+                    {
+                        maxPhases = carCapability.MaxPhases;
+                    }
+                    if (maxCurrent > (carCapability.MaxCurrent + _constants.CarCapabilityMaxCurrentAboveMeasuredCurrent))
+                    {
+                        maxCurrent = (int)carCapability.MaxCurrent;
+                    }
+                }
+            }
+            if (maxCurrent < minCurrent)
+            {
+                minCurrent = maxCurrent;
+            }
+
             //If a car with less phases than Charger phases is connected, use this amount of phases
             if (ocppConnectorState.Value.PhaseCount.Value < minPhases)
             {
@@ -237,14 +274,14 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                 SwitchOnAtPower = ocppDatabaseData.SwitchOnAtCurrent.Value * voltage * minPhases,
                 SwitchOffAtPower = ocppDatabaseData.SwitchOffAtCurrent.Value * voltage * minPhases,
                 CurrentPower = ocppConnectorState.Value.ChargingPower.Value,
-                MaxPower = ocppDatabaseData.MaxCurrent.Value * voltage * maxPhases,
+                MaxPower = maxCurrent * voltage * maxPhases,
                 ChargingPriority = ocppDatabaseData.ChargingPriority,
             };
             if (minPhases != maxPhases)
             {
-                element.MinPowerOnePhase = ocppDatabaseData.MinCurrent.Value * voltage * minPhases;
-                element.MaxPowerOnePhase = ocppDatabaseData.MaxCurrent.Value * voltage * minPhases;
-                element.MinPowerThreePhase = ocppDatabaseData.MinCurrent.Value * voltage * maxPhases;
+                element.MinPowerOnePhase = minCurrent * voltage * minPhases;
+                element.MaxPowerOnePhase = maxCurrent * voltage * minPhases;
+                element.MinPowerThreePhase = minCurrent * voltage * maxPhases;
             }
             elements.Add(element);
         }
