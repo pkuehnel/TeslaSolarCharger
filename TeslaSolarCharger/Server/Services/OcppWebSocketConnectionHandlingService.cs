@@ -408,8 +408,9 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var chargingConnectorQuery = scopedContext.OcppChargingStationConnectors.AsQueryable()
             .Where(c => c.OcppChargingStation.ChargepointId == chargePointId);
 
-        //Connector ID 0 means it is not related to a specific charge point but to all of them, so limit to connector only if not 0
-        if (req.ConnectorId != 0)
+        //Connector ID 0 means it is not related to a specific charge point but to all of them, so limit to connector only if not 0 (outdated)
+        //Vestel chargers send Charging connector ID 0 with available followed by the correct charging connector ID with e.g. suspended EV, therefore filter for connector id is always required
+        //if (req.ConnectorId != 0)
         {
             chargingConnectorQuery = chargingConnectorQuery.Where(c => c.ConnectorId == req.ConnectorId);
         }
