@@ -249,7 +249,7 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                     }
                 }
             }
-            if(maxCurrent < minCurrent)
+            if (maxCurrent < minCurrent)
             {
                 minCurrent = maxCurrent;
             }

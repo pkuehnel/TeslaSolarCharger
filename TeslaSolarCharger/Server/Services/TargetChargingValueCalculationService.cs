@@ -499,7 +499,6 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     constraintValues.MinCurrent = constraintValues.MaxCurrent;
                 }
 
-
                 if (chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled)
                 {
                     _logger.LogTrace("Set auto phase switching timers.");

@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
-using System.Resources;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Contracts;
@@ -129,7 +128,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         var targetChargingValues = loadPointsToManage
             //Do not set target values for loadpoints that are in car capability detection as these are set to max current
-            .Where(l => l.ChargingConnectorId != default || !loadpointInCarCapabilityDetection.Any(lp => lp.ChargingConnectorId == l.ChargingConnectorId))
+            .Where(l => l.ChargingConnectorId == default || !loadpointInCarCapabilityDetection.Any(lp => lp.ChargingConnectorId == l.ChargingConnectorId))
             .OrderBy(l => l.ChargingPriority)
             .Select(l => new DtoTargetChargingValues(l))
             .ToList();
