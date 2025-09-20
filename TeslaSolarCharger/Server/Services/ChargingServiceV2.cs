@@ -112,7 +112,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (((state!.CarCapabilities.Value == default) || (state.CarCapabilities.Timestamp < state.IsPluggedIn.LastChanged))
                 && state.IsCarFullyCharged.Value != true)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Autodetecting connected cars charging speed."));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charging with full speed for autodetection of connected car's charging speed. This is a normal behaviour right after plugin and will stop automatically."));
                 loadpointInCarCapabilityDetection.Add(loadpoint);
             }
         }

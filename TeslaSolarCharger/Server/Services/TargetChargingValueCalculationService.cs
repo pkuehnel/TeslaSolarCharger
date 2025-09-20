@@ -52,6 +52,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
+            if (constraintValues.IsCarFullyCharged == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
+            }
             var targetPower = chargingSchedule.ChargingPower > powerToControl
                 ? chargingSchedule.ChargingPower
                 : powerToControl;
@@ -69,6 +73,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
+            if (constraintValues.IsCarFullyCharged == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
+            }
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControl, false, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
