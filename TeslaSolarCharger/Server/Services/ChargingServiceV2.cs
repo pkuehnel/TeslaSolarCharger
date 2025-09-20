@@ -97,7 +97,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         AddNotChargingReasons();
         //reduce current for the rest loadpoints as this loadpoint might start charging with max current
-        var currentToReduce = 0;
+        var loadpointInCarCapabilityDetection = new List<DtoLoadPointOverview>();
         foreach (var loadpoint in loadPointsToManage)
         {
             if (loadpoint.ChargingConnectorId == default)
@@ -113,7 +113,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                 && state.IsCarFullyCharged.Value != true)
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Autodetecting connected cars charging speed."));
-                currentToReduce += loadpoint.MaxCurrent ?? 0;
+                loadpointInCarCapabilityDetection.Add(loadpoint);
             }
         }
 
@@ -127,11 +127,13 @@ public class ChargingServiceV2 : IChargingServiceV2
         await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
 
         var targetChargingValues = loadPointsToManage
+            //Do not set target values for loadpoints that are in car capability detection as these are set to max current
+            .Where(l => l.ChargingConnectorId != default || !loadpointInCarCapabilityDetection.Any(lp => lp.ChargingConnectorId == l.ChargingConnectorId))
             .OrderBy(l => l.ChargingPriority)
             .Select(l => new DtoTargetChargingValues(l))
             .ToList();
 
-        await _targetChargingValueCalculationService.AppendTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, currentToReduce, cancellationToken);
+        await _targetChargingValueCalculationService.AppendTargetValues(targetChargingValues, activeChargingSchedules, currentDate, powerToControl, loadpointInCarCapabilityDetection.Sum(l => l.MaxCurrent ?? 0), cancellationToken);
         foreach (var targetChargingValue in targetChargingValues)
         {
             if (targetChargingValue.TargetValues == default)
