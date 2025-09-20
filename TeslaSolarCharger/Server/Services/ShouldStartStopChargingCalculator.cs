@@ -4,6 +4,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -14,18 +15,21 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
     private readonly ISettings _settings;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly IConstants _constants;
 
     public ShouldStartStopChargingCalculator(ILogger<ShouldStartStopChargingCalculator> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
         IDateTimeProvider dateTimeProvider,
-        ILoadPointManagementService loadPointManagementService)
+        ILoadPointManagementService loadPointManagementService,
+        IConstants constants)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
         _dateTimeProvider = dateTimeProvider;
         _loadPointManagementService = loadPointManagementService;
+        _constants = constants;
     }
 
     public async Task UpdateShouldStartStopChargingTimes(int targetPower)
@@ -239,7 +243,7 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                     {
                         maxPhases = carCapability.MaxPhases;
                     }
-                    if (maxCurrent > (carCapability.MaxCurrent + 2))
+                    if (maxCurrent > (carCapability.MaxCurrent + _constants.CarCapabilityMaxCurrentAboveMeasuredCurrent))
                     {
                         maxCurrent = (int)carCapability.MaxCurrent;
                     }
