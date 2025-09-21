@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
@@ -427,7 +428,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             var timestamp = req.Timestamp == default
                 ? dateTimeProvider.DateTimeOffSetUtcNow()
                 : new(req.Timestamp.Value, TimeSpan.Zero);
-            UpdateCacheBasedOnState(databaseChargePointId, req.Status, ocppConnectorState, timestamp);
+            await UpdateCacheBasedOnState(databaseChargePointId, req.Status, ocppConnectorState, timestamp).ConfigureAwait(false);
             //Only add value if with this timestamp it was updated
             if (timestamp == ocppConnectorState.IsPluggedIn.Timestamp)
             {
@@ -465,7 +466,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return state;
     }
 
-    private void UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus,
+    private async Task UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus,
         DtoOcppConnectorState ocppConnectorState, DateTimeOffset timestamp)
     {
         logger.LogTrace("{method}({id}, {status})", nameof(UpdateCacheBasedOnState), databaseChargePointId, reqStatus);
@@ -509,6 +510,8 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
                 break;
         }
+        await UpdateManualCarStateForConnector(databaseChargePointId, ocppConnectorState).ConfigureAwait(false);
+
         Task.Run(async () =>
         {
             try
@@ -599,6 +602,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             connectorState.ChargingPower.Update(ocppTransactionEndDate, 0);
             connectorState.IsCharging.Update(ocppTransactionEndDate, false);
             connectorState.PhaseCount.Update(ocppTransactionEndDate, null);
+            await UpdateManualCarStateForConnector(ocppTransaction.ChargingStationConnectorId, connectorState).ConfigureAwait(false);
             _ = Task.Run(async () =>
             {
                 try
@@ -624,6 +628,110 @@ public sealed class OcppWebSocketConnectionHandlingService(
         // c) Wrap in an envelope and serialize
         var envelope = new CallResult<StopTransactionResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private async Task UpdateManualCarStateForConnector(int chargingConnectorId, DtoOcppConnectorState connectorState)
+    {
+        if (connectorState == default)
+        {
+            return;
+        }
+
+        var loadpointCombination = settings.LatestLoadPointCombinations
+            .FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
+        int? carId = loadpointCombination?.CarId;
+
+        if (carId == null
+            && settings.ManualSetLoadPointCarCombinations.TryGetValue(chargingConnectorId, out var manualCombination))
+        {
+            carId = manualCombination.carId;
+        }
+
+        if (carId == null)
+        {
+            return;
+        }
+
+        var carIdValue = carId.Value;
+
+        var car = settings.Cars.FirstOrDefault(c => c.Id == carIdValue);
+        if (car == default)
+        {
+            return;
+        }
+
+        var shouldUpdatePluggedIn = connectorState.IsPluggedIn.Timestamp > car.PluggedIn.Timestamp;
+        var shouldUpdateCharging = connectorState.IsCharging.Timestamp > car.IsCharging.Timestamp;
+
+        if (!shouldUpdatePluggedIn && !shouldUpdateCharging)
+        {
+            return;
+        }
+
+        using var scope = serviceProvider.CreateScope();
+        var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
+        var isManualCar = await scopedContext.Cars
+            .Where(c => c.Id == carIdValue && c.CarType == CarType.Manual)
+            .AnyAsync().ConfigureAwait(false);
+
+        if (!isManualCar)
+        {
+            return;
+        }
+
+        var valueLogs = new List<CarValueLog>();
+        var stateChanged = false;
+
+        if (shouldUpdatePluggedIn)
+        {
+            var previousValue = car.PluggedIn.Value;
+            var newValue = connectorState.IsPluggedIn.Value;
+            var newTimestamp = connectorState.IsPluggedIn.Timestamp;
+            car.PluggedIn.Update(newTimestamp, newValue);
+            if (previousValue != newValue)
+            {
+                valueLogs.Add(new CarValueLog
+                {
+                    CarId = carIdValue,
+                    Type = CarValueType.IsPluggedIn,
+                    Timestamp = newTimestamp.UtcDateTime,
+                    BooleanValue = newValue,
+                    Source = CarValueSource.LinkedCharger,
+                });
+                stateChanged = true;
+            }
+        }
+
+        if (shouldUpdateCharging)
+        {
+            var previousValue = car.IsCharging.Value;
+            var newValue = connectorState.IsCharging.Value;
+            var newTimestamp = connectorState.IsCharging.Timestamp;
+            car.IsCharging.Update(newTimestamp, newValue);
+            if (previousValue != newValue)
+            {
+                valueLogs.Add(new CarValueLog
+                {
+                    CarId = carIdValue,
+                    Type = CarValueType.IsCharging,
+                    Timestamp = newTimestamp.UtcDateTime,
+                    BooleanValue = newValue,
+                    Source = CarValueSource.LinkedCharger,
+                });
+                stateChanged = true;
+            }
+        }
+
+        if (valueLogs.Count > 0)
+        {
+            scopedContext.CarValueLogs.AddRange(valueLogs);
+            await scopedContext.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        if (stateChanged)
+        {
+            await loadPointManagementService.CarStateChanged(carIdValue).ConfigureAwait(false);
+        }
     }
 
     internal async Task<string> HandleMeterValues(string chargePointId, string uniqueId, JsonElement payload)
