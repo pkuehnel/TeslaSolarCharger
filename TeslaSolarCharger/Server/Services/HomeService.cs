@@ -74,6 +74,7 @@ public class HomeService : IHomeService
                 c.MinimumSoc,
                 c.MaximumSoc,
                 c.ChargeMode,
+                c.CarType,
             })
             .FirstAsync()
             .ConfigureAwait(false);
@@ -82,6 +83,7 @@ public class HomeService : IHomeService
             MinSoc = dbCar.MinimumSoc,
             MaxSoc = dbCar.MaximumSoc,
             ChargeMode = dbCar.ChargeMode,
+            CarType = dbCar.CarType,
         };
         return carOverView;
     }
