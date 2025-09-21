@@ -692,6 +692,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             });
             if (previousValue != newValue)
             {
+                car.SoC.Update(newTimestamp, null);
                 stateChanged = true;
             }
         }

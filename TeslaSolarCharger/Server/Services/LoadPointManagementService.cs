@@ -298,7 +298,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.IsPluggedIn = dtoCar.PluggedIn.Value == true;
                 loadPoint.EstimatedVoltageWhileCharging = CalculateEstimatedChargerVoltageWhileCharging(dtoCar.ChargerVoltage.Value);
                 //Currently always true as all cars are Teslas
-                loadPoint.ManageChargingPowerByCar = true;
+                loadPoint.ManageChargingPowerByCar = databaseCar.CarType == CarType.Tesla;
                 loadPoint.CarType = databaseCar.CarType;
             }
 
