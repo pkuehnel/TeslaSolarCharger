@@ -631,6 +631,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
     private async Task UpdateManualCarStateForConnector(int chargingConnectorId, DtoOcppConnectorState connectorState)
     {
+        logger.LogTrace("{method}({chargingConnectorId})", nameof(UpdateManualCarStateForConnector), chargingConnectorId);
         var loadpointCombination = settings.LatestLoadPointCombinations
             .FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
         var carId = loadpointCombination?.CarId;
@@ -692,6 +693,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             });
             if (previousValue != newValue)
             {
+                logger.LogTrace("Plugged in for charging connector {chargingConnector} changed from {previousValue} to {newValue}", chargingConnectorId, previousValue, newValue);
                 car.SoC.Update(newTimestamp, null);
                 stateChanged = true;
             }
@@ -713,6 +715,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             });
             if (previousValue != newValue)
             {
+                logger.LogTrace("Is charging for charging connector {chargingConnector} changed from {previousValue} to {newValue}", chargingConnectorId, previousValue, newValue);
                 stateChanged = true;
             }
         }
