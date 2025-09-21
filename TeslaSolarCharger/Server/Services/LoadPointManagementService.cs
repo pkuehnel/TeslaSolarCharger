@@ -562,6 +562,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                 await _context.SaveChangesAsync().ConfigureAwait(false);
                 car.PluggedIn.Update(currentDate, true);
                 car.IsCharging.Update(currentDate, state.IsCharging.Value);
+                car.IsHomeGeofence.Update(currentDate, true);
             }
             else
             {
