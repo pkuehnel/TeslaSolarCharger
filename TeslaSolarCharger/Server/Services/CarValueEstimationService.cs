@@ -15,16 +15,19 @@ public class CarValueEstimationService : ICarValueEstimationService
     private readonly ITeslaSolarChargerContext _context;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISettings _settings;
+    private readonly ILoadPointManagementService _loadPointManagementService;
 
     public CarValueEstimationService(ILogger<CarValueEstimationService> logger,
         ITeslaSolarChargerContext context,
         IDateTimeProvider dateTimeProvider,
-        ISettings settings)
+        ISettings settings,
+        ILoadPointManagementService loadPointManagementService)
     {
         _logger = logger;
         _context = context;
         _dateTimeProvider = dateTimeProvider;
         _settings = settings;
+        _loadPointManagementService = loadPointManagementService;
     }
 
 
@@ -146,6 +149,7 @@ public class CarValueEstimationService : ICarValueEstimationService
 
         settingsCar.SoC.Update(_dateTimeProvider.DateTimeOffSetUtcNow(), estimatedSoc);
         _logger.LogTrace("{method} completed successfully with estimatedSoc={estimatedSoc}", nameof(UpdateSocEstimation), estimatedSoc);
+        await _loadPointManagementService.CarStateChanged(car.Id);
     }
 
 }
