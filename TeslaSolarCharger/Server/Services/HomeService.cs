@@ -6,6 +6,7 @@ using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
@@ -24,6 +25,8 @@ public class HomeService : IHomeService
     private readonly IConstants _constants;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
     private readonly IValidFromToHelper _validFromToHelper;
+    private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
@@ -31,7 +34,9 @@ public class HomeService : IHomeService
         IOcppChargePointActionService ocppChargePointActionService,
         IConstants constants,
         ITscOnlyChargingCostService tscOnlyChargingCostService,
-        IValidFromToHelper validFromToHelper)
+        IValidFromToHelper validFromToHelper,
+        ILoadPointManagementService loadPointManagementService,
+        IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _context = context;
@@ -40,6 +45,8 @@ public class HomeService : IHomeService
         _constants = constants;
         _tscOnlyChargingCostService = tscOnlyChargingCostService;
         _validFromToHelper = validFromToHelper;
+        _loadPointManagementService = loadPointManagementService;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
@@ -189,6 +196,51 @@ public class HomeService : IHomeService
         var dbCar = await _context.Cars.FirstAsync(c => c.Id == carId).ConfigureAwait(false);
         dbCar.MaximumSoc = newSoc;
         await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateManualCarSoc(int carId, int newSoc)
+    {
+        _logger.LogTrace("{method}({carId}, {newSoc})", nameof(UpdateManualCarSoc), carId, newSoc);
+        if (newSoc < 0 || newSoc > 100)
+        {
+            throw new InvalidOperationException("State of charge must be between 0 and 100%.");
+        }
+
+        var dbCar = await _context.Cars.FirstOrDefaultAsync(c => c.Id == carId).ConfigureAwait(false);
+        if (dbCar == null)
+        {
+            throw new InvalidOperationException($"Car with id {carId} not found.");
+        }
+
+        if (dbCar.CarType != CarType.Manual)
+        {
+            throw new InvalidOperationException("State of charge can only be set manually for manual cars.");
+        }
+
+        var timestamp = _dateTimeProvider.DateTimeOffSetUtcNow();
+
+        var carValueLog = new CarValueLog
+        {
+            CarId = carId,
+            Type = CarValueType.StateOfCharge,
+            IntValue = newSoc,
+            Timestamp = timestamp.UtcDateTime,
+            Source = CarValueSource.Manual,
+        };
+        _context.CarValueLogs.Add(carValueLog);
+        await _context.SaveChangesAsync().ConfigureAwait(false);
+
+        var dtoCar = _settings.Cars.FirstOrDefault(c => c.Id == carId);
+        if (dtoCar == default)
+        {
+            _logger.LogWarning("Settings entry for car {carId} was not found while updating manual SoC.", carId);
+        }
+        else
+        {
+            dtoCar.SoC.Update(timestamp, newSoc);
+        }
+
+        await _loadPointManagementService.CarStateChanged(carId).ConfigureAwait(false);
     }
 
     public Dictionary<int, string> GetLoadPointCarOptions()
