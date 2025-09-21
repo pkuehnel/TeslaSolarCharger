@@ -63,11 +63,14 @@ else
                                     BufferLabelSuffix="%">
         </ProgressWithLabelComponent>
     }
-    @if (CarSettings.CarType == CarType.Manual && CarState.Soc == default)
+    @if (CarSettings.CarType == CarType.Manual)
     {
-        <MudAlert Severity="Severity.Warning" Class="my-3">
-            As this car is not connected via an API you need to manually set the current state of charge. Note: Each time you plugin the car the SoC is reset as TSC does not know how much energy the car used.
-        </MudAlert>
+        if (CarState.Soc == default)
+        {
+            <MudAlert Severity="Severity.Warning" Class="my-3">
+                As this car is not connected via an API you need to manually set the current state of charge. Note: Each time you plugin the car the SoC is reset as TSC does not know how much energy the car used.
+            </MudAlert>
+        }
         <GenericInput T="int?"
                       For="() => ManualSocToSet"
                       OnValueChanged="SetManualSoc"/>
