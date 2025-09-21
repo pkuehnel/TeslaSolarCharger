@@ -503,7 +503,8 @@ public class LoadPointManagementService : ILoadPointManagementService
         {
             throw new InvalidOperationException("Charging connector is not connected via OCPP");
         }
-        var loadPointBeforeChange = (await GetLoadPointsToManage()).FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
+        var loadPointBeforeChange = _settings.LatestLoadPointCombinations
+            .FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
         var carIdBeforeChange = loadPointBeforeChange?.CarId;
         if (carIdBeforeChange != default)
         {
