@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
@@ -632,16 +631,11 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
     private async Task UpdateManualCarStateForConnector(int chargingConnectorId, DtoOcppConnectorState connectorState)
     {
-        if (connectorState == default)
-        {
-            return;
-        }
-
         var loadpointCombination = settings.LatestLoadPointCombinations
             .FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
-        int? carId = loadpointCombination?.CarId;
+        var carId = loadpointCombination?.CarId;
 
-        if (carId == null
+        if (carId == default
             && settings.ManualSetLoadPointCarCombinations.TryGetValue(chargingConnectorId, out var manualCombination))
         {
             carId = manualCombination.carId;
@@ -688,16 +682,16 @@ public sealed class OcppWebSocketConnectionHandlingService(
             var newValue = connectorState.IsPluggedIn.Value;
             var newTimestamp = connectorState.IsPluggedIn.Timestamp;
             car.PluggedIn.Update(newTimestamp, newValue);
+            valueLogs.Add(new CarValueLog
+            {
+                CarId = carIdValue,
+                Type = CarValueType.IsPluggedIn,
+                Timestamp = newTimestamp.UtcDateTime,
+                BooleanValue = newValue,
+                Source = CarValueSource.LinkedCharger,
+            });
             if (previousValue != newValue)
             {
-                valueLogs.Add(new CarValueLog
-                {
-                    CarId = carIdValue,
-                    Type = CarValueType.IsPluggedIn,
-                    Timestamp = newTimestamp.UtcDateTime,
-                    BooleanValue = newValue,
-                    Source = CarValueSource.LinkedCharger,
-                });
                 stateChanged = true;
             }
         }
@@ -708,16 +702,16 @@ public sealed class OcppWebSocketConnectionHandlingService(
             var newValue = connectorState.IsCharging.Value;
             var newTimestamp = connectorState.IsCharging.Timestamp;
             car.IsCharging.Update(newTimestamp, newValue);
+            valueLogs.Add(new CarValueLog
+            {
+                CarId = carIdValue,
+                Type = CarValueType.IsCharging,
+                Timestamp = newTimestamp.UtcDateTime,
+                BooleanValue = newValue,
+                Source = CarValueSource.LinkedCharger,
+            });
             if (previousValue != newValue)
             {
-                valueLogs.Add(new CarValueLog
-                {
-                    CarId = carIdValue,
-                    Type = CarValueType.IsCharging,
-                    Timestamp = newTimestamp.UtcDateTime,
-                    BooleanValue = newValue,
-                    Source = CarValueSource.LinkedCharger,
-                });
                 stateChanged = true;
             }
         }
