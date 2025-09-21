@@ -105,7 +105,7 @@ public class CarValueEstimationService : ICarValueEstimationService
         }
         var chargedSinceLastNonEstimatedSoc = latestChargedEnergy.Value - chargedEnergyAtLastNonEstimatedSoc.Value;
         var carBatteryCapacity = car.UsableEnergy * 3_600_000; //kWh to Ws
-        var estimatedSoc = (int)(lastNonEstimatedSoc.IntValue.Value + ((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity));
+        var estimatedSoc = (int)(lastNonEstimatedSoc.IntValue.Value + (((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity) * 100));
         var estimatedSocCarValueLog = new CarValueLog()
         {
             CarId = car.Id,
