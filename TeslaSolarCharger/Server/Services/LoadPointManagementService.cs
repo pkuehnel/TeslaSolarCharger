@@ -574,6 +574,15 @@ public class LoadPointManagementService : ILoadPointManagementService
         }
         _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
         await GetLoadPointsToManage().ConfigureAwait(false);
+        if (carIdBeforeChange != default)
+        {
+            await CarStateChanged(carIdBeforeChange.Value);
+        }
+        if (carId != default)
+        {
+            await CarStateChanged(carId.Value);
+        }
+
     }
 
     private int CalculateEstimatedChargerVoltageWhileCharging(int? actualVoltage)
