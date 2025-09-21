@@ -62,10 +62,7 @@ else
         <div class="mt-3">
             <GenericInput T="int?"
                           For="() => ManualSocToSet"
-                          ImmediateValueUpdate="true" />
-            <RightAlignedButtonComponent ButtonText="Set State of Charge"
-                                         IsLoading="@_isManualSocLoading"
-                                         OnButtonClicked="@(SetManualSoc)" />
+                          OnValueChanged="SetManualSoc"/>
         </div>
     }
     <div>
@@ -359,10 +356,8 @@ else
             }
 
             Snackbar.Add("State of charge updated successfully.", Severity.Success);
-            if (CarState != default)
-            {
-                CarState.Soc = manualSoc;
-            }
+            ManualSocToSet = null;
+            StateHasChanged();
         }
         finally
         {
