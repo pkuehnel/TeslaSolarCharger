@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
@@ -500,15 +501,75 @@ public class LoadPointManagementService : ILoadPointManagementService
         }
         else
         {
-            throw new InvalidOperationException($"Charging connector is not connected via OCPP");
+            throw new InvalidOperationException("Charging connector is not connected via OCPP");
+        }
+        var loadPointBeforeChange = (await GetLoadPointsToManage()).FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
+        var carIdBeforeChange = loadPointBeforeChange?.CarId;
+        if (carIdBeforeChange != default)
+        {
+            var isCarManual = await _context.Cars.Where(c => c.Id == carIdBeforeChange && c.CarType == CarType.Manual).AnyAsync().ConfigureAwait(false);
+            if (isCarManual)
+            {
+                var pluggedOut = new CarValueLog()
+                {
+                    CarId = carIdBeforeChange.Value,
+                    Type = CarValueType.IsPluggedIn,
+                    BooleanValue = false,
+                    Timestamp = currentDate.UtcDateTime,
+                    Source = CarValueSource.LinkedCharger,
+                };
+                var notCharging = new CarValueLog()
+                {
+                    CarId = carIdBeforeChange.Value,
+                    Type = CarValueType.IsCharging,
+                    BooleanValue = false,
+                    Timestamp = currentDate.UtcDateTime,
+                    Source = CarValueSource.LinkedCharger,
+                };
+                _context.CarValueLogs.Add(pluggedOut);
+                _context.CarValueLogs.Add(notCharging);
+                await _context.SaveChangesAsync().ConfigureAwait(false);
+                var car = _settings.Cars.First(c => c.Id == carIdBeforeChange);
+                car.PluggedIn.Update(currentDate, false);
+                car.IsCharging.Update(currentDate, false);
+            }
         }
         if (carId != default)
         {
+            var isCarManual = await _context.Cars.Where(c => c.Id == carId && c.CarType == CarType.Manual).AnyAsync().ConfigureAwait(false);
             var car = _settings.Cars.First(c => c.Id == carId.Value);
-            if (car.PluggedIn.Value != true)
+            if (isCarManual)
             {
-                throw new InvalidOperationException("Car is not plugged in, therefore it can not be set as car for charging connector.");
+                var pluggedIn = new CarValueLog()
+                {
+                    CarId = carId.Value,
+                    Type = CarValueType.IsPluggedIn,
+                    BooleanValue = true,
+                    Timestamp = currentDate.UtcDateTime,
+                    Source = CarValueSource.LinkedCharger,
+                };
+                var isCharging = new CarValueLog()
+                {
+                    CarId = carId.Value,
+                    Type = CarValueType.IsCharging,
+                    BooleanValue = state.IsCharging.Value,
+                    Timestamp = currentDate.UtcDateTime,
+                    Source = CarValueSource.LinkedCharger,
+                };
+                _context.CarValueLogs.Add(pluggedIn);
+                _context.CarValueLogs.Add(isCharging);
+                await _context.SaveChangesAsync().ConfigureAwait(false);
+                car.PluggedIn.Update(currentDate, true);
+                car.IsCharging.Update(currentDate, state.IsCharging.Value);
             }
+            else
+            {
+                if (car.PluggedIn.Value != true)
+                {
+                    throw new InvalidOperationException("Car is not plugged in, therefore it can not be set as car for charging connector.");
+                }
+            }
+            
         }
         _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
         await GetLoadPointsToManage().ConfigureAwait(false);
