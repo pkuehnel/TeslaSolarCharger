@@ -25,11 +25,17 @@ else
         {
             <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(CarState.IsOnline == false)" TooltipText="connected to server"></CustomIcon>
         }
-        <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText="at home"></CustomIcon>
+        @if (CarSettings.CarType != CarType.Manual)
+        {
+            <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText="at home"></CustomIcon>
+        }
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText="charging"></CustomIcon>
     </div>
-    <FleetApiTestComponent CarId="CarId" />
+    @if (CarSettings.CarType == CarType.Tesla)
+    {
+        <FleetApiTestComponent CarId="CarId" />
+    }
     @if (CarState.FleetTelemetryDataState == FleetTelemetryDataState.NotEnoughTimeSinceReconnect)
     {
         <MudAlert Severity="Severity.Warning" Class="mb-3">
@@ -142,7 +148,6 @@ else
     [Postfix("%")]
     private int? ManualSocToSet { get; set; }
     private bool _isCommandLoading;
-    private bool _isManualSocLoading;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -160,10 +165,6 @@ else
                 try
                 {
                     CarState = state;
-                    if (CarSettings?.CarType == CarType.Manual)
-                    {
-                        ManualSocToSet = state?.Soc;
-                    }
                     await InvokeAsync(StateHasChanged);
                 }
                 catch (Exception e)
@@ -345,24 +346,16 @@ else
             return;
         }
 
-        _isManualSocLoading = true;
-        try
+        var result = await HomeService.UpdateManualCarSoc(CarId.Value, manualSoc);
+        if (result.HasError)
         {
-            var result = await HomeService.UpdateManualCarSoc(CarId.Value, manualSoc);
-            if (result.HasError)
-            {
-                Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
-                return;
-            }
+            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
+            return;
+        }
 
-            Snackbar.Add("State of charge updated successfully.", Severity.Success);
-            ManualSocToSet = null;
-            StateHasChanged();
-        }
-        finally
-        {
-            _isManualSocLoading = false;
-        }
+        Snackbar.Add("State of charge updated successfully.", Severity.Success);
+        ManualSocToSet = null;
+        StateHasChanged();
     }
 
 }
