@@ -143,6 +143,7 @@ public class ManualCarHandlingService(
         cachedCar.PluggedIn.Update(timestamp, true);
         cachedCar.IsCharging.Update(timestamp, isCharging);
         cachedCar.IsHomeGeofence.Update(timestamp, true);
+        cachedCar.SoC.Update(timestamp, null);
 
         var stateChanged = previousPlugged != true
                            || previousCharging != isCharging
