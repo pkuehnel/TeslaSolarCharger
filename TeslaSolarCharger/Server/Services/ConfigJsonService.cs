@@ -309,6 +309,7 @@ public class ConfigJsonService(
                 if (isCarManual)
                 {
                     var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+                    dtoCar.IsHomeGeofence.Update(currentDate, true);
                     if (dtoCar.PluggedIn.Value == true)
                     {
                         dtoCar.PluggedIn.Update(currentDate, false);
