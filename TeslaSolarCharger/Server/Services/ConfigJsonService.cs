@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
@@ -109,9 +110,9 @@ public class ConfigJsonService(
         return settings;
     }
 
-    public async Task AddCarsToSettings()
+    public async Task AddCarsToSettings(bool initializeManualCarValues = false, int? manualCarIdToInitialize = null)
     {
-        settings.Cars = await GetCars().ConfigureAwait(false);
+        settings.Cars = await GetCars(initializeManualCarValues, manualCarIdToInitialize).ConfigureAwait(false);
         foreach (var dtoCar in settings.CarsToManage)
         {
             await loadPointManagementService.CarStateChanged(dtoCar.Id);
@@ -210,43 +211,74 @@ public class ConfigJsonService(
             teslaSolarChargerContext.Cars.Add(databaseCar);
         }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        await AddCarsToSettings();
+        var shouldInitializeManualCarValues = carId == default && databaseCar.CarType == CarType.Manual;
+        var manualCarIdToInitialize = shouldInitializeManualCarValues ? databaseCar.Id : (int?)null;
+        await AddCarsToSettings(shouldInitializeManualCarValues, manualCarIdToInitialize).ConfigureAwait(false);
         if (databaseCar.CarType == CarType.Tesla)
         {
             await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
         }
     }
 
-    private async Task<List<DtoCar>> GetCars()
+    private async Task<List<DtoCar>> GetCars(bool initializeManualCarValues, int? manualCarIdToInitialize)
     {
         logger.LogTrace("{method}()", nameof(GetCars));
-        var cars = await teslaSolarChargerContext.Cars
-            .Select(c => new DtoCar()
+        var carData = await teslaSolarChargerContext.Cars
+            .Select(c => new
             {
-                Id = c.Id,
-                Vin = c.Vin ?? string.Empty,
-                TeslaMateCarId = c.TeslaMateCarId,
-                ChargeModeV2 = c.ChargeMode,
-                MinimumSoC = c.MinimumSoc,
-                MaximumAmpere = c.MaximumAmpere,
-                MinimumAmpere = c.MinimumAmpere,
-                UsableEnergy = c.UsableEnergy,
-                ShouldBeManaged = c.ShouldBeManaged,
-                ChargingPriority = c.ChargingPriority,
-                Name = c.Name,
-                UseBle = c.UseBle,
-                BleApiBaseUrl = c.BleApiBaseUrl,
-                WakeUpCalls = c.WakeUpCalls,
-                VehicleDataCalls = c.VehicleDataCalls,
-                VehicleCalls = c.VehicleCalls,
-                ChargeStartCalls = c.ChargeStartCalls,
-                ChargeStopCalls = c.ChargeStopCalls,
-                SetChargingAmpsCall = c.SetChargingAmpsCall,
-                OtherCommandCalls = c.OtherCommandCalls,
+                Car = new DtoCar()
+                {
+                    Id = c.Id,
+                    Vin = c.Vin ?? string.Empty,
+                    TeslaMateCarId = c.TeslaMateCarId,
+                    ChargeModeV2 = c.ChargeMode,
+                    MinimumSoC = c.MinimumSoc,
+                    MaximumAmpere = c.MaximumAmpere,
+                    MinimumAmpere = c.MinimumAmpere,
+                    UsableEnergy = c.UsableEnergy,
+                    ShouldBeManaged = c.ShouldBeManaged,
+                    ChargingPriority = c.ChargingPriority,
+                    Name = c.Name,
+                    UseBle = c.UseBle,
+                    BleApiBaseUrl = c.BleApiBaseUrl,
+                    WakeUpCalls = c.WakeUpCalls,
+                    VehicleDataCalls = c.VehicleDataCalls,
+                    VehicleCalls = c.VehicleCalls,
+                    ChargeStartCalls = c.ChargeStartCalls,
+                    ChargeStopCalls = c.ChargeStopCalls,
+                    SetChargingAmpsCall = c.SetChargingAmpsCall,
+                    OtherCommandCalls = c.OtherCommandCalls,
+                },
+                c.CarType,
             })
             .ToListAsync().ConfigureAwait(false);
-        foreach (var dtoCar in cars)
+
+        var cars = carData.Select(c => c.Car).ToList();
+
+        HashSet<int> manualCarIdsToInitialize;
+        if (!initializeManualCarValues)
         {
+            manualCarIdsToInitialize = new HashSet<int>();
+        }
+        else if (manualCarIdToInitialize.HasValue)
+        {
+            manualCarIdsToInitialize = carData
+                .Where(c => c.Car.Id == manualCarIdToInitialize.Value && c.CarType == CarType.Manual)
+                .Select(c => c.Car.Id)
+                .ToHashSet();
+        }
+        else
+        {
+            manualCarIdsToInitialize = carData
+                .Where(c => c.CarType == CarType.Manual)
+                .Select(c => c.Car.Id)
+                .ToHashSet();
+        }
+
+        foreach (var carDataItem in carData)
+        {
+            var dtoCar = carDataItem.Car;
+
             var latestValues = await teslaSolarChargerContext.CarValueLogs
                 .Where(c => c.CarId == dtoCar.Id
                             && (c.Type == CarValueType.IsPluggedIn
@@ -302,42 +334,11 @@ public class ConfigJsonService(
                     UpdateCarPropertyValue(dtoCar, valueBeforeLatestValue, fleetTelemetryConfiguration);
                 }
                 UpdateCarPropertyValue(dtoCar, latestValue, fleetTelemetryConfiguration);
-                var isCarManual = await teslaSolarChargerContext.Cars
-                    .Where(c => c.Id == dtoCar.Id)
-                    .Select(c => c.CarType == CarType.Manual)
-                    .FirstAsync();
-                if (isCarManual)
-                {
-                    var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
-                    dtoCar.IsHomeGeofence.Update(currentDate, true);
-                    if (dtoCar.PluggedIn.Value == true)
-                    {
-                        dtoCar.PluggedIn.Update(currentDate, false);
-                        var carValueLog = new CarValueLog
-                        {
-                            CarId = dtoCar.Id,
-                            Type = CarValueType.IsPluggedIn,
-                            BooleanValue = false,
-                            Timestamp = currentDate.UtcDateTime,
-                            Source = CarValueSource.Estimation,
-                        };
-                        teslaSolarChargerContext.CarValueLogs.Add(carValueLog);
-                    }
-                    if (dtoCar.IsCharging.Value == true)
-                    {
-                        dtoCar.IsCharging.Update(currentDate, false);
-                        var carValueLog = new CarValueLog
-                        {
-                            CarId = dtoCar.Id,
-                            Type = CarValueType.IsCharging,
-                            BooleanValue = false,
-                            Timestamp = currentDate.UtcDateTime,
-                            Source = CarValueSource.Estimation,
-                        };
-                        teslaSolarChargerContext.CarValueLogs.Add(carValueLog);
-                    }
-                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-                }
+            }
+
+            if (manualCarIdsToInitialize.Contains(dtoCar.Id))
+            {
+                await InitializeManualCarValuesAsync(dtoCar).ConfigureAwait(false);
             }
             //Do not trigger car state changed here as app will crash when finding cars in settings
         }
@@ -363,6 +364,48 @@ public class ConfigJsonService(
             }
         }
         return cars;
+    }
+
+    private async Task InitializeManualCarValuesAsync(DtoCar dtoCar)
+    {
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        dtoCar.IsHomeGeofence.Update(currentDate, true);
+
+        var carValueLogs = new List<CarValueLog>();
+
+        if (dtoCar.PluggedIn.Value == true)
+        {
+            dtoCar.PluggedIn.Update(currentDate, false);
+            carValueLogs.Add(new CarValueLog
+            {
+                CarId = dtoCar.Id,
+                Type = CarValueType.IsPluggedIn,
+                BooleanValue = false,
+                Timestamp = currentDate.UtcDateTime,
+                Source = CarValueSource.Estimation,
+            });
+        }
+
+        if (dtoCar.IsCharging.Value == true)
+        {
+            dtoCar.IsCharging.Update(currentDate, false);
+            carValueLogs.Add(new CarValueLog
+            {
+                CarId = dtoCar.Id,
+                Type = CarValueType.IsCharging,
+                BooleanValue = false,
+                Timestamp = currentDate.UtcDateTime,
+                Source = CarValueSource.Estimation,
+            });
+        }
+
+        if (carValueLogs.Count == 0)
+        {
+            return;
+        }
+
+        teslaSolarChargerContext.CarValueLogs.AddRange(carValueLogs);
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private class FleetTelemetryConfiguration
