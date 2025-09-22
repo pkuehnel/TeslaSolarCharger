@@ -114,7 +114,6 @@ public class ManualCarHandlingService(
             context.CarValueLogs.AddRange(valueLogs);
             await context.SaveChangesAsync().ConfigureAwait(false);
         }
-
         return new ManualCarOperationResult(true, stateChanged);
     }
 
