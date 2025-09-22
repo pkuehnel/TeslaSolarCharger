@@ -440,7 +440,10 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     OcppChargingStationConnectorId = databaseChargePointId,
                 });
             }
-
+            if (ocppConnectorState.IsPluggedIn.Value == false)
+            {
+                settings.ManualSetLoadPointCarCombinations.Remove(databaseChargePointId, out _);
+            }
         }
 
         // b) Build the response payload
