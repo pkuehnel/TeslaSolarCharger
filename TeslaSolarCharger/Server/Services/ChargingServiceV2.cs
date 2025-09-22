@@ -83,8 +83,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         await CalculateGeofences(currentDate);
         await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
-        //Needs to be after setting Teslas to max current as otherwise the max current of Teslas is not determined correctly
-        await AutodetectCarCapabilities(currentDate, cancellationToken).ConfigureAwait(false);
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
@@ -107,13 +105,6 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (!stateAvailable)
             {
                 continue;
-            }
-            if (((state!.CarCapabilities.Value == default) || (state.CarCapabilities.Timestamp < state.IsPluggedIn.LastChanged))
-                && state.IsCarFullyCharged.Value != true
-                && state.IsPluggedIn.Value)
-            {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charging with full speed for autodetection of connected car's charging speed. This is a normal behaviour right after plugin and will stop automatically."));
-                loadpointInCarCapabilityDetection.Add(loadpoint);
             }
         }
 
@@ -456,37 +447,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             _logger.LogDebug("Set current of car {carId} to max as is not charging", car.Id);
             await _teslaService.SetAmp(car.Id, car.MaximumAmpere).ConfigureAwait(false);
-        }
-    }
-
-    private async Task AutodetectCarCapabilities(DateTimeOffset currentDate, CancellationToken cancellationToken)
-    {
-        _logger.LogTrace("{method}()", nameof(AutodetectCarCapabilities));
-        foreach (var ocppConnectorState in _settings.OcppConnectorStates)
-        {
-            if (ocppConnectorState.Value.IsPluggedIn.Value
-                && (ocppConnectorState.Value.CarCapabilities.Value == default
-                    || (ocppConnectorState.Value.CarCapabilities.Timestamp < ocppConnectorState.Value.IsPluggedIn.LastChanged)))
-            {
-                _logger.LogTrace("Setting charging connector {chargingConnectorId} to max power to detect car capabilities", ocppConnectorState.Key);
-                await SetChargingConnectorToMaxPowerAndMaxPhases(ocppConnectorState.Key, currentDate, cancellationToken, ocppConnectorState.Value);
-            }
-            var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
-            var earliestPlugin = currentDate - (2 * skipValueChanges);
-            if ((ocppConnectorState.Value.LastSetCurrent.LastChanged < earliestPlugin)
-                && (ocppConnectorState.Value.CarCapabilities.Value == default
-                    || (ocppConnectorState.Value.CarCapabilities.Timestamp < ocppConnectorState.Value.IsPluggedIn.LastChanged)))
-            {
-                _logger.LogTrace("Detecting car capabilities for charging connector {chargingConnectorId}", ocppConnectorState.Key);
-                //Set car capabilities
-                var maxCurrent = ocppConnectorState.Value.ChargingCurrent.Value;
-                var phases = ocppConnectorState.Value.PhaseCount.Value;
-                if (maxCurrent > 0 && phases != default)
-                {
-                    ocppConnectorState.Value.CarCapabilities.Update(currentDate,
-                        new DtoCarCapabilities() { MaxCurrent = maxCurrent, MaxPhases = phases.Value });
-                }
-            }
         }
     }
 

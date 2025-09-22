@@ -471,29 +471,6 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                                                      && IsTimeStampedValueRelevant(ocppValues.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff,
                                                          out chargeStopAllowedAt);
                 constraintValues.ChargeStopAllowedAt = chargeStopAllowedAt;
-
-                var areCarCapabilitiesRelevant = ocppValues.IsPluggedIn.Value
-                                                 && (ocppValues.IsPluggedIn.LastChanged < ocppValues.CarCapabilities.Timestamp
-                                                     || ocppValues.IsPluggedIn.Timestamp < ocppValues.CarCapabilities.Timestamp);
-                if (areCarCapabilitiesRelevant)
-                {
-                    var carCapability = ocppValues.CarCapabilities.Value;
-                    if (carCapability != default)
-                    {
-                        if (constraintValues.MinPhases > carCapability.MaxPhases)
-                        {
-                            constraintValues.MinPhases = carCapability.MaxPhases;
-                        }
-                        if (constraintValues.MaxPhases > carCapability.MaxPhases)
-                        {
-                            constraintValues.MaxPhases = carCapability.MaxPhases;
-                        }
-                        if (constraintValues.MaxCurrent > (carCapability.MaxCurrent + _constants.CarCapabilityMaxCurrentAboveMeasuredCurrent))
-                        {
-                            constraintValues.MaxCurrent = (int)carCapability.MaxCurrent;
-                        }
-                    }
-                }
                 if (constraintValues.MaxCurrent < constraintValues.MinCurrent)
                 {
                     constraintValues.MinCurrent = constraintValues.MaxCurrent;

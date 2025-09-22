@@ -225,30 +225,6 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
             var maxPhases = ocppDatabaseData.ConnectedPhasesCount.Value;
             var maxCurrent = ocppDatabaseData.MaxCurrent.Value;
             var minCurrent = ocppDatabaseData.MinCurrent.Value;
-
-
-            var areCarCapabilitiesRelevant = ocppConnectorState.Value.IsPluggedIn.Value
-                                             && (ocppConnectorState.Value.IsPluggedIn.LastChanged < ocppConnectorState.Value.CarCapabilities.Timestamp
-                                                 || ocppConnectorState.Value.IsPluggedIn.Timestamp < ocppConnectorState.Value.CarCapabilities.Timestamp);
-            if (areCarCapabilitiesRelevant)
-            {
-                var carCapability = ocppConnectorState.Value.CarCapabilities.Value;
-                if (carCapability != default)
-                {
-                    if (minPhases > carCapability.MaxPhases)
-                    {
-                        minPhases = carCapability.MaxPhases;
-                    }
-                    if (maxPhases > carCapability.MaxPhases)
-                    {
-                        maxPhases = carCapability.MaxPhases;
-                    }
-                    if (maxCurrent > (carCapability.MaxCurrent + _constants.CarCapabilityMaxCurrentAboveMeasuredCurrent))
-                    {
-                        maxCurrent = (int)carCapability.MaxCurrent;
-                    }
-                }
-            }
             if (maxCurrent < minCurrent)
             {
                 minCurrent = maxCurrent;
