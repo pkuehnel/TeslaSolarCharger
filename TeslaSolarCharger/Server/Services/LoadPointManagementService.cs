@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Resources.PossibleIssues.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
@@ -26,6 +25,7 @@ public class LoadPointManagementService : ILoadPointManagementService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IIssueKeys _issueKeys;
+    private readonly IManualCarHandlingService _manualCarHandlingService;
 
     public LoadPointManagementService(
     ILogger<LoadPointManagementService> logger,
@@ -38,7 +38,8 @@ public class LoadPointManagementService : ILoadPointManagementService
     IDateTimeProvider dateTimeProvider,
     IChangeTrackingService changeTrackingService,
     IEntityKeyGenerationHelper entityKeyGenerationHelper,
-    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService)
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
+    IManualCarHandlingService manualCarHandlingService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -51,6 +52,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         _changeTrackingService = changeTrackingService;
         _entityKeyGenerationHelper = entityKeyGenerationHelper;
         _fleetTelemetryWebSocketService = fleetTelemetryWebSocketService;
+        _manualCarHandlingService = manualCarHandlingService;
     }
 
     public async Task OcppStateChanged(int chargingConnectorId)
@@ -508,64 +510,18 @@ public class LoadPointManagementService : ILoadPointManagementService
         var carIdBeforeChange = loadPointBeforeChange?.CarId;
         if (carIdBeforeChange != default)
         {
-            var isCarManual = await _context.Cars.Where(c => c.Id == carIdBeforeChange && c.CarType == CarType.Manual).AnyAsync().ConfigureAwait(false);
-            if (isCarManual)
-            {
-                var pluggedOut = new CarValueLog()
-                {
-                    CarId = carIdBeforeChange.Value,
-                    Type = CarValueType.IsPluggedIn,
-                    BooleanValue = false,
-                    Timestamp = currentDate.UtcDateTime,
-                    Source = CarValueSource.LinkedCharger,
-                };
-                var notCharging = new CarValueLog()
-                {
-                    CarId = carIdBeforeChange.Value,
-                    Type = CarValueType.IsCharging,
-                    BooleanValue = false,
-                    Timestamp = currentDate.UtcDateTime,
-                    Source = CarValueSource.LinkedCharger,
-                };
-                _context.CarValueLogs.Add(pluggedOut);
-                _context.CarValueLogs.Add(notCharging);
-                await _context.SaveChangesAsync().ConfigureAwait(false);
-                var car = _settings.Cars.First(c => c.Id == carIdBeforeChange);
-                car.PluggedIn.Update(currentDate, false);
-                car.IsCharging.Update(currentDate, false);
-            }
+            await _manualCarHandlingService
+                .HandleConnectorUnassignmentAsync(carIdBeforeChange.Value, currentDate)
+                .ConfigureAwait(false);
         }
         if (carId != default)
         {
-            var isCarManual = await _context.Cars.Where(c => c.Id == carId && c.CarType == CarType.Manual).AnyAsync().ConfigureAwait(false);
-            var car = _settings.Cars.First(c => c.Id == carId.Value);
-            if (isCarManual)
+            var manualResult = await _manualCarHandlingService
+                .HandleConnectorAssignmentAsync(carId.Value, state.IsCharging.Value, currentDate)
+                .ConfigureAwait(false);
+            if (!manualResult.IsManualCar)
             {
-                var pluggedIn = new CarValueLog()
-                {
-                    CarId = carId.Value,
-                    Type = CarValueType.IsPluggedIn,
-                    BooleanValue = true,
-                    Timestamp = currentDate.UtcDateTime,
-                    Source = CarValueSource.LinkedCharger,
-                };
-                var isCharging = new CarValueLog()
-                {
-                    CarId = carId.Value,
-                    Type = CarValueType.IsCharging,
-                    BooleanValue = state.IsCharging.Value,
-                    Timestamp = currentDate.UtcDateTime,
-                    Source = CarValueSource.LinkedCharger,
-                };
-                _context.CarValueLogs.Add(pluggedIn);
-                _context.CarValueLogs.Add(isCharging);
-                await _context.SaveChangesAsync().ConfigureAwait(false);
-                car.PluggedIn.Update(currentDate, true);
-                car.IsCharging.Update(currentDate, state.IsCharging.Value);
-                car.IsHomeGeofence.Update(currentDate, true);
-            }
-            else
-            {
+                var car = _settings.Cars.First(c => c.Id == carId.Value);
                 if (car.PluggedIn.Value != true)
                 {
                     throw new InvalidOperationException("Car is not plugged in, therefore it can not be set as car for charging connector.");

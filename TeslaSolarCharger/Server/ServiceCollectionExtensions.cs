@@ -133,6 +133,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<IOcppChargePointConfigurationService, OcppChargePointConfigurationService>()
             .AddTransient<IOcppChargingStationConfigurationService, OcppChargingStationConfigurationService>()
             .AddTransient<ILoadPointManagementService, LoadPointManagementService>()
+            .AddScoped<IManualCarHandlingService, ManualCarHandlingService>()
             .AddTransient<IChargingServiceV2, ChargingServiceV2>()
             .AddTransient<IHomeService, HomeService>()
             .AddTransient<ISunCalculator, SunCalculator>()
