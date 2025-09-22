@@ -399,6 +399,7 @@ public class ConfigJsonService(
             });
         }
 
+        dtoCar.SoC.Update(currentDate, null);
         if (carValueLogs.Count == 0)
         {
             return;
