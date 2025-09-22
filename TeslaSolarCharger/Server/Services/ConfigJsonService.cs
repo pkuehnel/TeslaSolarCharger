@@ -26,7 +26,8 @@ public class ConfigJsonService(
     IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     ITscConfigurationService tscConfigurationService,
     ILoadPointManagementService loadPointManagementService,
-    ICarPropertyUpdateHelper carPropertyUpdateHelper)
+    ICarPropertyUpdateHelper carPropertyUpdateHelper,
+    IDateTimeProvider dateTimeProvider)
     : IConfigJsonService
 {
 
@@ -201,7 +202,7 @@ public class ConfigJsonService(
         databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
         databaseCar.HomeDetectionVia = carBasicConfiguration.HomeDetectionVia;
         databaseCar.MaximumPhases = carBasicConfiguration.MaximumPhases;
-        if(carId == default)
+        if (carId == default)
         {
             databaseCar.ChargeMode = ChargeModeV2.Auto;
             databaseCar.MinimumSoc = 10;
@@ -301,6 +302,41 @@ public class ConfigJsonService(
                     UpdateCarPropertyValue(dtoCar, valueBeforeLatestValue, fleetTelemetryConfiguration);
                 }
                 UpdateCarPropertyValue(dtoCar, latestValue, fleetTelemetryConfiguration);
+                var isCarManual = await teslaSolarChargerContext.Cars
+                    .Where(c => c.Id == dtoCar.Id)
+                    .Select(c => c.CarType == CarType.Manual)
+                    .FirstAsync();
+                if (isCarManual)
+                {
+                    var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+                    if (dtoCar.PluggedIn.Value == true)
+                    {
+                        dtoCar.PluggedIn.Update(currentDate, false);
+                        var carValueLog = new CarValueLog
+                        {
+                            CarId = dtoCar.Id,
+                            Type = CarValueType.IsPluggedIn,
+                            BooleanValue = false,
+                            Timestamp = currentDate.UtcDateTime,
+                            Source = CarValueSource.Estimation,
+                        };
+                        teslaSolarChargerContext.CarValueLogs.Add(carValueLog);
+                    }
+                    if (dtoCar.IsCharging.Value == true)
+                    {
+                        dtoCar.IsCharging.Update(currentDate, false);
+                        var carValueLog = new CarValueLog
+                        {
+                            CarId = dtoCar.Id,
+                            Type = CarValueType.IsCharging,
+                            BooleanValue = false,
+                            Timestamp = currentDate.UtcDateTime,
+                            Source = CarValueSource.Estimation,
+                        };
+                        teslaSolarChargerContext.CarValueLogs.Add(carValueLog);
+                    }
+                    await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+                }
             }
             //Do not trigger car state changed here as app will crash when finding cars in settings
         }
