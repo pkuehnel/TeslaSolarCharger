@@ -363,14 +363,18 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     c.ChargeMode,
                     c.MaximumSoc,
                     c.MinimumSoc,
+                    c.CarType,
                 })
                 .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
             constraintValues.MaxCurrent = carConfigValues.MaximumAmpere;
             constraintValues.ChargeMode = carConfigValues.ChargeMode;
             var car = _settings.Cars.First(c => c.Id == carId);
-            constraintValues.MinPhases = car.ActualPhases;
-            constraintValues.MaxPhases = car.ActualPhases;
+            if (carConfigValues.CarType == CarType.Tesla)
+            {
+                constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
+                constraintValues.MinPhases = car.ActualPhases;
+                constraintValues.MaxPhases = car.ActualPhases;
+            }
             constraintValues.MaxSoc = carConfigValues.MaximumSoc;
             constraintValues.MinSoc = carConfigValues.MinimumSoc;
             constraintValues.CarSocLimit = car.SocLimit.Value;
