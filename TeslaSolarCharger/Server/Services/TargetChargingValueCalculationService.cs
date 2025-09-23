@@ -364,16 +364,21 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     c.MaximumSoc,
                     c.MinimumSoc,
                     c.CarType,
+                    c.MaximumPhases,
                 })
                 .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             constraintValues.MaxCurrent = carConfigValues.MaximumAmpere;
             constraintValues.ChargeMode = carConfigValues.ChargeMode;
             var car = _settings.Cars.First(c => c.Id == carId);
+            constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
             if (carConfigValues.CarType == CarType.Tesla)
             {
-                constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
                 constraintValues.MinPhases = car.ActualPhases;
                 constraintValues.MaxPhases = car.ActualPhases;
+            }
+            else
+            {
+                constraintValues.MaxPhases = carConfigValues.MaximumPhases;
             }
             constraintValues.MaxSoc = carConfigValues.MaximumSoc;
             constraintValues.MinSoc = carConfigValues.MinimumSoc;
@@ -424,21 +429,21 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 constraintValues.MaxCurrent = chargingConnectorConfigValues.MaxCurrent;
             }
 
+            constraintValues.PhaseSwitchingEnabled = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
+            // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
+            if (constraintValues.MaxPhases == default || constraintValues.MaxPhases > chargingConnectorConfigValues.ConnectedPhasesCount)
+            {
+                constraintValues.MaxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
+            }
+            //needs to be after max phases setting as sets min phases based on max phases
             // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
             if (constraintValues.MinPhases == default)
             {
                 constraintValues.MinPhases = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled
                     ? 1
-                    : chargingConnectorConfigValues.ConnectedPhasesCount;
+                    : constraintValues.MaxPhases;
             }
 
-            constraintValues.PhaseSwitchingEnabled = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
-
-            // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
-            if (constraintValues.MaxPhases == default)
-            {
-                constraintValues.MaxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
-            }
             if (constraintValues.ChargeMode == default)
             {
                 constraintValues.ChargeMode = chargingConnectorConfigValues.ChargeMode;

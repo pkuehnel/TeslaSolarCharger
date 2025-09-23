@@ -21,12 +21,14 @@ public class CarBasicConfiguration
     public int Id { get; set; }
     public string? Name { get; set; }
     public string Vin { get; set; }
+
     [Postfix("A")]
     [HelperText("TSC never sets a current below this value")]
-    public int MinimumAmpere { get; set; }
+    public int MinimumAmpere { get; set; } = 6;
+
     [Postfix("A")]
     [HelperText("TSC never sets a current above this value. This value is also used in the Max Power charge mode.")]
-    public int MaximumAmpere { get; set; }
+    public int MaximumAmpere { get; set; } = 16;
     [Postfix("A")]
     [HelperText("The charging point will stop charging when the available current drops below this value. This allows charging to continue for a while even if the current dips slightly, preventing unnecessary interruptions. Note: If you set this value to e.g. 3A while Min Current is set to 6A, charging will continue with 6A as long as there is enough solar power for 3A.")]
     public int? SwitchOffAtCurrent { get; set; }
