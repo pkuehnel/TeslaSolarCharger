@@ -747,6 +747,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                     c.MaximumAmpere,
                     c.UsableEnergy,
                     c.MinimumAmpere,
+                    c.MaximumPhases,
+                    c.CarType,
                 })
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false)
@@ -754,7 +756,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         var carSetting = _settings.Cars.FirstOrDefault(c => c.Id == carId);
         var carSoC = carSetting?.SoC.Value;
-        var carPhases = carSetting?.ActualPhases;
+        var carPhases = carData?.CarType == CarType.Tesla ? carSetting?.ActualPhases : carData?.MaximumPhases;
 
         var maxPhases = CalculateMaxValue(connectorData?.ConnectedPhasesCount, carPhases);
         var maxCurrent = CalculateMaxValue(connectorData?.MaxCurrent, carData?.MaximumAmpere);
