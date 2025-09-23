@@ -80,7 +80,9 @@ public class ChargingServiceV2 : IChargingServiceV2
             return;
         }
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        await SetManualCarsToAtHome(currentDate).ConfigureAwait(false);
         await CalculateGeofences(currentDate);
+        await SetManualCarsToAtHome(currentDate).ConfigureAwait(false);
         await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
@@ -197,6 +199,20 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         await _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings().ConfigureAwait(false);
+    }
+
+    private async Task SetManualCarsToAtHome(DateTimeOffset currentDate)
+    {
+        var manualCars = _context.Cars.Where(c => c.CarType == CarType.Manual).ToList();
+        foreach (var manualCar in manualCars)
+        {
+            var dtoCar = _settings.Cars.FirstOrDefault(c => c.Id == manualCar.Id);
+            if (dtoCar == default)
+            {
+                continue;
+            }
+            dtoCar.IsHomeGeofence.Update(currentDate, true);
+        }
     }
 
     /// <summary>
