@@ -80,11 +80,11 @@ public class ChargingServiceV2 : IChargingServiceV2
             return;
         }
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
+        await SetManualCarsToAtHome(currentDate).ConfigureAwait(false);
         await CalculateGeofences(currentDate);
+        await SetManualCarsToAtHome(currentDate).ConfigureAwait(false);
         await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
-        //Needs to be after setting Teslas to max current as otherwise the max current of Teslas is not determined correctly
-        await AutodetectCarCapabilities(currentDate, cancellationToken).ConfigureAwait(false);
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
         var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
         var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
@@ -107,13 +107,6 @@ public class ChargingServiceV2 : IChargingServiceV2
             if (!stateAvailable)
             {
                 continue;
-            }
-            if (((state!.CarCapabilities.Value == default) || (state.CarCapabilities.Timestamp < state.IsPluggedIn.LastChanged))
-                && state.IsCarFullyCharged.Value != true
-                && state.IsPluggedIn.Value)
-            {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charging with full speed for autodetection of connected car's charging speed. This is a normal behaviour right after plugin and will stop automatically."));
-                loadpointInCarCapabilityDetection.Add(loadpoint);
             }
         }
 
@@ -206,6 +199,20 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
         await _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings().ConfigureAwait(false);
+    }
+
+    private async Task SetManualCarsToAtHome(DateTimeOffset currentDate)
+    {
+        var manualCars = _context.Cars.Where(c => c.CarType == CarType.Manual).ToList();
+        foreach (var manualCar in manualCars)
+        {
+            var dtoCar = _settings.Cars.FirstOrDefault(c => c.Id == manualCar.Id);
+            if (dtoCar == default)
+            {
+                continue;
+            }
+            dtoCar.IsHomeGeofence.Update(currentDate, true);
+        }
     }
 
     /// <summary>
@@ -456,37 +463,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             _logger.LogDebug("Set current of car {carId} to max as is not charging", car.Id);
             await _teslaService.SetAmp(car.Id, car.MaximumAmpere).ConfigureAwait(false);
-        }
-    }
-
-    private async Task AutodetectCarCapabilities(DateTimeOffset currentDate, CancellationToken cancellationToken)
-    {
-        _logger.LogTrace("{method}()", nameof(AutodetectCarCapabilities));
-        foreach (var ocppConnectorState in _settings.OcppConnectorStates)
-        {
-            if (ocppConnectorState.Value.IsPluggedIn.Value
-                && (ocppConnectorState.Value.CarCapabilities.Value == default
-                    || (ocppConnectorState.Value.CarCapabilities.Timestamp < ocppConnectorState.Value.IsPluggedIn.LastChanged)))
-            {
-                _logger.LogTrace("Setting charging connector {chargingConnectorId} to max power to detect car capabilities", ocppConnectorState.Key);
-                await SetChargingConnectorToMaxPowerAndMaxPhases(ocppConnectorState.Key, currentDate, cancellationToken, ocppConnectorState.Value);
-            }
-            var skipValueChanges = _configurationWrapper.SkipPowerChangesOnLastAdjustmentNewerThan();
-            var earliestPlugin = currentDate - (2 * skipValueChanges);
-            if ((ocppConnectorState.Value.LastSetCurrent.LastChanged < earliestPlugin)
-                && (ocppConnectorState.Value.CarCapabilities.Value == default
-                    || (ocppConnectorState.Value.CarCapabilities.Timestamp < ocppConnectorState.Value.IsPluggedIn.LastChanged)))
-            {
-                _logger.LogTrace("Detecting car capabilities for charging connector {chargingConnectorId}", ocppConnectorState.Key);
-                //Set car capabilities
-                var maxCurrent = ocppConnectorState.Value.ChargingCurrent.Value;
-                var phases = ocppConnectorState.Value.PhaseCount.Value;
-                if (maxCurrent > 0 && phases != default)
-                {
-                    ocppConnectorState.Value.CarCapabilities.Update(currentDate,
-                        new DtoCarCapabilities() { MaxCurrent = maxCurrent, MaxPhases = phases.Value });
-                }
-            }
         }
     }
 
@@ -787,6 +763,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                     c.MaximumAmpere,
                     c.UsableEnergy,
                     c.MinimumAmpere,
+                    c.MaximumPhases,
+                    c.CarType,
                 })
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false)
@@ -794,7 +772,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         var carSetting = _settings.Cars.FirstOrDefault(c => c.Id == carId);
         var carSoC = carSetting?.SoC.Value;
-        var carPhases = carSetting?.ActualPhases;
+        var carPhases = carData?.CarType == CarType.Tesla ? carSetting?.ActualPhases : carData?.MaximumPhases;
 
         var maxPhases = CalculateMaxValue(connectorData?.ConnectedPhasesCount, carPhases);
         var maxCurrent = CalculateMaxValue(connectorData?.MaxCurrent, carData?.MaximumAmpere);
@@ -848,6 +826,8 @@ public class ChargingServiceV2 : IChargingServiceV2
     {
         var socDiff = chargingTargetSoc - currentSoC;
         var energyWh = socDiff * usableEnergy * 10; // soc*10 vs usableEnergy*1000 scale
+        var energyLossFactor = 1.15;
+        energyWh = (int)(energyWh * energyLossFactor);
 
         return energyWh > 0
             ? energyWh

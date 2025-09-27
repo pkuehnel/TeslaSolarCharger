@@ -18,7 +18,7 @@ public class DtoTimeStampedValue<T> : DtoValue<T>
 
     public bool Update(DateTimeOffset newTimestamp, T? newValue)
     {
-        if(newTimestamp <= Timestamp)
+        if (newTimestamp < Timestamp)
         {
             return false; // No update if the new timestamp is not greater than the current one.
         }

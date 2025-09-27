@@ -192,7 +192,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if ((currentToSet < constraintValues.MinCurrent)
                  && (phasesToUse != constraintValues.MinPhases.Value)
                  && ((constraintValues.PhaseReductionAllowed == true)
-                     || ignoreTimers))
+                     || ignoreTimers
+                     || constraintValues.IsCharging != true))
             {
                 if (constraintValues.IsCharging == true)
                 {
@@ -219,7 +220,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             else if ((currentToSet > constraintValues.MaxCurrent)
                        && (phasesToUse != constraintValues.MaxPhases.Value)
                         && ((constraintValues.PhaseIncreaseAllowed == true)
-                           || ignoreTimers))
+                           || ignoreTimers
+                           || constraintValues.IsCharging != true))
             {
                 if (constraintValues.IsCharging == true)
                 {
@@ -363,14 +365,23 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     c.ChargeMode,
                     c.MaximumSoc,
                     c.MinimumSoc,
+                    c.CarType,
+                    c.MaximumPhases,
                 })
                 .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
             constraintValues.MaxCurrent = carConfigValues.MaximumAmpere;
             constraintValues.ChargeMode = carConfigValues.ChargeMode;
             var car = _settings.Cars.First(c => c.Id == carId);
-            constraintValues.MinPhases = car.ActualPhases;
-            constraintValues.MaxPhases = car.ActualPhases;
+            constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
+            if (carConfigValues.CarType == CarType.Tesla)
+            {
+                constraintValues.MinPhases = car.ActualPhases;
+                constraintValues.MaxPhases = car.ActualPhases;
+            }
+            else
+            {
+                constraintValues.MaxPhases = carConfigValues.MaximumPhases;
+            }
             constraintValues.MaxSoc = carConfigValues.MaximumSoc;
             constraintValues.MinSoc = carConfigValues.MinimumSoc;
             constraintValues.CarSocLimit = car.SocLimit.Value;
@@ -420,21 +431,21 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 constraintValues.MaxCurrent = chargingConnectorConfigValues.MaxCurrent;
             }
 
+            constraintValues.PhaseSwitchingEnabled = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
+            // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
+            if (constraintValues.MaxPhases == default || constraintValues.MaxPhases > chargingConnectorConfigValues.ConnectedPhasesCount)
+            {
+                constraintValues.MaxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
+            }
+            //needs to be after max phases setting as sets min phases based on max phases
             // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
             if (constraintValues.MinPhases == default)
             {
                 constraintValues.MinPhases = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled
                     ? 1
-                    : chargingConnectorConfigValues.ConnectedPhasesCount;
+                    : constraintValues.MaxPhases;
             }
 
-            constraintValues.PhaseSwitchingEnabled = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
-
-            // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
-            if (constraintValues.MaxPhases == default)
-            {
-                constraintValues.MaxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
-            }
             if (constraintValues.ChargeMode == default)
             {
                 constraintValues.ChargeMode = chargingConnectorConfigValues.ChargeMode;
@@ -471,29 +482,6 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                                                      && IsTimeStampedValueRelevant(ocppValues.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff,
                                                          out chargeStopAllowedAt);
                 constraintValues.ChargeStopAllowedAt = chargeStopAllowedAt;
-
-                var areCarCapabilitiesRelevant = ocppValues.IsPluggedIn.Value
-                                                 && (ocppValues.IsPluggedIn.LastChanged < ocppValues.CarCapabilities.Timestamp
-                                                     || ocppValues.IsPluggedIn.Timestamp < ocppValues.CarCapabilities.Timestamp);
-                if (areCarCapabilitiesRelevant)
-                {
-                    var carCapability = ocppValues.CarCapabilities.Value;
-                    if (carCapability != default)
-                    {
-                        if (constraintValues.MinPhases > carCapability.MaxPhases)
-                        {
-                            constraintValues.MinPhases = carCapability.MaxPhases;
-                        }
-                        if (constraintValues.MaxPhases > carCapability.MaxPhases)
-                        {
-                            constraintValues.MaxPhases = carCapability.MaxPhases;
-                        }
-                        if (constraintValues.MaxCurrent > (carCapability.MaxCurrent + _constants.CarCapabilityMaxCurrentAboveMeasuredCurrent))
-                        {
-                            constraintValues.MaxCurrent = (int)carCapability.MaxCurrent;
-                        }
-                    }
-                }
                 if (constraintValues.MaxCurrent < constraintValues.MinCurrent)
                 {
                     constraintValues.MinCurrent = constraintValues.MaxCurrent;

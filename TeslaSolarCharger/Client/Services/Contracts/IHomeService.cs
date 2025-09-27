@@ -22,6 +22,7 @@ public interface IHomeService
     Task<Result<object?>> SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases);
     Task<Result<object?>> StopChargingConnectorCharging(int chargingConnectorId);
     Task<Result<object?>> SetCarChargingCurrent(int carId, int currentToSet);
+    Task<Result<object?>> UpdateManualCarSoc(int carId, int soc);
     Task<Result<object?>> UpdateCarMaxSoc(int carId, int soc);
     Task<List<DtoNotChargingWithExpectedPowerReason>?> GetNotChargingWithExpectedPowerReasons(int? carId, int? connectorId);
     Task<Dictionary<int, string>?> GetLoadPointCarOptions();

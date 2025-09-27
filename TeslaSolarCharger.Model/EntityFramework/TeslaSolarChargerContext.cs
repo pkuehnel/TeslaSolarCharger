@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Newtonsoft.Json;
 using TeslaSolarCharger.Model.Contracts;
-using TeslaSolarCharger.Model.Converters;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Model.Enums;
 using TeslaSolarCharger.Shared.Enums;
@@ -40,6 +39,7 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
     public DbSet<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; } = null!;
     public DbSet<CarChargingTarget> CarChargingTargets { get; set; } = null!;
     public DbSet<PvValueLog> PvValueLogs { get; set; } = null!;
+    public DbSet<ChargingStationConnectorAllowedCar> ChargingStationConnectorAllowedCars { get; set; } = null!;
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     public string DbPath { get; }
 
@@ -191,6 +191,21 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
         modelBuilder.Entity<RestValueConfigurationHeader>()
             .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
+
+        modelBuilder.Entity<ChargingStationConnectorAllowedCar>(entity =>
+        {
+            entity.HasKey(e => new { e.CarId, e.OcppChargingStationConnectorId }); // composite key
+
+            entity.HasOne(e => e.Car)
+                .WithMany() // requires collection on Car
+                .HasForeignKey(e => e.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.OcppChargingStationConnector)
+                .WithMany(conn => conn.AllowedCars)
+                .HasForeignKey(e => e.OcppChargingStationConnectorId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         var timeListToStringValueConverter = new ValueConverter<List<DateTime>, string?>(
             v => JsonConvert.SerializeObject(v),

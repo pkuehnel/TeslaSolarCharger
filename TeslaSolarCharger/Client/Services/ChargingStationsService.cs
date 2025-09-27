@@ -28,4 +28,11 @@ public class ChargingStationsService : IChargingStationsService
         var response = await _httpClientHelper.SendGetRequestWithSnackbarAsync<List<DtoChargingStationConnector>>($"api/ChargingStations/GetChargingStationConnectors?chargingStationId={chargingStationId}");
         return response;
     }
+
+    public async Task<Dictionary<int, string>?> GetCarOptions()
+    {
+        _logger.LogTrace("{method}()", nameof(GetChargingStationConnectors));
+        var response = await _httpClientHelper.SendGetRequestWithSnackbarAsync<Dictionary<int, string>>($"api/ChargingStations/GetCarOptions");
+        return response;
+    }
 }

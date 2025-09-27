@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Enums;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
@@ -24,6 +25,7 @@ public class LoadPointManagementService : ILoadPointManagementService
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IIssueKeys _issueKeys;
+    private readonly IManualCarHandlingService _manualCarHandlingService;
 
     public LoadPointManagementService(
     ILogger<LoadPointManagementService> logger,
@@ -36,7 +38,8 @@ public class LoadPointManagementService : ILoadPointManagementService
     IDateTimeProvider dateTimeProvider,
     IChangeTrackingService changeTrackingService,
     IEntityKeyGenerationHelper entityKeyGenerationHelper,
-    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService)
+    IFleetTelemetryWebSocketService fleetTelemetryWebSocketService,
+    IManualCarHandlingService manualCarHandlingService)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -49,6 +52,7 @@ public class LoadPointManagementService : ILoadPointManagementService
         _changeTrackingService = changeTrackingService;
         _entityKeyGenerationHelper = entityKeyGenerationHelper;
         _fleetTelemetryWebSocketService = fleetTelemetryWebSocketService;
+        _manualCarHandlingService = manualCarHandlingService;
     }
 
     public async Task OcppStateChanged(int chargingConnectorId)
@@ -256,6 +260,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                 c.Id,
                 MinCurrent = c.MinimumAmpere,
                 MaxCurrent = c.MaximumAmpere,
+                c.CarType,
             })
             .ToHashSetAsync();
         var connectorData = await _context.OcppChargingStationConnectors
@@ -295,7 +300,8 @@ public class LoadPointManagementService : ILoadPointManagementService
                 loadPoint.IsPluggedIn = dtoCar.PluggedIn.Value == true;
                 loadPoint.EstimatedVoltageWhileCharging = CalculateEstimatedChargerVoltageWhileCharging(dtoCar.ChargerVoltage.Value);
                 //Currently always true as all cars are Teslas
-                loadPoint.ManageChargingPowerByCar = true;
+                loadPoint.ManageChargingPowerByCar = databaseCar.CarType == CarType.Tesla;
+                loadPoint.CarType = databaseCar.CarType;
             }
 
             if (pair.ChargingConnectorId != default)
@@ -332,8 +338,10 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
             result.Add(loadPoint);
         }
-
-        return result.OrderBy(l => l.ChargingPriority ?? 99).ToList();
+        return result
+            .OrderBy(lp => lp.ChargingConnectorId == null && lp.CarType != CarType.Tesla ? 1 : 0)
+            .ThenBy(lp => lp.ChargingPriority ?? 99)
+            .ToList();
     }
 
     public async Task<HashSet<DtoLoadpointCombination>> GetCarConnectorMatches(IEnumerable<int> carIds, IEnumerable<int> connectorIds, bool updateSettingsMatches)
@@ -495,18 +503,43 @@ public class LoadPointManagementService : ILoadPointManagementService
         }
         else
         {
-            throw new InvalidOperationException($"Charging connector is not connected via OCPP");
+            throw new InvalidOperationException("Charging connector is not connected via OCPP");
+        }
+        var loadPointBeforeChange = _settings.LatestLoadPointCombinations
+            .FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
+        var carIdBeforeChange = loadPointBeforeChange?.CarId;
+        if (carIdBeforeChange != default)
+        {
+            await _manualCarHandlingService
+                .HandleConnectorUnassignmentAsync(carIdBeforeChange.Value, currentDate)
+                .ConfigureAwait(false);
         }
         if (carId != default)
         {
-            var car = _settings.Cars.First(c => c.Id == carId.Value);
-            if (car.PluggedIn.Value != true)
+            var manualResult = await _manualCarHandlingService
+                .HandleConnectorAssignmentAsync(carId.Value, state.IsCharging.Value, currentDate)
+                .ConfigureAwait(false);
+            if (!manualResult.IsManualCar)
             {
-                throw new InvalidOperationException("Car is not plugged in, therefore it can not be set as car for charging connector.");
+                var car = _settings.Cars.First(c => c.Id == carId.Value);
+                if (car.PluggedIn.Value != true)
+                {
+                    throw new InvalidOperationException("Car is not plugged in, therefore it can not be set as car for charging connector.");
+                }
             }
+            
         }
         _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
         await GetLoadPointsToManage().ConfigureAwait(false);
+        if (carIdBeforeChange != default)
+        {
+            await CarStateChanged(carIdBeforeChange.Value);
+        }
+        if (carId != default)
+        {
+            await CarStateChanged(carId.Value);
+        }
+
     }
 
     private int CalculateEstimatedChargerVoltageWhileCharging(int? actualVoltage)

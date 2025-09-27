@@ -6,7 +6,8 @@ namespace TeslaSolarCharger.Server.Scheduling.Jobs;
 [DisallowConcurrentExecution]
 public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob> logger,
     IMeterValueLogService meterValueLogService,
-    IChargerValueLogService chargerValueLogService) : IJob
+    IChargerValueLogService chargerValueLogService,
+    ICarValueEstimationService carValueEstimationService) : IJob
 {
     public async Task Execute(IJobExecutionContext context)
     {
@@ -19,6 +20,16 @@ public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob
         {
             logger.LogError(ex, "An error occurred while saving buffered meter values to the database.");
         }
-        await chargerValueLogService.SaveBufferedChargerValuesToDatabase().ConfigureAwait(false);
+
+        try
+        {
+            await chargerValueLogService.SaveBufferedChargerValuesToDatabase().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An errror occurred while saving buffered charger meter values to the database.");
+        }
+
+        await carValueEstimationService.UpdateAllCarValueEstimations(context.CancellationToken).ConfigureAwait(false);
     }
 }

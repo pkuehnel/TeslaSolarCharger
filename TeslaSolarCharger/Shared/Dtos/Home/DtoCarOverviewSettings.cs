@@ -18,6 +18,7 @@ public class DtoCarOverviewSettings
     [Postfix("%")]
     public int? MaxSoc { get; set; }
     public ChargeModeV2 ChargeMode { get; set; }
+    public CarType CarType { get; set; }
 }
 
 public class DtoCarOverviewState

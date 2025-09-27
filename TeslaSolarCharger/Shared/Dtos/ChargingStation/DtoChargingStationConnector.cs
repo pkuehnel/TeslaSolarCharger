@@ -41,6 +41,9 @@ public class DtoChargingStationConnector
     public int ConnectedPhasesCount { get; set; } = 3;
     [HelperText("If there is not enough power for all cars/charging connectors, the cars/charging connectors will be charged ordered by priority. Cars/Charging connectors with the same priority are ordered randomly.")]
     public int ChargingPriority { get; set; }
+
+    [HelperText("Select all cars that may be connected to this connector. Is used to improve automatic detection of connected cars.")]
+    public HashSet<int> AllowedCars { get; set; } = new();
 }
 
 
