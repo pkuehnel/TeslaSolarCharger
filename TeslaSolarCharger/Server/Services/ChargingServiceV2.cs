@@ -826,6 +826,8 @@ public class ChargingServiceV2 : IChargingServiceV2
     {
         var socDiff = chargingTargetSoc - currentSoC;
         var energyWh = socDiff * usableEnergy * 10; // soc*10 vs usableEnergy*1000 scale
+        var energyLossFactor = 1.15;
+        energyWh = (int)(energyWh * energyLossFactor);
 
         return energyWh > 0
             ? energyWh
