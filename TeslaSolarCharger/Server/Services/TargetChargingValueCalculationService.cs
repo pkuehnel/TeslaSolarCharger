@@ -192,7 +192,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if ((currentToSet < constraintValues.MinCurrent)
                  && (phasesToUse != constraintValues.MinPhases.Value)
                  && ((constraintValues.PhaseReductionAllowed == true)
-                     || ignoreTimers))
+                     || ignoreTimers
+                     || constraintValues.IsCharging != true))
             {
                 if (constraintValues.IsCharging == true)
                 {
@@ -219,7 +220,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             else if ((currentToSet > constraintValues.MaxCurrent)
                        && (phasesToUse != constraintValues.MaxPhases.Value)
                         && ((constraintValues.PhaseIncreaseAllowed == true)
-                           || ignoreTimers))
+                           || ignoreTimers
+                           || constraintValues.IsCharging != true))
             {
                 if (constraintValues.IsCharging == true)
                 {
