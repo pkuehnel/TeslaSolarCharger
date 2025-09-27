@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
+using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 using TeslaSolarCharger.Server.Dtos.Ocpp;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Dtos.ChargingStation;
@@ -60,10 +61,21 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         return chargingConnectors;
     }
 
+    public async Task<Dictionary<int, string>> GetCarOptions()
+    {
+        logger.LogTrace("{method}()", nameof(GetCarOptions));
+        var result = await teslaSolarChargerContext.Cars
+            .Where(c => c.ShouldBeManaged == true)
+            .ToDictionaryAsync(c => c.Id, c => c.Name ?? c.Vin ?? "NoName");
+        return result;
+    }
+
     public async Task UpdateChargingStationConnector(DtoChargingStationConnector dtoChargingStation)
     {
         logger.LogTrace("{method}({@dto})", nameof(UpdateChargingStationConnector), dtoChargingStation);
-        var existingChargingStation = await teslaSolarChargerContext.OcppChargingStationConnectors.FirstAsync(c => c.Id == dtoChargingStation.Id);
+        var existingChargingStation = await teslaSolarChargerContext.OcppChargingStationConnectors
+            .Include(c => c.AllowedCars)
+            .FirstAsync(c => c.Id == dtoChargingStation.Id);
         existingChargingStation.Name = dtoChargingStation.Name;
         existingChargingStation.ShouldBeManaged = dtoChargingStation.ShouldBeManaged;
         existingChargingStation.MinCurrent = dtoChargingStation.MinCurrent;
@@ -74,6 +86,24 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         existingChargingStation.AutoSwitchBetween1And3PhasesEnabled = dtoChargingStation.AutoSwitchBetween1And3PhasesEnabled;
         existingChargingStation.PhaseSwitchCoolDownTimeSeconds = dtoChargingStation.PhaseSwitchCoolDownTimeSeconds;
         existingChargingStation.ChargingPriority = dtoChargingStation.ChargingPriority;
+
+        var existingCarIds = existingChargingStation.AllowedCars
+            .Select(ac => ac.CarId)
+            .ToHashSet();
+
+        var dtoCarIds = dtoChargingStation.AllowedCars;
+
+        existingChargingStation.AllowedCars
+            .RemoveAll(ac => !dtoCarIds.Contains(ac.CarId));
+
+        foreach (var carId in dtoCarIds.Except(existingCarIds))
+        {
+            existingChargingStation.AllowedCars.Add(new()
+            {
+                CarId = carId,
+                OcppChargingStationConnectorId = existingChargingStation.Id,
+            });
+        }
         await teslaSolarChargerContext.SaveChangesAsync();
     }
 

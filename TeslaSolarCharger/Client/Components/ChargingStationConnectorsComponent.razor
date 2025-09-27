@@ -35,6 +35,16 @@ else
                     <GenericInput For="() => chargingStationConnector.Item.MaxCurrent"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.ConnectedPhasesCount"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.ChargingPriority"></GenericInput>
+                    @if (_carOptions == default)
+                    {
+                        <PlaceholderComponent Count="1"></PlaceholderComponent>
+                    }
+                    else
+                    {
+                        <GenericInput For="() => chargingStationConnector.Item.AllowedCars"
+                                      DropDownOptions="_carOptions"
+                                      DisplayMultiSelectValues="true"></GenericInput>
+                    }
                     @if (AutoPhaseSwitchingSupported)
                     {
                         <GenericInput For="() => chargingStationConnector.Item.AutoSwitchBetween1And3PhasesEnabled"></GenericInput>
@@ -56,10 +66,18 @@ else
 
     private List<EditableItem<DtoChargingStationConnector>>? _chargingStationConnectors;
 
+    private Dictionary<int, string>? _carOptions;
+
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
+        await RefreshCarOptions();
         await RefreshChargingStationConnectors();
+    }
+
+    private async Task RefreshCarOptions()
+    {
+        _carOptions = await ChargingStationsService.GetCarOptions();
     }
 
 
