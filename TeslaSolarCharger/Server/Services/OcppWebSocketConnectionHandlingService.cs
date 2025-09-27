@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -26,8 +27,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         IConstants constants,
         IServiceProvider serviceProvider,
         ISettings settings,
-        IDateTimeProvider dateTimeProvider,
-        ILoadPointManagementService loadPointManagementService) : IOcppWebSocketConnectionHandlingService
+        IDateTimeProvider dateTimeProvider) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private readonly TimeSpan _messageHandlingTimeout = TimeSpan.FromSeconds(20);
@@ -75,7 +75,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 {
                     try
                     {
-                        await loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                        await InvokeLoadPointManagementService(service => service.OcppStateChanged(chargingConnectorId));
                     }
                     catch (Exception ex)
                     {
@@ -518,7 +518,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         {
             try
             {
-                await loadPointManagementService.OcppStateChanged(databaseChargePointId);
+                await InvokeLoadPointManagementService(service => service.OcppStateChanged(databaseChargePointId));
             }
             catch (Exception ex)
             {
@@ -609,7 +609,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 try
                 {
-                    await loadPointManagementService.OcppStateChanged(ocppTransaction.ChargingStationConnectorId);
+                    await InvokeLoadPointManagementService(service => service.OcppStateChanged(ocppTransaction.ChargingStationConnectorId));
                 }
                 catch (Exception ex)
                 {
@@ -658,7 +658,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
 
         if (manualResult.IsManualCar && manualResult.StateChanged)
         {
-            await loadPointManagementService.CarStateChanged(carId.Value).ConfigureAwait(false);
+            await InvokeLoadPointManagementService(service => service.CarStateChanged(carId.Value)).ConfigureAwait(false);
         }
     }
 
@@ -708,7 +708,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 try
                 {
-                    await loadPointManagementService.OcppStateChanged(chargingConnectorId).ConfigureAwait(false);
+                    await InvokeLoadPointManagementService(service => service.OcppStateChanged(chargingConnectorId)).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -918,7 +918,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 try
                 {
-                    await loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                    await InvokeLoadPointManagementService(service => service.OcppStateChanged(chargingConnectorId));
                 }
                 catch (Exception ex)
                 {
@@ -926,6 +926,13 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 }
             });
         }
+    }
+
+    private async Task InvokeLoadPointManagementService(Func<ILoadPointManagementService, Task> action)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
+        await action(loadPointManagementService).ConfigureAwait(false);
     }
 
     private bool TryGetMessageType(int raw, out MessageTypeId result)
