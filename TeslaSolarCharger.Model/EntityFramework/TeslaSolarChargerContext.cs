@@ -192,6 +192,21 @@ public class TeslaSolarChargerContext : DbContext, ITeslaSolarChargerContext
             .HasIndex(h => new { h.RestValueConfigurationId, h.Key })
             .IsUnique();
 
+        modelBuilder.Entity<ChargingStationConnectorAllowedCar>(entity =>
+        {
+            entity.HasKey(e => new { e.CarId, e.OcppChargingStationConnectorId }); // composite key
+
+            entity.HasOne(e => e.Car)
+                .WithMany() // requires collection on Car
+                .HasForeignKey(e => e.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.OcppChargingStationConnector)
+                .WithMany(conn => conn.AllowedCars)
+                .HasForeignKey(e => e.OcppChargingStationConnectorId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         var timeListToStringValueConverter = new ValueConverter<List<DateTime>, string?>(
             v => JsonConvert.SerializeObject(v),
             v => v == null ? new() : JsonConvert.DeserializeObject<List<DateTime>>(v) ?? new List<DateTime>()
