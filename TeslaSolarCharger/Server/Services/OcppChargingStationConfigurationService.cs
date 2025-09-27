@@ -56,6 +56,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                 MaxCurrent = cc.MaxCurrent,
                 ConnectedPhasesCount = cc.ConnectedPhasesCount ?? 3,
                 ChargingPriority = cc.ChargingPriority,
+                AllowedCars = cc.AllowedCars.Select(ac => ac.CarId).ToHashSet(),
             })
             .ToListAsync().ConfigureAwait(false);
         return chargingConnectors;
