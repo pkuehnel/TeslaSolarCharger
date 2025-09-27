@@ -176,18 +176,21 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                     SwitchOffAtCurrent = c.SwitchOffAtCurrent ?? c.MinimumAmpere,
                     c.ChargingPriority,
                     c.MaximumAmpere,
+                    c.CarType,
+                    c.MaximumPhases,
                 })
                 .FirstAsync().ConfigureAwait(false);
+            var phases = carDatabaseValues.CarType == CarType.Tesla ? dtoCar.ActualPhases : carDatabaseValues.MaximumPhases;
             var switchOnPoint = new SwitchPoint()
             {
                 Current = carDatabaseValues.SwitchOnAtCurrent,
-                PhaseCount = dtoCar.ActualPhases,
+                PhaseCount = phases,
                 Voltage = voltage,
             };
             var switchOffPoint = new SwitchPoint()
             {
                 Current = carDatabaseValues.SwitchOffAtCurrent,
-                PhaseCount = dtoCar.ActualPhases,
+                PhaseCount = phases,
                 Voltage = voltage,
             };
             var element = new DtoStartStopChargingHelper(switchOnPoint, switchOffPoint)
@@ -195,7 +198,7 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
                 Id = dtoCar.Id,
                 DeviceType = DeviceType.Car,
                 CurrentPower = dtoCar.ChargingPowerAtHome ?? 0,
-                MaxPower = carDatabaseValues.MaximumAmpere * voltage * dtoCar.ActualPhases,
+                MaxPower = carDatabaseValues.MaximumAmpere * voltage * phases,
                 ChargingPriority = carDatabaseValues.ChargingPriority,
             };
             elements.Add(element);
