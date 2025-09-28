@@ -426,11 +426,27 @@ public class LoadPointManagementService : ILoadPointManagementService
             _logger.LogTrace("Charging Connector {chargingConnectorId} match window start {matchWindowStart}, {matchWindowEnd}",
                 connectorId, matchWindowStart, matchWindowEnd);
 
+            var chargerDatabaseInformation = await _context.OcppChargingStationConnectors
+                .Where(c => c.Id == connectorId)
+                .Select(c => new
+                {
+                    AllowedCars = c.AllowedCars
+                        .Select(ac => new
+                        {
+                            ac.CarId,
+                            ac.Car.CarType,
+                        }).ToHashSet(),
+                    c.AllowGuestCars,
+                })
+                .FirstAsync().ConfigureAwait(false);
+
+
             var matchingCars = plugInRelevantCarData
                 .Where(car => car.PluggedIn.LastChanged >= matchWindowStart
                               && car.PluggedIn.LastChanged <= matchWindowEnd
                               && car.IsHomeGeofence.Value == true
-                              && car.PluggedIn.Value == true)
+                              && car.PluggedIn.Value == true
+                              && chargerDatabaseInformation.AllowedCars.Any(ac => ac.CarId == car.Id))
                 .ToList();
 
             if (matchingCars.Count == 1)
@@ -446,8 +462,28 @@ public class LoadPointManagementService : ILoadPointManagementService
             }
             else
             {
-                _logger.LogTrace("Found no car match for {connectorId}.", connectorId);
-                matches.Add(new(null, connectorId));
+                _logger.LogTrace("Found no car match for {connectorId}. Checking for manual cars.", connectorId);
+                if (chargerDatabaseInformation.AllowGuestCars)
+                {
+                    _logger.LogTrace("Guest cars are allowed for charging connector {connectorId}, therefore no manual car can be estimated as connected", connectorId);
+                    matches.Add(new(null, connectorId));
+                }
+                else
+                {
+                    var manualCars = chargerDatabaseInformation.AllowedCars
+                        .Where(c => c.CarType != CarType.Tesla)
+                        .ToList();
+                    if (manualCars.Count == 1)
+                    {
+                        _logger.LogTrace("Only one manual car ({carId}) for connector {connectorId} found, use it", manualCars.First().CarId, connectorId);
+                        matches.Add(new(manualCars.First().CarId, connectorId));
+                    }
+                    else
+                    {
+                        _logger.LogTrace("No car match for connector {connectorId} found, and no single manual car could be determined", connectorId);
+                        matches.Add(new(null, connectorId));
+                    }
+                }
             }
         }
 
@@ -527,7 +563,7 @@ public class LoadPointManagementService : ILoadPointManagementService
                     throw new InvalidOperationException("Car is not plugged in, therefore it can not be set as car for charging connector.");
                 }
             }
-            
+
         }
         _settings.ManualSetLoadPointCarCombinations[chargingConnectorId] = (carId, currentDate);
         await GetLoadPointsToManage().ConfigureAwait(false);
