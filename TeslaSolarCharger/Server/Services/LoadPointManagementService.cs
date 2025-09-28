@@ -515,6 +515,40 @@ public class LoadPointManagementService : ILoadPointManagementService
 
         if (updateSettingsMatches && (!_settings.LatestLoadPointCombinations.SetEquals(matches)))
         {
+            var lostCarIds = _settings.LatestLoadPointCombinations
+                .Except(matches)
+                .Where(l => l.CarId != default)
+                .Select(l => l.CarId!.Value)
+                .ToHashSet();
+            var gainedCarIds = matches
+                .Except(_settings.LatestLoadPointCombinations)
+                .Where(l => l.CarId != default && l.ChargingConnectorId != default)
+                .Select(x => new
+                {
+                    CarId = x.CarId!.Value,
+                    ChargingConnectorId = x.ChargingConnectorId!.Value,
+                })
+                .ToHashSet();
+
+            foreach (var lostCarId in lostCarIds)
+            {
+                var isNotTesla = await _context.Cars.Where(c => c.Id == lostCarId && c.CarType != CarType.Tesla).AnyAsync();
+                if (isNotTesla)
+                {
+                    await _manualCarHandlingService.HandleConnectorUnassignmentAsync(lostCarId, _dateTimeProvider.DateTimeOffSetUtcNow());
+                }
+            }
+
+            foreach (var gainedCarId in gainedCarIds)
+            {
+                var isNotTesla = await _context.Cars.Where(c => c.Id == gainedCarId.CarId && c.CarType != CarType.Tesla).AnyAsync();
+                if (isNotTesla)
+                {
+                    var couldGetState = _settings.OcppConnectorStates.TryGetValue(gainedCarId.ChargingConnectorId, out var connectorState);
+                    await _manualCarHandlingService.HandleConnectorAssignmentAsync(gainedCarId.CarId, couldGetState && connectorState?.IsCharging.Value == true, _dateTimeProvider.DateTimeOffSetUtcNow());
+                }
+            }
+
             _settings.LatestLoadPointCombinations = matches.ToHashSet();
             var changes = new StateUpdateDto()
             {
