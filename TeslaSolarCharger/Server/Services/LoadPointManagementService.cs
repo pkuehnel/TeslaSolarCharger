@@ -535,7 +535,11 @@ public class LoadPointManagementService : ILoadPointManagementService
                 var isNotTesla = await _context.Cars.Where(c => c.Id == lostCarId && c.CarType != CarType.Tesla).AnyAsync();
                 if (isNotTesla)
                 {
-                    await _manualCarHandlingService.HandleConnectorUnassignmentAsync(lostCarId, _dateTimeProvider.DateTimeOffSetUtcNow());
+                    var result = await _manualCarHandlingService.HandleConnectorUnassignmentAsync(lostCarId, _dateTimeProvider.DateTimeOffSetUtcNow());
+                    if (result.StateChanged)
+                    {
+                        await CarStateChanged(lostCarId);
+                    }
                 }
             }
 
@@ -545,7 +549,11 @@ public class LoadPointManagementService : ILoadPointManagementService
                 if (isNotTesla)
                 {
                     var couldGetState = _settings.OcppConnectorStates.TryGetValue(gainedCarId.ChargingConnectorId, out var connectorState);
-                    await _manualCarHandlingService.HandleConnectorAssignmentAsync(gainedCarId.CarId, couldGetState && connectorState?.IsCharging.Value == true, _dateTimeProvider.DateTimeOffSetUtcNow());
+                    var result = await _manualCarHandlingService.HandleConnectorAssignmentAsync(gainedCarId.CarId, couldGetState && connectorState?.IsCharging.Value == true, _dateTimeProvider.DateTimeOffSetUtcNow());
+                    if (result.StateChanged)
+                    {
+                        await CarStateChanged(gainedCarId.CarId);
+                    }
                 }
             }
 

@@ -121,20 +121,12 @@ public class ManualCarHandlingService(
         context.CarValueLogs.AddRange(logs);
         await context.SaveChangesAsync().ConfigureAwait(false);
 
-        var previousPlugged = cachedCar.PluggedIn.Value;
-        var previousCharging = cachedCar.IsCharging.Value;
-        var previousHome = cachedCar.IsHomeGeofence.Value;
+        var stateChanged = cachedCar.PluggedIn.Update(timestamp, true, true);
+        stateChanged = cachedCar.IsCharging.Update(timestamp, isCharging, true) || stateChanged;
+        stateChanged = cachedCar.IsHomeGeofence.Update(timestamp, true, true) || stateChanged;
+        stateChanged = cachedCar.SoC.Update(timestamp, null) || stateChanged;
 
-        cachedCar.PluggedIn.Update(timestamp, true);
-        cachedCar.IsCharging.Update(timestamp, isCharging);
-        cachedCar.IsHomeGeofence.Update(timestamp, true);
-        cachedCar.SoC.Update(timestamp, null);
-
-        var stateChanged = previousPlugged != true
-                           || previousCharging != isCharging
-                           || previousHome != true;
-
-        return new ManualCarOperationResult(true, stateChanged);
+        return new(true, stateChanged);
     }
 
     public async Task<ManualCarOperationResult> HandleConnectorUnassignmentAsync(int carId, DateTimeOffset timestamp)
@@ -156,15 +148,10 @@ public class ManualCarHandlingService(
         context.CarValueLogs.AddRange(logs);
         await context.SaveChangesAsync().ConfigureAwait(false);
 
-        var previousPlugged = cachedCar.PluggedIn.Value;
-        var previousCharging = cachedCar.IsCharging.Value;
+       var stateChanged = cachedCar.PluggedIn.Update(timestamp, false);
+       stateChanged = cachedCar.IsCharging.Update(timestamp, false) || stateChanged;
 
-        cachedCar.PluggedIn.Update(timestamp, false);
-        cachedCar.IsCharging.Update(timestamp, false);
-
-        var stateChanged = previousPlugged != false || previousCharging != false;
-
-        return new ManualCarOperationResult(true, stateChanged);
+        return new(true, stateChanged);
     }
 
     private async Task<bool> IsManualCarAsync(int carId)
