@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -71,42 +68,30 @@ public class ManualCarHandlingService(
         var cachedCar = TryGetCachedCar(carId, throwIfMissing: false);
         if (cachedCar == default)
         {
-            return new ManualCarOperationResult(true, false);
+            return new(true, false);
         }
 
         var valueLogs = new List<CarValueLog>();
-        var stateChanged = false;
 
         var pluggedTimestamp = connectorState.IsPluggedIn.Timestamp;
+        var pluggedInChanged = cachedCar.PluggedIn.Update(connectorState.IsPluggedIn.Timestamp, connectorState.IsPluggedIn.Value, true);
+        var stateChanged = pluggedInChanged;
         if (pluggedTimestamp > cachedCar.PluggedIn.Timestamp)
         {
-            var previousValue = cachedCar.PluggedIn.Value;
             var newValue = connectorState.IsPluggedIn.Value;
-            cachedCar.PluggedIn.Update(pluggedTimestamp, newValue);
             valueLogs.Add(CreateBooleanLog(carId, CarValueType.IsPluggedIn, pluggedTimestamp, newValue, CarValueSource.LinkedCharger));
-            if (previousValue != newValue)
+            if (pluggedInChanged)
             {
-                stateChanged = true;
-                var previousSoc = cachedCar.SoC.Value;
                 cachedCar.SoC.Update(pluggedTimestamp, null);
-                if (previousSoc != null)
-                {
-                    stateChanged = true;
-                }
             }
         }
 
         var chargingTimestamp = connectorState.IsCharging.Timestamp;
-        if (chargingTimestamp > cachedCar.IsCharging.Timestamp)
+        var isChargingChanged = cachedCar.IsCharging.Update(connectorState.IsCharging.Timestamp, connectorState.IsCharging.Value, true);
+        if (isChargingChanged)
         {
-            var previousValue = cachedCar.IsCharging.Value;
-            var newValue = connectorState.IsCharging.Value;
-            cachedCar.IsCharging.Update(chargingTimestamp, newValue);
-            valueLogs.Add(CreateBooleanLog(carId, CarValueType.IsCharging, chargingTimestamp, newValue, CarValueSource.LinkedCharger));
-            if (previousValue != newValue)
-            {
-                stateChanged = true;
-            }
+            valueLogs.Add(CreateBooleanLog(carId, CarValueType.IsCharging, chargingTimestamp, connectorState.IsCharging.Value, CarValueSource.LinkedCharger));
+            stateChanged = true;
         }
 
         if (valueLogs.Count > 0)
@@ -114,7 +99,7 @@ public class ManualCarHandlingService(
             context.CarValueLogs.AddRange(valueLogs);
             await context.SaveChangesAsync().ConfigureAwait(false);
         }
-        return new ManualCarOperationResult(true, stateChanged);
+        return new(true, stateChanged);
     }
 
     public async Task<ManualCarOperationResult> HandleConnectorAssignmentAsync(int carId, bool? isCharging, DateTimeOffset timestamp)
