@@ -57,6 +57,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
                 ConnectedPhasesCount = cc.ConnectedPhasesCount ?? 3,
                 ChargingPriority = cc.ChargingPriority,
                 AllowedCars = cc.AllowedCars.Select(ac => ac.CarId).ToHashSet(),
+                AllowGuestCars = cc.AllowGuestCars,
             })
             .ToListAsync().ConfigureAwait(false);
         return chargingConnectors;
@@ -87,6 +88,7 @@ public class OcppChargingStationConfigurationService(ILogger<OcppChargingStation
         existingChargingStation.AutoSwitchBetween1And3PhasesEnabled = dtoChargingStation.AutoSwitchBetween1And3PhasesEnabled;
         existingChargingStation.PhaseSwitchCoolDownTimeSeconds = dtoChargingStation.PhaseSwitchCoolDownTimeSeconds;
         existingChargingStation.ChargingPriority = dtoChargingStation.ChargingPriority;
+        existingChargingStation.AllowGuestCars = dtoChargingStation.AllowGuestCars;
 
         var existingCarIds = existingChargingStation.AllowedCars
             .Select(ac => ac.CarId)

@@ -44,6 +44,8 @@ public class DtoChargingStationConnector
 
     [HelperText("Select all cars that may be connected to this connector. Is used to improve automatic detection of connected cars.")]
     public HashSet<int> AllowedCars { get; set; } = new();
+    [HelperText("Cars that are not known by TSC can charge here.")]
+    public bool AllowGuestCars { get; set; }
 }
 
 
