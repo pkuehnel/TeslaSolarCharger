@@ -22,6 +22,7 @@ public interface IHomeService
     Task SetChargingConnectorCurrent(int chargingConnectorId, int currentToSet, int? numberOfPhases, CancellationToken cancellationToken);
     Task StopChargingConnectorCharging(int chargingConnectorId, CancellationToken cancellationToken);
     Task UpdateCarMaxSoc(int carId, int newSoc);
+    Task UpdateManualCarSoc(int carId, int newSoc);
     Dictionary<int, string> GetLoadPointCarOptions();
     Task<Dictionary<DateTimeOffset, decimal>> GetGridPrices(DateTimeOffset from, DateTimeOffset to);
 }

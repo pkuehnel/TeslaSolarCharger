@@ -7,6 +7,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Enums;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -18,7 +19,7 @@ public class TeslaMateMqttService(
     IConfigurationWrapper configurationWrapper,
     IDateTimeProvider dateTimeProvider,
     ITeslaSolarChargerContext teslaSolarChargerContext,
-    ILoadPointManagementService loadPointManagementService)
+    IServiceScopeFactory serviceScopeFactory)
     : ITeslaMateMqttService
 {
 
@@ -214,7 +215,7 @@ public class TeslaMateMqttService(
         {
             // Logge einen Fehler oder handle den Fall, dass kein Auto gefunden wurde
             logger.LogError($"No car found with TeslaMateCarId {value.CarId}");
-            return; // oder andere geeignete Maßnahme
+            return; // oder andere geeignete MaÃŸnahme
         }
 
 
@@ -489,7 +490,12 @@ public class TeslaMateMqttService(
                 break;
         }
 
-        _ = loadPointManagementService.CarStateChanged(car.Id);
+        _ = Task.Run(async () =>
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var scopedLoadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
+            await scopedLoadPointManagementService.CarStateChanged(car.Id).ConfigureAwait(false);
+        });
     }
 
     private TeslaMateValue GetValueFromMessage(MqttApplicationMessage mqttApplicationMessage)

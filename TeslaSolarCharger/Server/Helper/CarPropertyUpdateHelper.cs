@@ -213,12 +213,12 @@ public class CarPropertyUpdateHelper : ICarPropertyUpdateHelper
                             if (Nullable.GetUnderlyingType(innerType) != null && convertedValue != null)
                             {
                                 // The value is already the underlying type, just pass it
-                                updateMethod.Invoke(dtoTimeStampedValue, [timestamp, convertedValue]);
+                                updateMethod.Invoke(dtoTimeStampedValue, [timestamp, convertedValue, false]);
                             }
                             else
                             {
                                 // For non-nullable types or null values
-                                updateMethod.Invoke(dtoTimeStampedValue, [timestamp, convertedValue]);
+                                updateMethod.Invoke(dtoTimeStampedValue, [timestamp, convertedValue, false]);
                             }
                         }
                         else

@@ -16,6 +16,15 @@ function removeFocus(elementId) {
     return false;
 }
 
+function scrollToElementById(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+    }
+    return false;
+}
+
 function openInNewTab(url) {
     window.open(url, '_blank');
 }

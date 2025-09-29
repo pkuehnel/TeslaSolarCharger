@@ -11,6 +11,8 @@ public class Car
     public TeslaCarFleetApiState? TeslaFleetApiState { get; set; }
     public bool IsFleetTelemetryHardwareIncompatible { get; set; }
     public ChargeModeV2 ChargeMode { get; set; }
+    public CarType CarType { get; set; }
+    public int MaximumPhases { get; set; }
     public int MinimumSoc { get; set; }
     public int MaximumSoc { get; set; }
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeslaSolarCharger.Model.EntityFramework;
 
@@ -10,9 +11,11 @@ using TeslaSolarCharger.Model.EntityFramework;
 namespace TeslaSolarCharger.Model.Migrations
 {
     [DbContext(typeof(TeslaSolarChargerContext))]
-    partial class TeslaSolarChargerContextModelSnapshot : ModelSnapshot
+    [Migration("20250920141402_AddCarMaximumPhases")]
+    partial class AddCarMaximumPhases
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
@@ -400,21 +403,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.ToTable("ChargingProcesses");
                 });
 
-            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingStationConnectorAllowedCar", b =>
-                {
-                    b.Property<int>("CarId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("OcppChargingStationConnectorId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("CarId", "OcppChargingStationConnectorId");
-
-                    b.HasIndex("OcppChargingStationConnectorId");
-
-                    b.ToTable("ChargingStationConnectorAllowedCars");
-                });
-
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.HandledCharge", b =>
                 {
                     b.Property<int>("Id")
@@ -717,9 +705,6 @@ namespace TeslaSolarCharger.Model.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("AllowGuestCars")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("AutoSwitchBetween1And3PhasesEnabled")
@@ -1067,25 +1052,6 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Navigation("OcppChargingStationConnector");
                 });
 
-            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingStationConnectorAllowedCar", b =>
-                {
-                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
-                        .WithMany()
-                        .HasForeignKey("CarId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnector", "OcppChargingStationConnector")
-                        .WithMany("AllowedCars")
-                        .HasForeignKey("OcppChargingStationConnectorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Car");
-
-                    b.Navigation("OcppChargingStationConnector");
-                });
-
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MeterValue", b =>
                 {
                     b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
@@ -1231,8 +1197,6 @@ namespace TeslaSolarCharger.Model.Migrations
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnector", b =>
                 {
-                    b.Navigation("AllowedCars");
-
                     b.Navigation("ChargingProcesses");
 
                     b.Navigation("MeterValues");

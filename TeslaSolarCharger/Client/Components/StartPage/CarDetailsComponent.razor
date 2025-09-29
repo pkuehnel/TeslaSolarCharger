@@ -1,5 +1,6 @@
 ﻿@using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Services.Contracts
+@using System.ComponentModel
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
@@ -24,11 +25,17 @@ else
         {
             <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(CarState.IsOnline == false)" TooltipText="connected to server"></CustomIcon>
         }
-        <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText="at home"></CustomIcon>
+        @if (CarSettings.CarType != CarType.Manual)
+        {
+            <CustomIcon IconName="@Icons.Material.Outlined.Home" IsCrossedOut="@(!CarState.IsHome)" TooltipText="at home"></CustomIcon>
+        }
         <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!CarState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
         <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!CarState.IsCharging)" TooltipText="charging"></CustomIcon>
     </div>
-    <FleetApiTestComponent CarId="CarId" />
+    @if (CarSettings.CarType == CarType.Tesla)
+    {
+        <FleetApiTestComponent CarId="CarId" />
+    }
     @if (CarState.FleetTelemetryDataState == FleetTelemetryDataState.NotEnoughTimeSinceReconnect)
     {
         <MudAlert Severity="Severity.Warning" Class="mb-3">
@@ -55,6 +62,18 @@ else
                                     BufferLabelPrefix="Car Limit: "
                                     BufferLabelSuffix="%">
         </ProgressWithLabelComponent>
+    }
+    @if (CarSettings.CarType == CarType.Manual)
+    {
+        if (CarState.Soc == default)
+        {
+            <MudAlert Severity="Severity.Warning" Class="my-3">
+                As this car is not connected via an API you need to manually set the current state of charge. Note: Each time you plugin the car the SoC is reset as TSC does not know how much energy the car used.
+            </MudAlert>
+        }
+        <GenericInput T="int?"
+                      For="() => ManualSocToSet"
+                      OnValueChanged="SetManualSoc"/>
     }
     <div>
         <div class="d-flex align-items-center">
@@ -90,13 +109,26 @@ else
         }
         else if (CarSettings.ChargeMode == ChargeModeV2.Manual)
         {
-            <MudAlert Severity="Severity.Info" Class="mb-3">
-                You need to manually wake up the car and start charging via the Tesla app. You can only change the current here.
-            </MudAlert>
-            <GenericInput For="() => CurrentToSet"></GenericInput>
-            <RightAlignedButtonComponent ButtonText="Set Current"
-                                         IsLoading="@_isCommandLoading"
-                                         OnButtonClicked="@(SetCurrent)"></RightAlignedButtonComponent>
+            @if (CarSettings.CarType == CarType.Tesla)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    You need to manually wake up the car and start charging via the Tesla app. You can only change the current here.
+                </MudAlert>
+                <GenericInput For="() => CurrentToSet"></GenericInput>
+                <RightAlignedButtonComponent ButtonText="Set Current"
+                                             IsLoading="@_isCommandLoading"
+                                             OnButtonClicked="@(SetCurrent)"></RightAlignedButtonComponent>
+            }
+            else if(ChargingConnectorId == default)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    Only Teslas or cars connected via an OCPP charging connector can be charged in Manual mode. Please connect this car to an OCPP charging connector.
+                </MudAlert>
+            }
+            else
+            {
+                <ManualOcppChargingComponent ChargingConnectorId="ChargingConnectorId" />
+            }
         }
     </div>
 
@@ -115,6 +147,9 @@ else
     [Parameter]
     public int? CarId { get; set; }
 
+    [Parameter]
+    public int? ChargingConnectorId { get; set; }
+
     private DtoCarOverviewSettings? CarSettings { get; set; }
 
     private DtoCarOverviewState? CarState { get; set; }
@@ -129,6 +164,9 @@ else
 
     [Postfix("A")]
     private int? CurrentToSet { get; set; }
+    [DisplayName("State of Charge")]
+    [Postfix("%")]
+    private int? ManualSocToSet { get; set; }
     private bool _isCommandLoading;
 
     protected override async Task OnParametersSetAsync()
@@ -302,6 +340,38 @@ else
         {
             Snackbar.Add("Command successfully sent", Severity.Success);
         }
+    }
+
+    private async Task SetManualSoc()
+    {
+        if (CarId == default)
+        {
+            return;
+        }
+
+        if (ManualSocToSet == default)
+        {
+            Snackbar.Add("Please set a valid state of charge.", Severity.Error);
+            return;
+        }
+
+        var manualSoc = ManualSocToSet.Value;
+        if (manualSoc < 0 || manualSoc > 100)
+        {
+            Snackbar.Add("State of charge must be between 0 and 100%.", Severity.Error);
+            return;
+        }
+
+        var result = await HomeService.UpdateManualCarSoc(CarId.Value, manualSoc);
+        if (result.HasError)
+        {
+            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("State of charge updated successfully.", Severity.Success);
+        ManualSocToSet = null;
+        StateHasChanged();
     }
 
 }

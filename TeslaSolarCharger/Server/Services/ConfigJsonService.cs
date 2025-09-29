@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using TeslaSolarCharger.Model.Contracts;
@@ -26,7 +27,8 @@ public class ConfigJsonService(
     IFleetTelemetryConfigurationService fleetTelemetryConfigurationService,
     ITscConfigurationService tscConfigurationService,
     ILoadPointManagementService loadPointManagementService,
-    ICarPropertyUpdateHelper carPropertyUpdateHelper)
+    ICarPropertyUpdateHelper carPropertyUpdateHelper,
+    IDateTimeProvider dateTimeProvider)
     : IConfigJsonService
 {
 
@@ -77,7 +79,7 @@ public class ConfigJsonService(
         logger.LogTrace("{method}()", nameof(GetCarBasicConfigurations));
 
         var cars = await teslaSolarChargerContext.Cars
-            .Where(c => c.IsAvailableInTeslaAccount)
+            .Where(c => c.IsAvailableInTeslaAccount || (c.CarType != CarType.Tesla))
             .OrderBy(c => c.ChargingPriority)
             .Select(c => new CarBasicConfiguration(c.Id, c.Name)
             {
@@ -94,6 +96,8 @@ public class ConfigJsonService(
                 UseFleetTelemetry = c.UseFleetTelemetry,
                 IncludeTrackingRelevantFields = c.IncludeTrackingRelevantFields,
                 HomeDetectionVia = c.HomeDetectionVia,
+                CarType = c.CarType,
+                MaximumPhases = c.MaximumPhases,
             })
             .ToListAsync().ConfigureAwait(false);
 
@@ -106,9 +110,9 @@ public class ConfigJsonService(
         return settings;
     }
 
-    public async Task AddCarsToSettings()
+    public async Task AddCarsToSettings(bool initializeManualCarValues = false, int? manualCarIdToInitialize = null)
     {
-        settings.Cars = await GetCars().ConfigureAwait(false);
+        settings.Cars = await GetCars(initializeManualCarValues, manualCarIdToInitialize).ConfigureAwait(false);
         foreach (var dtoCar in settings.CarsToManage)
         {
             await loadPointManagementService.CarStateChanged(dtoCar.Id);
@@ -179,7 +183,7 @@ public class ConfigJsonService(
     public async Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration)
     {
         logger.LogTrace("{method}({carId}, {@carBasicConfiguration})", nameof(UpdateCarBasicConfiguration), carId, carBasicConfiguration);
-        var databaseCar = await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carId);
+        var databaseCar = carId == default ? new() : await teslaSolarChargerContext.Cars.FirstAsync(c => c.Id == carId);
         databaseCar.Name = carBasicConfiguration.Name;
         databaseCar.Vin = carBasicConfiguration.Vin;
         databaseCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
@@ -192,56 +196,90 @@ public class ConfigJsonService(
         databaseCar.UseBle = carBasicConfiguration.UseBle;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
+        databaseCar.CarType = carBasicConfiguration.CarType;
         if (carBasicConfiguration.UseFleetTelemetry)
         {
             databaseCar.IsFleetTelemetryHardwareIncompatible = false;
         }
         databaseCar.IncludeTrackingRelevantFields = carBasicConfiguration.IncludeTrackingRelevantFields;
         databaseCar.HomeDetectionVia = carBasicConfiguration.HomeDetectionVia;
+        databaseCar.MaximumPhases = carBasicConfiguration.MaximumPhases;
+        if (carId == default)
+        {
+            databaseCar.ChargeMode = ChargeModeV2.Auto;
+            databaseCar.MinimumSoc = 10;
+            databaseCar.MaximumSoc = 100;
+            teslaSolarChargerContext.Cars.Add(databaseCar);
+        }
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
-        var settingsCar = settings.Cars.First(c => c.Id == carId);
-        settingsCar.Name = carBasicConfiguration.Name;
-        settingsCar.Vin = carBasicConfiguration.Vin;
-        settingsCar.MinimumAmpere = carBasicConfiguration.MinimumAmpere;
-        settingsCar.MaximumAmpere = carBasicConfiguration.MaximumAmpere;
-        settingsCar.UsableEnergy = carBasicConfiguration.UsableEnergy;
-        settingsCar.ChargingPriority = carBasicConfiguration.ChargingPriority;
-        settingsCar.ShouldBeManaged = carBasicConfiguration.ShouldBeManaged;
-        settingsCar.UseBle = carBasicConfiguration.UseBle;
-        settingsCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
-        await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(settingsCar.Vin, false);
+        var shouldInitializeManualCarValues = carId == default && databaseCar.CarType == CarType.Manual;
+        var manualCarIdToInitialize = shouldInitializeManualCarValues ? databaseCar.Id : (int?)null;
+        await AddCarsToSettings(shouldInitializeManualCarValues, manualCarIdToInitialize).ConfigureAwait(false);
+        if (databaseCar.CarType == CarType.Tesla)
+        {
+            await fleetTelemetryConfigurationService.SetFleetTelemetryConfiguration(databaseCar.Vin, false);
+        }
     }
 
-    private async Task<List<DtoCar>> GetCars()
+    private async Task<List<DtoCar>> GetCars(bool initializeManualCarValues, int? manualCarIdToInitialize)
     {
         logger.LogTrace("{method}()", nameof(GetCars));
-        var cars = await teslaSolarChargerContext.Cars
-            .Select(c => new DtoCar()
+        var carData = await teslaSolarChargerContext.Cars
+            .Select(c => new
             {
-                Id = c.Id,
-                Vin = c.Vin ?? string.Empty,
-                TeslaMateCarId = c.TeslaMateCarId,
-                ChargeModeV2 = c.ChargeMode,
-                MinimumSoC = c.MinimumSoc,
-                MaximumAmpere = c.MaximumAmpere,
-                MinimumAmpere = c.MinimumAmpere,
-                UsableEnergy = c.UsableEnergy,
-                ShouldBeManaged = c.ShouldBeManaged,
-                ChargingPriority = c.ChargingPriority,
-                Name = c.Name,
-                UseBle = c.UseBle,
-                BleApiBaseUrl = c.BleApiBaseUrl,
-                WakeUpCalls = c.WakeUpCalls,
-                VehicleDataCalls = c.VehicleDataCalls,
-                VehicleCalls = c.VehicleCalls,
-                ChargeStartCalls = c.ChargeStartCalls,
-                ChargeStopCalls = c.ChargeStopCalls,
-                SetChargingAmpsCall = c.SetChargingAmpsCall,
-                OtherCommandCalls = c.OtherCommandCalls,
+                Car = new DtoCar()
+                {
+                    Id = c.Id,
+                    Vin = c.Vin ?? string.Empty,
+                    TeslaMateCarId = c.TeslaMateCarId,
+                    ChargeModeV2 = c.ChargeMode,
+                    MinimumSoC = c.MinimumSoc,
+                    MaximumAmpere = c.MaximumAmpere,
+                    MinimumAmpere = c.MinimumAmpere,
+                    UsableEnergy = c.UsableEnergy,
+                    ShouldBeManaged = c.ShouldBeManaged,
+                    ChargingPriority = c.ChargingPriority,
+                    Name = c.Name,
+                    UseBle = c.UseBle,
+                    BleApiBaseUrl = c.BleApiBaseUrl,
+                    WakeUpCalls = c.WakeUpCalls,
+                    VehicleDataCalls = c.VehicleDataCalls,
+                    VehicleCalls = c.VehicleCalls,
+                    ChargeStartCalls = c.ChargeStartCalls,
+                    ChargeStopCalls = c.ChargeStopCalls,
+                    SetChargingAmpsCall = c.SetChargingAmpsCall,
+                    OtherCommandCalls = c.OtherCommandCalls,
+                },
+                c.CarType,
             })
             .ToListAsync().ConfigureAwait(false);
-        foreach (var dtoCar in cars)
+
+        var cars = carData.Select(c => c.Car).ToList();
+
+        HashSet<int> manualCarIdsToInitialize;
+        if (!initializeManualCarValues)
         {
+            manualCarIdsToInitialize = new HashSet<int>();
+        }
+        else if (manualCarIdToInitialize.HasValue)
+        {
+            manualCarIdsToInitialize = carData
+                .Where(c => c.Car.Id == manualCarIdToInitialize.Value && c.CarType == CarType.Manual)
+                .Select(c => c.Car.Id)
+                .ToHashSet();
+        }
+        else
+        {
+            manualCarIdsToInitialize = carData
+                .Where(c => c.CarType == CarType.Manual)
+                .Select(c => c.Car.Id)
+                .ToHashSet();
+        }
+
+        foreach (var carDataItem in carData)
+        {
+            var dtoCar = carDataItem.Car;
+
             var latestValues = await teslaSolarChargerContext.CarValueLogs
                 .Where(c => c.CarId == dtoCar.Id
                             && (c.Type == CarValueType.IsPluggedIn
@@ -298,6 +336,11 @@ public class ConfigJsonService(
                 }
                 UpdateCarPropertyValue(dtoCar, latestValue, fleetTelemetryConfiguration);
             }
+
+            if (manualCarIdsToInitialize.Contains(dtoCar.Id))
+            {
+                await InitializeManualCarValuesAsync(dtoCar).ConfigureAwait(false);
+            }
             //Do not trigger car state changed here as app will crash when finding cars in settings
         }
         var teslaMateContext = teslaMateDbContextWrapper.GetTeslaMateContextIfAvailable();
@@ -322,6 +365,49 @@ public class ConfigJsonService(
             }
         }
         return cars;
+    }
+
+    private async Task InitializeManualCarValuesAsync(DtoCar dtoCar)
+    {
+        var currentDate = dateTimeProvider.DateTimeOffSetUtcNow();
+        dtoCar.IsHomeGeofence.Update(currentDate, true);
+
+        var carValueLogs = new List<CarValueLog>();
+
+        if (dtoCar.PluggedIn.Value == true)
+        {
+            dtoCar.PluggedIn.Update(currentDate, false);
+            carValueLogs.Add(new CarValueLog
+            {
+                CarId = dtoCar.Id,
+                Type = CarValueType.IsPluggedIn,
+                BooleanValue = false,
+                Timestamp = currentDate.UtcDateTime,
+                Source = CarValueSource.Estimation,
+            });
+        }
+
+        if (dtoCar.IsCharging.Value == true)
+        {
+            dtoCar.IsCharging.Update(currentDate, false);
+            carValueLogs.Add(new CarValueLog
+            {
+                CarId = dtoCar.Id,
+                Type = CarValueType.IsCharging,
+                BooleanValue = false,
+                Timestamp = currentDate.UtcDateTime,
+                Source = CarValueSource.Estimation,
+            });
+        }
+
+        dtoCar.SoC.Update(currentDate, null);
+        if (carValueLogs.Count == 0)
+        {
+            return;
+        }
+
+        teslaSolarChargerContext.CarValueLogs.AddRange(carValueLogs);
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private class FleetTelemetryConfiguration
@@ -399,6 +485,48 @@ public class ConfigJsonService(
 
             await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
         }
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Add all exisiting cars in Tesla account to allowed cars of all OCPP charging connectors.
+    /// </summary>
+    /// <returns></returns>
+    public async Task AddAllTeslasToAllowedCars()
+    {
+        logger.LogTrace("{method}()", nameof(AddAllTeslasToAllowedCars));
+        var teslasAddedToAllowedCars =
+            await teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == constants.TeslasAddedToAllowedCars).ConfigureAwait(false);
+        if (teslasAddedToAllowedCars)
+        {
+            return;
+        }
+        var ocppConnectors = await teslaSolarChargerContext.OcppChargingStationConnectors
+            .Include(c => c.AllowedCars)
+            .ToListAsync();
+        var carIdAvailableInTeslaAccount = await teslaSolarChargerContext.Cars
+            .Where(c => c.IsAvailableInTeslaAccount && c.ShouldBeManaged == true)
+            .Select(c => c.Id)
+            .ToHashSetAsync().ConfigureAwait(false);
+        foreach (var ocppConnector in ocppConnectors)
+        {
+            foreach (var carId in carIdAvailableInTeslaAccount)
+            {
+                if (ocppConnector.AllowedCars.Any(c => c.CarId == carId))
+                {
+                    continue;
+                }
+                ocppConnector.AllowedCars.Add(new()
+                {
+                    CarId = carId,
+                });
+            }
+        }
+        teslaSolarChargerContext.TscConfigurations.Add(new()
+        {
+            Key = constants.TeslasAddedToAllowedCars,
+            Value = "true",
+        });
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 

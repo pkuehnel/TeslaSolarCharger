@@ -24,6 +24,7 @@ public class Constants : IConstants
     public string BleBaseUrlConverted => "BleBaseUrlConverted";
     public string HandledChargesCarIdsConverted => "HandledChargesCarIdsConverted";
     public string HandledChargesConverted => "HandledChargesConverted";
+    public string TeslasAddedToAllowedCars => "TeslasAddedToAllowedCars";
     public string ChargingDetailsSolarPowerShareFixed => "ChargingDetailsSolarPowerShareFixed";
     public string SolarValuesConverted => "SolarValuesConverted";
     public TimeSpan MaxTokenRequestWaitTime => TimeSpan.FromMinutes(5);
@@ -55,7 +56,7 @@ public class Constants : IConstants
     public int CarCapabilityMaxCurrentAboveMeasuredCurrent => 2;
     public string OcppChargePointConnectorIdDelimiter => "_";
     public string DefaultIdTag => "Solar4Car";
-    public string UnknownCarName => "Unknown car";
+    public string UnknownCarName => "Guest car";
     public string PrimaryColor => "#1b6ec2";
     public string SecondaryColor => "#6c757d";
     public string SolarPowerColor => "#F57C00";

@@ -138,6 +138,13 @@ public class HomeService : IHomeService
         return result;
     }
 
+    public async Task<Result<object?>> UpdateManualCarSoc(int carId, int soc)
+    {
+        _logger.LogTrace("{method}({carId}, {soc})", nameof(UpdateManualCarSoc), carId, soc);
+        var result = await _httpClientHelper.SendPostRequestAsync<object?>($"api/Home/UpdateManualCarSoc?carId={carId}&soc={soc}", null);
+        return result;
+    }
+
     public async Task<Result<object>> DeleteCarChargingTarget(int chargingTargetId)
     {
         _logger.LogTrace("{method}()", nameof(DeleteCarChargingTarget));
