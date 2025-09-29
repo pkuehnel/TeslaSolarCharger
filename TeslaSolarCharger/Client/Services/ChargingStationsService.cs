@@ -31,7 +31,7 @@ public class ChargingStationsService : IChargingStationsService
 
     public async Task<Dictionary<int, string>?> GetCarOptions()
     {
-        _logger.LogTrace("{method}()", nameof(GetChargingStationConnectors));
+        _logger.LogTrace("{method}()", nameof(GetCarOptions));
         var response = await _httpClientHelper.SendGetRequestWithSnackbarAsync<Dictionary<int, string>>($"api/ChargingStations/GetCarOptions");
         return response;
     }

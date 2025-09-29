@@ -76,7 +76,7 @@ public class ManualCarHandlingService(
         var pluggedTimestamp = connectorState.IsPluggedIn.Timestamp;
         var pluggedInChanged = cachedCar.PluggedIn.Update(connectorState.IsPluggedIn.Timestamp, connectorState.IsPluggedIn.Value, true);
         var stateChanged = pluggedInChanged;
-        if (pluggedTimestamp > cachedCar.PluggedIn.Timestamp)
+        if (pluggedInChanged)
         {
             var newValue = connectorState.IsPluggedIn.Value;
             valueLogs.Add(CreateBooleanLog(carId, CarValueType.IsPluggedIn, pluggedTimestamp, newValue, CarValueSource.LinkedCharger));
