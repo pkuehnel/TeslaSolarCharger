@@ -488,6 +488,48 @@ public class ConfigJsonService(
         await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Add all exisiting cars in Tesla account to allowed cars of all OCPP charging connectors.
+    /// </summary>
+    /// <returns></returns>
+    public async Task AddAllTeslasToAllowedCars()
+    {
+        logger.LogTrace("{method}()", nameof(AddAllTeslasToAllowedCars));
+        var teslasAddedToAllowedCars =
+            await teslaSolarChargerContext.TscConfigurations.AnyAsync(c => c.Key == constants.TeslasAddedToAllowedCars).ConfigureAwait(false);
+        if (teslasAddedToAllowedCars)
+        {
+            return;
+        }
+        var ocppConnectors = await teslaSolarChargerContext.OcppChargingStationConnectors
+            .Include(c => c.AllowedCars)
+            .ToListAsync();
+        var carIdAvailableInTeslaAccount = await teslaSolarChargerContext.Cars
+            .Where(c => c.IsAvailableInTeslaAccount && c.ShouldBeManaged == true)
+            .Select(c => c.Id)
+            .ToHashSetAsync().ConfigureAwait(false);
+        foreach (var ocppConnector in ocppConnectors)
+        {
+            foreach (var carId in carIdAvailableInTeslaAccount)
+            {
+                if (ocppConnector.AllowedCars.Any(c => c.CarId == carId))
+                {
+                    continue;
+                }
+                ocppConnector.AllowedCars.Add(new()
+                {
+                    CarId = carId,
+                });
+            }
+        }
+        teslaSolarChargerContext.TscConfigurations.Add(new()
+        {
+            Key = constants.TeslasAddedToAllowedCars,
+            Value = "true",
+        });
+        await teslaSolarChargerContext.SaveChangesAsync().ConfigureAwait(false);
+    }
+
     [SuppressMessage("ReSharper.DPA", "DPA0007: Large number of DB records", MessageId = "count: 1000")]
     public async Task UpdateAverageGridVoltage()
     {

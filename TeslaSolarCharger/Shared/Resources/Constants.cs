@@ -24,6 +24,7 @@ public class Constants : IConstants
     public string BleBaseUrlConverted => "BleBaseUrlConverted";
     public string HandledChargesCarIdsConverted => "HandledChargesCarIdsConverted";
     public string HandledChargesConverted => "HandledChargesConverted";
+    public string TeslasAddedToAllowedCars => "TeslasAddedToAllowedCars";
     public string ChargingDetailsSolarPowerShareFixed => "ChargingDetailsSolarPowerShareFixed";
     public string SolarValuesConverted => "SolarValuesConverted";
     public TimeSpan MaxTokenRequestWaitTime => TimeSpan.FromMinutes(5);

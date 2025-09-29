@@ -351,6 +351,8 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 // Ignore this error as this could result in never taking the first token
             }
         }
+
+        await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);
         await configJsonService.AddCarsToSettings(initializeManualCarValues: true).ConfigureAwait(false);
 
 

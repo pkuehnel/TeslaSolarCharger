@@ -16,4 +16,5 @@ public interface IConfigJsonService
     Task AddCarsToSettings(bool initializeManualCarValues = false, int? manualCarIdToInitialize = null);
     Task AddBleBaseUrlToAllCars();
     Task SetCorrectHomeDetectionVia();
+    Task AddAllTeslasToAllowedCars();
 }
