@@ -196,6 +196,7 @@ public class ConfigJsonService(
         databaseCar.UseBle = carBasicConfiguration.UseBle;
         databaseCar.BleApiBaseUrl = carBasicConfiguration.BleApiBaseUrl;
         databaseCar.UseFleetTelemetry = carBasicConfiguration.UseFleetTelemetry;
+        databaseCar.CarType = carBasicConfiguration.CarType;
         if (carBasicConfiguration.UseFleetTelemetry)
         {
             databaseCar.IsFleetTelemetryHardwareIncompatible = false;

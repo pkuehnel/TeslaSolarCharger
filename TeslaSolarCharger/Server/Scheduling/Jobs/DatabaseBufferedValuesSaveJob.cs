@@ -27,7 +27,7 @@ public class DatabaseBufferedValuesSaveJob(ILogger<DatabaseBufferedValuesSaveJob
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An errror occurred while saving buffered charger meter values to the database.");
+            logger.LogError(ex, "An error occurred while saving buffered charger meter values to the database.");
         }
 
         await carValueEstimationService.UpdateAllCarValueEstimations(context.CancellationToken).ConfigureAwait(false);
