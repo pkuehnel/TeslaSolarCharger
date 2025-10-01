@@ -365,6 +365,33 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 chargingTarget.LastFulFilled = currentDate;
             }
+
+            if (!(chargingTarget.RepeatOnMondays
+                || chargingTarget.RepeatOnTuesdays
+                || chargingTarget.RepeatOnWednesdays
+                || chargingTarget.RepeatOnThursdays
+                || chargingTarget.RepeatOnFridays
+                || chargingTarget.RepeatOnSaturdays
+                || chargingTarget.RepeatOnSundays))
+            {
+                if (chargingTarget.TargetDate == default)
+                {
+                    _context.CarChargingTargets.Remove(chargingTarget);
+                }
+                else
+                {
+                    var tz = string.IsNullOrWhiteSpace(chargingTarget.ClientTimeZone)
+                        ? TimeZoneInfo.Utc
+                        : TimeZoneInfo.FindSystemTimeZoneById(chargingTarget.ClientTimeZone);
+                    var targetDate = new DateTimeOffset(chargingTarget.TargetDate.Value, chargingTarget.TargetTime,
+                        tz.GetUtcOffset(new(chargingTarget.TargetDate.Value, chargingTarget.TargetTime)));
+                    if (targetDate < chargingTarget.LastFulFilled)
+                    {
+                        _context.CarChargingTargets.Remove(chargingTarget);
+                    }
+                }
+                    
+            }
         }
         await _context.SaveChangesAsync().ConfigureAwait(false);
     }
@@ -872,6 +899,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     && !chargingTarget.RepeatOnSaturdays
                     && !chargingTarget.RepeatOnSundays)
                 {
+                    _logger.LogTrace("No repetition set, so return candidate: {candidate} for target {targetId} in timezone {tz}.", candidate, chargingTarget.Id, tz.Id);
                     return candidate.Value.ToUniversalTime();
                 }
                 // if repetition is set the set date is considered as the earliest execution time. But we still need to check if it is the first enabled weekday
@@ -881,7 +909,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         }
 
 
-        //ToDO: take earliest execution time and use first repeating weekday at or after that date
         for (var i = 0; i < 7; i++)
         {
             var date = earliestExecutionTime.Date.AddDays(i);
@@ -906,6 +933,7 @@ public class ChargingServiceV2 : IChargingServiceV2
 
             if (candidate >= earliestExecutionTime)
             {
+                _logger.LogTrace("Candidate: {candidate} for target {targetId} in timezone {tz}.", candidate, chargingTarget.Id, tz.Id);
                 return candidate.Value.ToUniversalTime();
             }
         }
