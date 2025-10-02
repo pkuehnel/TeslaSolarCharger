@@ -95,7 +95,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         var calculateMinSoc = CalculateRequiredInitialStateOfChargePercent(
             predictedSurplusPerSlices, homeBatteryUsableEnergy.Value,
             _configurationWrapper.HomeBatteryMinDynamicMinSoc(),
-            isTargetDateSunrise ? _configurationWrapper.HomeBatteryMinDynamicMinSoc() : _configurationWrapper.HomeBatteryMaxDynamicMinSoc());
+            isTargetDateSunrise ? _configurationWrapper.HomeBatteryMinDynamicMinSoc() : _configurationWrapper.HomeBatteryMaxDynamicMinSoc(),
+            _configurationWrapper.DynamicMinSocCalculationBufferInPercent());
         if (calculateMinSoc > _configurationWrapper.HomeBatteryMaxDynamicMinSoc())
         {
             calculateMinSoc = _configurationWrapper.HomeBatteryMaxDynamicMinSoc();
@@ -109,34 +110,31 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     }
 
 
-
-
     /// <summary>
     /// Calculates the required initial state-of-charge (SOC) percentage so that:
     /// 1. The battery never drops below <paramref name="minimalStateOfChargePercent"/>% SOC during the series of hourly energy differences.
     /// 2. The battery ends at <paramref name="targetStateOfChargePercent"/>% SOC after processing all hourly differences.
     /// </summary>
     /// <param name="energyDifferences">
-    /// A mapping from timestamp to net energy (Wh) produced by the solar system
-    /// minus the house consumption in that hour.</param>
+    ///     A mapping from timestamp to net energy (Wh) produced by the solar system
+    ///     minus the house consumption in that hour.</param>
     /// <param name="batteryUsableCapacityInWh">
-    /// The total usable capacity of the home battery in Wh.
+    ///     The total usable capacity of the home battery in Wh.
     /// </param>
     /// <param name="minimalStateOfChargePercent">
-    /// The minimum SOC percentage (e.g. 5 means 5%).
+    ///     The minimum SOC percentage (e.g. 5 means 5%).
     /// </param>
     /// <param name="targetStateOfChargePercent">
-    /// The target end SOC percentage (e.g. 95 means 95%).
+    ///     The target end SOC percentage (e.g. 95 means 95%).
     /// </param>
+    /// <param name="dynamicMinSocCalculationBufferInPercent"></param>
     /// <returns>
     /// The required initial SOC expressed in% between 0 and 100.
     /// </returns>
-    private int CalculateRequiredInitialStateOfChargePercent(
-        IReadOnlyDictionary<DateTimeOffset, int> energyDifferences,
+    private int CalculateRequiredInitialStateOfChargePercent(IReadOnlyDictionary<DateTimeOffset, int> energyDifferences,
         int batteryUsableCapacityInWh,
         int minimalStateOfChargePercent,
-        int targetStateOfChargePercent
-    )
+        int targetStateOfChargePercent, int dynamicMinSocCalculationBufferInPercent)
     {
         var minimumEnergy = (int)(batteryUsableCapacityInWh * (minimalStateOfChargePercent / 100.0));
         var targetEnergy = (int)(batteryUsableCapacityInWh * (targetStateOfChargePercent / 100.0));
@@ -177,12 +175,18 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             _logger.LogDebug("At minimum min soc after expected energy differences target energy of {targetEnergy} Wh would not be reached. Actual energy: {acutalEnergy}", targetEnergy, energyInBattery);
             maxMissingEnergy = Math.Max(maxMissingEnergy, targetEnergy - energyInBattery);
         }
-        var finalMissingEnergy = Math.Min(closestDistanceToMaxEnergy, maxMissingEnergy);
+        var bufferFactor = dynamicMinSocCalculationBufferInPercent / (float)100;
+        _logger.LogTrace("Using buffer factor {bufferFactor} for missing energy calculation", bufferFactor);
+        _logger.LogTrace("Closest distance to max energy: {closestDistanceToMaxSoc} Wh", closestDistanceToMaxEnergy);
+        _logger.LogTrace("Max missing energy: {maxMissingEnergy}", maxMissingEnergy);
+        var finalMissingEnergy = Math.Min(closestDistanceToMaxEnergy, maxMissingEnergy) * bufferFactor;
+        _logger.LogTrace("Final missing energy after buffer: {finalMissingEnergy} Wh", finalMissingEnergy);
         if (finalMissingEnergy < 0)
         {
             return minimalStateOfChargePercent;
         }
         var requiredInitialSoc = (double)(minimumEnergy + finalMissingEnergy) / batteryUsableCapacityInWh;
+        _logger.LogDebug("Required initial SoC: {requiredInitialSoc:P2}", requiredInitialSoc);
         return (int)(requiredInitialSoc * 100);
     }
 }

@@ -126,4 +126,5 @@ public interface IConfigurationWrapper
     bool ForceFullHomeBatteryBySunset();
     int CarChargeLoss();
     int? HomeBatteryDischargingPower();
+    int DynamicMinSocCalculationBufferInPercent();
 }

@@ -624,6 +624,11 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().HomeBatteryMaxDynamicMinSoc;
     }
 
+    public int DynamicMinSocCalculationBufferInPercent()
+    {
+        return GetBaseConfiguration().DynamicMinSocCalculationBuffer;
+    }
+
     public bool ForceFullHomeBatteryBySunset()
     {
         return GetBaseConfiguration().ForceFullHomeBatteryBySunset;

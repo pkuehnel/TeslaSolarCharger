@@ -136,6 +136,9 @@ public class BaseConfigurationBase
     [Postfix("%")]
     [HelperText("Min SoC is never set higher than this value.")]
     public int HomeBatteryMaxDynamicMinSoc { get; set; } = 95;
+    [Postfix("%")]
+    [HelperText("Used to make sure your home battery does not run out of power even if weather predictions are not correct or your house uses more energy than anticipated.")]
+    public int DynamicMinSocCalculationBuffer { get; set; } = 50;
     [HelperText("If enabled, the system charges the home battery so it is full by sunset. If disabled, the system only ensures the battery does not run empty before the next sunrise.")]
     public bool ForceFullHomeBatteryBySunset { get; set; } = true;
     [DisplayName("Home Battery Target charging power")]
