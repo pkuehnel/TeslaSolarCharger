@@ -124,4 +124,6 @@ public interface IConfigurationWrapper
     int HomeBatteryMinDynamicMinSoc();
     int HomeBatteryMaxDynamicMinSoc();
     bool ForceFullHomeBatteryBySunset();
+    int CarChargeLoss();
+    int? HomeBatteryDischargingPower();
 }

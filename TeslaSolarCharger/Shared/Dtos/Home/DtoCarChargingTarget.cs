@@ -7,7 +7,8 @@ namespace TeslaSolarCharger.Shared.Dtos.Home;
 public class DtoCarChargingTarget
 {
     public int Id { get; set; }
-    public int TargetSoc { get; set; }
+    public int? TargetSoc { get; set; }
+    public bool DischargeHomeBatteryToMinSoc { get; set; }
     public DateTime? TargetDate { get; set; }
     public TimeSpan? TargetTime { get; set; }
 

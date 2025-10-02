@@ -138,15 +138,23 @@ public class BaseConfigurationBase
     public int HomeBatteryMaxDynamicMinSoc { get; set; } = 95;
     [HelperText("If enabled, the system charges the home battery so it is full by sunset. If disabled, the system only ensures the battery does not run empty before the next sunrise.")]
     public bool ForceFullHomeBatteryBySunset { get; set; } = true;
-    [DisplayName("Home Battery Goal charging power")]
+    [DisplayName("Home Battery Target charging power")]
     [Postfix("W")]
     [HelperText(
         "Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery")]
     public int? HomeBatteryChargingPower { get; set; }
+    [DisplayName("Home Battery target pischarging power")]
+    [Postfix("W")]
+    [HelperText(
+        "Used to discharge the home battery when option is set in either a charging target or directly at the car.")]
+    public int? HomeBatteryDischargingPower { get; set; }
     [DisplayName("Home Battery Usable energy")]
     [Postfix("kWh")]
     [HelperText("Set the usable energy your home battery has.")]
     public double? HomeBatteryUsableEnergy { get; set; }
+    [Postfix("%")]
+    [HelperText("Energy lost when charging cars. Is used to calculate charging schedules based on battery capacity.")]
+    public int CarChargeLoss { get; set; } = 15;
     [DisplayName("Max combined current")]
     [Postfix("A")]
     [HelperText("Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.")]
