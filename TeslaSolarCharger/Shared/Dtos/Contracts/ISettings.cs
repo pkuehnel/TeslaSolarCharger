@@ -40,4 +40,5 @@ public interface ISettings
     int? LastLoggedHomeBatterySoc { get; set; }
     ConcurrentDictionary<int, DateTimeOffset> CarsWithNonZeroMeterValueAddedLastCycle { get; set; }
     ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; }
+    HomeBatteryTargetSocBasedOn HomeBatteryTargetSocBasedOn { get; set; }
 }
