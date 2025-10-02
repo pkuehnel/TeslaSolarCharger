@@ -629,9 +629,19 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().ForceFullHomeBatteryBySunset;
     }
 
+    public int CarChargeLoss()
+    {
+        return GetBaseConfiguration().CarChargeLoss;
+    }
+
     public int? HomeBatteryChargingPower()
     {
         return GetBaseConfiguration().HomeBatteryChargingPower;
+    }
+
+    public int? HomeBatteryDischargingPower()
+    {
+        return GetBaseConfiguration().HomeBatteryDischargingPower;
     }
 
     /// <summary>

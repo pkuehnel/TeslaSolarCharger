@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -359,11 +360,26 @@ public class ChargingServiceV2 : IChargingServiceV2
             .ToListAsync().ConfigureAwait(false);
         foreach (var chargingTarget in chargingTargets)
         {
+            if (chargingTarget.TargetSoc == default && !chargingTarget.DischargeHomeBatteryToMinSoc)
+            {
+                _logger.LogError("Chargingtarget {@target} is invalid, delete it", chargingTarget);
+                _context.CarChargingTargets.Remove(chargingTarget);
+                continue;
+            }
             var car = _settings.Cars.First(c => c.Id == chargingTarget.CarId);
             var actualTargetSoc = GetActualTargetSoc(car.SocLimit.Value, chargingTarget.TargetSoc, car.IsCharging.Value == true);
             if (car.SoC.Value >= actualTargetSoc || car.PluggedIn.Value != true || car.IsHomeGeofence.Value != true)
             {
                 chargingTarget.LastFulFilled = currentDate;
+            }
+
+            if (actualTargetSoc == default && chargingTarget.DischargeHomeBatteryToMinSoc)
+            {
+                var homeBatteryTargetSoc = _configurationWrapper.HomeBatteryMinSoc();
+                if (_settings.HomeBatterySoc <= homeBatteryTargetSoc)
+                {
+                    chargingTarget.LastFulFilled = currentDate;
+                }
             }
 
             if (!(chargingTarget.RepeatOnMondays
@@ -390,7 +406,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         _context.CarChargingTargets.Remove(chargingTarget);
                     }
                 }
-                    
+
             }
         }
         await _context.SaveChangesAsync().ConfigureAwait(false);
@@ -399,9 +415,13 @@ public class ChargingServiceV2 : IChargingServiceV2
     /// <summary>
     /// Adds +1 to the target SOC if the car side SOC limit is equal to the charging target SOC to force the car to stop charging by itself.
     /// </summary>
-    private int GetActualTargetSoc(int? carSideSocLimit, int chargingTargetTargetSoc, bool isCurrentlyCharging)
+    private int? GetActualTargetSoc(int? carSideSocLimit, int? chargingTargetTargetSoc, bool isCurrentlyCharging)
     {
-        _logger.LogTrace("{method}({carSideSocLimit}, {chargingTargetTargetSoc})", nameof(GetActualTargetSoc), carSideSocLimit, chargingTargetTargetSoc);
+        _logger.LogTrace("{method}({carSideSocLimit}, {chargingTargetTargetSoc}, {isCurrentlyCharging})", nameof(GetActualTargetSoc), carSideSocLimit, chargingTargetTargetSoc, isCurrentlyCharging);
+        if (chargingTargetTargetSoc == default)
+        {
+            return null;
+        }
         if ((carSideSocLimit == chargingTargetTargetSoc) && isCurrentlyCharging)
         {
             _logger.LogDebug("Car side SOC limit {carSideSocLimit} is equal to charging target SOC {chargingTargetTargetSoc} and car is currently charging. Incrementing target SOC by 1 to force car to stop charging by itself.", carSideSocLimit, chargingTargetTargetSoc);
@@ -518,16 +538,39 @@ public class ChargingServiceV2 : IChargingServiceV2
                 var nextTarget = await GetRelevantTarget(car.Id, currentDate, cancellationToken).ConfigureAwait(false);
                 if (nextTarget != default)
                 {
-                    var actualTargetSoc = GetActualTargetSoc(car.SocLimit.Value, nextTarget.TargetSoc, car.IsCharging.Value == true);
-                    var energyToCharge = CalculateEnergyToCharge(
-                        actualTargetSoc,
-                        car.SoC.Value ?? 0,
-                        carUsableEnergy.Value);
+                    int? energyToCharge = null;
+                    var homeBatteryEnergyToCharge = 0;
+                    if (nextTarget.TargetSoc != default)
+                    {
+                        var actualTargetSoc = GetActualTargetSoc(car.SocLimit.Value, nextTarget.TargetSoc, car.IsCharging.Value == true);
+                        if (actualTargetSoc != default)
+                        {
+                            energyToCharge = CalculateEnergyToCharge(
+                                actualTargetSoc.Value,
+                                car.SoC.Value ?? 0,
+                                carUsableEnergy.Value);
+                        }
+                    }
+
+                    if (nextTarget.DischargeHomeBatteryToMinSoc)
+                    {
+                        homeBatteryEnergyToCharge = CalculateHomeBatteryEnergyToMinSoc();
+                        if (energyToCharge == default || energyToCharge < homeBatteryEnergyToCharge)
+                        {
+                            energyToCharge = homeBatteryEnergyToCharge;
+                        }
+                    }
+                    if (energyToCharge == default || energyToCharge == 0)
+                    {
+                        _logger.LogDebug("No energy to charge calculated for car {carId}. Do not plan charging schedule.", car.Id);
+                        continue;
+                    }
+
                     var maxPower = GetPowerAtPhasesAndCurrent(maxPhases.Value, maxCurrent.Value, loadpoint.EstimatedVoltageWhileCharging);
                     if (nextTarget.NextExecutionTime < currentDate)
                     {
                         _logger.LogWarning("Next target {nextTarget} is in the past. Plan charging immediatly.", nextTarget);
-                        var chargingDuration = CalculateChargingDuration(energyToCharge, maxPower);
+                        var chargingDuration = CalculateChargingDuration(energyToCharge.Value, maxPower);
                         chargingSchedules.Add(new DtoChargingSchedule(loadpoint.CarId, loadpoint.ChargingConnectorId)
                         {
                             ValidFrom = currentDate,
@@ -584,8 +627,18 @@ public class ChargingServiceV2 : IChargingServiceV2
                         }
                     }
 
-                    var remainingEnergyToCoverFromGrid = energyToCharge -
+                    var remainingEnergyToCoverFromGrid = energyToCharge.Value -
                                                          (int)chargingSchedules.Select(s => (s.ValidTo - s.ValidFrom).TotalHours * s.ChargingPower).Sum();
+                    if (nextTarget.DischargeHomeBatteryToMinSoc
+                        && homeBatteryEnergyToCharge > 0)
+                    {
+                        var homeBatteryMaxDischargePower = _configurationWrapper.HomeBatteryDischargingPower();
+                        if (homeBatteryMaxDischargePower > 0)
+                        {
+
+                        }
+                    }
+
                     var electricityPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
                     var endTimeOrderedElectricityPrices = electricityPrices.OrderBy(p => p.ValidTo).ToList();
                     var lastGridPrice = endTimeOrderedElectricityPrices.LastOrDefault();
@@ -851,14 +904,31 @@ public class ChargingServiceV2 : IChargingServiceV2
         int currentSoC,
         int usableEnergy)
     {
+        _logger.LogTrace("{method}({chargingTargetSoc}, {currentSoC}, {usableEnergy})", nameof(CalculateEnergyToCharge), chargingTargetSoc, currentSoC, usableEnergy);
         var socDiff = chargingTargetSoc - currentSoC;
         var energyWh = socDiff * usableEnergy * 10; // soc*10 vs usableEnergy*1000 scale
-        var energyLossFactor = 1.15;
+        var energyLossFactor = 1 + (_configurationWrapper.CarChargeLoss() / (float)100);
         energyWh = (int)(energyWh * energyLossFactor);
 
         return energyWh > 0
             ? energyWh
             : default;
+    }
+
+    private int CalculateHomeBatteryEnergyToMinSoc()
+    {
+        _logger.LogTrace("{method}()", nameof(CalculateHomeBatteryEnergyToMinSoc));
+        var homeBatteryEnergy = _configurationWrapper.HomeBatteryUsableEnergy() * 1000; // kWh to Wh
+        if (homeBatteryEnergy == default)
+        {
+            return 0;
+        }
+        var socDifference = _settings.HomeBatterySoc - _configurationWrapper.HomeBatteryMinSoc();
+        if (socDifference > 0)
+        {
+            return socDifference.Value * homeBatteryEnergy.Value / 100;
+        }
+        return 0;
     }
 
     private TimeSpan CalculateChargingDuration(
