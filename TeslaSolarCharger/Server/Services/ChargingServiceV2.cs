@@ -635,7 +635,35 @@ public class ChargingServiceV2 : IChargingServiceV2
                         var homeBatteryMaxDischargePower = _configurationWrapper.HomeBatteryDischargingPower();
                         if (homeBatteryMaxDischargePower > 0)
                         {
+                            var availableDischargePower = Math.Min(maxPower, homeBatteryMaxDischargePower.Value);
+                            if (availableDischargePower > 0)
+                            {
+                                var dischargeDuration = CalculateChargingDuration(homeBatteryEnergyToCharge, availableDischargePower);
+                                var scheduleEnd = nextTarget.NextExecutionTime;
+                                var scheduleStart = scheduleEnd - dischargeDuration;
+                                if (scheduleStart < currentDate)
+                                {
+                                    scheduleStart = currentDate;
+                                }
 
+                                if (scheduleStart < scheduleEnd)
+                                {
+                                    var actualDuration = scheduleEnd - scheduleStart;
+                                    var energyFromHomeBattery = (int)(availableDischargePower * actualDuration.TotalHours);
+                                    var homeBatteryChargingSchedule = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId)
+                                    {
+                                        ValidFrom = scheduleStart,
+                                        ValidTo = scheduleEnd,
+                                        ChargingPower = availableDischargePower,
+                                    };
+                                    chargingSchedules.Add(homeBatteryChargingSchedule);
+                                    remainingEnergyToCoverFromGrid -= energyFromHomeBattery;
+                                    if (remainingEnergyToCoverFromGrid < 0)
+                                    {
+                                        remainingEnergyToCoverFromGrid = 0;
+                                    }
+                                }
+                            }
                         }
                     }
 
