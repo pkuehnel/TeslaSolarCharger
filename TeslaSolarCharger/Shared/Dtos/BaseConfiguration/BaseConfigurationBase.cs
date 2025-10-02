@@ -130,9 +130,18 @@ public class BaseConfigurationBase
     [Postfix("%")]
     [HelperText("Set the SoC your home battery should get charged to before cars start to use full power. Leave empty if you do not have a home battery")]
     public int? HomeBatteryMinSoc { get; set; }
+    [Postfix("%")]
+    [HelperText("Reserve that is always set as min SoC.")]
+    public int HomeBatteryMinDynamicMinSoc { get; set; } = 5;
+    [Postfix("%")]
+    [HelperText("Min SoC is never set higher than this value.")]
+    public int HomeBatteryMaxDynamicMinSoc { get; set; } = 95;
+    [HelperText("If enabled, the system charges the home battery so it is full by sunset. If disabled, the system only ensures the battery does not run empty before the next sunrise.")]
+    public bool ForceFullHomeBatteryBySunset { get; set; } = true;
     [DisplayName("Home Battery Goal charging power")]
     [Postfix("W")]
-    [HelperText("Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery")]
+    [HelperText(
+        "Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery")]
     public int? HomeBatteryChargingPower { get; set; }
     [DisplayName("Home Battery Usable energy")]
     [Postfix("kWh")]

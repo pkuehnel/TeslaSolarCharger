@@ -121,4 +121,7 @@ public interface IConfigurationWrapper
     string LogFilesDirectory();
     string PendingRestoreDirectory();
     TimeSpan MaxModbusErrorBackoffDuration();
+    int HomeBatteryMinDynamicMinSoc();
+    int HomeBatteryMaxDynamicMinSoc();
+    bool ForceFullHomeBatteryBySunset();
 }

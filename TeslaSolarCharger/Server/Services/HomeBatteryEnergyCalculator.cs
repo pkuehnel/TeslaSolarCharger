@@ -1,6 +1,7 @@
-﻿using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Settings;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -46,6 +47,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         var homeGeofenceLongitude = _configurationWrapper.HomeGeofenceLongitude();
         var nextSunset = _sunCalculator.CalculateSunset(homeGeofenceLatitude,
             homeGeofenceLongitude, currentDate);
+        var forceFullBatteryOnBySunset = _configurationWrapper.ForceFullHomeBatteryBySunset();
         if (nextSunset < currentDate)
         {
             nextSunset = _sunCalculator.CalculateSunset(homeGeofenceLatitude,
@@ -53,18 +55,51 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         }
         if (nextSunset == default)
         {
+            _logger.LogWarning("Could not calculate sunset for current date {currentDate}. Using configured home battery min soc.", currentDate);
+            return;
+        }
+        var nextSunrise = _sunCalculator.CalculateSunrise(homeGeofenceLatitude, homeGeofenceLongitude, currentDate);
+        if (nextSunrise < currentDate)
+        {
+            nextSunrise = _sunCalculator.CalculateSunrise(homeGeofenceLatitude,
+                homeGeofenceLongitude, currentDate.AddDays(1));
+        }
+        if (nextSunrise == default)
+        {
             _logger.LogWarning("Could not calculate sunrise for current date {currentDate}. Using configured home battery min soc.", currentDate);
             return;
         }
-        //Do not try to fully charge to allow some buffer with fast reaction time compared to cars.
-        var fullBatterySoc = 95;
+        var targetDate = nextSunrise.Value;
+        var isTargetDateSunrise = true;
+        if (nextSunset < nextSunrise && forceFullBatteryOnBySunset)
+        {
+            targetDate = nextSunset.Value;
+            isTargetDateSunrise = false;
+        }
+        _settings.HomeBatteryTargetSocBasedOn = isTargetDateSunrise ?  HomeBatteryTargetSocBasedOn.Sunrise : HomeBatteryTargetSocBasedOn.Sunset;
+
         var predictionInterval = TimeSpan.FromHours(1);
-        var fullBatteryTargetTime = new DateTimeOffset(nextSunset.Value.Year, nextSunset.Value.Month, nextSunset.Value.Day,
-            nextSunset.Value.Hour + 1, 0, 0, nextSunset.Value.Offset);
-        var currentNextFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour + 1, 0, 0, currentDate.Offset);
-        var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentNextFullHour, fullBatteryTargetTime, predictionInterval, cancellationToken).ConfigureAwait(false);
-        var calculateMinSoc = CalculateRequiredInitialStateOfChargeFraction(
-            predictedSurplusPerSlices, homeBatteryUsableEnergy.Value, 5, fullBatterySoc);
+        // do not add an hour on sunrise as then solar power that is available in the future would be calculated as available in battery
+        var hoursToAdd = isTargetDateSunrise ? 0 : 1;
+        var getSurplusSlicesUntil = new DateTimeOffset(targetDate.Year, targetDate.Month, targetDate.Day,
+            targetDate.Hour + hoursToAdd, 0, 0, targetDate.Offset);
+        var hour = currentDate.Hour + 1;
+        var day = currentDate.Day;
+        if (hour >= 24)
+        {
+            hour -= 24;
+            day += 1;
+        }
+        var currentNextFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, day, hour, 0, 0, currentDate.Offset);
+        var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentNextFullHour, getSurplusSlicesUntil, predictionInterval, cancellationToken).ConfigureAwait(false);
+        var calculateMinSoc = CalculateRequiredInitialStateOfChargePercent(
+            predictedSurplusPerSlices, homeBatteryUsableEnergy.Value,
+            _configurationWrapper.HomeBatteryMinDynamicMinSoc(),
+            isTargetDateSunrise ? _configurationWrapper.HomeBatteryMinDynamicMinSoc() : _configurationWrapper.HomeBatteryMaxDynamicMinSoc());
+        if (calculateMinSoc > _configurationWrapper.HomeBatteryMaxDynamicMinSoc())
+        {
+            calculateMinSoc = _configurationWrapper.HomeBatteryMaxDynamicMinSoc();
+        }
         if (calculateMinSoc != _configurationWrapper.HomeBatteryMinSoc())
         {
             var configuration = await _configurationWrapper.GetBaseConfigurationAsync();
@@ -94,9 +129,9 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     /// The target end SOC percentage (e.g. 95 means 95%).
     /// </param>
     /// <returns>
-    /// The required initial SOC expressed as a fraction between 0.0 and 1.0.
+    /// The required initial SOC expressed in% between 0 and 100.
     /// </returns>
-    private int CalculateRequiredInitialStateOfChargeFraction(
+    private int CalculateRequiredInitialStateOfChargePercent(
         IReadOnlyDictionary<DateTimeOffset, int> energyDifferences,
         int batteryUsableCapacityInWh,
         int minimalStateOfChargePercent,

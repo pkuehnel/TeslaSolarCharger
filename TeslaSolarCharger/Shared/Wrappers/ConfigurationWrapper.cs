@@ -614,6 +614,21 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().HomeBatteryMinSoc;
     }
 
+    public int HomeBatteryMinDynamicMinSoc()
+    {
+        return GetBaseConfiguration().HomeBatteryMinDynamicMinSoc;
+    }
+
+    public int HomeBatteryMaxDynamicMinSoc()
+    {
+        return GetBaseConfiguration().HomeBatteryMaxDynamicMinSoc;
+    }
+
+    public bool ForceFullHomeBatteryBySunset()
+    {
+        return GetBaseConfiguration().ForceFullHomeBatteryBySunset;
+    }
+
     public int? HomeBatteryChargingPower()
     {
         return GetBaseConfiguration().HomeBatteryChargingPower;
