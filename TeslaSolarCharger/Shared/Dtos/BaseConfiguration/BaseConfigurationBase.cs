@@ -146,7 +146,7 @@ public class BaseConfigurationBase
     [HelperText(
         "Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery")]
     public int? HomeBatteryChargingPower { get; set; }
-    [DisplayName("Home Battery target pischarging power")]
+    [DisplayName("Home Battery target discharging power")]
     [Postfix("W")]
     [HelperText(
         "Used to discharge the home battery when option is set in either a charging target or directly at the car.")]

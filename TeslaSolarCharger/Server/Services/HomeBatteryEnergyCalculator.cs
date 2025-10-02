@@ -77,6 +77,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             isTargetDateSunrise = false;
         }
         _settings.HomeBatteryTargetSocBasedOn = isTargetDateSunrise ?  HomeBatteryTargetSocBasedOn.Sunrise : HomeBatteryTargetSocBasedOn.Sunset;
+        _logger.LogTrace("Next sunrise: {nextSunrise}", nextSunrise);
+        _logger.LogTrace("Next sunset: {nextSunset}", nextSunset);
 
         var predictionInterval = TimeSpan.FromHours(1);
         // do not add an hour on sunrise as then solar power that is available in the future would be calculated as available in battery
@@ -175,7 +177,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             _logger.LogDebug("At minimum min soc after expected energy differences target energy of {targetEnergy} Wh would not be reached. Actual energy: {acutalEnergy}", targetEnergy, energyInBattery);
             maxMissingEnergy = Math.Max(maxMissingEnergy, targetEnergy - energyInBattery);
         }
-        var bufferFactor = dynamicMinSocCalculationBufferInPercent / (float)100;
+        var bufferFactor = (dynamicMinSocCalculationBufferInPercent / (float)100) + 1;
         _logger.LogTrace("Using buffer factor {bufferFactor} for missing energy calculation", bufferFactor);
         _logger.LogTrace("Closest distance to max energy: {closestDistanceToMaxSoc} Wh", closestDistanceToMaxEnergy);
         _logger.LogTrace("Max missing energy: {maxMissingEnergy}", maxMissingEnergy);
