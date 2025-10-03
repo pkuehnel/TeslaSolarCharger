@@ -24,7 +24,7 @@ else
                                   NoIcon="true"
                                   ContentAlignment="HorizontalAlignment.Left">
                             <h5>Current below 6A not recommended</h5>
-                            The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result int unexpected behaviour like the car not charging at all.
+                            The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result in unexpected behavior like the car not charging at all.
                         </MudAlert>
                     }
                     <GenericInput For="() => chargingStationConnector.Item.Name"></GenericInput>
@@ -35,6 +35,17 @@ else
                     <GenericInput For="() => chargingStationConnector.Item.MaxCurrent"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.ConnectedPhasesCount"></GenericInput>
                     <GenericInput For="() => chargingStationConnector.Item.ChargingPriority"></GenericInput>
+                    @if (_carOptions == default)
+                    {
+                        <PlaceholderComponent Count="1"></PlaceholderComponent>
+                    }
+                    else
+                    {
+                        <GenericInput For="() => chargingStationConnector.Item.AllowedCars"
+                                      DropDownOptions="_carOptions"
+                                      DisplayMultiSelectValues="true"></GenericInput>
+                    }
+                    <GenericInput For="() => chargingStationConnector.Item.AllowGuestCars"></GenericInput>
                     @if (AutoPhaseSwitchingSupported)
                     {
                         <GenericInput For="() => chargingStationConnector.Item.AutoSwitchBetween1And3PhasesEnabled"></GenericInput>
@@ -56,10 +67,18 @@ else
 
     private List<EditableItem<DtoChargingStationConnector>>? _chargingStationConnectors;
 
+    private Dictionary<int, string>? _carOptions;
+
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
+        await RefreshCarOptions();
         await RefreshChargingStationConnectors();
+    }
+
+    private async Task RefreshCarOptions()
+    {
+        _carOptions = await ChargingStationsService.GetCarOptions();
     }
 
 

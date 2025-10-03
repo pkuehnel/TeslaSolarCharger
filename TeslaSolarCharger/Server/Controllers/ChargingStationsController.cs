@@ -26,6 +26,12 @@ public class ChargingStationsController : ApiBaseController
         return Ok(await _ocppChargingStationConfigurationService.GetChargingStationConnectors(chargingStationId));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetCarOptions()
+    {
+        return Ok(await _ocppChargingStationConfigurationService.GetCarOptions());
+    }
+
     [HttpPost]
     public async Task<IActionResult> UpdateChargingStationConnector([FromBody] DtoChargingStationConnector chargingStationConnector)
     {

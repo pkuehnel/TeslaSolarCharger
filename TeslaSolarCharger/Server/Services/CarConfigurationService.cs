@@ -77,6 +77,8 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
                 TeslaFleetApiState = null,
                 ChargeMode = ChargeModeV2.Auto,
                 MinimumSoc = 10,
+                MaximumSoc = 100,
+                MaximumPhases = 3,
                 MaximumAmpere = 16,
                 MinimumAmpere = 2,
                 UsableEnergy = 75,
@@ -90,7 +92,7 @@ public class CarConfigurationService(ILogger<CarConfigurationService> logger,
 
         foreach (var teslaSolarChargerCar in teslaSolarChargerCars)
         {
-            if (!teslaAccountCars.Any(c => string.Equals(c.Vin, teslaSolarChargerCar.Vin)))
+            if (teslaSolarChargerCar.CarType == CarType.Tesla && !teslaAccountCars.Any(c => string.Equals(c.Vin, teslaSolarChargerCar.Vin)))
             {
                 logger.LogInformation("Car with VIN {vin} is not available in Tesla account anymore.", teslaSolarChargerCar.Vin);
                 teslaSolarChargerCar.IsAvailableInTeslaAccount = false;

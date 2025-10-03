@@ -351,7 +351,9 @@ async Task DoStartupStuff(WebApplication webApplication, ILogger<Program> logger
                 // Ignore this error as this could result in never taking the first token
             }
         }
-        await configJsonService.AddCarsToSettings().ConfigureAwait(false);
+
+        await configJsonService.AddAllTeslasToAllowedCars().ConfigureAwait(false);
+        await configJsonService.AddCarsToSettings(initializeManualCarValues: true).ConfigureAwait(false);
 
 
         var pvValueService = startupScope.ServiceProvider.GetRequiredService<IPvValueService>();

@@ -34,7 +34,7 @@
         @if (LoadPoint.CarId != default)
         {
             <div class="border border-gray-300 p-3 rounded col-12 col-xl-@(LoadPoint.ChargingConnectorId == default ? "12" : "6")">
-                <CarDetailsComponent CarId="LoadPoint.CarId" />
+                <CarDetailsComponent CarId="LoadPoint.CarId" ChargingConnectorId="LoadPoint.ChargingConnectorId" />
             </div>
         }
         @if (LoadPoint.ChargingConnectorId != default)

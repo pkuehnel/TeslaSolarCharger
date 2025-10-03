@@ -38,12 +38,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     }
 
     public async Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
-        List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl,
+        List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl, int reduceMaxCombinedCurrentBy,
         CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate}, {powerToControl})",
             nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate, powerToControl);
-        var maxCombinedCurrent = (decimal)_configurationWrapper.MaxCombinedCurrent();
+        var maxCombinedCurrent = (decimal)(_configurationWrapper.MaxCombinedCurrent() - reduceMaxCombinedCurrentBy);
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
@@ -52,6 +52,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
+            if (constraintValues.IsCarFullyCharged == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
+            }
             var targetPower = chargingSchedule.ChargingPower > powerToControl
                 ? chargingSchedule.ChargingPower
                 : powerToControl;
@@ -69,6 +73,10 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
+            if (constraintValues.IsCarFullyCharged == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
+            }
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControl, false, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
@@ -184,7 +192,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if ((currentToSet < constraintValues.MinCurrent)
                  && (phasesToUse != constraintValues.MinPhases.Value)
                  && ((constraintValues.PhaseReductionAllowed == true)
-                     || ignoreTimers))
+                     || ignoreTimers
+                     || constraintValues.IsCharging != true))
             {
                 if (constraintValues.IsCharging == true)
                 {
@@ -211,7 +220,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             else if ((currentToSet > constraintValues.MaxCurrent)
                        && (phasesToUse != constraintValues.MaxPhases.Value)
                         && ((constraintValues.PhaseIncreaseAllowed == true)
-                           || ignoreTimers))
+                           || ignoreTimers
+                           || constraintValues.IsCharging != true))
             {
                 if (constraintValues.IsCharging == true)
                 {
@@ -355,14 +365,23 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     c.ChargeMode,
                     c.MaximumSoc,
                     c.MinimumSoc,
+                    c.CarType,
+                    c.MaximumPhases,
                 })
                 .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
             constraintValues.MaxCurrent = carConfigValues.MaximumAmpere;
             constraintValues.ChargeMode = carConfigValues.ChargeMode;
             var car = _settings.Cars.First(c => c.Id == carId);
-            constraintValues.MinPhases = car.ActualPhases;
-            constraintValues.MaxPhases = car.ActualPhases;
+            constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
+            if (carConfigValues.CarType == CarType.Tesla)
+            {
+                constraintValues.MinPhases = car.ActualPhases;
+                constraintValues.MaxPhases = car.ActualPhases;
+            }
+            else
+            {
+                constraintValues.MaxPhases = carConfigValues.MaximumPhases;
+            }
             constraintValues.MaxSoc = carConfigValues.MaximumSoc;
             constraintValues.MinSoc = carConfigValues.MinimumSoc;
             constraintValues.CarSocLimit = car.SocLimit.Value;
@@ -412,21 +431,21 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 constraintValues.MaxCurrent = chargingConnectorConfigValues.MaxCurrent;
             }
 
+            constraintValues.PhaseSwitchingEnabled = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
+            // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
+            if (constraintValues.MaxPhases == default || constraintValues.MaxPhases > chargingConnectorConfigValues.ConnectedPhasesCount)
+            {
+                constraintValues.MaxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
+            }
+            //needs to be after max phases setting as sets min phases based on max phases
             // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
             if (constraintValues.MinPhases == default)
             {
                 constraintValues.MinPhases = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled
                     ? 1
-                    : chargingConnectorConfigValues.ConnectedPhasesCount;
+                    : constraintValues.MaxPhases;
             }
 
-            constraintValues.PhaseSwitchingEnabled = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
-
-            // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
-            if (constraintValues.MaxPhases == default)
-            {
-                constraintValues.MaxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
-            }
             if (constraintValues.ChargeMode == default)
             {
                 constraintValues.ChargeMode = chargingConnectorConfigValues.ChargeMode;
@@ -463,6 +482,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                                                      && IsTimeStampedValueRelevant(ocppValues.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff,
                                                          out chargeStopAllowedAt);
                 constraintValues.ChargeStopAllowedAt = chargeStopAllowedAt;
+                if (constraintValues.MaxCurrent < constraintValues.MinCurrent)
+                {
+                    constraintValues.MinCurrent = constraintValues.MaxCurrent;
+                }
+
                 if (chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled)
                 {
                     _logger.LogTrace("Set auto phase switching timers.");
@@ -554,6 +578,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         }
 
         if (useCarToManageChargingSpeed)
+        {
+            constraintValues.PhaseReductionAllowed = false;
+            constraintValues.PhaseIncreaseAllowed = false;
+        }
+
+        if (constraintValues.MaxPhases == constraintValues.MinPhases)
         {
             constraintValues.PhaseReductionAllowed = false;
             constraintValues.PhaseIncreaseAllowed = false;
