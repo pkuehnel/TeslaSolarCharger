@@ -52,7 +52,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         var homeGeofenceLongitude = _configurationWrapper.HomeGeofenceLongitude();
         var nextSunset = _sunCalculator.NextSunset(homeGeofenceLatitude,
             homeGeofenceLongitude, currentDate, _constants.WeatherPredictionInFutureDays - 1);
-        var forceFullBatteryOnBySunset = _configurationWrapper.ForceFullHomeBatteryBySunset();
+        var forceFullBatteryBySunset = _configurationWrapper.ForceFullHomeBatteryBySunset();
         if (nextSunset == default)
         {
             _logger.LogWarning("Could not calculate sunset for current date {currentDate}. Using configured home battery min soc.", currentDate);
@@ -66,7 +66,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         }
         var targetDate = nextSunrise.Value;
         var isTargetDateSunrise = true;
-        if (nextSunset < nextSunrise && forceFullBatteryOnBySunset)
+        if (forceFullBatteryBySunset)
         {
             targetDate = nextSunset.Value;
             isTargetDateSunrise = false;
@@ -78,7 +78,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         // Make sure battery does not run out the next day
         var targetDateFullHour =
             new DateTimeOffset(targetDate.Year, targetDate.Month, targetDate.Day, targetDate.Hour, 0, 0, TimeSpan.Zero);
-        var getSurplusSlicesUntil = targetDateFullHour.AddDays(1);
+        //Get surplus until next day +2 hours because rounding down hours in line before (+1 hour required) + if days get longer sunrise of next day can be in the next hour (+ another hour required)
+        var getSurplusSlicesUntil = targetDateFullHour.AddHours(26);
         var hour = currentDate.Hour + 1;
         var day = currentDate.Day;
         if (hour >= 24)
