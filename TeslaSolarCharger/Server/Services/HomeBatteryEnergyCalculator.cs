@@ -2,6 +2,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
+using TeslaSolarCharger.Shared.Resources.Contracts;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -13,13 +14,15 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     private readonly ISettings _settings;
     private readonly ISunCalculator _sunCalculator;
     private readonly IEnergyDataService _energyDataService;
+    private readonly IConstants _constants;
 
     public HomeBatteryEnergyCalculator(ILogger<HomeBatteryEnergyCalculator> logger,
         IConfigurationWrapper configurationWrapper,
         IDateTimeProvider dateTimeProvider,
         ISettings settings,
         ISunCalculator sunCalculator,
-        IEnergyDataService energyDataService)
+        IEnergyDataService energyDataService,
+        IConstants constants)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -27,6 +30,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         _settings = settings;
         _sunCalculator = sunCalculator;
         _energyDataService = energyDataService;
+        _constants = constants;
     }
     public async Task RefreshHomeBatteryMinSoc(CancellationToken cancellationToken)
     {
@@ -45,25 +49,15 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
 
         var homeGeofenceLatitude = _configurationWrapper.HomeGeofenceLatitude();
         var homeGeofenceLongitude = _configurationWrapper.HomeGeofenceLongitude();
-        var nextSunset = _sunCalculator.CalculateSunset(homeGeofenceLatitude,
-            homeGeofenceLongitude, currentDate);
+        var nextSunset = _sunCalculator.NextSunset(homeGeofenceLatitude,
+            homeGeofenceLongitude, currentDate, _constants.WeatherPredictionInFutureDays - 1);
         var forceFullBatteryOnBySunset = _configurationWrapper.ForceFullHomeBatteryBySunset();
-        if (nextSunset < currentDate)
-        {
-            nextSunset = _sunCalculator.CalculateSunset(homeGeofenceLatitude,
-                homeGeofenceLongitude, currentDate.AddDays(1));
-        }
         if (nextSunset == default)
         {
             _logger.LogWarning("Could not calculate sunset for current date {currentDate}. Using configured home battery min soc.", currentDate);
             return;
         }
-        var nextSunrise = _sunCalculator.CalculateSunrise(homeGeofenceLatitude, homeGeofenceLongitude, currentDate);
-        if (nextSunrise < currentDate)
-        {
-            nextSunrise = _sunCalculator.CalculateSunrise(homeGeofenceLatitude,
-                homeGeofenceLongitude, currentDate.AddDays(1));
-        }
+        var nextSunrise = _sunCalculator.NextSunrise(homeGeofenceLatitude, homeGeofenceLongitude, currentDate, _constants.WeatherPredictionInFutureDays - 1);
         if (nextSunrise == default)
         {
             _logger.LogWarning("Could not calculate sunrise for current date {currentDate}. Using configured home battery min soc.", currentDate);
@@ -76,15 +70,14 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             targetDate = nextSunset.Value;
             isTargetDateSunrise = false;
         }
-        _settings.HomeBatteryTargetSocBasedOn = isTargetDateSunrise ?  HomeBatteryTargetSocBasedOn.Sunrise : HomeBatteryTargetSocBasedOn.Sunset;
         _logger.LogTrace("Next sunrise: {nextSunrise}", nextSunrise);
         _logger.LogTrace("Next sunset: {nextSunset}", nextSunset);
 
         var predictionInterval = TimeSpan.FromHours(1);
-        // do not add an hour on sunrise as then solar power that is available in the future would be calculated as available in battery
-        var hoursToAdd = isTargetDateSunrise ? 0 : 1;
-        var getSurplusSlicesUntil = new DateTimeOffset(targetDate.Year, targetDate.Month, targetDate.Day,
-            targetDate.Hour + hoursToAdd, 0, 0, targetDate.Offset);
+        // Make sure battery does not run out the next day
+        var targetDateFullHour =
+            new DateTimeOffset(targetDate.Year, targetDate.Month, targetDate.Day, targetDate.Hour, 0, 0, TimeSpan.Zero);
+        var getSurplusSlicesUntil = targetDateFullHour.AddDays(1);
         var hour = currentDate.Hour + 1;
         var day = currentDate.Day;
         if (hour >= 24)
@@ -94,10 +87,12 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         }
         var currentNextFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, day, hour, 0, 0, currentDate.Offset);
         var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentNextFullHour, getSurplusSlicesUntil, predictionInterval, cancellationToken).ConfigureAwait(false);
+        _settings.HomeBatteryTargetSocBasedOn = isTargetDateSunrise ? HomeBatteryTargetSocBasedOn.Sunrise : HomeBatteryTargetSocBasedOn.Sunset;
         var calculateMinSoc = CalculateRequiredInitialStateOfChargePercent(
             predictedSurplusPerSlices, homeBatteryUsableEnergy.Value,
             _configurationWrapper.HomeBatteryMinDynamicMinSoc(),
             isTargetDateSunrise ? _configurationWrapper.HomeBatteryMinDynamicMinSoc() : _configurationWrapper.HomeBatteryMaxDynamicMinSoc(),
+            targetDateFullHour,
             _configurationWrapper.DynamicMinSocCalculationBufferInPercent());
         if (calculateMinSoc > _configurationWrapper.HomeBatteryMaxDynamicMinSoc())
         {
@@ -129,6 +124,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     /// <param name="targetStateOfChargePercent">
     ///     The target end SOC percentage (e.g. 95 means 95%).
     /// </param>
+    /// <param name="targetTime"></param>
     /// <param name="dynamicMinSocCalculationBufferInPercent"></param>
     /// <returns>
     /// The required initial SOC expressed in% between 0 and 100.
@@ -136,7 +132,9 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
     private int CalculateRequiredInitialStateOfChargePercent(IReadOnlyDictionary<DateTimeOffset, int> energyDifferences,
         int batteryUsableCapacityInWh,
         int minimalStateOfChargePercent,
-        int targetStateOfChargePercent, int dynamicMinSocCalculationBufferInPercent)
+        int targetStateOfChargePercent,
+        DateTimeOffset targetTime,
+        int dynamicMinSocCalculationBufferInPercent)
     {
         var minimumEnergy = (int)(batteryUsableCapacityInWh * (minimalStateOfChargePercent / 100.0));
         var targetEnergy = (int)(batteryUsableCapacityInWh * (targetStateOfChargePercent / 100.0));
