@@ -3,6 +3,7 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -88,6 +89,26 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         var currentNextFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, day, hour, 0, 0, currentDate.Offset);
         var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentNextFullHour, getSurplusSlicesUntil, predictionInterval, cancellationToken).ConfigureAwait(false);
         _settings.HomeBatteryTargetSocBasedOn = isTargetDateSunrise ? HomeBatteryTargetSocBasedOn.Sunrise : HomeBatteryTargetSocBasedOn.Sunset;
+        //If target date is sunrise iterate over all surplusses after sunrise until there is a positive surplus
+        if (isTargetDateSunrise)
+        {
+            _logger.LogTrace("As target date {targetDate} is sunrise update target date until first positive surplus", targetDateFullHour);
+            while (targetDateFullHour < getSurplusSlicesUntil)
+            {
+                targetDateFullHour = targetDateFullHour.AddHours(1);
+                if (!predictedSurplusPerSlices.TryGetValue(targetDateFullHour, out var value))
+                {
+                    _logger.LogWarning("Could not find target date {targetDate} in predicted surpluses", targetDateFullHour);
+                    break;
+                }
+                if (value > 0)
+                {
+                    _logger.LogTrace("First positive value {value} found at {targetDate}", value, targetDateFullHour);
+                    break;
+                }
+                _logger.LogTrace("Value {value} for {targetDate} is negative, waiting for positive value", value, targetDateFullHour);
+            }
+        }
         var calculateMinSoc = CalculateRequiredInitialStateOfChargePercent(
             predictedSurplusPerSlices, homeBatteryUsableEnergy.Value,
             _configurationWrapper.HomeBatteryMinDynamicMinSoc(),
@@ -143,6 +164,10 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         var localDictionary = energyDifferences.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
         var closestDistanceToMaxEnergy = batteryUsableCapacityInWh - energyInBattery;
         var batteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
+
+        // NEW: track energy at (or just before) targetTime
+        var energyAtTargetTime = energyInBattery;
+
         foreach (var energyDifference in localDictionary)
         {
             if (energyDifference.Value > batteryMaxChargingPower)
@@ -153,7 +178,15 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             {
                 energyInBattery += energyDifference.Value;
             }
-            closestDistanceToMaxEnergy = Math.Min(closestDistanceToMaxEnergy, batteryUsableCapacityInWh - energyInBattery);
+
+            if (energyDifference.Key <= targetTime)
+            {
+                energyAtTargetTime = energyInBattery;
+                //Only set closest distance to max energy until target time as otherwise values after sunrise are taken into account
+                closestDistanceToMaxEnergy = Math.Min(closestDistanceToMaxEnergy, batteryUsableCapacityInWh - energyInBattery);
+            }
+
+            
             if (energyInBattery > batteryUsableCapacityInWh)
             {
                 _logger.LogDebug("Energy in battery exceeds capacity at {Time}: {EnergyInBattery} Wh. MinSoc higher than minimum would not help.", energyDifference.Key, energyInBattery);
@@ -169,18 +202,26 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
                 }
             }
         }
+
         _logger.LogDebug("Maximum missing energy: {MaxMissingEnergy} Wh", maxMissingEnergy);
-        if (targetEnergy > energyInBattery)
+
+        // CHANGED: ensure target SoC is reached by targetTime
+        if (targetEnergy > energyAtTargetTime)
         {
-            _logger.LogDebug("At minimum min soc after expected energy differences target energy of {targetEnergy} Wh would not be reached. Actual energy: {acutalEnergy}", targetEnergy, energyInBattery);
-            maxMissingEnergy = Math.Max(maxMissingEnergy, targetEnergy - energyInBattery);
+            _logger.LogDebug(
+                "At minimum min soc by {TargetTime} target energy of {TargetEnergy} Wh would not be reached. Actual energy: {ActualEnergy}",
+                targetTime, targetEnergy, energyAtTargetTime);
+            maxMissingEnergy = Math.Max(maxMissingEnergy, targetEnergy - energyAtTargetTime);
         }
+
         var bufferFactor = (dynamicMinSocCalculationBufferInPercent / (float)100) + 1;
         _logger.LogTrace("Using buffer factor {bufferFactor} for missing energy calculation", bufferFactor);
         _logger.LogTrace("Closest distance to max energy: {closestDistanceToMaxSoc} Wh", closestDistanceToMaxEnergy);
         _logger.LogTrace("Max missing energy: {maxMissingEnergy}", maxMissingEnergy);
+
         var finalMissingEnergy = Math.Min(closestDistanceToMaxEnergy, maxMissingEnergy) * bufferFactor;
         _logger.LogTrace("Final missing energy after buffer: {finalMissingEnergy} Wh", finalMissingEnergy);
+
         if (finalMissingEnergy < 0)
         {
             return minimalStateOfChargePercent;
