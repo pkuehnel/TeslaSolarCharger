@@ -514,13 +514,13 @@ public class ChargingServiceV2 : IChargingServiceV2
     private async Task<List<DtoChargingSchedule>> GenerateChargingSchedules(DateTimeOffset currentDate, List<DtoLoadPointOverview> loadPointsToManage,
         CancellationToken cancellationToken)
     {
-        //ToDo: Does not charge until soc is reached but stops as soon as time is over
         _logger.LogTrace("{method}({currentDate}, {loadPointsToManage})", nameof(GenerateChargingSchedules), currentDate, loadPointsToManage.Count);
         var chargingSchedules = new List<DtoChargingSchedule>();
         foreach (var loadpoint in loadPointsToManage)
         {
             if (loadpoint.CarId != default)
             {
+                _logger.LogTrace("Generate charging schedules for car {carId}", loadpoint.CarId);
                 var car = _settings.Cars.First(c => c.Id == loadpoint.CarId.Value);
                 if (car.ChargeModeV2 != ChargeModeV2.Auto)
                 {
@@ -552,9 +552,11 @@ public class ChargingServiceV2 : IChargingServiceV2
 
                     if (nextTarget.DischargeHomeBatteryToMinSoc)
                     {
+                        _logger.LogTrace("Discharge home battery is enabled for carId {carId}", loadpoint.CarId);
                         homeBatteryEnergyToCharge = CalculateHomeBatteryEnergyToMinSoc();
                         if (energyToCharge == default || energyToCharge < homeBatteryEnergyToCharge)
                         {
+                            _logger.LogTrace("Use energy from home battery ({homeBatteryEnergyToCharge} Wh) as energy to charge as energy to charge would be {energyToCharge} Wh otherwise", homeBatteryEnergyToCharge, energyToCharge);
                             energyToCharge = homeBatteryEnergyToCharge;
                         }
                     }
@@ -630,10 +632,12 @@ public class ChargingServiceV2 : IChargingServiceV2
                     if (nextTarget.DischargeHomeBatteryToMinSoc
                         && homeBatteryEnergyToCharge > 0)
                     {
+                        _logger.LogTrace("Discharge home battery enabled.");
                         var homeBatteryMaxDischargePower = _configurationWrapper.HomeBatteryDischargingPower();
                         if (homeBatteryMaxDischargePower > 0)
                         {
                             var availableDischargePower = Math.Min(maxPower, homeBatteryMaxDischargePower.Value);
+                            _logger.LogTrace("Available discharge power: {availableDisChargePower}W", availableDischargePower);
                             if (availableDischargePower > 0)
                             {
                                 var dischargeDuration = CalculateChargingDuration(homeBatteryEnergyToCharge, availableDischargePower);
@@ -643,7 +647,8 @@ public class ChargingServiceV2 : IChargingServiceV2
                                 {
                                     scheduleStart = currentDate;
                                 }
-
+                                _logger.LogTrace("Discharge duration: {dischargeDuration}; Scheduled end: {scheduledEnd}; scheduled start: {scheduledStart}",
+                                    dischargeDuration, scheduleEnd, scheduleStart);
                                 if (scheduleStart < scheduleEnd)
                                 {
                                     var actualDuration = scheduleEnd - scheduleStart;
