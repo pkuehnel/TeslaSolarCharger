@@ -127,4 +127,5 @@ public interface IConfigurationWrapper
     int CarChargeLoss();
     int? HomeBatteryDischargingPower();
     int DynamicMinSocCalculationBufferInPercent();
+    bool DischargeHomeBatteryToMinSocDuringDay();
 }

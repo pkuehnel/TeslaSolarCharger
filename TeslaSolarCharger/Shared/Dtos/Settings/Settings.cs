@@ -20,7 +20,7 @@ public class Settings : ISettings
     public string? StartupCrashMessage { get; set; }
     public bool RestartNeeded { get; set; }
 
-    public HomeBatteryTargetSocBasedOn HomeBatteryTargetSocBasedOn { get; set; } = HomeBatteryTargetSocBasedOn.Unknown;
+    public NextSunEvent NextSunEvent { get; set; } = NextSunEvent.Unknown;
 
     public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
 
@@ -54,7 +54,7 @@ public class Settings : ISettings
     public bool IsPreRelease { get; set; }
 }
 
-public enum HomeBatteryTargetSocBasedOn
+public enum NextSunEvent
 {
     Unknown,
     Sunrise,

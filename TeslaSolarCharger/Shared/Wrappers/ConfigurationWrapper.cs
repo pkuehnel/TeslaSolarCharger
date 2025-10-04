@@ -655,7 +655,13 @@ public class ConfigurationWrapper(
     /// <returns></returns>
     public int? HomeBatteryUsableEnergy()
     {
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
         return GetBaseConfiguration().HomeBatteryUsableEnergy == default ? null : (int?)(GetBaseConfiguration().HomeBatteryUsableEnergy * 1000);
+    }
+
+    public bool DischargeHomeBatteryToMinSocDuringDay()
+    {
+        return GetBaseConfiguration().DischargeHomeBatteryToMinSocDuringDay;
     }
 
     public int? MaxInverterAcPower()

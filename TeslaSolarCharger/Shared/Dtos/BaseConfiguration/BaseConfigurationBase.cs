@@ -155,6 +155,8 @@ public class BaseConfigurationBase
     [Postfix("kWh")]
     [HelperText("Set the usable energy your home battery has.")]
     public double? HomeBatteryUsableEnergy { get; set; }
+    [HelperText("When enabled TSC discharges the home battery to its Min Soc after sunrise and before sunset. Note: Charging of cars is only started if minimum difference between actual home battery soc and min soc is at least 10%.")]
+    public bool DischargeHomeBatteryToMinSocDuringDay { get; set; }
     [Postfix("%")]
     [HelperText("Energy lost when charging cars. Is used to calculate charging schedules based on battery capacity.")]
     public int CarChargeLoss { get; set; } = 15;

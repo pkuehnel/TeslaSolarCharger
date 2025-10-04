@@ -64,6 +64,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             _logger.LogWarning("Could not calculate sunrise for current date {currentDate}. Using configured home battery min soc.", currentDate);
             return;
         }
+        _settings.NextSunEvent = nextSunrise < nextSunset ? NextSunEvent.Sunrise : NextSunEvent.Sunset;
         var targetDate = nextSunrise.Value;
         var isTargetDateSunrise = true;
         if (forceFullBatteryBySunset)
@@ -89,7 +90,6 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         }
         var currentNextFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, day, hour, 0, 0, currentDate.Offset);
         var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentNextFullHour, getSurplusSlicesUntil, predictionInterval, cancellationToken).ConfigureAwait(false);
-        _settings.HomeBatteryTargetSocBasedOn = isTargetDateSunrise ? HomeBatteryTargetSocBasedOn.Sunrise : HomeBatteryTargetSocBasedOn.Sunset;
         //If target date is sunrise iterate over all surplusses after sunrise until there is a positive surplus
         if (isTargetDateSunrise)
         {
