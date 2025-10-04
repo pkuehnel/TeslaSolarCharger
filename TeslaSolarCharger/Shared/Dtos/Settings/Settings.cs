@@ -20,6 +20,8 @@ public class Settings : ISettings
     public string? StartupCrashMessage { get; set; }
     public bool RestartNeeded { get; set; }
 
+    public NextSunEvent NextSunEvent { get; set; } = NextSunEvent.Unknown;
+
     public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
 
     public List<DtoCar> Cars { get; set; } = new();
@@ -50,4 +52,11 @@ public class Settings : ISettings
     public int LastPvDemoCase { get; set; }
 
     public bool IsPreRelease { get; set; }
+}
+
+public enum NextSunEvent
+{
+    Unknown,
+    Sunrise,
+    Sunset,
 }

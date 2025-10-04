@@ -127,6 +127,7 @@ public class HomeService : IHomeService
         {
             Id = s.Id,
             TargetSoc = s.TargetSoc,
+            DischargeHomeBatteryToMinSoc = s.DischargeHomeBatteryToMinSoc,
             TargetDate = s.TargetDate.HasValue
                 ? DateTime.SpecifyKind(
                     s.TargetDate.Value.ToDateTime(TimeOnly.MinValue),
@@ -156,6 +157,7 @@ public class HomeService : IHomeService
 
         dbValue.CarId = carId;
         dbValue.TargetSoc = dto.TargetSoc;
+        dbValue.DischargeHomeBatteryToMinSoc = dto.DischargeHomeBatteryToMinSoc;
         dbValue.TargetDate = dto.TargetDate == default ? null : DateOnly.FromDateTime(dto.TargetDate.Value);
         //Target Time can not be null due to validation
         dbValue.TargetTime = TimeOnly.FromTimeSpan(dto.TargetTime!.Value);

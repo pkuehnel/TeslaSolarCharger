@@ -7,6 +7,7 @@
 @inject ISnackbar Snackbar
 @inject IJavaScriptWrapper JavaScriptWrapper
 @inject IDialogService DialogService
+@inject IBaseConfigurationService BaseConfigurationService
 
 <div class="d-flex flex-wrap gap-2">
     <h3>Charging Targets</h3>
@@ -46,6 +47,11 @@ else
                     
                     <div>
                         <GenericInput For="() => chargingTarget.Item.TargetSoc"></GenericInput>
+                        @if (_homeBatteryValuesAvailable)
+                        {
+                            <GenericInput For="() => chargingTarget.Item.DischargeHomeBatteryToMinSoc"></GenericInput>
+                        }
+
                         <GenericInput For="() => chargingTarget.Item.TargetDate"
                                       Clearable="true"></GenericInput>
                         <GenericInput For="() => chargingTarget.Item.TargetTime"></GenericInput>
@@ -77,6 +83,8 @@ else
 
     private string? _timeZone;
 
+    private bool _homeBatteryValuesAvailable;
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -87,7 +95,7 @@ else
     {
         await base.OnParametersSetAsync();
         await RefreshChargingTargets();
-
+        _homeBatteryValuesAvailable = await BaseConfigurationService.HomeBatteryValuesAvailable();
     }
 
     private async Task RefreshChargingTargets()

@@ -14,7 +14,43 @@ public class SunCalculator : ISunCalculator
     private const double SunTimeOffset = 6.622;              // hours
     private const double EarthTiltFactor = 0.91764;          // unitless
 
-    public DateTimeOffset? CalculateSunset(double latitude, double longitude, DateTimeOffset date)
+
+    public DateTimeOffset? NextSunrise(double latitude, double longitude, DateTimeOffset from, int maxFutureDays)
+    {
+        var utcNow = from.ToOffset(TimeSpan.Zero);
+        var d = utcNow.Date;
+
+        for (var i = 0; i < 400; i++) // safety cap for extreme latitudes
+        {
+            var sunrise = CalculateSunrise(latitude, longitude, new(d, TimeSpan.Zero));
+            if (sunrise.HasValue && sunrise.Value > utcNow)
+                return sunrise;
+
+            d = d.AddDays(1);
+        }
+
+        return null; // likely continuous day/night
+    }
+
+    public DateTimeOffset? NextSunset(double latitude, double longitude, DateTimeOffset from, int maxFutureDays)
+    {
+        var utcNow = from.ToOffset(TimeSpan.Zero);
+        var d = utcNow.Date;
+
+        for (var i = 0; i < 400; i++)
+        {
+            var sunset = CalculateSunset(latitude, longitude, new(d, TimeSpan.Zero));
+            if (sunset.HasValue && sunset.Value > utcNow)
+                return sunset;
+
+            d = d.AddDays(1);
+        }
+
+        return null;
+    }
+
+
+    private DateTimeOffset? CalculateSunset(double latitude, double longitude, DateTimeOffset date)
     {
         var dateOnly = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
         var dayOfYear = dateOnly.DayOfYear;
@@ -63,7 +99,7 @@ public class SunCalculator : ISunCalculator
         }
     }
 
-    public DateTimeOffset? CalculateSunrise(double latitude, double longitude, DateTimeOffset date)
+    private DateTimeOffset? CalculateSunrise(double latitude, double longitude, DateTimeOffset date)
     {
         var dateOnly = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
         var dayOfYear = dateOnly.DayOfYear;

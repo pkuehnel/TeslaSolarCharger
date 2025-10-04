@@ -5,7 +5,8 @@ namespace TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
 public class CarChargingTarget
 {
     public int Id { get; set; }
-    public int TargetSoc { get; set; }
+    public int? TargetSoc { get; set; }
+    public bool DischargeHomeBatteryToMinSoc { get; set; }
     public DateOnly? TargetDate { get; set; }
     public TimeOnly TargetTime { get; set; }
     public DateTimeOffset? LastFulFilled { get; set; }

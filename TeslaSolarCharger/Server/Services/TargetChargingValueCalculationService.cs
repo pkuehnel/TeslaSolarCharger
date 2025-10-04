@@ -44,6 +44,13 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate}, {powerToControl})",
             nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate, powerToControl);
         var maxCombinedCurrent = (decimal)(_configurationWrapper.MaxCombinedCurrent() - reduceMaxCombinedCurrentBy);
+        var additionalHomeBatteryDischargePower = 0;
+        if (_configurationWrapper.DischargeHomeBatteryToMinSocDuringDay()
+            && _settings.NextSunEvent == NextSunEvent.Sunset
+            && _settings.HomeBatterySoc > _configurationWrapper.HomeBatteryMinSoc())
+        {
+            additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
+        }
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
@@ -56,16 +63,18 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
             }
-            var targetPower = chargingSchedule.ChargingPower > powerToControl
+            var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
+            var targetPower = chargingSchedule.ChargingPower > powerToControlIncludingHomeBatteryDischargePower
                 ? chargingSchedule.ChargingPower
-                : powerToControl;
+                : powerToControlIncludingHomeBatteryDischargePower;
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
-            powerToControl -= CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            var estimtedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimtedPowerUsage);
         }
 
-        var ascending = powerToControl > 0;
+        var ascending = (powerToControl + additionalHomeBatteryDischargePower) > 0;
         foreach (var loadPoint in (ascending
                      ? targetChargingValues.Where(t => t.TargetValues == default).OrderBy(x => x.LoadPoint.ChargingPriority)
                      : targetChargingValues.Where(t => t.TargetValues == default).OrderByDescending(x => x.LoadPoint.ChargingPriority)))
@@ -77,12 +86,62 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
             }
-            loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControl, false, currentDate);
+
+            var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
+            if ((loadPoint.LoadPoint.ChargingPower > 0) || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + 10)))
+            {
+                _logger.LogTrace("Adding additional home battery discharge power ({additionalHomeBatteryDisChargePower}W) to loadpoint ({carId}, {connectorId})", additionalHomeBatteryDischargePower, loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId);
+                powerToControlIncludingHomeBatteryDischargePower += additionalHomeBatteryDischargePower;
+            }
+            loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, false, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
-            powerToControl -= CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            var estimtedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimtedPowerUsage);
         }
     }
+
+    /// <summary>
+    /// Adjusts <paramref name="powerToControl"/> and <paramref name="additionalHomeBatteryDischargePower"/> 
+    /// based on the <paramref name="estimatedPowerUsage"/>.
+    /// </summary>
+    /// <param name="powerToControl">The current power available for control before accounting for power usage.</param>
+    /// <param name="additionalHomeBatteryDischargePower">The additional discharge power from the home battery before accounting for power usage.</param>
+    /// <param name="estimatedPowerUsage">The estimated power consumption to be subtracted.</param>
+    /// <returns>
+    /// A tuple containing the updated <paramref name="powerToControl"/> and 
+    /// <paramref name="additionalHomeBatteryDischargePower"/> values. 
+    /// The reduction is applied first to <paramref name="additionalHomeBatteryDischargePower"/> until it reaches zero; 
+    /// any remaining power usage is then subtracted from <paramref name="powerToControl"/>.
+    /// </returns>
+    private (int powerToControl, int additionalHomeBatteryDischargePower) RecalculatePowerToControlValues(
+        int powerToControl,
+        int additionalHomeBatteryDischargePower,
+        int estimatedPowerUsage)
+    {
+        _logger.LogTrace("{method}({powerToControl}, {additionalHomeBatteryDischargePower}, {estimatedPowerUsage})",
+            nameof(RecalculatePowerToControlValues), powerToControl, additionalHomeBatteryDischargePower, estimatedPowerUsage);
+
+        var remainingUsage = estimatedPowerUsage;
+        if (remainingUsage > 0)
+        {
+            var dischargeReduction = Math.Min(additionalHomeBatteryDischargePower, remainingUsage);
+            additionalHomeBatteryDischargePower -= dischargeReduction;
+            remainingUsage -= dischargeReduction;
+        }
+
+        // Apply any remaining usage against power to control
+        if (remainingUsage > 0)
+        {
+            powerToControl -= remainingUsage;
+        }
+
+        _logger.LogTrace("Result: powerToControl={powerToControl}, additionalHomeBatteryDischargePower={additionalHomeBatteryDischargePower}",
+            powerToControl, additionalHomeBatteryDischargePower);
+
+        return (powerToControl, additionalHomeBatteryDischargePower);
+    }
+
 
     private int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
     {
