@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Model.Entities.TeslaSolarCharger;
@@ -8,6 +8,7 @@ using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.Services.ApiServices.Contracts;
 using TeslaSolarCharger.Server.Services.ChargepointAction;
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
@@ -628,7 +629,10 @@ public class ChargingServiceV2 : IChargingServiceV2
                     }
 
                     var remainingEnergyToCoverFromGrid = energyToCharge.Value -
-                                                         (int)chargingSchedules.Select(s => (s.ValidTo - s.ValidFrom).TotalHours * s.ChargingPower).Sum();
+                                                         (int)chargingSchedules
+                                                             .Where(s => s.CarId == loadpoint.CarId && s.OcppChargingConnectorId == loadpoint.ChargingConnectorId)
+                                                             .Select(s => (s.ValidTo - s.ValidFrom).TotalHours * s.ChargingPower)
+                                                             .Sum();
                     if (nextTarget.DischargeHomeBatteryToMinSoc
                         && homeBatteryEnergyToCharge > 0)
                     {
