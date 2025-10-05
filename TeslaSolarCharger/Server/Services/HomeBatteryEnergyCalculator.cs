@@ -1,4 +1,5 @@
 using TeslaSolarCharger.Server.Services.Contracts;
+using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
@@ -81,14 +82,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
             new DateTimeOffset(targetDate.Year, targetDate.Month, targetDate.Day, targetDate.Hour, 0, 0, TimeSpan.Zero);
         //Get surplus until next day +2 hours because rounding down hours in line before (+1 hour required) + if days get longer sunrise of next day can be in the next hour (+ another hour required)
         var getSurplusSlicesUntil = targetDateFullHour.AddHours(26);
-        var hour = currentDate.Hour + 1;
-        var day = currentDate.Day;
-        if (hour >= 24)
-        {
-            hour -= 24;
-            day += 1;
-        }
-        var currentNextFullHour = new DateTimeOffset(currentDate.Year, currentDate.Month, day, hour, 0, 0, currentDate.Offset);
+        var currentNextFullHour = currentDate.NextFullHour();
         var predictedSurplusPerSlices = await _energyDataService.GetPredictedSurplusPerSlice(currentNextFullHour, getSurplusSlicesUntil, predictionInterval, cancellationToken).ConfigureAwait(false);
         //If target date is sunrise iterate over all surplusses after sunrise until there is a positive surplus
         if (isTargetDateSunrise)
