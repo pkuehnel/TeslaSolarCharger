@@ -17,4 +17,5 @@ public class DtoChargingSchedule : ValidFromToBase
     public int? OcppChargingConnectorId { get; set; }
     public int? OnlyChargeOnAtLeastSolarPower { get; set; }
     public int ChargingPower { get; set; }
+    public int? TargetGridPower { get; set; }
 }

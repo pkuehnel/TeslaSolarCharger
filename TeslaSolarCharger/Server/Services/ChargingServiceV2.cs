@@ -81,9 +81,9 @@ public class ChargingServiceV2 : IChargingServiceV2
             return;
         }
         var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        await SetManualCarsToAtHome(currentDate).ConfigureAwait(false);
+        SetManualCarsToAtHome(currentDate);
         await CalculateGeofences(currentDate);
-        await SetManualCarsToAtHome(currentDate).ConfigureAwait(false);
+        SetManualCarsToAtHome(currentDate);
         await AddNoOcppConnectionReason(cancellationToken).ConfigureAwait(false);
         await SetCurrentOfNonChargingTeslasToMax().ConfigureAwait(false);
         await SetCarChargingTargetsToFulFilled(currentDate).ConfigureAwait(false);
@@ -103,7 +103,7 @@ public class ChargingServiceV2 : IChargingServiceV2
             {
                 continue;
             }
-            var stateAvailable = _settings.OcppConnectorStates.TryGetValue(loadpoint.ChargingConnectorId.Value, out var state);
+            var stateAvailable = _settings.OcppConnectorStates.TryGetValue(loadpoint.ChargingConnectorId.Value, out _);
             if (!stateAvailable)
             {
                 continue;
@@ -199,7 +199,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         await _notChargingWithExpectedPowerReasonHelper.UpdateReasonsInSettings().ConfigureAwait(false);
     }
 
-    private async Task SetManualCarsToAtHome(DateTimeOffset currentDate)
+    private void SetManualCarsToAtHome(DateTimeOffset currentDate)
     {
         var manualCars = _context.Cars.Where(c => c.CarType == CarType.Manual).ToList();
         foreach (var manualCar in manualCars)
@@ -656,6 +656,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                                         ValidFrom = scheduleStart,
                                         ValidTo = scheduleEnd,
                                         ChargingPower = availableDischargePower,
+                                        TargetGridPower = availableDischargePower,
                                     };
                                     chargingSchedules.Add(homeBatteryChargingSchedule);
                                 }
