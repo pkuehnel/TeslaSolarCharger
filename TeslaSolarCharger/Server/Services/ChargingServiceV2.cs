@@ -951,7 +951,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private int CalculateHomeBatteryEnergyToMinSoc()
     {
         _logger.LogTrace("{method}()", nameof(CalculateHomeBatteryEnergyToMinSoc));
-        var homeBatteryEnergy = _configurationWrapper.HomeBatteryUsableEnergy() * 1000; // kWh to Wh
+        var homeBatteryEnergy = _configurationWrapper.HomeBatteryUsableEnergy();
         if (homeBatteryEnergy == default)
         {
             return 0;
