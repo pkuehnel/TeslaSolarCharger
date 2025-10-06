@@ -205,8 +205,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         {
             return null;
         }
+        //Allow greater state of charge than max soc if should charge because of charging schedule
         if ((constraintValues.ChargeMode == ChargeModeV2.Off)
-            || (constraintValues.Soc > constraintValues.MaxSoc))
+            || (constraintValues.Soc > constraintValues.MaxSoc && !ignoreTimers))
         {
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
         }
@@ -323,7 +324,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
 
             if (constraintValues.IsCharging != true)
             {
-                if (constraintValues.Soc >= constraintValues.MaxSoc)
+                //Should be able to start charging if reason is charging schedule
+                if (constraintValues.Soc >= constraintValues.MaxSoc && !ignoreTimers)
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                         new("Configured max Soc is reached"));
