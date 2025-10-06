@@ -70,8 +70,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
-            var estimtedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
-            (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimtedPowerUsage);
+            var estimatedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimatedPowerUsage);
         }
 
         var ascending = (powerToControl + additionalHomeBatteryDischargePower) > 0;
@@ -96,8 +96,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, false, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
-            var estimtedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
-            (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimtedPowerUsage);
+            var estimatedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimatedPowerUsage);
         }
     }
 

@@ -4,7 +4,6 @@ using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Resources.Contracts;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -180,7 +179,6 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
                 //Only set closest distance to max energy until target time as otherwise values after sunrise are taken into account
                 closestDistanceToMaxEnergy = Math.Min(closestDistanceToMaxEnergy, batteryUsableCapacityInWh - energyInBattery);
             }
-
             
             if (energyInBattery > batteryUsableCapacityInWh)
             {
