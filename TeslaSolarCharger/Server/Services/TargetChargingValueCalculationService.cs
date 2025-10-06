@@ -64,9 +64,9 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
             }
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
-            var chargingSchedulePower = chargingSchedule.ChargingPower > (powerToControl + (chargingSchedule.TargetGridPower ?? 0))
-                                ? chargingSchedule.ChargingPower
-                                : (powerToControl + (chargingSchedule.TargetGridPower ?? 0));
+            var chargingSchedulePower = chargingSchedule.TargetGridPower.HasValue && (chargingSchedule.ChargingPower < (powerToControl + (chargingSchedule.TargetGridPower ?? 0)))
+                                ? (powerToControl + (chargingSchedule.TargetGridPower ?? 0))
+                                : chargingSchedule.ChargingPower;
             var targetPower = chargingSchedulePower > powerToControlIncludingHomeBatteryDischargePower
                 ? chargingSchedulePower
                 : powerToControlIncludingHomeBatteryDischargePower;
