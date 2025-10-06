@@ -847,6 +847,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                     ClientTimeZone = carChargingTarget.ClientTimeZone,
                     CarId = carChargingTarget.CarId,
                     NextExecutionTime = nextTargetUtc.Value,
+                    DischargeHomeBatteryToMinSoc = carChargingTarget.DischargeHomeBatteryToMinSoc,
                 };
             }
         }
