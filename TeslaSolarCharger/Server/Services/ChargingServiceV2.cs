@@ -120,8 +120,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
 
         var targetChargingValues = loadPointsToManage
-            //Do not set target values for loadpoints that are in car capability detection as these are set to max current
-            .Where(l => l.ChargingConnectorId == default)
             .OrderBy(l => l.ChargingPriority)
             .Select(l => new DtoTargetChargingValues(l))
             .ToList();
