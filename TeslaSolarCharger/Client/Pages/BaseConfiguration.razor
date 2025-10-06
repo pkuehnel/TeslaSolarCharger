@@ -75,7 +75,8 @@ else
         
 
         <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryChargingPower" />
-
+        <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryDischargingPower" />
+        <GenericInput For="() => _dtoBaseConfiguration.Item.DischargeHomeBatteryToMinSocDuringDay" />
         <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryUsableEnergy" />
 
         <GenericInput For="() => _dtoBaseConfiguration.Item.MaxInverterAcPower" />
@@ -118,6 +119,11 @@ else
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MaxModbusErrorBackoffDuration" />
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MinutesUntilSwitchOn" />
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MinutesUntilSwitchOff" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMinDynamicMinSoc" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.HomeBatteryMaxDynamicMinSoc" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.DynamicMinSocCalculationBuffer" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.ForceFullHomeBatteryBySunset" />
+                <GenericInput For="() => _dtoBaseConfiguration.Item.CarChargeLoss" />
                 <hr/>
                 <GenericInput For="() => _dtoBaseConfiguration.Item.MqqtClientId" />
                 <hr/>

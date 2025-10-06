@@ -107,6 +107,19 @@ public static class Extensions
         }
     }
 
+    public static DateTimeOffset NextFullHour(this DateTimeOffset dateTimeOffset)
+    {
+        return new DateTimeOffset(
+            dateTimeOffset.Year,
+            dateTimeOffset.Month,
+            dateTimeOffset.Day,
+            dateTimeOffset.Hour,
+            0,
+            0,
+            dateTimeOffset.Offset
+        ).AddHours(1);
+    }
+
     /// <summary>
     /// Extension for 'Object' that copies the properties to a destination object.
     /// </summary>

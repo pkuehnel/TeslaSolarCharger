@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using TeslaSolarCharger.Shared.Dtos;
+﻿using TeslaSolarCharger.Shared.Dtos;
 using TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
 namespace TeslaSolarCharger.Server.Contracts;
@@ -16,4 +14,5 @@ public interface IBaseConfigurationService
     Task<byte[]> DownloadAutoBackup(string fileName);
     Task<(Stream stream, string fileName)> DownloadBackupStream(string? backupZipDestinationDirectory);
     void ProcessPendingRestore();
+    bool HomeBatteryValuesAvailable();
 }
