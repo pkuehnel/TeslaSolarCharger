@@ -9,7 +9,7 @@ public class DtoCarChargingTarget
 {
     public int Id { get; set; }
     public int? TargetSoc { get; set; }
-    [HelperText("If no Target soc is set, TSC tries to discharge the home battery to its minium SoC by the target time. If a Target Soc is set, TSC schedules charging to reduce")]
+    [HelperText("If no Target soc is set, TSC tries to discharge the home battery to its minimum SoC by the target time. If a Target Soc is set, TSC schedules charging to reduce grid usage by reducing the charging speed which your home battery is capable of.")]
     public bool DischargeHomeBatteryToMinSoc { get; set; }
     public DateTime? TargetDate { get; set; }
     public TimeSpan? TargetTime { get; set; }

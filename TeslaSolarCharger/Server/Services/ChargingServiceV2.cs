@@ -639,7 +639,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         if (homeBatteryMaxDischargePower > 0)
                         {
                             var availableDischargePower = Math.Min(maxPower, homeBatteryMaxDischargePower.Value);
-                            _logger.LogTrace("Available discharge power: {availableDisChargePower}W", availableDischargePower);
+                            _logger.LogTrace("Available discharge power: {availableDischargePower}W", availableDischargePower);
                             if (availableDischargePower > 0)
                             {
                                 var dischargeDuration = CalculateChargingDuration(homeBatteryEnergyToCharge, availableDischargePower);

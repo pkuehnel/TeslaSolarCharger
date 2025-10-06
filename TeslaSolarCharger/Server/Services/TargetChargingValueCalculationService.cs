@@ -90,7 +90,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
             if ((loadPoint.LoadPoint.ChargingPower > 0) || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + 10)))
             {
-                _logger.LogTrace("Adding additional home battery discharge power ({additionalHomeBatteryDisChargePower}W) to loadpoint ({carId}, {connectorId})", additionalHomeBatteryDischargePower, loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId);
+                _logger.LogTrace("Adding additional home battery discharge power ({additionalHomeBatteryDischargePower}W) to loadpoint ({carId}, {connectorId})", additionalHomeBatteryDischargePower, loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId);
                 powerToControlIncludingHomeBatteryDischargePower += additionalHomeBatteryDischargePower;
             }
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, false, currentDate);
