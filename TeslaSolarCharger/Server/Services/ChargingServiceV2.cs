@@ -656,6 +656,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                                         ValidFrom = scheduleStart,
                                         ValidTo = scheduleEnd,
                                         ChargingPower = availableDischargePower,
+                                        TargetGridPower = availableDischargePower,
                                     };
                                     chargingSchedules.Add(homeBatteryChargingSchedule);
                                 }
