@@ -536,6 +536,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                 if (nextTarget != default)
                 {
                     int? energyToCharge = null;
+                    var minimumEnergyToCharge = 0;
                     var homeBatteryEnergyToCharge = 0;
                     if (nextTarget.TargetSoc != default)
                     {
@@ -546,6 +547,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                                 actualTargetSoc.Value,
                                 car.SoC.Value ?? 0,
                                 carUsableEnergy.Value);
+                            minimumEnergyToCharge = energyToCharge.Value;
                         }
                     }
 
@@ -626,11 +628,7 @@ public class ChargingServiceV2 : IChargingServiceV2
                         }
                     }
 
-                    var remainingEnergyToCoverFromGrid = energyToCharge.Value -
-                                                         (int)chargingSchedules
-                                                             .Where(s => s.CarId == loadpoint.CarId && s.OcppChargingConnectorId == loadpoint.ChargingConnectorId)
-                                                             .Select(s => (s.ValidTo - s.ValidFrom).TotalHours * s.ChargingPower)
-                                                             .Sum();
+                    
                     if (nextTarget.DischargeHomeBatteryToMinSoc
                         && homeBatteryEnergyToCharge > 0)
                     {
@@ -653,8 +651,6 @@ public class ChargingServiceV2 : IChargingServiceV2
                                     dischargeDuration, scheduleEnd, scheduleStart);
                                 if (scheduleStart < scheduleEnd)
                                 {
-                                    var actualDuration = scheduleEnd - scheduleStart;
-                                    var energyFromHomeBattery = (int)(availableDischargePower * actualDuration.TotalHours);
                                     var homeBatteryChargingSchedule = new DtoChargingSchedule(loadpoint.CarId.Value, loadpoint.ChargingConnectorId)
                                     {
                                         ValidFrom = scheduleStart,
@@ -662,15 +658,16 @@ public class ChargingServiceV2 : IChargingServiceV2
                                         ChargingPower = availableDischargePower,
                                     };
                                     chargingSchedules.Add(homeBatteryChargingSchedule);
-                                    remainingEnergyToCoverFromGrid -= energyFromHomeBattery;
-                                    if (remainingEnergyToCoverFromGrid < 0)
-                                    {
-                                        remainingEnergyToCoverFromGrid = 0;
-                                    }
                                 }
                             }
                         }
                     }
+
+                    var remainingEnergyToCoverFromGrid = minimumEnergyToCharge -
+                                                                (int)chargingSchedules
+                                                                    .Where(s => s.CarId == loadpoint.CarId && s.OcppChargingConnectorId == loadpoint.ChargingConnectorId)
+                                                                    .Select(s => (s.ValidTo - s.ValidFrom).TotalHours * s.ChargingPower)
+                                                                    .Sum();
 
                     var electricityPrices = await _tscOnlyChargingCostService.GetPricesInTimeSpan(currentDate, nextTarget.NextExecutionTime);
                     var endTimeOrderedElectricityPrices = electricityPrices.OrderBy(p => p.ValidTo).ToList();
