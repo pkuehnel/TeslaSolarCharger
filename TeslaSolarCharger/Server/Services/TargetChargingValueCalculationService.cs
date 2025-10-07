@@ -50,6 +50,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             && _settings.HomeBatterySoc > _configurationWrapper.HomeBatteryMinSoc())
         {
             additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
+            _logger.LogTrace("Added additional home battery discharge powe of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
         }
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
