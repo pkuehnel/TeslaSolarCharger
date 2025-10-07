@@ -45,11 +45,20 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate, powerToControl);
         var maxCombinedCurrent = (decimal)(_configurationWrapper.MaxCombinedCurrent() - reduceMaxCombinedCurrentBy);
         var additionalHomeBatteryDischargePower = 0;
-        if (_configurationWrapper.DischargeHomeBatteryToMinSocDuringDay()
-            && _settings.NextSunEvent == NextSunEvent.Sunset
-            && _settings.HomeBatterySoc > _configurationWrapper.HomeBatteryMinSoc())
+        var dischargeHomeBatteryToMinSocDuringDay = _configurationWrapper.DischargeHomeBatteryToMinSocDuringDay();
+        _logger.LogTrace("{variableName}: {value}", nameof(dischargeHomeBatteryToMinSocDuringDay), dischargeHomeBatteryToMinSocDuringDay);
+        var nextSunEvent = _settings.NextSunEvent;
+        _logger.LogTrace("{variableName}: {value}", nameof(nextSunEvent), nextSunEvent);
+        var homeBatterySoc = _settings.HomeBatterySoc;
+        _logger.LogTrace("{variableName}: {value}", nameof(homeBatterySoc), homeBatterySoc);
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        _logger.LogTrace("{variableName}: {value}", nameof(homeBatteryMinSoc), homeBatteryMinSoc);
+        if (dischargeHomeBatteryToMinSocDuringDay
+            && nextSunEvent == NextSunEvent.Sunset
+            && homeBatterySoc > homeBatteryMinSoc)
         {
             additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
+            _logger.LogTrace("Added additional home battery discharge powe of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
         }
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
