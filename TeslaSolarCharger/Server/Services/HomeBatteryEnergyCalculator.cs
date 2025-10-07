@@ -151,6 +151,8 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         DateTimeOffset targetTime,
         int dynamicMinSocCalculationBufferInPercent)
     {
+        _logger.LogTrace("{method}({@energyDifferences}, {batteryUsableCapacityInWh}, {minimalStateOfChargePercent}, {targetStateOfChargePercent}, {targetTime}, {dynamicMinSocCalculationBufferInPercent})",
+            nameof(CalculateRequiredInitialStateOfChargePercent), energyDifferences, batteryUsableCapacityInWh, minimalStateOfChargePercent, targetStateOfChargePercent, targetTime, dynamicMinSocCalculationBufferInPercent);
         var minimumEnergy = (int)(batteryUsableCapacityInWh * (minimalStateOfChargePercent / 100.0));
         var targetEnergy = (int)(batteryUsableCapacityInWh * (targetStateOfChargePercent / 100.0));
         var maxMissingEnergy = 0;
@@ -180,7 +182,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
                 closestDistanceToMaxEnergy = Math.Min(closestDistanceToMaxEnergy, batteryUsableCapacityInWh - energyInBattery);
             }
             
-            if (energyInBattery > batteryUsableCapacityInWh)
+            if (energyInBattery > batteryUsableCapacityInWh && energyDifference.Key < targetTime)
             {
                 _logger.LogDebug("Energy in battery exceeds capacity at {Time}: {EnergyInBattery} Wh. MinSoc higher than minimum would not help.", energyDifference.Key, energyInBattery);
                 return minimalStateOfChargePercent;
