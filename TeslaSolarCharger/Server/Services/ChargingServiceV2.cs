@@ -15,6 +15,8 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
+using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -35,6 +37,7 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly IBackendApiService _backendApiService;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
     private readonly ITargetChargingValueCalculationService _targetChargingValueCalculationService;
+    private readonly IAppStateNotifier _appStateNotifier;
 
     public ChargingServiceV2(ILogger<ChargingServiceV2> logger,
         IConfigurationWrapper configurationWrapper,
@@ -50,7 +53,8 @@ public class ChargingServiceV2 : IChargingServiceV2
         IPowerToControlCalculationService powerToControlCalculationService,
         IBackendApiService backendApiService,
         INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
-        ITargetChargingValueCalculationService targetChargingValueCalculationService)
+        ITargetChargingValueCalculationService targetChargingValueCalculationService,
+        IAppStateNotifier appStateNotifier)
     {
         _logger = logger;
         _configurationWrapper = configurationWrapper;
@@ -67,6 +71,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         _backendApiService = backendApiService;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
         _targetChargingValueCalculationService = targetChargingValueCalculationService;
+        _appStateNotifier = appStateNotifier;
     }
 
     public async Task SetNewChargingValues(CancellationToken cancellationToken)
@@ -110,6 +115,12 @@ public class ChargingServiceV2 : IChargingServiceV2
         var chargingSchedules = await GenerateChargingSchedules(currentDate, loadPointsToManage, cancellationToken).ConfigureAwait(false);
         OptimizeChargingSwitchTimes(chargingSchedules, loadPointsToManage, currentDate);
         _settings.ChargingSchedules = new ConcurrentBag<DtoChargingSchedule>(chargingSchedules);
+        var chargingScheduleChange = new StateUpdateDto
+        {
+            DataType = DataTypeConstants.ChargingSchedulesChangeTrigger,
+            Timestamp = _dateTimeProvider.DateTimeOffSetUtcNow(),
+        };
+        await _appStateNotifier.NotifyStateUpdateAsync(chargingScheduleChange).ConfigureAwait(false);
 
         _logger.LogDebug("Final calculated power to control: {powerToControl}", powerToControl);
         var activeChargingSchedules = chargingSchedules.Where(s => s.ValidFrom <= currentDate).ToList();
