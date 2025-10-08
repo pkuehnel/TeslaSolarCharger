@@ -3,6 +3,7 @@ using TeslaSolarCharger.Model.Contracts;
 using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
+using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Enums;
 
 namespace TeslaSolarCharger.Server.Services;
@@ -12,156 +13,91 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
     private readonly ILogger<ShouldStartStopChargingCalculator> _logger;
     private readonly ITeslaSolarChargerContext _context;
     private readonly ISettings _settings;
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ILoadPointManagementService _loadPointManagementService;
 
     public ShouldStartStopChargingCalculator(ILogger<ShouldStartStopChargingCalculator> logger,
         ITeslaSolarChargerContext context,
-        ISettings settings,
-        IDateTimeProvider dateTimeProvider,
-        ILoadPointManagementService loadPointManagementService)
+        ISettings settings)
     {
         _logger = logger;
         _context = context;
         _settings = settings;
-        _dateTimeProvider = dateTimeProvider;
-        _loadPointManagementService = loadPointManagementService;
     }
 
-    public async Task UpdateShouldStartStopChargingTimes(int targetPower)
+    public void SetStartStopChargingForLoadPoint(DtoLoadPointOverview dtoLoadPointOverview, int targetPower, List<DtoStartStopChargingHelper> carElements, List<DtoStartStopChargingHelper> ocppElements, DateTimeOffset currentDate)
     {
-        _logger.LogTrace("{method}({targetPower})", nameof(UpdateShouldStartStopChargingTimes), targetPower);
-        var carElements = await GetCarElements().ConfigureAwait(false);
-        var ocppElements = await GetOcppElements().ConfigureAwait(false);
-        var chargingLoadPoints = await _loadPointManagementService.GetLoadPointsWithChargingDetails().ConfigureAwait(false);
-        var additionalAvailablePower = targetPower - chargingLoadPoints.Select(l => l.ChargingPower).Sum();
-        var currentDate = _dateTimeProvider.DateTimeOffSetUtcNow();
-        var loadPointsToManage = await _loadPointManagementService.GetLoadPointsToManage().ConfigureAwait(false);
-        foreach (var dtoLoadPointOverview in loadPointsToManage)
+        _logger.LogTrace("{method}({@dtoLoadPointOverview}, {targetPower}, {@carElements}, {@ocppElements}, {currentDate})"
+            , nameof(SetStartStopChargingForLoadPoint), dtoLoadPointOverview, targetPower, carElements, ocppElements, currentDate);
+        _logger.LogTrace("Set Start/Stop Charging for loadpoint: {@dtoLoadPointOverview}", dtoLoadPointOverview);
+        var carId = dtoLoadPointOverview.CarId;
+        var ocppConnectorId = dtoLoadPointOverview.ChargingConnectorId;
+        var carElement = carId == default ? null : carElements.FirstOrDefault(c => c.Id == carId.Value);
+        var ocppElement = ocppConnectorId == default ? null : ocppElements.FirstOrDefault(c => c.Id == ocppConnectorId.Value);
+        var minPhaseCount = GetMinPhases(carElement, ocppElement, dtoLoadPointOverview.CarType);
+        if ((minPhaseCount == default) || (minPhaseCount < 1))
         {
-            _logger.LogTrace("Set Start/Stop Charging for loadpoint: {@dtoLoadPointOverview}", dtoLoadPointOverview);
-            var carId = dtoLoadPointOverview.CarId;
-            var ocppConnectorId = dtoLoadPointOverview.ChargingConnectorId;
-            var elementTargetPower = additionalAvailablePower;
-            var matchingLoadPoint = chargingLoadPoints
-                .FirstOrDefault(lp => lp.CarId == carId
-                                      && lp.ChargingConnectorId == ocppConnectorId);
-            if (matchingLoadPoint != default)
-            {
-                elementTargetPower += (matchingLoadPoint.ChargingPower);
-            }
-            var carElement = carId == default ? null : carElements.FirstOrDefault(c => c.Id == carId.Value);
-            var ocppElement = ocppConnectorId == default ? null : ocppElements.FirstOrDefault(c => c.Id == ocppConnectorId.Value);
-            var minPhaseCount = GetMinPhases(carElement, ocppElement, dtoLoadPointOverview.CarType);
-            if ((minPhaseCount == default) || (minPhaseCount < 1))
-            {
-                _logger.LogError("Min phases unknown for car {carId} and connector {connectorId}", carId, ocppConnectorId);
-                continue;
-            }
-            _logger.LogTrace("Min phase count for car {carId} and connector {connectorId}: {value}", carId, ocppConnectorId, minPhaseCount);
-            var switchOnCurrent = GetSwitchOnCurrent(carElement, ocppElement);
-            if (switchOnCurrent == default)
-            {
-                _logger.LogError("switchOnCurrent unknown for car {carId} and connector {connectorId}", carId, ocppConnectorId);
-                continue;
-            }
-            _logger.LogTrace("Switch on current for car {carId} and connector {connectorId}: {value}", carId, ocppConnectorId, switchOnCurrent);
-            var switchOffCurrent = GetSwitchOffCurrent(carElement, ocppElement);
-            if (switchOffCurrent == default)
-            {
-                _logger.LogError("switchOffCurrent unknown for car {carId} and connector {connectorId}", carId, ocppConnectorId);
-                continue;
-            }
-            _logger.LogTrace("Switch off current for car {carId} and connector {connectorId}: {value}", carId, ocppConnectorId, switchOffCurrent);
-            var voltage = _settings.AverageHomeGridVoltage ?? 230;
-            var switchOnAtPower = switchOnCurrent.Value * minPhaseCount.Value * voltage;
-            var switchOffAtPower = switchOffCurrent.Value * minPhaseCount.Value * voltage;
-            if (carId != default)
-            {
-                var car = _settings.Cars.First(c => c.Id == carId.Value);
-                car.ShouldStartCharging.Update(currentDate, switchOnAtPower < elementTargetPower);
-                car.ShouldStopCharging.Update(currentDate, switchOffAtPower > elementTargetPower);
-            }
+            _logger.LogError("Min phases unknown for car {carId} and connector {connectorId}", carId, ocppConnectorId);
+            return;
+        }
+        _logger.LogTrace("Min phase count for car {carId} and connector {connectorId}: {value}", carId, ocppConnectorId, minPhaseCount);
+        var switchOnCurrent = GetSwitchOnCurrent(carElement, ocppElement);
+        if (switchOnCurrent == default)
+        {
+            _logger.LogError("switchOnCurrent unknown for car {carId} and connector {connectorId}", carId, ocppConnectorId);
+            return;
+        }
+        _logger.LogTrace("Switch on current for car {carId} and connector {connectorId}: {value}", carId, ocppConnectorId, switchOnCurrent);
+        var switchOffCurrent = GetSwitchOffCurrent(carElement, ocppElement);
+        if (switchOffCurrent == default)
+        {
+            _logger.LogError("switchOffCurrent unknown for car {carId} and connector {connectorId}", carId, ocppConnectorId);
+            return;
+        }
+        _logger.LogTrace("Switch off current for car {carId} and connector {connectorId}: {value}", carId, ocppConnectorId, switchOffCurrent);
+        var voltage = _settings.AverageHomeGridVoltage ?? 230;
+        var switchOnAtPower = switchOnCurrent.Value * minPhaseCount.Value * voltage;
+        var switchOffAtPower = switchOffCurrent.Value * minPhaseCount.Value * voltage;
+        if (carId != default)
+        {
+            var car = _settings.Cars.First(c => c.Id == carId.Value);
+            car.ShouldStartCharging.Update(currentDate, switchOnAtPower < targetPower);
+            car.ShouldStopCharging.Update(currentDate, switchOffAtPower > targetPower);
+        }
 
-            if (ocppConnectorId != default
-                && ocppElement != default
-                && _settings.OcppConnectorStates.TryGetValue(ocppConnectorId.Value, out var ocppConnectorState))
+        if (ocppConnectorId != default
+            && ocppElement != default
+            && _settings.OcppConnectorStates.TryGetValue(ocppConnectorId.Value, out var ocppConnectorState))
+        {
+            ocppConnectorState.ShouldStartCharging.Update(currentDate, switchOnAtPower < targetPower);
+            ocppConnectorState.ShouldStopCharging.Update(currentDate, switchOffAtPower > targetPower);
+            var currentPhasesCharging = ocppConnectorState.IsCharging.Value ? ocppConnectorState.PhaseCount.Value ?? 0 : 0;
+            if ((ocppElement.MinPowerOnePhase != default) && (ocppElement.MaxPowerOnePhase != default) && (ocppElement.MinPowerThreePhase != default))
             {
-                ocppConnectorState.ShouldStartCharging.Update(currentDate, switchOnAtPower < elementTargetPower);
-                ocppConnectorState.ShouldStopCharging.Update(currentDate, switchOffAtPower > elementTargetPower);
-                var currentPhasesCharging = ocppConnectorState.IsCharging.Value ? ocppConnectorState.PhaseCount.Value ?? 0 : 0;
-                if ((ocppElement.MinPowerOnePhase != default) && (ocppElement.MaxPowerOnePhase != default) && (ocppElement.MinPowerThreePhase != default))
+                if (currentPhasesCharging == 1)
                 {
-                    if (currentPhasesCharging == 1)
-                    {
-                        ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, elementTargetPower < ocppElement.MinPowerThreePhase);
-                        ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, elementTargetPower >= ocppElement.MinPowerThreePhase);
-                    }
-                    else if (currentPhasesCharging == 3)
-                    {
-                        ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, elementTargetPower <= ocppElement.MaxPowerOnePhase);
-                        ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, elementTargetPower > ocppElement.MaxPowerOnePhase);
-                    }
-                    else
-                    {
-                        ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, (switchOnAtPower <= elementTargetPower)
-                                                                                        && (elementTargetPower < ocppElement.MinPowerThreePhase));
-                        ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, elementTargetPower >= ocppElement.MinPowerThreePhase);
-                    }
+                    ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, targetPower < ocppElement.MinPowerThreePhase);
+                    ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, targetPower >= ocppElement.MinPowerThreePhase);
+                }
+                else if (currentPhasesCharging == 3)
+                {
+                    ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, targetPower <= ocppElement.MaxPowerOnePhase);
+                    ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, targetPower > ocppElement.MaxPowerOnePhase);
                 }
                 else
                 {
-                    ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, null);
-                    ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, null);
+                    ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, (switchOnAtPower <= targetPower)
+                                                                                    && (targetPower < ocppElement.MinPowerThreePhase));
+                    ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, targetPower >= ocppElement.MinPowerThreePhase);
                 }
             }
+            else
+            {
+                ocppConnectorState.CanHandlePowerOnOnePhase.Update(currentDate, null);
+                ocppConnectorState.CanHandlePowerOnThreePhase.Update(currentDate, null);
+            }
         }
     }
 
-    private int? GetSwitchOffCurrent(DtoStartStopChargingHelper? carElement, DtoStartStopChargingHelper? ocppElement)
-    {
-        var value = new[]
-            {
-                carElement?.SwitchOffAt.Current,
-                ocppElement?.SwitchOffAt.Current,
-            }
-            .Where(p => p.HasValue)
-            .DefaultIfEmpty()
-            .Max();
-        return value;
-    }
-
-    private int? GetSwitchOnCurrent(DtoStartStopChargingHelper? carElement, DtoStartStopChargingHelper? ocppElement)
-    {
-        var value = new[]
-            {
-                carElement?.SwitchOnAt.Current,
-                ocppElement?.SwitchOnAt.Current,
-            }
-            .Where(p => p.HasValue)
-            .DefaultIfEmpty()
-            .Max();
-        return value;
-    }
-
-    private int? GetMinPhases(DtoStartStopChargingHelper? carElement, DtoStartStopChargingHelper? ocppElement, CarType? carType)
-    {
-        if (carType == CarType.Tesla)
-        {
-            return carElement?.SwitchOnAt.PhaseCount;
-        }
-        var minPhaseCount = new[]
-            {
-                carElement?.SwitchOnAt.PhaseCount,
-                ocppElement?.SwitchOnAt.PhaseCount,
-            }
-            .Where(p => p.HasValue)
-            .DefaultIfEmpty()
-            .Min();
-        return minPhaseCount;
-    }
-
-    private async Task<List<DtoStartStopChargingHelper>> GetCarElements()
+    public async Task<List<DtoStartStopChargingHelper>> GetCarElements()
     {
         _logger.LogTrace("{method}()", nameof(GetCarElements));
         var elements = new List<DtoStartStopChargingHelper>();
@@ -206,7 +142,7 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
         return elements;
     }
 
-    private async Task<List<DtoStartStopChargingHelper>> GetOcppElements()
+    public async Task<List<DtoStartStopChargingHelper>> GetOcppElements()
     {
         _logger.LogTrace("{method}()", nameof(GetOcppElements));
         var elements = new List<DtoStartStopChargingHelper>();
@@ -314,6 +250,49 @@ public class ShouldStartStopChargingCalculator : IShouldStartStopChargingCalcula
         }
 
         return elements;
+    }
+
+    private int? GetSwitchOffCurrent(DtoStartStopChargingHelper? carElement, DtoStartStopChargingHelper? ocppElement)
+    {
+        var value = new[]
+            {
+                carElement?.SwitchOffAt.Current,
+                ocppElement?.SwitchOffAt.Current,
+            }
+            .Where(p => p.HasValue)
+            .DefaultIfEmpty()
+            .Max();
+        return value;
+    }
+
+    private int? GetSwitchOnCurrent(DtoStartStopChargingHelper? carElement, DtoStartStopChargingHelper? ocppElement)
+    {
+        var value = new[]
+            {
+                carElement?.SwitchOnAt.Current,
+                ocppElement?.SwitchOnAt.Current,
+            }
+            .Where(p => p.HasValue)
+            .DefaultIfEmpty()
+            .Max();
+        return value;
+    }
+
+    private int? GetMinPhases(DtoStartStopChargingHelper? carElement, DtoStartStopChargingHelper? ocppElement, CarType? carType)
+    {
+        if (carType == CarType.Tesla)
+        {
+            return carElement?.SwitchOnAt.PhaseCount;
+        }
+        var minPhaseCount = new[]
+            {
+                carElement?.SwitchOnAt.PhaseCount,
+                ocppElement?.SwitchOnAt.PhaseCount,
+            }
+            .Where(p => p.HasValue)
+            .DefaultIfEmpty()
+            .Min();
+        return minPhaseCount;
     }
 }
 

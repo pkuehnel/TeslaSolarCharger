@@ -29,7 +29,6 @@ public class ChargingServiceV2 : IChargingServiceV2
     private readonly ISettings _settings;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
     private readonly ITeslaService _teslaService;
-    private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
     private readonly IEnergyDataService _energyDataService;
     private readonly IValidFromToSplitter _validFromToSplitter;
     private readonly IPowerToControlCalculationService _powerToControlCalculationService;
@@ -46,7 +45,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         ISettings settings,
         ITscOnlyChargingCostService tscOnlyChargingCostService,
         ITeslaService teslaService,
-        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator,
         IEnergyDataService energyDataService,
         IValidFromToSplitter validFromToSplitter,
         IPowerToControlCalculationService powerToControlCalculationService,
@@ -63,7 +61,6 @@ public class ChargingServiceV2 : IChargingServiceV2
         _settings = settings;
         _tscOnlyChargingCostService = tscOnlyChargingCostService;
         _teslaService = teslaService;
-        _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
         _energyDataService = energyDataService;
         _validFromToSplitter = validFromToSplitter;
         _powerToControlCalculationService = powerToControlCalculationService;
@@ -116,8 +113,6 @@ public class ChargingServiceV2 : IChargingServiceV2
 
         _logger.LogDebug("Final calculated power to control: {powerToControl}", powerToControl);
         var activeChargingSchedules = chargingSchedules.Where(s => s.ValidFrom <= currentDate).ToList();
-
-        await _shouldStartStopChargingCalculator.UpdateShouldStartStopChargingTimes(powerToControl);
 
         var targetChargingValues = loadPointsToManage
             .OrderBy(l => l.ChargingPriority)

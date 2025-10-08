@@ -21,13 +21,15 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IConstants _constants;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
+    private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
 
     public TargetChargingValueCalculationService(ILogger<TargetChargingValueCalculationService> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
         IConfigurationWrapper configurationWrapper,
         IConstants constants,
-        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
+        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
+        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator)
     {
         _logger = logger;
         _context = context;
@@ -35,6 +37,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _configurationWrapper = configurationWrapper;
         _constants = constants;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
+        _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
     }
 
     public async Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
@@ -60,6 +63,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
             _logger.LogTrace("Added additional home battery discharge powe of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
         }
+
+        var carElements = await _shouldStartStopChargingCalculator.GetCarElements().ConfigureAwait(false);
+        var ocppElements = await _shouldStartStopChargingCalculator.GetOcppElements().ConfigureAwait(false);
+
+
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
@@ -79,6 +87,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var targetPower = chargingSchedulePower > powerToControlIncludingHomeBatteryDischargePower
                 ? chargingSchedulePower
                 : powerToControlIncludingHomeBatteryDischargePower;
+
+            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, powerToControl, carElements, ocppElements, currentDate);
 
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
@@ -106,6 +116,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 _logger.LogTrace("Adding additional home battery discharge power ({additionalHomeBatteryDischargePower}W) to loadpoint ({carId}, {connectorId})", additionalHomeBatteryDischargePower, loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId);
                 powerToControlIncludingHomeBatteryDischargePower += additionalHomeBatteryDischargePower;
             }
+            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, carElements, ocppElements, currentDate);
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, false, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
