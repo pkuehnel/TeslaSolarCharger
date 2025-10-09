@@ -1,4 +1,8 @@
-﻿@using TeslaSolarCharger.Client.Helper.Contracts
+@using MudBlazor
+@using System.Globalization
+@using System.Linq
+@using TeslaSolarCharger.Client.Helper.Contracts
+@using TeslaSolarCharger.Client.Dialogs
 @using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Home
@@ -13,9 +17,8 @@
     <h3>Charging Targets</h3>
     <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Add"
                                  ButtonText="Add Target"
-                                 OnButtonClicked="_ => AddTarget()"></RightAlignedButtonComponent>
+                                 OnButtonClicked="AddTarget"></RightAlignedButtonComponent>
 </div>
-
 
 @if (_targets == null)
 {
@@ -29,47 +32,40 @@ else
 {
     @foreach (var chargingTarget in _targets)
     {
-        <div class="card mb-3">
+        <div class="card mb-3"
+             style="cursor: pointer;"
+             @onclick="() => OpenEditDialog(chargingTarget)">
             <div class="card-body">
-                <EditFormComponent T="DtoCarChargingTarget" WrappedElement="@(chargingTarget)"
-                                   OnAfterSuccessfullSubmit="ShowSuccessMessage"
-                                   HideSubmitButton="false"
-                                   SubmitUrl="@($"api/Home/SaveCarChargingTarget?carId={CarId}")">
-                    @if (!string.Equals(chargingTarget.Item.ClientTimeZone, _timeZone, StringComparison.OrdinalIgnoreCase))
-                    {
-                        <MudAlert Severity="Severity.Warning"
-                                  NoIcon="true"
-                                  ContentAlignment="HorizontalAlignment.Left">
-                            <h5>Saved in different timezone</h5>
-                            This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.
-                        </MudAlert>
-                    }
-                    
-                    <div>
-                        <GenericInput For="() => chargingTarget.Item.TargetSoc"></GenericInput>
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">@GetTargetTitle(chargingTarget)</div>
+                        <div class="text-muted">@GetTargetTimeDescription(chargingTarget)</div>
+                        <div class="text-muted">@GetScheduleDescription(chargingTarget)</div>
                         @if (_homeBatteryValuesAvailable)
                         {
-                            <GenericInput For="() => chargingTarget.Item.DischargeHomeBatteryToMinSoc"></GenericInput>
+                            <div class="text-muted">Home battery: @(chargingTarget.DischargeHomeBatteryToMinSoc ? "Discharge to min SoC" : "Don't discharge")</div>
                         }
-
-                        <GenericInput For="() => chargingTarget.Item.TargetDate"
-                                      Clearable="true"></GenericInput>
-                        <GenericInput For="() => chargingTarget.Item.TargetTime"></GenericInput>
-                        <div class="d-flex flex-wrap gap-2">
-                            <GenericInput For="() => chargingTarget.Item.RepeatOnMondays"></GenericInput>
-                            <GenericInput For="() => chargingTarget.Item.RepeatOnTuesdays"></GenericInput>
-                            <GenericInput For="() => chargingTarget.Item.RepeatOnWednesdays"></GenericInput>
-                            <GenericInput For="() => chargingTarget.Item.RepeatOnThursdays"></GenericInput>
-                            <GenericInput For="() => chargingTarget.Item.RepeatOnFridays"></GenericInput>
-                            <GenericInput For="() => chargingTarget.Item.RepeatOnSaturdays"></GenericInput>
-                            <GenericInput For="() => chargingTarget.Item.RepeatOnSundays"></GenericInput>
-                        </div>
                     </div>
-                </EditFormComponent>
-                <RightAlignedButtonComponent StartIcon="@Icons.Material.Filled.Delete"
-                                             ButtonText="Delete"
-                                             ButtonColor="Color.Error"
-                                             OnButtonClicked="_ => DeleteItem(chargingTarget)"></RightAlignedButtonComponent>
+                    <div @onclick:stopPropagation="true">
+                        <MudIconButton Color="Color.Error"
+                                   Variant="Variant.Outlined"
+                                   Icon="@Icons.Material.Filled.Delete"
+                                   OnClick="() => DeleteItem(chargingTarget)">
+                        </MudIconButton>
+                    </div>
+                    
+                </div>
+                @if (!string.Equals(chargingTarget.ClientTimeZone, _timeZone, StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudAlert Severity="Severity.Warning"
+                              Dense="true"
+                              NoIcon="true"
+                              Class="mt-2"
+                              ContentAlignment="HorizontalAlignment.Left">
+                        <div class="fw-semibold">Saved in different timezone</div>
+                        <div class="small">This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.</div>
+                    </MudAlert>
+                }
             </div>
         </div>
     }
@@ -79,7 +75,7 @@ else
     [Parameter]
     public int CarId { get; set; }
 
-    private List<EditableItem<DtoCarChargingTarget>>? _targets;
+    private List<DtoCarChargingTarget>? _targets;
 
     private string? _timeZone;
 
@@ -106,27 +102,19 @@ else
             _targets = default;
             return;
         }
-        _targets = result.Select(s => new EditableItem<DtoCarChargingTarget>(s)).ToList();
+        _targets = result.ToList();
     }
 
-    private void AddTarget()
+    private async Task AddTarget()
     {
-        _targets?.Add(new(new()
+        await OpenEditDialog();
+    }
+
+    private async Task DeleteItem(DtoCarChargingTarget chargingTarget)
+    {
+        if (chargingTarget.Id != default)
         {
-            ClientTimeZone = _timeZone,
-        }));
-    }
-
-    private void ShowSuccessMessage()
-    {
-        Snackbar.Add("Saved.", Severity.Success);
-    }
-
-    private async Task DeleteItem(EditableItem<DtoCarChargingTarget> chargingTarget)
-    {
-        if (chargingTarget.Item.Id != default)
-        {
-            var result = await HomeService.DeleteCarChargingTarget(chargingTarget.Item.Id);
+            var result = await HomeService.DeleteCarChargingTarget(chargingTarget.Id);
             if (result.HasError)
             {
                 Snackbar.Add($"Could not delete: {result.ErrorMessage}", Severity.Error);
@@ -137,4 +125,118 @@ else
         Snackbar.Add("Deleted.", Severity.Success);
     }
 
+    private async Task OpenEditDialog(DtoCarChargingTarget? chargingTarget = default)
+    {
+        var editableTarget = new EditableItem<DtoCarChargingTarget>(CloneTarget(chargingTarget));
+        editableTarget.Item.ClientTimeZone ??= _timeZone;
+
+        var parameters = new DialogParameters<ChargingTargetConfigurationDialog>
+        {
+            { x => x.CarId, CarId },
+            { x => x.Target, editableTarget },
+            { x => x.HomeBatteryValuesAvailable, _homeBatteryValuesAvailable },
+            { x => x.CurrentTimeZone, _timeZone },
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            FullWidth = true,
+            MaxWidth = MaxWidth.Medium,
+        };
+
+        var dialog = await DialogService.ShowAsync<ChargingTargetConfigurationDialog>("Charging target", parameters, options);
+        var result = await dialog.Result;
+        if (result?.Canceled == false)
+        {
+            await RefreshChargingTargets();
+        }
+    }
+
+    private static DtoCarChargingTarget CloneTarget(DtoCarChargingTarget? target)
+    {
+        if (target is null)
+        {
+            return new DtoCarChargingTarget();
+        }
+
+        return new DtoCarChargingTarget
+        {
+            Id = target.Id,
+            TargetSoc = target.TargetSoc,
+            DischargeHomeBatteryToMinSoc = target.DischargeHomeBatteryToMinSoc,
+            TargetDate = target.TargetDate,
+            TargetTime = target.TargetTime,
+            RepeatOnMondays = target.RepeatOnMondays,
+            RepeatOnTuesdays = target.RepeatOnTuesdays,
+            RepeatOnWednesdays = target.RepeatOnWednesdays,
+            RepeatOnThursdays = target.RepeatOnThursdays,
+            RepeatOnFridays = target.RepeatOnFridays,
+            RepeatOnSaturdays = target.RepeatOnSaturdays,
+            RepeatOnSundays = target.RepeatOnSundays,
+            ClientTimeZone = target.ClientTimeZone,
+        };
+    }
+
+    private static string GetTargetTitle(DtoCarChargingTarget target)
+    {
+        return target.TargetSoc.HasValue
+            ? $"Target SoC: {target.TargetSoc.Value}%"
+            : "Discharge home battery";
+    }
+
+    private static string GetTargetTimeDescription(DtoCarChargingTarget target)
+    {
+        return target.TargetTime.HasValue
+            ? $"Target time: {target.TargetTime.Value:hh\\:mm}"
+            : "No target time configured";
+    }
+
+    private static string GetScheduleDescription(DtoCarChargingTarget target)
+    {
+        var repeatDays = GetRepeatDays(target).ToList();
+        if (repeatDays.Any())
+        {
+            return $"Repeats on {string.Join(", ", repeatDays)}";
+        }
+
+        if (target.TargetDate.HasValue)
+        {
+            return $"Runs on {target.TargetDate.Value.ToString("d", CultureInfo.CurrentCulture)}";
+        }
+
+        return "No date configured";
+    }
+
+    private static IEnumerable<string> GetRepeatDays(DtoCarChargingTarget target)
+    {
+        if (target.RepeatOnMondays)
+        {
+            yield return "Mon";
+        }
+        if (target.RepeatOnTuesdays)
+        {
+            yield return "Tue";
+        }
+        if (target.RepeatOnWednesdays)
+        {
+            yield return "Wed";
+        }
+        if (target.RepeatOnThursdays)
+        {
+            yield return "Thu";
+        }
+        if (target.RepeatOnFridays)
+        {
+            yield return "Fri";
+        }
+        if (target.RepeatOnSaturdays)
+        {
+            yield return "Sat";
+        }
+        if (target.RepeatOnSundays)
+        {
+            yield return "Sun";
+        }
+    }
 }
