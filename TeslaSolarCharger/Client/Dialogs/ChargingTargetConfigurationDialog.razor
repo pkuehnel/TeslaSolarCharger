@@ -1,5 +1,3 @@
-@using MudBlazor
-@using TeslaSolarCharger.Client.Components
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.Home
 
@@ -30,6 +28,9 @@
             <GenericInput For="() => Target.Item.TargetDate"
                           Clearable="true"></GenericInput>
             <GenericInput For="() => Target.Item.TargetTime"></GenericInput>
+            <div class="fw-semibold mt-2 ml-2">
+                Repeat on:
+            </div>
             <div class="d-flex flex-wrap gap-2">
                 <GenericInput For="() => Target.Item.RepeatOnMondays"></GenericInput>
                 <GenericInput For="() => Target.Item.RepeatOnTuesdays"></GenericInput>
