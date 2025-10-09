@@ -2,6 +2,7 @@
 @using TeslaSolarCharger.Shared.Dtos.Home
 
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 <MudDialog>
     <DialogContent>
@@ -18,7 +19,9 @@
         <EditFormComponent T="DtoCarChargingTarget"
                            WrappedElement="Target"
                            SubmitUrl="@SubmitUrl"
-                           OnAfterSuccessfullSubmit="HandleSuccessfulSubmit">
+                           HideSubmitButton="true"
+                           OnAfterSuccessfullSubmit="HandleSuccessfulSubmit"
+                           @ref="_editForm">
             <GenericInput For="() => Target.Item.TargetSoc"></GenericInput>
             @if (HomeBatteryValuesAvailable)
             {
@@ -43,7 +46,23 @@
         </EditFormComponent>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="IsSaving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   ButtonType="ButtonType.Button"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="IsSaving"
+                   OnClick="SubmitFormAsync">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Processing</MudText>
+            }
+            else
+            {
+                <MudText>Save</MudText>
+            }
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -65,6 +84,14 @@
 
     private string SubmitUrl => $"api/Home/SaveCarChargingTarget?carId={CarId}";
 
+    private EditFormComponent<DtoCarChargingTarget>? _editForm;
+
+    private bool IsSaving => _isSaving;
+
+    private bool _isSaving;
+
+    private bool _disposed;
+
     private bool HasTimeZoneMismatch =>
         !string.IsNullOrWhiteSpace(Target.Item.ClientTimeZone) &&
         !string.IsNullOrWhiteSpace(CurrentTimeZone) &&
@@ -72,9 +99,38 @@
 
     private void Cancel() => MudDialog.Cancel();
 
+    private async Task SubmitFormAsync()
+    {
+        if (_editForm == null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            await _editForm.SubmitAsync();
+        }
+        finally
+        {
+            _isSaving = false;
+            if (!_disposed)
+            {
+                StateHasChanged();
+            }
+        }
+    }
+
     private void HandleSuccessfulSubmit(DtoCarChargingTarget _)
     {
         Snackbar.Add("Saved.", Severity.Success);
         MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
     }
 }
