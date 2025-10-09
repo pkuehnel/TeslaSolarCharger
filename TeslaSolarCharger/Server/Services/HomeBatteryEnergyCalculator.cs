@@ -67,7 +67,7 @@ public class HomeBatteryEnergyCalculator : IHomeBatteryEnergyCalculator
         _settings.NextSunEvent = nextSunrise < nextSunset ? NextSunEvent.Sunrise : NextSunEvent.Sunset;
         var targetDate = nextSunrise.Value;
         var isTargetDateSunrise = true;
-        if (forceFullBatteryBySunset)
+        if (forceFullBatteryBySunset && _settings.NextSunEvent == NextSunEvent.Sunset)
         {
             targetDate = nextSunset.Value;
             isTargetDateSunrise = false;
