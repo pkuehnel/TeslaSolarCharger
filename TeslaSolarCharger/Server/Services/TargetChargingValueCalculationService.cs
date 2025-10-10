@@ -88,7 +88,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 ? chargingSchedulePower
                 : powerToControlIncludingHomeBatteryDischargePower;
 
-            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, powerToControl, carElements, ocppElements, currentDate);
+            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, carElements, ocppElements, currentDate);
 
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
