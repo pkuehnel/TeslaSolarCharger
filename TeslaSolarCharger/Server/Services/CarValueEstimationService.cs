@@ -127,6 +127,11 @@ public class CarValueEstimationService : ICarValueEstimationService
         _logger.LogTrace("{method} chargedSinceLastNonEstimatedSoc: {chargedSinceLastNonEstimatedSoc}", nameof(UpdateSocEstimation), chargedSinceLastNonEstimatedSoc);
         var carBatteryCapacity = car.UsableEnergy * 3_600_000; // kWh to Ws
         _logger.LogTrace("{method} carBatteryCapacity: {carBatteryCapacity}", nameof(UpdateSocEstimation), carBatteryCapacity);
+        if (carBatteryCapacity <= 0)
+        {
+            _logger.LogWarning("Can not estimate soc for car {carId} as usable energy is {usableEnergy} which is <= 0", car.Id, car.UsableEnergy);
+            return;
+        }
         var estimatedSoc = (int)(lastNonEstimatedSoc.IntValue.Value + (((float)chargedSinceLastNonEstimatedSoc / carBatteryCapacity) * 100));
         _logger.LogTrace("{method} estimatedSoc: {estimatedSoc}", nameof(UpdateSocEstimation), estimatedSoc);
         var estimatedSocCarValueLog = new CarValueLog()
