@@ -36,14 +36,14 @@ else
              style="cursor: pointer;"
              @onclick="() => OpenEditDialog(chargingTarget)">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-nowrap">
                     <div class="flex-grow-1">
                         <div class="fw-semibold">@GetTargetTitle(chargingTarget)</div>
                         <div class="text-muted">@GetTargetTimeDescription(chargingTarget)</div>
                         <div class="text-muted">@GetScheduleDescription(chargingTarget)</div>
                         @if (_homeBatteryValuesAvailable)
                         {
-                            <div class="text-muted">Home battery: @(chargingTarget.DischargeHomeBatteryToMinSoc ? "Discharge to min SoC" : "Don't discharge")</div>
+                            <div class="text-muted">@GetHomeBatteryText(chargingTarget)</div>
                         }
                     </div>
                     <div @onclick:stopPropagation="true">
@@ -72,8 +72,8 @@ else
 }
 
 @code {
-    [Parameter]
-    public int CarId { get; set; }
+        [Parameter]
+        public int CarId { get; set; }
 
     private List<DtoCarChargingTarget>? _targets;
 
@@ -239,4 +239,33 @@ else
             yield return "Sun";
         }
     }
+
+    private string GetHomeBatteryText(DtoCarChargingTarget chargingTarget)
+    {
+        if (!_homeBatteryValuesAvailable)
+        {
+            return string.Empty;
+        }
+        var stringToReturn = "Home battery: ";
+        if (chargingTarget.TargetSoc == default)
+        {
+            if (chargingTarget.DischargeHomeBatteryToMinSoc)
+            {
+                stringToReturn += "Discharge to min SoC";
+            }
+        }
+        else
+        {
+            if (chargingTarget.DischargeHomeBatteryToMinSoc)
+            {
+                stringToReturn += "Try to not use grid energy by reducing car's charging speed";
+            }
+            else
+            {
+                stringToReturn += "Don't reduce cars's charging speed, grid energy may be used even if home battery has enough energy";
+            }
+        }
+        return stringToReturn;
+    }
+
 }
