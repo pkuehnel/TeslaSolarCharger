@@ -8,4 +8,5 @@ public interface IOcppChargingStationConfigurationService
     Task<List<DtoChargingStation>> GetChargingStations();
     Task UpdateChargingStationConnector(DtoChargingStationConnector dtoChargingStation);
     Task<List<DtoChargingStationConnector>> GetChargingStationConnectors(int chargingStationId);
+    Task<Dictionary<int, string>> GetCarOptions();
 }

@@ -35,6 +35,18 @@ public class JavaScriptWrapper(IJSRuntime jsRuntime, ISnackbar snackbar) : IJava
         }
     }
 
+    public async Task<bool> ScrollToElementById(string elementId)
+    {
+        try
+        {
+            return await jsRuntime.InvokeAsync<bool>("scrollToElementById", elementId);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     public async Task OpenUrlInNewTab(string url)
     {
         await jsRuntime.InvokeVoidAsync("openInNewTab", url);

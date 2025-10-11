@@ -21,13 +21,15 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
     private readonly IConfigurationWrapper _configurationWrapper;
     private readonly IConstants _constants;
     private readonly INotChargingWithExpectedPowerReasonHelper _notChargingWithExpectedPowerReasonHelper;
+    private readonly IShouldStartStopChargingCalculator _shouldStartStopChargingCalculator;
 
     public TargetChargingValueCalculationService(ILogger<TargetChargingValueCalculationService> logger,
         ITeslaSolarChargerContext context,
         ISettings settings,
         IConfigurationWrapper configurationWrapper,
         IConstants constants,
-        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper)
+        INotChargingWithExpectedPowerReasonHelper notChargingWithExpectedPowerReasonHelper,
+        IShouldStartStopChargingCalculator shouldStartStopChargingCalculator)
     {
         _logger = logger;
         _context = context;
@@ -35,15 +37,44 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _configurationWrapper = configurationWrapper;
         _constants = constants;
         _notChargingWithExpectedPowerReasonHelper = notChargingWithExpectedPowerReasonHelper;
+        _shouldStartStopChargingCalculator = shouldStartStopChargingCalculator;
     }
 
     public async Task AppendTargetValues(List<DtoTargetChargingValues> targetChargingValues,
-        List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl,
+        List<DtoChargingSchedule> activeChargingSchedules, DateTimeOffset currentDate, int powerToControl, int reduceMaxCombinedCurrentBy,
         CancellationToken cancellationToken)
     {
         _logger.LogTrace("{method}({@targetChargingValues}, {@activeChargingSchedules}, {currentDate}, {powerToControl})",
             nameof(AppendTargetValues), targetChargingValues, activeChargingSchedules, currentDate, powerToControl);
-        var maxCombinedCurrent = (decimal)_configurationWrapper.MaxCombinedCurrent();
+        var maxCombinedCurrent = (decimal)(_configurationWrapper.MaxCombinedCurrent() - reduceMaxCombinedCurrentBy);
+        var additionalHomeBatteryDischargePower = 0;
+        var dischargeHomeBatteryToMinSocDuringDay = _configurationWrapper.DischargeHomeBatteryToMinSocDuringDay();
+        _logger.LogTrace("{variableName}: {value}", nameof(dischargeHomeBatteryToMinSocDuringDay), dischargeHomeBatteryToMinSocDuringDay);
+        var nextSunEvent = _settings.NextSunEvent;
+        _logger.LogTrace("{variableName}: {value}", nameof(nextSunEvent), nextSunEvent);
+        var homeBatterySoc = _settings.HomeBatterySoc;
+        _logger.LogTrace("{variableName}: {value}", nameof(homeBatterySoc), homeBatterySoc);
+        var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
+        _logger.LogTrace("{variableName}: {value}", nameof(homeBatteryMinSoc), homeBatteryMinSoc);
+        const int homebatteryDischargeThreshold = 10;
+        if (dischargeHomeBatteryToMinSocDuringDay
+            && nextSunEvent == NextSunEvent.Sunset
+            && ((homeBatterySoc > homeBatteryMinSoc && _settings.IsHomeBatteryDischargingActive)
+                || (homeBatterySoc > (homeBatteryMinSoc + homebatteryDischargeThreshold))))
+        {
+            _settings.IsHomeBatteryDischargingActive = true;
+            additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
+            _logger.LogTrace("Added additional home battery discharge powe of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
+        }
+        else
+        {
+            _settings.IsHomeBatteryDischargingActive = false;
+        }
+
+        var carElements = await _shouldStartStopChargingCalculator.GetCarElements().ConfigureAwait(false);
+        var ocppElements = await _shouldStartStopChargingCalculator.GetOcppElements().ConfigureAwait(false);
+
+
         foreach (var loadPoint in targetChargingValues
                      .Where(t => activeChargingSchedules.Any(c => c.CarId == t.LoadPoint.CarId && c.OcppChargingConnectorId == t.LoadPoint.ChargingConnectorId && c.OnlyChargeOnAtLeastSolarPower == default))
                      .OrderBy(x => x.LoadPoint.ChargingPriority))
@@ -52,16 +83,28 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
-            var targetPower = chargingSchedule.ChargingPower > powerToControl
-                ? chargingSchedule.ChargingPower
-                : powerToControl;
+            if (constraintValues.IsCarFullyCharged == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
+            }
+            var powerToControlIncludingHomeBatteryDischargePower = powerToControl + additionalHomeBatteryDischargePower;
+            var chargingSchedulePower = chargingSchedule.TargetGridPower.HasValue && (chargingSchedule.ChargingPower < (powerToControl + (chargingSchedule.TargetGridPower ?? 0)))
+                                ? (powerToControl + (chargingSchedule.TargetGridPower ?? 0))
+                                : chargingSchedule.ChargingPower;
+            var targetPower = chargingSchedulePower > powerToControlIncludingHomeBatteryDischargePower
+                ? chargingSchedulePower
+                : powerToControlIncludingHomeBatteryDischargePower;
+
+            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, carElements, ocppElements, currentDate);
+
             loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, targetPower, true, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
-            powerToControl -= CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            var estimatedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimatedPowerUsage);
         }
 
-        var ascending = powerToControl > 0;
+        var ascending = (powerToControl + additionalHomeBatteryDischargePower) > 0;
         foreach (var loadPoint in (ascending
                      ? targetChargingValues.Where(t => t.TargetValues == default).OrderBy(x => x.LoadPoint.ChargingPriority)
                      : targetChargingValues.Where(t => t.TargetValues == default).OrderByDescending(x => x.LoadPoint.ChargingPriority)))
@@ -69,12 +112,67 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             var constraintValues = await GetConstraintValues(loadPoint.LoadPoint.CarId,
                 loadPoint.LoadPoint.ChargingConnectorId, loadPoint.LoadPoint.ManageChargingPowerByCar, currentDate, maxCombinedCurrent,
                 cancellationToken).ConfigureAwait(false);
-            loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControl, false, currentDate);
+            if (constraintValues.IsCarFullyCharged == true)
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId, new DtoNotChargingWithExpectedPowerReason("Car is fully charged"));
+            }
+
+            var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
+            if ((loadPoint.LoadPoint.ChargingPower > 0) || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + homebatteryDischargeThreshold)))
+            {
+                _logger.LogTrace("Adding additional home battery discharge power ({additionalHomeBatteryDischargePower}W) to loadpoint ({carId}, {connectorId})", additionalHomeBatteryDischargePower, loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId);
+                powerToControlIncludingHomeBatteryDischargePower += additionalHomeBatteryDischargePower;
+            }
+            _shouldStartStopChargingCalculator.SetStartStopChargingForLoadPoint(loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, carElements, ocppElements, currentDate);
+            loadPoint.TargetValues = GetTargetValue(constraintValues, loadPoint.LoadPoint, powerToControlIncludingHomeBatteryDischargePower, false, currentDate);
             var estimatedCurrentUsage = CalculateEstimatedCurrentUsage(loadPoint, constraintValues);
             maxCombinedCurrent -= estimatedCurrentUsage;
-            powerToControl -= CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            var estimatedPowerUsage = CalculateEstimatedPowerUsage(loadPoint, estimatedCurrentUsage);
+            (powerToControl, additionalHomeBatteryDischargePower) = RecalculatePowerToControlValues(powerToControl, additionalHomeBatteryDischargePower, estimatedPowerUsage);
         }
     }
+
+    /// <summary>
+    /// Adjusts <paramref name="powerToControl"/> and <paramref name="additionalHomeBatteryDischargePower"/> 
+    /// based on the <paramref name="estimatedPowerUsage"/>.
+    /// </summary>
+    /// <param name="powerToControl">The current power available for control before accounting for power usage.</param>
+    /// <param name="additionalHomeBatteryDischargePower">The additional discharge power from the home battery before accounting for power usage.</param>
+    /// <param name="estimatedPowerUsage">The estimated power consumption to be subtracted.</param>
+    /// <returns>
+    /// A tuple containing the updated <paramref name="powerToControl"/> and 
+    /// <paramref name="additionalHomeBatteryDischargePower"/> values. 
+    /// The reduction is applied first to <paramref name="additionalHomeBatteryDischargePower"/> until it reaches zero; 
+    /// any remaining power usage is then subtracted from <paramref name="powerToControl"/>.
+    /// </returns>
+    private (int powerToControl, int additionalHomeBatteryDischargePower) RecalculatePowerToControlValues(
+        int powerToControl,
+        int additionalHomeBatteryDischargePower,
+        int estimatedPowerUsage)
+    {
+        _logger.LogTrace("{method}({powerToControl}, {additionalHomeBatteryDischargePower}, {estimatedPowerUsage})",
+            nameof(RecalculatePowerToControlValues), powerToControl, additionalHomeBatteryDischargePower, estimatedPowerUsage);
+
+        var remainingUsage = estimatedPowerUsage;
+        if (remainingUsage > 0)
+        {
+            var dischargeReduction = Math.Min(additionalHomeBatteryDischargePower, remainingUsage);
+            additionalHomeBatteryDischargePower -= dischargeReduction;
+            remainingUsage -= dischargeReduction;
+        }
+
+        // Apply any remaining usage against power to control
+        if (remainingUsage > 0)
+        {
+            powerToControl -= remainingUsage;
+        }
+
+        _logger.LogTrace("Result: powerToControl={powerToControl}, additionalHomeBatteryDischargePower={additionalHomeBatteryDischargePower}",
+            powerToControl, additionalHomeBatteryDischargePower);
+
+        return (powerToControl, additionalHomeBatteryDischargePower);
+    }
+
 
     private int CalculateEstimatedPowerUsage(DtoTargetChargingValues loadPointTargetValues, decimal estimatedCurrentUsage)
     {
@@ -138,9 +236,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         {
             return null;
         }
+        //Allow greater state of charge than max soc if should charge because of charging schedule
         if ((constraintValues.ChargeMode == ChargeModeV2.Off)
-            || (constraintValues.Soc > constraintValues.MaxSoc))
+            || (constraintValues.Soc > constraintValues.MaxSoc && !ignoreTimers))
         {
+            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charge mode is off or max SoC is reached."));
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
         }
         if (constraintValues.IsCarFullyCharged == true)
@@ -184,7 +284,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             if ((currentToSet < constraintValues.MinCurrent)
                  && (phasesToUse != constraintValues.MinPhases.Value)
                  && ((constraintValues.PhaseReductionAllowed == true)
-                     || ignoreTimers))
+                     || ignoreTimers
+                     || constraintValues.IsCharging != true))
             {
                 if (constraintValues.IsCharging == true)
                 {
@@ -211,7 +312,8 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             else if ((currentToSet > constraintValues.MaxCurrent)
                        && (phasesToUse != constraintValues.MaxPhases.Value)
                         && ((constraintValues.PhaseIncreaseAllowed == true)
-                           || ignoreTimers))
+                           || ignoreTimers
+                           || constraintValues.IsCharging != true))
             {
                 if (constraintValues.IsCharging == true)
                 {
@@ -239,12 +341,6 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 _logger.LogTrace("Increase current to set from {oldCurrentToSet} as is below min current of {newCurrentToSet}", currentToSet, constraintValues.MinCurrent);
                 currentToSet = constraintValues.MinCurrent.Value;
-                if ((constraintValues.ChargeStopAllowedAt != default)
-                    && (constraintValues.IsCharging == true))
-                {
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new("Waiting for charge stop", constraintValues.ChargeStopAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
-                }
             }
             else if (currentToSet > constraintValues.MaxCurrent)
             {
@@ -252,9 +348,17 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 currentToSet = constraintValues.MaxCurrent.Value;
             }
 
+            if ((constraintValues.ChargeStopAllowedAt != default)
+                && (constraintValues.IsCharging == true))
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                    new("Waiting for charge stop", constraintValues.ChargeStopAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
+            }
+
             if (constraintValues.IsCharging != true)
             {
-                if (constraintValues.Soc >= constraintValues.MaxSoc)
+                //Should be able to start charging if reason is charging schedule
+                if (constraintValues.Soc >= constraintValues.MaxSoc && !ignoreTimers)
                 {
                     _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
                         new("Configured max Soc is reached"));
@@ -355,14 +459,23 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                     c.ChargeMode,
                     c.MaximumSoc,
                     c.MinimumSoc,
+                    c.CarType,
+                    c.MaximumPhases,
                 })
                 .FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
             constraintValues.MaxCurrent = carConfigValues.MaximumAmpere;
             constraintValues.ChargeMode = carConfigValues.ChargeMode;
             var car = _settings.Cars.First(c => c.Id == carId);
-            constraintValues.MinPhases = car.ActualPhases;
-            constraintValues.MaxPhases = car.ActualPhases;
+            constraintValues.MinCurrent = carConfigValues.MinimumAmpere;
+            if (carConfigValues.CarType == CarType.Tesla)
+            {
+                constraintValues.MinPhases = car.ActualPhases;
+                constraintValues.MaxPhases = car.ActualPhases;
+            }
+            else
+            {
+                constraintValues.MaxPhases = carConfigValues.MaximumPhases;
+            }
             constraintValues.MaxSoc = carConfigValues.MaximumSoc;
             constraintValues.MinSoc = carConfigValues.MinimumSoc;
             constraintValues.CarSocLimit = car.SocLimit.Value;
@@ -412,21 +525,21 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                 constraintValues.MaxCurrent = chargingConnectorConfigValues.MaxCurrent;
             }
 
+            constraintValues.PhaseSwitchingEnabled = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
+            // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
+            if (constraintValues.MaxPhases == default || constraintValues.MaxPhases > chargingConnectorConfigValues.ConnectedPhasesCount)
+            {
+                constraintValues.MaxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
+            }
+            //needs to be after max phases setting as sets min phases based on max phases
             // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
             if (constraintValues.MinPhases == default)
             {
                 constraintValues.MinPhases = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled
                     ? 1
-                    : chargingConnectorConfigValues.ConnectedPhasesCount;
+                    : constraintValues.MaxPhases;
             }
 
-            constraintValues.PhaseSwitchingEnabled = chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled;
-
-            // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
-            if (constraintValues.MaxPhases == default)
-            {
-                constraintValues.MaxPhases = chargingConnectorConfigValues.ConnectedPhasesCount;
-            }
             if (constraintValues.ChargeMode == default)
             {
                 constraintValues.ChargeMode = chargingConnectorConfigValues.ChargeMode;
@@ -463,6 +576,11 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
                                                      && IsTimeStampedValueRelevant(ocppValues.ShouldStopCharging, currentDate, timeSpanUntilSwitchOff,
                                                          out chargeStopAllowedAt);
                 constraintValues.ChargeStopAllowedAt = chargeStopAllowedAt;
+                if (constraintValues.MaxCurrent < constraintValues.MinCurrent)
+                {
+                    constraintValues.MinCurrent = constraintValues.MaxCurrent;
+                }
+
                 if (chargingConnectorConfigValues.AutoSwitchBetween1And3PhasesEnabled)
                 {
                     _logger.LogTrace("Set auto phase switching timers.");
@@ -554,6 +672,12 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         }
 
         if (useCarToManageChargingSpeed)
+        {
+            constraintValues.PhaseReductionAllowed = false;
+            constraintValues.PhaseIncreaseAllowed = false;
+        }
+
+        if (constraintValues.MaxPhases == constraintValues.MinPhases)
         {
             constraintValues.PhaseReductionAllowed = false;
             constraintValues.PhaseIncreaseAllowed = false;

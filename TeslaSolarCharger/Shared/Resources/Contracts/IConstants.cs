@@ -77,4 +77,6 @@ public interface IConstants
     string HomeBatteryIcon { get; }
     string HomePowerIcon { get; }
     string EvPowerIcon { get; }
+    int CarCapabilityMaxCurrentAboveMeasuredCurrent { get; }
+    string TeslasAddedToAllowedCars { get; }
 }

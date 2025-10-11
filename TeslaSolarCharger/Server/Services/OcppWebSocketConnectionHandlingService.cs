@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -26,8 +27,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         IConstants constants,
         IServiceProvider serviceProvider,
         ISettings settings,
-        IDateTimeProvider dateTimeProvider,
-        ILoadPointManagementService loadPointManagementService) : IOcppWebSocketConnectionHandlingService
+        IDateTimeProvider dateTimeProvider) : IOcppWebSocketConnectionHandlingService
 {
     private readonly TimeSpan _sendTimeout = TimeSpan.FromSeconds(5);
     private readonly TimeSpan _messageHandlingTimeout = TimeSpan.FromSeconds(20);
@@ -75,7 +75,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 {
                     try
                     {
-                        await loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                        await InvokeLoadPointManagementService(service => service.OcppStateChanged(chargingConnectorId));
                     }
                     catch (Exception ex)
                     {
@@ -407,19 +407,15 @@ public sealed class OcppWebSocketConnectionHandlingService(
         var scopedContext = scope.ServiceProvider.GetRequiredService<ITeslaSolarChargerContext>();
         var chargingConnectorQuery = scopedContext.OcppChargingStationConnectors.AsQueryable()
             .Where(c => c.OcppChargingStation.ChargepointId == chargePointId);
+        chargingConnectorQuery = chargingConnectorQuery.Where(c => c.ConnectorId == req.ConnectorId);
 
-        //Connector ID 0 means it is not related to a specific charge point but to all of them, so limit to connector only if not 0
-        if (req.ConnectorId != 0)
-        {
-            chargingConnectorQuery = chargingConnectorQuery.Where(c => c.ConnectorId == req.ConnectorId);
-        }
         logger.LogTrace("Getting chargingConnectorIds");
         var chargingConnectorIds = await chargingConnectorQuery
             .Select(c => c.Id)
             .ToHashSetAsync(cancellationToken: cancellationToken);
 
         logger.LogTrace("Received chargingConnectorIds");
-        if (chargingConnectorIds.Count < 1)
+        if (chargingConnectorIds.Count < 1 && req.ConnectorId != 0)
         {
             throw new OcppCallErrorException(CallErrorCode.PropertyConstraintViolation,
                 "The connector ID does not exist for charging station.");
@@ -431,7 +427,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             var timestamp = req.Timestamp == default
                 ? dateTimeProvider.DateTimeOffSetUtcNow()
                 : new(req.Timestamp.Value, TimeSpan.Zero);
-            UpdateCacheBasedOnState(databaseChargePointId, req.Status, ocppConnectorState, timestamp);
+            await UpdateCacheBasedOnState(databaseChargePointId, req.Status, ocppConnectorState, timestamp).ConfigureAwait(false);
             //Only add value if with this timestamp it was updated
             if (timestamp == ocppConnectorState.IsPluggedIn.Timestamp)
             {
@@ -444,7 +440,10 @@ public sealed class OcppWebSocketConnectionHandlingService(
                     OcppChargingStationConnectorId = databaseChargePointId,
                 });
             }
-
+            if (ocppConnectorState.IsPluggedIn.Value == false)
+            {
+                settings.ManualSetLoadPointCarCombinations.Remove(databaseChargePointId, out _);
+            }
         }
 
         // b) Build the response payload
@@ -469,7 +468,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
         return state;
     }
 
-    private void UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus,
+    private async Task UpdateCacheBasedOnState(int databaseChargePointId, ChargePointStatus reqStatus,
         DtoOcppConnectorState ocppConnectorState, DateTimeOffset timestamp)
     {
         logger.LogTrace("{method}({id}, {status})", nameof(UpdateCacheBasedOnState), databaseChargePointId, reqStatus);
@@ -513,11 +512,13 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 logger.LogWarning("Can not handle chargepoint status {state}", reqStatus);
                 break;
         }
+        await UpdateManualCarStateForConnector(databaseChargePointId, ocppConnectorState).ConfigureAwait(false);
+
         Task.Run(async () =>
         {
             try
             {
-                await loadPointManagementService.OcppStateChanged(databaseChargePointId);
+                await InvokeLoadPointManagementService(service => service.OcppStateChanged(databaseChargePointId));
             }
             catch (Exception ex)
             {
@@ -603,11 +604,12 @@ public sealed class OcppWebSocketConnectionHandlingService(
             connectorState.ChargingPower.Update(ocppTransactionEndDate, 0);
             connectorState.IsCharging.Update(ocppTransactionEndDate, false);
             connectorState.PhaseCount.Update(ocppTransactionEndDate, null);
+            await UpdateManualCarStateForConnector(ocppTransaction.ChargingStationConnectorId, connectorState).ConfigureAwait(false);
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await loadPointManagementService.OcppStateChanged(ocppTransaction.ChargingStationConnectorId);
+                    await InvokeLoadPointManagementService(service => service.OcppStateChanged(ocppTransaction.ChargingStationConnectorId));
                 }
                 catch (Exception ex)
                 {
@@ -628,6 +630,36 @@ public sealed class OcppWebSocketConnectionHandlingService(
         // c) Wrap in an envelope and serialize
         var envelope = new CallResult<StopTransactionResponse>(uniqueId, respPayload);
         return JsonSerializer.Serialize(envelope, JsonOpts);
+    }
+
+    private async Task UpdateManualCarStateForConnector(int chargingConnectorId, DtoOcppConnectorState connectorState)
+    {
+        logger.LogTrace("{method}({chargingConnectorId})", nameof(UpdateManualCarStateForConnector), chargingConnectorId);
+        var loadpointCombination = settings.LatestLoadPointCombinations
+            .FirstOrDefault(l => l.ChargingConnectorId == chargingConnectorId);
+        var carId = loadpointCombination?.CarId;
+
+        if (carId == default
+            && settings.ManualSetLoadPointCarCombinations.TryGetValue(chargingConnectorId, out var manualCombination))
+        {
+            carId = manualCombination.carId;
+        }
+
+        if (carId == null)
+        {
+            return;
+        }
+
+        using var scope = serviceProvider.CreateScope();
+        var manualCarHandlingService = scope.ServiceProvider.GetRequiredService<IManualCarHandlingService>();
+        var manualResult = await manualCarHandlingService
+            .UpdateStateFromConnectorAsync(carId.Value, connectorState)
+            .ConfigureAwait(false);
+
+        if (manualResult.IsManualCar && manualResult.StateChanged)
+        {
+            await InvokeLoadPointManagementService(service => service.CarStateChanged(carId.Value)).ConfigureAwait(false);
+        }
     }
 
     internal async Task<string> HandleMeterValues(string chargePointId, string uniqueId, JsonElement payload)
@@ -676,7 +708,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 try
                 {
-                    await loadPointManagementService.OcppStateChanged(chargingConnectorId).ConfigureAwait(false);
+                    await InvokeLoadPointManagementService(service => service.OcppStateChanged(chargingConnectorId)).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -886,7 +918,7 @@ public sealed class OcppWebSocketConnectionHandlingService(
             {
                 try
                 {
-                    await loadPointManagementService.OcppStateChanged(chargingConnectorId);
+                    await InvokeLoadPointManagementService(service => service.OcppStateChanged(chargingConnectorId));
                 }
                 catch (Exception ex)
                 {
@@ -894,6 +926,13 @@ public sealed class OcppWebSocketConnectionHandlingService(
                 }
             });
         }
+    }
+
+    private async Task InvokeLoadPointManagementService(Func<ILoadPointManagementService, Task> action)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var loadPointManagementService = scope.ServiceProvider.GetRequiredService<ILoadPointManagementService>();
+        await action(loadPointManagementService).ConfigureAwait(false);
     }
 
     private bool TryGetMessageType(int raw, out MessageTypeId result)

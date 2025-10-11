@@ -22,6 +22,7 @@ public class OcppChargingStationConnector
     public int? ConnectedPhasesCount { get; set; }
     public int ChargingPriority { get; set; }
     public int? PhaseSwitchCoolDownTimeSeconds { get; set; }
+    public bool AllowGuestCars { get; set; }
 
     public int OcppChargingStationId { get; set; }
 
@@ -30,4 +31,6 @@ public class OcppChargingStationConnector
     public List<OcppChargingStationConnectorValueLog> OcppChargingStationConnectorValueLogs { get; set; } = new();
     public List<ChargingProcess> ChargingProcesses { get; set; } = new();
     public List<MeterValue> MeterValues { get; set; } = new();
+
+    public List<ChargingStationConnectorAllowedCar> AllowedCars { get; set; } = new();
 }

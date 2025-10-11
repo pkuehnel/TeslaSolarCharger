@@ -129,6 +129,7 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
                     c.UseFleetTelemetry,
                     c.IncludeTrackingRelevantFields,
                     c.UseBle,
+                    c.CarType,
                 })
                 .FirstOrDefaultAsync();
 
@@ -144,7 +145,8 @@ public class ErrorDetectionService(ILogger<ErrorDetectionService> logger,
 
             var isFleetApiLicensed = await backendApiService.IsFleetApiLicensed(car.Vin, true).ConfigureAwait(false);
             if (((carSettings?.IncludeTrackingRelevantFields == true) || (carSettings?.UseBle != true))
-                && (!isFleetApiLicensed))
+                && (!isFleetApiLicensed)
+                && carSettings?.CarType == CarType.Tesla)
             {
                 await errorHandlingService.HandleError(nameof(ErrorHandlingService), nameof(DetectErrors), $"Fleet API not licensed for car {car.Vin}",
                     "Fleet API is not licensed. Enable BLE for the car and disable include tracking relevant or buy a Fleet API license for that car. Note: After buying a Fleet API license you need to restart TSC as otherwise it takes up to six hours until TSC detects the change.", issueKeys.FleetApiNotLicensed, car.Vin, null);

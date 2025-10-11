@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Dtos.Home;
+﻿using TeslaSolarCharger.Shared.Enums;
+
+namespace TeslaSolarCharger.Shared.Dtos.Home;
 
 public class DtoLoadPointOverview
 {
@@ -18,4 +20,5 @@ public class DtoLoadPointOverview
     public bool? IsPluggedIn { get; set; }
     public int? ChargingPriority { get; set; }
     public bool ManageChargingPowerByCar { get; set; }
+    public CarType? CarType { get; set; }
 }

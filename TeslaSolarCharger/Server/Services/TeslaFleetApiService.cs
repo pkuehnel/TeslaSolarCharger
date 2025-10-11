@@ -217,7 +217,10 @@ public class TeslaFleetApiService(
             logger.LogDebug("Vehicle Data are coming from TeslaMate. Do not refresh car states via Fleet API");
             return;
         }
-        var carIds = settings.CarsToManage.Select(c => c.Id).ToList();
+        var carIds = await teslaSolarChargerContext.Cars
+            .Where(c => c.ShouldBeManaged == true && c.CarType == CarType.Tesla)
+            .Select(c => c.Id)
+            .ToListAsync();
         foreach (var carId in carIds)
         {
             var car = settings.Cars.First(c => c.Id == carId);

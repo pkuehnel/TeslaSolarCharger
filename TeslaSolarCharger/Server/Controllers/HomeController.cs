@@ -138,6 +138,13 @@ public class HomeController : ApiBaseController
         return Ok();
     }
 
+    [HttpPost]
+    public async Task<IActionResult> UpdateManualCarSoc(int carId, int soc)
+    {
+        await _homeService.UpdateManualCarSoc(carId, soc);
+        return Ok();
+    }
+
     [HttpGet]
     public IActionResult GetNotChargingWithExpectedPowerReasons(int? carId, int? connectorId)
     {

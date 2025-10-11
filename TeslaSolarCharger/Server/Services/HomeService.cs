@@ -24,6 +24,8 @@ public class HomeService : IHomeService
     private readonly IConstants _constants;
     private readonly ITscOnlyChargingCostService _tscOnlyChargingCostService;
     private readonly IValidFromToHelper _validFromToHelper;
+    private readonly ILoadPointManagementService _loadPointManagementService;
+    private readonly IManualCarHandlingService _manualCarHandlingService;
 
     public HomeService(ILogger<HomeService> logger,
         ITeslaSolarChargerContext context,
@@ -31,7 +33,9 @@ public class HomeService : IHomeService
         IOcppChargePointActionService ocppChargePointActionService,
         IConstants constants,
         ITscOnlyChargingCostService tscOnlyChargingCostService,
-        IValidFromToHelper validFromToHelper)
+        IValidFromToHelper validFromToHelper,
+        ILoadPointManagementService loadPointManagementService,
+        IManualCarHandlingService manualCarHandlingService)
     {
         _logger = logger;
         _context = context;
@@ -40,6 +44,8 @@ public class HomeService : IHomeService
         _constants = constants;
         _tscOnlyChargingCostService = tscOnlyChargingCostService;
         _validFromToHelper = validFromToHelper;
+        _loadPointManagementService = loadPointManagementService;
+        _manualCarHandlingService = manualCarHandlingService;
     }
 
     public async Task<DtoCarChargingTarget> GetChargingTarget(int chargingTargetId)
@@ -74,6 +80,7 @@ public class HomeService : IHomeService
                 c.MinimumSoc,
                 c.MaximumSoc,
                 c.ChargeMode,
+                c.CarType,
             })
             .FirstAsync()
             .ConfigureAwait(false);
@@ -82,6 +89,7 @@ public class HomeService : IHomeService
             MinSoc = dbCar.MinimumSoc,
             MaxSoc = dbCar.MaximumSoc,
             ChargeMode = dbCar.ChargeMode,
+            CarType = dbCar.CarType,
         };
         return carOverView;
     }
@@ -119,6 +127,7 @@ public class HomeService : IHomeService
         {
             Id = s.Id,
             TargetSoc = s.TargetSoc,
+            DischargeHomeBatteryToMinSoc = s.DischargeHomeBatteryToMinSoc,
             TargetDate = s.TargetDate.HasValue
                 ? DateTime.SpecifyKind(
                     s.TargetDate.Value.ToDateTime(TimeOnly.MinValue),
@@ -148,6 +157,7 @@ public class HomeService : IHomeService
 
         dbValue.CarId = carId;
         dbValue.TargetSoc = dto.TargetSoc;
+        dbValue.DischargeHomeBatteryToMinSoc = dto.DischargeHomeBatteryToMinSoc;
         dbValue.TargetDate = dto.TargetDate == default ? null : DateOnly.FromDateTime(dto.TargetDate.Value);
         //Target Time can not be null due to validation
         dbValue.TargetTime = TimeOnly.FromTimeSpan(dto.TargetTime!.Value);
@@ -187,6 +197,13 @@ public class HomeService : IHomeService
         var dbCar = await _context.Cars.FirstAsync(c => c.Id == carId).ConfigureAwait(false);
         dbCar.MaximumSoc = newSoc;
         await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateManualCarSoc(int carId, int newSoc)
+    {
+        _logger.LogTrace("{method}({carId}, {newSoc})", nameof(UpdateManualCarSoc), carId, newSoc);
+        await _manualCarHandlingService.UpdateStateOfChargeAsync(carId, newSoc).ConfigureAwait(false);
+        await _loadPointManagementService.CarStateChanged(carId).ConfigureAwait(false);
     }
 
     public Dictionary<int, string> GetLoadPointCarOptions()
