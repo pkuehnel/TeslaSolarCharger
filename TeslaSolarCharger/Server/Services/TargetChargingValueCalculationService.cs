@@ -56,12 +56,19 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         _logger.LogTrace("{variableName}: {value}", nameof(homeBatterySoc), homeBatterySoc);
         var homeBatteryMinSoc = _configurationWrapper.HomeBatteryMinSoc();
         _logger.LogTrace("{variableName}: {value}", nameof(homeBatteryMinSoc), homeBatteryMinSoc);
+        const int homebatteryDischargeThreshold = 10;
         if (dischargeHomeBatteryToMinSocDuringDay
             && nextSunEvent == NextSunEvent.Sunset
-            && homeBatterySoc > homeBatteryMinSoc)
+            && ((homeBatterySoc > homeBatteryMinSoc && _settings.IsHomeBatteryDischargingActive)
+                || (homeBatterySoc > (homeBatteryMinSoc + homebatteryDischargeThreshold))))
         {
+            _settings.IsHomeBatteryDischargingActive = true;
             additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
             _logger.LogTrace("Added additional home battery discharge powe of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
+        }
+        else
+        {
+            _settings.IsHomeBatteryDischargingActive = false;
         }
 
         var carElements = await _shouldStartStopChargingCalculator.GetCarElements().ConfigureAwait(false);
@@ -111,7 +118,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             }
 
             var powerToControlIncludingHomeBatteryDischargePower = powerToControl;
-            if ((loadPoint.LoadPoint.ChargingPower > 0) || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + 10)))
+            if ((loadPoint.LoadPoint.ChargingPower > 0) || (_configurationWrapper.HomeBatteryMinSoc() < (_settings.HomeBatterySoc + homebatteryDischargeThreshold)))
             {
                 _logger.LogTrace("Adding additional home battery discharge power ({additionalHomeBatteryDischargePower}W) to loadpoint ({carId}, {connectorId})", additionalHomeBatteryDischargePower, loadPoint.LoadPoint.CarId, loadPoint.LoadPoint.ChargingConnectorId);
                 powerToControlIncludingHomeBatteryDischargePower += additionalHomeBatteryDischargePower;
