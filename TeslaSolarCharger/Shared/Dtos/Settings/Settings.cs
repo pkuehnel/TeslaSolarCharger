@@ -22,6 +22,8 @@ public class Settings : ISettings
 
     public NextSunEvent NextSunEvent { get; set; } = NextSunEvent.Unknown;
 
+    public bool IsHomeBatteryDischargingActive { get; set; } = true;
+
     public HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; } = new();
 
     public List<DtoCar> Cars { get; set; } = new();

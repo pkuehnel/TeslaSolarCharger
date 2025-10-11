@@ -41,4 +41,5 @@ public interface ISettings
     ConcurrentDictionary<int, DateTimeOffset> CarsWithNonZeroMeterValueAddedLastCycle { get; set; }
     ConcurrentDictionary<int, DateTimeOffset> ChargingConnectorsWithNonZeroMeterValueAddedLastCycle { get; set; }
     NextSunEvent NextSunEvent { get; set; }
+    bool IsHomeBatteryDischargingActive { get; set; }
 }
