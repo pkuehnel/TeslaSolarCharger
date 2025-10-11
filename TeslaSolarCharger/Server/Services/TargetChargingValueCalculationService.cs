@@ -233,6 +233,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         if ((constraintValues.ChargeMode == ChargeModeV2.Off)
             || (constraintValues.Soc > constraintValues.MaxSoc && !ignoreTimers))
         {
+            _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId, new("Charge mode is off or max SoC is reached."));
             return constraintValues.IsCharging == true ? new TargetValues() { StopCharging = true, } : null;
         }
         if (constraintValues.IsCarFullyCharged == true)
@@ -333,17 +334,18 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
             {
                 _logger.LogTrace("Increase current to set from {oldCurrentToSet} as is below min current of {newCurrentToSet}", currentToSet, constraintValues.MinCurrent);
                 currentToSet = constraintValues.MinCurrent.Value;
-                if ((constraintValues.ChargeStopAllowedAt != default)
-                    && (constraintValues.IsCharging == true))
-                {
-                    _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
-                        new("Waiting for charge stop", constraintValues.ChargeStopAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
-                }
             }
             else if (currentToSet > constraintValues.MaxCurrent)
             {
                 _logger.LogTrace("Decrease current to set from {oldCurrentToSet} as is above max current of {newCurrentToSet}.", currentToSet, constraintValues.MaxCurrent);
                 currentToSet = constraintValues.MaxCurrent.Value;
+            }
+
+            if ((constraintValues.ChargeStopAllowedAt != default)
+                && (constraintValues.IsCharging == true))
+            {
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(loadpoint.CarId, loadpoint.ChargingConnectorId,
+                    new("Waiting for charge stop", constraintValues.ChargeStopAllowedAt + _configurationWrapper.ChargingValueJobUpdateIntervall()));
             }
 
             if (constraintValues.IsCharging != true)
