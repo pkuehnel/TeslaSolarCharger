@@ -50,19 +50,7 @@ else
             
             @if (ChargingConnectorSettings.ChargeMode == ChargeModeV2.Manual)
             {
-                <GenericInput For="() => CurrentToSet"></GenericInput>
-                <GenericInput For="() => Phases"></GenericInput>
-                <div class="d-flex flex-wrap gap-2">
-                    <RightAlignedButtonComponent ButtonText="Start Charging"
-                                                 IsLoading="@_isCommandLoading"
-                                                 OnButtonClicked="@(StartCharging)"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Stop Charging"
-                                                 IsLoading="@_isCommandLoading"
-                                                 OnButtonClicked="@(StopCharging)"></RightAlignedButtonComponent>
-                    <RightAlignedButtonComponent ButtonText="Set Current and Phases"
-                                                 IsLoading="@_isCommandLoading"
-                                                 OnButtonClicked="@(SetCurrentAndPhases)"></RightAlignedButtonComponent>
-                </div>
+                <ManualOcppChargingComponent ChargingConnectorId="ChargingConnectorId"/>
             }
         }
 
@@ -87,13 +75,6 @@ else
     private DtoChargingConnectorOverviewState? ChargingConnectorState { get; set; }
 
     private ChargeModeV2? _lastKnownChargeMode;
-
-    [Postfix("A")]
-    private int? CurrentToSet { get; set; }
-    [HelperText("If your Charging station supports phase switching, you can set the number of phases here.")]
-    private int? Phases { get; set; }
-
-    private bool _isCommandLoading;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -168,78 +149,5 @@ else
         }
     }
 
-    private async Task StartCharging()
-    {
-        if (ChargingConnectorId == default)
-        {
-            Snackbar.Add("ChargingConnectorId not set", Severity.Error);
-            return;
-        }
-
-        if (CurrentToSet == default)
-        {
-            Snackbar.Add("Current required", Severity.Error);
-            return;
-        }
-
-        _isCommandLoading = true;
-        var result = await HomeService.StartChargingConnectorCharging(ChargingConnectorId.Value, CurrentToSet.Value, Phases);
-        if (result.HasError)
-        {
-            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
-        }
-        else
-        {
-            Snackbar.Add("Command successfully sent", Severity.Success);
-        }
-        _isCommandLoading = false;
-    }
-
-    private async Task SetCurrentAndPhases()
-    {
-        if (ChargingConnectorId == default)
-        {
-            Snackbar.Add("ChargingConnectorId not set", Severity.Error);
-            return;
-        }
-
-        if (CurrentToSet == default)
-        {
-            Snackbar.Add("Current required.", Severity.Error);
-            return;
-        }
-
-        _isCommandLoading = true;
-        var result = await HomeService.SetChargingConnectorCurrent(ChargingConnectorId.Value, CurrentToSet.Value, Phases);
-        if (result.HasError)
-        {
-            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
-        }
-        else
-        {
-            Snackbar.Add("Command successfully sent", Severity.Success);
-        }
-        _isCommandLoading = false;
-    }
-
-    private async Task StopCharging()
-    {
-        if (ChargingConnectorId == default)
-        {
-            Snackbar.Add("ChargingConnectorId not set", Severity.Error);
-            return;
-        }
-
-        _isCommandLoading = true;
-        var result = await HomeService.StopChargingConnectorCharging(ChargingConnectorId.Value);
-        if (result.HasError)
-        {
-            Snackbar.Add($"Error: {result.ErrorMessage}", Severity.Error);
-        }
-        else
-        {
-            Snackbar.Add("Command successfully sent", Severity.Success);
-        }
-        _isCommandLoading = false;
-    }
+    
 }

@@ -1,7 +1,10 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Dtos
 @using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.SignalRClients
 @inject IHomeService HomerService
+@inject ISignalRStateService SignalRStateService
+@inject ILogger<ChargingSchedulesComponent> Logger
 @inject IStringHelper StringHelper
 
 <MudExpansionPanels>
@@ -62,6 +65,27 @@
     private List<DtoChargingSchedule>? _elements;
 
     private bool _showChart;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        await SignalRStateService.InitializeAsync();
+        await SignalRStateService.SubscribeToTrigger(
+            DataTypeConstants.ChargingSchedulesChangeTrigger,
+            async void () =>
+            {
+                try
+                {
+                    await RefreshChargingSchedules();
+                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "{method}() failed", nameof(RefreshChargingSchedules));
+                }
+            });
+    }
 
     protected override async Task OnParametersSetAsync()
     {

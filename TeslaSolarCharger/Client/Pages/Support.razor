@@ -128,8 +128,8 @@ else
                                              OnButtonClicked="@(() => GetFleetTelemetryConfig(car.Key))"></RightAlignedButtonComponent>
                 <RightAlignedButtonComponent ButtonText="Get Car State"
                                              IsLoading="@_isFleetTelemetryLoading"
-                                             IsDisabled="@(car.Value.Vin == default || !car.Value.IsAvailableInTeslaAccount)"
-                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as car is not part of Tesla account")"
+                                             IsDisabled="@(car.Value.Vin == default)"
+                                             DisabledToolTipText="@(car.Value.IsAvailableInTeslaAccount ? null : "Can not check config as Vin is unknown")"
                                              OnButtonClicked="@(() => GetDtoCar(car.Key))"></RightAlignedButtonComponent>
 
                 @if (car.Value.Vin != default && _fleetTelemetrySetResults.TryGetValue(car.Key, out var result))

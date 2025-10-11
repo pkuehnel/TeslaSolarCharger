@@ -1,0 +1,136 @@
+@using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Dtos.Home
+
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        @if (HasTimeZoneMismatch)
+        {
+            <MudAlert Severity="Severity.Warning"
+                      NoIcon="true"
+                      ContentAlignment="HorizontalAlignment.Left">
+                <h5>Saved in different timezone</h5>
+                This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.
+            </MudAlert>
+        }
+
+        <EditFormComponent T="DtoCarChargingTarget"
+                           WrappedElement="Target"
+                           SubmitUrl="@SubmitUrl"
+                           HideSubmitButton="true"
+                           OnAfterSuccessfullSubmit="HandleSuccessfulSubmit"
+                           @ref="_editForm">
+            <GenericInput For="() => Target.Item.TargetSoc"></GenericInput>
+            @if (HomeBatteryValuesAvailable)
+            {
+                <GenericInput For="() => Target.Item.DischargeHomeBatteryToMinSoc"></GenericInput>
+            }
+
+            <GenericInput For="() => Target.Item.TargetDate"
+                          Clearable="true"></GenericInput>
+            <GenericInput For="() => Target.Item.TargetTime"></GenericInput>
+            <div class="fw-semibold mt-2 ml-2">
+                Repeat on:
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <GenericInput For="() => Target.Item.RepeatOnMondays"></GenericInput>
+                <GenericInput For="() => Target.Item.RepeatOnTuesdays"></GenericInput>
+                <GenericInput For="() => Target.Item.RepeatOnWednesdays"></GenericInput>
+                <GenericInput For="() => Target.Item.RepeatOnThursdays"></GenericInput>
+                <GenericInput For="() => Target.Item.RepeatOnFridays"></GenericInput>
+                <GenericInput For="() => Target.Item.RepeatOnSaturdays"></GenericInput>
+                <GenericInput For="() => Target.Item.RepeatOnSundays"></GenericInput>
+            </div>
+        </EditFormComponent>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="IsSaving">Cancel</MudButton>
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Primary"
+                   ButtonType="ButtonType.Button"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="IsSaving"
+                   OnClick="SubmitFormAsync">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Processing</MudText>
+            }
+            else
+            {
+                <MudText>Save</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public EditableItem<DtoCarChargingTarget> Target { get; set; } = null!;
+
+    [Parameter]
+    public int CarId { get; set; }
+
+    [Parameter]
+    public bool HomeBatteryValuesAvailable { get; set; }
+
+    [Parameter]
+    public string? CurrentTimeZone { get; set; }
+
+    private string SubmitUrl => $"api/Home/SaveCarChargingTarget?carId={CarId}";
+
+    private EditFormComponent<DtoCarChargingTarget>? _editForm;
+
+    private bool IsSaving => _isSaving;
+
+    private bool _isSaving;
+
+    private bool _disposed;
+
+    private bool HasTimeZoneMismatch =>
+        !string.IsNullOrWhiteSpace(Target.Item.ClientTimeZone) &&
+        !string.IsNullOrWhiteSpace(CurrentTimeZone) &&
+        !string.Equals(Target.Item.ClientTimeZone, CurrentTimeZone, System.StringComparison.OrdinalIgnoreCase);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitFormAsync()
+    {
+        if (_editForm == null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            await _editForm.SubmitAsync();
+        }
+        finally
+        {
+            _isSaving = false;
+            if (!_disposed)
+            {
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void HandleSuccessfulSubmit(DtoCarChargingTarget _)
+    {
+        Snackbar.Add("Saved.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+    }
+}

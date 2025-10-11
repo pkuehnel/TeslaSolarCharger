@@ -614,9 +614,39 @@ public class ConfigurationWrapper(
         return GetBaseConfiguration().HomeBatteryMinSoc;
     }
 
+    public int HomeBatteryMinDynamicMinSoc()
+    {
+        return GetBaseConfiguration().HomeBatteryMinDynamicMinSoc;
+    }
+
+    public int HomeBatteryMaxDynamicMinSoc()
+    {
+        return GetBaseConfiguration().HomeBatteryMaxDynamicMinSoc;
+    }
+
+    public int DynamicMinSocCalculationBufferInPercent()
+    {
+        return GetBaseConfiguration().DynamicMinSocCalculationBuffer;
+    }
+
+    public bool ForceFullHomeBatteryBySunset()
+    {
+        return GetBaseConfiguration().ForceFullHomeBatteryBySunset;
+    }
+
+    public int CarChargeLoss()
+    {
+        return GetBaseConfiguration().CarChargeLoss;
+    }
+
     public int? HomeBatteryChargingPower()
     {
         return GetBaseConfiguration().HomeBatteryChargingPower;
+    }
+
+    public int? HomeBatteryDischargingPower()
+    {
+        return GetBaseConfiguration().HomeBatteryDischargingPower;
     }
 
     /// <summary>
@@ -625,7 +655,13 @@ public class ConfigurationWrapper(
     /// <returns></returns>
     public int? HomeBatteryUsableEnergy()
     {
+        // ReSharper disable once CompareOfFloatsByEqualityOperator
         return GetBaseConfiguration().HomeBatteryUsableEnergy == default ? null : (int?)(GetBaseConfiguration().HomeBatteryUsableEnergy * 1000);
+    }
+
+    public bool DischargeHomeBatteryToMinSocDuringDay()
+    {
+        return GetBaseConfiguration().DischargeHomeBatteryToMinSocDuringDay;
     }
 
     public int? MaxInverterAcPower()

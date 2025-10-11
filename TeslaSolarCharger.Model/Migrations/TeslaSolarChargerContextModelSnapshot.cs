@@ -88,6 +88,9 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<string>("BleApiBaseUrl")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("CarType")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ChargeMode")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -117,6 +120,9 @@ namespace TeslaSolarCharger.Model.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("MaximumAmpere")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MaximumPhases")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("MaximumSoc")
@@ -204,6 +210,9 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<string>("ClientTimeZone")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("DischargeHomeBatteryToMinSoc")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long?>("LastFulFilled")
                         .HasColumnType("INTEGER");
 
@@ -231,7 +240,7 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Property<long?>("TargetDate")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("TargetSoc")
+                    b.Property<int?>("TargetSoc")
                         .HasColumnType("INTEGER");
 
                     b.Property<long>("TargetTime")
@@ -392,6 +401,21 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.HasIndex("OcppChargingStationConnectorId");
 
                     b.ToTable("ChargingProcesses");
+                });
+
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingStationConnectorAllowedCar", b =>
+                {
+                    b.Property<int>("CarId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("OcppChargingStationConnectorId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("CarId", "OcppChargingStationConnectorId");
+
+                    b.HasIndex("OcppChargingStationConnectorId");
+
+                    b.ToTable("ChargingStationConnectorAllowedCars");
                 });
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.HandledCharge", b =>
@@ -696,6 +720,9 @@ namespace TeslaSolarCharger.Model.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AllowGuestCars")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("AutoSwitchBetween1And3PhasesEnabled")
@@ -1043,6 +1070,25 @@ namespace TeslaSolarCharger.Model.Migrations
                     b.Navigation("OcppChargingStationConnector");
                 });
 
+            modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.ChargingStationConnectorAllowedCar", b =>
+                {
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
+                        .WithMany()
+                        .HasForeignKey("CarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnector", "OcppChargingStationConnector")
+                        .WithMany("AllowedCars")
+                        .HasForeignKey("OcppChargingStationConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Car");
+
+                    b.Navigation("OcppChargingStationConnector");
+                });
+
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.MeterValue", b =>
                 {
                     b.HasOne("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.Car", "Car")
@@ -1188,6 +1234,8 @@ namespace TeslaSolarCharger.Model.Migrations
 
             modelBuilder.Entity("TeslaSolarCharger.Model.Entities.TeslaSolarCharger.OcppChargingStationConnector", b =>
                 {
+                    b.Navigation("AllowedCars");
+
                     b.Navigation("ChargingProcesses");
 
                     b.Navigation("MeterValues");

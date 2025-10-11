@@ -54,9 +54,32 @@
 
     public bool IsDirty => WrappedElement.EditContext.IsModified();
 
+    public bool IsSubmitting => _isSubmitting;
+
     private bool _isSubmitting;
 
 
+
+    public async Task SubmitAsync()
+    {
+        if (_isSubmitting)
+        {
+            return;
+        }
+
+        if (WrappedElement?.EditContext == null)
+        {
+            return;
+        }
+
+        var isValid = WrappedElement.EditContext.Validate();
+        if (!isValid)
+        {
+            return;
+        }
+
+        await HandleValidSubmit(WrappedElement.Item);
+    }
 
     private async Task HandleValidSubmit(T wrappedItem)
     {

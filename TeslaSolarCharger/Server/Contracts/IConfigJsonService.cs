@@ -13,7 +13,8 @@ public interface IConfigJsonService
     Task UpdateCarBasicConfiguration(int carId, CarBasicConfiguration carBasicConfiguration);
     Task<List<CarBasicConfiguration>> GetCarBasicConfigurations();
     ISettings GetSettings();
-    Task AddCarsToSettings();
+    Task AddCarsToSettings(bool initializeManualCarValues = false, int? manualCarIdToInitialize = null);
     Task AddBleBaseUrlToAllCars();
     Task SetCorrectHomeDetectionVia();
+    Task AddAllTeslasToAllowedCars();
 }

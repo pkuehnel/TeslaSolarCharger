@@ -236,6 +236,12 @@ public class BaseConfigurationService(
         }
     }
 
+    public bool HomeBatteryValuesAvailable()
+    {
+        logger.LogTrace("{method}()", nameof(HomeBatteryValuesAvailable));
+        return settings.HomeBatteryPower != default && settings.HomeBatterySoc != default;
+    }
+
     public List<DtoBackupFileInformation> GetAutoBackupFileInformations()
     {
         var backupZipDirectory = configurationWrapper.AutoBackupsZipDirectory();
