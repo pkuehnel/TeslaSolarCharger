@@ -34,7 +34,7 @@ else
                  Height="@_datagridHeight" Breakpoint="Breakpoint.None">
         <Columns>
             <PropertyColumn Property="x => x.StartTime"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime))">
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.StartTime), typeof(DtoHandledCharge))">
                 <CellTemplate>
                     @if (context.Item.EndTime.HasValue && false)
                     {
@@ -47,7 +47,7 @@ else
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.EndTime"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.EndTime))">
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.EndTime), typeof(DtoHandledCharge))">
                 <CellTemplate>
                     @if (context.Item.EndTime.HasValue)
                     {
@@ -60,20 +60,20 @@ else
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.CalculatedPrice"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.CalculatedPrice))"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.CalculatedPrice), typeof(DtoHandledCharge))"
                             AggregateDefinition="_calculatedPriceAggregation">
             </PropertyColumn>
             <PropertyColumn Property="x => x.PricePerKwh"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.PricePerKwh))"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.PricePerKwh), typeof(DtoHandledCharge))"
                             AggregateDefinition="_pricePerKwhAggregation"></PropertyColumn>
             <PropertyColumn Property="x => x.UsedGridEnergy"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedGridEnergy))"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedGridEnergy), typeof(DtoHandledCharge))"
                             AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
             <PropertyColumn Property="x => x.UsedHomeBatteryEnergy"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedHomeBatteryEnergy))"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedHomeBatteryEnergy), typeof(DtoHandledCharge))"
                             AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
             <PropertyColumn Property="x => x.UsedSolarEnergy"
-                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedSolarEnergy))"
+                            Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoHandledCharge.UsedSolarEnergy), typeof(DtoHandledCharge))"
                             AggregateDefinition="_usedEnergyAggrregation"></PropertyColumn>
         </Columns>
     </MudDataGrid>

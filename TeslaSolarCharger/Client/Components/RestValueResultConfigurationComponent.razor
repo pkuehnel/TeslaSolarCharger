@@ -30,7 +30,7 @@
                                 <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
                                     @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
                                     {
-                                        <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                                        <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString(), typeof(ValueUsage))</MudSelectItemExtended>
                                     }
                                 </MudSelectItemGroupExtended>
                             </MudSelectExtended>
@@ -72,7 +72,7 @@
                                                Label="Operator">
                                         @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
                                         {
-                                            <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                            <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString(), typeof(ValueOperator))</MudSelectItem>
                                         }
                                     </MudSelect>
                                 </div>

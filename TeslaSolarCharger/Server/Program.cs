@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -10,6 +11,8 @@ using Serilog.Core;
 using Serilog.Events;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using TeslaSolarCharger.Client.Contracts;
 using TeslaSolarCharger.Model.Contracts;
@@ -29,6 +32,7 @@ using TeslaSolarCharger.Shared;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Resources;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +65,15 @@ builder.Services.AddScoped<IIsStartupCompleteChecker, IsStartupCompleteChecker>(
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CarBasicConfigurationValidator>();
 
+var supportedCultures = new[] { "en", "de" };
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var cultures = supportedCultures.Select(culture => new CultureInfo(culture)).ToList();
+    options.DefaultRequestCulture = new RequestCulture("en");
+    options.SupportedCultures = cultures;
+    options.SupportedUICultures = cultures;
+});
+
 var maxFileSize = (long)1024 * 1024 * 1024 * 50; // 50GB
 builder.Services.Configure<KestrelServerOptions>(options =>
 {
@@ -91,6 +104,9 @@ builder.Services.AddKeyedSingleton(StaticConstants.FileLogDependencyInjectionKey
 var app = builder.Build();
 
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
+
+var localizationOptions = app.Services.GetRequiredService<IOptions<RequestLocalizationOptions>>().Value;
+app.UseRequestLocalization(localizationOptions);
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Verbose()// overall minimum

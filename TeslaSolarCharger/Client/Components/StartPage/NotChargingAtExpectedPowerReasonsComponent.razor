@@ -1,11 +1,13 @@
-﻿@using TeslaSolarCharger.Client.Services.Contracts
+@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.SignalRClients
 @inject IHomeService HomeService
 @inject IDateTimeProvider DateTimeProvider
 @inject ILogger<NotChargingAtExpectedPowerReasonsComponent> Logger
 @inject ISignalRStateService SignalRStateService
+@inject IAppLocalizationService LocalizationService
 
 @implements IDisposable
 
@@ -27,7 +29,7 @@ else
                             if (remainingTime.HasValue)
                             {
                                 <div>
-                                    @($"{nextEndingReason.Reason}:")
+                                    @($"{GetReasonText(nextEndingReason)}:")
                                     <span><MudChip T="string"
                                                    Color="Color.Primary"
                                                    Size="Size.Small"
@@ -35,7 +37,7 @@ else
                                         @(FormatTimeSpan(remainingTime.Value))
                                     </MudChip></span>
                                 </div>
-                                
+
                             }
                         }
                         else
@@ -58,14 +60,14 @@ else
                         <li>
                             @if (element.ReasonEndTime == default)
                             {
-                                @element.Reason
+                                @GetReasonText(element)
                             }
                             else
                             {
                                 var remainingTime = GetRemainingTime(element.ReasonEndTime.Value);
                                 @if (remainingTime.HasValue)
                                 {
-                                    @($"{element.Reason} (")
+                                    @($"{GetReasonText(element)} (")
                                     <span>
                                         <MudChip T="string"
                                                  Color="Color.Primary"
@@ -78,7 +80,7 @@ else
                                 }
                                 else
                                 {
-                                    @(element.Reason)
+                                    @(GetReasonText(element))
                                 }
                             }
                         </li>
@@ -104,7 +106,6 @@ else
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
-        
 
         await SignalRStateService.InitializeAsync();
         await SignalRStateService.SubscribeToTrigger(
@@ -177,6 +178,16 @@ else
     private string FormatTimeSpan(TimeSpan timeSpan)
     {
         return timeSpan.ToString(@"mm\:ss");
+    }
+
+    private string GetReasonText(DtoNotChargingWithExpectedPowerReason reason)
+    {
+        if (reason == null)
+        {
+            return string.Empty;
+        }
+
+        return LocalizationService.GetString(reason.LocalizationKey ?? string.Empty, reason.Reason ?? reason.DefaultReason);
     }
 
     public void Dispose()

@@ -57,7 +57,7 @@
             var chartSeries = new TimeSeriesChartSeries
             {
                 Index = 0,
-                    Name = StringHelper.GenerateFriendlyStringFromPascalString(carValueType.ToString()),
+                    Name = StringHelper.GenerateFriendlyStringFromPascalString(carValueType.ToString(), typeof(CarValueType)),
                 Data = response.Select(d => new TimeSeriesChartSeries.TimeValue(d.Timestamp, d.Value ?? 0)).ToList(),
                 IsVisible = true,
                 LineDisplayType = LineDisplayType.Line,

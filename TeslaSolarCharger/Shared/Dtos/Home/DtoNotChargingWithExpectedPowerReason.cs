@@ -12,6 +12,20 @@ public class DtoNotChargingWithExpectedPowerReason
     public DtoNotChargingWithExpectedPowerReason(string reason)
     {
         Reason = reason;
+        DefaultReason = reason;
+    }
+
+    public DtoNotChargingWithExpectedPowerReason(string localizationKey, string defaultReason)
+    {
+        LocalizationKey = localizationKey;
+        Reason = defaultReason;
+        DefaultReason = defaultReason;
+    }
+
+    public DtoNotChargingWithExpectedPowerReason(string localizationKey, string defaultReason, DateTimeOffset? reasonEndTime)
+        : this(localizationKey, defaultReason)
+    {
+        ReasonEndTime = reasonEndTime;
     }
 
     public DtoNotChargingWithExpectedPowerReason(string reason, DateTimeOffset? reasonEndTime) : this(reason)
@@ -20,5 +34,7 @@ public class DtoNotChargingWithExpectedPowerReason
     }
 
     public string Reason { get; set; }
+    public string? LocalizationKey { get; set; }
+    public string? DefaultReason { get; set; }
     public DateTimeOffset? ReasonEndTime { get; set; }
 }

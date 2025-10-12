@@ -39,7 +39,7 @@ else
                                    Margin="Constants.InputMargin">
                             @foreach (ModbusEndianess item in Enum.GetValues(typeof(ModbusEndianess)))
                             {
-                                <MudSelectItem T="ModbusEndianess" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                <MudSelectItem T="ModbusEndianess" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString(), typeof(ModbusEndianess))</MudSelectItem>
                             }
                         </MudSelect>
                     </div>
@@ -68,7 +68,7 @@ else
                                                 <MudSelectItemGroupExtended T="ValueUsage" Text="Solar" Nested="true" InitiallyExpanded="false">
                                                     @foreach (ValueUsage item in Enum.GetValues(typeof(ValueUsage)))
                                                     {
-                                                        <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItemExtended>
+                                                        <MudSelectItemExtended T="ValueUsage" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString(), typeof(ValueUsage))</MudSelectItemExtended>
                                                     }
                                                 </MudSelectItemGroupExtended>
                                             </MudSelectExtended>
@@ -83,7 +83,7 @@ else
                                                        Margin="Constants.InputMargin">
                                                 @foreach (ModbusRegisterType item in Enum.GetValues(typeof(ModbusRegisterType)))
                                                 {
-                                                    <MudSelectItem T="ModbusRegisterType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                    <MudSelectItem T="ModbusRegisterType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString(), typeof(ModbusRegisterType))</MudSelectItem>
                                                 }
                                             </MudSelect>
                                         </div>
@@ -97,7 +97,7 @@ else
                                                        Margin="Constants.InputMargin">
                                                 @foreach (ModbusValueType item in Enum.GetValues(typeof(ModbusValueType)))
                                                 {
-                                                    <MudSelectItem T="ModbusValueType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                    <MudSelectItem T="ModbusValueType" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString(), typeof(ModbusValueType))</MudSelectItem>
                                                 }
                                             </MudSelect>
                                         </div>
@@ -123,7 +123,7 @@ else
                                                                Margin="Constants.InputMargin">
                                                         @foreach (ValueOperator item in Enum.GetValues(typeof(ValueOperator)))
                                                         {
-                                                            <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString())</MudSelectItem>
+                                                            <MudSelectItem T="ValueOperator" Value="@item">@StringHelper.GenerateFriendlyStringFromPascalString(item.ToString(), typeof(ValueOperator))</MudSelectItem>
                                                         }
                                                     </MudSelect>
                                                 </div>

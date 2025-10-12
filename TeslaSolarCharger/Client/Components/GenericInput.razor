@@ -5,10 +5,13 @@
 @using MudExtensions
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Localization
+@using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
+@inject IAppLocalizationService LocalizationService
 
 @typeparam T
 
@@ -515,22 +518,15 @@
         var enumType = enumValue.GetType();
         var enumMemberName = enumValue.ToString() ?? string.Empty;
         var memberInfo = enumType.GetMember(enumMemberName).FirstOrDefault();
-        if (memberInfo != null)
-        {
-            var displayAttribute = memberInfo.GetCustomAttribute<DisplayAttribute>();
-            if (displayAttribute != null && !string.IsNullOrEmpty(displayAttribute.Name))
-            {
-                return displayAttribute.Name;
-            }
+        var displayAttribute = memberInfo?.GetCustomAttribute<DisplayAttribute>();
+        var descriptionAttribute = memberInfo?.GetCustomAttribute<DescriptionAttribute>();
 
-            var descriptionAttribute = memberInfo.GetCustomAttribute<DescriptionAttribute>();
-            if (descriptionAttribute != null && !string.IsNullOrEmpty(descriptionAttribute.Description))
-            {
-                return descriptionAttribute.Description;
-            }
-        }
-        var friendlyName = StringHelper.GenerateFriendlyStringWithOutIdSuffix(enumMemberName);
-        return friendlyName;
+        var defaultName = displayAttribute?.GetName()
+            ?? descriptionAttribute?.Description
+            ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(enumMemberName, enumType);
+
+        var key = LocalizationKeyBuilder.EnumValue(enumType, enumMemberName);
+        return LocalizationService.GetString(key, defaultName);
     }
 
     [Parameter]
@@ -844,8 +840,18 @@
             throw new ArgumentException($"Expression '{For}' refers to a field, not a property.");
         }
 
-        //Only set label name based on property  name / display name attribute if not already set via parameter
-        LabelName ??= propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault()?.DisplayName ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
+        //Only set label name based on property name / display attribute if not already set via parameter
+        if (LabelName == null)
+        {
+            var displayAttribute = propertyInfo.GetCustomAttributes<DisplayAttribute>(false).SingleOrDefault();
+            var displayNameAttribute = propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault();
+            var defaultLabel = displayAttribute?.GetName()
+                ?? displayNameAttribute?.DisplayName
+                ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name, propertyInfo.DeclaringType);
+
+            var displayNameKey = LocalizationKeyBuilder.DisplayName(propertyInfo);
+            LabelName = LocalizationService.GetString(displayNameKey, defaultLabel);
+        }
 
         IsRequired = IsRequiredParameter ?? propertyInfo.GetCustomAttributes(true).OfType<RequiredAttribute>().Any();
         if (IsReadOnlyParameter == true)
@@ -858,10 +864,11 @@
             IsDisabled = IsDisabledParameter ?? propertyInfo.GetCustomAttributes(true).OfType<DisabledAttribute>().Any();
         }
 
-        var helperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
-        if (helperText != default)
+        var helperTextAttribute = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault();
+        if (helperTextAttribute != default)
         {
-            HelperText = helperText;
+            var helperTextKey = helperTextAttribute.LocalizationKey ?? LocalizationKeyBuilder.HelperText(propertyInfo);
+            HelperText = LocalizationService.GetString(helperTextKey, helperTextAttribute.HelperText);
         }
 
 

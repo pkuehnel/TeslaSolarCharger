@@ -25,19 +25,19 @@
                              Loading="@(_elements == null)">
                     <Columns>
                         <PropertyColumn Property="x => x.ValidFrom"
-                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom))">
+                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidFrom), typeof(DtoChargingSchedule))">
                             <CellTemplate>
                                 @(context.Item.ValidFrom.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
                         <PropertyColumn Property="x => x.ValidTo"
-                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo))">
+                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ValidTo), typeof(DtoChargingSchedule))">
                             <CellTemplate>
                                 @(context.Item.ValidTo.ToLocalTime().ToString("g"))
                             </CellTemplate>
                         </PropertyColumn>
                         <PropertyColumn Property="x => x.ChargingPower"
-                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ChargingPower))">
+                                        Title="@StringHelper.GenerateFriendlyStringWithOutIdSuffix(nameof(DtoChargingSchedule.ChargingPower), typeof(DtoChargingSchedule))">
                             <CellTemplate>
                                 @(context.Item.ChargingPower.ToString("N0"))W
                             </CellTemplate>
