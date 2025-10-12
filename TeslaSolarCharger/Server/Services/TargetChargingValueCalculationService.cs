@@ -64,7 +64,7 @@ public class TargetChargingValueCalculationService : ITargetChargingValueCalcula
         {
             _settings.IsHomeBatteryDischargingActive = true;
             additionalHomeBatteryDischargePower = _configurationWrapper.HomeBatteryDischargingPower() ?? 0;
-            _logger.LogTrace("Added additional home battery discharge powe of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
+            _logger.LogTrace("Added additional home battery discharge power of {additionalHomeBatteryDischargePower}W", additionalHomeBatteryDischargePower);
         }
         else
         {
