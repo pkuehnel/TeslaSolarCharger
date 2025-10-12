@@ -1,5 +1,6 @@
-﻿@page "/ChargePrice/detail/{chargeCostId:int}"
+@page "/ChargePrice/detail/{chargeCostId:int}"
 @page "/ChargePrice/new"
+@using Microsoft.Extensions.Localization
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.ChargingCost.CostConfigurations
@@ -13,9 +14,10 @@
 @inject IDateTimeProvider DateTimeProvider
 @inject ISnackbar Snackbar
 @inject IChargePriceService ChargePriceService
+@inject IStringLocalizer<ChargeCostDetail> Localizer
 
-<button class="btn btn-primary" @onclick="NavigateToList">All Charge costs</button>
-<h1>ChargePriceDetail</h1>
+<button class="btn btn-primary" @onclick="NavigateToList">@Localizer["All Charge costs"]</button>
+<h1>@Localizer["Charge price detail"]</h1>
 
 @if (ChargePrice == null)
 {
@@ -27,7 +29,7 @@ else
         <DataAnnotationsValidator />
         <ValidationSummary />
         <InputComponent ValueId="chargePriceId"
-                        LabelText="ID"
+                        LabelText='@Localizer["ID"]"
                         UnitText=""
                         HelpText="">
             <InputFragment>
@@ -36,7 +38,7 @@ else
         </InputComponent>
 
         <InputComponent ValueId="date"
-                        LabelText="Valid Since"
+                        LabelText='@Localizer["Valid Since"]"
                         UnitText=""
                         HelpText="">
             <InputFragment>
@@ -45,7 +47,7 @@ else
         </InputComponent>
 
         <InputComponent ValueId="solarPrice"
-                        LabelText="Solar Price"
+                        LabelText='@Localizer["Solar Price"]"
                         UnitText=""
                         HelpText="">
             <InputFragment>
@@ -54,19 +56,19 @@ else
         </InputComponent>
         
         <InputComponent ValueId="energyProvider"
-                        LabelText="Energy Provider"
+                        LabelText='@Localizer["Energy Provider"]"
                         UnitText=""
                         HelpText="">
             <InputFragment>
                 <InputSelect id="energyProvider" Value="ChargePrice.EnergyProvider" ValueExpression="() => ChargePrice.EnergyProvider" ValueChanged="@((EnergyProvider e) => EnergyProviderChanged(e))" class="form-control">
-                    <option value="@EnergyProvider.OldTeslaSolarChargerConfig">Fixed Price or Spot price</option>
-                    <option value="@EnergyProvider.FixedPrice">Time based prices</option>
+                    <option value="@EnergyProvider.OldTeslaSolarChargerConfig">@Localizer["Fixed Price or Spot price"]</option>
+                    <option value="@EnergyProvider.FixedPrice">@Localizer["Time based prices"]</option>
                 </InputSelect>
             </InputFragment>
         </InputComponent>
 
         <InputComponent ValueId="gridPrice"
-                        LabelText="@(ChargePrice.AddSpotPriceToGridPrice ? "Base Price (Spot price will be added to this price)" : "Grid Price")"
+                        LabelText='@(ChargePrice.AddSpotPriceToGridPrice ? Localizer["Base Price (Spot price will be added to this price)"] : Localizer["Grid Price"])'
                         UnitText=""
                         HelpText="">
             <InputFragment>
@@ -76,7 +78,7 @@ else
 
         @if (ChargePrice.EnergyProvider == EnergyProvider.FixedPrice && FixedPrices != null)
         {
-            <div>You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used.</div>
+            <div>@Localizer["You can specify times with special prices here. If there are times left, you didn't specify a price for, the default grid price, specified above, is used."]</div>
             @foreach (var fixedPrice in FixedPrices)
             {
                 <div class="row mt-3">
@@ -88,7 +90,7 @@ else
                 <div class="row mt-3">
                     <div class="col-auto">
                         <InputComponent ValueId="price"
-                                        LabelText="Price"
+                                        LabelText='@Localizer["Price"]"
                                         UnitText=""
                                         HelpText="">
                             <InputFragment>
@@ -103,7 +105,7 @@ else
                 
                 <hr/>
             }
-            <button type="button" class="btn btn-primary m-2" @onclick="AddFixedPrice">Add time based price</button>
+            <button type="button" class="btn btn-primary m-2" @onclick="AddFixedPrice">@Localizer["Add time based price"]</button>
         }
         
         @if (ChargePrice.EnergyProvider == EnergyProvider.OldTeslaSolarChargerConfig)
@@ -111,18 +113,18 @@ else
             <div class="mb-3">
                 <InputCheckbox class="form-check-input" id="useSpotPrice1" @bind-Value="ChargePrice.AddSpotPriceToGridPrice" />
                 <label class="form-check-label" for="useSpotPrice1">
-                    Use Spot Prices
+                    @Localizer["Use Spot Prices"]
                 </label>
                 <div>
-                    <small id="UseSpotPriceHelp" class="form-text text-muted">Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)</small>
+                    <small id="UseSpotPriceHelp" class="form-text text-muted">@Localizer["Enable this if you are using dynamic prices based on EPEX Spot DE (e.g. Tibber or aWATTar)"]</small>
                 </div>
             </div>
             @if (ChargePrice.AddSpotPriceToGridPrice)
             {
                 <InputComponent ValueId="chargePriceSurcharge"
-                                LabelText="Additional costs to spotprice"
+                                LabelText='@Localizer["Additional costs to spotprice"]"
                                 UnitText="%"
-                                HelpText="Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT.">
+                                HelpText='@Localizer["Surcharge to spot price (e.g. aWATTar 3% + 19% VAT in Germany). Note: Spot prices are without VAT."]">
                     <InputFragment>
                         <InputNumber id="chargePriceSurcharge" @bind-Value="ChargePrice.SpotPriceSurcharge" class="form-control" placeholder=" " />
                     </InputFragment>
@@ -146,14 +148,14 @@ else
         {
             <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
                 <MudAlert Severity="Severity.Info">
-                    Updating charge prices can take a significant amount of time as the prices of all previous charges are updated
+                    @Localizer["Updating charge prices can take a significant amount of time as the prices of all previous charges are updated"]
                 </MudAlert>
             </MudPaper>
         }
         
         <RightAlignedButtonComponent ButtonType="ButtonType.Submit"
                                      IsLoading="@(SubmitIsLoading || ChargePriceUpdateProgress != default)"
-                                     ButtonText="Save"/>
+                                     ButtonText='@Localizer["Save"]"/>
     </EditForm>
 }
 
@@ -208,7 +210,7 @@ else
     {
         if(ChargePrice == null)
         {
-            Snackbar.Add("Charge price is null and can not be saved. Try reloading the page.", Severity.Error);
+            Snackbar.Add(Localizer["Charge price is null and can not be saved. Try reloading the page."], Severity.Error);
             return;
         }
         SubmitIsLoading = true;
