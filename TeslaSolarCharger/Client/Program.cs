@@ -70,6 +70,7 @@ var inMemorySink = new InMemorySink(outputTemplate, capacity: 3000);
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Verbose()// overall minimum
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.Extensions.Localization.ResourceManagerStringLocalizer", LogEventLevel.Debug)
     .MinimumLevel.Override("MudBlazor.KeyInterceptorService", LogEventLevel.Debug)
     .MinimumLevel.Override("TeslaSolarCharger.Shared.Helper.StringHelper", LogEventLevel.Debug)
     .WriteTo.Logger(lc => lc
@@ -81,5 +82,8 @@ builder.Services.AddSingleton<IInMemorySink>(inMemorySink);
 builder.Services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
 
 builder.Services.AddApexCharts();
-builder.Services.AddLocalization();
+builder.Services.AddLocalization(options =>
+{
+    options.ResourcesPath = "Resources";
+});
 await builder.Build().RunAsync().ConfigureAwait(false);

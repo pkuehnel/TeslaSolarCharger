@@ -118,6 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Use my referral code for ordering any Tesla product or schedule a Demo Drive:" xml:space="preserve">
-    <value>Nutze meinen Empfehlungscode um ein Tesla-Produkt zu bestellen oder für eine Probefahrt:</value>
+    <value>Nutze meinen Weiteremfehlungscode um ein Teslaprodukt zu kaufen, oder um eine Probefahrt zu buchen:</value>
+    <comment>Use my referral code for ordering any Tesla product or schedule a Demo Drive:</comment>
   </data>
 </root>
