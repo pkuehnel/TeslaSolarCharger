@@ -5,7 +5,7 @@
 
 <div class="mb-3">
     <InputComponent ValueId="@($"{IdPrefix}ModbusUnitIdentifier")"
-                    LabelText="Unit Identifier"
+                    LabelText='@T("Unit Identifier")'
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -14,7 +14,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}RegisterType")"
-                    LabelText="Register Type"
+                    LabelText='@T("Register Type")'
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -28,7 +28,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ValueType")"
-                    LabelText="Value Type"
+                    LabelText='@T("Value Type")'
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -44,7 +44,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusStartingAddress")"
-                    LabelText="Register Address"
+                    LabelText='@T("Register Address")'
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -53,7 +53,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusQuantity")"
-                    LabelText="Number of Registers"
+                    LabelText='@T("Number of Registers")'
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -62,7 +62,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusIpAddress")"
-                    LabelText="IP address"
+                    LabelText='@T("IP address")'
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -71,7 +71,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusPort")"
-                    LabelText="Port"
+                    LabelText='@T("Port")'
                     UnitText=""
                     HelpText="">
         <InputFragment>
@@ -82,12 +82,12 @@
     <div class="mb-3 form-check">
         <input class="form-check-input" @bind="@SwapRegisters" type="checkbox" id="@($"{IdPrefix}SwapRegisters")" >
         <label class="form-check-label" for="@($"{IdPrefix}SwapRegisters")">
-            Swap Register (bigEndian / littleEndian):
+            @T("Swap Register (bigEndian / littleEndian):")
         </label>
     </div>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusConnectDelaySeconds")"
-                    LabelText="Connect Delay"
+                    LabelText='@T("Connect Delay")'
                     UnitText="s"
                     HelpText="">
         <InputFragment>
@@ -96,7 +96,7 @@
     </InputComponent>
     
     <InputComponent ValueId="@($"{IdPrefix}ModbusTimeoutSeconds")"
-                    LabelText="Read Timeout"
+                    LabelText='@T("Read Timeout")'
                     UnitText="s"
                     HelpText="">
         <InputFragment>

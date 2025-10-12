@@ -11,8 +11,8 @@
             <MudAlert Severity="Severity.Warning"
                       NoIcon="true"
                       ContentAlignment="HorizontalAlignment.Left">
-                <h5>Saved in different timezone</h5>
-                This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.
+                <h5>@T("Saved in different timezone")</h5>
+                @T("This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.")
             </MudAlert>
         }
 
@@ -32,7 +32,7 @@
                           Clearable="true"></GenericInput>
             <GenericInput For="() => Target.Item.TargetTime"></GenericInput>
             <div class="fw-semibold mt-2 ml-2">
-                Repeat on:
+                @T("Repeat on:")
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <GenericInput For="() => Target.Item.RepeatOnMondays"></GenericInput>
@@ -46,7 +46,7 @@
         </EditFormComponent>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="IsSaving">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="IsSaving">@T("Cancel")</MudButton>
         <MudButton Variant="Variant.Text"
                    Color="Color.Primary"
                    ButtonType="ButtonType.Button"
@@ -56,11 +56,11 @@
             @if (IsSaving)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                <MudText Class="ms-2">Processing</MudText>
+                <MudText Class="ms-2">@T("Processing")</MudText>
             }
             else
             {
-                <MudText>Save</MudText>
+                <MudText>@T("Save")</MudText>
             }
         </MudButton>
     </DialogActions>
@@ -125,7 +125,7 @@
 
     private void HandleSuccessfulSubmit(DtoCarChargingTarget _)
     {
-        Snackbar.Add("Saved.", Severity.Success);
+        Snackbar.Add(T("Saved."), Severity.Success);
         MudDialog.Close(DialogResult.Ok(true));
     }
 

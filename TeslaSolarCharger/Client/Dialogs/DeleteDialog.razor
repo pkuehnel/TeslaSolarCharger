@@ -1,10 +1,10 @@
 ﻿<MudDialog>
     <DialogContent>
-        Are you sure you want to delete @(ElementName)?
+        @string.Format(T("Are you sure you want to delete {0}?"), ElementName)
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Error" OnClick="Submit">Yes</MudButton>
+        <MudButton OnClick="Cancel">@T("Cancel")</MudButton>
+        <MudButton Color="Color.Error" OnClick="Submit">@T("Yes")</MudButton>
     </DialogActions>
 </MudDialog>
 

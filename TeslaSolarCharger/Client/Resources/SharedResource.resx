@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="A new version of the application is available. The application will now reload to update to the latest version." xml:space="preserve">
+    <value>A new version of the application is available. The application will now reload to update to the latest version.</value>
+  </data>
+  <data name="About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Add Header" xml:space="preserve">
+    <value>Add Header</value>
+  </data>
+  <data name="Add Result" xml:space="preserve">
+    <value>Add Result</value>
+  </data>
+  <data name="AddCarDialog" xml:space="preserve">
+    <value>AddCarDialog</value>
+  </data>
+  <data name="An unhandled error has occurred." xml:space="preserve">
+    <value>An unhandled error has occurred.</value>
+  </data>
+  <data name="Are you sure you want to delete {0}?" xml:space="preserve">
+    <value>Are you sure you want to delete {0}?</value>
+  </data>
+  <data name="At least one result configuration is not valid" xml:space="preserve">
+    <value>At least one result configuration is not valid</value>
+  </data>
+  <data name="At least one result configuration is required" xml:space="preserve">
+    <value>At least one result configuration is required</value>
+  </data>
+  <data name="Backup and Restore" xml:space="preserve">
+    <value>Backup and Restore</value>
+  </data>
+  <data name="Base Configuration" xml:space="preserve">
+    <value>Base Configuration</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Car Settings" xml:space="preserve">
+    <value>Car Settings</value>
+  </data>
+  <data name="Charge Prices" xml:space="preserve">
+    <value>Charge Prices</value>
+  </data>
+  <data name="Charging Stations" xml:space="preserve">
+    <value>Charging Stations</value>
+  </data>
+  <data name="Cloud Connection" xml:space="preserve">
+    <value>Cloud Connection</value>
+  </data>
+  <data name="Config form is null, can not save values" xml:space="preserve">
+    <value>Config form is null, can not save values</value>
+  </data>
+  <data name="Connect Delay" xml:space="preserve">
+    <value>Connect Delay</value>
+  </data>
+  <data name="Could not load version" xml:space="preserve">
+    <value>Could not load version</value>
+  </data>
+  <data name="Current Server Time:" xml:space="preserve">
+    <value>Current Server Time:</value>
+  </data>
+  <data name="Do not share the ID with anyone" xml:space="preserve">
+    <value>Do not share the ID with anyone</value>
+  </data>
+  <data name="Do not share the complete ID with anyone" xml:space="preserve">
+    <value>Do not share the complete ID with anyone</value>
+  </data>
+  <data name="Endianess" xml:space="preserve">
+    <value>Endianess</value>
+  </data>
+  <data name="Failed to delete result configuration" xml:space="preserve">
+    <value>Failed to delete result configuration</value>
+  </data>
+  <data name="Failed to get current rest string" xml:space="preserve">
+    <value>Failed to get current rest string</value>
+  </data>
+  <data name="Failed to update MQTT configuration" xml:space="preserve">
+    <value>Failed to update MQTT configuration</value>
+  </data>
+  <data name="Failed to update Modbus value configuration" xml:space="preserve">
+    <value>Failed to update Modbus value configuration</value>
+  </data>
+  <data name="Failed to update REST value configuration" xml:space="preserve">
+    <value>Failed to update REST value configuration</value>
+  </data>
+  <data name="Go to" xml:space="preserve">
+    <value>Go to</value>
+  </data>
+  <data name="HTTP Method" xml:space="preserve">
+    <value>HTTP Method</value>
+  </data>
+  <data name="Headers" xml:space="preserve">
+    <value>Headers</value>
+  </data>
+  <data name="IP address" xml:space="preserve">
+    <value>IP address</value>
+  </data>
+  <data name="Installation ID" xml:space="preserve">
+    <value>Installation ID</value>
+  </data>
+  <data name="Language settings" xml:space="preserve">
+    <value>Language settings</value>
+  </data>
+  <data name="MQTT configuration is not valid" xml:space="preserve">
+    <value>MQTT configuration is not valid</value>
+  </data>
+  <data name="MQTT configuration is null" xml:space="preserve">
+    <value>MQTT configuration is null</value>
+  </data>
+  <data name="MQTT configuration saved." xml:space="preserve">
+    <value>MQTT configuration saved.</value>
+  </data>
+  <data name="Modbus configuration is not valid" xml:space="preserve">
+    <value>Modbus configuration is not valid</value>
+  </data>
+  <data name="Modbus value configuration is null" xml:space="preserve">
+    <value>Modbus value configuration is null</value>
+  </data>
+  <data name="Modbus value configuration saved." xml:space="preserve">
+    <value>Modbus value configuration saved.</value>
+  </data>
+  <data name="Navigation menu" xml:space="preserve">
+    <value>Navigation menu</value>
+  </data>
+  <data name="Node Pattern Type" xml:space="preserve">
+    <value>Node Pattern Type</value>
+  </data>
+  <data name="Number of Registers" xml:space="preserve">
+    <value>Number of Registers</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Operator" xml:space="preserve">
+    <value>Operator</value>
+  </data>
+  <data name="Overview" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="Please take our" xml:space="preserve">
+    <value>Please take our</value>
+  </data>
+  <data name="Port" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Processing" xml:space="preserve">
+    <value>Processing</value>
+  </data>
+  <data name="Read Timeout" xml:space="preserve">
+    <value>Read Timeout</value>
+  </data>
+  <data name="Register Address" xml:space="preserve">
+    <value>Register Address</value>
+  </data>
+  <data name="Register Type" xml:space="preserve">
+    <value>Register Type</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="Repeat on:" xml:space="preserve">
+    <value>Repeat on:</value>
+  </data>
+  <data name="Rest configuration is not valid" xml:space="preserve">
+    <value>Rest configuration is not valid</value>
+  </data>
+  <data name="Rest value configuration is null" xml:space="preserve">
+    <value>Rest value configuration is null</value>
+  </data>
+  <data name="Rest value configuration saved." xml:space="preserve">
+    <value>Rest value configuration saved.</value>
+  </data>
+  <data name="Result configuration deleted" xml:space="preserve">
+    <value>Result configuration deleted</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Saved in different timezone" xml:space="preserve">
+    <value>Saved in different timezone</value>
+  </data>
+  <data name="Saved." xml:space="preserve">
+    <value>Saved.</value>
+  </data>
+  <data name="Server Timezone:" xml:space="preserve">
+    <value>Server Timezone:</value>
+  </data>
+  <data name="Solar" xml:space="preserve">
+    <value>Solar</value>
+  </data>
+  <data name="Support" xml:space="preserve">
+    <value>Support</value>
+  </data>
+  <data name="Swap Register (bigEndian / littleEndian):" xml:space="preserve">
+    <value>Swap Register (bigEndian / littleEndian):</value>
+  </data>
+  <data name="Tesla Fleet API Token is not valid." xml:space="preserve">
+    <value>Tesla Fleet API Token is not valid.</value>
+  </data>
+  <data name="Tesla Solar Charger" xml:space="preserve">
+    <value>Tesla Solar Charger</value>
+  </data>
+  <data name="Test" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it." xml:space="preserve">
+    <value>This element was saved in a different timezone than your device currently is in. The timezone is set when adding a new target, so to fix this issue, you need to delete this target and readd it.</value>
+  </data>
+  <data name="This is needed to properly start charging sessions. If this time does not match your current time, check your server time." xml:space="preserve">
+    <value>This is needed to properly start charging sessions. If this time does not match your current time, check your server time.</value>
+  </data>
+  <data name="This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml" xml:space="preserve">
+    <value>This is needed to properly start charging sessions. If this time does not match your timezone, check the set timezone in your docker-compose.yml</value>
+  </data>
+  <data name="Unit Identifier" xml:space="preserve">
+    <value>Unit Identifier</value>
+  </data>
+  <data name="Used for" xml:space="preserve">
+    <value>Used for</value>
+  </data>
+  <data name="Value Type" xml:space="preserve">
+    <value>Value Type</value>
+  </data>
+  <data name="Version:" xml:space="preserve">
+    <value>Version:</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="and Generate a Tesla Fleet API Token." xml:space="preserve">
+    <value>and Generate a Tesla Fleet API Token.</value>
+  </data>
+  <data name="and tell us what you think." xml:space="preserve">
+    <value>and tell us what you think.</value>
+  </data>
+  <data name="brief survey" xml:space="preserve">
+    <value>brief survey</value>
+  </data>
+</root>

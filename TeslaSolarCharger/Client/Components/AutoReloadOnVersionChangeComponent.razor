@@ -34,7 +34,7 @@
             {
                 if (!string.Equals(lastVersion, serverVersion))
                 {
-                    Snackbar.Add("A new version of the application is available. The application will now reload to update to the latest version.", Severity.Info);
+                    Snackbar.Add(T("A new version of the application is available. The application will now reload to update to the latest version."), Severity.Info);
                     await Task.Delay(3000);
                     await JavaScriptWrapper.SaveToLocalStorage(serverVersionKey, serverVersion);
                     await JavaScriptWrapper.ReloadPage();

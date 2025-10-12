@@ -17,6 +17,9 @@ using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.TimeProviding;
+using System.Globalization;
+using Microsoft.JSInterop;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -53,6 +56,7 @@ builder.Services.AddSingleton<ISignalRStateService, SignalRStateService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ToolTipTextKeys>();
 builder.Services.AddSharedDependencies();
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 builder.Services.AddMudServices(config =>
 {
     config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopRight;
@@ -81,4 +85,27 @@ builder.Services.AddSingleton<IInMemorySink>(inMemorySink);
 builder.Services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
 
 builder.Services.AddApexCharts();
-await builder.Build().RunAsync().ConfigureAwait(false);
+
+var host = builder.Build();
+
+var jsRuntime = host.Services.GetRequiredService<IJSRuntime>();
+var preferredLanguage = await jsRuntime.InvokeAsync<string>("cultureInfo.getPreferredLanguage").ConfigureAwait(false);
+CultureInfo cultureInfo;
+
+try
+{
+    cultureInfo = !string.IsNullOrWhiteSpace(preferredLanguage)
+        ? CultureInfo.GetCultureInfo(preferredLanguage)
+        : CultureInfo.GetCultureInfo("en");
+}
+catch (CultureNotFoundException)
+{
+    cultureInfo = CultureInfo.GetCultureInfo("en");
+}
+
+CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+CultureInfo.CurrentCulture = cultureInfo;
+CultureInfo.CurrentUICulture = cultureInfo;
+
+await host.RunAsync().ConfigureAwait(false);

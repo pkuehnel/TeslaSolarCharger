@@ -47,4 +47,9 @@
     <Folder Include="Wrapper\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\SharedResource.resx" />
+    <EmbeddedResource Include="Resources\SharedResource.de.resx" />
+  </ItemGroup>
+
 </Project>
