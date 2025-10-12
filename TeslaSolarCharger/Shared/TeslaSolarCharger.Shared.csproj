@@ -30,6 +30,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Resources\BaseConfiguration\BaseConfigurationTexts.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>BaseConfigurationTexts.Designer.cs</LastGenOutput>
+      <CustomToolNamespace>TeslaSolarCharger.Shared.Resources.BaseConfiguration</CustomToolNamespace>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\BaseConfiguration\BaseConfigurationTexts.de.resx">
+      <DependentUpon>BaseConfigurationTexts.resx</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\TeslaSolarCharger.SharedModel\TeslaSolarCharger.SharedModel.csproj" />
   </ItemGroup>
 </Project>

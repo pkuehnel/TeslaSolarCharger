@@ -844,8 +844,8 @@
             throw new ArgumentException($"Expression '{For}' refers to a field, not a property.");
         }
 
-        //Only set label name based on property  name / display name attribute if not already set via parameter
-        LabelName ??= propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault()?.DisplayName ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
+        //Only set label name based on property name / display name attribute if not already set via parameter
+        LabelName ??= StringHelper.GetDisplayNameFor(For!);
 
         IsRequired = IsRequiredParameter ?? propertyInfo.GetCustomAttributes(true).OfType<RequiredAttribute>().Any();
         if (IsReadOnlyParameter == true)
@@ -858,8 +858,8 @@
             IsDisabled = IsDisabledParameter ?? propertyInfo.GetCustomAttributes(true).OfType<DisabledAttribute>().Any();
         }
 
-        var helperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
-        if (helperText != default)
+        var helperText = StringHelper.GetHelperTextFor(For!);
+        if (!string.IsNullOrWhiteSpace(helperText))
         {
             HelperText = helperText;
         }

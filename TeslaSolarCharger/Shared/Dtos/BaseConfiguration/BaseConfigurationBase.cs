@@ -1,6 +1,7 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using TeslaSolarCharger.Shared.Attributes;
+using TeslaSolarCharger.Shared.Resources.BaseConfiguration;
 
 namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
@@ -19,8 +20,8 @@ public class BaseConfigurationBase
     public Dictionary<string, string> HomeBatterySocHeaders { get; set; } = new();
     public string? HomeBatteryPowerMqttTopic { get; set; }
     public string? HomeBatteryPowerUrl { get; set; }
-    [DisplayName("HomeBatteryPowerInversion Url")]
-    [HelperText("Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.")]
+    [LocalizedDisplayName(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.HomeBatteryPowerInversionUrl_DisplayName))]
+    [HelperText(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.HomeBatteryPowerInversionUrl_HelperText))]
     public string? HomeBatteryPowerInversionUrl { get; set; }
     public Dictionary<string, string> HomeBatteryPowerHeaders { get; set; } = new();
     public Dictionary<string, string> HomeBatteryPowerInversionHeaders { get; set; } = new();
@@ -32,17 +33,17 @@ public class BaseConfigurationBase
     public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
     public bool IsModbusCurrentInverterPowerUrl { get; set; }
     [Required]
-    [DisplayName("Power Change Interval")]
+    [LocalizedDisplayName(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.UpdateIntervalSeconds_DisplayName))]
     [Postfix("s")]
-    [HelperText("Every x seconds it is checked if any power changes are required.")]
+    [HelperText(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.UpdateIntervalSeconds_HelperText))]
     public int UpdateIntervalSeconds { get; set; } = 30;
     [Required]
     [Postfix("s")]
-    [HelperText("Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power.")]
+    [HelperText(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.SkipPowerChangesOnLastAdjustmentNewerThanSeconds_HelperText))]
     public int SkipPowerChangesOnLastAdjustmentNewerThanSeconds { get; set; } = 25;
     [Required]
     [Range(1, int.MaxValue)]
-    [DisplayName("Solar power refresh interval")]
+    [LocalizedDisplayName(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.PvValueUpdateIntervalSeconds_DisplayName))]
     [Postfix("s")]
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
     [Required]
@@ -53,26 +54,26 @@ public class BaseConfigurationBase
     public string GeoFence { get; set; } = "Home";
     [Required]
     [Range(1, int.MaxValue)]
-    [DisplayName("Time with enough solar power until charging starts")]
+    [LocalizedDisplayName(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.MinutesUntilSwitchOn_DisplayName))]
     [Postfix("min")]
     public int MinutesUntilSwitchOn { get; set; } = 5;
     [Required]
     [Range(1, int.MaxValue)]
-    [DisplayName("Time without enough solar power until charging stops")]
+    [LocalizedDisplayName(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.MinutesUntilSwitchOff_DisplayName))]
     [Postfix("min")]
     public int MinutesUntilSwitchOff { get; set; } = 5;
     [Required]
-    [DisplayName("Power Buffer")]
+    [LocalizedDisplayName(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.PowerBuffer_DisplayName))]
     [Postfix("W")]
-    [HelperText("Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid.")]
+    [HelperText(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.PowerBuffer_HelperText))]
     public int PowerBuffer { get; set; } = 0;
-    [HelperText("If enabled, the configured power buffer is displayed on the home screen, including the option to directly change it.")]
+    [HelperText(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.AllowPowerBufferChangeOnHome_HelperText))]
     public bool AllowPowerBufferChangeOnHome { get; set; }
-    [HelperText("If enabled, your home geofence location is transfered to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data.")]
+    [HelperText(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.PredictSolarPowerGeneration_HelperText))]
     public bool PredictSolarPowerGeneration { get; set; }
-    [HelperText("If enabled, when a target Soc is set not only grid prices but also estimated solar power generation is used to schedule charging.")]
+    [HelperText(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.UsePredictedSolarPowerGenerationForChargingSchedules_HelperText))]
     public bool UsePredictedSolarPowerGenerationForChargingSchedules { get; set; }
-    [HelperText("This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspery Pi 3. This will be fixed in a future update.")]
+    [HelperText(typeof(BaseConfigurationTexts), nameof(BaseConfigurationTexts.ShowEnergyDataOnHome_HelperText))]
     public bool ShowEnergyDataOnHome { get; set; }
     public string? CurrentPowerToGridJsonPattern { get; set; }
     public decimal CurrentPowerToGridCorrectionFactor { get; set; } = 1;

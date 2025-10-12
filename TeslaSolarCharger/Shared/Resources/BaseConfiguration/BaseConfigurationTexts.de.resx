@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="HomeBatteryPowerInversionUrl_DisplayName" xml:space="preserve">
+    <value>HomeBatteryPowerInversion-URL</value>
+  </data>
+  <data name="HomeBatteryPowerInversionUrl_HelperText" xml:space="preserve">
+    <value>Verwenden Sie diese Option, wenn die Leistung des Hausspeichers dynamisch invertiert werden muss. Hinweis: Als Antwort sind nur 0 und 1 erlaubt. Soweit bekannt, wird dies nur bei Sungrow-Wechselrichtern benötigt.</value>
+  </data>
+  <data name="UpdateIntervalSeconds_DisplayName" xml:space="preserve">
+    <value>Intervall für Leistungsänderungen</value>
+  </data>
+  <data name="UpdateIntervalSeconds_HelperText" xml:space="preserve">
+    <value>In diesem Intervall wird geprüft, ob Leistungsanpassungen notwendig sind.</value>
+  </data>
+  <data name="SkipPowerChangesOnLastAdjustmentNewerThanSeconds_HelperText" xml:space="preserve">
+    <value>Werte unter 25 Sekunden können zu unerwartetem Verhalten führen, da Fahrzeuge oder Wallboxen etwas Zeit für die Leistungsanpassung benötigen.</value>
+  </data>
+  <data name="PvValueUpdateIntervalSeconds_DisplayName" xml:space="preserve">
+    <value>Aktualisierungsintervall Solarleistung</value>
+  </data>
+  <data name="MinutesUntilSwitchOn_DisplayName" xml:space="preserve">
+    <value>Zeit mit genügend Solarleistung bis zum Start</value>
+  </data>
+  <data name="MinutesUntilSwitchOff_DisplayName" xml:space="preserve">
+    <value>Zeit ohne genügend Solarleistung bis zum Stopp</value>
+  </data>
+  <data name="PowerBuffer_DisplayName" xml:space="preserve">
+    <value>Leistungspuffer</value>
+  </data>
+  <data name="PowerBuffer_HelperText" xml:space="preserve">
+    <value>Werte über 0 sorgen für eine Einspeisung ins Netz. Werte unter 0 bewirken einen konstanten Netzbezug.</value>
+  </data>
+  <data name="AllowPowerBufferChangeOnHome_HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, wird der konfigurierte Leistungspuffer auf der Startseite angezeigt und kann dort direkt angepasst werden.</value>
+  </data>
+  <data name="PredictSolarPowerGeneration_HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, wird Ihr Geofence-Standort sowohl an die Server von Solar4Car.com als auch an www.visualcrossing.com übertragen. Die Standortdaten werden niemals mit anderen Daten verknüpft.</value>
+  </data>
+  <data name="UsePredictedSolarPowerGenerationForChargingSchedules_HelperText" xml:space="preserve">
+    <value>Wenn ein Ziel-SoC gesetzt ist, werden neben den Netzpreisen auch geschätzte PV-Erträge zur Ladeplanung verwendet.</value>
+  </data>
+  <data name="ShowEnergyDataOnHome_HelperText" xml:space="preserve">
+    <value>Diese Funktion befindet sich in einer frühen Beta und kann sich unerwartet verhalten. Das Laden kann länger als 30 Sekunden dauern oder auf schwacher Hardware (z. B. Raspberry Pi 3) scheitern.</value>
+  </data>
+</root>

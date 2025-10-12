@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="HomeBatteryPowerInversionUrl_DisplayName" xml:space="preserve">
+    <value>HomeBatteryPowerInversion Url</value>
+  </data>
+  <data name="HomeBatteryPowerInversionUrl_HelperText" xml:space="preserve">
+    <value>Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.</value>
+  </data>
+  <data name="UpdateIntervalSeconds_DisplayName" xml:space="preserve">
+    <value>Power Change Interval</value>
+  </data>
+  <data name="UpdateIntervalSeconds_HelperText" xml:space="preserve">
+    <value>Every x seconds it is checked if any power changes are required.</value>
+  </data>
+  <data name="SkipPowerChangesOnLastAdjustmentNewerThanSeconds_HelperText" xml:space="preserve">
+    <value>Be cautious when setting values below 25 seconds as this might result in unexpected behaviour as cars or charging stations might take some time to update the power.</value>
+  </data>
+  <data name="PvValueUpdateIntervalSeconds_DisplayName" xml:space="preserve">
+    <value>Solar power refresh interval</value>
+  </data>
+  <data name="MinutesUntilSwitchOn_DisplayName" xml:space="preserve">
+    <value>Time with enough solar power until charging starts</value>
+  </data>
+  <data name="MinutesUntilSwitchOff_DisplayName" xml:space="preserve">
+    <value>Time without enough solar power until charging stops</value>
+  </data>
+  <data name="PowerBuffer_DisplayName" xml:space="preserve">
+    <value>Power Buffer</value>
+  </data>
+  <data name="PowerBuffer_HelperText" xml:space="preserve">
+    <value>Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid.</value>
+  </data>
+  <data name="AllowPowerBufferChangeOnHome_HelperText" xml:space="preserve">
+    <value>If enabled, the configured power buffer is displayed on the home screen, including the option to directly change it.</value>
+  </data>
+  <data name="PredictSolarPowerGeneration_HelperText" xml:space="preserve">
+    <value>If enabled, your home geofence location is transferred to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data.</value>
+  </data>
+  <data name="UsePredictedSolarPowerGenerationForChargingSchedules_HelperText" xml:space="preserve">
+    <value>If enabled, when a target SoC is set not only grid prices but also estimated solar power generation is used to schedule charging.</value>
+  </data>
+  <data name="ShowEnergyDataOnHome_HelperText" xml:space="preserve">
+    <value>This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspberry Pi 3. This will be fixed in a future update.</value>
+  </data>
+</root>
