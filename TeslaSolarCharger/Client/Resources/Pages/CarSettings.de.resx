@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Car Settings" xml:space="preserve">
+    <value>Fahrzeugeinstellungen</value>
+  </data>
+  <data name="Create Token." xml:space="preserve">
+    <value>Token erstellen.</value>
+  </data>
+  <data name="Go to" xml:space="preserve">
+    <value>Gehe zu</value>
+  </data>
+  <data name="Cloud Connection" xml:space="preserve">
+    <value>Cloud-Verbindung</value>
+  </data>
+  <data name="Generate a Tesla Fleet API Token and restart TSC to see cars here." xml:space="preserve">
+    <value>Erzeuge ein Tesla Fleet API-Token und starte TSC neu, um hier Fahrzeuge zu sehen.</value>
+  </data>
+  <data name="Restart TSC to add new cars" xml:space="preserve">
+    <value>Starte TSC neu, um neue Fahrzeuge hinzuzufügen</value>
+  </data>
+  <data name="If you do not see all cars here that are available in your Tesla account, restart TSC." xml:space="preserve">
+    <value>Wenn du hier nicht alle Fahrzeuge siehst, die in deinem Tesla-Konto verfügbar sind, starte TSC neu.</value>
+  </data>
+  <data name="Add car (non Tesla)" xml:space="preserve">
+    <value>Fahrzeug hinzufügen (kein Tesla)</value>
+  </data>
+  <data name="Current below 6A not recommended" xml:space="preserve">
+    <value>Stromstärke unter 6 A wird nicht empfohlen</value>
+  </data>
+  <data name="The Type 2 standard states that the minimum current below 6A is not allowed. Setting this below 6A might result in unexpected behaviour like the car not charging at all." xml:space="preserve">
+    <value>Der Typ-2-Standard besagt, dass eine Stromstärke unter 6 A nicht zulässig ist. Ein Wert unter 6 A kann zu unerwartetem Verhalten wie zum Beispiel ausbleibendem Laden führen.</value>
+  </data>
+  <data name="GPS Location used for home detection" xml:space="preserve">
+    <value>GPS-Position zur Hauserkennung verwendet</value>
+  </data>
+  <data name="TSC will manage charging if the car's GPS Location is within the configured Home Geofence set in" xml:space="preserve">
+    <value>TSC steuert das Laden, wenn sich die GPS-Position des Fahrzeugs innerhalb des in </value>
+  </data>
+  <data name="Base Configuration" xml:space="preserve">
+    <value>Basiskonfiguration</value>
+  </data>
+  <data name="Tesla navigation Home used for home detection" xml:space="preserve">
+    <value>Tesla-Navigation Zuhause zur Hauserkennung verwendet</value>
+  </data>
+  <data name="TSC will manage charging if the car is at the home location set in the Tesla navigation system. Note: Different driver profiles with different home addresses might mess this up. Make sure that the last driver has the correct home address set in the Tesla navigation system." xml:space="preserve">
+    <value>TSC steuert das Laden, wenn sich das Fahrzeug am in der Tesla-Navigation hinterlegten Zuhause befindet. Hinweis: Verschiedene Fahrerprofile mit unterschiedlichen Zuhause-Adressen können dies beeinträchtigen. Stelle sicher, dass der letzte Fahrer die korrekte Zuhause-Adresse in der Tesla-Navigation gesetzt hat.</value>
+  </data>
+  <data name="Tesla navigation Work used for home detection" xml:space="preserve">
+    <value>Tesla-Navigation Arbeit zur Hauserkennung verwendet</value>
+  </data>
+  <data name="TSC will manage charging if the car is at the work location set in the Tesla navigation system. Note: Different driver profiles with different work addresses might mess this up. Make sure that the last driver has the correct work address set in the Tesla navigation system." xml:space="preserve">
+    <value>TSC steuert das Laden, wenn sich das Fahrzeug am in der Tesla-Navigation hinterlegten Arbeitsort befindet. Hinweis: Verschiedene Fahrerprofile mit unterschiedlichen Arbeitsadressen können dies beeinträchtigen. Stelle sicher, dass der letzte Fahrer die korrekte Arbeitsadresse in der Tesla-Navigation gesetzt hat.</value>
+  </data>
+  <data name="Tesla navigation Favorite used for home detection" xml:space="preserve">
+    <value>Tesla-Navigation Favorit zur Hauserkennung verwendet</value>
+  </data>
+  <data name="TSC will manage charging if the car is at any favorite location set in the Tesla navigation system. Note: TSC is unable to detect at which favorite location the car is, so if you charge at a public charger that is configured as favorite in the Tesla navigation system, TSC tries to manage charging based on your solar production at home and might stop charging if you don't have any solar production at home. Moreover, different driver profiles with different favorite addresses might mess this up. It is HIGHLY recommended to only have one favorite location if this setting is enabled." xml:space="preserve">
+    <value>TSC steuert das Laden, wenn sich das Fahrzeug an einem in der Tesla-Navigation hinterlegten Favoriten befindet. Hinweis: TSC kann nicht erkennen, an welchem Favoriten sich das Fahrzeug befindet. Wenn du an einer öffentlichen Ladesäule lädst, die als Favorit in der Tesla-Navigation hinterlegt ist, versucht TSC das Laden anhand deiner Solarproduktion zu Hause zu steuern und könnte das Laden beenden, wenn keine Solarproduktion vorhanden ist. Außerdem können unterschiedliche Fahrerprofile mit unterschiedlichen Favoritenadressen dies beeinträchtigen. Es wird DRINGEND empfohlen, bei aktivierter Einstellung nur einen Favoriten zu haben.</value>
+  </data>
+  <data name="Home Detection via" xml:space="preserve">
+    <value>Hauserkennung über</value>
+  </data>
+  <data name="BLE Pairing and test" xml:space="preserve">
+    <value>BLE-Kopplung und Test</value>
+  </data>
+  <data name="To come around rate limits TSC can use BLE instead of the Fleet API. This requires" xml:space="preserve">
+    <value>Um Rate Limits zu umgehen, kann TSC statt der Fleet API BLE verwenden. Das erfordert </value>
+  </data>
+  <data name="setting up a BLE API" xml:space="preserve">
+    <value>das Einrichten einer BLE-API</value>
+  </data>
+  <data name="Note: When clicking the pair button the car won't display any feedback. You have to place the card on the center console. Only after doing so, a message will pop up. If you don't see a message, the pairing failed. As the car does not send any feedback, just try a few times, if it still does not work reboot your BLE device." xml:space="preserve">
+    <value>Hinweis: Beim Klicken auf die Kopplungstaste zeigt das Fahrzeug keine Rückmeldung an. Lege die Karte auf die Mittelkonsole. Erst dann erscheint eine Meldung. Wenn keine Meldung erscheint, ist die Kopplung fehlgeschlagen. Da das Fahrzeug keine Rückmeldung sendet, versuche es einige Male; wenn es trotzdem nicht funktioniert, starte dein BLE-Gerät neu.</value>
+  </data>
+  <data name="BLE Pair" xml:space="preserve">
+    <value>BLE koppeln</value>
+  </data>
+  <data name="Test BLE access" xml:space="preserve">
+    <value>BLE-Zugriff testen</value>
+  </data>
+  <data name="Before you can test BLE access you must pair the car with TSC. This includes placing the card on your center console and confirming the new &quot;phone key&quot; on the car's screen." xml:space="preserve">
+    <value>Bevor du den BLE-Zugriff testen kannst, musst du das Fahrzeug mit TSC koppeln. Dazu gehört, die Karte auf die Mittelkonsole zu legen und den neuen &quot;Phone Key&quot; am Fahrzeugbildschirm zu bestätigen.</value>
+  </data>
+  <data name="After clicking the test button the car's current should be set to 7A. Note: The car needs to be awake for this test." xml:space="preserve">
+    <value>Nach dem Klicken auf die Test-Schaltfläche sollte die Stromstärke des Fahrzeugs auf 7 A gesetzt werden. Hinweis: Das Fahrzeug muss für diesen Test wach sein.</value>
+  </data>
+  <data name="Set to 7A" xml:space="preserve">
+    <value>Auf 7 A setzen</value>
+  </data>
+  <data name="Test Wakeup via BLE" xml:space="preserve">
+    <value>Aufwecken über BLE testen</value>
+  </data>
+  <data name="After this test the car should wake up." xml:space="preserve">
+    <value>Nach diesem Test sollte das Fahrzeug aufwachen.</value>
+  </data>
+  <data name="Wake up" xml:space="preserve">
+    <value>Aufwecken</value>
+  </data>
+  <data name="Could not deserialize message from TSC." xml:space="preserve">
+    <value>Nachricht von TSC konnte nicht deserialisiert werden.</value>
+  </data>
+  <data name="Ble access seems to work. Please double check if the charge current was set to 7A. Note: As TSC starts using BLE as soon as it is working you might see the 7A only for a short time as TSC changes it every 30 seconds by default." xml:space="preserve">
+    <value>BLE-Zugriff scheint zu funktionieren. Bitte prüfe, ob die Stromstärke auf 7 A gesetzt wurde. Hinweis: Da TSC BLE sofort verwendet, sobald es funktioniert, siehst du die 7 A möglicherweise nur kurz, weil TSC den Wert standardmäßig alle 30 Sekunden ändert.</value>
+  </data>
+  <data name="The car accepted the wake call." xml:space="preserve">
+    <value>Das Fahrzeug hat den Aufweckbefehl akzeptiert.</value>
+  </data>
+</root>
