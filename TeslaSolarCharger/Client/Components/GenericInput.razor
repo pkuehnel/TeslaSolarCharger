@@ -5,10 +5,12 @@
 @using MudExtensions
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Helper.Contracts
+@using TeslaSolarCharger.Shared.Localization.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
+@inject ILocalizationService LocalizationService
 
 @typeparam T
 
@@ -520,13 +522,13 @@
             var displayAttribute = memberInfo.GetCustomAttribute<DisplayAttribute>();
             if (displayAttribute != null && !string.IsNullOrEmpty(displayAttribute.Name))
             {
-                return displayAttribute.Name;
+                return LocalizationService.Translate(displayAttribute.Name);
             }
 
             var descriptionAttribute = memberInfo.GetCustomAttribute<DescriptionAttribute>();
             if (descriptionAttribute != null && !string.IsNullOrEmpty(descriptionAttribute.Description))
             {
-                return descriptionAttribute.Description;
+                return LocalizationService.Translate(descriptionAttribute.Description);
             }
         }
         var friendlyName = StringHelper.GenerateFriendlyStringWithOutIdSuffix(enumMemberName);
@@ -845,7 +847,18 @@
         }
 
         //Only set label name based on property  name / display name attribute if not already set via parameter
-        LabelName ??= propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault()?.DisplayName ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
+        var displayNameAttribute = propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault();
+        if (string.IsNullOrWhiteSpace(LabelName))
+        {
+            if (displayNameAttribute != null && !string.IsNullOrWhiteSpace(displayNameAttribute.DisplayName))
+            {
+                LabelName = LocalizationService.Translate(displayNameAttribute.DisplayName);
+            }
+            else
+            {
+                LabelName = StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
+            }
+        }
 
         IsRequired = IsRequiredParameter ?? propertyInfo.GetCustomAttributes(true).OfType<RequiredAttribute>().Any();
         if (IsReadOnlyParameter == true)
@@ -859,9 +872,9 @@
         }
 
         var helperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
-        if (helperText != default)
+        if (!string.IsNullOrWhiteSpace(helperText))
         {
-            HelperText = helperText;
+            HelperText = LocalizationService.Translate(helperText);
         }
 
 
@@ -958,7 +971,10 @@
     private string GetMultiSelectionTextWithoutValues(int selectedValues, int? availableOptions)
     {
         var ofText = availableOptions == null ? string.Empty : $"/{availableOptions}";
-        return $"{selectedValues}{ofText} item{(selectedValues == 1 ? " has" : "s have")} been selected";
+        var translationKey = selectedValues == 1
+            ? "{0}{1} item has been selected"
+            : "{0}{1} items have been selected";
+        return LocalizationService.Translate(translationKey, selectedValues, ofText);
     }
 
     private void InvokeOnButtonClicked()

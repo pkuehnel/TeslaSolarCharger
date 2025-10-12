@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 using TeslaSolarCharger.Shared.Helper.Contracts;
+using TeslaSolarCharger.Shared.Localization.Contracts;
 
 namespace TeslaSolarCharger.Shared.Helper;
 
-public class StringHelper(ILogger<StringHelper> logger) : IStringHelper
+public class StringHelper(ILogger<StringHelper> logger, ILocalizationService localizationService) : IStringHelper
 {
     public string MakeNonWhiteSpaceCapitalString(string inputString)
     {
@@ -15,23 +16,24 @@ public class StringHelper(ILogger<StringHelper> logger) : IStringHelper
     public string GenerateFriendlyStringWithOutIdSuffix(string inputString)
     {
         logger.LogTrace("{method}({inputString})", nameof(GenerateFriendlyStringWithOutIdSuffix), inputString);
-        var friendlyString = GenerateFriendlyStringFromPascalString(inputString);
+        var friendlyString = CreateFriendlyStringFromPascalString(inputString);
         if (friendlyString.EndsWith(" Id"))
         {
-            return friendlyString[..^3];
+            friendlyString = friendlyString[..^3];
         }
         else if (friendlyString.EndsWith(" Ids"))
         {
-            return friendlyString[..^4] + "s";
+            friendlyString = friendlyString[..^4] + "s";
         }
-        else
-        {
-            return friendlyString;
-        }
+
+        return localizationService.Translate(friendlyString);
     }
 
     public string GenerateFriendlyStringFromPascalString(string inputString)
     {
-        return Regex.Replace(inputString, "(\\B[A-Z])", " $1");
+        var friendlyString = CreateFriendlyStringFromPascalString(inputString);
+        return localizationService.Translate(friendlyString);
     }
+
+    private static string CreateFriendlyStringFromPascalString(string inputString) => Regex.Replace(inputString, "(\\B[A-Z])", " $1");
 }

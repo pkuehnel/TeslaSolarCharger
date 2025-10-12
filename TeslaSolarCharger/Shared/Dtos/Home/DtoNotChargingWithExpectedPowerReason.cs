@@ -1,4 +1,6 @@
-﻿namespace TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Localization;
+
+namespace TeslaSolarCharger.Shared.Dtos.Home;
 
 public class DtoNotChargingWithExpectedPowerReason
 {
@@ -7,7 +9,7 @@ public class DtoNotChargingWithExpectedPowerReason
     public DtoNotChargingWithExpectedPowerReason()
 #pragma warning restore CS8618, CS9264
     {
-        
+
     }
     public DtoNotChargingWithExpectedPowerReason(string reason)
     {
@@ -17,6 +19,10 @@ public class DtoNotChargingWithExpectedPowerReason
     public DtoNotChargingWithExpectedPowerReason(string reason, DateTimeOffset? reasonEndTime) : this(reason)
     {
         ReasonEndTime = reasonEndTime;
+    }
+
+    public DtoNotChargingWithExpectedPowerReason(LocalizedStringKey reasonKey) : this(reasonKey.EnglishText)
+    {
     }
 
     public string Reason { get; set; }

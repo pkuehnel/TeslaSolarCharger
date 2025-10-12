@@ -3,6 +3,7 @@ using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Localization.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Helper;
@@ -13,16 +14,19 @@ public class NotChargingWithExpectedPowerReasonHelper : INotChargingWithExpected
     private readonly ISettings _settings;
     private readonly IAppStateNotifier _appStateNotifier;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILocalizationService _localizationService;
 
     public NotChargingWithExpectedPowerReasonHelper(ILogger<NotChargingWithExpectedPowerReasonHelper> logger,
         ISettings settings,
         IAppStateNotifier appStateNotifier,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        ILocalizationService localizationService)
     {
         _logger = logger;
         _settings = settings;
         _appStateNotifier = appStateNotifier;
         _dateTimeProvider = dateTimeProvider;
+        _localizationService = localizationService;
     }
     private readonly List<DtoNotChargingWithExpectedPowerReason> _genericReasons = new();
     private readonly Dictionary<(int? carId, int? connectorId), List<DtoNotChargingWithExpectedPowerReason>> _loadPointSpecificReasons = new();
@@ -30,12 +34,14 @@ public class NotChargingWithExpectedPowerReasonHelper : INotChargingWithExpected
     public void AddGenericReason(DtoNotChargingWithExpectedPowerReason reason)
     {
         _logger.LogTrace("{method}({reason})", nameof(AddGenericReason), reason.Reason);
+        reason.Reason = _localizationService.Translate(reason.Reason);
         _genericReasons.Add(reason);
     }
 
     public void AddLoadPointSpecificReason(int? carId, int? connectorId, DtoNotChargingWithExpectedPowerReason reason)
     {
         _logger.LogTrace("{method}({carId}, {connectorId}, {reason})", nameof(AddLoadPointSpecificReason), carId, connectorId, reason.Reason);
+        reason.Reason = _localizationService.Translate(reason.Reason);
         var key = (carId, connectorId);
         if (!_loadPointSpecificReasons.ContainsKey(key))
         {
