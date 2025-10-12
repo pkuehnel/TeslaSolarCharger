@@ -1,8 +1,9 @@
-﻿using TeslaSolarCharger.Server.Helper.Contracts;
+using TeslaSolarCharger.Server.Helper.Contracts;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Localization;
 using TeslaSolarCharger.Shared.SignalRClients;
 
 namespace TeslaSolarCharger.Server.Helper;
@@ -13,35 +14,43 @@ public class NotChargingWithExpectedPowerReasonHelper : INotChargingWithExpected
     private readonly ISettings _settings;
     private readonly IAppStateNotifier _appStateNotifier;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ITextLocalizer _textLocalizer;
 
     public NotChargingWithExpectedPowerReasonHelper(ILogger<NotChargingWithExpectedPowerReasonHelper> logger,
         ISettings settings,
         IAppStateNotifier appStateNotifier,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        ITextLocalizer textLocalizer)
     {
         _logger = logger;
         _settings = settings;
         _appStateNotifier = appStateNotifier;
         _dateTimeProvider = dateTimeProvider;
+        _textLocalizer = textLocalizer;
     }
+
     private readonly List<DtoNotChargingWithExpectedPowerReason> _genericReasons = new();
     private readonly Dictionary<(int? carId, int? connectorId), List<DtoNotChargingWithExpectedPowerReason>> _loadPointSpecificReasons = new();
 
-    public void AddGenericReason(DtoNotChargingWithExpectedPowerReason reason)
+    public void AddGenericReason(LocalizedText reason, params object[] formatArguments)
     {
-        _logger.LogTrace("{method}({reason})", nameof(AddGenericReason), reason.Reason);
-        _genericReasons.Add(reason);
+        var dto = CreateReason(reason, null, formatArguments);
+        _logger.LogTrace("{method}({reason})", nameof(AddGenericReason), dto.Reason);
+        _genericReasons.Add(dto);
     }
 
-    public void AddLoadPointSpecificReason(int? carId, int? connectorId, DtoNotChargingWithExpectedPowerReason reason)
+    public void AddLoadPointSpecificReason(int? carId, int? connectorId, LocalizedText reason, DateTimeOffset? reasonEndTime = null, params object[] formatArguments)
     {
-        _logger.LogTrace("{method}({carId}, {connectorId}, {reason})", nameof(AddLoadPointSpecificReason), carId, connectorId, reason.Reason);
+        var dto = CreateReason(reason, reasonEndTime, formatArguments);
+        _logger.LogTrace("{method}({carId}, {connectorId}, {reason})", nameof(AddLoadPointSpecificReason), carId, connectorId, dto.Reason);
         var key = (carId, connectorId);
-        if (!_loadPointSpecificReasons.ContainsKey(key))
+        if (!_loadPointSpecificReasons.TryGetValue(key, out var reasons))
         {
-            _loadPointSpecificReasons[key] = new List<DtoNotChargingWithExpectedPowerReason>();
+            reasons = new List<DtoNotChargingWithExpectedPowerReason>();
+            _loadPointSpecificReasons[key] = reasons;
         }
-        _loadPointSpecificReasons[key].Add(reason);
+
+        reasons.Add(dto);
     }
 
     public async Task UpdateReasonsInSettings()
@@ -77,5 +86,13 @@ public class NotChargingWithExpectedPowerReasonHelper : INotChargingWithExpected
         }
 
         return allReasons;
+    }
+
+    private DtoNotChargingWithExpectedPowerReason CreateReason(LocalizedText reason, DateTimeOffset? reasonEndTime, params object[] formatArguments)
+    {
+        var translatedReason = _textLocalizer.Format(reason, formatArguments);
+        return reasonEndTime.HasValue
+            ? new DtoNotChargingWithExpectedPowerReason(translatedReason, reasonEndTime)
+            : new DtoNotChargingWithExpectedPowerReason(translatedReason);
     }
 }

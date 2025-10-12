@@ -15,6 +15,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Dtos.Settings;
 using TeslaSolarCharger.Shared.Enums;
+using TeslaSolarCharger.Shared.Localization.TextCatalog;
 using TeslaSolarCharger.Server.SignalR.Notifiers.Contracts;
 using TeslaSolarCharger.Shared.SignalRClients;
 
@@ -325,7 +326,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             if (!_settings.OcppConnectorStates.ContainsKey(connectorId))
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, connectorId, new("OCPP connection not established. After a TSC or charger reboot it can take up to 5 minutes until the charger is connected again."));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, connectorId, NotChargingReasonTexts.OcppConnectionNotEstablished);
             }
         }
     }
@@ -336,12 +337,12 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             if (dtoCar.IsHomeGeofence.Value != true)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, new("Car is not at home"));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, NotChargingReasonTexts.CarIsNotAtHome);
             }
 
             if (dtoCar.PluggedIn.Value != true)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, new("Car is not plugged in"));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(dtoCar.Id, null, NotChargingReasonTexts.CarIsNotPluggedIn);
             }
         }
 
@@ -349,7 +350,7 @@ public class ChargingServiceV2 : IChargingServiceV2
         {
             if (!settingsOcppConnectorState.Value.IsPluggedIn.Value)
             {
-                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, new("Charging connector is not plugged in"));
+                _notChargingWithExpectedPowerReasonHelper.AddLoadPointSpecificReason(null, settingsOcppConnectorState.Key, NotChargingReasonTexts.ChargingConnectorIsNotPluggedIn);
             }
         }
     }

@@ -6,6 +6,7 @@ using TeslaSolarCharger.Server.Services.Contracts;
 using TeslaSolarCharger.Shared.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Localization.TextCatalog;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
 
@@ -54,7 +55,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
                 {
                     var dummyPower = chargingLoadPoints.Sum(c => c.ChargingPower);
                     _logger.LogWarning("Use {dummyPower}W as power to control due to too old solar values {pvValuesAge}", dummyPower, pvValuesAge);
-                    notChargingWithExpectedPowerReasonHelper.AddGenericReason(new("Solar values are too old"));
+                    notChargingWithExpectedPowerReasonHelper.AddGenericReason(NotChargingReasonTexts.SolarValuesTooOld);
                     return dummyPower;
                 }
             }
@@ -65,7 +66,8 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
         if (buffer != 0)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Charging speed is {(buffer > 0 ? "decreased" : "increased")} due to power buffer being set to {buffer}W"));
+            var adjustment = buffer > 0 ? NotChargingReasonTexts.Decreased : NotChargingReasonTexts.Increased;
+            notChargingWithExpectedPowerReasonHelper.AddGenericReason(NotChargingReasonTexts.ChargingSpeedAdjustedDueToPowerBuffer, adjustment, buffer);
         }
         var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
@@ -196,7 +198,7 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
         if (actualHomeBatterySoc < homeBatteryMinSoc)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Reserved {homeBatteryMaxChargingPower}W for Home battery charging as its SOC ({actualHomeBatterySoc}%) is below minimum SOC ({homeBatteryMinSoc}%)"));
+            notChargingWithExpectedPowerReasonHelper.AddGenericReason(NotChargingReasonTexts.ReservedPowerForHomeBattery, homeBatteryMaxChargingPower ?? 0, actualHomeBatterySoc, homeBatteryMinSoc);
             return homeBatteryMaxChargingPower ?? 0;
         }
 
