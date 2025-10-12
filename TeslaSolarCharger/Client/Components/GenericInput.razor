@@ -4,11 +4,13 @@
 @using System.ComponentModel
 @using MudExtensions
 @using TeslaSolarCharger.Shared.Attributes
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.Helper.Contracts
 @using TeslaSolarCharger.Shared.Resources.Contracts
 
 @inject IConstants Constants
 @inject IStringHelper StringHelper
+@inject IAppStringLocalizer AppStringLocalizer
 
 @typeparam T
 
@@ -520,13 +522,13 @@
             var displayAttribute = memberInfo.GetCustomAttribute<DisplayAttribute>();
             if (displayAttribute != null && !string.IsNullOrEmpty(displayAttribute.Name))
             {
-                return displayAttribute.Name;
+                return AppStringLocalizer[displayAttribute.Name];
             }
 
             var descriptionAttribute = memberInfo.GetCustomAttribute<DescriptionAttribute>();
             if (descriptionAttribute != null && !string.IsNullOrEmpty(descriptionAttribute.Description))
             {
-                return descriptionAttribute.Description;
+                return AppStringLocalizer[descriptionAttribute.Description];
             }
         }
         var friendlyName = StringHelper.GenerateFriendlyStringWithOutIdSuffix(enumMemberName);
@@ -844,8 +846,26 @@
             throw new ArgumentException($"Expression '{For}' refers to a field, not a property.");
         }
 
-        //Only set label name based on property  name / display name attribute if not already set via parameter
-        LabelName ??= propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault()?.DisplayName ?? StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
+        if (LabelName == null)
+        {
+            var displayNameAttribute = propertyInfo.GetCustomAttributes<DisplayNameAttribute>(false).SingleOrDefault();
+            if (displayNameAttribute != null && !string.IsNullOrWhiteSpace(displayNameAttribute.DisplayName))
+            {
+                LabelName = AppStringLocalizer[displayNameAttribute.DisplayName];
+            }
+            else
+            {
+                var displayAttribute = propertyInfo.GetCustomAttributes<DisplayAttribute>(false).SingleOrDefault();
+                if (displayAttribute != null && !string.IsNullOrWhiteSpace(displayAttribute.Name))
+                {
+                    LabelName = AppStringLocalizer[displayAttribute.Name];
+                }
+                else
+                {
+                    LabelName = StringHelper.GenerateFriendlyStringWithOutIdSuffix(propertyInfo.Name);
+                }
+            }
+        }
 
         IsRequired = IsRequiredParameter ?? propertyInfo.GetCustomAttributes(true).OfType<RequiredAttribute>().Any();
         if (IsReadOnlyParameter == true)
@@ -858,10 +878,10 @@
             IsDisabled = IsDisabledParameter ?? propertyInfo.GetCustomAttributes(true).OfType<DisabledAttribute>().Any();
         }
 
-        var helperText = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault()?.HelperText;
-        if (helperText != default)
+        var helperTextAttribute = propertyInfo.GetCustomAttributes<HelperTextAttribute>(false).SingleOrDefault();
+        if (helperTextAttribute?.HelperText != default)
         {
-            HelperText = helperText;
+            HelperText = AppStringLocalizer[helperTextAttribute.HelperText];
         }
 
 

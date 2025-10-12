@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BaseConfiguration.HomeBatteryPowerInversionUrl.DisplayName" xml:space="preserve">
+    <value>HomeBatteryPowerInversion URL</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryPowerInversionUrl.HelperText" xml:space="preserve">
+    <value>Nutzen Sie diese Einstellung, wenn Sie die Leistung der Hausbatterie dynamisch invertieren müssen. Hinweis: Als Antwort sind nur 0 und 1 erlaubt. Soweit bekannt, wird dies nur bei Sungrow-Wechselrichtern benötigt.</value>
+  </data>
+  <data name="BaseConfiguration.UpdateIntervalSeconds.DisplayName" xml:space="preserve">
+    <value>Intervall für Leistungsänderungen</value>
+  </data>
+  <data name="BaseConfiguration.UpdateIntervalSeconds.HelperText" xml:space="preserve">
+    <value>In diesem Intervall wird geprüft, ob Leistungsänderungen erforderlich sind.</value>
+  </data>
+  <data name="BaseConfiguration.SkipPowerChangesOnLastAdjustmentNewerThanSeconds.HelperText" xml:space="preserve">
+    <value>Seien Sie vorsichtig bei Werten unter 25 Sekunden, da Fahrzeuge oder Ladestationen unter Umständen länger brauchen, um die Leistung zu aktualisieren.</value>
+  </data>
+  <data name="BaseConfiguration.PvValueUpdateIntervalSeconds.DisplayName" xml:space="preserve">
+    <value>Aktualisierungsintervall für Solarleistung</value>
+  </data>
+  <data name="BaseConfiguration.MinutesUntilSwitchOn.DisplayName" xml:space="preserve">
+    <value>Zeit mit ausreichender Solarleistung bis zum Start</value>
+  </data>
+  <data name="BaseConfiguration.MinutesUntilSwitchOff.DisplayName" xml:space="preserve">
+    <value>Zeit ohne ausreichende Solarleistung bis zum Stopp</value>
+  </data>
+  <data name="BaseConfiguration.PowerBuffer.DisplayName" xml:space="preserve">
+    <value>Leistungspuffer</value>
+  </data>
+  <data name="BaseConfiguration.PowerBuffer.HelperText" xml:space="preserve">
+    <value>Werte größer 0 sorgen immer für Überschuss (Einspeisung). Werte kleiner 0 führen dazu, dass dauerhaft etwas Netzstrom bezogen wird.</value>
+  </data>
+  <data name="BaseConfiguration.AllowPowerBufferChangeOnHome.HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, wird der konfigurierte Leistungspuffer auf der Startseite angezeigt und kann dort direkt angepasst werden.</value>
+  </data>
+  <data name="BaseConfiguration.PredictSolarPowerGeneration.HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, wird Ihr Home-Geofence sowohl an die Solar4Car.com-Server als auch an www.visualcrossing.com übertragen. Die Standortdaten werden zu keinem Zeitpunkt mit anderen Daten verknüpft.</value>
+  </data>
+  <data name="BaseConfiguration.UsePredictedSolarPowerGenerationForChargingSchedules.HelperText" xml:space="preserve">
+    <value>Ist ein Ziel-SoC gesetzt, werden bei aktivierter Option sowohl Strompreise als auch prognostizierte Solarerzeugung für die Ladeplanung verwendet.</value>
+  </data>
+  <data name="BaseConfiguration.ShowEnergyDataOnHome.HelperText" xml:space="preserve">
+    <value>Diese Funktion befindet sich in einer frühen Beta und kann sich unerwartet verhalten. Das Laden kann länger als 30 Sekunden dauern oder auf Geräten mit geringer Leistung (z. B. Raspberry Pi 3) ganz ausbleiben. Dies wird in einem zukünftigen Update verbessert.</value>
+  </data>
+  <data name="BaseConfiguration.TelegramBotKey.DisplayName" xml:space="preserve">
+    <value>Telegram-Bot-Schlüssel</value>
+  </data>
+  <data name="BaseConfiguration.TelegramChannelId.DisplayName" xml:space="preserve">
+    <value>Telegram-Kanal-ID</value>
+  </data>
+  <data name="BaseConfiguration.SendStackTraceToTelegram.HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, werden detaillierte Fehlerinformationen per Telegram versendet, damit Entwickler die Ursache finden können. Für den normalen Betrieb nicht erforderlich.</value>
+  </data>
+  <data name="BaseConfiguration.TeslaMateDbServer.DisplayName" xml:space="preserve">
+    <value>TeslaMate-Datenbankhost</value>
+  </data>
+  <data name="BaseConfiguration.TeslaMateDbPort.DisplayName" xml:space="preserve">
+    <value>TeslaMate-Datenbankport</value>
+  </data>
+  <data name="BaseConfiguration.TeslaMateDbPort.HelperText" xml:space="preserve">
+    <value>Sie können den internen Port des TeslaMate-Datenbankcontainers verwenden.</value>
+  </data>
+  <data name="BaseConfiguration.TeslaMateDbDatabaseName.DisplayName" xml:space="preserve">
+    <value>TeslaMate-Datenbankname</value>
+  </data>
+  <data name="BaseConfiguration.TeslaMateDbUser.DisplayName" xml:space="preserve">
+    <value>TeslaMate-Datenbankbenutzer</value>
+  </data>
+  <data name="BaseConfiguration.TeslaMateDbPassword.DisplayName" xml:space="preserve">
+    <value>TeslaMate-Datenbankpasswort</value>
+  </data>
+  <data name="BaseConfiguration.MosquitoServer.DisplayName" xml:space="preserve">
+    <value>Mosquito-Servername</value>
+  </data>
+  <data name="BaseConfiguration.MqqtClientId.DisplayName" xml:space="preserve">
+    <value>MQTT-Client-ID</value>
+  </data>
+  <data name="BaseConfiguration.DynamicHomeBatteryMinSoc.DisplayName" xml:space="preserve">
+    <value>Dynamischer Mindest-SoC der Hausbatterie</value>
+  </data>
+  <data name="BaseConfiguration.DynamicHomeBatteryMinSoc.HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, wird der Mindest-SoC der Hausbatterie anhand der Solarprognosen automatisch gesetzt, sodass sie zum Tagesende voll ist. Diese Einstellung wird erst nach mindestens zwei Wochen aktivierter Solarprognosen empfohlen.</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryMinSoc.DisplayName" xml:space="preserve">
+    <value>Mindest-SoC der Hausbatterie</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryMinSoc.HelperText" xml:space="preserve">
+    <value>Legen Sie den SoC fest, auf den Ihre Hausbatterie geladen wird, bevor Fahrzeuge mit voller Leistung laden. Leer lassen, falls keine Hausbatterie vorhanden ist.</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryMinDynamicMinSoc.HelperText" xml:space="preserve">
+    <value>Reserve, die immer als Mindest-SoC gesetzt wird.</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryMaxDynamicMinSoc.HelperText" xml:space="preserve">
+    <value>Der Mindest-SoC wird nie höher als dieser Wert gesetzt.</value>
+  </data>
+  <data name="BaseConfiguration.DynamicMinSocCalculationBuffer.HelperText" xml:space="preserve">
+    <value>Stellt sicher, dass die Hausbatterie nicht leer läuft, selbst wenn Vorhersagen ungenau sind oder der Verbrauch höher ist als erwartet.</value>
+  </data>
+  <data name="BaseConfiguration.ForceFullHomeBatteryBySunset.HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, lädt das System die Hausbatterie bis zum Sonnenuntergang voll. Wenn deaktiviert, wird nur sichergestellt, dass sie bis zum nächsten Sonnenaufgang nicht leer wird.</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryChargingPower.DisplayName" xml:space="preserve">
+    <value>Ziel-Ladeleistung der Hausbatterie</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryChargingPower.HelperText" xml:space="preserve">
+    <value>Legen Sie die Leistung fest, mit der die Hausbatterie geladen wird, solange der SoC unter dem Mindestwert liegt. Leer lassen, wenn keine Hausbatterie vorhanden ist.</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryDischargingPower.DisplayName" xml:space="preserve">
+    <value>Ziel-Entladeleistung der Hausbatterie</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryDischargingPower.HelperText" xml:space="preserve">
+    <value>Wird verwendet, um die Hausbatterie zu entladen, wenn dies in einem Ladeziel oder direkt am Fahrzeug aktiviert ist.</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryUsableEnergy.DisplayName" xml:space="preserve">
+    <value>Nutzbare Energie der Hausbatterie</value>
+  </data>
+  <data name="BaseConfiguration.HomeBatteryUsableEnergy.HelperText" xml:space="preserve">
+    <value>Tragen Sie die nutzbare Energie Ihrer Hausbatterie ein.</value>
+  </data>
+  <data name="BaseConfiguration.DischargeHomeBatteryToMinSocDuringDay.HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, entlädt TSC die Hausbatterie tagsüber bis zum Mindest-SoC. Hinweis: Das Laden von Autos startet erst, wenn die Differenz zwischen aktuellem SoC und Mindest-SoC mindestens 10 % beträgt.</value>
+  </data>
+  <data name="BaseConfiguration.CarChargeLoss.HelperText" xml:space="preserve">
+    <value>Energieverlust beim Laden von Autos. Wird verwendet, um Ladepläne anhand der Batteriekapazität zu berechnen.</value>
+  </data>
+  <data name="BaseConfiguration.MaxCombinedCurrent.DisplayName" xml:space="preserve">
+    <value>Maximaler Gesamtstrom</value>
+  </data>
+  <data name="BaseConfiguration.MaxCombinedCurrent.HelperText" xml:space="preserve">
+    <value>Begrenzen Sie den maximal kombinierten Strom pro Phase aller Fahrzeuge. Beispiel: Wenn zwei Fahrzeuge mit je 16 A laden können, Ihre Installation aber nur 20 A pro Phase zulässt, stellen Sie hier 20 A ein. Nutzt ein Fahrzeug 16 A, bleiben für das andere 4 A.</value>
+  </data>
+  <data name="BaseConfiguration.MaxInverterAcPower.DisplayName" xml:space="preserve">
+    <value>Maximale AC-Leistung des Wechselrichters</value>
+  </data>
+  <data name="BaseConfiguration.MaxInverterAcPower.HelperText" xml:space="preserve">
+    <value>Wenn Sie einen Hybrid-Wechselrichter mit mehr DC- als AC-Leistung haben, geben Sie hier die maximale AC-Leistung an. In den meisten Fällen kann dieses Feld leer bleiben.</value>
+  </data>
+  <data name="BaseConfiguration.UseTeslaMateIntegration.DisplayName" xml:space="preserve">
+    <value>TeslaMate-Integration verwenden</value>
+  </data>
+  <data name="BaseConfiguration.UseTeslaMateIntegration.HelperText" xml:space="preserve">
+    <value>Wenn Sie TeslaMate nutzen, können Sie hier aktivieren, dass berechnete Ladekosten aus TSC in TeslaMate übernommen werden. Hinweis: In TeslaMate werden die Kosten nur alle 24 Stunden aktualisiert.</value>
+  </data>
+  <data name="BaseConfiguration.UseTeslaMateAsDataSource.DisplayName" xml:space="preserve">
+    <value>TeslaMate als Datenquelle verwenden</value>
+  </data>
+  <data name="BaseConfiguration.UseTeslaMateAsDataSource.HelperText" xml:space="preserve">
+    <value>Wenn aktiviert, wird TeslaMate MQTT als Datenquelle genutzt. Ist die Option deaktiviert, wird die Tesla-API direkt verwendet. Ohne TeslaMate ist diese Einstellung wirkungslos, da immer die Tesla-API genutzt wird.</value>
+  </data>
+  <data name="BaseConfiguration.HomeGeofenceRadius.DisplayName" xml:space="preserve">
+    <value>Radius zu Hause</value>
+  </data>
+  <data name="BaseConfiguration.HomeGeofenceRadius.HelperText" xml:space="preserve">
+    <value>Vergrößern oder verkleinern Sie den Radius des Home-Geofence. Werte unter 50 m werden nicht empfohlen.</value>
+  </data>
+  <data name="NotChargingReasons.CarFullyCharged" xml:space="preserve">
+    <value>Fahrzeug ist vollständig geladen</value>
+  </data>
+  <data name="Components.NotChargingReasons.Heading" xml:space="preserve">
+    <value>{0} Gründe, warum der Ladepunkt mit einer anderen Leistung lädt als erwartet</value>
+  </data>
+  <data name="Components.NotChargingReasons.Remaining" xml:space="preserve">
+    <value>verbleibend</value>
+  </data>
+  <data name="Components.NotChargingReasons.ReasonWithCountdown" xml:space="preserve">
+    <value>{0} ({1} verbleibend)</value>
+  </data>
+  <data name="Components.NotChargingReasons.NextEnding" xml:space="preserve">
+    <value>{0}:</value>
+  </data>
+</root>

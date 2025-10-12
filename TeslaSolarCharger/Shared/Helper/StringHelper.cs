@@ -1,20 +1,30 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 using TeslaSolarCharger.Shared.Helper.Contracts;
+using TeslaSolarCharger.Shared.Localization;
 
 namespace TeslaSolarCharger.Shared.Helper;
 
-public class StringHelper(ILogger<StringHelper> logger) : IStringHelper
+public class StringHelper : IStringHelper
 {
+    private readonly ILogger<StringHelper> _logger;
+    private readonly IAppStringLocalizer _localizer;
+
+    public StringHelper(ILogger<StringHelper> logger, IAppStringLocalizer localizer)
+    {
+        _logger = logger;
+        _localizer = localizer;
+    }
+
     public string MakeNonWhiteSpaceCapitalString(string inputString)
     {
-        logger.LogTrace("{method}({inputString})", nameof(MakeNonWhiteSpaceCapitalString), inputString);
+        _logger.LogTrace("{method}({inputString})", nameof(MakeNonWhiteSpaceCapitalString), inputString);
         return string.Concat(inputString.ToUpper().Where(c => !char.IsWhiteSpace(c)));
     }
 
     public string GenerateFriendlyStringWithOutIdSuffix(string inputString)
     {
-        logger.LogTrace("{method}({inputString})", nameof(GenerateFriendlyStringWithOutIdSuffix), inputString);
+        _logger.LogTrace("{method}({inputString})", nameof(GenerateFriendlyStringWithOutIdSuffix), inputString);
         var friendlyString = GenerateFriendlyStringFromPascalString(inputString);
         if (friendlyString.EndsWith(" Id"))
         {
@@ -32,6 +42,11 @@ public class StringHelper(ILogger<StringHelper> logger) : IStringHelper
 
     public string GenerateFriendlyStringFromPascalString(string inputString)
     {
+        if (_localizer.TryGetValue(inputString, out var localizedValue) && !string.IsNullOrWhiteSpace(localizedValue))
+        {
+            return localizedValue;
+        }
+
         return Regex.Replace(inputString, "(\\B[A-Z])", " $1");
     }
 }

@@ -1,11 +1,13 @@
 ﻿@using TeslaSolarCharger.Client.Services.Contracts
 @using TeslaSolarCharger.Shared.Contracts
 @using TeslaSolarCharger.Shared.Dtos.Home
+@using TeslaSolarCharger.Shared.Localization
 @using TeslaSolarCharger.Shared.SignalRClients
 @inject IHomeService HomeService
 @inject IDateTimeProvider DateTimeProvider
 @inject ILogger<NotChargingAtExpectedPowerReasonsComponent> Logger
 @inject ISignalRStateService SignalRStateService
+@inject IAppStringLocalizer AppStringLocalizer
 
 @implements IDisposable
 
@@ -27,7 +29,7 @@ else
                             if (remainingTime.HasValue)
                             {
                                 <div>
-                                    @($"{nextEndingReason.Reason}:")
+                                    @(AppStringLocalizer[LocalizationKeys.Components.NotChargingReasons.NextEndingKey, GetLocalizedReason(nextEndingReason)])
                                     <span><MudChip T="string"
                                                    Color="Color.Primary"
                                                    Size="Size.Small"
@@ -40,7 +42,7 @@ else
                         }
                         else
                         {
-                            <div>@($"{_elements.Count} reason(s) why loadpoint charges with different power than you might expect")</div>
+                            <div>@(AppStringLocalizer[LocalizationKeys.Components.NotChargingReasons.HeadingKey, _elements.Count])</div>
                         }
                     }
                     @if (_elements.Count > 0)
@@ -58,14 +60,14 @@ else
                         <li>
                             @if (element.ReasonEndTime == default)
                             {
-                                @element.Reason
+                                @GetLocalizedReason(element)
                             }
                             else
                             {
                                 var remainingTime = GetRemainingTime(element.ReasonEndTime.Value);
                                 @if (remainingTime.HasValue)
                                 {
-                                    @($"{element.Reason} (")
+                                    <span>@GetLocalizedReason(element) (</span>
                                     <span>
                                         <MudChip T="string"
                                                  Color="Color.Primary"
@@ -74,11 +76,11 @@ else
                                             @(FormatTimeSpan(remainingTime.Value))
                                         </MudChip>
                                     </span>
-                                    <span>remaining)</span>
+                                    <span>@AppStringLocalizer[LocalizationKeys.Components.NotChargingReasons.RemainingKey])</span>
                                 }
                                 else
                                 {
-                                    @(element.Reason)
+                                    @GetLocalizedReason(element)
                                 }
                             }
                         </li>
@@ -174,9 +176,21 @@ else
             .FirstOrDefault();
     }
 
-    private string FormatTimeSpan(TimeSpan timeSpan)
+    private string FormatTimeSpan(TimeSpan timeSpan) => timeSpan.ToString(@"mm\:ss");
+
+    private string GetLocalizedReason(DtoNotChargingWithExpectedPowerReason reason)
     {
-        return timeSpan.ToString(@"mm\:ss");
+        if (reason.HasResourceKey && !string.IsNullOrWhiteSpace(reason.ResourceKey))
+        {
+            if (reason.FormatParameters.Count > 0)
+            {
+                return AppStringLocalizer[reason.ResourceKey, reason.FormatParameters.ToArray()];
+            }
+
+            return AppStringLocalizer[reason.ResourceKey];
+        }
+
+        return reason.Reason ?? string.Empty;
     }
 
     public void Dispose()

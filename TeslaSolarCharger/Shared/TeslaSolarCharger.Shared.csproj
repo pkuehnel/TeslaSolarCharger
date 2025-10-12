@@ -32,4 +32,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\TeslaSolarCharger.SharedModel\TeslaSolarCharger.SharedModel.csproj" />
   </ItemGroup>
+
 </Project>

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using TeslaSolarCharger.Shared.Attributes;
+using TeslaSolarCharger.Shared.Localization;
 
 namespace TeslaSolarCharger.Shared.Dtos.BaseConfiguration;
 
@@ -19,8 +20,8 @@ public class BaseConfigurationBase
     public Dictionary<string, string> HomeBatterySocHeaders { get; set; } = new();
     public string? HomeBatteryPowerMqttTopic { get; set; }
     public string? HomeBatteryPowerUrl { get; set; }
-    [DisplayName("HomeBatteryPowerInversion Url")]
-    [HelperText("Use this if you have to dynamically invert the home battery power. Note: Only 0 and 1 are allowed as response. As far as I know this is only needed with Sungrow Inverters.")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.HomeBatteryPowerInversionUrl_DisplayName)]
+    [HelperText(LocalizationKeys.BaseConfiguration.HomeBatteryPowerInversionUrl_HelperText)]
     public string? HomeBatteryPowerInversionUrl { get; set; }
     public Dictionary<string, string> HomeBatteryPowerHeaders { get; set; } = new();
     public Dictionary<string, string> HomeBatteryPowerInversionHeaders { get; set; } = new();
@@ -32,17 +33,17 @@ public class BaseConfigurationBase
     public Dictionary<string, string> CurrentInverterPowerHeaders { get; set; } = new();
     public bool IsModbusCurrentInverterPowerUrl { get; set; }
     [Required]
-    [DisplayName("Power Change Interval")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.UpdateIntervalSeconds_DisplayName)]
     [Postfix("s")]
-    [HelperText("Every x seconds it is checked if any power changes are required.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.UpdateIntervalSeconds_HelperText)]
     public int UpdateIntervalSeconds { get; set; } = 30;
     [Required]
     [Postfix("s")]
-    [HelperText("Be cautious when setting values below 25 seconds as this might result in unexpected bahaviour as cars or charging stations might take some time to update the power.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.SkipPowerChangesOnLastAdjustmentNewerThanSeconds_HelperText)]
     public int SkipPowerChangesOnLastAdjustmentNewerThanSeconds { get; set; } = 25;
     [Required]
     [Range(1, int.MaxValue)]
-    [DisplayName("Solar power refresh interval")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.PvValueUpdateIntervalSeconds_DisplayName)]
     [Postfix("s")]
     public int? PvValueUpdateIntervalSeconds { get; set; } = 1;
     [Required]
@@ -53,26 +54,26 @@ public class BaseConfigurationBase
     public string GeoFence { get; set; } = "Home";
     [Required]
     [Range(1, int.MaxValue)]
-    [DisplayName("Time with enough solar power until charging starts")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.MinutesUntilSwitchOn_DisplayName)]
     [Postfix("min")]
     public int MinutesUntilSwitchOn { get; set; } = 5;
     [Required]
     [Range(1, int.MaxValue)]
-    [DisplayName("Time without enough solar power until charging stops")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.MinutesUntilSwitchOff_DisplayName)]
     [Postfix("min")]
     public int MinutesUntilSwitchOff { get; set; } = 5;
     [Required]
-    [DisplayName("Power Buffer")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.PowerBuffer_DisplayName)]
     [Postfix("W")]
-    [HelperText("Set values higher than 0 to always have some overage (power to grid). Set values lower than 0 to always consume some power from the grid.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.PowerBuffer_HelperText)]
     public int PowerBuffer { get; set; } = 0;
-    [HelperText("If enabled, the configured power buffer is displayed on the home screen, including the option to directly change it.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.AllowPowerBufferChangeOnHome_HelperText)]
     public bool AllowPowerBufferChangeOnHome { get; set; }
-    [HelperText("If enabled, your home geofence location is transfered to the Solar4Car.com servers as well as to the servers of www.visualcrossing.com. At no point will your location data be linked with other data.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.PredictSolarPowerGeneration_HelperText)]
     public bool PredictSolarPowerGeneration { get; set; }
-    [HelperText("If enabled, when a target Soc is set not only grid prices but also estimated solar power generation is used to schedule charging.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.UsePredictedSolarPowerGenerationForChargingSchedules_HelperText)]
     public bool UsePredictedSolarPowerGenerationForChargingSchedules { get; set; }
-    [HelperText("This is in an early beta and might not behave like expected. Loading might take longer than 30 seconds or never load on low performance devices like Raspery Pi 3. This will be fixed in a future update.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.ShowEnergyDataOnHome_HelperText)]
     public bool ShowEnergyDataOnHome { get; set; }
     public string? CurrentPowerToGridJsonPattern { get; set; }
     public decimal CurrentPowerToGridCorrectionFactor { get; set; } = 1;
@@ -82,28 +83,28 @@ public class BaseConfigurationBase
     public decimal HomeBatterySocCorrectionFactor { get; set; } = 1;
     public string? HomeBatteryPowerJsonPattern { get; set; }
     public decimal HomeBatteryPowerCorrectionFactor { get; set; } = 1;
-    [DisplayName("Telegram Bot Key")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.TelegramBotKey_DisplayName)]
     public string? TelegramBotKey { get; set; }
-    [DisplayName("Telegram Channel Id")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.TelegramChannelId_DisplayName)]
     public string? TelegramChannelId { get; set; }
-    [HelperText("If enabled detailed error information are sent via Telegram so developers can find the root cause. This is not needed for normal usage.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.SendStackTraceToTelegram_HelperText)]
     public bool SendStackTraceToTelegram { get; set; }
-    [DisplayName("TeslaMate Database Host")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.TeslaMateDbServer_DisplayName)]
     public string? TeslaMateDbServer { get; set; }
-    [DisplayName("TeslaMate Database Server Port")]
-    [HelperText("You can use the internal port of the TeslaMate database container")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.TeslaMateDbPort_DisplayName)]
+    [HelperText(LocalizationKeys.BaseConfiguration.TeslaMateDbPort_HelperText)]
     public int? TeslaMateDbPort { get; set; }
-    [DisplayName("TeslaMate Database Name")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.TeslaMateDbDatabaseName_DisplayName)]
     public string? TeslaMateDbDatabaseName { get; set; }
-    [DisplayName("TeslaMate Database Username")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.TeslaMateDbUser_DisplayName)]
     public string? TeslaMateDbUser { get; set; }
     [DataType(DataType.Password)]
-    [DisplayName("TeslaMate Database Server Password")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.TeslaMateDbPassword_DisplayName)]
     public string? TeslaMateDbPassword { get; set; }
-    [DisplayName("Mosquito servername")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.MosquitoServer_DisplayName)]
     public string? MosquitoServer { get; set; }
     [Required]
-    [DisplayName("Mqqt ClientId")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.MqqtClientId_DisplayName)]
     public string MqqtClientId { get; set; } = "TeslaSolarCharger";
     public string? CurrentPowerToGridXmlPattern { get; set; }
     public string? CurrentPowerToGridXmlAttributeHeaderName { get; set; }
@@ -122,64 +123,62 @@ public class BaseConfigurationBase
     public string? HomeBatteryPowerXmlAttributeHeaderValue { get; set; }
     public string? HomeBatteryPowerXmlAttributeValueName { get; set; }
 
-    [DisplayName("Dynamic Home Battery Min Soc")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.DynamicHomeBatteryMinSoc_DisplayName)]
     [Postfix("%")]
-    [HelperText("If enabled the Home Battery Min Soc is automatically set based on solar predictions to make sure the home battery is fully charged at the end of the day. This setting is only recommended after having solar predictions enabled for at least two weeks.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.DynamicHomeBatteryMinSoc_HelperText)]
     public bool? DynamicHomeBatteryMinSoc { get; set; }
-    [DisplayName("Home Battery Minimum SoC")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.HomeBatteryMinSoc_DisplayName)]
     [Postfix("%")]
-    [HelperText("Set the SoC your home battery should get charged to before cars start to use full power. Leave empty if you do not have a home battery")]
+    [HelperText(LocalizationKeys.BaseConfiguration.HomeBatteryMinSoc_HelperText)]
     public int? HomeBatteryMinSoc { get; set; }
     [Postfix("%")]
-    [HelperText("Reserve that is always set as min SoC.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.HomeBatteryMinDynamicMinSoc_HelperText)]
     public int HomeBatteryMinDynamicMinSoc { get; set; } = 5;
     [Postfix("%")]
-    [HelperText("Min SoC is never set higher than this value.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.HomeBatteryMaxDynamicMinSoc_HelperText)]
     public int HomeBatteryMaxDynamicMinSoc { get; set; } = 95;
     [Postfix("%")]
-    [HelperText("Used to make sure your home battery does not run out of power even if weather predictions are not correct or your house uses more energy than anticipated.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.DynamicMinSocCalculationBuffer_HelperText)]
     public int DynamicMinSocCalculationBuffer { get; set; } = 50;
-    [HelperText("If enabled, the system charges the home battery so it is full by sunset. If disabled, the system only ensures the battery does not run empty before the next sunrise.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.ForceFullHomeBatteryBySunset_HelperText)]
     public bool ForceFullHomeBatteryBySunset { get; set; } = true;
-    [DisplayName("Home Battery Target charging power")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.HomeBatteryChargingPower_DisplayName)]
     [Postfix("W")]
-    [HelperText(
-        "Set the power your home battery should charge with as long as SoC is below set minimum SoC. Leave empty if you do not have a home battery")]
+    [HelperText(LocalizationKeys.BaseConfiguration.HomeBatteryChargingPower_HelperText)]
     public int? HomeBatteryChargingPower { get; set; }
-    [DisplayName("Home Battery target discharging power")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.HomeBatteryDischargingPower_DisplayName)]
     [Postfix("W")]
-    [HelperText(
-        "Used to discharge the home battery when option is set in either a charging target or directly at the car.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.HomeBatteryDischargingPower_HelperText)]
     public int? HomeBatteryDischargingPower { get; set; }
-    [DisplayName("Home Battery Usable energy")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.HomeBatteryUsableEnergy_DisplayName)]
     [Postfix("kWh")]
-    [HelperText("Set the usable energy your home battery has.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.HomeBatteryUsableEnergy_HelperText)]
     public double? HomeBatteryUsableEnergy { get; set; }
-    [HelperText("When enabled TSC discharges the home battery to its Min Soc after sunrise and before sunset. Note: Charging of cars is only started if minimum difference between actual home battery soc and min soc is at least 10%.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.DischargeHomeBatteryToMinSocDuringDay_HelperText)]
     public bool DischargeHomeBatteryToMinSocDuringDay { get; set; }
     [Postfix("%")]
-    [HelperText("Energy lost when charging cars. Is used to calculate charging schedules based on battery capacity.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.CarChargeLoss_HelperText)]
     public int CarChargeLoss { get; set; } = 15;
-    [DisplayName("Max combined current")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.MaxCombinedCurrent_DisplayName)]
     [Postfix("A")]
-    [HelperText("Set a value if you want to reduce the max combined used current per phase of all cars. E.g. if you have two cars each set to max 16A but your installation can only handle 20A per phase you can set 20A here. So if one car uses 16A per phase the other car can only use 4A per phase. Note: Power is distributed based on the set car priorities.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.MaxCombinedCurrent_HelperText)]
     public int? MaxCombinedCurrent { get; set; }
-    [DisplayName("Max Inverter AC Power")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.MaxInverterAcPower_DisplayName)]
     [Postfix("W")]
-    [HelperText("If you have a hybrid inverter that has more DC than AC power insert the maximum AC Power here. This is a very rare, so in most cases you can leave this field empty.")]
+    [HelperText(LocalizationKeys.BaseConfiguration.MaxInverterAcPower_HelperText)]
     public int? MaxInverterAcPower { get; set; }
     public string? BleApiBaseUrl { get; set; }
-    [DisplayName("Use TeslaMate Integration")]
-    [HelperText("When you use TeslaMate you can enable this so calculated charging costs from TSC are set in TeslaMate. Note: The charging costs in TeslaMate are only updated ever 24 hours.")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.UseTeslaMateIntegration_DisplayName)]
+    [HelperText(LocalizationKeys.BaseConfiguration.UseTeslaMateIntegration_HelperText)]
     public bool UseTeslaMateIntegration { get; set; }
-    [DisplayName("Use TeslaMate as Data Source")]
-    [HelperText("If enabled TeslaMate MQTT is used as datasource. If disabled Tesla API is directly called. Note: If you use TSC without TeslaMate the setting here does not matter. Then the Tesla API is used always.")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.UseTeslaMateAsDataSource_DisplayName)]
+    [HelperText(LocalizationKeys.BaseConfiguration.UseTeslaMateAsDataSource_HelperText)]
     public bool UseTeslaMateAsDataSource { get; set; }
     public double HomeGeofenceLongitude { get; set; } = 13.3761736; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
     public double HomeGeofenceLatitude { get; set; } = 52.5185238; //Do not change the default value as depending on this the Geofence from TeslaMate is converted or not
-    [DisplayName("Home Radius")]
+    [DisplayName(LocalizationKeys.BaseConfiguration.HomeGeofenceRadius_DisplayName)]
     [Postfix("m")]
-    [HelperText("Increase or decrease the radius of the home geofence. Note: Values below 50m are note recommended")]
+    [HelperText(LocalizationKeys.BaseConfiguration.HomeGeofenceRadius_HelperText)]
     public int HomeGeofenceRadius { get; set; } = 50;
 
     public FrontendConfiguration? FrontendConfiguration { get; set; }
