@@ -87,7 +87,6 @@ builder.Services.AddKeyedSingleton(StaticConstants.InMemoryLogDependencyInjectio
 var fileLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Fatal);
 builder.Services.AddKeyedSingleton(StaticConstants.FileLogDependencyInjectionKey, fileLevelSwitch);
 
-
 var app = builder.Build();
 
 var configurationWrapper = app.Services.GetRequiredService<IConfigurationWrapper>();
@@ -143,6 +142,13 @@ app.UseAntiforgery();
 app.UseMiddleware<StartupCheckMiddleware>();
 
 app.MapStaticAssets();
+
+var supportedCultures = new[] { "en-US", "de-DE" };
+app.UseRequestLocalization(new RequestLocalizationOptions()
+    .SetDefaultCulture(supportedCultures[0])
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures));
+
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(TeslaSolarCharger.Client._Imports).Assembly);
