@@ -1,4 +1,5 @@
 @page "/BaseConfiguration"
+@using Microsoft.Extensions.Localization
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Wrapper
 @using TeslaSolarCharger.Shared.Dtos.BaseConfiguration
@@ -6,11 +7,12 @@
 
 @inject ISnackbar Snackbar
 @inject IHttpClientHelper HttpClientHelper
+@inject IStringLocalizer<BaseConfiguration> Localizer
 
 
-<PageTitle>Base Configuration</PageTitle>
+<PageTitle>@Localizer["Base Configuration"]</PageTitle>
 
-<h1>Base Configuration</h1>
+<h1>@Localizer["Base Configuration"]</h1>
 
 @if (_dtoBaseConfiguration == null)
 {
@@ -21,10 +23,10 @@ else
     <EditFormComponent T="DtoBaseConfiguration" WrappedElement="@(_dtoBaseConfiguration)"
                        OnAfterSuccessfullSubmit="ShowSuccessMessage"
                        SubmitUrl="@("api/BaseConfiguration/UpdateBaseConfiguration")">
-        <h3>General:</h3>
+        <h3>@Localizer["General:"]</h3>
         <GenericInput For="() => _dtoBaseConfiguration.Item.MaxCombinedCurrent" />
         <hr />
-        <h3>TeslaMate:</h3>
+        <h3>@Localizer["TeslaMate:"]</h3>
         <GenericInput T="bool"
         For="() => _dtoBaseConfiguration.Item.UseTeslaMateIntegration"
         OnValueChanged="_ => InvokeAsync(StateHasChanged)"></GenericInput>
@@ -42,15 +44,15 @@ else
         }
 
 
-        <h3>Home Geofence</h3>
+        <h3>@Localizer["Home Geofence"]</h3>
         <div class="mb-3">
             <MapComponent Longitude="_dtoBaseConfiguration.Item.HomeGeofenceLongitude"
             Latitude="_dtoBaseConfiguration.Item.HomeGeofenceLatitude"
             Radius="_dtoBaseConfiguration.Item.HomeGeofenceRadius"
             LatitudeChanged="@(newLatitude => _dtoBaseConfiguration.Item.HomeGeofenceLatitude = newLatitude)"
-            LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude; Snackbar.Add("To update the location, click the save button on the bottom of the page", Severity.Info); })"></MapComponent>
+            LongitudeChanged="@(newLongitude => { _dtoBaseConfiguration.Item.HomeGeofenceLongitude = newLongitude; Snackbar.Add(Localizer["To update the location, click the save button on the bottom of the page"], Severity.Info); })"></MapComponent>
 
-            <small class="form-text text-muted">Click on the map to select your home geofence. Within that area TSC will regulate the charging power.</small>
+            <small class="form-text text-muted">@Localizer["Click on the map to select your home geofence. Within that area TSC will regulate the charging power."]</small>
         </div>
 
         <GenericInput For="() => _dtoBaseConfiguration.Item.HomeGeofenceRadius" />
@@ -86,9 +88,9 @@ else
         <MqttValueConfigurationComponent />
 
         <div class="shadow p-3 mb-5 bg-white rounded">
-            <h3>Telegram:</h3>
-            <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">How to set up Telegram</a>
-            <div>Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,...</div>
+            <h3>@Localizer["Telegram:"]</h3>
+            <a href="https://github.com/pkuehnel/TeslaSolarCharger#telegram-integration" target="_blank">@Localizer["How to set up Telegram"]</a>
+            <div>@Localizer["Note: The Telegram bot for now only sends messages if something is not working. E.g. The car does not respond to commands, solar power values can not be refreshed,..."]</div>
             <GenericInput T="string?"
             For="() => _dtoBaseConfiguration.Item.TelegramBotKey"
             OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
@@ -96,20 +98,20 @@ else
             For="() => _dtoBaseConfiguration.Item.TelegramChannelId"
             OnValueChanged="@(_ => _telegramSettingsChanged = true)"></GenericInput>
             <GenericInput For="() => _dtoBaseConfiguration.Item.SendStackTraceToTelegram"></GenericInput>
-            <RightAlignedButtonComponent ButtonText="Send test message"
+            <RightAlignedButtonComponent ButtonText='@Localizer["Send test message"]'
             IsDisabled="_telegramSettingsChanged"
-            DisabledToolTipText="You need to save the configuration before testing it."
+            DisabledToolTipText='@Localizer["You need to save the configuration before testing it."]'
             OnButtonClicked="_ => SendTelegramTestMessage()"></RightAlignedButtonComponent>
         </div>
 
         <MudExpansionPanels>
-            <MudExpansionPanel Text="Advanced settings. Please only change values here if you know what you are doing.">
+            <MudExpansionPanel Text='@Localizer["Advanced settings. Please only change values here if you know what you are doing."]'>
                 <GenericInput For="() => _dtoBaseConfiguration.Item.UpdateIntervalSeconds" />
                 @if (_dtoBaseConfiguration.Item.SkipPowerChangesOnLastAdjustmentNewerThanSeconds < 25)
                 {
                     <MudAlert Severity="Severity.Warning"
                               ContentAlignment="HorizontalAlignment.Left">
-                        Values blelow 25 seconds are not recommended and might cause performance issues.
+                        @Localizer["Values blelow 25 seconds are not recommended and might cause performance issues."]
                     </MudAlert>
                 }
                 <GenericInput T="int"
@@ -156,7 +158,7 @@ else
 
     private void ShowSuccessMessage()
     {
-        Snackbar.Add("Saved.", Severity.Success);
+        Snackbar.Add(Localizer["Saved."], Severity.Success);
     }
 
     private async Task SendTelegramTestMessage()
@@ -164,7 +166,7 @@ else
         var result = await HttpClientHelper.SendGetRequestWithSnackbarAsync<DtoValue<string>>("api/Hello/SendTestTelegramMessage");
         if (result == default)
         {
-            Snackbar.Add("Could not get result", Severity.Error);
+            Snackbar.Add(Localizer["Could not get result"], Severity.Error);
             return;
         }
 
