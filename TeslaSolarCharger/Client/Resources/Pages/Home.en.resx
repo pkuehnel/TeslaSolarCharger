@@ -120,4 +120,31 @@
   <data name="Use my referral code for ordering any Tesla product or schedule a Demo Drive:" xml:space="preserve">
     <value>Use my referral code for ordering any Tesla product or schedule a Demo Drive:</value>
   </data>
+  <data name="Solar 4 Car" xml:space="preserve">
+    <value>Solar 4 Car</value>
+  </data>
+  <data name="No cars and no charging stations should be managed." xml:space="preserve">
+    <value>No cars and no charging stations should be managed.</value>
+  </data>
+  <data name="Check out" xml:space="preserve">
+    <value>Check out</value>
+  </data>
+  <data name="Car Settings" xml:space="preserve">
+    <value>Car Settings</value>
+  </data>
+  <data name="to add a car or" xml:space="preserve">
+    <value>to add a car or</value>
+  </data>
+  <data name="Charging Stations" xml:space="preserve">
+    <value>Charging Stations</value>
+  </data>
+  <data name="to add a charging station." xml:space="preserve">
+    <value>to add a charging station.</value>
+  </data>
+  <data name="PayPal - The safer, easier way to pay online!" xml:space="preserve">
+    <value>PayPal - The safer, easier way to pay online!</value>
+  </data>
+  <data name="Donate with PayPal button" xml:space="preserve">
+    <value>Donate with PayPal button</value>
+  </data>
 </root>

@@ -12,7 +12,7 @@
 @inject ISignalRStateService SignalRStateService
 @inject IStringLocalizer<Home> Localizer
 
-<PageTitle>Solar 4 Car</PageTitle>
+<PageTitle>@Localizer["Solar 4 Car"]</PageTitle>
 
 <MerryChristmasAndHappyNewYearComponent></MerryChristmasAndHappyNewYearComponent>
 
@@ -40,7 +40,14 @@ else
     if (_loadPoints.Count < 1)
     {
         <MudAlert Severity="Severity.Info" Class="mb-3">
-            No cars and no charging stations should be managed. Check out <MudLink Href="CarSettings">Car Settings</MudLink> to add a car or <MudLink Href="ChargingStations">Charging Stations</MudLink> to add a charging station.
+            <p>@Localizer["No cars and no charging stations should be managed."]</p>
+            <p>
+                @Localizer["Check out"]
+                <MudLink Href="CarSettings">@Localizer["Car Settings"]</MudLink>
+                @Localizer["to add a car or"]
+                <MudLink Href="ChargingStations">@Localizer["Charging Stations"]</MudLink>
+                @Localizer["to add a charging station."]
+            </p>
         </MudAlert>
     }
 }
@@ -53,7 +60,7 @@ else
 <form action="https://www.paypal.com/donate" method="post" target="_blank">
     <div style="text-align:center">
         <input type="hidden" name="hosted_button_id" value="RJMHGCTVU6TWJ" />
-        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+        <input type="image" src="DonateWithPaypal.png" border="0" name="submit" title="@Localizer["PayPal - The safer, easier way to pay online!"]" alt="@Localizer["Donate with PayPal button"]" />
         <img alt="" border="0" src="https://www.paypal.com/en_DE/i/scr/pixel.gif" width="1" height="1" />
     </div>
 </form>

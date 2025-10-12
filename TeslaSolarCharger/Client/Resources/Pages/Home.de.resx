@@ -121,4 +121,40 @@
     <value>Nutze meinen Weiteremfehlungscode um ein Teslaprodukt zu kaufen, oder um eine Probefahrt zu buchen:</value>
     <comment>Use my referral code for ordering any Tesla product or schedule a Demo Drive:</comment>
   </data>
+  <data name="Solar 4 Car" xml:space="preserve">
+    <value>Solar 4 Car</value>
+    <comment>Solar 4 Car</comment>
+  </data>
+  <data name="No cars and no charging stations should be managed." xml:space="preserve">
+    <value>Es sollten keine Autos und keine Ladestationen verwaltet werden.</value>
+    <comment>No cars and no charging stations should be managed.</comment>
+  </data>
+  <data name="Check out" xml:space="preserve">
+    <value>Schau dir</value>
+    <comment>Check out</comment>
+  </data>
+  <data name="Car Settings" xml:space="preserve">
+    <value>Fahrzeugeinstellungen</value>
+    <comment>Car Settings</comment>
+  </data>
+  <data name="to add a car or" xml:space="preserve">
+    <value>an, um ein Auto hinzuzufügen oder</value>
+    <comment>to add a car or</comment>
+  </data>
+  <data name="Charging Stations" xml:space="preserve">
+    <value>Ladestationen</value>
+    <comment>Charging Stations</comment>
+  </data>
+  <data name="to add a charging station." xml:space="preserve">
+    <value>um eine Ladestation hinzuzufügen.</value>
+    <comment>to add a charging station.</comment>
+  </data>
+  <data name="PayPal - The safer, easier way to pay online!" xml:space="preserve">
+    <value>PayPal – Die sichere, einfache Art, online zu bezahlen!</value>
+    <comment>PayPal - The safer, easier way to pay online!</comment>
+  </data>
+  <data name="Donate with PayPal button" xml:space="preserve">
+    <value>Spenden mit PayPal-Schaltfläche</value>
+    <comment>Donate with PayPal button</comment>
+  </data>
 </root>
