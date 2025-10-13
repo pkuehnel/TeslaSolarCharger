@@ -1,8 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using TeslaSolarCharger.Shared.Helper;
 using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
+using TeslaSolarCharger.Shared.Localization;
+using TeslaSolarCharger.Shared.Localization.Contracts;
+using TeslaSolarCharger.Shared.Localization.Registries;
 
 namespace TeslaSolarCharger.Shared;
 
@@ -13,5 +16,12 @@ public static class ServiceCollectionExtensions
             .AddTransient<IStringHelper, StringHelper>()
             .AddTransient<IConstants, Constants>()
             .AddTransient<IValidFromToHelper, ValidFromToHelper>()
+            .AddSingleton<IPropertyLocalizationService, PropertyLocalizationService>()
+            .AddSingleton<IPropertyLocalizationRegistry, BaseConfigurationBasePropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, CarBasicConfigurationPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, ChargingStationConnectorPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, CarOverviewSettingsPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, CarChargingTargetPropertyLocalization>()
+            .AddSingleton<IPropertyLocalizationRegistry, ModbusValueResultConfigurationPropertyLocalization>()
         ;
 }

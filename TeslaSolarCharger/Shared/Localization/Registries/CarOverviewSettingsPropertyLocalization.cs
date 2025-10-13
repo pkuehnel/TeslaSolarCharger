@@ -1,0 +1,26 @@
+using TeslaSolarCharger.Shared.Dtos.Home;
+using TeslaSolarCharger.Shared.Localization;
+
+namespace TeslaSolarCharger.Shared.Localization.Registries;
+
+public class CarOverviewSettingsPropertyLocalization : PropertyLocalizationRegistry<DtoCarOverviewSettings>
+{
+    protected override void Configure()
+    {
+        Register(x => x.MinSoc,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                null,
+                "Always charge at full speed until this soc even if there is not enough solar power"),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                null,
+                "Bis zu diesem SoC immer mit voller Leistung laden, auch wenn nicht genügend Solarstrom vorhanden ist."));
+
+        Register(x => x.MaxSoc,
+            new PropertyLocalizationTranslation(LanguageCodes.English,
+                null,
+                "Stop charging at this soc even if there is enough solar power"),
+            new PropertyLocalizationTranslation(LanguageCodes.German,
+                null,
+                "Bei diesem SoC den Ladevorgang stoppen, auch wenn genügend Solarstrom vorhanden ist."));
+    }
+}
