@@ -1,38 +1,43 @@
-﻿@page "/backupAndRestore"
+@page "/backupAndRestore"
+@using System.Globalization
 @using TeslaSolarCharger.Shared
 @using TeslaSolarCharger.Shared.Dtos
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 @using TeslaSolarCharger.Shared.Resources
 @inject IJSRuntime JsRuntime
 @inject ISnackbar Snackbar
 @inject IHttpClientFactory HttpClientFactory
 @inject ILogger<BackupComponent> Logger
+@inject ITextLocalizationService TextLocalizer
 
 @implements IDisposable
 
-<h1>Backup and Restore</h1>
-<div>During the backup or restore process all TSC actions will be stopped and started again after the Backup</div>
+<h1>@T("Backup and Restore")</h1>
+<div>@T("During the backup or restore process all TSC actions will be stopped and started again after the Backup")</div>
 
-<h2>Backup</h2>
+<h2>@T("Backup")</h2>
 <div class="alert alert-warning" role="alert">
-    Note: The backup contains private information like password for your database, possibly access codes to your solar system, latest known location of your car(s),... Do not share the backup in public.
+    @T("Note: The backup contains private information like password for your database, possibly access codes to your solar system, latest known location of your car(s),... Do not share the backup in public.")
 </div>
 
 @if (_processingBackup)
 {
     <MudPaper Class="d-flex justify-end flex-grow-1 gap-4 pr-2 mb-2" Elevation="0">
         <MudAlert Severity="Severity.Info">
-            Backup creation might take a few minutes, please wait...
+            @T("Backup creation might take a few minutes, please wait...")
         </MudAlert>
     </MudPaper>
 }
 <RightAlignedButtonComponent IsDisabled="@(_processingBackup || _processingRestore)"
                              OnButtonClicked="StartBackup"
                              IsLoading="_processingBackup"
-                             ButtonText="Start Backup"></RightAlignedButtonComponent>
+                             ButtonText='@T("Start Backup")'></RightAlignedButtonComponent>
 <hr />
-<h2>Restore</h2>
+<h2>@T("Restore")</h2>
 <div class="alert alert-warning" role="alert">
-    After the restore process you need to restart the TSC container.
+    @T("After the restore process you need to restart the TSC container.")
 </div>
 <div class="mb-2">
     <MudFileUpload T="IBrowserFile" FilesChanged="SelectFile" Accept=".zip" MaximumFileCount="1">
@@ -42,7 +47,7 @@
                        Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.AttachFile">
-                Select Backup File
+                @T("Select Backup File")
             </MudButton>
         </ActivatorContent>
     </MudFileUpload>
@@ -50,7 +55,7 @@
 @if (_file != default)
 {
     <div class="mb-2">
-        @_file.Name <code>@((_file.Size * 0.000001).ToString("0.00")) MB</code>
+        @_file.Name <code>@((_file.Size * 0.000001).ToString("0.00", CultureInfo.CurrentCulture)) MB</code>
     </div>
 }
 
@@ -69,10 +74,10 @@
                              DisabledToolTipText=""
                              OnButtonClicked="StartRestore"
                              IsLoading="_processingRestore"
-                             ButtonText="Start restore"></RightAlignedButtonComponent>
+                             ButtonText='@T("Start restore")'></RightAlignedButtonComponent>
 
 <MudExpansionPanels>
-    <MudExpansionPanel Text="Automatically created backups before each update" ExpandedChanged="RefreshBackups">
+    <MudExpansionPanel Text="@T("Automatically created backups before each update")" ExpandedChanged="RefreshBackups">
         <MudDataGrid Items="_backupFiles">
             <Columns>
                 <PropertyColumn Property="x => x.FileName"></PropertyColumn>
@@ -83,7 +88,7 @@
                                    Variant="@Variant.Filled"
                                    Color="@Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Download"
-                                   OnClick="@(_ => DownloadFile(context.Item.FileName))">Download</MudButton>
+                                   OnClick="@(_ => DownloadFile(context.Item.FileName))">@T("Download")</MudButton>
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
@@ -109,19 +114,20 @@
     {
         _processingBackup = true;
         await InvokeAsync(StateHasChanged);
-    
+
         var fileName = "TSCBackup.zip";
         var cookieName = $"download_{Guid.NewGuid():N}";
         var url = $"api/BaseConfiguration/DownloadBackup?cookieName={cookieName}";
-    
+
         try
         {
-            await JsRuntime.InvokeVoidAsync("triggerFileDownloadWithCallback", 
+            await JsRuntime.InvokeVoidAsync("triggerFileDownloadWithCallback",
                 fileName, url, cookieName, _objRef, nameof(OnDownloadStarted));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error triggering download");
+            Logger.LogError(ex, "Error while starting backup download");
+            Snackbar.Add(ex.Message, Severity.Error);
             _processingBackup = false;
             await InvokeAsync(StateHasChanged);
         }
@@ -142,8 +148,8 @@
         }
         if (file.Size > MaxFileSize)
         {
-            Snackbar.Add($"{file.Name} is greater than {MaxFileSize / 1024 / 1024} and won't be uploaded."
-                , Severity.Error);
+            Snackbar.Add(string.Format(CultureInfo.CurrentCulture, T("{0} is greater than {1} and won't be uploaded."), file.Name, MaxFileSize / 1024 / 1024),
+                Severity.Error);
         }
         _file = file;
     }
@@ -153,7 +159,7 @@
         _processingRestore = true;
         if (_file == default)
         {
-            Snackbar.Add("No file selected", Severity.Error);
+            Snackbar.Add(T("No file selected"), Severity.Error);
             _processingRestore = false;
             return;
         }
@@ -184,7 +190,7 @@
                 var response = await httpClient.PostAsync("api/BaseConfiguration/RestoreBackup", content);
                 if (!response.IsSuccessStatusCode)
                 {
-                    Snackbar.Add($"Error while restoring backup: {response.ReasonPhrase}", Severity.Error);
+                    Snackbar.Add(string.Format(CultureInfo.CurrentCulture, T("Error while restoring backup: {0}"), response.ReasonPhrase), Severity.Error);
                     _processingRestore = false;
                     UploadProgress = null;
                     return;
@@ -194,13 +200,13 @@
                 await InvokeAsync(StateHasChanged);
             }
 
-            Snackbar.Add("Backup file saved. Container restart required to complete restore. Please restart the TSC container now.", Severity.Success);
+            Snackbar.Add(T("Backup file saved. Container restart required to complete restore. Please restart the TSC container now."), Severity.Success);
             _file = null;
             UploadProgress = null;
         }
         catch (Exception e)
         {
-            Snackbar.Add($"Fatal Error while restoring backup: {e.Message}", Severity.Error);
+            Snackbar.Add(string.Format(CultureInfo.CurrentCulture, T("Fatal Error while restoring backup: {0}"), e.Message), Severity.Error);
             Logger.LogError(e, "Error while restoring backup");
             UploadProgress = null;
             _processingRestore = false;
@@ -226,12 +232,12 @@
             }
             else
             {
-                Snackbar.Add("No backups found", Severity.Info);
+                Snackbar.Add(T("No backups found"), Severity.Info);
             }
         }
         catch (Exception e)
         {
-            Snackbar.Add($"Error while refreshing backups: {e.Message}", Severity.Error);
+            Snackbar.Add(string.Format(CultureInfo.CurrentCulture, T("Error while refreshing backups: {0}"), e.Message), Severity.Error);
         }
     }
 
@@ -245,4 +251,8 @@
     {
         _objRef?.Dispose();
     }
+
+    private string T(string key) =>
+        TextLocalizer.Get<BackupComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }
