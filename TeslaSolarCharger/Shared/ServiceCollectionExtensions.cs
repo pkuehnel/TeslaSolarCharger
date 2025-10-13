@@ -49,5 +49,9 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, EnergyPredictionComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, FleetApiTestComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, HiddenErrorsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, LoadpointComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, LoggedErrorsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, ManualOcppChargingComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
         ;
 }
