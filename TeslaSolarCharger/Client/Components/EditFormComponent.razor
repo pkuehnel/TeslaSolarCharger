@@ -1,8 +1,12 @@
-﻿@using Blazored.FluentValidation
+@using Blazored.FluentValidation
 @using TeslaSolarCharger.Client.Helper.Contracts
 @using TeslaSolarCharger.Client.Wrapper
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components
 
 @inject IHttpClientHelper HttpClientHelper
+@inject ITextLocalizationService TextLocalizer
 
 @typeparam T
 
@@ -21,16 +25,16 @@
                     @if (_isSubmitting)
                     {
                         <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                        <MudText Class="ms-2">Processing</MudText>
+                        <MudText Class="ms-2">@L("Processing")</MudText>
                     }
                     else
                     {
-                        <MudText>Save</MudText>
+                        <MudText>@L("Save")</MudText>
                     }
                 </MudButton>
             </MudPaper>
         </div>
-        
+
     }
 </EditForm>
 
@@ -129,4 +133,7 @@
     }
 
 
+    private string L(string key) =>
+        TextLocalizer.Get<EditFormComponentLocalizationRegistry>(key, typeof(SharedComponentLocalizationRegistry))
+        ?? key;
 }
