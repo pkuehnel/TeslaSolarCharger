@@ -6,6 +6,7 @@ using TeslaSolarCharger.Shared.Localization.Contracts;
 using TeslaSolarCharger.Shared.Localization.Registries;
 using TeslaSolarCharger.Shared.Localization.Registries.Components;
 using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage;
+using TeslaSolarCharger.Shared.Localization.Registries.Server;
 using TeslaSolarCharger.Shared.Localization.Registries.Pages;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
@@ -59,6 +60,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, LoggedErrorsComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ManualOcppChargingComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, NotChargingAtExpectedPowerReasonsComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, NotChargingWithExpectedPowerReasonLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, PowerBufferComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, InstallationInformationLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, MerryChristmasAndHappyNewYearComponentLocalizationRegistry>()
