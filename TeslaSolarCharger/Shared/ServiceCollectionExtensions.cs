@@ -31,7 +31,10 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, CarSettingsPageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeCostDetailPageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargeCostsListPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, CloudConnectionPageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargingStationsPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, HandledChargesListPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, HomePageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, FixedPriceComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, ChargingStationConnectorsComponentLocalizationRegistry>()
         ;

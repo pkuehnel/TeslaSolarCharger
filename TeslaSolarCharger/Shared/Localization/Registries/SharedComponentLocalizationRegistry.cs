@@ -21,5 +21,13 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
         Register("Loading...",
             new TextLocalizationTranslation(LanguageCodes.English, "Loading..."),
             new TextLocalizationTranslation(LanguageCodes.German, "Wird geladen..."));
+
+        Register("Car Settings",
+            new TextLocalizationTranslation(LanguageCodes.English, "Car Settings"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Fahrzeugeinstellungen"));
+
+        Register("Charging Stations",
+            new TextLocalizationTranslation(LanguageCodes.English, "Charging Stations"),
+            new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
     }
 }
