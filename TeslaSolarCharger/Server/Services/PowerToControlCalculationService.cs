@@ -8,6 +8,7 @@ using TeslaSolarCharger.Shared.Dtos.Contracts;
 using TeslaSolarCharger.Shared.Dtos.Home;
 using TeslaSolarCharger.Shared.Resources.Contracts;
 using TeslaSolarCharger.SharedModel.Enums;
+using TeslaSolarCharger.Shared.Localization.Registries.Reasons;
 
 namespace TeslaSolarCharger.Server.Services;
 
@@ -54,7 +55,8 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
                 {
                     var dummyPower = chargingLoadPoints.Sum(c => c.ChargingPower);
                     _logger.LogWarning("Use {dummyPower}W as power to control due to too old solar values {pvValuesAge}", dummyPower, pvValuesAge);
-                    notChargingWithExpectedPowerReasonHelper.AddGenericReason(new("Solar values are too old"));
+                    notChargingWithExpectedPowerReasonHelper.AddGenericReason(
+                        DtoNotChargingWithExpectedPowerReason.Create(NotChargingWithExpectedPowerReasonLocalizationKeys.SolarValuesTooOld));
                     return dummyPower;
                 }
             }
@@ -65,7 +67,11 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         _logger.LogDebug("Adding powerbuffer {powerbuffer}", buffer);
         if (buffer != 0)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Charging speed is {(buffer > 0 ? "decreased" : "increased")} due to power buffer being set to {buffer}W"));
+            var localizationKey = buffer > 0
+                ? NotChargingWithExpectedPowerReasonLocalizationKeys.ChargingSpeedDecreasedDueToPowerBuffer
+                : NotChargingWithExpectedPowerReasonLocalizationKeys.ChargingSpeedIncreasedDueToPowerBuffer;
+            notChargingWithExpectedPowerReasonHelper.AddGenericReason(
+                DtoNotChargingWithExpectedPowerReason.Create(localizationKey, null, buffer));
         }
         var averagedOverage = _settings.Overage ?? _constants.DefaultOverage;
         _logger.LogDebug("Averaged overage {averagedOverage}", averagedOverage);
@@ -196,7 +202,13 @@ public class PowerToControlCalculationService : IPowerToControlCalculationServic
         var homeBatteryMaxChargingPower = _configurationWrapper.HomeBatteryChargingPower();
         if (actualHomeBatterySoc < homeBatteryMinSoc)
         {
-            notChargingWithExpectedPowerReasonHelper.AddGenericReason(new($"Reserved {homeBatteryMaxChargingPower}W for Home battery charging as its SOC ({actualHomeBatterySoc}%) is below minimum SOC ({homeBatteryMinSoc}%)"));
+            notChargingWithExpectedPowerReasonHelper.AddGenericReason(
+                DtoNotChargingWithExpectedPowerReason.Create(
+                    NotChargingWithExpectedPowerReasonLocalizationKeys.ReservedPowerForHomeBatteryDueToLowSoc,
+                    null,
+                    homeBatteryMaxChargingPower,
+                    actualHomeBatterySoc,
+                    homeBatteryMinSoc));
             return homeBatteryMaxChargingPower ?? 0;
         }
 
