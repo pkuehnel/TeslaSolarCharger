@@ -4,6 +4,7 @@ using TeslaSolarCharger.Shared.Helper.Contracts;
 using TeslaSolarCharger.Shared.Localization;
 using TeslaSolarCharger.Shared.Localization.Contracts;
 using TeslaSolarCharger.Shared.Localization.Registries;
+using TeslaSolarCharger.Shared.Localization.Registries.Components;
 using TeslaSolarCharger.Shared.Localization.Registries.Pages;
 using TeslaSolarCharger.Shared.Resources;
 using TeslaSolarCharger.Shared.Resources.Contracts;
@@ -28,5 +29,10 @@ public static class ServiceCollectionExtensions
             .AddSingleton<ITextLocalizationRegistry, SharedComponentLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, BaseConfigurationPageLocalizationRegistry>()
             .AddSingleton<ITextLocalizationRegistry, CarSettingsPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, ChargeCostDetailPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, ChargeCostsListPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, ChargingStationsPageLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, FixedPriceComponentLocalizationRegistry>()
+            .AddSingleton<ITextLocalizationRegistry, ChargingStationConnectorsComponentLocalizationRegistry>()
         ;
 }
