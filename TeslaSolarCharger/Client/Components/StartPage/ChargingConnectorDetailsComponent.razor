@@ -3,6 +3,9 @@
 @using TeslaSolarCharger.Shared.Attributes
 @using TeslaSolarCharger.Shared.Dtos.Home
 @using TeslaSolarCharger.Shared.Enums
+@using TeslaSolarCharger.Shared.Localization.Contracts
+@using TeslaSolarCharger.Shared.Localization.Registries
+@using TeslaSolarCharger.Shared.Localization.Registries.Components.StartPage
 @using TeslaSolarCharger.Shared.SignalRClients
 
 @inject IHomeService HomeService
@@ -10,6 +13,7 @@
 @inject ILogger<ChargingConnectorDetailsComponent> Logger
 @inject ISignalRStateService SignalRStateService
 @inject IJavaScriptWrapper JavaScriptWrapper
+@inject ITextLocalizationService TextLocalizer
 
 @if (ChargingConnectorSettings == default || ChargingConnectorState == default)
 {
@@ -20,9 +24,9 @@ else
     <div>
         <MudIcon Icon="@Icons.Material.Outlined.EvStation" Class="me-1" />
         @ChargingConnectorSettings.Name
-        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)" TooltipText="connected via OCPP"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)" TooltipText="plugged in"></CustomIcon>
-        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)" TooltipText="charging"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Filled.Wifi" IsCrossedOut="@(!ChargingConnectorState.IsOcppConnected)" TooltipText="@T("connected via OCPP")"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Power" IsCrossedOut="@(!ChargingConnectorState.IsPluggedIn)" TooltipText="@T("plugged in")"></CustomIcon>
+        <CustomIcon IconName="@Icons.Material.Outlined.Bolt" IsCrossedOut="@(!ChargingConnectorState.IsCharging)" TooltipText="@T("charging")"></CustomIcon>
 
         @if (CarId != default)
         {
@@ -128,14 +132,14 @@ else
     {
         if (ChargingConnectorSettings == default || ChargingConnectorId == default)
         {
-            Snackbar.Add("Charging Connector is not set.", Severity.Error);
+            Snackbar.Add(T("Charging Connector is not set."), Severity.Error);
             return;
         }
 
         var result = await HomeService.UpdateChargingConnectorChargeMode(ChargingConnectorId.Value, arg);
         if (result.HasError)
         {
-            Snackbar.Add($"Failed to update Charge Mode: {result.ErrorMessage}", Severity.Error);
+            Snackbar.Add(string.Format(T("Failed to update Charge Mode: {0}"), result.ErrorMessage), Severity.Error);
             if (_lastKnownChargeMode != default)
             {
                 ChargingConnectorSettings.ChargeMode = _lastKnownChargeMode.Value;
@@ -145,9 +149,17 @@ else
         else
         {
             _lastKnownChargeMode = arg;
-            Snackbar.Add("Charge Mode updated successfully.", Severity.Success);
+            Snackbar.Add(T("Charge Mode updated successfully."), Severity.Success);
         }
     }
 
-    
+
+    private string T(string key)
+    {
+        return TextLocalizer.Get<ChargingConnectorDetailsComponentLocalizationRegistry>(
+                   key,
+                   typeof(CarDetailsComponentLocalizationRegistry),
+                   typeof(SharedComponentLocalizationRegistry))
+               ?? key;
+    }
 }

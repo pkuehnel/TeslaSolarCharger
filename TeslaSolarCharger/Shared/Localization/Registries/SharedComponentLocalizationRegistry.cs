@@ -29,5 +29,17 @@ public class SharedComponentLocalizationRegistry : TextLocalizationRegistry<Shar
         Register("Charging Stations",
             new TextLocalizationTranslation(LanguageCodes.English, "Charging Stations"),
             new TextLocalizationTranslation(LanguageCodes.German, "Ladestationen"));
+
+        Register("connected via OCPP",
+            new TextLocalizationTranslation(LanguageCodes.English, "connected via OCPP"),
+            new TextLocalizationTranslation(LanguageCodes.German, "über OCPP verbunden"));
+
+        Register("plugged in",
+            new TextLocalizationTranslation(LanguageCodes.English, "plugged in"),
+            new TextLocalizationTranslation(LanguageCodes.German, "eingesteckt"));
+
+        Register("charging",
+            new TextLocalizationTranslation(LanguageCodes.English, "charging"),
+            new TextLocalizationTranslation(LanguageCodes.German, "lädt"));
     }
 }
