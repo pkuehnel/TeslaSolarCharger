@@ -33,8 +33,8 @@ public interface ISettings
     ConcurrentDictionary<int, DtoOcppConnectorState> OcppConnectorStates { get; set; }
 
     ConcurrentBag<DtoChargingSchedule> ChargingSchedules { get; set; }
-    ConcurrentBag<DtoNotChargingWithExpectedPowerReason> GenericNotChargingWithExpectedPowerReasons { get; set; }
-    ConcurrentDictionary<(int? carId, int? connectorId), List<DtoNotChargingWithExpectedPowerReason>> LoadPointSpecificNotChargingWithExpectedPowerReasons { get; set; }
+    ConcurrentBag<NotChargingWithExpectedPowerReasonTemplate> GenericNotChargingWithExpectedPowerReasons { get; set; }
+    ConcurrentDictionary<(int? carId, int? connectorId), List<NotChargingWithExpectedPowerReasonTemplate>> LoadPointSpecificNotChargingWithExpectedPowerReasons { get; set; }
     ConcurrentDictionary<int, (int? carId, DateTimeOffset combinationTimeStamp)> ManualSetLoadPointCarCombinations { get; set; }
     HashSet<DtoLoadpointCombination> LatestLoadPointCombinations { get; set; }
     int? LastLoggedHomeBatterySoc { get; set; }
